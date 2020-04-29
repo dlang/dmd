@@ -455,8 +455,8 @@ if (I32) assert(tysize[TYnptr] == 4);
                 e = el_una(OPld_d, tyret, ep);
                 break;
 
-	    default:
-		assert(0);
+            default:
+                assert(0);
             }
 #undef X
         }
@@ -4106,9 +4106,9 @@ elem *toElem(Expression *e, IRState *irs)
                         // Casting from derived class to base class is a no-op
                     }
                 }
-                else if (cdfrom->cpp)
+                else if (cdfrom->isCPPclass())
                 {
-                    if (cdto->cpp)
+                    if (cdto->isCPPclass())
                     {
                         /* Casting from a C++ interface to a C++ interface
                          * is always a 'paint' operation
