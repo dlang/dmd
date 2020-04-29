@@ -394,7 +394,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     target._init(params);
     Expression._init();
     Objc._init();
-    builtin_init();
     import dmd.filecache : FileCache;
     FileCache._init();
 

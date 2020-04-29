@@ -66,10 +66,41 @@ enum ILS : int
 enum BUILTIN : int
 {
     unknown = -1,    /// not known if this is a builtin
-    no,              /// this is not a builtin
-    yes,             /// this is a builtin
+    unimp,           /// this is not a builtin
+    sin,
+    cos,
+    tan,
+    sqrt,
+    fabs,
+    ldexp,
+    log,
+    log2,
+    log10,
+    exp,
+    expm1,
+    exp2,
+    round,
+    floor,
+    ceil,
+    trunc,
+    copysign,
+    pow,
+    fmin,
+    fmax,
+    fma,
+    isnan,
+    isinfinity,
+    isfinite,
+    bsf,
+    bsr,
+    bswap,
+    popcnt,
+    yl2x,
+    yl2xp1,
+    toPrecFloat,
+    toPrecDouble,
+    toPrecReal
 }
-
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
  */
