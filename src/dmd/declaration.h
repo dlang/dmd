@@ -442,14 +442,45 @@ enum ILS
 
 enum BUILTIN
 {
-    BUILTINunknown = -1,        // not known if this is a builtin
-    BUILTINno,                  // this is not a builtin
-    BUILTINyes                  // this is a builtin
+    BUILTINunknown = -1,    /// not known if this is a builtin
+    BUILTINunimp,           /// this is not a builtin
+    BUILTINsin,
+    BUILTINcos,
+    BUILTINtan,
+    BUILTINsqrt,
+    BUILTINfabs,
+    BUILTINldexp,
+    BUILTINlog,
+    BUILTINlog2,
+    BUILTINlog10,
+    BUILTINexp,
+    BUILTINexpm1,
+    BUILTINexp2,
+    BUILTINround,
+    BUILTINfloor,
+    BUILTINceil,
+    BUILTINtrunc,
+    BUILTINcopysign,
+    BUILTINpow,
+    BUILTINfmin,
+    BUILTINfmax,
+    BUILTINfma,
+    BUILTINisnan,
+    BUILTINisinfinity,
+    BUILTINisfinite,
+    BUILTINbsf,
+    BUILTINbsr,
+    BUILTINbswap,
+    BUILTINpopcnt,
+    BUILTINyl2x,
+    BUILTINyl2xp1,
+    BUILTINtoPrecFloat,
+    BUILTINtoPrecDouble,
+    BUILTINtoPrecReal
 };
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 BUILTIN isBuiltin(FuncDeclaration *fd);
-void builtin_init();
 
 class FuncDeclaration : public Declaration
 {

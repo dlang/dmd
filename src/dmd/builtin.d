@@ -25,7 +25,43 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.stringtable;
 import dmd.tokens;
+import dmd.id;
 static import core.bitop;
+
+/**********************************
+ * Determine if function is a builtin one that we can
+ * evaluate at compile time.
+ */
+public extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
+{
+    if (fd.builtin == BUILTIN.unknown)
+    {
+        fd.builtin = determine_builtin(fd);
+    }
+    return fd.builtin;
+}
+
+/**************************************
+ * Evaluate builtin function.
+ * Return result; NULL if cannot evaluate it.
+ */
+public extern (C++) Expression eval_builtin(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    if (fd.builtin == BUILTIN.unimp)
+        return null;
+
+    switch (fd.builtin)
+    {
+        foreach(e; __traits(allMembers, BUILTIN))
+        {
+            static if (e == "unknown")
+                case BUILTIN.unknown: assert(false);
+            else
+                mixin("case BUILTIN."~e~": return eval_"~e~"(loc, fd, arguments);");
+        }
+        default: assert(0);
+    }
+}
 
 private:
 
@@ -40,20 +76,93 @@ private:
  * Returns:
  *  An Expression containing the return value of the call.
  */
-alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 
-__gshared StringTable!builtin_fp builtins;
-
-void add_builtin(const(char)[] mangle, builtin_fp fp)
+BUILTIN determine_builtin(FuncDeclaration func)
 {
-    builtins.insert(mangle, fp);
-}
+    auto fd = func.toAliasFunc();
+    if (fd.isDeprecated())
+        return BUILTIN.unimp;
+    auto m = fd.getModule();
+    if (!m || !m.md)
+        return BUILTIN.unimp;
+    const md = m.md;
+    const id2 = md.id;
 
-builtin_fp builtin_lookup(const(char)* mangle)
-{
-    if (const sv = builtins.lookup(mangle, strlen(mangle)))
-        return sv.value;
-    return null;
+    // Look for core.math, core.bitop and std.math
+    if (id2 != Id.math && id2 != Id.bitop)
+        return BUILTIN.unimp;
+
+    if (!md.packages)
+        return BUILTIN.unimp;
+    if (md.packages.length != 1)
+        return BUILTIN.unimp;
+
+    const id1 = (*md.packages)[0];
+    if (id1 != Id.core && id1 != Id.std)
+        return BUILTIN.unimp;
+    const id3 = fd.ident;
+
+    if (id1 == Id.core && id2 == Id.bitop)
+    {
+        if (id3 == Id.bsf)     return BUILTIN.bsf;
+        if (id3 == Id.bsr)     return BUILTIN.bsr;
+        if (id3 == Id.bswap)   return BUILTIN.bswap;
+        if (id3 == Id._popcnt) return BUILTIN.popcnt;
+        return BUILTIN.unimp;
+    }
+
+    // Math
+    if (id3 == Id.sin)   return BUILTIN.sin;
+    if (id3 == Id.cos)   return BUILTIN.cos;
+    if (id3 == Id.tan)   return BUILTIN.tan;
+    if (id3 == Id.atan2) return BUILTIN.unimp; // N.B unimplmeneted
+
+    if (id3 == Id._sqrt) return BUILTIN.sqrt;
+    if (id3 == Id.fabs)  return BUILTIN.fabs;
+
+    if (id3 == Id.exp)    return BUILTIN.exp;
+    if (id3 == Id.expm1)  return BUILTIN.expm1;
+    if (id3 == Id.exp2)   return BUILTIN.exp2;
+    if (id3 == Id.yl2x)   return CTFloat.yl2x_supported ? BUILTIN.yl2x : BUILTIN.unimp;
+    if (id3 == Id.yl2xp1) return CTFloat.yl2xp1_supported ? BUILTIN.yl2xp1 : BUILTIN.unimp;
+
+    if (id3 == Id.log)   return BUILTIN.log;
+    if (id3 == Id.log2)  return BUILTIN.log2;
+    if (id3 == Id.log10) return BUILTIN.log10;
+
+    if (id3 == Id.ldexp) return BUILTIN.ldexp;
+    if (id3 == Id.round) return BUILTIN.round;
+    if (id3 == Id.floor) return BUILTIN.floor;
+    if (id3 == Id.ceil)  return BUILTIN.ceil;
+    if (id3 == Id.trunc) return BUILTIN.trunc;
+
+    if (id3 == Id.fmin)     return BUILTIN.fmin;
+    if (id3 == Id.fmax)     return BUILTIN.fmax;
+    if (id3 == Id.fma)      return BUILTIN.fma;
+    if (id3 == Id.copysign) return BUILTIN.copysign;
+
+    if (id3 == Id.isnan)      return BUILTIN.isnan;
+    if (id3 == Id.isInfinity) return BUILTIN.isinfinity;
+    if (id3 == Id.isfinite)   return BUILTIN.isfinite;
+
+    // Only match pow(fp,fp) where fp is a floating point type
+    if (id3 == Id._pow)
+    {
+        if ((*fd.parameters)[0].type.isfloating() &&
+            (*fd.parameters)[1].type.isfloating())
+            return BUILTIN.pow;
+        return BUILTIN.unimp;
+    }
+
+    if (id3 != Id.toPrec)
+        return BUILTIN.unimp;
+    const(char)* me = mangleExact(fd);
+    final switch (me["_D4core4math__T6toPrecHT".length])
+    {
+        case 'd': return BUILTIN.toPrecDouble;
+        case 'e': return BUILTIN.toPrecReal;
+        case 'f': return BUILTIN.toPrecFloat;
+    }
 }
 
 Expression eval_unimp(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -328,182 +437,4 @@ Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     return new RealExp(loc, arg0.toReal(), Type.tfloat80);
-}
-
-public extern (C++) void builtin_init()
-{
-    builtins._init(113);
-    // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
-    add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
-    add_builtin("_D4core4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D4core4math4sqrtFNaNbNiNfeZe", &eval_sqrt);
-    add_builtin("_D4core4math4fabsFNaNbNiNfeZe", &eval_fabs);
-    add_builtin("_D4core4math5expm1FNaNbNiNfeZe", &eval_unimp);
-    add_builtin("_D4core4math4exp2FNaNbNiNfeZe", &eval_unimp);
-    // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D4core4math3sinFNaNbNiNeeZe", &eval_sin);
-    add_builtin("_D4core4math3cosFNaNbNiNeeZe", &eval_cos);
-    add_builtin("_D4core4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D4core4math4sqrtFNaNbNiNeeZe", &eval_sqrt);
-    add_builtin("_D4core4math4fabsFNaNbNiNeeZe", &eval_fabs);
-    add_builtin("_D4core4math5expm1FNaNbNiNeeZe", &eval_unimp);
-    // @safe @nogc pure nothrow double function(double)
-    add_builtin("_D4core4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
-    // @safe @nogc pure nothrow float function(float)
-    add_builtin("_D4core4math4sqrtFNaNbNiNffZf", &eval_sqrt);
-    // @safe @nogc pure nothrow real function(real, real)
-    add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-    if (CTFloat.yl2x_supported)
-    {
-        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
-    }
-    else
-    {
-        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
-    }
-    if (CTFloat.yl2xp1_supported)
-    {
-        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
-    }
-    else
-    {
-        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
-    }
-    // @safe @nogc pure nothrow long function(real)
-    add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
-    // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D3std4math4trig3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
-    // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D3std4math4trig3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D3std4math3expFNaNbNiNeeZe", &eval_exp);
-    add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_expm1);
-    add_builtin("_D3std4math4exp2FNaNbNiNeeZe", &eval_exp2);
-    // @safe @nogc pure nothrow real function(real, real)
-    add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-    add_builtin("_D3std4math4trig5atan2FNaNbNiNfeeZe", &eval_unimp);
-    // @safe @nogc pure nothrow T function(T, int)
-    add_builtin("_D4core4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
-
-    add_builtin("_D3std4math3logFNaNbNiNfeZe", &eval_log);
-
-    add_builtin("_D3std4math4log2FNaNbNiNfeZe", &eval_log2);
-
-    add_builtin("_D3std4math5log10FNaNbNiNfeZe", &eval_log10);
-
-    add_builtin("_D3std4math5roundFNbNiNeeZe", &eval_round);
-    add_builtin("_D3std4math5roundFNaNbNiNeeZe", &eval_round);
-
-    add_builtin("_D3std4math5floorFNaNbNiNefZf", &eval_floor);
-    add_builtin("_D3std4math5floorFNaNbNiNedZd", &eval_floor);
-    add_builtin("_D3std4math5floorFNaNbNiNeeZe", &eval_floor);
-
-    add_builtin("_D3std4math4ceilFNaNbNiNefZf", &eval_ceil);
-    add_builtin("_D3std4math4ceilFNaNbNiNedZd", &eval_ceil);
-    add_builtin("_D3std4math4ceilFNaNbNiNeeZe", &eval_ceil);
-
-    add_builtin("_D3std4math5truncFNaNbNiNeeZe", &eval_trunc);
-
-    add_builtin("_D3std4math4fminFNaNbNiNfeeZe", &eval_fmin);
-
-    add_builtin("_D3std4math4fmaxFNaNbNiNfeeZe", &eval_fmax);
-
-    add_builtin("_D3std4math__T8copysignTfTfZQoFNaNbNiNeffZf", &eval_copysign);
-    add_builtin("_D3std4math__T8copysignTdTdZQoFNaNbNiNeddZd", &eval_copysign);
-    add_builtin("_D3std4math__T8copysignTeTeZQoFNaNbNiNeeeZe", &eval_copysign);
-
-    add_builtin("_D3std4math__T3powTfTfZQjFNaNbNiNeffZf", &eval_pow);
-    add_builtin("_D3std4math__T3powTdTdZQjFNaNbNiNeddZd", &eval_pow);
-    add_builtin("_D3std4math__T3powTeTeZQjFNaNbNiNeeeZe", &eval_pow);
-
-    add_builtin("_D3std4math3fmaFNaNbNiNfeeeZe", &eval_fma);
-
-    // @trusted @nogc pure nothrow bool function(T)
-    add_builtin("_D3std4math__T5isNaNTeZQjFNaNbNiNeeZb", &eval_isnan);
-    add_builtin("_D3std4math__T5isNaNTdZQjFNaNbNiNedZb", &eval_isnan);
-    add_builtin("_D3std4math__T5isNaNTfZQjFNaNbNiNefZb", &eval_isnan);
-    add_builtin("_D3std4math__T10isInfinityTeZQpFNaNbNiNeeZb", &eval_isinfinity);
-    add_builtin("_D3std4math__T10isInfinityTdZQpFNaNbNiNedZb", &eval_isinfinity);
-    add_builtin("_D3std4math__T10isInfinityTfZQpFNaNbNiNefZb", &eval_isinfinity);
-    add_builtin("_D3std4math__T8isFiniteTeZQmFNaNbNiNeeZb", &eval_isfinite);
-    add_builtin("_D3std4math__T8isFiniteTdZQmFNaNbNiNedZb", &eval_isfinite);
-    add_builtin("_D3std4math__T8isFiniteTfZQmFNaNbNiNefZb", &eval_isfinite);
-
-    // @safe @nogc pure nothrow int function(uint)
-    add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
-    add_builtin("_D4core5bitop3bsrFNaNbNiNfkZi", &eval_bsr);
-    // @safe @nogc pure nothrow int function(ulong)
-    add_builtin("_D4core5bitop3bsfFNaNbNiNfmZi", &eval_bsf);
-    add_builtin("_D4core5bitop3bsrFNaNbNiNfmZi", &eval_bsr);
-    // @safe @nogc pure nothrow uint function(uint)
-    add_builtin("_D4core5bitop5bswapFNaNbNiNfkZk", &eval_bswap);
-    // @safe @nogc pure nothrow int function(uint)
-    add_builtin("_D4core5bitop7_popcntFNaNbNiNfkZi", &eval_popcnt);
-    // @safe @nogc pure nothrow ushort function(ushort)
-    add_builtin("_D4core5bitop7_popcntFNaNbNiNftZt", &eval_popcnt);
-    // @safe @nogc pure nothrow int function(ulong)
-    if (global.params.is64bit)
-        add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
-
-    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(float)
-    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNffZf", &eval_toPrecFloat);
-    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(double)
-    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNfdZf", &eval_toPrecFloat);
-    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(real)
-    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNfeZf", &eval_toPrecFloat);
-    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(float)
-    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNffZd", &eval_toPrecDouble);
-    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(double)
-    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNfdZd", &eval_toPrecDouble);
-    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(real)
-    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNfeZd", &eval_toPrecDouble);
-    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(float)
-    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNffZe", &eval_toPrecReal);
-    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(double)
-    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNfdZe", &eval_toPrecReal);
-    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(real)
-    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNfeZe", &eval_toPrecReal);
-}
-
-/**
- * Deinitializes the global state of the compiler.
- *
- * This can be used to restore the state set by `builtin_init` to its original
- * state.
- */
-public void builtinDeinitialize()
-{
-    builtins = builtins.init;
-}
-
-/**********************************
- * Determine if function is a builtin one that we can
- * evaluate at compile time.
- */
-public extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
-{
-    if (fd.builtin == BUILTIN.unknown)
-    {
-        builtin_fp fp = builtin_lookup(mangleExact(fd));
-        fd.builtin = fp ? BUILTIN.yes : BUILTIN.no;
-    }
-    return fd.builtin;
-}
-
-/**************************************
- * Evaluate builtin function.
- * Return result; NULL if cannot evaluate it.
- */
-public extern (C++) Expression eval_builtin(Loc loc, FuncDeclaration fd, Expressions* arguments)
-{
-    if (fd.builtin == BUILTIN.yes)
-    {
-        builtin_fp fp = builtin_lookup(mangleExact(fd));
-        assert(fp);
-        return fp(loc, fd, arguments);
-    }
-    return null;
 }

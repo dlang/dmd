@@ -113,7 +113,6 @@ void initDMD(
     version (CRuntime_Microsoft)
         import dmd.root.longdouble : initFPU;
 
-    import dmd.builtin : builtin_init;
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
@@ -150,7 +149,6 @@ void initDMD(
     target._init(global.params);
     Expression._init();
     Objc._init();
-    builtin_init();
     FileCache._init();
 
     version (CRuntime_Microsoft)
@@ -168,7 +166,6 @@ application.
 */
 void deinitializeDMD()
 {
-    import dmd.builtin : builtinDeinitialize;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
     import dmd.globals : global;
@@ -187,7 +184,6 @@ void deinitializeDMD()
     target.deinitialize();
     Expression.deinitialize();
     Objc.deinitialize();
-    builtinDeinitialize();
 }
 
 /**
