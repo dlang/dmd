@@ -2483,92 +2483,83 @@ shared static ~this()
 // Used for needLock below.
 private __gshared bool multiThreadedFlag = false;
 
-version (PPC64) version = ExternStackShell;
-
-version (ExternStackShell)
+// Calls the given delegate, passing the current thread's stack pointer to it.
+private void callWithStackShell(scope void delegate(void* sp) nothrow fn) nothrow
+in
 {
-    extern(D) public void callWithStackShell(scope void delegate(void* sp) nothrow fn) nothrow;
+    assert(fn);
 }
-else
+do
 {
-    // Calls the given delegate, passing the current thread's stack pointer to it.
-    private void callWithStackShell(scope void delegate(void* sp) nothrow fn) nothrow
-    in
+    // The purpose of the 'shell' is to ensure all the registers get
+    // put on the stack so they'll be scanned. We only need to push
+    // the callee-save registers.
+    void *sp = void;
+    version (GNU)
     {
-        assert(fn);
+        __builtin_unwind_init();
+        sp = &sp;
     }
-    do
+    else version (AsmX86_Posix)
     {
-        // The purpose of the 'shell' is to ensure all the registers get
-        // put on the stack so they'll be scanned. We only need to push
-        // the callee-save registers.
-        void *sp = void;
-        version (GNU)
+        size_t[3] regs = void;
+        asm pure nothrow @nogc
         {
-            __builtin_unwind_init();
-            sp = &sp;
-        }
-        else version (AsmX86_Posix)
-        {
-            size_t[3] regs = void;
-            asm pure nothrow @nogc
-            {
-                mov [regs + 0 * 4], EBX;
-                mov [regs + 1 * 4], ESI;
-                mov [regs + 2 * 4], EDI;
+            mov [regs + 0 * 4], EBX;
+            mov [regs + 1 * 4], ESI;
+            mov [regs + 2 * 4], EDI;
 
-                mov sp[EBP], ESP;
-            }
+            mov sp[EBP], ESP;
         }
-        else version (AsmX86_Windows)
-        {
-            size_t[3] regs = void;
-            asm pure nothrow @nogc
-            {
-                mov [regs + 0 * 4], EBX;
-                mov [regs + 1 * 4], ESI;
-                mov [regs + 2 * 4], EDI;
-
-                mov sp[EBP], ESP;
-            }
-        }
-        else version (AsmX86_64_Posix)
-        {
-            size_t[5] regs = void;
-            asm pure nothrow @nogc
-            {
-                mov [regs + 0 * 8], RBX;
-                mov [regs + 1 * 8], R12;
-                mov [regs + 2 * 8], R13;
-                mov [regs + 3 * 8], R14;
-                mov [regs + 4 * 8], R15;
-
-                mov sp[RBP], RSP;
-            }
-        }
-        else version (AsmX86_64_Windows)
-        {
-            size_t[7] regs = void;
-            asm pure nothrow @nogc
-            {
-                mov [regs + 0 * 8], RBX;
-                mov [regs + 1 * 8], RSI;
-                mov [regs + 2 * 8], RDI;
-                mov [regs + 3 * 8], R12;
-                mov [regs + 4 * 8], R13;
-                mov [regs + 5 * 8], R14;
-                mov [regs + 6 * 8], R15;
-
-                mov sp[RBP], RSP;
-            }
-        }
-        else
-        {
-            static assert(false, "Architecture not supported.");
-        }
-
-        fn(sp);
     }
+    else version (AsmX86_Windows)
+    {
+        size_t[3] regs = void;
+        asm pure nothrow @nogc
+        {
+            mov [regs + 0 * 4], EBX;
+            mov [regs + 1 * 4], ESI;
+            mov [regs + 2 * 4], EDI;
+
+            mov sp[EBP], ESP;
+        }
+    }
+    else version (AsmX86_64_Posix)
+    {
+        size_t[5] regs = void;
+        asm pure nothrow @nogc
+        {
+            mov [regs + 0 * 8], RBX;
+            mov [regs + 1 * 8], R12;
+            mov [regs + 2 * 8], R13;
+            mov [regs + 3 * 8], R14;
+            mov [regs + 4 * 8], R15;
+
+            mov sp[RBP], RSP;
+        }
+    }
+    else version (AsmX86_64_Windows)
+    {
+        size_t[7] regs = void;
+        asm pure nothrow @nogc
+        {
+            mov [regs + 0 * 8], RBX;
+            mov [regs + 1 * 8], RSI;
+            mov [regs + 2 * 8], RDI;
+            mov [regs + 3 * 8], R12;
+            mov [regs + 4 * 8], R13;
+            mov [regs + 5 * 8], R14;
+            mov [regs + 6 * 8], R15;
+
+            mov sp[RBP], RSP;
+        }
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+
+    fn(sp);
 }
 
 // Used for suspendAll/resumeAll below.
