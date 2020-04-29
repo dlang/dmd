@@ -7,7 +7,7 @@ cast(Enum5435)1
 cast(Enum5435)2
 fail_compilation/fail5435.d(38): Error: cannot implicitly convert expression `"foo"` of type `string` to `Enum5435`
 fail_compilation/fail5435.d(38):        while evaluating `pragma(msg, foo)`
-fail_compilation/fail5435.d(38): Error: cannot implicitly convert expression `3.00000` of type `double` to `Enum5435`
+fail_compilation/fail5435.d(38): Error: cannot implicitly convert expression `3.0` of type `double` to `Enum5435`
 fail_compilation/fail5435.d(38):        while evaluating `pragma(msg, foo)`
 fail_compilation/fail5435.d(39): Error: cannot implicitly convert expression `cast(Enum5435)0` of type `Enum5435` to `string`
 fail_compilation/fail5435.d(39):        while evaluating `pragma(msg, foo)`
@@ -16,14 +16,14 @@ fail_compilation/fail5435.d(39):        while evaluating `pragma(msg, foo)`
 fail_compilation/fail5435.d(39): Error: cannot implicitly convert expression `cast(Enum5435)2` of type `Enum5435` to `string`
 fail_compilation/fail5435.d(39):        while evaluating `pragma(msg, foo)`
 foo
-fail_compilation/fail5435.d(39): Error: cannot implicitly convert expression `3.00000` of type `double` to `string`
+fail_compilation/fail5435.d(39): Error: cannot implicitly convert expression `3.0` of type `double` to `string`
 fail_compilation/fail5435.d(39):        while evaluating `pragma(msg, foo)`
 0
 1
 2
 fail_compilation/fail5435.d(40): Error: cannot implicitly convert expression `"foo"` of type `string` to `int`
 fail_compilation/fail5435.d(40):        while evaluating `pragma(msg, foo)`
-fail_compilation/fail5435.d(40): Error: cannot implicitly convert expression `3.00000` of type `double` to `int`
+fail_compilation/fail5435.d(40): Error: cannot implicitly convert expression `3.0` of type `double` to `int`
 fail_compilation/fail5435.d(40):        while evaluating `pragma(msg, foo)`
 ---
 */

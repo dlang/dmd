@@ -746,13 +746,6 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
     // fmt is 'a','A','f' or 'g'
     if(fmt != 'a' && fmt != 'A')
     {
-        if (longdouble_soft(ld_readull(&x)) == x)
-        {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
-            // ((1.0 -> 1 -> 1.0) == 1.0) is true
-            // see http://en.cppreference.com/w/cpp/io/c/fprintf
-            char[5] format = ['%', '#', 'L', cast(char)fmt, 0];
-            return sprintf(str, format.ptr, ld_read(&x));
-        }
         char[3] format = ['%', cast(char)fmt, 0];
         return sprintf(str, format.ptr, ld_read(&x));
     }

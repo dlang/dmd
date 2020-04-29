@@ -45,21 +45,12 @@ void main()
     t.module_.fullSemantic;
     auto generated = t.module_.prettyPrint.toUnixLineEndings();
 
-    // For some reason the floating point number in the pretty printed code  is
-    // different on Windows and on Posix. It might be due to different C
-    // standard libraries that are most likely used to convert the floating
-    // point number to a string.
-    version (Windows)
-        enum accumulator = "0.000000";
-    else
-        enum accumulator = "0.00000";
-
     enum expected =q{module foo;
 import object;
 double average(int[] array)
 {
     immutable immutable(uint) initialLength = array.length;
-    double accumulator = %s;
+    double accumulator = 0.0;
     for (; array.length;)
     {
         {
@@ -69,7 +60,7 @@ double average(int[] array)
     }
     return accumulator / cast(double)initialLength;
 }
-}.format(accumulator);
+};
 
     assert(generated.canFind(expected));
 }
