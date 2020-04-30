@@ -557,6 +557,127 @@ private __gshared block *this_block;
 
 private void aecpgenkill(ref GlobalOptimizer go)
 {
+    /****************************
+     * Compute number of cp (copy propagation) elems.
+     * Mark cp elems by setting NFLaecp flag.
+     * Returns:
+     *      number of cp elems
+     */
+
+    int numcpelems(elem *n)
+    {
+        while (1)
+        {
+            const op = n.Eoper;
+            if (OTunary(op))
+            {
+                n.Nflags &= ~NFLaecp;
+                n = n.EV.E1;
+                continue;
+            }
+            else if (OTbinary(op))
+            {
+                /* look for elem of the form OPvar=OPvar, where they aren't the */
+                /* same variable.                                               */
+                if ((op == OPeq || op == OPstreq) &&
+                    n.EV.E1.Eoper == OPvar &&
+                    n.EV.E2.Eoper == OPvar &&
+                    !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
+                    n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
+                {
+                    n.Nflags |= NFLaecp;
+                    return numcpelems(n.EV.E1) +
+                           numcpelems(n.EV.E2) +
+                           1;
+
+                }
+                n.Nflags &= ~NFLaecp;
+                int num = numcpelems(n.EV.E2);
+                if (num)
+                    return num + numcpelems(n.EV.E1);
+                n = n.EV.E1;
+                continue;
+            }
+            else
+            {
+                n.Nflags &= ~NFLaecp;
+                return 0;
+            }
+        }
+    }
+
+    /*****************************
+     * Accumulate number of expressions in go.exptop.
+     * Set NFLaecp as a flag indicating an AE elem.
+     * Returns:
+     *      true if this elem is a possible AE elem.
+     */
+
+    int numaeelems(elem *n)
+    {
+        uint ae;
+
+        assert(n);
+        const op = n.Eoper;
+        if (OTunary(op))
+        {
+            ae = numaeelems(n.EV.E1);
+            // Disallow starred references to avoid problems with VBE's
+            // being hoisted before tests of an invalid pointer.
+            if (flowxx == VBE && op == OPind)
+                goto L1;
+        }
+        else if (OTbinary(op))
+            ae = numaeelems(n.EV.E1) & numaeelems(n.EV.E2);
+        else
+            ae = true;
+
+        if (ae && OTae(op) && !(n.Ety & (mTYvolatile | mTYshared)) &&
+            // Disallow struct AEs, because we can't handle CSEs that are structs
+            tybasic(n.Ety) != TYstruct &&
+            tybasic(n.Ety) != TYarray)
+        {
+            n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
+            go.exptop++;
+        }
+        else
+        L1:
+            n.Nflags &= ~NFLaecp;
+        return n.Nflags & NFLaecp;
+    }
+
+    /********************************
+     * Assign ae (or cp) elems to go.expnod[] (in order of evaluation).
+     */
+
+    void asgexpelems(elem *n)
+    {
+        assert(n);
+        if (OTunary(n.Eoper))
+            asgexpelems(n.EV.E1);
+        else if (ERTOL(n))
+        {
+            asgexpelems(n.EV.E2);
+            asgexpelems(n.EV.E1);
+        }
+        else if (OTbinary(n.Eoper))
+        {
+            asgexpelems(n.EV.E1);
+            asgexpelems(n.EV.E2);
+        }
+
+        if (n.Nflags & NFLaecp)              /* if an ae, cp or vbe elem     */
+        {
+            n.Eexp = go.exptop;              /* remember index into go.expnod[] */
+            go.expnod[go.exptop] = n;
+            if (go.expblk.length)
+                go.expblk[go.exptop] = this_block;
+            go.exptop++;
+        }
+        else
+            n.Eexp = 0;
+    }
+
     go.expnod.setLength(0);             // dump any existing one
 
     /* Compute number of expressions */
@@ -696,129 +817,6 @@ private void aecpgenkill(ref GlobalOptimizer go)
         b.Bin = vec_calloc(go.expnod.length);
         b.Bout = vec_calloc(go.expnod.length);
     }
-}
-
-/*****************************
- * Accumulate number of expressions in go.exptop.
- * Set NFLaecp as a flag indicating an AE elem.
- * Returns:
- *      true if this elem is a possible AE elem.
- */
-
-private int numaeelems(elem *n)
-{
-    uint ae;
-
-    assert(n);
-    const op = n.Eoper;
-    if (OTunary(op))
-    {
-        ae = numaeelems(n.EV.E1);
-        // Disallow starred references to avoid problems with VBE's
-        // being hoisted before tests of an invalid pointer.
-        if (flowxx == VBE && op == OPind)
-            goto L1;
-    }
-    else if (OTbinary(op))
-        ae = numaeelems(n.EV.E1) & numaeelems(n.EV.E2);
-    else
-        ae = true;
-
-    if (ae && OTae(op) && !(n.Ety & (mTYvolatile | mTYshared)) &&
-        // Disallow struct AEs, because we can't handle CSEs that are structs
-        tybasic(n.Ety) != TYstruct &&
-        tybasic(n.Ety) != TYarray)
-    {
-        n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
-        go.exptop++;
-    }
-    else
-    L1:
-        n.Nflags &= ~NFLaecp;
-    return n.Nflags & NFLaecp;
-}
-
-
-/****************************
- * Compute number of cp (copy propagation) elems.
- * Mark cp elems by setting NFLaecp flag.
- * Returns:
- *      number of cp elems
- */
-
-private int numcpelems(elem *n)
-{
-    while (1)
-    {
-        const op = n.Eoper;
-        if (OTunary(op))
-        {
-            n.Nflags &= ~NFLaecp;
-            n = n.EV.E1;
-            continue;
-        }
-        else if (OTbinary(op))
-        {
-            /* look for elem of the form OPvar=OPvar, where they aren't the */
-            /* same variable.                                               */
-            if ((op == OPeq || op == OPstreq) &&
-                n.EV.E1.Eoper == OPvar &&
-                n.EV.E2.Eoper == OPvar &&
-                !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
-                n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
-            {
-                n.Nflags |= NFLaecp;
-                return numcpelems(n.EV.E1) +
-                       numcpelems(n.EV.E2) +
-                       1;
-
-            }
-            n.Nflags &= ~NFLaecp;
-            int num = numcpelems(n.EV.E2);
-            if (num)
-                return num + numcpelems(n.EV.E1);
-            n = n.EV.E1;
-            continue;
-        }
-        else
-        {
-            n.Nflags &= ~NFLaecp;
-            return 0;
-        }
-    }
-}
-
-
-/********************************
- * Assign ae (or cp) elems to go.expnod[] (in order of evaluation).
- */
-
-private void asgexpelems(elem *n)
-{
-    assert(n);
-    if (OTunary(n.Eoper))
-        asgexpelems(n.EV.E1);
-    else if (ERTOL(n))
-    {
-        asgexpelems(n.EV.E2);
-        asgexpelems(n.EV.E1);
-    }
-    else if (OTbinary(n.Eoper))
-    {
-        asgexpelems(n.EV.E1);
-        asgexpelems(n.EV.E2);
-    }
-
-    if (n.Nflags & NFLaecp)              /* if an ae, cp or vbe elem     */
-    {
-        n.Eexp = go.exptop;              /* remember index into go.expnod[] */
-        go.expnod[go.exptop] = n;
-        if (go.expblk.length)
-            go.expblk[go.exptop] = this_block;
-        go.exptop++;
-    }
-    else
-        n.Eexp = 0;
 }
 
 /********************************
