@@ -1789,8 +1789,9 @@ unittest
     long tl = to!("seconds",long)(t);
     assert(tl == 1000);
 
+    import core.stdc.math : fabs;
     double td = to!("seconds",double)(t);
-    assert(_abs(td - 1000) < 0.001);
+    assert(fabs(td - 1000) < 0.001);
 }
 
 unittest
