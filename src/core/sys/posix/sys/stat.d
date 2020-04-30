@@ -30,6 +30,8 @@ else version (WatchOS)
 
 version (RISCV32) version = RISCV_Any;
 version (RISCV64) version = RISCV_Any;
+version (SPARC)   version = SPARC_Any;
+version (SPARC64) version = SPARC_Any;
 
 version (Posix):
 extern (C) nothrow @nogc:
@@ -715,7 +717,7 @@ version (CRuntime_Glibc)
         else
             static assert(stat_t.sizeof == 104);
     }
-    else version (SPARC64)
+    else version (SPARC_Any)
     {
         private
         {
@@ -737,8 +739,15 @@ version (CRuntime_Glibc)
         struct stat_t
         {
             __dev_t st_dev;
-            ushort __pad1;
-            __ino_t st_ino;
+            static if (__WORDSIZE == 64 || !__USE_FILE_OFFSET64)
+            {
+                ushort __pad1;
+                __ino_t st_ino;
+            }
+            else
+            {
+                __ino64_t st_ino;
+            }
             __mode_t st_mode;
             __nlink_t st_nlink;
             __uid_t st_uid;
@@ -790,7 +799,15 @@ version (CRuntime_Glibc)
             c_ulong __unused4;
             c_ulong __unused5;
         }
-        static assert(stat_t.sizeof == 144);
+        static if (__USE_LARGEFILE64) alias stat_t stat64_t;
+
+        static if (__WORDSIZE == 64)
+            static assert(stat_t.sizeof == 144);
+        else static if (__USE_FILE_OFFSET64)
+            static assert(stat_t.sizeof == 104);
+        else
+            static assert(stat_t.sizeof == 108);
+
     }
     else version (S390)
     {

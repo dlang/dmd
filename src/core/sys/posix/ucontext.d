@@ -647,7 +647,7 @@ version (CRuntime_Glibc)
             mcontext_t  uc_mcontext;
         }
     }
-    else version (SPARC64)
+    else version (SPARC_Any)
     {
         enum MC_NGREG = 19;
         alias mc_greg_t = c_ulong;

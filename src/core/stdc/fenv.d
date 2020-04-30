@@ -149,10 +149,10 @@ version (GNUFP)
         alias fexcept_t = uint;
     }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/sparc/fpu/bits/fenv.h
-    else version (SPARC64)
+    else version (SPARC_Any)
     {
-        alias fenv_t = ulong;
-        alias fexcept_t = ulong;
+        alias fenv_t = c_ulong;
+        alias fexcept_t = c_ulong;
     }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/s390/fpu/bits/fenv.h
     else version (IBMZ_Any)
