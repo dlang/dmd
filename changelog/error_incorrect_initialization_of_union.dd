@@ -1,0 +1,18 @@
+Turn deprecation into error incorrect initialization of union.
+
+---
+struct X
+{
+    union
+    {
+        int n;
+        float f = 3.14f;  // Error: union field `f` with default initialization `3.14F` must be before field `n`
+    }
+}
+
+union U
+{
+    int n;
+    float f = 3.14f;  // Error: union field `f` with default initialization `3.14F` must be before field `n`
+}
+---
