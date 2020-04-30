@@ -437,7 +437,7 @@ void flowcp()
 
 private void flowaecp()
 {
-    aecpgenkill();          /* Compute Bgen and Bkill for AEs or CPs */
+    aecpgenkill(go);          // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
         return;
 
@@ -555,7 +555,7 @@ private __gshared block *this_block;
  * Compute Bgen and Bkill for AEs, CPs, and VBEs.
  */
 
-private void aecpgenkill()
+private void aecpgenkill(ref GlobalOptimizer go)
 {
     go.expnod.setLength(0);             // dump any existing one
 
@@ -581,7 +581,6 @@ private void aecpgenkill()
 
     go.expblk.setLength(flowxx == VBE ? go.exptop : 0);
 
-    const uint exptopsave = go.exptop;
     go.exptop = 1;
     foreach (b; dfo[])
     {
@@ -589,15 +588,15 @@ private void aecpgenkill()
         if (b.Belem)
             asgexpelems(b.Belem);
     }
-    assert(go.exptop == exptopsave);
+    assert(go.exptop == go.expnod.length);
 
     defstarkill();                  /* compute go.defkill and go.starkill */
 
     static if (0)
     {
-        assert(vec_numbits(go.defkill) == go.exptop);
-        assert(vec_numbits(go.starkill) == go.exptop);
-        assert(vec_numbits(go.vptrkill) == go.exptop);
+        assert(vec_numbits(go.defkill) == go.expnod.length);
+        assert(vec_numbits(go.starkill) == go.expnod.length);
+        assert(vec_numbits(go.vptrkill) == go.expnod.length);
         dbg_printf("defkill  "); vec_println(go.defkill);
         if (go.starkill)
         {   dbg_printf("starkill "); vec_println(go.starkill);}
@@ -612,8 +611,8 @@ private void aecpgenkill()
         vec_free(b.Bout);
         vec_free(b.Bgen);
         vec_free(b.Bkill);
-        b.Bgen = vec_calloc(go.exptop);
-        b.Bkill = vec_calloc(go.exptop);
+        b.Bgen = vec_calloc(go.expnod.length);
+        b.Bkill = vec_calloc(go.expnod.length);
         switch (b.BC)
         {
             case BCiftrue:
@@ -626,8 +625,8 @@ private void aecpgenkill()
                 if (e.Eoper == OPandand || e.Eoper == OPoror)
                 {
                     accumaecp(b.Bgen,b.Bkill,e.EV.E1);
-                    vec_t Kr = vec_calloc(go.exptop);
-                    vec_t Gr = vec_calloc(go.exptop);
+                    vec_t Kr = vec_calloc(go.expnod.length);
+                    vec_t Gr = vec_calloc(go.expnod.length);
                     accumaecp(Gr,Kr,e.EV.E2);
 
                     // We might or might not have executed E2
@@ -675,7 +674,7 @@ private void aecpgenkill()
                     b.Bgen2 = vec_clone(b.Bgen);
                     b.Bkill2 = vec_clone(b.Bkill);
                 }
-                b.Bout2 = vec_calloc(go.exptop);
+                b.Bout2 = vec_calloc(go.expnod.length);
                 break;
 
             case BCasm:
@@ -694,8 +693,8 @@ private void aecpgenkill()
             printf("block %d Bgen ",i); vec_println(b.Bgen);
             printf("       Bkill "); vec_println(b.Bkill);
         }
-        b.Bin = vec_calloc(go.exptop);
-        b.Bout = vec_calloc(go.exptop);
+        b.Bin = vec_calloc(go.expnod.length);
+        b.Bout = vec_calloc(go.expnod.length);
     }
 }
 
@@ -1557,7 +1556,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
 void flowvbe()
 {
     flowxx = VBE;
-    aecpgenkill();          /* compute Bgen and Bkill for VBEs      */
+    aecpgenkill(go);          // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
         return;
 
