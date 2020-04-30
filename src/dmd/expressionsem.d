@@ -5521,12 +5521,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ : tspec)
              */
             e.tspec = e.tspec.typeSemantic(e.loc, sc);
-            //printf("targ  = %s, %s\n", targ.toChars(), targ.deco);
-            //printf("tspec = %s, %s\n", tspec.toChars(), tspec.deco);
+            //printf("targ  = %s, %s\n", e.targ.toChars(), e.targ.deco);
+            //printf("tspec = %s, %s\n", e.tspec.toChars(), e.tspec.deco);
 
             if (e.tok == TOK.colon)
             {
-                if (e.targ.implicitConvTo(e.tspec))
+                // current scope is itself deprecated, or deprecations are not errors
+                const bool deprecationAllowed = sc.isDeprecated
+                    || global.params.useDeprecated != DiagnosticReporting.error;
+                const bool preventAliasThis = e.targ.hasDeprecatedAliasThis && !deprecationAllowed;
+
+                if (preventAliasThis && e.targ.ty == Tstruct)
+                {
+                    if ((cast(TypeStruct) e.targ).implicitConvToWithoutAliasThis(e.tspec))
+                        goto Lyes;
+                    else
+                        goto Lno;
+                }
+                else if (preventAliasThis && e.targ.ty == Tclass)
+                {
+                    if ((cast(TypeClass) e.targ).implicitConvToWithoutAliasThis(e.tspec))
+                        goto Lyes;
+                    else
+                        goto Lno;
+                }
+                else if (e.targ.implicitConvTo(e.tspec))
                     goto Lyes;
                 else
                     goto Lno;
