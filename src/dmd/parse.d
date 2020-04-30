@@ -6754,6 +6754,65 @@ final class Parser(AST) : Lexer
             error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`", e.toChars(), Token.toChars(value));
     }
 
+    /**
+     * Checks if a pair of parentheses explicitly indicates precedence in case
+     * the left subexpression of a binary expression is preceded by a logical
+     * NOT. If no parentheses are present, a deprecation notice is printed.
+     *
+     * Example:
+     * ------------------
+     * int a, b;
+     * ...
+     * auto w = !a & b;    // will cause a deprecation notice
+     * auto x = !(a & b);  // OK
+     * auto y = (!a) & b   // OK
+     * auto z = !a && b    // OK
+     * ------------------
+     * Params:
+     *   exp = the binary expression to check.
+     * See_Also:
+     *   https://issues.dlang.org/show_bug.cgi?id=5409
+     */
+    private void checkParensNot(AST.Expression exp)
+    {
+        AST.BinExp bin = cast(AST.BinExp) exp;
+        if (!bin)
+            return;
+
+        AST.Expression left = bin.e1;
+        AST.Expression right = bin.e2;
+        if (left.op == TOK.not && !left.parens)
+        {
+            const(char)* expChars = exp.toChars;
+            const(char)* leftChars = left.toChars;
+            const(char)* strippedLeftChars = (cast(AST.UnaExp) left).e1.toChars;
+            const(char)* rightChars = right.toChars;
+            const(char)* expOpChars = Token.toChars(exp.op);
+            const(char)* leftOpChars = Token.toChars(left.op);
+
+            exp.deprecation("`%s`: Boolean operator `%s` has higher precedence than bitwise operator `%s`.",
+                expChars, leftOpChars, expOpChars);
+
+            if (exp.op == TOK.and || exp.op == TOK.or)
+            {
+                // suggests logical operators && and ||
+                exp.deprecationSupplemental(
+                    "Use one of the following instead: `%s %s%s %s` or `%s(%s %s %s)` or `(%s) %s %s`",
+                    leftChars, expOpChars, expOpChars, rightChars,
+                    leftOpChars, strippedLeftChars, expOpChars, rightChars,
+                    leftChars, expOpChars, rightChars);
+            }
+            else
+            {
+                // does not suggest logical operators
+                exp.deprecationSupplemental(
+                    "Use one of the following instead: `%s(%s %s %s)` or `(%s) %s %s`",
+                    leftOpChars, strippedLeftChars, expOpChars, rightChars,
+                    leftChars, expOpChars, rightChars);
+            }
+        }
+    }
+
     ///
     private enum NeedDeclaratorId
     {
@@ -8772,6 +8831,7 @@ final class Parser(AST) : Lexer
             auto e2 = parseCmpExp();
             checkParens(TOK.and, e2);
             e = new AST.AndExp(loc, e, e2);
+            checkParensNot(e);
             loc = token.loc;
         }
         return e;
@@ -8789,6 +8849,7 @@ final class Parser(AST) : Lexer
             auto e2 = parseAndExp();
             checkParens(TOK.xor, e2);
             e = new AST.XorExp(loc, e, e2);
+            checkParensNot(e);
         }
         return e;
     }
@@ -8805,6 +8866,7 @@ final class Parser(AST) : Lexer
             auto e2 = parseXorExp();
             checkParens(TOK.or, e2);
             e = new AST.OrExp(loc, e, e2);
+            checkParensNot(e);
         }
         return e;
     }

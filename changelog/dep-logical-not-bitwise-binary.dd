@@ -1,0 +1,17 @@
+Deprecate logical NOT in bitwise binary expressions
+
+If a logical NOT operator is used for the left operand of a bitwise binary
+expression, parentheses should be added to explicitly indicate the intended
+order of operations:
+
+---
+int a, b;
+...
+auto w = !a & b;     // Deprecated
+auto x = (!a) & b;   // OK
+auto y = !(a & b);   // OK
+auto z = !a && b;    // OK
+---
+
+This makes it clear which part of the expression is intended to be affected by
+the NOT operator.

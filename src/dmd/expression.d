@@ -766,6 +766,17 @@ extern (C++) abstract class Expression : ASTNode
         }
     }
 
+    final void deprecationSupplemental(const(char)* format, ...) const
+    {
+        if (type != Type.terror)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .vdeprecationSupplemental(loc, format, ap);
+            va_end(ap);
+        }
+    }
+
     /**********************************
      * Combine e1 and e2 by CommaExp if both are not NULL.
      */
