@@ -55,6 +55,8 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\util\array.d \
 	\
+	$(IMPDIR)\core\internal\vararg\sysv_x64.d \
+	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\complex.d \
 	$(IMPDIR)\core\stdc\config.d \
