@@ -742,7 +742,7 @@ private void aecpgenkill(ref GlobalOptimizer go)
                 vec_free(b.Bkill2);
                 elem* e;
                 for (e = b.Belem; e.Eoper == OPcomma; e = e.EV.E2)
-                    accumaecp(b.Bgen,b.Bkill,e);
+                    accumaecp(b.Bgen,b.Bkill,e.EV.E1);
                 if (e.Eoper == OPandand || e.Eoper == OPoror)
                 {
                     accumaecp(b.Bgen,b.Bkill,e.EV.E1);
