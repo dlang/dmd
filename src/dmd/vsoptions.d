@@ -251,6 +251,15 @@ private:
             VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", "15.0"w); // VS2017
 
         if (VSInstallDir is null)
+        {
+            wchar[260] buffer = void;
+            // VS Build Tools 2017 (default installation path)
+            const numWritten = ExpandEnvironmentStringsW(r"%ProgramFiles(x86)%\Microsoft Visual Studio\2017\BuildTools"w.ptr, buffer.ptr, buffer.length);
+            if (numWritten <= buffer.length && exists(buffer.ptr))
+                VSInstallDir = toNarrow(buffer.ptr);
+        }
+
+        if (VSInstallDir is null)
             foreach (const(char)* ver; supportedPre2017Versions)
             {
                 VSInstallDir = GetRegistryString(FileName.combine(r"Microsoft\VisualStudio", ver), "InstallDir"w);
@@ -501,6 +510,7 @@ extern(D):
             if (fileinfo.cFileName[0] >= '1' && fileinfo.cFileName[0] <= '9')
             {
                 auto name = toNarrow(fileinfo.cFileName.ptr);
+                // FIXME: proper version strings comparison
                 if ((!res || strcmp(res, name) < 0) &&
                     FileName.exists(buildPath(baseDir, name, testfile)))
                 {
@@ -760,15 +770,47 @@ const(char)* detectVSInstallDirViaCOM()
         return null;
     scope(exit) instances.Release();
 
+    static struct WrappedBString
+    {
+        BSTR ptr;
+        this(this) @disable;
+        ~this() { SysFreeString(ptr); }
+        bool opCast(T : bool)() const { return ptr !is null; }
+        size_t length() { return SysStringLen(ptr); }
+        void moveTo(ref WrappedBString other)
+        {
+            SysFreeString(other.ptr);
+            other.ptr = ptr;
+            ptr = null;
+        }
+    }
+
+    WrappedBString versionString, installDir;
+
     while (instances.Next(1, &instance, &fetched) == S_OK && fetched)
     {
-        BSTR bstrInstallDir;
-        if (instance.GetInstallationPath(&bstrInstallDir) != S_OK)
+        WrappedBString thisVersionString, thisInstallDir;
+        if (instance.GetInstallationVersion(&thisVersionString.ptr) != S_OK ||
+            instance.GetInstallationPath(&thisInstallDir.ptr) != S_OK)
             continue;
-        scope(exit) SysFreeString(bstrInstallDir);
 
-        if (SysStringLen(bstrInstallDir))
-            return toNarrow(bstrInstallDir);
+        // FIXME: proper version strings comparison
+        //        existing versions are 15.0 to 16.5 (May 2020), problems expected in distant future
+        if (versionString && wcscmp(thisVersionString.ptr, versionString.ptr) <= 0)
+            continue; // not a newer version, skip
+
+        const installDirLength = thisInstallDir.length;
+        const vcInstallDirLength = installDirLength + 4;
+        auto vcInstallDir = (cast(wchar*) mem.xmalloc_noscan(vcInstallDirLength * wchar.sizeof))[0 .. vcInstallDirLength];
+        scope(exit) mem.xfree(vcInstallDir.ptr);
+        vcInstallDir[0 .. installDirLength] = thisInstallDir.ptr[0 .. installDirLength];
+        vcInstallDir[installDirLength .. $] = "\\VC\0"w;
+        if (!exists(vcInstallDir.ptr))
+            continue; // Visual C++ not included, skip
+
+        thisVersionString.moveTo(versionString);
+        thisInstallDir.moveTo(installDir);
     }
-    return null;
+
+    return installDir ? toNarrow(installDir.ptr) : null;
 }
