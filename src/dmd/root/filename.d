@@ -40,7 +40,7 @@ version (Windows)
     extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
 
     // assume filenames encoded in system default Windows ANSI code page
-    private enum codepage = CP_ACP;
+    enum CodePage = CP_ACP;
 }
 
 version (CRuntime_Glibc)
@@ -1001,12 +1001,12 @@ nothrow:
 
                 // Find out size of the converted string
                 const retLength = WideCharToMultiByte(
-                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+                    CodePage, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
                 auto ret = new char[retLength];
 
                 // Actually convert to char
                 const retLength2 = WideCharToMultiByte(
-                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], retLength, null, null);
+                    CodePage, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], retLength, null, null);
                 assert(retLength == retLength2);
 
                 return ret;
@@ -1168,7 +1168,7 @@ version(Windows)
         wchar[1024] buf = void;
 
         // first find out how long the buffer must be to store the result
-        const length = MultiByteToWideChar(codepage, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
+        const length = MultiByteToWideChar(CodePage, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
         if (!length) return F(""w);
 
         wchar[] ret = length >= buf.length
@@ -1181,7 +1181,7 @@ version(Windows)
         }
         // actually do the conversion
         const length2 = MultiByteToWideChar(
-            codepage, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], length);
+            CodePage, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], length);
         assert(length == length2); // should always be true according to the API
         // Add terminating `\0`
         ret[$ - 1] = '\0';
