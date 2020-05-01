@@ -25,7 +25,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
-import dmd.root.string;
+import dmd.root.string : toDString;
 
 enum supportedPre2017Versions = ["14.0".ptr, "12.0", "11.0", "10.0", "9.0"];
 
@@ -256,7 +256,7 @@ private:
             // VS Build Tools 2017 (default installation path)
             const numWritten = ExpandEnvironmentStringsW(r"%ProgramFiles(x86)%\Microsoft Visual Studio\2017\BuildTools"w.ptr, buffer.ptr, buffer.length);
             if (numWritten <= buffer.length && exists(buffer.ptr))
-                VSInstallDir = toNarrow(buffer.ptr);
+                VSInstallDir = toNarrowStringz(buffer[0 .. numWritten - 1]).ptr;
         }
 
         if (VSInstallDir is null)
@@ -492,15 +492,13 @@ extern(D):
     //  one with the largest version that also contains the test file
     static const(char)* findLatestSDKDir(const(char)* baseDir, const(char)* testfile)
     {
-        wchar[] wbase = toUTF16(baseDir);
-        wchar* allfiles = cast(wchar*) mem.xmalloc_noscan((wbase.length + 3) * wchar.sizeof);
-        scope(exit) mem.xfree(allfiles);
-        allfiles[0 .. wbase.length] = wbase;
-        allfiles[wbase.length .. wbase.length+3] = "\\*\0";
-        mem.xfree(wbase.ptr);
+        const(char)* pattern = FileName.combine(baseDir, "*");
+        wchar* wpattern = toWStringz(pattern.toDString).ptr;
+        scope(exit) mem.xfree(wpattern);
+        FileName.free(pattern);
 
         WIN32_FIND_DATAW fileinfo;
-        HANDLE h = FindFirstFileW(allfiles, &fileinfo);
+        HANDLE h = FindFirstFileW(wpattern, &fileinfo);
         if (h == INVALID_HANDLE_VALUE)
             return null;
 
@@ -509,17 +507,17 @@ extern(D):
         {
             if (fileinfo.cFileName[0] >= '1' && fileinfo.cFileName[0] <= '9')
             {
-                auto name = toNarrow(fileinfo.cFileName.ptr);
+                char[] name = toNarrowStringz(fileinfo.cFileName.ptr.toDString);
                 // FIXME: proper version strings comparison
-                if ((!res || strcmp(res, name) < 0) &&
-                    FileName.exists(buildPath(baseDir, name, testfile)))
+                if ((!res || strcmp(res, name.ptr) < 0) &&
+                    FileName.exists(buildPath(baseDir, name.ptr, testfile)))
                 {
                     if (res)
                         mem.xfree(res);
-                    res = name;
+                    res = name.ptr;
                 }
                 else
-                    mem.xfree(name);
+                    mem.xfree(name.ptr);
             }
         }
         while(FindNextFileW(h, &fileinfo));
@@ -567,20 +565,23 @@ extern(D):
         DWORD size = buf.sizeof;
         DWORD type;
         int hr = RegQueryValueExW(key, valueName.ptr, null, &type, cast(ubyte*) buf.ptr, &size);
-        if (type != REG_SZ)
+        if (type != REG_SZ || size == 0)
             return null;
 
         wchar* wideValue = buf.ptr;
         scope(exit) wideValue != buf.ptr && mem.xfree(wideValue);
         if (hr == ERROR_MORE_DATA)
         {
-            wideValue = cast(wchar*) mem.xmalloc_noscan((size + 1) * wchar.sizeof);
+            wideValue = cast(wchar*) mem.xmalloc_noscan(size);
             hr = RegQueryValueExW(key, valueName.ptr, null, &type, cast(ubyte*) wideValue, &size);
         }
-        if (hr != 0 || size <= 0)
+        if (hr != 0)
             return null;
 
-        return toNarrow(wideValue);
+        auto wideLength = size / wchar.sizeof;
+        if (wideValue[wideLength - 1] == 0) // may or may not be null-terminated
+            --wideLength;
+        return toNarrowStringz(wideValue[0 .. wideLength]).ptr;
     }
 
     /***
@@ -616,30 +617,9 @@ extern(D):
 
 private:
 
-enum NarrowCodepage = dmd.root.filename.CodePage;
-
-char* toNarrow(const(wchar)* wide)
+inout(wchar)[] toDString(inout(wchar)* s)
 {
-    if (!wide)
-        return null;
-
-    const requiredSize = WideCharToMultiByte(NarrowCodepage, 0, wide, -1, null, 0, null, null);
-    char* value = cast(char*) mem.xmalloc_noscan(requiredSize);
-    const size = WideCharToMultiByte(NarrowCodepage, 0, wide, -1, value, requiredSize, null, null);
-    assert(size == requiredSize);
-    return value;
-}
-
-wchar[] toUTF16(const(char)* narrow)
-{
-    if (!narrow)
-        return null;
-
-    const requiredCount = MultiByteToWideChar(NarrowCodepage, 0, narrow, -1, null, 0);
-    wchar* wide = cast(wchar*) mem.xmalloc_noscan(requiredCount * wchar.sizeof);
-    const count = MultiByteToWideChar(NarrowCodepage, 0, narrow, -1, wide, requiredCount);
-    assert(count == requiredCount);
-    return wide[0 .. count-1];
+    return s ? s[0 .. wcslen(s)] : null;
 }
 
 extern(C) wchar* _wgetenv(const(wchar)* name);
@@ -647,7 +627,7 @@ extern(C) wchar* _wgetenv(const(wchar)* name);
 char* getenv(wstring name)
 {
     if (auto wide = _wgetenv(name.ptr))
-        return toNarrow(wide);
+        return toNarrowStringz(wide.toDString).ptr;
     return null;
 }
 
@@ -708,7 +688,6 @@ bool exists(const(wchar)* path)
 // COM interfaces to find VS2017+ installations
 import core.sys.windows.com;
 import core.sys.windows.wtypes : BSTR;
-import core.sys.windows.winnls : MultiByteToWideChar, WideCharToMultiByte, CP_ACP, CP_UTF8;
 import core.sys.windows.oleauto : SysFreeString, SysStringLen;
 
 pragma(lib, "ole32.lib");
@@ -812,5 +791,5 @@ const(char)* detectVSInstallDirViaCOM()
         thisInstallDir.moveTo(installDir);
     }
 
-    return installDir ? toNarrow(installDir.ptr) : null;
+    return !installDir ? null : toNarrowStringz(installDir.ptr[0 .. installDir.length]).ptr;
 }
