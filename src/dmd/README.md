@@ -205,6 +205,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [tocsym.d](https://github.com/dlang/dmd/blob/master/src/dmd/tocsym.d)                       | Convert a D symbol to a symbol the linker understands (with mangled name)           |
 | [argtypes.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes.d)                   | Convert a D type into simple (register) types for calling conventions               |
 | [argtypes_sysv_x64.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_sysv_x64.d) | 'argtypes' for the x86_64 System V ABI                                              |
+| [argtypes_aarch64.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_aarch64.d)   | 'argtypes' for the AArch64 ABI                                                      |
 | [glue.d](https://github.com/dlang/dmd/blob/master/src/dmd/glue.d)                           | Generate the object file for function declarations                                  |
 | [gluelayer.d](https://github.com/dlang/dmd/blob/master/src/dmd/gluelayer.d)                 | Declarations for back-end functions that the front-end invokes                      |
 | [todt.d](https://github.com/dlang/dmd/blob/master/src/dmd/todt.d)                           | Convert initializers into structures that the back-end will add to the data segment |

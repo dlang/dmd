@@ -816,6 +816,9 @@ public:
 class TypeTuple : public Type
 {
 public:
+    // 'logically immutable' cached global - don't modify (neither pointer nor pointee)!
+    static TypeTuple *empty;
+
     Parameters *arguments;      // types making up the tuple
 
     static TypeTuple *create(Parameters *arguments);

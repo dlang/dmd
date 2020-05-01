@@ -55,7 +55,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
         void memory()
         {
             //printf("\ttoArgTypes() %s => [ ]\n", t.toChars());
-            result = new TypeTuple(); // pass on the stack
+            result = TypeTuple.empty; // pass on the stack
         }
 
         ///
