@@ -806,7 +806,7 @@ version (CRuntime_Glibc)
         else static if (__USE_FILE_OFFSET64)
             static assert(stat_t.sizeof == 104);
         else
-            static assert(stat_t.sizeof == 108);
+            static assert(stat_t.sizeof == 88);
 
     }
     else version (S390)
