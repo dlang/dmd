@@ -1320,7 +1320,7 @@ else version (DragonFlyBSD)
             int32_t   st_lspare;
             int64_t   st_qspare1;           /* was recursive change detect */
             int64_t   st_qspare2;
-    };
+    }
 
     enum S_IRUSR    = 0x100; // octal 0000400
     enum S_IWUSR    = 0x080; // octal 0000200

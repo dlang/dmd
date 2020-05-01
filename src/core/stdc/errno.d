@@ -1757,7 +1757,7 @@ else version (Solaris)
     enum ECONNREFUSED =   146     /** Connection refused */;
     enum EHOSTDOWN =      147     /** Host is down */;
     enum EHOSTUNREACH =   148     /** No route to host */;
-    enum EWOULDBLOCK =    EAGAIN;      /** Resource temporarily unavailable     */;
+    enum EWOULDBLOCK =    EAGAIN  /** Resource temporarily unavailable */;
     enum EALREADY =       149     /** operation already in progress */;
     enum EINPROGRESS =    150     /** operation now in progress */;
     enum ESTALE =         151     /** Stale NFS file handle */;

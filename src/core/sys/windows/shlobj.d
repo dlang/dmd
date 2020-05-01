@@ -692,7 +692,7 @@ alias IContextMenu LPCONTEXTMENU;
 
 interface IContextMenu2 : IContextMenu {
     HRESULT HandleMenuMsg(UINT, WPARAM, LPARAM);
-};
+}
 alias IContextMenu2 LPCONTEXTMENU2;
 
 static if (_WIN32_IE >= 0x500) {
@@ -771,7 +771,7 @@ alias IShellPropSheetExt LPSHELLPROPSHEETEXT;
 interface IExtractIconA : IUnknown {
     HRESULT GetIconLocation(UINT, LPSTR, UINT, int*, PUINT);
     HRESULT Extract(LPCSTR, UINT, HICON*, HICON*, UINT);
-};
+}
 alias IExtractIconA LPEXTRACTICONA;
 
 interface IExtractIconW : IUnknown {

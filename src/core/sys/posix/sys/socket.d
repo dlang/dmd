@@ -1447,7 +1447,7 @@ else version (DragonFlyBSD)
             gid_t           cmcred_gid;
             short           cmcred_ngroups;
             gid_t[CMGROUP_MAX] cmcred_groups;
-    };
+    }
 
     enum : uint
     {
@@ -1500,7 +1500,7 @@ else version (DragonFlyBSD)
         int                 hdr_cnt;
         iovec *             trailers;
         int                 trl_cnt;
-    };
+    }
 */
 
     int     accept(int, sockaddr*, socklen_t*);
