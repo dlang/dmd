@@ -357,39 +357,7 @@ nothrow:
     /// Ditto
     extern(D) static const(char)[] combine(const(char)[] path, const(char)[] name)
     {
-        if (!path.length)
-            return name;
-
-        char* f = cast(char*)mem.xmalloc(path.length + 1 + name.length + 1);
-        memcpy(f, path.ptr, path.length);
-        bool trailingSlash = false;
-        version (Posix)
-        {
-            if (path[$ - 1] != '/')
-            {
-                f[path.length] = '/';
-                trailingSlash = true;
-            }
-        }
-        else version (Windows)
-        {
-            if (path[$ - 1] != '\\' && path[$ - 1] != '/' && path[$ - 1] != ':')
-            {
-                f[path.length] = '\\';
-                trailingSlash = true;
-            }
-        }
-        else
-        {
-            assert(0);
-        }
-        const len = path.length + trailingSlash;
-        memcpy(f + len, name.ptr, name.length);
-        // Note: At the moment `const(char)*` are being transitioned to
-        // `const(char)[]`. To avoid bugs crippling in, we `\0` terminate
-        // slices, but don't include it in the slice so `.ptr` can be used.
-        f[len + name.length] = '\0';
-        return f[0 .. len + name.length];
+        return !path.length ? name : buildPath(path, name);
     }
 
     unittest
@@ -401,11 +369,55 @@ nothrow:
         assert(combine("foo/"[], "bar"[]) == "foo/bar");
     }
 
-    static const(char)* buildPath(const(char)* path, const(char)*[] names...)
+    static const(char)[] buildPath(const(char)[][] fragments...)
     {
-        foreach (const(char)* name; names)
-            path = combine(path, name);
-        return path;
+        size_t size;
+        foreach (f; fragments)
+            size += f.length ? f.length + 1 : 0;
+        if (size == 0)
+            size = 1;
+
+        char* p = cast(char*) mem.xmalloc_noscan(size);
+        size_t length;
+        foreach (f; fragments)
+        {
+            if (!f.length)
+                continue;
+
+            p[length .. length + f.length] = f;
+            length += f.length;
+
+            const last = p[length - 1];
+            version (Posix)
+            {
+                if (last != '/')
+                    p[length++] = '/';
+            }
+            else version (Windows)
+            {
+                if (last != '\\' && last != '/' && last != ':')
+                    p[length++] = '\\';
+            }
+            else
+                assert(0);
+        }
+
+        // overwrite last slash with null terminator
+        p[length ? --length : 0] = 0;
+
+        return p[0 .. length];
+    }
+
+    unittest
+    {
+        assert(buildPath() == "");
+        assert(buildPath("foo") == "foo");
+        assert(buildPath("foo", null) == "foo");
+        assert(buildPath(null, "foo") == "foo");
+        version (Windows)
+            assert(buildPath("C:", r"a\", "bb/", "ccc", "d") == r"C:a\bb/ccc\d");
+        else
+            assert(buildPath("a/", "bb", "ccc") == "a/bb/ccc");
     }
 
     // Split a path into an Array of paths
