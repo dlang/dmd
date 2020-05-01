@@ -1939,7 +1939,7 @@ static if (ELFOBJ)
                     Obj.addrel(debug_info.seg, debug_info.buf.length(), R_386_TLS_LDO_32, s.Sxtrnnum, 0);
                     debug_info.buf.write32(0);
                 }
-                debug_info.buf.writeByte(DW_OP_GNU_push_tls_address);
+                debug_info.buf.writeByte(DW_OP_form_tls_address);
             }
             else
             {
