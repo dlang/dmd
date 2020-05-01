@@ -331,7 +331,7 @@ else version (DragonFlyBSD)
 
     enum PTHREAD_MUTEX_INITIALIZER              = null;
     //enum PTHREAD_ONCE_INIT                      = { PTHREAD_NEEDS_INIT, NULL };
-    enum PTHREAD_ONCE_INIT                      = pthread_once_t.init;;
+    enum PTHREAD_ONCE_INIT                      = pthread_once_t.init;
     enum PTHREAD_COND_INITIALIZER               = null;
     enum PTHREAD_RWLOCK_INITIALIZER             = null;
 }

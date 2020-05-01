@@ -92,7 +92,7 @@ else version (Darwin)
         int     fd;
         short   events;
         short   revents;
-    };
+    }
 
     alias uint nfds_t;
 
@@ -128,7 +128,7 @@ else version (FreeBSD)
         int     fd;
         short   events;
         short   revents;
-    };
+    }
 
     enum
     {
@@ -162,7 +162,7 @@ else version (NetBSD)
         int     fd;
         short   events;
         short   revents;
-    };
+    }
 
     enum
     {
@@ -196,7 +196,7 @@ else version (OpenBSD)
         int     fd;
         short   events;
         short   revents;
-    };
+    }
 
     enum
     {
@@ -227,7 +227,7 @@ else version (DragonFlyBSD)
         int     fd;
         short   events;
         short   revents;
-    };
+    }
 
     enum
     {

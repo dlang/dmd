@@ -118,4 +118,4 @@ template isPostblitNoThrow(T) {
         enum isPostblitNoThrow = isNoThrow!(T.init.__xpostblit);
     else
         enum isPostblitNoThrow = true;
-};
+}

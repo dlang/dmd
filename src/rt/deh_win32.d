@@ -307,7 +307,7 @@ struct DEstablisherFrame
     LanguageSpecificHandler handler; // pointer to routine for exception handler
     DWORD table_index;               // current index into handler_info[]
     DWORD ebp;                       // this is EBP of routine
-};
+}
 
 struct DHandlerInfo
 {
@@ -315,7 +315,7 @@ struct DHandlerInfo
     uint cioffset;              // offset to DCatchInfo data from start of table (!=0 if try-catch)
     void *finally_code;         // pointer to finally code to execute
                                 // (!=0 if try-finally)
-};
+}
 
 // Address of DHandlerTable is passed in EAX to _d_framehandler()
 
@@ -325,21 +325,21 @@ struct DHandlerTable
     uint espoffset;         // offset of ESP from EBP
     uint retoffset;         // offset from start of function to return code
     DHandlerInfo[1] handler_info;
-};
+}
 
 struct DCatchBlock
 {
     ClassInfo type;         // catch type
     uint bpoffset;          // EBP offset of catch var
     void *code;             // catch handler code
-};
+}
 
 // One of these is created for each try-catch
 struct DCatchInfo
 {
     uint ncatches;                  // number of catch blocks
     DCatchBlock[1] catch_block;  // data for each catch block
-};
+}
 
 // Macro to make our own exception code
 template MAKE_EXCEPTION_CODE(int severity, int facility, int exception)

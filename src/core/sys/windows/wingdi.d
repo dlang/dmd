@@ -2058,13 +2058,13 @@ struct RGBQUAD {
     BYTE rgbGreen;
     BYTE rgbRed;
     BYTE rgbReserved;
-};
+}
 alias RGBQUAD* LPRGBQUAD;
 
 struct BITMAPINFO {
     BITMAPINFOHEADER bmiHeader;
     RGBQUAD[1]       bmiColors;
-};
+}
 alias BITMAPINFO* PBITMAPINFO, LPBITMAPINFO;
 
 alias int FXPT16DOT16;

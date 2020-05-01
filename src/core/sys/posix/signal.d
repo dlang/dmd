@@ -2407,7 +2407,7 @@ else version (FreeBSD)
 
     enum MINSIGSTKSZ = 512 * 4;
     enum SIGSTKSZ    = (MINSIGSTKSZ + 32768);
-;
+
     //ucontext_t (defined in core.sys.posix.ucontext)
     //mcontext_t (defined in core.sys.posix.ucontext)
 
@@ -2531,7 +2531,7 @@ else version (NetBSD)
 
     enum MINSIGSTKSZ = 8192;
     enum SIGSTKSZ    = (MINSIGSTKSZ + 32768);
-;
+
     //ucontext_t (defined in core.sys.posix.ucontext)
     //mcontext_t (defined in core.sys.posix.ucontext)
 
@@ -2771,7 +2771,7 @@ else version (DragonFlyBSD)
 
     enum MINSIGSTKSZ = 8192;
     enum SIGSTKSZ    = (MINSIGSTKSZ + 32768);
-;
+
     //ucontext_t (defined in core.sys.posix.ucontext)
     //mcontext_t (defined in core.sys.posix.ucontext)
 
@@ -3637,14 +3637,14 @@ else version (DragonFlyBSD)
         int                       sigev_signo;
         int                       sigev_notify_kqueue;
         void /*pthread_attr_t*/ * sigev_notify_attributes;
-    };
+    }
     union _sigval_t
     {
         int                       sival_int;
         void                    * sival_ptr;
         int                       sigval_int;
         void                    * sigval_ptr;
-    };
+    }
     struct sigevent
     {
         int                       sigev_notify;

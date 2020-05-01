@@ -268,7 +268,7 @@ else version (DragonFlyBSD)
         ssize_t          s_len;         // current length of string
         int              s_flags;       // flags
         ssize_t          s_sect_len;    // current length of section
-    };
+    }
 
     enum {
         SBUF_FIXEDLEN   = 0x00000000,   // fixed length buffer (default)

@@ -14,34 +14,34 @@ private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windo
   core.sys.windows.windef, core.sys.windows.wtypes;
 
 // These are used in this file, but not defined in MinGW.
-interface IHTMLStyleSheet {};
+interface IHTMLStyleSheet {}
 alias IHTMLStyle LPHTMLSTYLE;
 alias IHTMLStyleSheet LPHTMLSTYLESHEET;
-interface IHTMLLocation {};
+interface IHTMLLocation {}
 alias IHTMLLocation LPHTMLLOCATION;
-interface IHTMLFramesCollection {};
+interface IHTMLFramesCollection {}
 alias IHTMLFramesCollection LPHTMLFRAMESCOLLECTION;
-interface IHTMLStyleSheetsCollection {};
+interface IHTMLStyleSheetsCollection {}
 alias IHTMLStyleSheetsCollection LPHTMLSTYLESHEETSCOLLECTION;
-interface IHTMLStyle {};
-interface IHTMLFiltersCollection {};
+interface IHTMLStyle {}
+interface IHTMLFiltersCollection {}
 alias IHTMLFiltersCollection LPHTMLFILTERSCOLLECTION;
 interface IOmHistory : IDispatch {
     HRESULT get_length(short* p);
     HRESULT back(VARIANT*);
     HRESULT forward(VARIANT*);
     HRESULT go(VARIANT*);
-};
+}
 alias IOmHistory LPOMHISTORY;
-interface IOmNavigator {};
+interface IOmNavigator {}
 alias IOmNavigator LPOMNAVIGATOR;
-interface IHTMLImageElementFactory {};
+interface IHTMLImageElementFactory {}
 alias IHTMLImageElementFactory LPHTMLIMAGEELEMENTFACTORY;
-interface IHTMLEventObj {};
+interface IHTMLEventObj {}
 alias IHTMLEventObj LPHTMLEVENTOBJ;
-interface IHTMLScreen {};
+interface IHTMLScreen {}
 alias IHTMLScreen LPHTMLSCREEN;
-interface IHTMLOptionElementFactory {};
+interface IHTMLOptionElementFactory {}
 alias IHTMLOptionElementFactory LPHTMLOPTIONELEMENTFACTORY;
 
 interface IHTMLLinkElement : IDispatch {
