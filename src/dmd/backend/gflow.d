@@ -408,7 +408,7 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
 void flowae()
 {
     flowxx = AE;
-    flowaecp();
+    flowaecp(AE);
 }
 
 /**************************** COPY PROPAGATION ************************/
@@ -425,7 +425,7 @@ void flowae()
 void flowcp()
 {
     flowxx = CP;
-    flowaecp();
+    flowaecp(CP);
 }
 
 /*****************************************
@@ -435,9 +435,9 @@ void flowcp()
  *      flowxx
  */
 
-private void flowaecp()
+private void flowaecp(int flowxx)
 {
-    aecpgenkill(go);          // Compute Bgen and Bkill for AEs or CPs
+    aecpgenkill(go, flowxx);   // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
         return;
 
@@ -545,18 +545,15 @@ private void flowaecp()
     vec_free(tmp);
 }
 
-/******************************
- * A variable to avoid parameter overhead to asgexpelems().
- */
-
-private __gshared block *this_block;
 
 /***********************************
  * Compute Bgen and Bkill for AEs, CPs, and VBEs.
  */
 
-private void aecpgenkill(ref GlobalOptimizer go)
+private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
 {
+    block* this_block;
+
     /****************************
      * Compute number of cp (copy propagation) elems.
      * Mark cp elems by setting NFLaecp flag.
@@ -592,8 +589,7 @@ private void aecpgenkill(ref GlobalOptimizer go)
 
                 }
                 n.Nflags &= ~NFLaecp;
-                int num = numcpelems(n.EV.E2);
-                if (num)
+                if (const num = numcpelems(n.EV.E2))
                     return num + numcpelems(n.EV.E1);
                 n = n.EV.E1;
                 continue;
@@ -613,9 +609,9 @@ private void aecpgenkill(ref GlobalOptimizer go)
      *      true if this elem is a possible AE elem.
      */
 
-    int numaeelems(elem *n)
+    bool numaeelems(elem *n)
     {
-        uint ae;
+        bool ae;
 
         assert(n);
         const op = n.Eoper;
@@ -625,7 +621,10 @@ private void aecpgenkill(ref GlobalOptimizer go)
             // Disallow starred references to avoid problems with VBE's
             // being hoisted before tests of an invalid pointer.
             if (flowxx == VBE && op == OPind)
-                goto L1;
+            {
+                n.Nflags &= ~NFLaecp;
+                return false;
+            }
         }
         else if (OTbinary(op))
             ae = numaeelems(n.EV.E1) & numaeelems(n.EV.E2);
@@ -639,11 +638,13 @@ private void aecpgenkill(ref GlobalOptimizer go)
         {
             n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
             go.exptop++;
+            return true;
         }
         else
-        L1:
+        {
             n.Nflags &= ~NFLaecp;
-        return n.Nflags & NFLaecp;
+            return false;
+        }
     }
 
     /********************************
@@ -1554,7 +1555,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
 void flowvbe()
 {
     flowxx = VBE;
-    aecpgenkill(go);          // compute Bgen and Bkill for VBEs
+    aecpgenkill(go, VBE);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
         return;
 
