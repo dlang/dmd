@@ -3498,7 +3498,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             bool isVa_list(Parameter p)
             {
-                return p.type.equals(Type.getVaList(funcdecl.loc, sc));
+                return p.type.equals(target.va_listType(funcdecl.loc, sc));
             }
 
             const nparams = f.parameterList.length;

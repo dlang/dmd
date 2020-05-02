@@ -218,8 +218,6 @@ public:
 
     static Type *basic[TMAX];
 
-    static Type *getVaList(const Loc &loc, Scope *sc);
-
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();

@@ -89,12 +89,16 @@ struct Target
     FPTypeProperties<double> DoubleProperties;
     FPTypeProperties<real_t> RealProperties;
 
+private:
+    Type *va_list;
+
+public:
     void _init(const Param& params);
     // Type sizes and support.
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);
     unsigned critsecsize();
-    Type *va_listType();  // get type of va_list
+    Type *va_listType(const Loc &loc, Scope *sc);  // get type of va_list
     int isVectorTypeSupported(int sz, Type *type);
     bool isVectorOpSupported(Type *type, TOK op, Type *t2 = NULL);
     // ABI and backend.

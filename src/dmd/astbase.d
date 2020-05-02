@@ -6516,7 +6516,7 @@ struct ASTBase
     {
         extern (C++) __gshared int ptrsize;
 
-        extern (C++) static Type va_listType()
+        extern (C++) static Type va_listType(const ref Loc loc, Scope* sc)
         {
             if (global.params.isWindows)
             {

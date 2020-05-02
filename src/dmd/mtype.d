@@ -469,18 +469,6 @@ extern (C++) abstract class Type : ASTNode
 
     extern (C++) __gshared Type[TMAX] basic;
 
-    /// Returns the resolved special va_list type.
-    extern (C++) static Type getVaList(const ref Loc loc, Scope* sc)
-    {
-        // Target.va_listType() may return a type based on some TypeIdentifier,
-        // possibly referring to a symbol in core.stdc.stdarg etc.
-        // So defer its semantic by resolving va_list lazily.
-        __gshared Type tvalist = null;
-        if (!tvalist)
-            tvalist = typeSemantic(target.va_listType(), loc, sc);
-        return tvalist;
-    }
-
     extern (D) __gshared StringTable!Type stringtable;
     extern (D) private __gshared ubyte[TMAX] sizeTy = ()
         {
