@@ -113,10 +113,7 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
                 buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
                 bufferLength = maxBufferLength;
             }
-            static if (size_t.sizeof == 8)
-                appendToBuffer("[0x%llx]", callstack[i]);
-            else
-                appendToBuffer("[0x%x]", callstack[i]);
+            appendToBuffer("[0x%zx]", callstack[i]);
 
             auto output = buffer[0 .. bufferLength];
             auto pos = i;
