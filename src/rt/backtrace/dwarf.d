@@ -528,13 +528,13 @@ struct StateMachine
     uint fileIndex = 1;
     uint line = 1;
     uint column = 0;
+    uint isa = 0;
+    uint discriminator = 0;
     bool isStatement;
     bool isBasicBlock = false;
     bool isEndSequence = false;
     bool isPrologueEnd = false;
     bool isEpilogueBegin = false;
-    uint isa = 0;
-    uint discriminator = 0;
 }
 
 struct LocationInfo
