@@ -165,36 +165,44 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                     if (loc.line != -1)
                         continue;
 
+                    // Can be called with either `locInfo` or `lastLoc`
+                    void update(const ref LocationInfo match)
+                    {
+                        const sourceFile = lp.sourceFiles[match.file - 1];
+                        debug (DwarfDebugMachine)
+                        {
+                            printf("-- found for [0x%zx]:\n", loc.address);
+                            printf("--   file: %.*s\n",
+                                   cast(int) sourceFile.file.length, sourceFile.file.ptr);
+                            printf("--   line: %d\n", match.line);
+                        }
+                        // DMD emits entries with FQN, but other implmentations
+                        // (e.g. LDC) make use of directories
+                        // See https://github.com/dlang/druntime/pull/2945
+                        if (sourceFile.dirIndex != 0)
+                            loc.directory = lp.includeDirectories[sourceFile.dirIndex - 1];
+
+                        loc.file = sourceFile.file;
+                        loc.line = match.line;
+                        numberOfLocationsFound++;
+                    }
+
+                    // The state machine will not contain an entry for each
+                    // address, as consecutive addresses with the same file/line
+                    // are merged together to save on space, so we need to
+                    // check if our address is within two addresses we get
+                    // called with.
+                    //
+                    // Specs (DWARF v4, Section 6.2, PDF p.109) says:
+                    // "We shrink it with two techniques. First, we delete from
+                    // the matrix each row whose file, line, source column and
+                    // discriminator information is identical with that of its
+                    // predecessors.
                     if (loc.address == address)
-                    {
-                        const sourceFile = lp.sourceFiles[locInfo.file - 1];
-                        debug (DwarfDebugMachine)
-                        {
-                            printf("-- found for [0x%zx]:\n", loc.address);
-                            printf("--   file: %.*s\n",
-                                   cast(int) sourceFile.file.length, sourceFile.file.ptr);
-                            printf("--   line: %d\n", locInfo.line);
-                        }
-                        loc.file = sourceFile.file;
-                        loc.directory = sourceFile.dirIndex == 0 ? null : lp.includeDirectories[sourceFile.dirIndex - 1];
-                        loc.line = locInfo.line;
-                        numberOfLocationsFound++;
-                    }
-                    else if (loc.address < address && lastAddress < loc.address && lastAddress != 0)
-                    {
-                        const sourceFile = lp.sourceFiles[lastLoc.file - 1];
-                        debug (DwarfDebugMachine)
-                        {
-                            printf("-- found for [0x%zx]:\n", loc.address);
-                            printf("--   file: %.*s\n",
-                                   cast(int) sourceFile.file.length, sourceFile.file.ptr);
-                            printf("--   line: %d\n", lastLoc.line);
-                        }
-                        loc.file = sourceFile.file;
-                        loc.directory = sourceFile.dirIndex == 0 ? null : lp.includeDirectories[sourceFile.dirIndex - 1];
-                        loc.line = lastLoc.line;
-                        numberOfLocationsFound++;
-                    }
+                        update(locInfo);
+                    else if (lastAddress &&
+                             loc.address > lastAddress && loc.address < address)
+                        update(lastLoc);
                 }
 
                 if (isEndSequence)
