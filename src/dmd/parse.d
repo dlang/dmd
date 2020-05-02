@@ -2252,6 +2252,9 @@ final class Parser(AST) : Lexer
                                 if (token.value != TOK.comma)
                                     break;
                                 nextToken();
+                                // Allow trailing commas as done for argument lists, arrays, ...
+                                if (token.value == TOK.rightParentheses)
+                                    break;
                             }
                         }
                     }

@@ -174,3 +174,8 @@ void testIfConditionWithSTCandType()
     auto call(){return 0;}
     if (const size_t i = call()) {}
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20791
+extern(C++, "foo", )
+struct S {}
