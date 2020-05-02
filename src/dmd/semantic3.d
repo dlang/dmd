@@ -401,7 +401,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (f.linkage == LINK.d || f.parameterList.length)
                 {
                     // Declare _argptr
-                    Type t = Type.tvalist;
+                    Type t = Type.getVaList(funcdecl.loc, sc);
                     // Init is handled in FuncDeclaration_toObjFile
                     funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, new VoidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STC.temp;
