@@ -1,6 +1,6 @@
 /**
  * Varargs implementation for the x86_64 System V ABI (not used for Win64).
- * Used by core.stdc.stdarg.
+ * Used by core.stdc.stdarg and core.vararg.
  *
  * Reference: https://www.uclibc.org/docs/psABI-x86_64.pdf
  *
@@ -20,7 +20,7 @@ version (X86_64)
 
 version (SysV_x64):
 
-import core.stdc.stdarg: alignUp;
+import core.stdc.stdarg : alignUp;
 
 @system:
 //@nogc:    // Not yet, need to make TypeInfo's member functions @nogc first
@@ -36,7 +36,7 @@ struct __va_list_tag
 }
 alias __va_list = __va_list_tag;
 
-/*
+/**
  * Making it an array of 1 causes va_list to be passed as a pointer in
  * function argument lists
  */

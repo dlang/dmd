@@ -57,8 +57,15 @@ version (ARM_Any)
     else version (WatchOS) {}
     else:
 
-    version (ARM)     version = AAPCS32;
-    version (AArch64) version = AAPCS64;
+    version (ARM)
+    {
+        version = AAPCS32;
+    }
+    else version (AArch64)
+    {
+        version = AAPCS64;
+        static import core.internal.vararg.aarch64;
+    }
 }
 
 
@@ -117,17 +124,7 @@ else version (AAPCS32)
 }
 else version (AAPCS64)
 {
-    alias va_list = __va_list;
-
-    // https://github.com/ARM-software/abi-aa/blob/master/aapcs64/aapcs64.rst#definition-of-va-list
-    extern (C++, std) struct __va_list
-    {
-        void* __stack;
-        void* __gr_top;
-        void* __vr_top;
-        int __gr_offs;
-        int __vr_offs;
-    }
+    alias va_list = core.internal.vararg.aarch64.va_list;
 }
 else
 {
@@ -217,7 +214,7 @@ T va_arg(T)(ref va_list ap)
     }
     else version (AAPCS64)
     {
-        static assert(0, "Unsupported platform");
+        return core.internal.vararg.aarch64.va_arg!T(ap);
     }
     else version (ARM_Any)
     {
