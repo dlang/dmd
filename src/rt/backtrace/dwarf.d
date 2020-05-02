@@ -664,22 +664,21 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
         return result;
     }
 
+    /// Directories are simply a sequence of NUL-terminated strings
     static const(char)[] readIncludeDirectoryEntry(ref const(ubyte)[] data)
     {
-        const length = strlen(cast(char*) data.ptr);
-        auto result = cast(const(char)[]) data[0 .. length];
-        debug(DwarfDebugMachine) printf("dir: %.*s\n", cast(int) length, result.ptr);
-        data = data[length + 1 .. $];
-        return result;
+        const ptr = cast(const(char)*) data.ptr;
+        const dir = ptr[0 .. strlen(ptr)];
+        data = data[dir.length + "\0".length .. $];
+        return dir;
     }
     lp.includeDirectories = readSequence!readIncludeDirectoryEntry(data);
 
     static SourceFile readFileNameEntry(ref const(ubyte)[] data)
     {
-        const length = strlen(cast(char*) data.ptr);
-        auto file = cast(const(char)[]) data[0 .. length];
-        debug(DwarfDebugMachine) printf("file: %.*s\n", cast(int) length, file.ptr);
-        data = data[length + 1 .. $];
+        const ptr = cast(const(char)*) data.ptr;
+        const file = ptr[0 .. strlen(ptr)];
+        data = data[file.length + "\0".length .. $];
 
         auto dirIndex = cast(size_t) data.readULEB128();
 
@@ -692,6 +691,29 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
         );
     }
     lp.sourceFiles = readSequence!readFileNameEntry(data);
+
+    debug (DwarfDebugMachine)
+    {
+        printf("include_directories: (%d)\n", cast(int) lp.includeDirectories.length);
+        foreach (dir; lp.includeDirectories)
+            printf("\t- %.*s\n", cast(int) dir.length, dir.ptr);
+        printf("source_files: (%d)\n", cast(int) lp.sourceFiles.length);
+        foreach (ref sf; lp.sourceFiles)
+        {
+            if (sf.dirIndex > lp.includeDirectories.length)
+                printf("\t- Out of bound directory! (%d): %.*s\n",
+                       sf.dirIndex, cast(int) sf.file.length, sf.file.ptr);
+            else if (sf.dirIndex > 0)
+            {
+                const dir = lp.includeDirectors[sf.dirIndex - 1];
+                printf("\t- (Dir:%d:%.*s/)%.*s\n", sf.dirIndex,
+                       cast(int) dir.length, dir.ptr,
+                       cast(int) sf.file.length, sf.file.ptr);
+            }
+            else
+                printf("\t- %.*s\n", cast(int) sf.file.length, sf.file.ptr);
+        }
+    }
 
     const programStart = cast(size_t) (minimumInstructionLengthFieldOffset + lp.headerLength);
     const programEnd = cast(size_t) (dwarfVersionFieldOffset + lp.unitLength);
