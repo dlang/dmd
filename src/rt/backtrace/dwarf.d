@@ -155,12 +155,16 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                 address += baseAddress;
                 debug (DwarfDebugMachine)
                     printf("-- offsetting 0x%zx to 0x%zx\n", address - baseAddress, address);
-                // If loc.line != -1, then it has been set previously.
-                // Some implementations (eg. dmd) write an address to
-                // the debug data multiple times, but so far I have found
-                // that the first occurrence to be the correct one.
-                foreach (ref loc; locations) if (loc.line == -1)
+
+                foreach (ref loc; locations)
                 {
+                    // If loc.line != -1, then it has been set previously.
+                    // Some implementations (eg. dmd) write an address to
+                    // the debug data multiple times, but so far I have found
+                    // that the first occurrence to be the correct one.
+                    if (loc.line != -1)
+                        continue;
+
                     if (loc.address == address)
                     {
                         debug(DwarfDebugMachine) printf("-- found for [0x%zx]:\n", loc.address);
