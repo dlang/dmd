@@ -167,10 +167,14 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
 
                     if (loc.address == address)
                     {
-                        debug(DwarfDebugMachine) printf("-- found for [0x%zx]:\n", loc.address);
-                        debug(DwarfDebugMachine) printf("--   file: %.*s\n", cast(int) lp.sourceFiles[locInfo.file - 1].file.length, lp.sourceFiles[locInfo.file - 1].file.ptr);
-                        debug(DwarfDebugMachine) printf("--   line: %d\n", locInfo.line);
-                        auto sourceFile = lp.sourceFiles[locInfo.file - 1];
+                        const sourceFile = lp.sourceFiles[locInfo.file - 1];
+                        debug (DwarfDebugMachine)
+                        {
+                            printf("-- found for [0x%zx]:\n", loc.address);
+                            printf("--   file: %.*s\n",
+                                   cast(int) sourceFile.file.length, sourceFile.file.ptr);
+                            printf("--   line: %d\n", locInfo.line);
+                        }
                         loc.file = sourceFile.file;
                         loc.directory = sourceFile.dirIndex == 0 ? null : lp.includeDirectories[sourceFile.dirIndex - 1];
                         loc.line = locInfo.line;
@@ -178,10 +182,14 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                     }
                     else if (loc.address < address && lastAddress < loc.address && lastAddress != 0)
                     {
-                        debug(DwarfDebugMachine) printf("-- found for [0x%zx]:\n", loc.address);
-                        debug(DwarfDebugMachine) printf("--   file: %.*s\n", cast(int) lp.sourceFiles[lastLoc.file - 1].file.length, lp.sourceFiles[lastLoc.file - 1].file.ptr);
-                        debug(DwarfDebugMachine) printf("--   line: %d\n", lastLoc.line);
-                        auto sourceFile = lp.sourceFiles[lastLoc.file - 1];
+                        const sourceFile = lp.sourceFiles[lastLoc.file - 1];
+                        debug (DwarfDebugMachine)
+                        {
+                            printf("-- found for [0x%zx]:\n", loc.address);
+                            printf("--   file: %.*s\n",
+                                   cast(int) sourceFile.file.length, sourceFile.file.ptr);
+                            printf("--   line: %d\n", lastLoc.line);
+                        }
                         loc.file = sourceFile.file;
                         loc.directory = sourceFile.dirIndex == 0 ? null : lp.includeDirectories[sourceFile.dirIndex - 1];
                         loc.line = lastLoc.line;
