@@ -7274,6 +7274,15 @@ final class Parser(AST) : Lexer
             case TOK.rightParentheses:
                 break;
 
+            case TOK.at:
+                Token* pastAttr;
+                if (skipAttributes(t, &pastAttr))
+                {
+                    t = pastAttr;
+                    goto default;
+                }
+                break;
+
             case TOK.dotDotDot:
                 t = peek(t);
                 break;
