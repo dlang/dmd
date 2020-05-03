@@ -271,6 +271,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D ARM_HardFloat)) , $(ARGS The ARM $(D hardfp) floating point ABI))
         $(TROW $(ARGS $(D AArch64)) , $(ARGS The Advanced RISC Machine architecture (64-bit)))
         $(TROW $(ARGS $(D AsmJS)) , $(ARGS The asm.js intermediate programming language))
+        $(TROW $(ARGS $(D AVR)) , $(ARGS 8-bit Atmel AVR Microcontrollers))
         $(TROW $(ARGS $(D Epiphany)) , $(ARGS The Epiphany architecture))
         $(TROW $(ARGS $(D PPC)) , $(ARGS The PowerPC architecture, 32-bit))
         $(TROW $(ARGS $(D PPC_SoftFloat)) , $(ARGS The PowerPC soft float ABI))
