@@ -70,7 +70,7 @@ T va_arg(T)(ref va_list ap)
         else
             alias FundamentalType = ArgTypes[0];
 
-        static if (__traits(isFloating, FundamentalType) || isVectorType!FundamentalType)
+        static if (__traits(isFloating, FundamentalType) || is(FundamentalType == __vector))
         {
             import core.stdc.string : memcpy;
 

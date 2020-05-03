@@ -186,14 +186,16 @@ T va_arg(T)(ref va_list ap)
             ap += T.sizeof;
             return *p;
         }
-
-        // passed indirectly by value if > 64 bits or of a size that is not a power of 2
-        static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
-            auto p = *cast(T**) ap;
         else
-            auto p = cast(T*) ap;
-        ap += size_t.sizeof;
-        return *p;
+        {
+            // passed indirectly by value if > 64 bits or of a size that is not a power of 2
+            static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
+                auto p = *cast(T**) ap;
+            else
+                auto p = cast(T*) ap;
+            ap += size_t.sizeof;
+            return *p;
+        }
     }
     else version (SysV_x64)
     {
