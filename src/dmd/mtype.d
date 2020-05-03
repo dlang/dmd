@@ -440,7 +440,6 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tstring;     // immutable(char)[]
     extern (C++) __gshared Type twstring;    // immutable(wchar)[]
     extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
-    extern (C++) __gshared Type tvalist;     // va_list alias
     extern (C++) __gshared Type terror;      // for error recovery
     extern (C++) __gshared Type tnull;       // for null type
 
@@ -891,7 +890,6 @@ extern (C++) abstract class Type : ASTNode
         tstring = tchar.immutableOf().arrayOf();
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
-        tvalist = target.va_listType();
 
         const isLP64 = global.params.isLP64;
 
