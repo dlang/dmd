@@ -622,6 +622,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "ARM_HardFloat":
             case "AArch64":
             case "AsmJS":
+            case "AVR":
             case "Epiphany":
             case "PPC":
             case "PPC_SoftFloat":
