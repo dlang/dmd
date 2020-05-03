@@ -40,7 +40,7 @@ version (Windows)
     extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
 
     // assume filenames encoded in system default Windows ANSI code page
-    private enum codepage = CP_ACP;
+    private enum CodePage = CP_ACP;
 }
 
 version (CRuntime_Glibc)
@@ -357,39 +357,7 @@ nothrow:
     /// Ditto
     extern(D) static const(char)[] combine(const(char)[] path, const(char)[] name)
     {
-        if (!path.length)
-            return name;
-
-        char* f = cast(char*)mem.xmalloc(path.length + 1 + name.length + 1);
-        memcpy(f, path.ptr, path.length);
-        bool trailingSlash = false;
-        version (Posix)
-        {
-            if (path[$ - 1] != '/')
-            {
-                f[path.length] = '/';
-                trailingSlash = true;
-            }
-        }
-        else version (Windows)
-        {
-            if (path[$ - 1] != '\\' && path[$ - 1] != '/' && path[$ - 1] != ':')
-            {
-                f[path.length] = '\\';
-                trailingSlash = true;
-            }
-        }
-        else
-        {
-            assert(0);
-        }
-        const len = path.length + trailingSlash;
-        memcpy(f + len, name.ptr, name.length);
-        // Note: At the moment `const(char)*` are being transitioned to
-        // `const(char)[]`. To avoid bugs crippling in, we `\0` terminate
-        // slices, but don't include it in the slice so `.ptr` can be used.
-        f[len + name.length] = '\0';
-        return f[0 .. len + name.length];
+        return !path.length ? name : buildPath(path, name);
     }
 
     unittest
@@ -401,11 +369,55 @@ nothrow:
         assert(combine("foo/"[], "bar"[]) == "foo/bar");
     }
 
-    static const(char)* buildPath(const(char)* path, const(char)*[] names...)
+    static const(char)[] buildPath(const(char)[][] fragments...)
     {
-        foreach (const(char)* name; names)
-            path = combine(path, name);
-        return path;
+        size_t size;
+        foreach (f; fragments)
+            size += f.length ? f.length + 1 : 0;
+        if (size == 0)
+            size = 1;
+
+        char* p = cast(char*) mem.xmalloc_noscan(size);
+        size_t length;
+        foreach (f; fragments)
+        {
+            if (!f.length)
+                continue;
+
+            p[length .. length + f.length] = f;
+            length += f.length;
+
+            const last = p[length - 1];
+            version (Posix)
+            {
+                if (last != '/')
+                    p[length++] = '/';
+            }
+            else version (Windows)
+            {
+                if (last != '\\' && last != '/' && last != ':')
+                    p[length++] = '\\';
+            }
+            else
+                assert(0);
+        }
+
+        // overwrite last slash with null terminator
+        p[length ? --length : 0] = 0;
+
+        return p[0 .. length];
+    }
+
+    unittest
+    {
+        assert(buildPath() == "");
+        assert(buildPath("foo") == "foo");
+        assert(buildPath("foo", null) == "foo");
+        assert(buildPath(null, "foo") == "foo");
+        version (Windows)
+            assert(buildPath("C:", r"a\", "bb/", "ccc", "d") == r"C:a\bb/ccc\d");
+        else
+            assert(buildPath("a/", "bb", "ccc") == "a/bb/ccc");
     }
 
     // Split a path into an Array of paths
@@ -808,7 +820,7 @@ nothrow:
         }
         else version (Windows)
         {
-            return name.toCStringThen!((cstr) => cstr.toWStringzThen!((wname)
+            return name.toWStringzThen!((wname)
             {
                 const dw = GetFileAttributesW(&wname[0]);
                 if (dw == -1)
@@ -817,7 +829,7 @@ nothrow:
                     return 2;
                 else
                     return 1;
-            }));
+            });
         }
         else
         {
@@ -990,26 +1002,15 @@ nothrow:
                 // First find out how long the buffer has to be.
                 const fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
                 if (!fullPathLength) return null;
-                auto fullPath = new wchar[fullPathLength];
+                auto fullPath = (cast(wchar*) mem.xmalloc_noscan((fullPathLength + 1) * wchar.sizeof))[0 .. fullPathLength + 1];
+                scope(exit) mem.xfree(fullPath.ptr);
 
                 // Actually get the full path name
-                const fullPathLengthNoTerminator = GetFullPathNameW(
-                    &wname[0], fullPathLength, &fullPath[0], null /*filePart*/);
-                // Unfortunately, when the buffer is large enough the return value is the number of characters
-                // _not_ counting the null terminator, so fullPathLengthNoTerminator should be smaller
-                assert(fullPathLength > fullPathLengthNoTerminator);
+                const length = GetFullPathNameW(
+                    &wname[0], cast(DWORD) fullPath.length, &fullPath[0], null /*filePart*/);
+                assert(length == fullPathLength);
 
-                // Find out size of the converted string
-                const retLength = WideCharToMultiByte(
-                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
-                auto ret = new char[retLength];
-
-                // Actually convert to char
-                const retLength2 = WideCharToMultiByte(
-                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], retLength, null, null);
-                assert(retLength == retLength2);
-
-                return ret;
+                return toNarrowStringz(fullPath[0 .. length]);
             });
         }
         else
@@ -1150,6 +1151,60 @@ version(Windows)
     }
 
     /**********************************
+     * Converts a UTF-16 string to a (null-terminated) narrow string.
+     * Returns:
+     *  If `buffer` is specified and the result fits, a slice of that buffer,
+     *  otherwise a new buffer which can be released via `mem.xfree()`.
+     *  Nulls are propagated, i.e., if `wide` is null, the returned slice is
+     *  null too.
+     */
+    char[] toNarrowStringz(const(wchar)[] wide, char[] buffer = null) nothrow
+    {
+        if (wide is null)
+            return null;
+
+        const requiredLength = WideCharToMultiByte(CodePage, 0, wide.ptr, cast(int) wide.length, buffer.ptr, cast(int) buffer.length, null, null);
+        if (requiredLength < buffer.length)
+        {
+            buffer[requiredLength] = 0;
+            return buffer[0 .. requiredLength];
+        }
+
+        char* newBuffer = cast(char*) mem.xmalloc_noscan(requiredLength + 1);
+        const length = WideCharToMultiByte(CodePage, 0, wide.ptr, cast(int) wide.length, newBuffer, requiredLength, null, null);
+        assert(length == requiredLength);
+        newBuffer[length] = 0;
+        return newBuffer[0 .. length];
+    }
+
+    /**********************************
+     * Converts a narrow string to a (null-terminated) UTF-16 string.
+     * Returns:
+     *  If `buffer` is specified and the result fits, a slice of that buffer,
+     *  otherwise a new buffer which can be released via `mem.xfree()`.
+     *  Nulls are propagated, i.e., if `narrow` is null, the returned slice is
+     *  null too.
+     */
+    wchar[] toWStringz(const(char)[] narrow, wchar[] buffer = null) nothrow
+    {
+        if (narrow is null)
+            return null;
+
+        const requiredLength = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, cast(int) buffer.length);
+        if (requiredLength < buffer.length)
+        {
+            buffer[requiredLength] = 0;
+            return buffer[0 .. requiredLength];
+        }
+
+        wchar* newBuffer = cast(wchar*) mem.xmalloc_noscan((requiredLength + 1) * wchar.sizeof);
+        const length = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, newBuffer, requiredLength);
+        assert(length == requiredLength);
+        newBuffer[length] = 0;
+        return newBuffer[0 .. length];
+    }
+
+    /**********************************
      * Converts a slice of UTF-8 characters to an array of wchar that's null
      * terminated so it can be passed to Win32 APIs then calls the supplied
      * function on it.
@@ -1164,28 +1219,10 @@ version(Windows)
     {
         if (!str.length) return F(""w.ptr);
 
-        import core.stdc.stdlib: malloc, free;
         wchar[1024] buf = void;
+        wchar[] wide = toWStringz(str, buf);
+        scope(exit) wide.ptr != buf.ptr && mem.xfree(wide.ptr);
 
-        // first find out how long the buffer must be to store the result
-        const length = MultiByteToWideChar(codepage, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
-        if (!length) return F(""w);
-
-        wchar[] ret = length >= buf.length
-            ? (cast(wchar*)malloc((length + 1) * wchar.sizeof))[0 .. length + 1]
-            : buf[0 .. length + 1];
-        scope (exit)
-        {
-            if (&ret[0] != &buf[0])
-                free(&ret[0]);
-        }
-        // actually do the conversion
-        const length2 = MultiByteToWideChar(
-            codepage, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], length);
-        assert(length == length2); // should always be true according to the API
-        // Add terminating `\0`
-        ret[$ - 1] = '\0';
-
-        return F(ret[0 .. $ - 1]);
+        return F(wide);
     }
 }
