@@ -370,7 +370,7 @@ class Lexer
             case '\f':
                 p++;
                 continue; // skip white space
-           case '\r':
+            case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
                 {
