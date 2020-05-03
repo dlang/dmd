@@ -370,14 +370,22 @@ class Lexer
             case '\f':
                 p++;
                 continue; // skip white space
-            case '\r':
+           case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
+                {
                     endOfLine();
+                    goto skipFourSpaces;
+                }
                 continue; // skip white space
             case '\n':
                 p++;
                 endOfLine();
+                skipFourSpaces:
+                while (*(cast(uint*)p) == 0x20202020) //' ' == 0x20
+                {
+                    p+=4;
+                }
                 continue; // skip white space
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
