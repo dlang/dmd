@@ -554,26 +554,33 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
 {
     block* this_block;
 
-    /****************************
-     * Compute number of cp (copy propagation) elems.
-     * Mark cp elems by setting NFLaecp flag.
-     * Returns:
-     *      number of cp elems
+    /********************************
+     * Assign cp elems to go.expnod[] (in order of evaluation).
      */
-
-    int numcpelems(elem *n)
+    void asgcpelems(elem *n)
     {
         while (1)
         {
             const op = n.Eoper;
             if (OTunary(op))
             {
-                n.Nflags &= ~NFLaecp;
+                n.Eexp = 0;
                 n = n.EV.E1;
                 continue;
             }
             else if (OTbinary(op))
             {
+                if (ERTOL(n))
+                {
+                    asgcpelems(n.EV.E2);
+                    asgcpelems(n.EV.E1);
+                }
+                else
+                {
+                    asgcpelems(n.EV.E1);
+                    asgcpelems(n.EV.E2);
+                }
+
                 /* look for elem of the form OPvar=OPvar, where they aren't the */
                 /* same variable.                                               */
                 if ((op == OPeq || op == OPstreq) &&
@@ -582,34 +589,22 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                     !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
                     n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
                 {
-                    n.Nflags |= NFLaecp;
-                    return numcpelems(n.EV.E1) +
-                           numcpelems(n.EV.E2) +
-                           1;
-
+                    n.Eexp = cast(uint)go.expnod.length;
+                    go.expnod.push(n);
                 }
-                n.Nflags &= ~NFLaecp;
-                if (const num = numcpelems(n.EV.E2))
-                    return num + numcpelems(n.EV.E1);
-                n = n.EV.E1;
-                continue;
+                else
+                    n.Eexp = 0;
             }
             else
-            {
-                n.Nflags &= ~NFLaecp;
-                return 0;
-            }
+                n.Eexp = 0;
+            return;
         }
     }
 
-    /*****************************
-     * Accumulate number of expressions in go.exptop.
-     * Set NFLaecp as a flag indicating an AE elem.
-     * Returns:
-     *      true if this elem is a possible AE elem.
+    /********************************
+     * Assign ae and vbe elems to go.expnod[] (in order of evaluation).
      */
-
-    bool numaeelems(elem *n)
+    bool asgaeelems(elem *n)
     {
         bool ae;
 
@@ -617,17 +612,22 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
         const op = n.Eoper;
         if (OTunary(op))
         {
-            ae = numaeelems(n.EV.E1);
+            ae = asgaeelems(n.EV.E1);
             // Disallow starred references to avoid problems with VBE's
             // being hoisted before tests of an invalid pointer.
             if (flowxx == VBE && op == OPind)
             {
-                n.Nflags &= ~NFLaecp;
+                n.Eexp = 0;
                 return false;
             }
         }
         else if (OTbinary(op))
-            ae = numaeelems(n.EV.E1) & numaeelems(n.EV.E2);
+        {
+            if (ERTOL(n))
+                ae = asgaeelems(n.EV.E2) & asgaeelems(n.EV.E1);
+            else
+                ae = asgaeelems(n.EV.E1) & asgaeelems(n.EV.E2);
+        }
         else
             ae = true;
 
@@ -636,81 +636,41 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
             tybasic(n.Ety) != TYstruct &&
             tybasic(n.Ety) != TYarray)
         {
-            n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
-            go.exptop++;
+            n.Eexp = cast(uint)go.expnod.length;       // remember index into go.expnod[]
+            go.expnod.push(n);
+            if (flowxx == VBE)
+                go.expblk.push(this_block);
             return true;
         }
         else
         {
-            n.Nflags &= ~NFLaecp;
+            n.Eexp = 0;
             return false;
         }
     }
 
-    /********************************
-     * Assign ae (or cp) elems to go.expnod[] (in order of evaluation).
-     */
-
-    void asgexpelems(elem *n)
-    {
-        assert(n);
-        if (OTunary(n.Eoper))
-            asgexpelems(n.EV.E1);
-        else if (ERTOL(n))
-        {
-            asgexpelems(n.EV.E2);
-            asgexpelems(n.EV.E1);
-        }
-        else if (OTbinary(n.Eoper))
-        {
-            asgexpelems(n.EV.E1);
-            asgexpelems(n.EV.E2);
-        }
-
-        if (n.Nflags & NFLaecp)              /* if an ae, cp or vbe elem     */
-        {
-            n.Eexp = go.exptop;              /* remember index into go.expnod[] */
-            go.expnod[go.exptop] = n;
-            if (go.expblk.length)
-                go.expblk[go.exptop] = this_block;
-            go.exptop++;
-        }
-        else
-            n.Eexp = 0;
-    }
-
     go.expnod.setLength(0);             // dump any existing one
+    go.expnod.push(null);
 
-    /* Compute number of expressions */
-    go.exptop = 1;                     /* start at 1                   */
+    go.expblk.setLength(0);             // dump any existing one
+    go.expblk.push(null);
+
     foreach (b; dfo[])
+    {
         if (b.Belem)
         {
             if (flowxx == CP)
-                go.exptop += numcpelems(b.Belem);
-            else // AE || VBE
-                numaeelems(b.Belem);
+                asgcpelems(b.Belem);
+            else
+            {
+                this_block = b;    // so asgaeelems knows about this
+                asgaeelems(b.Belem);
+            }
         }
-    if (go.exptop <= 1)                /* if no expressions            */
-        return;
-
-    /* Allocate array of pointers to all expression elems.          */
-    /* (The elems are in order. Also, these expressions must not    */
-    /* have any side effects, and possibly should not be machine    */
-    /* dependent primitive addressing modes.)                       */
-    go.expnod.setLength(go.exptop);
-    go.expnod[0] = null;
-
-    go.expblk.setLength(flowxx == VBE ? go.exptop : 0);
-
-    go.exptop = 1;
-    foreach (b; dfo[])
-    {
-        this_block = b;    /* so asgexpelems knows about this */
-        if (b.Belem)
-            asgexpelems(b.Belem);
     }
-    assert(go.exptop == go.expnod.length);
+    go.exptop = cast(uint)go.expnod.length;
+    if (go.exptop <= 1)
+        return;
 
     defstarkill();                  /* compute go.defkill and go.starkill */
 
