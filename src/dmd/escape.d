@@ -405,7 +405,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     foreach (Expression ee; er.byexp)
     {
-        if (sc.func.setUnsafe())
+        if (sc.func && sc.func.setUnsafe())
         {
             if (!gag)
                 error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`",
