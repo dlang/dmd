@@ -2335,7 +2335,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // memtype is forward referenced, so try again later
                     ed._scope = scx ? scx : sc.copy();
                     ed._scope.setNoFree();
-                    ed._scope._module.addDeferredSemantic(ed);
+                    Module.addDeferredSemantic(ed);
                     Module.dprogress = dprogress_save;
                     //printf("\tdeferring %s\n", toChars());
                     ed.semanticRun = PASS.init;
@@ -2864,7 +2864,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 //printf("forward reference - deferring\n");
                 tm._scope = scx ? scx : sc.copy();
                 tm._scope.setNoFree();
-                tm._scope._module.addDeferredSemantic(tm);
+                Module.addDeferredSemantic(tm);
                 return;
             }
 
@@ -4761,7 +4761,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             sd._scope = scx ? scx : sc.copy();
             sd._scope.setNoFree();
-            sd._scope._module.addDeferredSemantic(sd);
+            Module.addDeferredSemantic(sd);
             //printf("\tdeferring %s\n", toChars());
             return;
         }
@@ -5043,7 +5043,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
+                        Module.addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
             L7:
@@ -5116,7 +5116,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
+                        Module.addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
                 i++;
@@ -5126,7 +5126,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Forward referencee of one or more bases, try again later
                 cldec._scope = scx ? scx : sc.copy();
                 cldec._scope.setNoFree();
-                cldec._scope._module.addDeferredSemantic(cldec);
+                Module.addDeferredSemantic(cldec);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
@@ -5234,8 +5234,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 cldec._scope = scx ? scx : sc.copy();
                 cldec._scope.setNoFree();
                 if (tc.sym._scope)
-                    tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                cldec._scope._module.addDeferredSemantic(cldec);
+                    Module.addDeferredSemantic(tc.sym);
+                Module.addDeferredSemantic(cldec);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
@@ -5355,7 +5355,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             cldec._scope = scx ? scx : sc.copy();
             cldec._scope.setNoFree();
-            cldec._scope._module.addDeferredSemantic(cldec);
+            Module.addDeferredSemantic(cldec);
             //printf("\tdeferring %s\n", toChars());
             return;
         }
@@ -5692,7 +5692,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
+                        Module.addDeferredSemantic(tc.sym);
                     idec.baseok = Baseok.none;
                 }
                 i++;
@@ -5702,7 +5702,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Forward referencee of one or more bases, try again later
                 idec._scope = scx ? scx : sc.copy();
                 idec._scope.setNoFree();
-                idec._scope._module.addDeferredSemantic(idec);
+                Module.addDeferredSemantic(idec);
                 return;
             }
             idec.baseok = Baseok.done;
@@ -5741,8 +5741,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 idec._scope = scx ? scx : sc.copy();
                 idec._scope.setNoFree();
                 if (tc.sym._scope)
-                    tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                idec._scope._module.addDeferredSemantic(idec);
+                    Module.addDeferredSemantic(tc.sym);
+                Module.addDeferredSemantic(idec);
                 return;
             }
         }
