@@ -104,7 +104,7 @@ nothrow:
                 return result;
             }
             size = cast(size_t)buf.st_size;
-            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 4);
             numread = .read(fd, buffer, size);
             if (numread != size)
             {
@@ -119,6 +119,9 @@ nothrow:
             // Always store a wchar ^Z past end of buffer so scanner has a sentinel
             buffer[size] = 0; // ^Z is obsolete, use 0
             buffer[size + 1] = 0;
+            buffer[size + 2] = 0; //add two more so lexer doesnt read pass the buffer
+            buffer[size + 3] = 0;
+
             result.success = true;
             result.buffer.data = buffer[0 .. size];
             return result;
@@ -146,7 +149,7 @@ nothrow:
             if (h == INVALID_HANDLE_VALUE)
                 return result;
             size = GetFileSize(h, null);
-            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 4);
             if (ReadFile(h, buffer, size, &numread, null) != TRUE)
                 goto err2;
             if (numread != size)
@@ -156,6 +159,8 @@ nothrow:
             // Always store a wchar ^Z past end of buffer so scanner has a sentinel
             buffer[size] = 0; // ^Z is obsolete, use 0
             buffer[size + 1] = 0;
+            buffer[size + 2] = 0; //add two more so lexer doesnt read pass the buffer
+            buffer[size + 3] = 0;
             result.success = true;
             result.buffer.data = buffer[0 .. size];
             return result;

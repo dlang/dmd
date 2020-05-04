@@ -452,8 +452,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         if (params.addMain && m.srcfile.toString() == "__main.d")
         {
-            auto data = arraydup("int main(){return 0;}\0\0"); // need 2 trailing nulls for sentinel
-            m.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-2]);
+            auto data = arraydup("int main(){return 0;}\0\0\0\0"); // need 2 trailing nulls for sentinel and 2 for lexer
+            m.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
         }
         else if (m.srcfile.toString() == "__stdin.d")
         {
@@ -778,7 +778,7 @@ private FileBuffer readFromStdin()
     ubyte* buffer = null;
     for (;;)
     {
-        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 2); // +2 for sentinel
+        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
 
         // Fill up buffer
         do
@@ -798,6 +798,8 @@ private FileBuffer readFromStdin()
                 assert(pos < sz + 2);
                 buffer[pos] = '\0';
                 buffer[pos + 1] = '\0';
+                buffer[pos + 2] = '\0';
+                buffer[pos + 3] = '\0';
                 return FileBuffer(buffer[0 .. pos]);
             }
         } while (pos < sz);
