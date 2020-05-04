@@ -13,6 +13,7 @@ module core.internal.elf.io;
 
 version (Posix):
 
+import core.memory : pageSize;
 import core.lifetime : move;
 import core.sys.posix.fcntl;
 import core.sys.posix.sys.mman;
@@ -72,7 +73,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
             if (fd != -1)
             {
                 // memory map header
-                this.ehdr = MMapRegion!Elf_Ehdr(fd, 0);
+                this.ehdr = TypedMMapRegion!Elf_Ehdr(fd, 0);
             }
         }
 
@@ -87,7 +88,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 
         private int fd = -1;
         /// Memory-mapped ELF header.
-        MMapRegion!Elf_Ehdr ehdr;
+        TypedMMapRegion!Elf_Ehdr ehdr;
 
         /// Returns true if the ELF file header matches the ElfIO template parameters.
         bool isValid() const
@@ -212,7 +213,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         this(ref const ElfFile file, size_t index)
         {
             assert(Elf_Shdr.sizeof == file.ehdr.e_shentsize);
-            shdr = MMapRegion!Elf_Shdr(
+            shdr = TypedMMapRegion!Elf_Shdr(
                 file.fd,
                 file.ehdr.e_shoff + index * Elf_Shdr.sizeof
             );
@@ -222,7 +223,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 
         alias shdr this;
         /// Memory-mapped section header.
-        MMapRegion!Elf_Shdr shdr;
+        TypedMMapRegion!Elf_Shdr shdr;
     }
 
     /**
@@ -234,7 +235,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         /// Constructs a new instance based on the specified file and section header.
         this(ref const ElfFile file, ref const ElfSectionHeader shdr)
         {
-            mappedRegion = MMapRegion!void(file.fd, shdr.sh_offset, shdr.sh_size);
+            mappedRegion = TypedMMapRegion!void(file.fd, shdr.sh_offset, shdr.sh_size);
             size = shdr.sh_size;
         }
 
@@ -250,7 +251,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         alias data this;
 
     private:
-        MMapRegion!void mappedRegion;
+        TypedMMapRegion!void mappedRegion;
         size_t size;
     }
 }
@@ -283,37 +284,65 @@ version (LinuxOrBSD)
     alias ElfSection = NativeElfIO.ElfSection;
 }
 
-private struct MMapRegion(T)
+private struct TypedMMapRegion(T)
 {
 @nogc nothrow:
+
     this(int fd, size_t offset, size_t length = 1)
+    {
+        const pageOffset = (offset / pageSize);
+        const offsetDiff = offset - (pageOffset * pageSize);
+        const mappedSize = (length * T.sizeof) + offsetDiff;
+        const pageMapped = (mappedSize / pageSize) + !!(mappedSize % pageSize);
+        this.region = MMapRegion(fd, pageOffset, pageMapped);
+        this.data = cast(const(T)*) (this.region.data.ptr + offsetDiff);
+        if (this.region.data.ptr !is null)
+            this.data = cast(const(T)*) (this.region.data.ptr + offsetDiff);
+    }
+
+    private MMapRegion region;
+
+    public const(T)* data;
+    alias data this;
+}
+
+private struct MMapRegion
+{
+    @nogc nothrow:
+
+    /**
+     * Instantiate an instance of this struct with the provided offset / length
+     *
+     * Params:
+     *   fd = The file descriptor to map (likely obtained with `open`)
+     *   pageOffset = The number of pages to offset the `fd` with.
+     *                For example, if one wishes to skip the first 16 KiB of
+     *                the file, the pageOffset will be 4 (for pageSize == 4kiB).
+     *   pageCount = The number of pages to map
+     */
+    this(int fd, size_t pageOffset, size_t pageCount)
     {
         if (fd == -1)
             return;
 
-        const pageSize = sysconf(_SC_PAGESIZE);
-        const pagedOffset = (offset / pageSize) * pageSize;
-        const offsetDiff = offset - pagedOffset;
-        const mappedSize = length * T.sizeof + offsetDiff;
+        const offset = pageOffset * pageSize;
+        const mappedSize = pageCount * pageSize;
 
-        auto ptr = cast(ubyte*) mmap(null, mappedSize, PROT_READ, MAP_PRIVATE, fd, pagedOffset);
-
-        mappedRegion = ptr[0 .. mappedSize];
-        data = cast(T*) (ptr + offsetDiff);
+        const ptr = cast(ubyte*) mmap(null, mappedSize, PROT_READ, MAP_PRIVATE, fd, offset);
+        if (ptr !is MAP_FAILED)
+            this.data = ptr[0 .. mappedSize];
     }
 
     @disable this(this);
 
     ~this()
     {
-        if (mappedRegion !is null)
-            munmap(mappedRegion.ptr, mappedRegion.length);
+        if (this.data !is null)
+            munmap(cast(void*) this.data.ptr, this.data.length);
+        this.data = null;
     }
 
-    alias data this;
-
-    private ubyte[] mappedRegion;
-    const(T)* data;
+    public const(ubyte)[] data;
 }
 
 version (LinuxOrBSD)
