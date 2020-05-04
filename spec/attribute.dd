@@ -37,6 +37,7 @@ $(GNAME Attribute):
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
     $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
+    $(D @) $(D live)
     $(GLINK Property)
     $(D @) $(RELATIVE_LINK2 safe, $(D safe))
     $(D @) $(RELATIVE_LINK2 safe, $(D system))
