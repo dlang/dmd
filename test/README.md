@@ -379,6 +379,9 @@ depend on the current platform and target:
                     - OS: posix, windows, ...
                     - Model: 64, 32mscoff and 32 (also matches 32mscoff)
 
+    $r:<regex>$     any text matching <regex> (using $ inside of <regex> is not
+                    supported, use multiple regexes instead)
+
 Both stderr and stdout of the DMD are captured for output comparison.
 
 ## Test Coding Practices
