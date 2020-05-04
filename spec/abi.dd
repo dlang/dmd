@@ -968,8 +968,6 @@ $(H2 $(LNAME2 symbolic_debugging, Symbolic Debugging))
         these types, which causes C/C++ debuggers to misrepresent things.
         For these debuggers, they are represented as a C type which
         does match the calling conventions for the type.
-        The $(B dmd) compiler will generate only C symbolic type info with the
-        $(B -gc) compiler switch.
         )
 
         $(TABLE2 Types for C Debuggers,
