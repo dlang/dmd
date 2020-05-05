@@ -20,8 +20,35 @@ fail_compilation/chkformat.d(116): Deprecation: argument `16L` for format specif
 fail_compilation/chkformat.d(117): Deprecation: argument `17L` for format specification `"%c"` must be `char`, not `long`
 fail_compilation/chkformat.d(118): Deprecation: argument `& u` for format specification `"%s"` must be `char*`, not `int*`
 fail_compilation/chkformat.d(119): Deprecation: argument `& u` for format specification `"%ls"` must be `wchar_t*`, not `int*`
-fail_compilation/chkformat.d(120): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
-fail_compilation/chkformat.d(121): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
+---
+*/
+
+import core.stdc.stdio;
+
+#line 100
+
+void test101() {  printf("%*.*d\n", 0L, 1L, 2L); }
+//void test102() { }
+//void test103() {  printf("%ld\n", 3.0); }
+void test104() {  printf("%lld\n", 4); }
+void test105() {  printf("%jd\n", 5); }
+void test106() {  printf("%zd\n", 6.0); }
+void test107() {  printf("%td\n", 7.0); }
+void test108() {  printf("%g\n", 8.0L); }
+void test109() {  printf("%Lg\n", 9.0); }
+void test110() {  printf("%p\n", 10); }
+void test111() { uint u; printf("%n\n", &u); }
+//void test112() { ushort u; printf("%ln\n", &u); }
+void test113() { int u; printf("%lln\n", &u); }
+void test114() { int u; printf("%hn\n", &u); }
+void test115() { int u; printf("%hhn\n", &u); }
+void test116() { printf("%c\n", 16L); }
+void test117() { printf("%c\n", 17L); }
+void test118() { int u; printf("%s\n", &u); }
+void test119() { int u; printf("%ls\n", &u); }
+
+/* TEST_OUTPUT:
+---
 fail_compilation/chkformat.d(201): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
 fail_compilation/chkformat.d(202): Deprecation: more format specifiers than 1 arguments
 fail_compilation/chkformat.d(203): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
@@ -52,79 +79,52 @@ fail_compilation/chkformat.d(229): Deprecation: argument `& u` for format specif
 fail_compilation/chkformat.d(230): Deprecation: format specifier `"%[n"` is invalid
 fail_compilation/chkformat.d(231): Deprecation: format specifier `"%]"` is invalid
 fail_compilation/chkformat.d(232): Deprecation: argument `& u` for format specification `"%90s"` must be `char*`, not `int*`
-fail_compilation/chkformat.d(233): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
-fail_compilation/chkformat.d(234): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
 ---
 */
 
-
-import core.stdc.stdio;
-
-#line 100
-
-void test1() {  printf("%*.*d\n", 0L, 1L, 2L); }
-//void test2() { }
-//void test3() {  printf("%ld\n", 3.0); }
-void test4() {  printf("%lld\n", 4); }
-void test5() {  printf("%jd\n", 5); }
-void test6() {  printf("%zd\n", 6.0); }
-void test7() {  printf("%td\n", 7.0); }
-void test8() {  printf("%g\n", 8.0L); }
-void test9() {  printf("%Lg\n", 9.0); }
-void test10() {  printf("%p\n", 10); }
-void test11() { uint u; printf("%n\n", &u); }
-//void test12() { ushort u; printf("%ln\n", &u); }
-void test13() { int u; printf("%lln\n", &u); }
-void test14() { int u; printf("%hn\n", &u); }
-void test15() { int u; printf("%hhn\n", &u); }
-void test16() { printf("%c\n", 16L); }
-void test17() { printf("%c\n", 17L); }
-void test18() { int u; printf("%s\n", &u); }
-void test19() { int u; printf("%ls\n", &u); }
-void test20() { int u; char[] s; sprintf(&s[0], "%d\n", &u); }
-void test21() { int u; fprintf(null, "%d\n", &u); }
-
 #line 200
 
-void test31() {  scanf("%d\n", 0L); }
-void test32() {  int i; scanf("%d %d\n", &i); }
-void test33() {  scanf("%d%*c\n", 0L); }
-void test34() {  scanf("%3u\n", 0L); }
-void test35() {  uint u; scanf("%200u%*s\n", u); }
-void test36() {  scanf("%hhd\n", 3.0); }
-void test37() {  scanf("%hd\n", 4); }
-//void test38() {  scanf("%ld\n", 3.0); }
-void test39() {  scanf("%lld\n", 4); }
-void test40() { scanf("%jd\n", 5); }
-void test41() { scanf("%zd\n", 6.0); }
-void test42() { scanf("%td\n", 7.0); }
-void test43() { scanf("%Ld\n", 0); }
-void test44() { scanf("%u\n", 0); }
-void test45() { scanf("%hhu\n", 0); }
-void test46() { scanf("%hu\n", 0); }
-//void test47() { scanf("%lu\n", 0); }
-void test48() { scanf("%llu\n", 0); }
-void test49() { scanf("%ju\n", 0); }
-void test50() { scanf("%zu\n", 0); }
-void test51() { scanf("%tu\n", 0); }
-void test52() { scanf("%g\n", 8.0L); }
-void test53() { scanf("%lg\n", 8.0L); }
-void test54() { scanf("%Lg\n", 9.0); }
-void test55() { int u; scanf("%s\n", &u); }
-void test56() { int u; scanf("%ls\n", &u); }
-void test57() { void* v; scanf("%p\n", v); }
-void test58() { ushort u; scanf("%n\n", &u); }
-void test59() { int u; scanf("%hhn\n", &u); }
-void test60() { int u; scanf("%[n", &u); }
-void test61() { int u; scanf("%]\n", &u); }
-void test62() { int u; scanf("%90s\n", &u); }
-void test63() { sscanf("1234", "%d\n", 0L); }
-void test64() { fscanf(null, "%d\n", 0L); }
+void test201() {  scanf("%d\n", 0L); }
+void test202() {  int i; scanf("%d %d\n", &i); }
+void test203() {  scanf("%d%*c\n", 0L); }
+void test204() {  scanf("%3u\n", 0L); }
+void test205() {  uint u; scanf("%200u%*s\n", u); }
+void test206() {  scanf("%hhd\n", 3.0); }
+void test207() {  scanf("%hd\n", 4); }
+//void test208() {  scanf("%ld\n", 3.0); }
+void test209() {  scanf("%lld\n", 4); }
+void test210() { scanf("%jd\n", 5); }
+void test211() { scanf("%zd\n", 6.0); }
+void test212() { scanf("%td\n", 7.0); }
+void test213() { scanf("%Ld\n", 0); }
+void test214() { scanf("%u\n", 0); }
+void test215() { scanf("%hhu\n", 0); }
+void test216() { scanf("%hu\n", 0); }
+//void test217() { scanf("%lu\n", 0); }
+void test218() { scanf("%llu\n", 0); }
+void test219() { scanf("%ju\n", 0); }
+void test220() { scanf("%zu\n", 0); }
+void test221() { scanf("%tu\n", 0); }
+void test222() { scanf("%g\n", 8.0L); }
+void test223() { scanf("%lg\n", 8.0L); }
+void test224() { scanf("%Lg\n", 9.0); }
+void test225() { int u; scanf("%s\n", &u); }
+void test226() { int u; scanf("%ls\n", &u); }
+void test227() { void* v; scanf("%p\n", v); }
+void test228() { ushort u; scanf("%n\n", &u); }
+void test229() { int u; scanf("%hhn\n", &u); }
+void test230() { int u; scanf("%[n", &u); }
+void test231() { int u; scanf("%]\n", &u); }
+void test232() { int u; scanf("%90s\n", &u); }
 
 /* TEST_OUTPUT:
 ---
 fail_compilation/chkformat.d(301): Deprecation: format specifier `"%K"` is invalid
 fail_compilation/chkformat.d(302): Deprecation: format specifier `"%Q"` is invalid
+fail_compilation/chkformat.d(303): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
+fail_compilation/chkformat.d(304): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
+fail_compilation/chkformat.d(305): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
+fail_compilation/chkformat.d(306): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
 ---
 */
 
@@ -134,8 +134,11 @@ import core.stdc.stdarg;
 
 void test301() { va_list vargs; vprintf("%K", vargs); }
 void test302() { va_list vargs; vscanf("%Q", vargs); }
+void test303() { int u; char[] s; sprintf(&s[0], "%d\n", &u); }
+void test304() { sscanf("1234", "%d\n", 0L); }
+void test305() { int u; fprintf(null, "%d\n", &u); }
+void test306() { fscanf(null, "%d\n", 0L); }
 
 // TODO - C++ 11 only:
-//void test() { vscanf(); }
 //void test() { vfscanf(); }
 //void test() { vsscanf(); }
