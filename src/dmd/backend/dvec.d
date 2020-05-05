@@ -253,6 +253,17 @@ vec_t vec_realloc(vec_t v, size_t numbits)
     return newv;
 }
 
+/********************************
+ * Recycle a vector `v` to a new size `numbits`, clear all bits.
+ * Re-uses original if possible.
+ */
+void vec_recycle(ref vec_t v, size_t numbits)
+{
+    vec_free(v);
+    v = vec_calloc(numbits);
+}
+
+
 /**************************
  * Set bit b in vector v.
  */
