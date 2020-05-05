@@ -295,7 +295,6 @@ private struct TypedMMapRegion(T)
         const mappedSize = (length * T.sizeof) + offsetDiff;
         const pageMapped = (mappedSize / pageSize) + !!(mappedSize % pageSize);
         this.region = MMapRegion(fd, pageOffset, pageMapped);
-        this.data = cast(const(T)*) (this.region.data.ptr + offsetDiff);
         if (this.region.data.ptr !is null)
             this.data = cast(const(T)*) (this.region.data.ptr + offsetDiff);
     }
