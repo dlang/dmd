@@ -1162,5 +1162,6 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (ex == v.ret)
             break;
     }
+    v.ret.loc = e.loc;
     return v.ret;
 }
