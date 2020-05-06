@@ -84,25 +84,86 @@ if (is(UT == core.internal.traits.Unqual!UT))
     emplaceRef!(UT, UT)(chunk, forward!args);
 }
 
-//emplace helper functions
-private nothrow pure @trusted
-void emplaceInitializer(T)(scope ref T chunk)
+/+
+Emplaces T.init.
+In contrast to `emplaceRef(chunk)`, there are no checks for disabled default
+constructors etc.
++/
+void emplaceInitializer(T)(scope ref T chunk) nothrow pure @trusted
+    if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
-    // Emplace T.init.
-    // Previously, an immutable static and memcpy were used to hold an initializer.
-    // With improved unions, this is no longer needed.
-    union UntypedInit
+    import core.internal.traits : hasElaborateAssign;
+
+    static if (!hasElaborateAssign!T && __traits(compiles, chunk = T.init))
     {
-        T dummy;
+        chunk = T.init;
     }
-    static struct UntypedStorage
+    else static if (__traits(isZeroInit, T))
     {
-        align(T.alignof) void[T.sizeof] dummy;
+        static if (is(T U == shared U))
+            alias Unshared = U;
+        else
+            alias Unshared = T;
+
+        import core.stdc.string : memset;
+        memset(cast(Unshared*) &chunk, 0, T.sizeof);
+    }
+    else
+    {
+        // emplace T.init (an rvalue) without extra variable (and according destruction)
+        alias RawBytes = void[T.sizeof];
+
+        static union U
+        {
+            T dummy = T.init; // U.init corresponds to T.init
+            RawBytes data;
+        }
+
+        *cast(RawBytes*) &chunk = U.init.data;
+    }
+}
+
+@safe unittest
+{
+    static void testInitializer(T)()
+    {
+        // mutable T
+        {
+            T dst = void;
+            emplaceInitializer(dst);
+            assert(dst is T.init);
+        }
+
+        // shared T
+        {
+            shared T dst = void;
+            emplaceInitializer(dst);
+            assert(dst is shared(T).init);
+        }
+
+        // const T
+        {
+            const T dst = void;
+            static assert(!__traits(compiles, emplaceInitializer(dst)));
+        }
     }
 
-    () @trusted {
-        *cast(UntypedStorage*) &chunk = cast(UntypedStorage) UntypedInit.init;
-    } ();
+    static struct ElaborateAndZero
+    {
+        int a;
+        this(this) {}
+    }
+
+    static struct ElaborateAndNonZero
+    {
+        int a = 42;
+        this(this) {}
+    }
+
+    testInitializer!int();
+    testInitializer!double();
+    testInitializer!ElaborateAndZero();
+    testInitializer!ElaborateAndNonZero();
 }
 
 /*
