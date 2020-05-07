@@ -1179,22 +1179,6 @@ void test62()
 
 /**************************************/
 
-class A63
-{
-     private import std.file;
-     alias std.file.getcwd getcwd;
-}
-
-void test63()
-{
-     A63 f = new A63();
-     auto s = f.getcwd();
-     printf("%.*s\n", cast(int)s.length, s.ptr);
-}
-
-
-/**************************************/
-
 debug = 3;
 
 void test64()
@@ -1379,7 +1363,6 @@ int main(string[] argv)
     test58();
     test61();
     test62();
-    test63();
     test64();
     test65();
     test8809();

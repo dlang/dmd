@@ -941,42 +941,6 @@ void test44()
 {
 }
 
-
-/**************************************/
-
-struct Shell
-{
-    string str;
-
-    const int opCmp(ref const Shell s)
-    {
-        import std.algorithm;
-        return std.algorithm.cmp(this.str, s.str);
-    }
-}
-
-void test45()
-{
-    import std.algorithm;
-
-    Shell[3] a;
-
-    a[0].str = "hello";
-    a[1].str = "betty";
-    a[2].str = "fred";
-
-    a[].sort;
-
-    foreach (Shell s; a)
-    {
-        printf("%.*s\n", cast(int)s.str.length, s.str.ptr);
-    }
-
-    assert(a[0].str == "betty");
-    assert(a[1].str == "fred");
-    assert(a[2].str == "hello");
-}
-
 /**************************************/
 
 class A46
@@ -1232,7 +1196,6 @@ int main(string[] argv)
     test42();
     test43();
     test44();
-    test45();
     test46();
     test47();
     test48();

@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// EXECUTE_ARGS: runnable/wc.d
+// EXECUTE_ARGS: runnable_phobos/wc.d
 
 import std.file;
 

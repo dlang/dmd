@@ -8,9 +8,7 @@ TEST_OUTPUT:
 module test;
 
 import core.vararg;
-import core.stdc.stdlib;
-import std.stdio;
-import std.string;
+import core.stdc.stdio;
 import core.stdc.stdlib;
 
 
@@ -69,13 +67,6 @@ void test3()
             assert(0);
         }
     }
-}
-
-/*******************************************/
-
-void test4()
-{
-    writeln("",true);
 }
 
 /*******************************************/
@@ -213,32 +204,6 @@ void test10()
 
 /*******************************************/
 
-class Foo11 : Bar11 { }
-
-class Foo11T(V)
-{
-    public void foo() {}
-}
-
-class Bar11
-{
-    public this(){
-        f = new Foo11T!(int);
-    }
-    Foo11T!(int) f;
-}
-
-void test11()
-{
-    Foo11 fooIt = new Foo11();
-    if (fooIt !is null)
-        writefln("fooIt should be valid");
-    fooIt.f.foo();
-    writefln("it worked");
-}
-
-/*******************************************/
-
 struct A12 {
         int a;
         union {
@@ -269,38 +234,6 @@ typeof(declare13!(typeof(""))[0..$]) y13;
 void test13()
 {
 }
-
-/*******************************************/
-
-interface Father {}
-
-class Mother {
-     Father test() {
-         writefln("Called Mother.test!");
-         return new Child(42);
-     }
-}
-
-class Child : Mother, Father {
-     int data;
-
-     this(int d) { data = d; }
-
-     override Child test() {
-         writefln("Called Child.test!");
-         return new Child(69);
-     }
-}
-
-void test14()
-{
-     Child aChild = new Child(105);
-     Mother childsMum = aChild;
-     Child childsChild = aChild.test();
-     Child mumsChild = cast(Child) childsMum.test();
-     writefln("Success2");
-}
-
 
 /*******************************************/
 
@@ -556,28 +489,6 @@ void test24()
 
 /*******************************************/
 
-void test25()
-{
-    char[6] cstr = "123456"c;
-    auto str1 = cast(wchar[3])(cstr);
-
-    writefln("str1: ", (cast(char[])str1).length , " : ", (cast(char[])str1));
-    assert(cast(char[])str1 == "123456"c);
-
-    auto str2 = cast(wchar[3])("789abc"c);
-    writefln("str2: ", (cast(char[])str2).length , " : ", (cast(char[])str2));
-    assert(cast(char[])str2 == "789abc"c);
-
-    auto str3 = cast(wchar[3])("defghi");
-    writefln("str3: ", (cast(char[])str3).length , " : ", (cast(char[])str3));
-    version (LittleEndian)
-        assert(cast(char[])str3 == "d\000e\000f\000"c);
-    version (BigEndian)
-        assert(cast(char[])str3 == "\000d\000e\000f"c);
-}
-
-/*******************************************/
-
 void test26()
 {
     assert(foo26(5) == 25);
@@ -624,37 +535,6 @@ void test27()
     a.am = 3;
 
     a.fork();
-}
-
-/*******************************************/
-
-uint intRes()
-{
-        return 4;
-}
-
-void test28()
-{
-        auto s = std.string.format("%s", "abc123"[intRes() % $] );
-        writefln( "%s", s );
-        assert(s == "2");
-
-        static const char[] foo = "abc123";
-        s = std.string.format("%s", foo[intRes() % $] );
-        assert(s == "2");
-
-
-        static string bar = "abc123";
-        s = std.string.format("%s", bar[intRes() % $] );
-        assert(s == "2");
-
-        const char[] abc = "abc123";
-        s = std.string.format("%s", abc[intRes() % $] );
-        assert(s == "2");
-
-        string def = "abc123";
-        s = std.string.format("%s", def[intRes() % $] );
-        assert(s == "2");
 }
 
 /*******************************************/
@@ -730,31 +610,6 @@ void test34()
     int o4 = Foo34.baz.offsetof;
     assert((o4 % (void*).sizeof) == 0);
     assert(o4 > o3);
-}
-
-/*******************************************/
-
-class Foo37
-{
-    float[4] array = 1.0;
-    int count = 10;
-}
-
-void test37()
-{
-    Foo37 f = new Foo37();
-
-    writefln("Foo.array[0] = %s", f.array[0] );
-    writefln("Foo.array[1] = %s", f.array[1] );
-    writefln("Foo.array[2] = %s", f.array[2] );
-    writefln("Foo.array[3] = %s", f.array[3] );
-    writefln("Foo.count = %s", f.count );
-
-    assert(f.array[0] == 1.0);
-    assert(f.array[1] == 1.0);
-    assert(f.array[2] == 1.0);
-    assert(f.array[3] == 1.0);
-    assert(f.count == 10);
 }
 
 /*******************************************/
@@ -936,28 +791,6 @@ void test44()
         if(s[1].i != 1){
                 assert(0);
         }
-}
-
-/*******************************************/
-
-void test45()
-{
-   char[] buffer = "abcdefghijklmnopqrstuvwxyz".dup;
-   foreach(ref char c; buffer)
-   {
-       if('a' <= c && c <= 'z')
-       {
-           c -= cast(char)'a' - 'A'; // segfault here
-       }
-   }
-   for(int i = 0; i < buffer.length; i++)
-   {
-       if('a' <= buffer[i] && buffer[i] <= 'z')
-       {
-           buffer[i] -= cast(char)'a' - 'A'; // segfault here
-       }
-   }
-   writeln(buffer);
 }
 
 /*******************************************/
@@ -1160,25 +993,6 @@ void test58()
 
 /*******************************************/
 
-struct S59
-{
-    string toString()
-    {
-        return "foo";
-    }
-}
-
-void test59()
-{   S59 s;
-    writefln("s = %s", s);
-
-    string p;
-    p = std.string.format("s = %s", s);
-    assert(p == "s = foo");
-}
-
-/*******************************************/
-
 void test60()
 {
     int[2][] a;
@@ -1194,18 +1008,6 @@ void test60()
     assert(b[0][1] == 2);
     assert(b[1][0] == 3);
     assert(b[1][1] == 4);
-}
-
-/*******************************************/
-
-void test61()
-{
-    int[][] f = [[1,2],[3,4]];
-    assert(f[0][0] == 1);
-    assert(f[0][1] == 2);
-    assert(f[1][0] == 3);
-    assert(f[1][1] == 4);
-    writeln(f);
 }
 
 /*******************************************/
@@ -1259,34 +1061,6 @@ void test63()
         assert(arr[2] == 1);
 
         foo63([1] ~ 2, 2 ~ [1], [1,2] ~ [3,4,5]);
-}
-
-/*******************************************/
-
-void test64()
-{
-    printf("test64()\n");
-    int[] x = [1,2,3,4];
-    int j = 4;
-
-    foreach_reverse(v; x)
-    {
-        writeln(v);
-        assert(j == v);
-        j--;
-    }
-    assert(j == 0);
-
-    j = 4;
-    foreach_reverse(i, v; x)
-    {
-        writefln("[%s] = %s", i, v);
-        assert(i + 1 == j);
-        assert(j == v);
-        j--;
-    }
-    assert(j == 0);
-    printf("-test64()\n");
 }
 
 /*******************************************/
@@ -1359,20 +1133,6 @@ void test69()
 
 /*******************************************/
 
-void test70()
-{
-    void foo(char[0] p)
-    {
-    }
-
-    static const char[0] altsep;
-    string s = std.string.format("test%spath", altsep);
-    assert(s == "testpath");
-    foo(altsep);
-}
-
-/*******************************************/
-
 
 class C71
 {
@@ -1440,17 +1200,14 @@ void main()
     test1();
     test2();
     test3();
-    test4();
     test5();
     test6();
     test7();
     test8();
     test9();
     test10();
-    test11();
     test12();
     test13();
-    test14();
     test15();
     test16();
     test17();
@@ -1461,17 +1218,14 @@ void main()
     test22();
     test23();
     test24();
-    test25();
     test26();
     test27();
-    test28();
     test29();
     test30();
     test31();
 
 
     test34();
-    test37();
     test38();
     test39();
     test40();
@@ -1479,7 +1233,6 @@ void main()
     test42();
     test43();
     test44();
-    test45();
     test46();
     test47();
     test48();
@@ -1489,17 +1242,13 @@ void main()
     test56();
     test57();
     test58();
-    test59();
     test60();
-    test61();
     test62();
     test63();
-    test64();
     test65();
     test66();
     test68();
     test69();
-    test70();
     test71();
     test13237();
 

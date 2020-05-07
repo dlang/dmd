@@ -902,14 +902,6 @@ void test45()
 
 /***************************************************/
 
-void text10682()
-{
-    ulong x = 1;
-    ulong y = 2 ^^ x;
-}
-
-/***************************************************/
-
 struct Test46
 {
  int foo;
@@ -4170,17 +4162,6 @@ void test1962()
 {
     class C { abstract void x(); }
     assert(C.classinfo.create() is null);
-}
-
-/***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=6228
-
-void test6228()
-{
-    int val;
-    const(int)* ptr = &val;
-    const(int)  temp;
-    auto x = (*ptr) ^^ temp;
 }
 
 /***************************************************/
@@ -8177,7 +8158,6 @@ int main()
     test1471();
     test6335();
     test1687();
-    test6228();
     test3733();
     test4392();
     test7942();

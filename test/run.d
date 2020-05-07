@@ -18,7 +18,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-immutable testDirs = ["runnable", "runnable_cxx", "compilable", "fail_compilation", "dshell"];
+immutable testDirs = ["runnable", "runnable_cxx", "runnable_phobos", "compilable", "fail_compilation", "dshell"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
@@ -362,6 +362,10 @@ auto predefinedTargets(string[] targets)
                 newTargets.put(findFiles("runnable_cxx").map!createTestTarget);
                 break;
 
+            case "run_runnable_phobos_tests", "runnable_phobos":
+                newTargets.put(findFiles("runnable_phobos").map!createTestTarget);
+                break;
+
             case "run_fail_compilation_tests", "fail_compilation", "fail":
                 newTargets.put(findFiles("fail_compilation").map!createTestTarget);
                 break;
@@ -478,6 +482,7 @@ string[string] getEnvironment()
         env["SEP"] = `\`;
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\phobos`));
+        env["PHOBOS_PATH"] = phobosPath;
         env["DFLAGS"] = `-I%s\import -I%s`.format(druntimePath, phobosPath);
         env["LIB"] = phobosPath;
     }
@@ -489,6 +494,7 @@ string[string] getEnvironment()
         env["SEP"] = "/";
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../phobos`));
+        env["PHOBOS_PATH"] = phobosPath;
 
         // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.

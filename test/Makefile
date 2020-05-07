@@ -177,6 +177,13 @@ start_runnable_cxx_tests:
 	@echo "Running runnable_cxx tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_cxx_tests
 
+run_runnable_phobos_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
+
+start_runnable_phobos_tests:
+	@echo "Running runnable_phobos tests"
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_phobos_tests
+
 run_compilable_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
 
@@ -207,7 +214,7 @@ start_all_tests: $(RUNNER)
 
 # The auto-tester cannot run runnable_cxx as its compiler is too old
 auto-tester-test: $(RUNNER)
-	$(EXECUTE_RUNNER) runnable compilable fail_compilation dshell
+	$(EXECUTE_RUNNER) runnable runnable_phobos compilable fail_compilation dshell
 
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
