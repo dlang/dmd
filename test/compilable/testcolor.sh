@@ -28,7 +28,7 @@ check()
 }
 
 expectedWithoutColor=__stdin.d\(2\):\ Error:\ no\ identifier\ for\ declarator\ \`test\`
-expectedWithColor=$'\033'\[1m__stdin.d\(2\):\ $'\033'\[1\;31mError:\ $'\033'\[mno\ identifier\ for\ declarator\ $'\033'\[0\;36m$'\033'\[m$'\033'\[1mtest$'\033'\[0\;36m$'\033'\[m
+expectedWithColor=$'\033'\[1m__stdin.d\(2\):\ $'\033'\[1\;31mError:\ $'\033'\[mno\ identifier\ for\ declarator\ \`$'\033'\[0\;36m$'\033'\[m$'\033'\[1mtest$'\033'\[0\;36m$'\033'\[m\`
 
 check -c "test" "$expectedWithoutColor"
 check -color=auto "test" "$expectedWithoutColor"

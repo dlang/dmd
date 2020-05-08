@@ -654,11 +654,11 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
                 {
                     inBacktick = false;
                     OutBuffer codebuf;
-                    codebuf.write(buf[iCodeStart + 1 .. i]);
+                    codebuf.write(buf[iCodeStart .. i]);
                     codebuf.writeByte(0);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     colorHighlightCode(codebuf);
-                    buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+                    buf.remove(iCodeStart, i - iCodeStart);
                     immutable pre = "";
                     i = buf.insert(iCodeStart, pre);
                     i = buf.insert(i, codebuf[]);
@@ -666,7 +666,7 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
                     break;
                 }
                 inBacktick = true;
-                iCodeStart = i;
+                iCodeStart = i + 1;
                 break;
 
             default:
