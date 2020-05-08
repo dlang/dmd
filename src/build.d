@@ -339,8 +339,10 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
-        "-betterC"]
-        .chain(flags["DFLAGS"], extraFlags, rule.sources).array)
+        ]
+        .chain(
+            extraFlags.canFind("-unittest") ? [] : ["-betterC"],
+            flags["DFLAGS"], extraFlags, rule.sources).array)
 );
 
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
