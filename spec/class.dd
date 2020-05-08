@@ -997,7 +997,7 @@ $(GNAME Allocator):
 $(P A class member function of the form:)
 
 ------
-new(uint size)
+new(size_t size)
 {
     ...
 }
@@ -1005,7 +1005,7 @@ new(uint size)
 
         is called a class allocator.
         The class allocator can have any number of parameters, provided
-        the first one is of type uint.
+        the first one is of type `size_t`.
         Any number can be defined for a class, the correct one is
         determined by the usual function overloading rules.
         When a new expression:
@@ -1031,7 +1031,7 @@ class Foo
 {
     this(string a) { ... }
 
-    new(uint size, int x, int y)
+    new(size_t size, int x, int y)
     {
         ...
     }
