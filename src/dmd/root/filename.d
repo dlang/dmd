@@ -1008,7 +1008,9 @@ nothrow:
                 // Actually get the full path name
                 const length = GetFullPathNameW(
                     &wname[0], cast(DWORD) fullPath.length, &fullPath[0], null /*filePart*/);
-                assert(length == fullPathLength);
+                // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamew
+                // Note: Although the return value in this case is a length that includes the terminating null character, the return value on *success* does not include the terminating null character in the count.
+                assert(length + 1 == fullPathLength);
 
                 return toNarrowStringz(fullPath[0 .. length]);
             });
