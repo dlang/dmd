@@ -2473,7 +2473,7 @@ final class Parser(AST) : Lexer
         /* Just a regular constructor
          */
         AST.VarArg varargs;
-        AST.Parameters* parameters = parseParameters(&varargs);
+        AST.Parameters* parameters = parseParameters(varargs, null);
         stc = parsePostfix(stc, &udas);
 
         if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
@@ -2797,7 +2797,7 @@ final class Parser(AST) : Lexer
         nextToken();
 
         AST.VarArg varargs;
-        AST.Parameters* parameters = parseParameters(&varargs);
+        AST.Parameters* parameters = parseParameters(varargs, null);
         auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameters, varargs);
         AST.Dsymbol s = parseContracts(f);
         return s;
@@ -2806,7 +2806,7 @@ final class Parser(AST) : Lexer
     /**********************************************
      * Parse parameter list.
      */
-    private AST.Parameters* parseParameters(AST.VarArg* pvarargs, AST.TemplateParameters** tpl = null)
+    private AST.Parameters* parseParameters(out AST.VarArg pvarargs, AST.TemplateParameters** tpl)
     {
         auto parameters = new AST.Parameters();
         AST.VarArg varargs = AST.VarArg.none;
@@ -3051,7 +3051,7 @@ final class Parser(AST) : Lexer
         L1:
         }
         check(TOK.rightParentheses);
-        *pvarargs = varargs;
+        pvarargs = varargs;
         return parameters;
     }
 
@@ -3997,7 +3997,7 @@ final class Parser(AST) : Lexer
                     nextToken();
 
                     AST.VarArg varargs;
-                    AST.Parameters* parameters = parseParameters(&varargs);
+                    AST.Parameters* parameters = parseParameters(varargs, null);
 
                     StorageClass stc = parsePostfix(STC.undefined_, null);
                     auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
@@ -4155,7 +4155,7 @@ final class Parser(AST) : Lexer
                     }
 
                     AST.VarArg varargs;
-                    AST.Parameters* parameters = parseParameters(&varargs);
+                    AST.Parameters* parameters = parseParameters(varargs, null);
 
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                      */
@@ -4448,7 +4448,7 @@ final class Parser(AST) : Lexer
                     {
                         AST.VarArg vargs;
                         AST.Type tret = parseBasicType();
-                        AST.Parameters* prms = parseParameters(&vargs);
+                        AST.Parameters* prms = parseParameters(vargs, null);
                         AST.ParameterList pl = AST.ParameterList(prms, vargs);
 
                         parseAttributes();
@@ -4933,7 +4933,7 @@ final class Parser(AST) : Lexer
             {
                 // (parameters) => expression
                 // (parameters) { statements... }
-                parameters = parseParameters(&varargs, &tpl);
+                parameters = parseParameters(varargs, &tpl);
                 stc = parsePostfix(stc, null);
                 if (StorageClass modStc = stc & STC.TYPECTOR)
                 {
