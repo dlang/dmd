@@ -306,7 +306,7 @@ struct ASTBase
         tracingDT    = 0x8,  // mark in progress of deduceType
     }
 
-    enum VarArg
+    enum VarArg : ubyte
     {
         none     = 0,  /// fixed number of arguments
         variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)

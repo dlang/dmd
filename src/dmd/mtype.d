@@ -369,7 +369,7 @@ enum DotExpFlag
  * Variadic argument lists
  * https://dlang.org/spec/function.html#variadic
  */
-enum VarArg
+enum VarArg : ubyte
 {
     none     = 0,  /// fixed number of arguments
     variadic = 1,  /// (T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
@@ -4199,9 +4199,9 @@ extern (C++) final class TypeFunction : TypeNext
             this.trust = TRUST.trusted;
     }
 
-    static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
+    static TypeFunction create(Parameters* parameters, Type treturn, ubyte varargs, LINK linkage, StorageClass stc = 0)
     {
-        return new TypeFunction(ParameterList(parameters, varargs), treturn, linkage, stc);
+        return new TypeFunction(ParameterList(parameters, cast(VarArg)varargs), treturn, linkage, stc);
     }
 
     override const(char)* kind() const
