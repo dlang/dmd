@@ -804,8 +804,8 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
     ld_sprint(buffer.ptr, 'a', ld_pi);
     assert(strcmp(buffer.ptr, "0x1.921fb54442d1846ap+1") == 0);
 
-    ld_sprint(buffer.ptr, 'g', longdouble_soft(2.0));
-    assert(strcmp(buffer.ptr, "2.00000") == 0);
+    auto len = ld_sprint(buffer.ptr, 'g', longdouble_soft(2.0));
+    assert(buffer[0 .. len] == "2.00000" || buffer[0 .. len] == "2"); // Win10 - 64bit
 
     ld_sprint(buffer.ptr, 'g', longdouble_soft(1234567.89));
     assert(strcmp(buffer.ptr, "1.23457e+06") == 0);
