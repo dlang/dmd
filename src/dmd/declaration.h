@@ -29,64 +29,64 @@ class StructDeclaration;
 struct ObjcSelector;
 struct IntRange;
 
-#define STCundefined    0LL
-#define STCstatic       1LL
-#define STCextern       2LL
-#define STCconst        4LL
-#define STCfinal        8LL
-#define STCabstract     0x10LL
-#define STCparameter    0x20LL
-#define STCfield        0x40LL
-#define STCoverride     0x80LL
-#define STCauto         0x100LL
-#define STCsynchronized 0x200LL
-#define STCdeprecated   0x400LL
-#define STCin           0x800LL         // in parameter
-#define STCout          0x1000LL        // out parameter
-#define STClazy         0x2000LL        // lazy parameter
-#define STCforeach      0x4000LL        // variable for foreach loop
-#define STCvariadic     0x10000LL       // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
-#define STCctorinit     0x20000LL       // can only be set inside constructor
-#define STCtemplateparameter  0x40000LL // template parameter
-#define STCscope        0x80000LL
-#define STCimmutable    0x100000LL
-#define STCref          0x200000LL
-#define STCinit         0x400000LL      // has explicit initializer
-#define STCmanifest     0x800000LL      // manifest constant
-#define STCnodtor       0x1000000LL     // don't run destructor
-#define STCnothrow      0x2000000LL     // never throws exceptions
-#define STCpure         0x4000000LL     // pure function
-#define STCtls          0x8000000LL     // thread local
-#define STCalias        0x10000000LL    // alias parameter
-#define STCshared       0x20000000LL    // accessible from multiple threads
+#define STCundefined    0ULL
+#define STCstatic       1ULL
+#define STCextern       2ULL
+#define STCconst        4ULL
+#define STCfinal        8ULL
+#define STCabstract     0x10ULL
+#define STCparameter    0x20ULL
+#define STCfield        0x40ULL
+#define STCoverride     0x80ULL
+#define STCauto         0x100ULL
+#define STCsynchronized 0x200ULL
+#define STCdeprecated   0x400ULL
+#define STCin           0x800ULL         // in parameter
+#define STCout          0x1000ULL        // out parameter
+#define STClazy         0x2000ULL        // lazy parameter
+#define STCforeach      0x4000ULL        // variable for foreach loop
+#define STCvariadic     0x10000ULL       // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
+#define STCctorinit     0x20000ULL       // can only be set inside constructor
+#define STCtemplateparameter  0x40000ULL // template parameter
+#define STCscope        0x80000ULL
+#define STCimmutable    0x100000ULL
+#define STCref          0x200000ULL
+#define STCinit         0x400000ULL      // has explicit initializer
+#define STCmanifest     0x800000ULL      // manifest constant
+#define STCnodtor       0x1000000ULL     // don't run destructor
+#define STCnothrow      0x2000000ULL     // never throws exceptions
+#define STCpure         0x4000000ULL     // pure function
+#define STCtls          0x8000000ULL     // thread local
+#define STCalias        0x10000000ULL    // alias parameter
+#define STCshared       0x20000000ULL    // accessible from multiple threads
 // accessible from multiple threads
 // but not typed as "shared"
-#define STCgshared      0x40000000LL
-#define STCwild         0x80000000LL    // for "wild" type constructor
+#define STCgshared      0x40000000ULL
+#define STCwild         0x80000000ULL    // for "wild" type constructor
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
 #define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
 
-#define STCproperty      0x100000000LL
-#define STCsafe          0x200000000LL
-#define STCtrusted       0x400000000LL
-#define STCsystem        0x800000000LL
-#define STCctfe          0x1000000000LL  // can be used in CTFE, even if it is static
-#define STCdisable       0x2000000000LL  // for functions that are not callable
-#define STCresult        0x4000000000LL  // for result variables passed to out contracts
-#define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
-#define STCtemp          0x10000000000LL // temporary variable
-#define STCrvalue        0x20000000000LL // force rvalue for variables
-#define STCnogc          0x40000000000LL // @nogc
-#define STCvolatile      0x80000000000LL // destined for volatile in the back end
-#define STCreturn        0x100000000000LL // 'return ref' or 'return scope' for function parameters
-#define STCautoref       0x200000000000LL // Mark for the already deduced 'auto ref' parameter
-#define STCinference     0x400000000000LL // do attribute inference
-#define STCexptemp       0x800000000000LL // temporary variable that has lifetime restricted to an expression
-#define STCmaybescope    0x1000000000000LL // parameter might be 'scope'
-#define STCscopeinferred 0x2000000000000LL // 'scope' has been inferred and should not be part of mangling
-#define STCfuture        0x4000000000000LL // introducing new base class function
-#define STClocal         0x8000000000000LL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
-#define STCreturninferred 0x10000000000000LL   // 'return' has been inferred and should not be part of mangling
+#define STCproperty      0x100000000ULL
+#define STCsafe          0x200000000ULL
+#define STCtrusted       0x400000000ULL
+#define STCsystem        0x800000000ULL
+#define STCctfe          0x1000000000ULL  // can be used in CTFE, even if it is static
+#define STCdisable       0x2000000000ULL  // for functions that are not callable
+#define STCresult        0x4000000000ULL  // for result variables passed to out contracts
+#define STCnodefaultctor 0x8000000000ULL  // must be set inside constructor
+#define STCtemp          0x10000000000ULL // temporary variable
+#define STCrvalue        0x20000000000ULL // force rvalue for variables
+#define STCnogc          0x40000000000ULL // @nogc
+#define STCvolatile      0x80000000000ULL // destined for volatile in the back end
+#define STCreturn        0x100000000000ULL // 'return ref' or 'return scope' for function parameters
+#define STCautoref       0x200000000000ULL // Mark for the already deduced 'auto ref' parameter
+#define STCinference     0x400000000000ULL // do attribute inference
+#define STCexptemp       0x800000000000ULL // temporary variable that has lifetime restricted to an expression
+#define STCmaybescope    0x1000000000000ULL // parameter might be 'scope'
+#define STCscopeinferred 0x2000000000000ULL // 'scope' has been inferred and should not be part of mangling
+#define STCfuture        0x4000000000000ULL // introducing new base class function
+#define STClocal         0x8000000000000ULL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+#define STCreturninferred 0x10000000000000ULL   // 'return' has been inferred and should not be part of mangling
 
 void ObjectNotFound(Identifier *id);
 

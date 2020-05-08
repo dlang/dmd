@@ -79,7 +79,7 @@ struct ASTBase
 
     alias MOD = ubyte;
 
-    enum STC : long
+    enum STC : ulong
     {
         undefined_          = 0L,
         static_             = (1L << 0),
