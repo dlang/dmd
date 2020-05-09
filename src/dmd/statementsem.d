@@ -3455,7 +3455,7 @@ else
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
-                bs.error("`break` is not inside `%s` bodies", Token.toChars(sc.os.tok));
+                bs.error("`break` is not allowed inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
@@ -3542,7 +3542,7 @@ else
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
-                cs.error("`continue` is not inside `%s` bodies", Token.toChars(sc.os.tok));
+                cs.error("`continue` is not allowed inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
