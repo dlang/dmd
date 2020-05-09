@@ -117,13 +117,14 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
-enum VarArg
+enum VarArgValues
 {
     VARARGnone     = 0,  /// fixed number of arguments
     VARARGvariadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
     VARARGtypesafe = 2   /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
                          ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 };
+typedef unsigned char VarArg;
 
 class Type : public ASTNode
 {
