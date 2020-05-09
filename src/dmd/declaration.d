@@ -193,7 +193,7 @@ extern (C++) void ObjectNotFound(Identifier id)
     fatal();
 }
 
-enum STC : long
+enum STC : ulong
 {
     undefined_          = 0L,
     static_             = (1L << 0),
