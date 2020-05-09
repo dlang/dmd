@@ -4874,8 +4874,7 @@ final class Parser(AST) : Lexer
     {
         const loc = token.loc;
         AST.TemplateParameters* tpl = null;
-        AST.Parameters* parameters = null;
-        AST.VarArg varargs = AST.VarArg.none;
+        AST.ParameterList parameterList;
         AST.Type tret = null;
         StorageClass stc = 0;
         TOK save = TOK.reserved;
@@ -4926,9 +4925,7 @@ final class Parser(AST) : Lexer
             {
                 // (parameters) => expression
                 // (parameters) { statements... }
-                auto parameterList = parseParameterList(&tpl);
-                parameters = parameterList.parameters;
-                varargs = parameterList.varargs;
+                parameterList = parseParameterList(&tpl);
                 stc = parsePostfix(stc, null);
                 if (StorageClass modStc = stc & STC.TYPECTOR)
                 {
@@ -4950,10 +4947,10 @@ final class Parser(AST) : Lexer
         case TOK.identifier:
             {
                 // identifier => expression
-                parameters = new AST.Parameters();
+                parameterList.parameters = new AST.Parameters();
                 Identifier id = Identifier.generateId("__T");
                 AST.Type t = new AST.TypeIdentifier(loc, id);
-                parameters.push(new AST.Parameter(0, t, token.ident, null, null));
+                parameterList.parameters.push(new AST.Parameter(0, t, token.ident, null, null));
 
                 tpl = new AST.TemplateParameters();
                 AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
@@ -4966,7 +4963,7 @@ final class Parser(AST) : Lexer
             assert(0);
         }
 
-        auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), tret, linkage, stc);
+        auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
         auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null);
 
