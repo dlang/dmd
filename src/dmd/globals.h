@@ -143,6 +143,7 @@ struct Param
     bool useTypeInfo;   // generate runtime type information
     bool useExceptions; // support exception handling
     bool noSharedAccess; // read/write access to shared memory objects
+    bool inMeansScopeConst; // `in` means `scope const`
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
