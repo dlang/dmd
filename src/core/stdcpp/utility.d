@@ -32,4 +32,19 @@ struct pair(T1, T2)
     T1 first;
     ///
     T2 second;
+
+    // FreeBSD has pair as non-POD so add a contructor
+    version (FreeBSD)
+    {
+        this(T1 t1, T2 t2) inout
+        {
+            first  = t1;
+            second = t2;
+        }
+        this(ref return scope inout pair!(T1, T2) src) inout
+        {
+            first  = src.first;
+            second = src.second;
+        }
+    }
 }
