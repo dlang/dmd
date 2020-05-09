@@ -1960,6 +1960,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
                 }
             }
+
             if (p.storageClass & STC.ref_)
             {
                 if (global.params.rvalueRefParam &&
@@ -2000,6 +2001,29 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 auto t = (p.type.ty == Tvoid) ? p.type : arg.type;
                 arg = toDelegate(arg, t, sc);
             }
+            else if ((p.storageClass & (STC.scope_ | STC.return_)) == STC.scope_)
+            {
+                if (auto ale = arg.isArrayLiteralExp())
+                {
+                    if (auto ta = p.type.toBasetype().isTypeDArray())
+                    {
+                        /* This is so:
+                         *  foo(int[] a...)     foo(1,2,3,4)
+                         *  bar(scope int[] a)  bar([1,2,3,4])
+                         * generate the same code, i.e. put the array on the stack
+                         * instead of allocating it.
+                         * Note similarity to VarArg.typesafe is handled above.
+                         */
+                        arg = arg.addDtorHook(sc);
+                        const length = ale.elements ? ale.elements.length : 0;
+                        ale.type = ta.next.sarrayOf(length);
+                        arg = new SliceExp(loc, arg, null, null);
+                        arg.type = p.type;
+                        arg = arg.expressionSemantic(sc);
+                    }
+                }
+            }
+
             //printf("arg: %s\n", arg.toChars());
             //printf("type: %s\n", arg.type.toChars());
             //printf("param: %s\n", p.toChars());

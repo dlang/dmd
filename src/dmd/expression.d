@@ -2897,6 +2897,21 @@ extern (C++) final class ArrayLiteralExp : Expression
         return result ? (dim != 0) : (dim == 0);
     }
 
+    override Expression addDtorHook(Scope* sc)
+    {
+        if (basis)
+            basis = basis.addDtorHook(sc);
+        if (elements)
+        {
+            foreach (ref e; (*elements)[])
+            {
+                if (e)
+                    e = e.addDtorHook(sc);
+            }
+        }
+        return this;
+    }
+
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;

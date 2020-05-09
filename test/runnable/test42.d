@@ -6200,6 +6200,16 @@ void test11472()
 
 /***************************************************/
 
+@nogc int bar253(scope int[] a) { return a[2]; }
+
+@nogc void test253()
+{
+    int i = bar253([1, 2, 3, 4]);
+    assert(i == 3);
+}
+
+/***************************************************/
+
 int main()
 {
     checkAlign();
@@ -6503,6 +6513,7 @@ int main()
     test5332();
     test11472();
     test13285();
+    test253();
 
     printf("Success\n");
     return 0;
