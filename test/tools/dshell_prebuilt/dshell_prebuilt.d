@@ -204,7 +204,9 @@ string[] parseCommand(string s)
     auto args = appender!(string[])();
     foreach (rawArg; rawArgs)
     {
-        args.put(shellExpand(rawArg));
+        const exp = shellExpand(rawArg);
+        if (exp.length)
+            args.put(exp);
     }
     return args.data;
 }
