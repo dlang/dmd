@@ -440,7 +440,6 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tstring;     // immutable(char)[]
     extern (C++) __gshared Type twstring;    // immutable(wchar)[]
     extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
-    extern (C++) __gshared Type tvalist;     // va_list alias
     extern (C++) __gshared Type terror;      // for error recovery
     extern (C++) __gshared Type tnull;       // for null type
 
@@ -891,7 +890,6 @@ extern (C++) abstract class Type : ASTNode
         tstring = tchar.immutableOf().arrayOf();
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
-        tvalist = target.va_listType();
 
         const isLP64 = global.params.isLP64;
 
@@ -5498,6 +5496,7 @@ extern (C++) final class TypeStruct : Type
 {
     StructDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
+    bool inuse = false; // struct currently subject of recursive method call
 
     extern (D) this(StructDeclaration sym)
     {
@@ -5660,6 +5659,11 @@ extern (C++) final class TypeStruct : Type
 
     override bool needsNested()
     {
+        if (inuse) return false; // circular type, error instead of crashing
+
+        inuse = true;
+        scope(exit) inuse = false;
+
         if (sym.isNested())
             return true;
 
@@ -6164,6 +6168,9 @@ extern (C++) final class TypeClass : Type
  */
 extern (C++) final class TypeTuple : Type
 {
+    // 'logically immutable' cached global - don't modify!
+    __gshared TypeTuple empty = new TypeTuple();
+
     Parameters* arguments;  // types making up the tuple
 
     extern (D) this(Parameters* arguments)

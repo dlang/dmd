@@ -1007,9 +1007,9 @@ Lagain:
 
             TypeStruct tc = cast(TypeStruct)tb;
             StructDeclaration sd = tc.sym;
-            if (sd.arg1type && !sd.arg2type)
+            if (sd.numArgTypes() == 1)
             {
-                tb = sd.arg1type;
+                tb = sd.argType(0);
                 goto Lagain;
             }
             goto default;

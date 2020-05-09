@@ -220,9 +220,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
 
-    // For 64 bit Efl function call/return ABI
-    Type arg1type;
-    Type arg2type;
+    // ABI-specific type(s) if the struct can be passed in registers
+    TypeTuple argTypes;
 
     // Even if struct is defined as non-root symbol, some built-in operations
     // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
@@ -421,15 +420,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
         }
 
-        auto tt = target.toArgTypes(type);
-        size_t dim = tt ? tt.arguments.dim : 0;
-        if (dim >= 1)
-        {
-            assert(dim <= 2);
-            arg1type = (*tt.arguments)[0].type;
-            if (dim == 2)
-                arg2type = (*tt.arguments)[1].type;
-        }
+        argTypes = target.toArgTypes(type);
     }
 
     /***************************************
@@ -605,6 +596,16 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    final uint numArgTypes() const
+    {
+        return argTypes && argTypes.arguments ? cast(uint) argTypes.arguments.dim : 0;
+    }
+
+    final Type argType(uint index)
+    {
+        return index < numArgTypes() ? (*argTypes.arguments)[index].type : null;
     }
 }
 

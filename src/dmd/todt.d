@@ -1328,19 +1328,16 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         if (global.params.is64bit)
         {
-            Type t = sd.arg1type;
             foreach (i; 0 .. 2)
             {
                 // m_argi
-                if (t)
+                if (auto t = sd.argType(i))
                 {
                     genTypeInfo(d.loc, t, null);
                     dtb.xoff(toSymbol(t.vtinfo), 0);
                 }
                 else
                     dtb.size(0);
-
-                t = sd.arg2type;
             }
         }
 
