@@ -3928,20 +3928,19 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
  */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
-    Parameters* parameters;
-    VarArg varargs;
+    ParameterList parameterList;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, ref ParameterList parameterList)
     {
         super(loc, endloc, Id.classNew, STC.static_ | stc, null);
-        this.parameters = fparams;
-        this.varargs = varargs;
+        this.parameterList = parameterList;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto f = new NewDeclaration(loc, endloc, storage_class, Parameter.arraySyntaxCopy(parameters), varargs);
+        auto parameterList = parameterList.syntaxCopy();
+        auto f = new NewDeclaration(loc, endloc, storage_class, parameterList);
         return FuncDeclaration.syntaxCopy(f);
     }
 
