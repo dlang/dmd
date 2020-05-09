@@ -977,7 +977,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
 
     $(P If the generated copy constructor fails to type check, it will receive the `@disable` attribute.)
 
-    $(P f an `union S` has fields that define a copy constructor, whenever an object of type `S`
+    $(P If an `union S` has fields that define a copy constructor, whenever an object of type `S`
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
