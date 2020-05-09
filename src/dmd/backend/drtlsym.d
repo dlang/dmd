@@ -141,7 +141,6 @@ Symbol *getRtlsym(int i)
         case RTLSYM_NEWARRAYMITX:           symbolz(ps,FLfunc,FREGSAVED,"_d_newarraymiTX", 0, t); break;
         case RTLSYM_ARRAYLITERALT:          symbolz(ps,FLfunc,FREGSAVED,"_d_arrayliteralT", 0, tv); break;
         case RTLSYM_ARRAYLITERALTX:         symbolz(ps,FLfunc,FREGSAVED,"_d_arrayliteralTX", 0, t); break;
-        case RTLSYM_ASSOCARRAYLITERALT:     symbolz(ps,FLfunc,FREGSAVED,"_d_assocarrayliteralT", 0, tv); break;
         case RTLSYM_ASSOCARRAYLITERALTX:    symbolz(ps,FLfunc,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
         case RTLSYM_CALLFINALIZER:          symbolz(ps,FLfunc,FREGSAVED,"_d_callfinalizer", 0, t); break;
         case RTLSYM_CALLINTERFACEFINALIZER: symbolz(ps,FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t); break;
