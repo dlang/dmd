@@ -3025,9 +3025,11 @@ final class Parser(AST) : Lexer
                         {
                             /* This is:
                              *      at ai ...
+			     * https://dlang.org/spec/function.html#typesafe_variadic_functions
                              */
                             if (storageClass & (STC.out_ | STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
+			    error("typesafe variadic functions have been removed");
                             varargs = AST.VarArg.typesafe;
                             parameters.push(param);
                             nextToken();
