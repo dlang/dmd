@@ -4210,8 +4210,7 @@ extern (C++) final class TypeFunction : TypeNext
     override Type syntaxCopy()
     {
         Type treturn = next ? next.syntaxCopy() : null;
-        Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
-        auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
+        auto t = new TypeFunction(parameterList.syntaxCopy(), treturn, linkage);
         t.mod = mod;
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
@@ -6418,6 +6417,11 @@ extern (C++) struct ParameterList
     Parameter opIndex(size_t i)
     {
         return Parameter.getNth(parameters, i);
+    }
+
+    extern (D) ParameterList syntaxCopy()
+    {
+        return ParameterList(Parameter.arraySyntaxCopy(parameters), varargs);
     }
 
     alias parameters this;

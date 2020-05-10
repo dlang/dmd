@@ -847,7 +847,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.NewDeclaration d)
     {
         //printf("Visiting NewDeclaration\n");
-        visitParameters(d.parameters);
+        visitParameters(d.parameterList.parameters);
         visitFuncBody(d);
     }
 

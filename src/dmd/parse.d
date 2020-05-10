@@ -2796,7 +2796,7 @@ final class Parser(AST) : Lexer
         nextToken();
 
         auto parameterList = parseParameterList(null);
-        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameterList.parameters, parameterList.varargs);
+        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameterList);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }

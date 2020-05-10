@@ -1736,7 +1736,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("new");
-        parametersToBuffer(ParameterList(d.parameters, d.varargs), buf, hgs);
+        parametersToBuffer(d.parameterList, buf, hgs);
         bodyToBuffer(d);
     }
 
