@@ -571,6 +571,7 @@ public:
 struct ParameterList
 {
     Parameters* parameters;
+    StorageClass stc;
     VarArg varargs;
 
     size_t length();
