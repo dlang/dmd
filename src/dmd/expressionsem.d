@@ -2033,7 +2033,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     (ale = a.isArrayLiteralExp()) !is null)
                 {
                     // allocate the array literal as temporary static array on the stack
-                    ale.type = ale.type.nextOf().sarrayOf(ale.elements.length);
+                    ale.type = ale.type.nextOf().sarrayOf(ale.elements ? ale.elements.length : 0);
                     auto tmp = copyToTemp(0, "__arrayliteral_on_stack", ale);
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
                     auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp), p.type);
