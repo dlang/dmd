@@ -2717,8 +2717,25 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 MATCH c1 = fd.leastAsSpecialized(m.lastf);
                 MATCH c2 = m.lastf.leastAsSpecialized(fd);
                 //printf("c1 = %d, c2 = %d\n", c1, c2);
-                if (c1 > c2) goto LfIsBetter;
-                if (c1 < c2) goto LlastIsBetter;
+
+                // https://issues.dlang.org/show_bug.cgi?id=16181
+                size_t nargs = fargs_.length;
+                bool bypass;
+                foreach (FuncDeclaration f; [fd, m.lastf])
+                {
+                    TypeFunction tf_ = f.type.isTypeFunction();
+                    size_t nparams = tf_.parameterList.length;
+                    if (nparams > nargs && tf_.parameterList[nargs].defaultArg)
+                    {
+                        bypass = true;
+                    }
+                }
+
+                if (!bypass)
+                {
+                    if (c1 > c2) goto LfIsBetter;
+                    if (c1 < c2) goto LlastIsBetter;
+                }
             }
 
             /* The 'overrides' check above does covariant checking only
