@@ -28,6 +28,7 @@ import dmd.root.ctfloat;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
+import dmd.statement;
 
 extern (C++) __gshared
 {
@@ -152,6 +153,22 @@ extern (C++) struct Compiler
         }
         return false; // this import will not be compiled
     }
+
+    alias OnStatementSemanticStart = void delegate(Statement, Scope*);
+    alias OnStatementSemanticDone = void delegate(Statement, Scope*);
+
+    /**
+    * Used to insert functionality before the start of the
+    * semantic analysis of a statement when importing DMD as a library
+    */
+    __gshared OnStatementSemanticStart onStatementSemanticStart;
+
+    /**
+    * Used to insert functionality after the end of the
+    * semantic analysis of a statement when importing DMD as a library
+    */
+    __gshared OnStatementSemanticDone onStatementSemanticDone;
+
 }
 
 /******************************

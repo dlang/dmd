@@ -2548,19 +2548,3 @@ extern (C++) final class ImportStatement : Statement
         v.visit(this);
     }
 }
-
-
-alias OnStatementSemanticStart = void delegate(Statement, Scope*);
-alias OnStatementSemanticDone = void delegate(Statement, Scope*);
-
-/**
- * Used to insert functionality before the start of the
- * semantic analysis of a statement when importing DMD as a library
- */
-OnStatementSemanticStart onStatementSemanticStart;
-
-/**
- * Used to insert functionality after the end of the
- * semantic analysis of a statement when importing DMD as a library
- */
-OnStatementSemanticDone onStatementSemanticDone;
