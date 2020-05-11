@@ -1,4 +1,0 @@
-CLI switches `-revert=import` and `-transition=checkimports` have been removed
-
-Those switched were already not doing anything and had been deprecated for a while.
-The compiler will no longer recognized them.
