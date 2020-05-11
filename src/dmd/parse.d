@@ -18,7 +18,6 @@ import core.stdc.string;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.hdrgen;
 import dmd.lexer;
 import dmd.errors;
 import dmd.root.filename;
@@ -2810,10 +2809,6 @@ final class Parser(AST) : Lexer
         auto parameters = new AST.Parameters();
         AST.VarArg varargs = AST.VarArg.none;
         int hasdefault = 0;
-        StorageClass varargsStc;
-
-        // Attributes allowed for ...
-        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_;
 
         check(TOK.leftParentheses);
         while (1)
@@ -2836,14 +2831,6 @@ final class Parser(AST) : Lexer
 
                 case TOK.dotDotDot:
                     varargs = AST.VarArg.variadic;
-                    varargsStc = storageClass;
-                    if (varargsStc & ~VarArgsStc)
-                    {
-                        OutBuffer buf;
-                        stcToBuffer(&buf, varargsStc & ~VarArgsStc);
-                        error("variadic parameter cannot have attributes `%s`", buf.peekChars());
-                        varargsStc &= VarArgsStc;
-                    }
                     nextToken();
                     break;
 
@@ -3062,7 +3049,7 @@ final class Parser(AST) : Lexer
         L1:
         }
         check(TOK.rightParentheses);
-        return AST.ParameterList(parameters, varargs, varargsStc);
+        return AST.ParameterList(parameters, varargs);
     }
 
     /*************************************
