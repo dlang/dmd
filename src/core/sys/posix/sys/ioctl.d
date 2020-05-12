@@ -214,7 +214,7 @@ version (CRuntime_Glibc)
     enum TIOCGSID = 0x5429;
 
     enum TCGETS2 = _IOR!termios2('T', 0x2A);
-    enum TCSETS2 = _IOR!termios2('T', 0x2B);
+    enum TCSETS2 = _IOW!termios2('T', 0x2B);
     enum TCSETSW2 = _IOW!termios2('T', 0x2C);
     enum TCSETSF2 = _IOW!termios2('T', 0x2D);
 
@@ -625,7 +625,7 @@ else version (CRuntime_UClibc)
     enum TIOCGSID = 0x5429;
 
     enum TCGETS2 = _IOR!termios2('T', 0x2A);
-    enum TCSETS2 = _IOR!termios2('T', 0x2B);
+    enum TCSETS2 = _IOW!termios2('T', 0x2B);
     enum TCSETSW2 = _IOW!termios2('T', 0x2C);
     enum TCSETSF2 = _IOW!termios2('T', 0x2D);
 
