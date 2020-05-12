@@ -2972,10 +2972,12 @@ private void parametersToBuffer(ParameterList pl, OutBuffer* buf, HdrGenState* h
             break;
 
         case VarArg.variadic:
-            if (pl.length == 0)
-                goto case VarArg.typesafe;
-            buf.writestring(", ...");
-            break;
+            if (pl.length)
+                buf.writestring(", ");
+
+            if (stcToBuffer(buf, pl.stc))
+                buf.writeByte(' ');
+            goto case VarArg.typesafe;
 
         case VarArg.typesafe:
             buf.writestring("...");
