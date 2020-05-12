@@ -29,6 +29,8 @@ else
     BRANCH="${BRANCH_NAME}"
 fi
 export BRANCH
+# Ubuntu 18 and above require PIC, but build.d doesn't set it by default on x86
+export PIC=1
 
 source ci.sh
 
