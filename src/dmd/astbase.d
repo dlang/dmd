@@ -1768,7 +1768,15 @@ struct ASTBase
     extern (C++) struct ParameterList
     {
         Parameters* parameters;
+        StorageClass stc;                   // storage class of ...
         VarArg varargs = VarArg.none;
+
+        this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0)
+        {
+            this.parameters = parameters;
+            this.varargs = varargs;
+            this.stc = stc;
+        }
     }
 
     extern (C++) final class Parameter : ASTNode

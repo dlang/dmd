@@ -18,7 +18,6 @@ import core.stdc.string;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.hdrgen;
 import dmd.lexer;
 import dmd.errors;
 import dmd.root.filename;
@@ -2840,7 +2839,7 @@ final class Parser(AST) : Lexer
                     if (varargsStc & ~VarArgsStc)
                     {
                         OutBuffer buf;
-                        stcToBuffer(&buf, varargsStc & ~VarArgsStc);
+                        AST.stcToBuffer(&buf, varargsStc & ~VarArgsStc);
                         error("variadic parameter cannot have attributes `%s`", buf.peekChars());
                         varargsStc &= VarArgsStc;
                     }
