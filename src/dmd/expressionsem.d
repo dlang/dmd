@@ -5300,6 +5300,41 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * is(targ id :  tok2)
          * is(targ id == tok2)
          */
+        Type tded = null;
+
+        void yes()
+        {
+            //printf("yes\n");
+            if (!e.id)
+            {
+                result = IntegerExp.createBool(true);
+                return;
+            }
+
+            Dsymbol s;
+            Tuple tup = isTuple(tded);
+            if (tup)
+                s = new TupleDeclaration(e.loc, e.id, &tup.objects);
+            else
+                s = new AliasDeclaration(e.loc, e.id, tded);
+            s.dsymbolSemantic(sc);
+            
+            /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
+             * More investigation is needed.
+             */
+            if (!tup && !sc.insert(s))
+                e.error("declaration `%s` is already defined", s.toChars());
+            
+            unSpeculative(sc, s);
+            
+            result = IntegerExp.createBool(true);
+        }
+        void no()
+        {
+            result = IntegerExp.createBool(false);
+            //printf("no\n");
+        }
+
         static if (LOGSEMANTIC)
         {
             printf("IsExp::semantic(%s)\n", e.toChars());
@@ -5310,7 +5345,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        Type tded = null;
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
             const oldErrors = global.startGagging();
@@ -5318,16 +5352,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             global.endGagging(oldErrors);
 
             if (sym is null)
-                goto Lno;
+                return no();
             Package p = resolveIsPackage(sym);
             if (p is null)
-                goto Lno;
+                return no();
             if (e.tok2 == TOK.package_ && p.isModule()) // Note that isModule() will return null for package modules because they're not actually instances of Module.
-                goto Lno;
+                return no();
             else if(e.tok2 == TOK.module_ && !(p.isModule() || p.isPackageMod()))
-                goto Lno;
+                return no();
             tded = e.targ;
-            goto Lyes;
+            return yes();
         }
 
         {
@@ -5338,7 +5372,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Type t = e.targ.trySemantic(e.loc, sc2);
             sc2.pop();
             if (!t) // errors, so condition is false
-                goto Lno;
+                return no();
             e.targ = t;
         }
 
@@ -5348,64 +5382,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
             case TOK.struct_:
                 if (e.targ.ty != Tstruct)
-                    goto Lno;
+                    return no();
                 if ((cast(TypeStruct)e.targ).sym.isUnionDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.union_:
                 if (e.targ.ty != Tstruct)
-                    goto Lno;
+                    return no();
                 if (!(cast(TypeStruct)e.targ).sym.isUnionDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.class_:
                 if (e.targ.ty != Tclass)
-                    goto Lno;
+                    return no();
                 if ((cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.interface_:
                 if (e.targ.ty != Tclass)
-                    goto Lno;
+                    return no();
                 if (!(cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.const_:
                 if (!e.targ.isConst())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.immutable_:
                 if (!e.targ.isImmutable())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.shared_:
                 if (!e.targ.isShared())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.inout_:
                 if (!e.targ.isWild())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.super_:
                 // If class or interface, get the base class and interfaces
                 if (e.targ.ty != Tclass)
-                    goto Lno;
+                    return no();
                 else
                 {
                     ClassDeclaration cd = (cast(TypeClass)e.targ).sym;
@@ -5424,7 +5458,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             case TOK.enum_:
                 if (e.targ.ty != Tenum)
-                    goto Lno;
+                    return no();
                 if (e.id)
                     tded = (cast(TypeEnum)e.targ).sym.getMemtype(e.loc);
                 else
@@ -5436,7 +5470,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             case TOK.delegate_:
                 if (e.targ.ty != Tdelegate)
-                    goto Lno;
+                    return no();
                 tded = (cast(TypeDelegate)e.targ).next; // the underlying function type
                 break;
 
@@ -5444,7 +5478,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             case TOK.parameters:
                 {
                     if (e.targ.ty != Tfunction)
-                        goto Lno;
+                        return no();
                     tded = e.targ;
 
                     /* Generate tuple from function parameter types.
@@ -5485,7 +5519,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tded = (cast(TypeFunction)tded).next;
                 }
                 else
-                    goto Lno;
+                    return no();
                 break;
 
             case TOK.argumentTypes:
@@ -5496,13 +5530,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 tded = target.toArgTypes(e.targ);
                 if (!tded)
-                    goto Lno;
+                    return no();
                 // not valid for a parameter
                 break;
 
             case TOK.vector:
                 if (e.targ.ty != Tvector)
-                    goto Lno;
+                    return no();
                 tded = (cast(TypeVector)e.targ).basetype;
                 break;
 
@@ -5512,8 +5546,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // https://issues.dlang.org/show_bug.cgi?id=18753
             if (tded)
-                goto Lyes;
-            goto Lno;
+                return yes();
+            return no();
         }
         else if (e.tspec && !e.id && !(e.parameters && e.parameters.dim))
         {
@@ -5535,28 +5569,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (preventAliasThis && e.targ.ty == Tstruct)
                 {
                     if ((cast(TypeStruct) e.targ).implicitConvToWithoutAliasThis(e.tspec))
-                        goto Lyes;
+                        return yes();
                     else
-                        goto Lno;
+                        return no();
                 }
                 else if (preventAliasThis && e.targ.ty == Tclass)
                 {
                     if ((cast(TypeClass) e.targ).implicitConvToWithoutAliasThis(e.tspec))
-                        goto Lyes;
+                        return yes();
                     else
-                        goto Lno;
+                        return no();
                 }
                 else if (e.targ.implicitConvTo(e.tspec))
-                    goto Lyes;
+                    return yes();
                 else
-                    goto Lno;
+                    return no();
             }
             else /* == */
             {
                 if (e.targ.equals(e.tspec))
-                    goto Lyes;
+                    return yes();
                 else
-                    goto Lno;
+                    return no();
             }
         }
         else if (e.tspec)
@@ -5581,7 +5615,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             //printf("tspec: %s\n", tspec.toChars());
             if (m <= MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
             {
-                goto Lno;
+                return no();
             }
             else
             {
@@ -5600,14 +5634,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, &dedtypes, &s);
                     if (m <= MATCH.nomatch)
-                        goto Lno;
+                        return no();
                     s.dsymbolSemantic(sc);
                     if (!sc.insert(s))
                         e.error("declaration `%s` is already defined", s.toChars());
 
                     unSpeculative(sc, s);
                 }
-                goto Lyes;
+                return yes();
             }
         }
         else if (e.id)
@@ -5616,35 +5650,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ id)
              */
             tded = e.targ;
-            goto Lyes;
         }
-
-    Lyes:
-        if (e.id)
-        {
-            Dsymbol s;
-            Tuple tup = isTuple(tded);
-            if (tup)
-                s = new TupleDeclaration(e.loc, e.id, &tup.objects);
-            else
-                s = new AliasDeclaration(e.loc, e.id, tded);
-            s.dsymbolSemantic(sc);
-
-            /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
-             * More investigation is needed.
-             */
-            if (!tup && !sc.insert(s))
-                e.error("declaration `%s` is already defined", s.toChars());
-
-            unSpeculative(sc, s);
-        }
-        //printf("Lyes\n");
-        result = IntegerExp.createBool(true);
-        return;
-
-    Lno:
-        //printf("Lno\n");
-        result = IntegerExp.createBool(false);
+        return yes();
     }
 
     override void visit(BinAssignExp exp)
