@@ -49,7 +49,7 @@ private alias requiredEnvVars = AliasSeq!(
     "BUILD"
 );
 private alias optionalEnvVars = AliasSeq!(
-    "CC",
+    "CC", "PIC_FLAG"
 );
 private alias allVars = AliasSeq!(
     requiredEnvVars,
@@ -57,7 +57,7 @@ private alias allVars = AliasSeq!(
     "TEST_DIR", "TEST_NAME",
     "RESULTS_TEST_DIR",
     "OUTPUT_BASE", "EXTRA_FILES",
-    "LIBEXT"
+    "LIBEXT", "SOEXT"
 );
 
 static foreach (var; allVars)
@@ -89,10 +89,12 @@ void dshellPrebuiltInit(string testDir, string testName)
     version (Windows)
     {
         Vars.set("LIBEXT", ".lib");
+        Vars.set("SOEXT", ".dll");
     }
     else
     {
         Vars.set("LIBEXT", ".a");
+        Vars.set("SOEXT", ".so");
     }
 }
 
@@ -202,7 +204,9 @@ string[] parseCommand(string s)
     auto args = appender!(string[])();
     foreach (rawArg; rawArgs)
     {
-        args.put(shellExpand(rawArg));
+        const exp = shellExpand(rawArg);
+        if (exp.length)
+            args.put(exp);
     }
     return args.data;
 }
