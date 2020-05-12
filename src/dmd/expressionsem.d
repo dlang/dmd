@@ -5318,15 +5318,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
                 s = new AliasDeclaration(e.loc, e.id, tded);
             s.dsymbolSemantic(sc);
-            
+
             /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
              * More investigation is needed.
              */
             if (!tup && !sc.insert(s))
                 e.error("declaration `%s` is already defined", s.toChars());
-            
+
             unSpeculative(sc, s);
-            
+
             result = IntegerExp.createBool(true);
         }
         void no()
