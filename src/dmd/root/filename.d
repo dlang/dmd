@@ -455,82 +455,82 @@ nothrow:
      */
     static void splitPath(int delegate(const(char)*) nothrow sink, const(char)* path)
     {
-        if (path)
+        if (!path)
+            return;
+
+        auto p = path;
+        OutBuffer buf;
+        char c;
+        do
         {
-            auto p = path;
-            OutBuffer buf;
-            char c;
-            do
+            const(char)* home;
+            bool instring = false;
+            while (isspace(*p)) // skip leading whitespace
+                ++p;
+            buf.reserve(8); // guess size of piece
+            for (;; ++p)
             {
-                const(char)* home;
-                bool instring = false;
-                while (isspace(*p)) // skip leading whitespace
-                    ++p;
-                buf.reserve(8); // guess size of piece
-                for (;; ++p)
+                c = *p;
+                switch (c)
                 {
-                    c = *p;
-                    switch (c)
+                    case '"':
+                        instring ^= false; // toggle inside/outside of string
+                        continue;
+
+                    version (OSX)
                     {
-                        case '"':
-                            instring ^= false; // toggle inside/outside of string
-                            continue;
-
-                        version (OSX)
-                        {
-                        case ',':
-                        }
-                        version (Windows)
-                        {
-                        case ';':
-                        }
-                        version (Posix)
-                        {
-                        case ':':
-                        }
-                            p++;    // ; cannot appear as part of a
-                            break;  // path, quotes won't protect it
-
-                        case 0x1A:  // ^Z means end of file
-                        case 0:
-                            break;
-
-                        case '\r':
-                            continue;  // ignore carriage returns
-
-                        version (Posix)
-                        {
-                        case '~':
-                            if (!home)
-                                home = getenv("HOME");
-                            // Expand ~ only if it is prefixing the rest of the path.
-                            if (!buf.length && p[1] == '/' && home)
-                                buf.writestring(home);
-                            else
-                                buf.writeByte('~');
-                            continue;
-                        }
-
-                        version (none)
-                        {
-                        case ' ':
-                        case '\t':         // tabs in filenames?
-                            if (!instring) // if not in string
-                                break;     // treat as end of path
-                        }
-                        default:
-                            buf.writeByte(c);
-                            continue;
+                    case ',':
                     }
-                    break;
-                }
-                if (buf.length) // if path is not empty
-                {
-                    if (sink(buf.extractChars()))
+                    version (Windows)
+                    {
+                    case ';':
+                    }
+                    version (Posix)
+                    {
+                    case ':':
+                    }
+                        p++;    // ; cannot appear as part of a
+                        break;  // path, quotes won't protect it
+
+                    case 0x1A:  // ^Z means end of file
+                    case 0:
                         break;
+
+                    case '\r':
+                        continue;  // ignore carriage returns
+
+                    version (Posix)
+                    {
+                    case '~':
+                        if (!home)
+                            home = getenv("HOME");
+                        // Expand ~ only if it is prefixing the rest of the path.
+                        if (!buf.length && p[1] == '/' && home)
+                            buf.writestring(home);
+                        else
+                            buf.writeByte('~');
+                        continue;
+                    }
+
+                    version (none)
+                    {
+                    case ' ':
+                    case '\t':         // tabs in filenames?
+                        if (!instring) // if not in string
+                            break;     // treat as end of path
+                    }
+                    default:
+                        buf.writeByte(c);
+                        continue;
                 }
-            } while (c);
-        }
+                break;
+            }
+            if (buf.length) // if path is not empty
+            {
+                if (sink(buf.extractChars()))
+                    break;
+            }
+        } while (c);
     }
 
     /**
