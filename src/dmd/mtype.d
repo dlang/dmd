@@ -2015,6 +2015,12 @@ extern (C++) abstract class Type : ASTNode
         return t;
     }
 
+    final bool hasDeprecatedAliasThis()
+    {
+        auto ad = isAggregate(this);
+        return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
+    }
+
     final Type aliasthisOf()
     {
         auto ad = isAggregate(this);
