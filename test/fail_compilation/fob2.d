@@ -137,3 +137,27 @@ fail_compilation/fob2.d(515): Error: variable `fob2.test52.p` has undefined stat
     x = 3;
     y = 4;
 }
+
+/* TEST_OUTPUT:
+---
+fail_compilation/fob2.d(603): Error: variable `fob2.test6.p` is left dangling at return
+---
+*/
+
+#line 600
+
+@live extern (C) void foo6(int, scope ...);
+
+@live void test6(int* p)
+{
+    foo6(1, p);
+}
+
+@live extern (C) void foo6b(int, scope const ...);
+
+@live int* test6b(return int* p)
+{
+    foo6b(1, p, p);
+    return p;
+}
+
