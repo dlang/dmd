@@ -42,12 +42,12 @@ import vdc.ast.writer;
 import stdext.util;
 import stdext.string;
 
-import std.variant;
 import std.conv;
-import std.typetuple;
+import std.meta;
 import std.string;
-import std.utf;
 import std.traits;
+import std.utf;
+import std.variant;
 
 template Singleton(T, ARGS...)
 {
@@ -414,23 +414,23 @@ T createInitValue(T)(Context ctx, Value initValue)
     return v;
 }
 
-alias TypeTuple!(bool, byte, ubyte, short, ushort,
-                 int, uint, long, ulong,
-                 char, wchar, dchar,
-                 float, double, real,
-                 ifloat, idouble, ireal,
-                 cfloat, cdouble, creal) BasicTypes;
+alias AliasSeq!(bool, byte, ubyte, short, ushort,
+                int, uint, long, ulong,
+                char, wchar, dchar,
+                float, double, real,
+                ifloat, idouble, ireal,
+                cfloat, cdouble, creal) BasicTypes;
 
-alias TypeTuple!(BoolValue, ByteValue, UByteValue, ShortValue, UShortValue,
-                 IntValue, UIntValue, LongValue, ULongValue,
-                 CharValue, WCharValue, DCharValue,
-                 FloatValue, DoubleValue, RealValue) BasicTypeValues;
-alias TypeTuple!(BasicTypeValues, SetLengthValue) RHS_BasicTypeValues;
+alias AliasSeq!(BoolValue, ByteValue, UByteValue, ShortValue, UShortValue,
+                IntValue, UIntValue, LongValue, ULongValue,
+                CharValue, WCharValue, DCharValue,
+                FloatValue, DoubleValue, RealValue) BasicTypeValues;
+alias AliasSeq!(BasicTypeValues, SetLengthValue) RHS_BasicTypeValues;
 
-alias TypeTuple!(TOK_bool, TOK_byte, TOK_ubyte, TOK_short, TOK_ushort,
-                 TOK_int, TOK_uint, TOK_long, TOK_ulong,
-                 TOK_char, TOK_wchar, TOK_dchar,
-                 TOK_float, TOK_double, TOK_real) BasicTypeTokens;
+alias AliasSeq!(TOK_bool, TOK_byte, TOK_ubyte, TOK_short, TOK_ushort,
+                TOK_int, TOK_uint, TOK_long, TOK_ulong,
+                TOK_char, TOK_wchar, TOK_dchar,
+                TOK_float, TOK_double, TOK_real) BasicTypeTokens;
 
 int BasicType2Token(T)()     { return BasicTypeTokens[staticIndexOf!(T, BasicTypes)]; }
 
@@ -1304,7 +1304,7 @@ class StaticArrayValue : ArrayValue!TypeStaticArray
 
 }
 
-alias TypeTuple!(CharValue, WCharValue, DCharValue, StringValue) StringTypeValues;
+alias AliasSeq!(CharValue, WCharValue, DCharValue, StringValue) StringTypeValues;
 
 class StringValue : Value
 {
