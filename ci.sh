@@ -69,6 +69,7 @@ rebuild() {
             $NM _${build_path}/host_dmd > a
             $NM $build_path/dmd > b
             diff -u a b
+            echo "Self-compilation failed: generated dmd created a different binary than host dmd!"
             exit 1
         fi
     fi
