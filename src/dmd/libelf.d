@@ -77,13 +77,13 @@ final class LibElf : Library
     {
         static if (LOG)
         {
-            printf("LibElf::addObject(%s)\n",
+            printf("LibElf::addObject(%.*s)\n",
                    cast(int)module_name.length, module_name.ptr);
         }
 
         void corrupt(int reason)
         {
-            error("corrupt ELF object module %s %d",
+            error("corrupt ELF object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 

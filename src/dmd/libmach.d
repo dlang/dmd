@@ -83,7 +83,7 @@ final class LibMach : Library
 
         void corrupt(int reason)
         {
-            error("corrupt Mach object module %s %d",
+            error("corrupt Mach object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
