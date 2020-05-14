@@ -154,19 +154,19 @@ extern (C++) struct Compiler
         return false; // this import will not be compiled
     }
 
-    alias OnStatementSemanticStart = void delegate(Statement, Scope*);
-    alias OnStatementSemanticDone = void delegate(Statement, Scope*);
+    alias OnStatementSemanticStart = void function(Statement, Scope*);
+    alias OnStatementSemanticDone = void function(Statement, Scope*);
 
     /**
-    * Used to insert functionality before the start of the
-    * semantic analysis of a statement when importing DMD as a library
-    */
+     * Used to insert functionality before the start of the
+     * semantic analysis of a statement when importing DMD as a library
+     */
     __gshared OnStatementSemanticStart onStatementSemanticStart;
 
     /**
-    * Used to insert functionality after the end of the
-    * semantic analysis of a statement when importing DMD as a library
-    */
+     * Used to insert functionality after the end of the
+     * semantic analysis of a statement when importing DMD as a library
+     */
     __gshared OnStatementSemanticDone onStatementSemanticDone;
 
 }
