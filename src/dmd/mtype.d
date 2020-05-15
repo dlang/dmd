@@ -7233,6 +7233,8 @@ bool isCopyable(Type t)
  */
 static bool isAliasType(Type t)
 {
+    if (t.ty == Tenum) // hack! this is to avoid asking nextof of enums
+        return false;
     if (t.ty == Talias)
         return true;
     auto Tnext = t.nextOf();
