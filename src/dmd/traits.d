@@ -855,6 +855,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
+        if (Type t = getType(o))
+        {
+            if (t.ty == Talias)
+            {
+                e.type = Type.talias;
+                return e;
+            }
+        }
         auto s = getDsymbolWithoutExpCtx(o);
         if (s)
         {

@@ -1620,7 +1620,7 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
             {
                 // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
                 arg = resolveAliasThis(sc, arg);
-
+/+ TODO only skip this check for type functions
                 if (arg.op == TOK.type)
                 {
                     if (reportErrors)
@@ -1630,6 +1630,7 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
                     }
                     err = true;
                 }
++/
             }
             else if (arg.type.toBasetype().ty == Tfunction)
             {
@@ -11814,6 +11815,25 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
     Expression e = semanticX(exp, sc);
     if (e != exp)
         return e;
+
+    if (exp.e1.type && exp.e1.type.ty == Talias)
+    {
+        // printf("resloving %s on a type-variable '%s'.type(%s)\n", exp.ident.toChars(), exp.e1.toChars(), exp.e1.type.toChars()); //debugline
+        if (exp.ident == Id.stringof)
+        {
+            exp.type = Type.tstring;
+        }
+        else if (exp.ident == Id.__sizeof
+            || exp.ident == Id.length)
+        {
+            exp.type = Type.tsize_t;
+        }
+        else if (exp.ident == Id._tupleof)
+        {
+            exp.type = Type.talias.arrayOf;
+        }
+        return exp;
+    }
 
     Expression eleft;
     Expression eright;
