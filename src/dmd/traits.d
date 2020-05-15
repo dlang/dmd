@@ -1937,7 +1937,7 @@ Lnext:
     }
 
     if (auto sub = speller!trait_search_fp(e.ident.toString()))
-        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), sub.length, sub.ptr);
+        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), cast(int) sub.length, sub.ptr);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
     return new ErrorExp();

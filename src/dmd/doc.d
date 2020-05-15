@@ -306,7 +306,7 @@ private final class ParamSection : Section
                             cast(int)(tf.parameterList.varargs == VarArg.variadic);
             if (pcount != paramcount)
             {
-                warning(s.loc, "Ddoc: parameter count mismatch, expected %d, got %d", pcount, paramcount);
+                warning(s.loc, "Ddoc: parameter count mismatch, expected %zd, got %zd", pcount, paramcount);
                 if (paramcount == 0)
                 {
                     // Chances are someone messed up the format
