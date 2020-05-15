@@ -1138,8 +1138,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (foundMismatch && dim != foreachParamCount)
             {
                 const(char)* plural = foreachParamCount > 1 ? "s" : "";
-                fs.error("cannot infer argument types, expected %d argument%s, not %d",
-                    foreachParamCount, plural, dim);
+                fs.error("cannot infer argument types, expected %llu argument%s, not %llu",
+                    cast(ulong) foreachParamCount, plural, cast(ulong) dim);
             }
             else
                 fs.error("cannot uniquely infer `foreach` argument types");
@@ -1582,8 +1582,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (exps.dim != dim)
                     {
                         const(char)* plural = exps.dim > 1 ? "s" : "";
-                        fs.error("cannot infer argument types, expected %d argument%s, not %d",
-                            exps.dim, plural, dim);
+                        fs.error("cannot infer argument types, expected %llu argument%s, not %llu",
+                            cast(ulong) exps.dim, plural, cast(ulong) dim);
                         goto case Terror;
                     }
 

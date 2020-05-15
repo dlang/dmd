@@ -2308,7 +2308,8 @@ ILLEGAL_ADDRESS_ERROR:
         size_t index = cast(int)o2.disp;
         if (index >= tup.objects.dim)
         {
-            error(asmstate.loc, "tuple index %u exceeds length %u", index, tup.objects.dim);
+            error(asmstate.loc, "tuple index %llu exceeds length %llu",
+                    cast(ulong) index, cast(ulong) tup.objects.dim);
         }
         else
         {

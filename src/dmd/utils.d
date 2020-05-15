@@ -83,7 +83,7 @@ extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
     ensurePathToNameExists(Loc.initial, filename);
     if (!File.write(filename, data))
     {
-        error(loc, "Error writing file '%*.s'", filename.length, filename.ptr);
+        error(loc, "Error writing file '%*.s'", cast(int) filename.length, filename.ptr);
         fatal();
     }
 }
@@ -104,7 +104,7 @@ void ensurePathToNameExists(Loc loc, const(char)[] name)
     {
         if (!FileName.ensurePathExists(pt))
         {
-            error(loc, "cannot create directory %*.s", pt.length, pt.ptr);
+            error(loc, "cannot create directory %*.s", cast(int) pt.length, pt.ptr);
             fatal();
         }
     }
