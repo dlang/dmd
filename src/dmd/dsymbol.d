@@ -317,6 +317,7 @@ extern (C++) class Dsymbol : ASTNode
         return '`' ~ cstr.toDString() ~ "`\0";
     }
 
+    pragma(printf)
     final void error(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
@@ -325,6 +326,7 @@ extern (C++) class Dsymbol : ASTNode
         va_end(ap);
     }
 
+    pragma(printf)
     final void error(const(char)* format, ...)
     {
         va_list ap;
@@ -334,6 +336,7 @@ extern (C++) class Dsymbol : ASTNode
         va_end(ap);
     }
 
+    pragma(printf)
     final void deprecation(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
@@ -342,6 +345,7 @@ extern (C++) class Dsymbol : ASTNode
         va_end(ap);
     }
 
+    pragma(printf)
     final void deprecation(const(char)* format, ...)
     {
         va_list ap;

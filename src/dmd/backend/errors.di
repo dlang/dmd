@@ -16,4 +16,5 @@ module dmd.backend.errors;
  */
 nothrow:
 
+// pragma(printf) // TODO: Requires pragma(printf, <format index>)
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);

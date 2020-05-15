@@ -42,6 +42,7 @@ enum Classification
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void error(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -57,7 +58,9 @@ extern (C++) void error(const ref Loc loc, const(char)* format, ...)
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
-extern (D) void error(Loc loc, const(char)* format, ...)
+pragma(printf)
+extern(C++) // Hack to allow verification
+void error(Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -74,6 +77,7 @@ extern (D) void error(Loc loc, const(char)* format, ...)
  *      format   = printf-style format specification
  *      ...      = printf-style variadic arguments
  */
+// pragma(printf) // Needs pragma(printf, <format index>)
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
     const loc = Loc(filename, linnum, charnum);
@@ -91,6 +95,7 @@ extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -106,6 +111,7 @@ extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -122,6 +128,7 @@ extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -138,6 +145,7 @@ extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ..
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -154,6 +162,7 @@ extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -170,6 +179,7 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void message(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -184,6 +194,7 @@ extern (C++) void message(const ref Loc loc, const(char)* format, ...)
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+pragma(printf)
 extern (C++) void message(const(char)* format, ...)
 {
     va_list ap;

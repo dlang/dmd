@@ -414,6 +414,7 @@ struct ASTBase
             return "symbol";
         }
 
+        pragma(printf)
         final void error(const(char)* format, ...)
         {
             va_list ap;
@@ -4389,6 +4390,7 @@ struct ASTBase
             return copy();
         }
 
+        pragma(printf)
         final void error(const(char)* format, ...) const
         {
             if (type != Type.terror)

@@ -92,6 +92,7 @@ struct Loc
     }
 }
 
+pragma(printf)
 void error(Loc loc, const(char)* format, ...);
 }
 
@@ -439,7 +440,7 @@ void objrecord(uint rectyp, const(char)* record, uint reclen)
  * Returns:
  *      # of bytes stored
  */
-
+// pragma(printf) // TODO: Requires pragma(printf, <format index>)
 void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 void fatal();
 

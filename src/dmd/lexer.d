@@ -2287,6 +2287,8 @@ class Lexer
         return scanloc;
     }
 
+    pragma(printf)
+    extern(C++) // Hack to allow verification
     final void error(const(char)* format, ...)
     {
         va_list args;
@@ -2295,6 +2297,8 @@ class Lexer
         va_end(args);
     }
 
+    pragma(printf)
+    extern(C++) // Hack to allow verification
     final void error(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
@@ -2303,6 +2307,8 @@ class Lexer
         va_end(args);
     }
 
+    pragma(printf)
+    extern(C++) // Hack to allow verification
     final void deprecation(const(char)* format, ...)
     {
         va_list args;

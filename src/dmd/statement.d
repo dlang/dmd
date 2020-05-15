@@ -176,6 +176,7 @@ extern (C++) abstract class Statement : ASTNode
         return buf.extractSlice().ptr;
     }
 
+    pragma(printf)
     final void error(const(char)* format, ...)
     {
         va_list ap;
@@ -184,6 +185,7 @@ extern (C++) abstract class Statement : ASTNode
         va_end(ap);
     }
 
+    pragma(printf)
     final void warning(const(char)* format, ...)
     {
         va_list ap;
@@ -192,6 +194,7 @@ extern (C++) abstract class Statement : ASTNode
         va_end(ap);
     }
 
+    pragma(printf)
     final void deprecation(const(char)* format, ...)
     {
         va_list ap;

@@ -1059,6 +1059,17 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
 
+    // Check if pragma(printf) is supported
+    {
+        auto pipes = pipeProcess([env["HOST_DMD_RUN"], "-c", "-o-", "-"]);
+        pipes.stdin.writeln(q{
+            pragma(printf)
+            extern(C) void printf(char*, ...);
+        });
+        pipes.stdin.close();
+        if (pipes.pid.wait())
+            dflags ~= "-ignore";
+    }
     // Retain user-defined flags
     flags["DFLAGS"] = dflags ~= flags.get("DFLAGS", []);
 }

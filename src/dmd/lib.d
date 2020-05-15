@@ -107,6 +107,8 @@ class Library
         writeFile(Loc.initial, loc.filename.toDString, libbuf[]);
     }
 
+    pragma(printf)
+    extern(C++) // Hack to allow verification
     final void error(const(char)* format, ...)
     {
         va_list ap;

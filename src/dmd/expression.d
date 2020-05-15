@@ -722,6 +722,7 @@ extern (C++) abstract class Expression : ASTNode
         return buf.extractChars();
     }
 
+    pragma(printf)
     final void error(const(char)* format, ...) const
     {
         if (type != Type.terror)
@@ -733,6 +734,7 @@ extern (C++) abstract class Expression : ASTNode
         }
     }
 
+    pragma(printf)
     final void errorSupplemental(const(char)* format, ...)
     {
         if (type == Type.terror)
@@ -744,6 +746,7 @@ extern (C++) abstract class Expression : ASTNode
         va_end(ap);
     }
 
+    pragma(printf)
     final void warning(const(char)* format, ...) const
     {
         if (type != Type.terror)
@@ -755,6 +758,7 @@ extern (C++) abstract class Expression : ASTNode
         }
     }
 
+    pragma(printf)
     final void deprecation(const(char)* format, ...) const
     {
         if (type != Type.terror)
