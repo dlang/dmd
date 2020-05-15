@@ -4492,6 +4492,24 @@ final class Parser(AST) : Lexer
                     return a;
                 }
             }
+
+            /* Look for:
+             * alias identifier;
+             */
+            if (token.value == TOK.identifier && peekNext() == TOK.semicolon)
+            {
+                auto ident = token.ident;
+                nextToken();
+                import dmd.declaration : VarDeclaration;
+                import dmd.mtype : Type;
+                VarDeclaration s = new VarDeclaration(loc, Type.talias, ident, null);
+                addComment(s, comment);
+                auto a = new AST.Dsymbols();
+                a.push(s);
+                check(TOK.semicolon);
+                return a;
+            }
+
             /* Look for:
              *  alias identifier = type;
              *  alias identifier(...) = type;
