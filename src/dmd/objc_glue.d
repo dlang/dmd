@@ -678,7 +678,7 @@ static:
             // create symbol
             __gshared size_t selectorCount = 0;
             char[42] nameString;
-            sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%lu", selectorCount);
+            sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
             refSymbol = symbol_name(nameString.ptr, SCstatic, type_fake(TYnptr));
 
             refSymbol.Sdt = dtb.finish();

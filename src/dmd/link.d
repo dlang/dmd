@@ -831,7 +831,7 @@ version (Windows)
                 if (status == 0)
                     args = "@_CMDLINE";
                 else
-                    error(Loc.initial, "command line length of %d is too long", len);
+                    error(Loc.initial, "command line length of %llu is too long", cast(ulong) len);
             }
         }
         // Normalize executable path separators

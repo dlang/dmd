@@ -842,7 +842,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 inlining = PINLINE.default_;
             else if (args.dim != 1)
             {
-                error("one boolean expression expected for `pragma(inline)`, not %d", args.dim);
+                error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.dim);
                 args.setDim(1);
                 (*args)[0] = new ErrorExp();
             }

@@ -165,7 +165,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 }
                 else if (ai.dim > tadim)
                 {
-                    error(ai.loc, "too many initializers, %d, for array[%d]", ai.dim, tadim);
+                    error(ai.loc, "too many initializers, %u, for array[%llu]", ai.dim, cast(ulong) tadim);
                 }
                 dtb.cat(dtbarray);
                 break;

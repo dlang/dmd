@@ -3090,7 +3090,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         expandTuples(e.values);
         if (e.keys.dim != e.values.dim)
         {
-            e.error("number of keys is %u, must match number of values %u", e.keys.dim, e.values.dim);
+            e.error("number of keys is %llu, must match number of values %llu",
+                        cast(ulong) e.keys.dim, cast(ulong) e.values.dim);
             return setError();
         }
 

@@ -1273,7 +1273,7 @@ UnionExp Index(Type type, Expression e1, Expression e2)
             ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
             if (i >= ale.elements.dim)
             {
-                e1.error("array index %llu is out of bounds `%s[0 .. %u]`", i, e1.toChars(), ale.elements.dim);
+                e1.error("array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.dim);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
