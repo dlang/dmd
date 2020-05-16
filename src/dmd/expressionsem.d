@@ -1605,7 +1605,7 @@ private Expression rewriteOpAssign(BinExp exp)
  * Returns:
  *      true    a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool reportErrors = true)
+private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool reportErrors = true, FuncDeclaration fd = null)
 {
     bool err = false;
     if (exps)
@@ -1618,9 +1618,13 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
             arg = resolveProperties(sc, arg);
             if (arg.op == TOK.type)
             {
+                if (fd && fd.isTFunction())
+                {
+                    continue;
+                }
                 // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
                 arg = resolveAliasThis(sc, arg);
-/+ TODO only skip this check for type functions
+
                 if (arg.op == TOK.type)
                 {
                     if (reportErrors)
@@ -1630,7 +1634,6 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
                     }
                     err = true;
                 }
-+/
             }
             else if (arg.type.toBasetype().ty == Tfunction)
             {
@@ -3525,7 +3528,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb = exp.type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
         if (arrayExpressionSemantic(exp.newargs, sc) ||
-            preFunctionParameters(sc, exp.newargs))
+            preFunctionParameters(sc, exp.newargs, true))
         {
             return setError();
         }
@@ -3544,7 +3547,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else if (preFunctionParameters(sc, exp.arguments))
+        else if (preFunctionParameters(sc, exp.arguments, true))
         {
             return setError();
         }
@@ -4253,6 +4256,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression ethis = null;
         Type tthis = null;
         Expression e1org = exp.e1;
+        FuncDeclaration fd = null;
 
         if (exp.e1.op == TOK.comma)
         {
@@ -4268,16 +4272,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             DelegateExp de = cast(DelegateExp)exp.e1;
             exp.e1 = new DotVarExp(de.loc, de.e1, de.func, de.hasOverloads);
+            fd = de.func;
             visit(exp);
             return;
         }
         if (exp.e1.op == TOK.function_)
         {
-            if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
+            FuncExp fe = cast(FuncExp)exp.e1;
+            fd = fe.fd;
+
+            if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments, true, fd))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
-            FuncExp fe = cast(FuncExp)exp.e1;
             exp.e1 = callExpSemantic(fe, sc, exp.arguments);
             if (exp.e1.op == TOK.error)
             {
@@ -4472,7 +4479,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-        if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
+        if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments, true))
             return setError();
 
         // Check for call operator overload

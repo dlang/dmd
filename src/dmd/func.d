@@ -384,6 +384,32 @@ extern (C++) class FuncDeclaration : Declaration
         return f;
     }
 
+    /// Determine if we are a type function.
+    final bool isTFunction()
+    {
+        // TODO: this function will not return the correct result for
+        // auto returning functions if the function does return
+        // a tuple with but just takes regular value arguments
+
+        bool hasAliasInDecl = false;
+
+        auto tf = type.toTypeFunction();
+
+        if (tf.nextOf && (tf.nextOf.ty == Talias || isAliasType(tf.nextOf)))
+            hasAliasInDecl = true;
+
+        if (!hasAliasInDecl) foreach(p;*tf.parameterList)
+        {
+            if (p.type.ty == Talias || isAliasType(p.type))
+            {
+                hasAliasInDecl = true;
+                break;
+            }
+        }
+
+        return hasAliasInDecl;
+    }
+
     /****************************************************
      * Resolve forward reference of function signature -
      * parameter types, return type, and attributes.
