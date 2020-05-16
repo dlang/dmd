@@ -145,10 +145,10 @@
                 ]
             },
             {
-                "base": "json.Bar!1.Bar",
+                "base": "json.Bar!1",
                 "char": 1,
                 "interfaces": [
-                    "json.Baz!(int, 2, null).Baz"
+                    "json.Baz!(int, 2, null)"
                 ],
                 "kind": "class",
                 "line": 27,
@@ -205,7 +205,7 @@
                         "line": 33,
                         "name": "t",
                         "overrides": [
-                            "json.Baz!(int, 2, null).Baz.t"
+                            "json.Baz!(int, 2, null).t"
                         ],
                         "storageClass": [
                             "override"

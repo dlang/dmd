@@ -137,7 +137,7 @@ immutable(void)* g10063(inout int* p) pure
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(154): Error: `pure` function `testInference.bar14049` cannot call impure function `testInference.foo14049!int.foo14049`
+fail_compilation/testInference.d(154): Error: `pure` function `testInference.bar14049` cannot call impure function `testInference.foo14049!int`
 ---
 */
 auto impure14049() { static int i = 1; return i; }
@@ -169,7 +169,7 @@ int* f14160() pure
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(180): Error: `pure` function `testInference.test12422` cannot call impure function `testInference.test12422.bar12422!().bar12422`
+fail_compilation/testInference.d(180): Error: `pure` function `testInference.test12422` cannot call impure function `testInference.test12422.bar12422!()`
 ---
 */
 int g12422;
@@ -184,7 +184,7 @@ void test12422() pure
 TEST_OUTPUT:
 ---
 fail_compilation/testInference.d(198): Error: `pure` function `testInference.test13729a` cannot call impure function `testInference.test13729a.foo`
-fail_compilation/testInference.d(206): Error: `pure` function `testInference.test13729b` cannot call impure function `testInference.test13729b.foo!().foo`
+fail_compilation/testInference.d(206): Error: `pure` function `testInference.test13729b` cannot call impure function `testInference.test13729b.foo!()`
 ---
 */
 int g13729;
