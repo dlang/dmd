@@ -4500,9 +4500,7 @@ final class Parser(AST) : Lexer
             {
                 auto ident = token.ident;
                 nextToken();
-                import dmd.declaration : VarDeclaration;
-                import dmd.mtype : Type;
-                VarDeclaration s = new VarDeclaration(loc, Type.talias, ident, null);
+                auto s = new AST.VarDeclaration(loc, AST.Type.talias, ident, null);
                 addComment(s, comment);
                 auto a = new AST.Dsymbols();
                 a.push(s);

@@ -167,6 +167,9 @@ struct ASTBase
 
         Tdelegate,
         Tnone,
+
+        Talias,
+
         Tvoid,
         Tint8,
         Tuns8,
@@ -2766,6 +2769,8 @@ struct ASTBase
         extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
         extern (C++) __gshared Type terror;      // for error recovery
         extern (C++) __gshared Type tnull;       // for null type
+
+        extern (C++) __gshared Type talias;      // type of types
 
         extern (C++) __gshared Type tsize_t;     // matches size_t alias
         extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
