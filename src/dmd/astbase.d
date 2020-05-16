@@ -1483,12 +1483,19 @@ struct ASTBase
 
         const FileName srcfile;
         const(char)* arg;
+        bool rootModule;
 
-        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen, bool rootModule = false)
         {
             super(ident);
             this.arg = filename;
             srcfile = FileName(FileName.defaultExt(filename.toDString, global.mars_ext));
+            this.rootModule = rootModule;
+        }
+
+        bool isRoot()
+        {
+            return rootModule;
         }
 
         override void accept(Visitor v)
