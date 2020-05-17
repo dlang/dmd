@@ -112,6 +112,7 @@ struct EnvData
     bool printRuntime;          /// Print time spent on a single test
     bool usingMicrosoftCompiler;
     bool tryDisabled;           /// Silently try disabled tests (ignore failure but report success)
+    bool useFlock;              /// Use flock() instead of File.lock() when locking files
 }
 
 /++
@@ -150,6 +151,7 @@ immutable(EnvData) processEnvironment()
     envData.autoUpdate     = environment.get("AUTO_UPDATE", "") == "1";
     envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
     envData.tryDisabled    = environment.get("TRY_DISABLED") == "1";
+    envData.useFlock       = environment.get("USE_FLOCK") == "1";
 
     if (envData.ccompiler.empty)
     {
@@ -1343,8 +1345,22 @@ int tryMain(string[] args)
                 {
                     // Tests failed on SemaphoreCI when multiple GDB tests were run at once
                     scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
-                    lockfile.lock();
-                    scope (exit) lockfile.unlock();
+
+                    import core.sys.linux.sys.file;
+
+                    // lockfile.lock() uses fcntl which doesn't work on recent ubuntu???
+                    if (envData.useFlock)
+                        enforce(0 == flock(lockfile.fileno, LOCK_EX));
+                    else
+                        lockfile.lock();
+
+                    scope (exit)
+                    {
+                        if (envData.useFlock)
+                            enforce(0 == flock(lockfile.fileno, LOCK_UN));
+                        else
+                            lockfile.unlock();
+                    }
 
                     auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
                     toCleanup ~= script;
