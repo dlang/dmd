@@ -37,6 +37,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.mem;
@@ -76,9 +77,7 @@ nothrow:
         debug
         {
             loop *l = &this;
-            printf("loop %p, next = %p\n",l,(l) ? l.Lnext : cast(loop *) null);
-            if (!l)
-                return;
+            printf("loop %p\n", l);
             printf("\thead: B%d, tail: B%d, prehead: B%d\n",l.Lhead.Bdfoidx,
                 l.Ltail.Bdfoidx,(l.Lpreheader ) ? l.Lpreheader.Bdfoidx
                                                 : cast(uint)-1);
@@ -224,20 +223,17 @@ void makeLI(elem *n) { n.Nflags |= NFLli; }
  * Free loops.
  */
 
-private void freeloop(loop **pl)
+private void freeloop(ref Barray!(loop*) loops)
 {
-    loop *ln;
-
-    for (loop *l = *pl; l; l = ln)
+    foreach (l; loops)
     {
-        ln = l.Lnext;
         vec_free(l.Lloop);
         vec_free(l.Lexit);
         list_free(&l.Llis);
         l.Lnext = loop.freelist;
         loop.freelist = l;
     }
-    *pl = null;
+    loops.__dtor();
 }
 
 
@@ -364,9 +360,9 @@ bool dom(block *A,block *B)
  * Find all the loops.
  */
 
-private extern (D) void findloops(block*[] dfo, loop **ploops)
+private extern (D) void findloops(block*[] dfo, ref Barray!(loop*) loops)
 {
-    freeloop(ploops);
+    freeloop(loops);
 
     //printf("findloops()\n");
     foreach (b; dfo)
@@ -381,13 +377,13 @@ private extern (D) void findloops(block*[] dfo, loop **ploops)
             block *s = list_block(bl);      // each successor s to b
             assert(s);
             if (dom(s,b))                   // if s dominates b
-                buildloop(ploops,s,b);      // we found a loop
+                buildloop(loops, s, b);     // we found a loop
         }
     }
 
     debug if (debugc)
     {
-        for (loop *l = *ploops; l; l = l.Lnext)
+        foreach (l; loops)
             l.print();
     }
 }
@@ -414,14 +410,14 @@ private uint loop_weight(uint weight, int factor) pure
  * Note that head dom tail.
  */
 
-private void buildloop(loop **ploops,block *head,block *tail)
+private void buildloop(ref Barray!(loop*) ploops,block *head,block *tail)
 {
     loop *l;
 
     //printf("buildloop()\n");
     /* See if this is part of an existing loop. If so, merge the two.     */
-    for (l = *ploops; l; l = l.Lnext)
-        if (l.Lhead == head)           /* two loops with same header   */
+    foreach (lp; ploops)
+        if (lp.Lhead == head)           /* two loops with same header   */
         {
             vec_t v;
 
@@ -433,17 +429,17 @@ private void buildloop(loop **ploops,block *head,block *tail)
             head.Bweight = loop_weight(head.Bweight, 1);
             insert(tail,v);
 
-            vec_orass(l.Lloop,v);      // merge into existing loop
+            vec_orass(lp.Lloop,v);      // merge into existing loop
             vec_free(v);
 
-            vec_clear(l.Lexit);        // recompute exit blocks
+            vec_clear(lp.Lexit);        // recompute exit blocks
+            l = lp;
             goto L1;
         }
 
     /* Allocate loop entry        */
     l = loop.mycalloc();
-    l.Lnext = *ploops;
-    *ploops = l;                         // put l at beginning of list
+    ploops.push(l);
 
     l.Lloop = vec_calloc(maxblks);       /* allocate loop bit vector     */
     l.Lexit = vec_calloc(maxblks);       /* bit vector for exit blocks   */
@@ -719,42 +715,42 @@ private __gshared
 
 void loopopt()
 {
-    loop *ln;
     vec_t rd;
-    loop *startloop;
+    Barray!(loop*) startloop;
 
     if (debugc) printf("loopopt()\n");
-    startloop = null;
 restart:
     file_progress();
     if (blockinit())                    // init block data
     {
-        findloops(dfo[], &startloop);          // Compute Bweights
-        freeloop(&startloop);           // free existing loops
+        findloops(dfo[], startloop);    // Compute Bweights
+        freeloop(startloop);            // free existing loops
         return;                         // can't handle ASM blocks
     }
     compdom();                          // compute dominators
-    findloops(dfo[], &startloop);              // find the loops
+    findloops(dfo[], startloop);              // find the loops
 
-    for (loop *l = startloop; l; l = ln)
+  L3:
+    while (1)
     {
-        ln = l.Lnext;
-        if (looprotate(l))              // rotate the loop
+        foreach (l; startloop)
         {
-            compdfo();
-            blockinit();
-            compdom();
-            findloops(dfo[], &startloop);      // may trash l.Lnext
-            if (ln)
-            {   ln = startloop;         // start over
-                file_progress();
+            if (looprotate(l))              // rotate the loop
+            {
+                compdfo();
+                blockinit();
+                compdom();
+                findloops(dfo[], startloop);
+                continue L3;
             }
         }
+        break;
     }
+
     // Make sure there is a preheader for each loop.
 
     addblk = false;                     /* assume no blocks added        */
-    for (loop *l = startloop; l; l = l.Lnext) // for each loop
+    foreach (l; startloop)
     {
         //if (debugc) l.print();
 
@@ -822,40 +818,44 @@ restart:
         compdfo();                      /* compute depth-first order    */
         blockinit();
         compdom();
-        findloops(dfo[], &startloop);          // recompute block info
+        findloops(dfo[], startloop);          // recompute block info
         addblk = false;
     }
 
-    /* Do the loop optimizations. Note that accessing the loops */
-    /* starting from startloop will access them in least nested */
-    /* one first, thus moving LIs out as far as possible.       */
+    /* Do the loop optimizations.
+     */
 
     doflow = true;                      /* do flow analysis             */
 
     if (go.mfoptim & MFtime)
     {
         if (debugc) printf("Starting loop unrolling\n");
-        for (loop *l = startloop; l; l = ln)
+    L2:
+        while (1)
         {
-            ln = l.Lnext;
-            if (loopunroll(l))
+            foreach (l; startloop)
             {
-                compdfo();                      // compute depth-first order
-                blockinit();
-                compdom();
-                findloops(dfo[], &startloop);          // recompute block info
-                doflow = true;
-                if (ln)
-                {   ln = startloop;         // start over
-                    file_progress();
+                if (loopunroll(l))
+                {
+                    compdfo();                      // compute depth-first order
+                    blockinit();
+                    compdom();
+                    findloops(dfo[], startloop);    // recompute block info
+                    doflow = true;
+                    continue L2;
                 }
             }
+            break;
         }
     }
 
+    /* Note that accessing the loops
+     * starting from startloop will access them in least nested
+     * one first, thus moving LIs out as far as possible
+     */
     if (debugc) printf("Starting loop invariants\n");
 
-    for (loop *l = startloop; l; l = l.Lnext)
+    foreach_reverse (l; startloop)
     {
         uint i,j;
 
@@ -967,7 +967,7 @@ restart:
             }
         }
     } /* for */
-    freeloop(&startloop);
+    freeloop(startloop);
 }
 
 /*****************************
@@ -1587,7 +1587,7 @@ private void movelis(elem *n,block *b,loop *l,int *pdomexit)
     tym_t ty;
 
 Lnextlis:
-    //if (isLI(n)) { printf("movelis("); WReqn(n); printf(")\n"); }
+    //if (isLI(n)) { printf("movelis(B%d, ", b.Bdfoidx); WReqn(n); printf(")\n"); }
     assert(l && n);
     elem_debug(n);
     const op = n.Eoper;
