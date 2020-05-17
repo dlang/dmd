@@ -152,6 +152,7 @@ immutable(EnvData) processEnvironment()
     envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
     envData.tryDisabled    = environment.get("TRY_DISABLED") == "1";
     envData.useFlock       = environment.get("USE_FLOCK") == "1";
+    writeln("useFlock = ", envData.useFlock);
 
     if (envData.ccompiler.empty)
     {
