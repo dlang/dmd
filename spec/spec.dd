@@ -53,7 +53,7 @@ $(TOC Table of Contents,
                 $(A memory-safe-d.html, Memory Safety),
                 $(A abi.html, Application Binary Interface),
                 $(A simd.html, Vector Extensions),
-                $(A betterc.html, Better C)
+                $(A betterc.html, Better C),
                 $(A ob.html, Live Functions)
         ))
 )

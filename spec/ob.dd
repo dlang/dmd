@@ -65,7 +65,7 @@ $(H2 Ownership/Borrowing)
 
 $(P Tracking the ownership status of a pointer can be safely extended by adding the
 capability of temporarilly $(I borrowing) ownership of a pointer from the $(I owner).
-The $(owner) can no longer use the pointer as long as the $(I borrower) is still
+The $(I owner) can no longer use the pointer as long as the $(I borrower) is still
 using the pointer value (i.e. is $(I live)). Once the $(I borrower) is no longer
 $(I live), the $(I owner) and resume using it. Only one $(I borrower) can be live
 at any point.
@@ -109,7 +109,7 @@ $(P It will not detect attempts to dereference `null` pointers or possibly
 of annotating a type as a non-`null` pointer.
 )
 
-$(H4 Tracked Pointers)
+$(H3 Tracked Pointers)
 
 $(P The only pointers that are tracked are those declared in the `@live` function
 as `this`, function parameters or local variables. Variables from other
@@ -120,7 +120,7 @@ Parameters that are `const` are not tracked.
 )
 
 
-$(H4 Pointer States)
+$(H3 Pointer States)
 
 $(P Each tracked pointer is in one of the following states:
 )
@@ -163,7 +163,7 @@ must not be a pointer to mutable.
 )
 )
 
-$(H4 Lifetimes)
+$(H3 Lifetimes)
 
 $(P The lifetime of a Borrowed or Readonly pointer value starts when it is
 assigned a value from an Owner or another Borrowed pointer, and ends at
@@ -174,7 +174,7 @@ $(P This is also known as $(I Non-Lexical Lifetimes).
 )
 
 
-$(H4 Pointer State Transitions)
+$(H3 Pointer State Transitions)
 
 $(P A pointer changes its state when one of these operations is done to it:
 )
@@ -214,7 +214,7 @@ $(LI merging of control flow reconciles the state of each variable based on the
 states they have from each edge)
 )
 
-$(H4 Borrowers can be Owners)
+$(H3 Borrowers can be Owners)
 
 $(P Borrowers are considered Owners if they are initialized from other than
 a pointer.
@@ -229,7 +229,7 @@ a pointer.
 
 ---
 
-$(H4 Exceptions)
+$(H3 Exceptions)
 
 $(P The analysis assumes no exceptions are thrown.
 )
@@ -258,12 +258,12 @@ $(P One solution is to use `scope(exit)`:
 $(P or use RAII objects or call only `nothrow` functions.
 )
 
-$(H4 Lazy Parameters)
+$(H3 Lazy Parameters)
 
 $(P Lazy parameters are not considered.
 )
 
-$(H4 Mixing Memory Pools)
+$(H3 Mixing Memory Pools)
 
 $(P Conflation of different memory pools:
 )
@@ -298,12 +298,14 @@ vfree(p);  // type mismatch
 $(P and perhaps disabling implicit conversions to `void*` in `@live` functions.
 )
 
-$(H4 Variadic Function Arguments)
+$(H3 Variadic Function Arguments)
 
 $(P Arguments to variadic functions (such as `printf`) are considered to be consumed.
 )
 
+$(SPEC_SUBNAV_PREV betterc, Better C)
 )
 
 Macros:
+        CHAPTER=41
         TITLE=Live Functions
