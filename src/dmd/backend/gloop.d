@@ -65,8 +65,8 @@ nothrow:
     block *Lpreheader;  // Pointer to preheader (if any)
     Barray!(elem*) Llis; // loop invariant elems moved to Lpreheader, so
                         // redundant temporaries aren't created
-    Iv *Livlist;        // basic induction variables
-    Iv *Lopeqlist;      // list of other op= variables
+    Barray!Iv Livlist;        // basic induction variables
+    Barray!Iv Lopeqlist;      // list of other op= variables
 
     /***********************
      * Write loop.
@@ -167,7 +167,6 @@ nothrow:
     Symbol *IVbasic;        // symbol of basic IV
     elem **IVincr;          // pointer to parent of IV increment elem
     famlist *IVfamily;      // variables in this family
-    Iv *IVnext;             // next iv in list
 
     void print()
     {
@@ -178,26 +177,6 @@ nothrow:
             elem_print(*IVincr);
         }
     }
-
-    /***************************
-     * Allocate Iv.
-     */
-
-    static Iv *mycalloc()
-    {   Iv *iv;
-
-        if (freelist)
-        {
-            iv = freelist;
-            freelist = iv.IVnext;
-            memset(iv,0,Iv.sizeof);
-        }
-        else
-            iv = cast(Iv *) mem_calloc(Iv.sizeof);
-        return iv;
-    }
-
-    __gshared Iv *freelist;
 }
 
 
@@ -1982,36 +1961,6 @@ private void appendelem(elem *n,elem **pn)
 
 /************** LOOP INDUCTION VARIABLES **********************/
 
-/*********************
- * Free iv list.
- */
-
-private void freeivlist(Iv *biv)
-{
-    Iv *bivnext;
-
-    while (biv)
-    {
-        famlist *fln;
-
-        for (famlist *fl = biv.IVfamily; fl; fl = fln)
-        {
-            el_free(fl.c1);
-            el_free(fl.c2);
-            fln = fl.FLnext;
-
-            fl.FLnext = famlist.freelist;
-            famlist.freelist = fl;
-        }
-        bivnext = biv.IVnext;
-
-        biv.IVnext = Iv.freelist;
-        Iv.freelist = biv;
-
-        biv = bivnext;
-    }
-}
-
 /****************************
  * Create a new famlist entry.
  */
@@ -2105,7 +2054,7 @@ private famlist * newfamlist(tym_t ty)
 private void loopiv(loop *l)
 {
     if (debugc) printf("loopiv(%p)\n",l);
-    assert(l.Livlist == null && l.Lopeqlist == null);
+    assert(l.Livlist.length == 0 && l.Lopeqlist.length == 0);
     elimspec(l);
     if (doflow)
     {
@@ -2123,10 +2072,8 @@ private void loopiv(loop *l)
     if (!addblk)                // adding a block changes the Binlv
         elimopeqs(l);           // eliminate op= variables
 
-    freeivlist(l.Livlist);      // free up IV list
-    l.Livlist = null;
-    freeivlist(l.Lopeqlist);    // free up list
-    l.Lopeqlist = null;
+    l.Livlist.__dtor();         // free up IV list
+    l.Lopeqlist.__dtor();       // free up list
 
     /* Do copy propagation and dead assignment elimination        */
     /* upon return to optfunc()                                   */
@@ -2218,7 +2165,6 @@ private void findbasivs(loop *l)
     uint i;
     for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each basic IV
     {
-        Iv *biv;
         Symbol *s;
 
         /* Skip if we don't want it to be a basic IV (see funcprev())   */
@@ -2238,9 +2184,8 @@ private void findbasivs(loop *l)
         if (tycomplex(s.ty()))
                 continue;
 
-        biv = Iv.mycalloc();
-        biv.IVnext = l.Livlist;
-        l.Livlist = biv;               // link into list of IVs
+        l.Livlist.push(Iv());
+        Iv* biv = &l.Livlist[l.Livlist.length - 1];
 
         biv.IVbasic = s;               // symbol of basic IV
 
@@ -2346,12 +2291,9 @@ private void findopeqs(loop *l)
     }
 
     // Don't use symbols already in Livlist
-    for (Iv *iv = l.Livlist; iv; iv = iv.IVnext)
+    foreach (ref iv; l.Livlist)
     {
-        Symbol *s;
-
-        s = iv.IVbasic;
-        vec_setbit(s.Ssymnum,notposs);
+        vec_setbit(iv.IVbasic.Ssymnum,notposs);
     }
 
 
@@ -2367,7 +2309,6 @@ private void findopeqs(loop *l)
     uint i;
     for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each opeq IV
     {
-        Iv *biv;
         Symbol *s;
 
         s = globsym.tab[i];
@@ -2380,9 +2321,8 @@ private void findopeqs(loop *l)
         if (tyaggregate(s.ty()))
             continue;
 
-        biv = Iv.mycalloc();
-        biv.IVnext = l.Lopeqlist;
-        l.Lopeqlist = biv;             // link into list of IVs
+        l.Lopeqlist.push(Iv());
+        auto biv = &l.Lopeqlist[l.Lopeqlist.length - 1];
 
         biv.IVbasic = s;               // symbol of basic IV
 
@@ -2429,11 +2369,11 @@ private void findopeqs(loop *l)
 private void findivfams(loop *l)
 {
     if (debugc) printf("findivfams(%p)\n",l);
-    for (Iv *biv = l.Livlist; biv; biv = biv.IVnext)
+    foreach (ref biv; l.Livlist)
     {
         for (uint i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
             if (dfo[i].Belem)
-                ivfamelems(biv,&(dfo[i].Belem));
+                ivfamelems(&biv,&(dfo[i].Belem));
         /* Fold all the constant expressions in c1 and c2.      */
         for (famlist *fl = biv.IVfamily; fl; fl = fl.FLnext)
         {
@@ -2644,7 +2584,7 @@ private void ivfamelems(Iv *biv,elem **pn)
 
 private void elimfrivivs(loop *l)
 {
-    for (Iv *biv = l.Livlist; biv; biv = biv.IVnext)
+    foreach (ref biv; l.Livlist)
     {
         int nfams;
         int nrefs;
@@ -2708,7 +2648,7 @@ private void intronvars(loop *l)
     tym_t ty,tyr;
 
     if (debugc) printf("intronvars(%p)\n",l);
-    for (Iv *biv = l.Livlist; biv; biv = biv.IVnext)      // for each basic IV
+    foreach (ref biv; l.Livlist)
     {
         elem *bivinc = *biv.IVincr;   /* ptr to increment elem */
 
@@ -2794,7 +2734,7 @@ private void intronvars(loop *l)
  *                      indicate this.
  */
 
-private bool funcprev(Iv *biv,famlist *fl)
+private bool funcprev(ref Iv biv,famlist *fl)
 {
     tym_t tymin;
     int sz;
@@ -2932,7 +2872,7 @@ private bool funcprev(Iv *biv,famlist *fl)
 private void elimbasivs(loop *l)
 {
     if (debugc) printf("elimbasivs(%p)\n",l);
-    for (Iv *biv = l.Livlist; biv; biv = biv.IVnext)        // for each basic IV
+    foreach_reverse (ref biv; l.Livlist)
     {
         /* Can't eliminate this basic IV if we have a goal for the      */
         /* increment elem.                                              */
@@ -3252,7 +3192,9 @@ private void elimopeqs(loop *l)
     int refcount;
 
     if (debugc) printf("elimopeqs(%p)\n",l);
-    for (Iv *biv = l.Lopeqlist; biv; biv = biv.IVnext)    // for each opeq IV
+    //foreach (ref biv; l.Lopeqlist) elem_print(*(biv.IVincr));
+
+    foreach_reverse (ref biv; l.Lopeqlist)
     {
         // Can't eliminate this basic IV if we have a goal for the
         // increment elem.
@@ -3287,6 +3229,17 @@ private void elimopeqs(loop *l)
             // Dump the increment elem
             // (Replace it with an OPconst that only serves as a
             // placeholder in the tree)
+            /* foreach_reverse is used because:
+                void test6652()
+                {
+                    size_t sum = 0;
+                    foreach (ref i; 0 .. 10)
+                        sum += i++;
+                    assert(sum == 20);
+                }
+             * and (sum+=) and (i++) are both basic IVs, and if (sum+) is
+             * eliminated, then the next IV pointing to (i++) will be garbage.
+             */
             *(biv.IVincr) = el_selecte2(*(biv.IVincr));
 
             go.changes++;
