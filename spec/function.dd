@@ -587,7 +587,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     }
     ---
 
-    $(P If a function returns a delegate or function pointer, the parantheses are required if the
+    $(P If a function returns a delegate or function pointer, the parentheses are required if the
     returned value is to be called.
     )
 
@@ -998,7 +998,7 @@ void test()
 }
 ------
 
-        $(P If a derived class overrides a base class member function with diferrent
+        $(P If a derived class overrides a base class member function with different
         $(GLINK FunctionAttributes), the missing attributes will be
         automatically compensated by the compiler.)
 
@@ -1771,7 +1771,7 @@ import core.vararg;
         $(D _argptr), which is a $(D core.vararg)
     reference to the first of the variadic
         arguments. To access the arguments, $(D _argptr) must be used
-    in conjuction with $(D va_arg):)
+    in conjunction with $(D va_arg):)
 
 ------
 import core.vararg;

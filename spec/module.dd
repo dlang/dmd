@@ -485,7 +485,7 @@ void main()
 $(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
 
     $(P A leading `.` causes the
-    identifer to be looked up in the module scope.)
+    identifier to be looked up in the module scope.)
 
 ---------
 int x;

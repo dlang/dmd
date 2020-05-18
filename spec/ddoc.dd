@@ -618,7 +618,7 @@ $(H4 $(LNAME2 reference_links, Reference Links))
 
 $(P
 Reference-style links enclose a reference label in square brackets. They may
-optionally be preceeded by some link text, also enclosed in square brackets.
+optionally be preceded by some link text, also enclosed in square brackets.
 )
 
 $(P
@@ -640,7 +640,7 @@ definition then the reference definition is used.
 
 $(P
 The generated links to D symbols are relative if they have the same root package
-as the module being documented. If not, their URLs are preceeded by a
+as the module being documented. If not, their URLs are preceded by a
 `$(DOLLAR)(DDOC_ROOT_pkg)` macro, where `pkg` is the root package of the symbol
 being linked to. Links to D symbols are generated with a `$(DOLLAR)(DOC_EXTENSION)`
 macro after the module name. So the generated URL for `[Object]` in the above
@@ -707,7 +707,7 @@ a period:
 ---
 
 $(P
-Start an unordered list with a hypen (`-`), an asterisk (`*`) or a plus (`+`).
+Start an unordered list with a hyphen (`-`), an asterisk (`*`) or a plus (`+`).
 Subsequent items in the same list must also start with the same symbol:
 )
 
