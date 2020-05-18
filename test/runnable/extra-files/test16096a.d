@@ -1,5 +1,7 @@
 module test16096a;
 
+import core.attribute : selector;
+
 extern (Objective-C)
 interface Class
 {
