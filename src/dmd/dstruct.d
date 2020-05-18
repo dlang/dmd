@@ -607,6 +607,41 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         return index < numArgTypes() ? (*argTypes.arguments)[index].type : null;
     }
+
+    final bool hasNonDisabledCtor()
+    {
+        static extern (C++) class HasNonDisabledCtorVisitor : Visitor
+        {
+            bool result;
+
+            this() {}
+
+            alias visit = Visitor.visit;
+
+            override void visit(CtorDeclaration cd)
+            {
+                if (!(cd.storage_class & STC.disable))
+                    result = true;
+            }
+
+            override void visit(TemplateDeclaration td)
+            {
+                result = true;
+            }
+
+            override void visit(OverloadSet os)
+            {
+                for (size_t i = 0; i < os.a.dim; i++)
+                    os.a[i].accept(this);
+            }
+        }
+
+        if (!ctor)
+            return false;
+        scope v = new HasNonDisabledCtorVisitor();
+        ctor.accept(v);
+        return v.result;
+    }
 }
 
 /**********************************
