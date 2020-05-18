@@ -20,6 +20,8 @@ $(HEADERNAV_TOC)
     $(SECTION3 $(LNAME2 external-class, Declaring an External Class))
 
     ---
+    import core.attribute : selector;
+
     extern (Objective-C)
     extern class NSString
     {
@@ -44,6 +46,8 @@ $(HEADERNAV_TOC)
     $(SECTION3 $(LNAME2 defining-class, Defining a Class))
 
     ---
+    import core.attribute : selector;
+
     // externally defined
     extern (Objective-C)
     extern class NSObject
@@ -83,6 +87,8 @@ $(HEADERNAV_TOC)
     $(SECTION2 $(LNAME2 instance-variables, Instance Variables))
 
     ---
+    import core.attribute : selector;
+
     // externally defined
     extern (Objective-C)
     extern class NSObject
@@ -161,6 +167,8 @@ $(HEADERNAV_TOC)
     )
 
     ---
+    import core.attribute : selector;
+
     extern (Objective-C)
     extern class NSString
     {
@@ -178,9 +186,8 @@ $(HEADERNAV_TOC)
 
     $(P
         The attribute is defined in druntime in
-        $(DPLLINK phobos/core_attribute.html, `core.attribute`) and aliased in
-        $(DPLLINK phobos/object.html, `object`), meaning it will be implicitly
-        imported. The attribute is only defined when the version identifier
+        $(DPLLINK phobos/core_attribute.html, `core.attribute`). The attribute
+        is only defined when the version identifier
         $(LINK2 #objc-version-identifier, `D_ObjectiveC`) is enabled.
     )
 
@@ -226,6 +233,8 @@ $(HEADERNAV_TOC)
     )
 
     ---
+    import core.attribute : selector;
+
     extern (Objective-C)
     extern class NSObject
     {
@@ -317,6 +326,8 @@ $(HEADERNAV_TOC)
     )
 
     ---
+    import core.attribute : selector;
+
     extern (Objective-C)
     extern class NSString
     {
@@ -382,6 +393,8 @@ $(HEADERNAV_TOC)
 
     ---
     module main;
+
+    import core.attribute : selector;
 
     extern (Objective-C)
     extern class NSString
