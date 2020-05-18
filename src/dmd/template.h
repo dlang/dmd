@@ -68,6 +68,7 @@ public:
     bool isstatic;              // this is static template declaration
     bool isTrivialAliasSeq;     // matches `template AliasSeq(T...) { alias AliasSeq = T; }
     bool isTrivialAlias;        // matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
+    bool deprecated_;           // this template declaration is deprecated
     Prot protection;
     int inuse;                  // for recursive expansion detection
 
@@ -87,6 +88,7 @@ public:
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
+    bool isDeprecated() const;
     bool isOverloadable() const;
 
     void accept(Visitor *v) { v->visit(this); }

@@ -560,6 +560,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isstatic;          // this is static template declaration
     bool isTrivialAliasSeq; /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
+    bool deprecated_;       /// this template declaration is deprecated
     Prot protection;
     int inuse;              /// for recursive expansion detection
 
@@ -2521,6 +2522,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (dim == 0)
             return null;
         return (*parameters)[dim - 1].isTemplateTupleParameter();
+    }
+
+    extern(C++) override bool isDeprecated() const
+    {
+        return this.deprecated_;
     }
 
     /***********************************
