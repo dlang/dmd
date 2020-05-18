@@ -1,6 +1,8 @@
 // EXTRA_OBJC_SOURCES: objc_objc_msgSend.m
 // REQUIRED_ARGS: -L-framework -LFoundation
 
+import core.attribute : selector;
+
 extern (C) Class objc_lookUpClass(in char* name);
 
 struct Struct
