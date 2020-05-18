@@ -2277,7 +2277,7 @@ void foo()
         alias S = T;
     alias U = T;                   // error, T is not defined
 
-    static if (is(E V == enum))    // satisified, E is an enum
+    static if (is(E V == enum))    // satisfied, E is an enum
         V v;                       // v is declared to be a byte
 }
 -------------

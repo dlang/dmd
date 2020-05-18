@@ -107,7 +107,7 @@ $(H2 $(LNAME2 attributes_unittest, Attributed Unittests))
 
     $(BEST_PRACTICE
     $(OL
-    $(LI Using unit tests in conjuction with coverage testing
+    $(LI Using unit tests in conjunction with coverage testing
     (such as $(DDSUBLINK dmd, switch-cov, $(B -cov)))
     is effective.)
     $(LI A unit test for a function should appear immediately

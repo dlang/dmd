@@ -718,7 +718,7 @@ $(GNAME StaticAssert):
         )
 
         $(P Unlike $(GLINK2 expression, AssertExpression)s, $(I StaticAssert)s are always
-        checked and evaluted by the compiler unless they appear in an
+        checked and evaluated by the compiler unless they appear in an
         unsatisfied conditional.
         )
 
