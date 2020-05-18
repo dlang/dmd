@@ -698,7 +698,7 @@ tryagain:
 
     assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
-    global87.save.__dtor();       // clean up ndp save array
+    global87.save.dtor();       // clean up ndp save array
 }
 
 /*********************************************
