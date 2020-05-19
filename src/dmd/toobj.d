@@ -486,6 +486,25 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 obj_append(sd);
                 return;
             }
+            bool hasAliasMembers = false;
+            if (sd.members) foreach(Dsymbol m;*sd.members)
+            {
+                Type type = m.getType();
+
+                if (auto vd = m.isVarDeclaration())
+                {
+                    type = vd.type;
+                }
+                if (type && (type.ty == Talias || isAliasType(type)))
+                {
+                    hasAliasMembers = true;
+                    break;
+                }
+            }
+
+
+            if (hasAliasMembers)
+                return; // cannot generate a struct with alias members
 
             // Anonymous structs/unions only exist as part of others,
             // do not output forward referenced structs's
