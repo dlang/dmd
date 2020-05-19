@@ -1604,7 +1604,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
             {
                 auto td = s.isTemplateDeclaration;
                 if (td && td.onemember && td.onemember.isAggregateDeclaration)
-                    .error(loc, "template %s `%s` is used as a type without instantiation"
+                    .error(loc, "%s `%s` is used as a type without instantiation"
                         ~ "; to instantiate it use `%s!(arguments)`",
                         s.kind, s.toPrettyChars, s.ident.toChars);
                 else

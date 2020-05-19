@@ -1143,8 +1143,8 @@ public:
         }
         if ((hgs.hdrgen || hgs.fullDump) && visitEponymousMember(d))
             return;
-        if (hgs.ddoc)
-            buf.writestring(d.kind());
+        if (hgs.ddoc && d.onemember && d.onemember.isAggregateDeclaration)
+            buf.writestring(d.onemember.kind());
         else
             buf.writestring("template");
         buf.writeByte(' ');

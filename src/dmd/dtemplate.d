@@ -704,7 +704,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override const(char)* kind() const
     {
-        return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : "template";
+        return "template";
     }
 
     override const(char)* toChars() const

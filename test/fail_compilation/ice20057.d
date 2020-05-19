@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice20057.d(9): Error: alias `ice20057.BlackHole` conflicts with struct `ice20057.BlackHole(alias T)` at fail_compilation/ice20057.d(8)
+fail_compilation/ice20057.d(9): Error: alias `ice20057.BlackHole` conflicts with template `ice20057.BlackHole(alias T)` at fail_compilation/ice20057.d(8)
 ---
 */
 
