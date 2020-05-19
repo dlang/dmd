@@ -4280,8 +4280,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             FuncExp fe = cast(FuncExp)exp.e1;
             fd = fe.fd;
+            bool argument_semantic_errored = arrayExpressionSemantic(exp.arguments, sc);
+            if ((!global.params.sk_typefunctions) && (!argument_semantic_errored))
+                argument_semantic_errored |= preFunctionParameters(sc, exp.arguments, true, fd);
 
-            if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments, true, fd))
+            if (argument_semantic_errored)
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
@@ -4479,7 +4482,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-        if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments, true))
+        bool argument_semantic_errored = arrayExpressionSemantic(exp.arguments, sc);
+
+        if ((!global.params.sk_typefunctions) && (!argument_semantic_errored))
+            argument_semantic_errored |= preFunctionParameters(sc, exp.arguments, true, fd);
+
+        if (argument_semantic_errored)
             return setError();
 
         // Check for call operator overload

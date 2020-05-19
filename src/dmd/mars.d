@@ -1891,6 +1891,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.verbose = true;
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
+        else if (arg == "-sktf")
+            params.sk_typefunctions = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
