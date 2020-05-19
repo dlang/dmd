@@ -2294,9 +2294,10 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         debug psz = "o1.s && os.s";
 ILLEGAL_ADDRESS_ERROR:
-        debug printf("Invalid addr because /%s/\n", psz);
+        debug (debuga) printf("Invalid addr because /%s/\n", psz);
 
         error(asmstate.loc, "cannot have two symbols in addressing mode");
+        return;
     }
     else if (o2.s)
     {
