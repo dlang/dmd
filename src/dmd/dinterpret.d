@@ -2911,7 +2911,7 @@ public:
         }
         else
         {
-            die.error("identifier: %s could not be resolved for what is presumably a alias variable", die.ident.toChars());
+            die.error("identifier: %s could not be resolved for an alias variable", die.ident.toChars());
             result = new ErrorExp();
             result.type = Type.terror;
         }
