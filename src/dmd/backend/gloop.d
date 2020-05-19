@@ -68,6 +68,24 @@ nothrow:
     Barray!Iv Livlist;        // basic induction variables
     Barray!Iv Lopeqlist;      // list of other op= variables
 
+    /*************************
+     * Free memory so this allocation can be re-used.
+     */
+    void dtor()
+    {
+        vec_free(Lloop);
+        vec_free(Lexit);
+
+        foreach (ref iv; Livlist)
+            iv.dtor();
+        foreach (ref iv; Lopeqlist)
+            iv.dtor();
+
+        Llis.dtor();
+        Livlist.dtor();
+        Lopeqlist.dtor();
+    }
+
     /***********************
      * Write loop.
      */
@@ -119,7 +137,12 @@ nothrow:
     tym_t FLivty;           /* type of the basic IV elem (which is  */
                             /* not necessarilly the type of the IV  */
                             /* elem!)                               */
-    famlist *FLnext;        // next in list
+
+    void dtor()
+    {
+        el_free(c1);
+        el_free(c2);
+    }
 
     void print()
     {
@@ -137,26 +160,6 @@ nothrow:
             printf("\n");
         }
     }
-
-    /***************************
-     * Allocate famlist.
-     */
-
-    static famlist *mycalloc()
-    {   famlist *fl;
-
-        if (freelist)
-        {
-            fl = freelist;
-            freelist = fl.FLnext;
-            memset(fl,0,famlist.sizeof);
-        }
-        else
-            fl = cast(famlist *) mem_calloc(famlist.sizeof);
-        return fl;
-    }
-
-    __gshared famlist *freelist;
 }
 
 enum FLELIM = cast(Symbol *)-1;
@@ -166,7 +169,16 @@ struct Iv
 nothrow:
     Symbol *IVbasic;        // symbol of basic IV
     elem **IVincr;          // pointer to parent of IV increment elem
-    famlist *IVfamily;      // variables in this family
+    Barray!famlist IVfamily;      // variables in this family
+
+    void dtor()
+    {
+        foreach (ref fl; IVfamily)
+        {
+            fl.dtor();
+        }
+        IVfamily.dtor();
+    }
 
     void print()
     {
@@ -206,13 +218,11 @@ private void freeloop(ref Barray!(loop*) loops)
 {
     foreach (l; loops)
     {
-        vec_free(l.Lloop);
-        vec_free(l.Lexit);
-        l.Llis.__dtor();
+        l.dtor();
         l.Lnext = loop.freelist;
         loop.freelist = l;
     }
-    loops.__dtor();
+    loops.dtor();
 }
 
 
@@ -1965,13 +1975,11 @@ private void appendelem(elem *n,elem **pn)
  * Create a new famlist entry.
  */
 
-private famlist * newfamlist(tym_t ty)
+private void newfamlist(famlist* fl, tym_t ty)
 {
-    famlist *fl;
     eve c = void;
-
     memset(&c,0,c.sizeof);
-    fl = famlist.mycalloc();
+
     fl.FLty = ty;
     switch (tybasic(ty))
     {   case TYfloat:
@@ -2043,7 +2051,6 @@ private famlist * newfamlist(tym_t ty)
             ty = TYllong;
     }
     fl.c2 = el_const(ty,&c);               /* c2 = 0               */
-    return fl;
 }
 
 /***************************
@@ -2072,8 +2079,13 @@ private void loopiv(loop *l)
     if (!addblk)                // adding a block changes the Binlv
         elimopeqs(l);           // eliminate op= variables
 
-    l.Livlist.__dtor();         // free up IV list
-    l.Lopeqlist.__dtor();       // free up list
+    foreach (ref iv; l.Livlist)
+        iv.dtor();
+    l.Livlist.dtor();         // free up IV list
+
+    foreach (ref iv; l.Lopeqlist)
+        iv.dtor();
+    l.Lopeqlist.dtor();       // free up list
 
     /* Do copy propagation and dead assignment elimination        */
     /* upon return to optfunc()                                   */
@@ -2184,9 +2196,7 @@ private void findbasivs(loop *l)
         if (tycomplex(s.ty()))
                 continue;
 
-        l.Livlist.push(Iv());
-        Iv* biv = &l.Livlist[l.Livlist.length - 1];
-
+        auto biv = l.Livlist.push();
         biv.IVbasic = s;               // symbol of basic IV
 
         if (debugc) printf("Symbol '%s' (%d) is a basic IV, ", s.Sident.ptr, i);
@@ -2321,9 +2331,7 @@ private void findopeqs(loop *l)
         if (tyaggregate(s.ty()))
             continue;
 
-        l.Lopeqlist.push(Iv());
-        auto biv = &l.Lopeqlist[l.Lopeqlist.length - 1];
-
+        auto biv = l.Lopeqlist.push();
         biv.IVbasic = s;               // symbol of basic IV
 
         if (debugc) printf("Symbol '%s' (%d) is an opeq IV, ",s.Sident.ptr,i);
@@ -2375,7 +2383,7 @@ private void findivfams(loop *l)
             if (dfo[i].Belem)
                 ivfamelems(&biv,&(dfo[i].Belem));
         /* Fold all the constant expressions in c1 and c2.      */
-        for (famlist *fl = biv.IVfamily; fl; fl = fl.FLnext)
+        foreach (ref fl; biv.IVfamily)
         {
             fl.c1 = doptelem(fl.c1,GOALvalue | GOALagain);
             fl.c2 = doptelem(fl.c2,GOALvalue | GOALagain);
@@ -2460,21 +2468,16 @@ private void ivfamelems(Iv *biv,elem **pn)
         {
             if (op == OPneg)
             {
-                famlist *fl;
-
                 if (debugc) printf("found (-biv), elem %p\n",n);
-                fl = newfamlist(ty);
+                auto fl = biv.IVfamily.push();
+                newfamlist(fl, ty);
                 fl.FLivty = n1.Ety;
                 fl.FLpelem = pn;
-                fl.FLnext = biv.IVfamily;
-                biv.IVfamily = fl;
                 fl.c1 = el_una(op,ty,fl.c1); /* c1 = -1       */
             }
             else if (n2.Eoper == OPconst ||
                      isLI(n2) && (op == OPadd || op == OPmin))
             {
-                famlist *fl;
-
                 debug
                     if (debugc)
                     {   printf("found (biv op const), elem (");
@@ -2486,11 +2489,10 @@ private void ivfamelems(Iv *biv,elem **pn)
                             printf("\n");
                     }
 
-                fl = newfamlist(ty);
+                auto fl = biv.IVfamily.push();
+                newfamlist(fl, ty);
                 fl.FLivty = n1.Ety;
                 fl.FLpelem = pn;
-                fl.FLnext = biv.IVfamily;
-                biv.IVfamily = fl;
                 switch (op)
                 {
                     case OPadd:           /* c2 = right           */
@@ -2526,20 +2528,20 @@ private void ivfamelems(Iv *biv,elem **pn)
 
         /* Look for function of existing IV                             */
 
-        for (famlist *f = biv.IVfamily; f; f = f.FLnext)
+        foreach (ref fl; biv.IVfamily)
         {
-            if (*f.FLpelem != n1)          /* not it               */
+            if (*fl.FLpelem != n1)          /* not it               */
                 continue;
 
-            /* Look for (f op constant)     */
+            /* Look for (fl op constant)     */
             if (op == OPneg)
             {
-                if (debugc) printf("found (-f), elem %p\n",n);
+                if (debugc) printf("found (-fl), elem %p\n",n);
                 /* c1 = -c1; c2 = -c2; */
-                f.c1 = el_una(OPneg,ty,f.c1);
-                f.c2 = el_una(OPneg,ty,f.c2);
-                f.FLty = ty;
-                f.FLpelem = pn;        /* replace with new IV  */
+                fl.c1 = el_una(OPneg,ty,fl.c1);
+                fl.c2 = el_una(OPneg,ty,fl.c2);
+                fl.FLty = ty;
+                fl.FLpelem = pn;        /* replace with new IV  */
             }
             else if (n2.Eoper == OPconst ||
                      isLI(n2) && (op == OPadd || op == OPmin))
@@ -2547,7 +2549,7 @@ private void ivfamelems(Iv *biv,elem **pn)
                 debug
                     if (debugc)
                     {
-                        printf("found (f op const), elem (");
+                        printf("found (fl op const), elem (");
                         WReqn(n);
                         assert(*pn == n);
                         printf(");\n");
@@ -2558,7 +2560,7 @@ private void ivfamelems(Iv *biv,elem **pn)
                 {
                     case OPmul:
                     case OPshl:
-                        f.c1 = el_bin(op,ty,f.c1,el_copytree(n2));
+                        fl.c1 = el_bin(op,ty,fl.c1,el_copytree(n2));
                         break;
 
                     case OPadd:
@@ -2568,9 +2570,9 @@ private void ivfamelems(Iv *biv,elem **pn)
                     default:
                         assert(0);
                 }
-                f.c2 = el_bin(op,ty,f.c2,el_copytree(n2));
-                f.FLty = ty;
-                f.FLpelem = pn;        /* replace with new IV  */
+                fl.c2 = el_bin(op,ty,fl.c2,el_copytree(n2));
+                fl.FLty = ty;
+                fl.FLpelem = pn;        /* replace with new IV  */
             } /* else if */
         } /* for */
     } /* if */
@@ -2586,15 +2588,12 @@ private void elimfrivivs(loop *l)
 {
     foreach (ref biv; l.Livlist)
     {
-        int nfams;
         int nrefs;
 
         if (debugc) printf("elimfrivivs()\n");
         /* Compute number of family ivs for biv */
-        nfams = 0;
-        for (famlist *fl = biv.IVfamily; fl; fl = fl.FLnext)
-                nfams++;
-        if (debugc) printf("nfams = %d\n",nfams);
+        const nfams = biv.IVfamily.length;
+        if (debugc) printf("nfams = %d\n", cast(int)nfams);
 
         /* Compute number of references to biv  */
         if (onlyref(biv.IVbasic,l,*biv.IVincr,&nrefs))
@@ -2605,7 +2604,7 @@ private void elimfrivivs(loop *l)
             (!I16 && nrefs == nfams))
         {   /* Eliminate any family ivs that only differ by a constant  */
             /* from biv                                                 */
-            for (famlist *fl = biv.IVfamily; fl; fl = fl.FLnext)
+            foreach (ref fl; biv.IVfamily)
             {
                 elem *ec1 = fl.c1;
                 targ_llong c;
@@ -2652,7 +2651,7 @@ private void intronvars(loop *l)
     {
         elem *bivinc = *biv.IVincr;   /* ptr to increment elem */
 
-        for (famlist *fl = biv.IVfamily; fl; fl = fl.FLnext)
+        foreach (ref fl; biv.IVfamily)
         {                               /* for each IV in family of biv  */
             if (fl.FLtemp == FLELIM)   /* if already eliminated         */
                 continue;
@@ -2734,7 +2733,7 @@ private void intronvars(loop *l)
  *                      indicate this.
  */
 
-private bool funcprev(ref Iv biv,famlist *fl)
+private bool funcprev(ref Iv biv, ref famlist fl)
 {
     tym_t tymin;
     int sz;
@@ -2745,9 +2744,10 @@ private bool funcprev(ref Iv biv,famlist *fl)
     debug if (debugc)
         printf("funcprev\n");
 
-    for (famlist *fls = biv.IVfamily; fls != fl; fls = fls.FLnext)
+    foreach (ref fls; biv.IVfamily)
     {
-        assert(fls);                   /* fl must be in list           */
+        if (!fls.FLtemp)                // haven't generated a temporary yet
+            continue;
         if (fls.FLtemp == FLELIM)      /* no iv we can use here        */
             continue;
 
@@ -2890,8 +2890,7 @@ private void elimbasivs(loop *l)
         /* if only ref of X is of the form (X) or (X relop e) or (e relop X) */
         if (pref != null && refcount <= 1)
         {
-            famlist* fl = biv.IVfamily;
-            if (!fl)                // if no elems in family of biv
+            if (!biv.IVfamily.length)
                 continue;
 
             elem* ref_ = *pref;
@@ -2900,9 +2899,10 @@ private void elimbasivs(loop *l)
             if (ref_.Eoper == OPvar)
                 ref_ = *pref = el_bin(OPne,TYint,ref_,el_long(ref_.Ety,0L));
 
-            fl = simfl(fl,ty);      /* find simplest elem in family */
-            if (!fl)
+            const fi = simfl(biv.IVfamily, ty); // find simplest elem in family
+            if (fi == biv.IVfamily.length)
                 continue;
+            famlist* fl = &biv.IVfamily[fi];
 
             // Don't do the replacement if we would replace a
             // signed comparison with an unsigned one
@@ -3251,18 +3251,18 @@ private void elimopeqs(loop *l)
 
 /**************************
  * Find simplest elem in family.
- * Input:
- *      tym     type of basic IV
- * Return null if none found.
+ * Params:
+ *      fams = array of famlist's
+ *      tym  = type of basic IV
+ * Returns: index into fams[] of simplest; fams.length if none found.
  */
 
-private famlist * simfl(famlist *fl,tym_t tym)
+extern (D)
+private size_t simfl(famlist[] fams, tym_t tym)
 {
-    famlist *sofar;
+    size_t sofar = fams.length;
 
-    assert(fl);
-    sofar = null;
-    for (; fl; fl = fl.FLnext)
+    foreach (i, ref fl; fams)
     {
         if (fl.FLtemp == FLELIM)       /* no variable, so skip it      */
             continue;
@@ -3270,7 +3270,10 @@ private famlist * simfl(famlist *fl,tym_t tym)
         /* be in trouble due to loss of precision.                      */
         if (size(fl.FLtemp.ty()) < size(tym))
             continue;
-        sofar = flcmp(sofar,fl);        /* pick simplest                */
+
+        // pick simplest
+        sofar = sofar == fams.length ? i
+                                     : (flcmp(fams[sofar], fams[i]) ? sofar : i);
     }
     return sofar;
 }
@@ -3280,20 +3283,15 @@ private famlist * simfl(famlist *fl,tym_t tym)
  * There is room for improvement, namely if
  *      f1.c1 = 2, f2.c1 = 27
  * then pick f1 because it is a shift.
+ * Returns:
+ *      true for f1 is simpler, false  for f2 is simpler
  */
 
-private famlist * flcmp(famlist *f1,famlist *f2)
+private bool flcmp(ref famlist f1, ref famlist f2)
 {
-    tym_t ty;
-    eve *t1;
-    eve *t2;
-
-    assert(f2);
-    if (!f1)
-        goto Lf2;
-    t1 = &(f1.c1.EV);
-    t2 = &(f2.c1.EV);
-    ty = (*f1.FLpelem).Ety;           /* type of elem                 */
+    auto t1 = &(f1.c1.EV);
+    auto t2 = &(f2.c1.EV);
+    auto ty = (*f1.FLpelem).Ety;           // type of elem
 
     static if (0)
     {
@@ -3384,11 +3382,11 @@ private famlist * flcmp(famlist *f1,famlist *f2)
         }
     }
     //printf("picking f1\n");
-    return f1;
+    return true;
 
 Lf2:
     //printf("picking f2\n");
-    return f2;
+    return false;
 }
 
 /************************************

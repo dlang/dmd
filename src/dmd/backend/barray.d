@@ -66,6 +66,20 @@ struct Barray(T)
         array[i] = t;
     }
 
+    /*******************
+     * Append a 0-initialized element of T to array
+     * Returns:
+     *  pointer to appended element
+     */
+    T* push()
+    {
+        const i = length;
+        setLength(i + 1);
+        auto p = &array[i];
+        memset(p, 0, T.sizeof);
+        return p;
+    }
+
     /**********************
      * Move the last element from the array into [i].
      * Reduce the array length by one.
@@ -85,7 +99,7 @@ struct Barray(T)
     /******************
      * Release all memory used.
      */
-    ~this()
+    void dtor()
     {
         free(array.ptr);
         array = null;
@@ -115,4 +129,6 @@ unittest
     a.push(50);
     a.remove(1);
     assert(a[1] == 50);
+    a.dtor();
+    assert(a.length == 0);
 }
