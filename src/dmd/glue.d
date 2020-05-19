@@ -583,7 +583,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
 
     // Don't generate code for compile time only functions
-    if (fd.flags & FUNCFLAG.compileTimeOnly)
+    if ((fd.flags & FUNCFLAG.compileTimeOnly) || fd.isTFunction())
         return;
 
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
