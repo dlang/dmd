@@ -7250,6 +7250,16 @@ static bool isAliasType(Type t)
         return false;
     if (t.ty == Talias)
         return true;
+    if (t.ty == Tstruct)
+    {
+        foreach(f;(cast(TypeStruct)t).sym.fields)
+        {
+            if (f.type.isAliasType())
+            {
+                return true;
+            }
+        }
+    }
     auto Tnext = t.nextOf();
     return Tnext ? isAliasType(Tnext) : false;
 }
