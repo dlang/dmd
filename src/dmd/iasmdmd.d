@@ -1274,7 +1274,7 @@ opflag_t asm_determine_operand_flags(OPND *popnd)
     if (popnd.base && !popnd.s && !popnd.disp && !popnd.vreal)
             return popnd.base.ty;
     debug (debuga)
-        printf("popnd.base = %s\n, popnd.pregDisp1 = %p\n", popnd.base ? popnd.base.regstr : "NONE", popnd.pregDisp1);
+        printf("popnd.base = %s\n, popnd.pregDisp1 = %p\n", (popnd.base ? popnd.base.regstr : "NONE").ptr, popnd.pregDisp1);
 
     ps = popnd.s;
     Declaration ds = ps ? ps.isDeclaration() : null;
@@ -2269,9 +2269,9 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     debug (EXTRA_DEBUG) debug (debuga)
     {
         printf("asm_merge_opnds(o1 = ");
-        asm_output_popnd(o1);
+        asm_output_popnd(&o1);
         printf(", o2 = ");
-        asm_output_popnd(o2);
+        asm_output_popnd(&o2);
         printf(")\n");
     }
     debug (EXTRA_DEBUG)
@@ -2411,7 +2411,7 @@ ILLEGAL_ADDRESS_ERROR:
     debug (debuga)
     {
         printf("Merged result = /");
-        asm_output_popnd(o1);
+        asm_output_popnd(&o1);
         printf("/\n");
     }
 }
