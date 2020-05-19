@@ -2841,7 +2841,7 @@ private bool funcprev(ref Iv biv, ref famlist fl)
 private void elimbasivs(ref loop l)
 {
     if (debugc) printf("elimbasivs(%p)\n", &l);
-    foreach_reverse (ref biv; l.Livlist)
+    foreach (ref biv; l.Livlist)
     {
         /* Can't eliminate this basic IV if we have a goal for the      */
         /* increment elem.                                              */
@@ -3137,10 +3137,17 @@ private void elimbasivs(ref loop l)
 
             if (debugc) printf("No uses, eliminating basic IV '%s' (%p)\n",X.Sident.ptr,X);
 
-            /* Dump the increment elem                              */
-            /* (Replace it with an OPconst that only serves as a    */
-            /* placeholder in the tree)                             */
-            *(biv.IVincr) = el_selecte2(*(biv.IVincr));
+            /* Remove the (s op= e2) by replacing it with (1 , e2)
+             * and let later passes remove the (1 ,) nodes.
+             * Don't remove those nodes here because other biv's may refer
+             * to them.
+             */
+            {
+                elem* ei = *biv.IVincr;
+                ei.Eoper = OPcomma;
+                ei.EV.E1.Eoper = OPconst;
+                ei.EV.E1.Ety = TYint;
+            }
 
             go.changes++;
             doflow = true;                  /* redo flow analysis   */
@@ -3163,7 +3170,7 @@ private void elimopeqs(ref loop l)
     if (debugc) printf("elimopeqs(%p)\n", &l);
     //foreach (ref biv; l.Lopeqlist) elem_print(*(biv.IVincr));
 
-    foreach_reverse (ref biv; l.Lopeqlist)
+    foreach (ref biv; l.Lopeqlist)
     {
         // Can't eliminate this basic IV if we have a goal for the
         // increment elem.
@@ -3195,21 +3202,17 @@ private void elimopeqs(ref loop l)
 
             if (debugc) printf("No uses, eliminating opeq IV '%s' (%p)\n",X.Sident.ptr,X);
 
-            // Dump the increment elem
-            // (Replace it with an OPconst that only serves as a
-            // placeholder in the tree)
-            /* foreach_reverse is used because:
-                void test6652()
-                {
-                    size_t sum = 0;
-                    foreach (ref i; 0 .. 10)
-                        sum += i++;
-                    assert(sum == 20);
-                }
-             * and (sum+=) and (i++) are both basic IVs, and if (sum+) is
-             * eliminated, then the next IV pointing to (i++) will be garbage.
+            /* Remove the (s op= e2) by replacing it with (1 , e2)
+             * and let later passes remove the (1 ,) nodes.
+             * Don't remove those nodes here because other biv's may refer
+             * to them, for nodes like (sum += i++)
              */
-            *(biv.IVincr) = el_selecte2(*(biv.IVincr));
+            {
+                elem* einc = *(biv.IVincr);
+                einc.Eoper = OPcomma;
+                einc.EV.E1.Eoper = OPconst;
+                einc.EV.E1.Ety = TYint;
+            }
 
             go.changes++;
             doflow = true;                      // redo flow analysis
