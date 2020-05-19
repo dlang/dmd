@@ -63,7 +63,9 @@ int main(string[] args)
     }
     catch (BuildException e)
     {
-        writeln(e.msg);
+        // Ensure paths are relative to the root directory
+        // s.t. error messages are clickable in most IDE's
+        writeln(e.msg.replace(buildPath("dmd", ""), buildPath("src", "dmd", "")));
         return 1;
     }
 }
