@@ -2999,7 +2999,6 @@ public:
         if (e.ident == Id.getAttributes)
         {
             auto o = (*e.args)[0];
-            import dmd.asttypename;
 
             if (o.dyncast() != DYNCAST.expression || !(cast(Expression)o).isVarExp())
             {
@@ -3028,7 +3027,7 @@ public:
             }
             else
             {
-                e.error("first argument is not a symbol %s", astTypeName(e1).ptr);
+                e.error("first argument is not a symbol");
                 result = new ErrorExp();
                 return ;
             }
