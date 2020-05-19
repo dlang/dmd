@@ -7246,13 +7246,19 @@ bool isCopyable(Type t)
  */
 static bool isAliasType(Type t)
 {
+    static Type[128] prevTypes;
+    static size_t n = 0;
+    prevTypes[n++] = t;
+    scope(exit) prevTypes[--n] = null;
+
     if (t.ty == Tenum) // hack! this is to avoid asking nextof of enums
         return false;
     if (t.ty == Talias)
         return true;
     if (t.ty == Tstruct)
     {
-        foreach(f;(cast(TypeStruct)t).sym.fields)
+        auto sym = (cast(TypeStruct)t).sym;
+        if (sym) foreach(f;sym.fields)
         {
             if (f.type && f.type.isAliasType())
             {
@@ -7260,6 +7266,19 @@ static bool isAliasType(Type t)
             }
         }
     }
-    auto Tnext = t.nextOf();
-    return Tnext ? isAliasType(Tnext) : false;
+
+    foreach(idx;0 .. n)
+    {
+        // crappy protection against infinite recursion
+        if (t == prevTypes[idx])
+        {
+            // printf("exiting because we're seeing %s again\n", t.toChars());
+            return false;
+        }
+    }
+    Type tnext = null;
+
+    tnext = t.nextOf();
+
+    return tnext ? isAliasType(tnext) : false;
 }
