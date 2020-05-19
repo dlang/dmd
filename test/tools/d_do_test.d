@@ -63,7 +63,7 @@ enum TestMode
 struct TestArgs
 {
     TestMode mode;
-
+    string inputDir; /// base directory of this test
     bool     compileSeparately;
     bool     link;
     bool     clearDflags; /// whether DFLAGS should be cleared before invoking dmd
@@ -87,11 +87,30 @@ struct TestArgs
     string   requiredArgsForLink;
     string   disabledReason; // if empty, the test is not disabled
 
+    /// File generated for this test, e.g. a static library
+    static struct Artifact
+    {
+        string target;    /// The target file
+        string[] command; /// The command creating target
+    }
+    Artifact[] artifacts; /// Artifacts to create before running this test
+
     bool isDisabled() const { return disabledReason.length != 0; }
 }
 
 struct EnvData
 {
+    version (Windows)
+    {
+        enum LibExt = ".lib";
+        enum SoExt = ".dll";
+    }
+    else
+    {
+        enum LibExt = ".a";
+        enum SoExt = ".so";
+    }
+
     string all_args;
     string dmd;
     string results_dir;
@@ -303,6 +322,24 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
 }
 
+/// Expands bash-like variables in str, e.g. ${EXE}
+string expandEnvVariables(string str, const ref EnvData envData, const ref TestArgs testArgs)
+{
+    const picFlag = envData.picFlag.length ? envData.picFlag[0] : "";
+    const outDir = envData.results_dir.buildPath(testArgs.inputDir);
+    return str.substitute(
+        "${DMD}", envData.dmd ~ " -m" ~ envData.model ~ ' ' ~ picFlag ~ " -od=" ~ outDir,
+        "${CC}", envData.ccompiler,
+        "${RESULTS_DIR}", envData.results_dir,
+        "${MODEL}", envData.model,
+        "${PIC}", picFlag,
+        "${OBJ}", envData.obj,
+        "${EXE}", envData.exe,
+        "${LIBEXT}", EnvData.LibExt,
+        "${SOEXT}", EnvData.SoExt,
+    ).to!string;
+}
+
 string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
 {
     if (disabledPlatforms.length == 0)
@@ -488,6 +525,39 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
+
+    string cmds;
+    if (findTestParameter(envData, file, "EXTRA_ARTIFACT", cmds, "\n"))
+    {
+        cmds = expandEnvVariables(cmds, envData, testArgs);
+
+        uint idx;
+        foreach (const art; cmds.splitter('\n'))
+        {
+            // Structure: <artifact> = <command>
+            const parts = art.findSplit("=");
+            enforce(parts, "Malformed artifact: " ~ art);
+
+            // Extract <artifact>/<command> and ensure that there's no excess
+            // whitespace which might be problematic for std.process
+            const target = buildPath(envData.results_dir, testArgs.inputDir, parts[0].strip());
+
+            // <command> may use $@ to refer to <artifact>
+            auto cmd = parts[2].strip().replace("$@", target).split();
+
+            testArgs.artifacts ~= TestArgs.Artifact(target, cmd);
+
+            // Substitute $@[<idx>] with <artifact>
+            const placeholder = format!"$@[%d]"(idx++);
+            alias subst = (ref string str) => str = str.replace(placeholder, target);
+
+            subst(testArgs.requiredArgs);
+            subst(testArgs.requiredArgsForLink);
+            subst(testArgs.permuteArgs);
+            foreach (ref set; testArgs.argSets)
+                subst(set);
+        }
+    }
 
     return true;
 }
@@ -1087,6 +1157,7 @@ int tryMain(string[] args)
     const output_file    = result_path ~ input_file ~ ".out";
 
     TestArgs testArgs;
+    testArgs.inputDir = input_dir;
     switch (input_dir)
     {
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
@@ -1180,6 +1251,9 @@ int tryMain(string[] args)
     auto f = File(output_file, "a");
 
     if (
+        // Run arbitrary setup commands to create necessary artifacts
+        !collectArtifacts(testArgs.artifacts, f) ||
+
         //prepare cpp extra sources
         !collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags, f) ||
 
@@ -1196,6 +1270,13 @@ int tryMain(string[] args)
         f.close();
         printTestFailure(input_file, output_file);
         return 1;
+    }
+
+    // Remove all generated artifacts at the end
+    scope (exit)
+    {
+        foreach (const art; testArgs.artifacts)
+            collectException(std.file.remove(art.target));
     }
 
     enum Result { continue_, return0, return1 }
@@ -1382,6 +1463,7 @@ int tryMain(string[] args)
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
+
             return Result.continue_;
         }
         catch(Exception e)
@@ -1490,6 +1572,35 @@ int tryMain(string[] args)
         writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
+}
+
+/++
+Creates the required artifacts using the commands specified in artifacts
+and logs their execution to f.
+
+Returns: false if any command failed, true otherwise
+++/
+bool collectArtifacts(const TestArgs.Artifact[] artifacts, ref File f)
+{
+    foreach (const art; artifacts)
+    {
+        f.writefln("%-(%s %)", art.command);
+        f.flush();
+
+        try
+        {
+            auto pid = spawnProcess(art.command, stdin, f, f, null, Config.retainStdout | Config.retainStderr);
+
+            if (wait(pid))
+                return false;
+        }
+        catch (Exception e)
+        {
+            f.writeln(e.msg);
+            return false;
+        }
+    }
+    return true;
 }
 
 int runBashTest(string input_dir, string test_name, const ref EnvData envData)
