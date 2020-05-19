@@ -2903,6 +2903,12 @@ public:
             result = new StringExp(die.loc, e1.toString());
             result.type = Type.tstring;
         }
+        else if (die.ident == Id.__sizeof)
+        {
+            auto e1 = interpretRegion(die.e1, istate);
+            result = new IntegerExp(die.loc, e1.type.size(), Type.tsize_t);
+            result.type = Type.tsize_t;
+        }
         else
         {
             die.error("identifier: %s could not be resolved for what is presumably a alias variable", die.ident.toChars());
