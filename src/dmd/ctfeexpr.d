@@ -419,6 +419,11 @@ UnionExp copyLiteral(Expression e)
         emplaceExp!(UnionExp)(&ue, e);
         return ue;
     }
+    if (e.op == TOK.type)
+    {
+        emplaceExp!(TypeExp)(&ue, e.loc, e.type);
+        return ue;
+    }
     e.error("CTFE internal error: literal `%s`", e.toChars());
     assert(0);
 }
@@ -1902,6 +1907,8 @@ bool isCtfeValueValid(Expression newval)
 
         case TOK.void_:
             return true; // uninitialized value
+        case TOK.alias_:
+            return true;
 
         default:
             newval.error("CTFE internal error: illegal CTFE value `%s`", newval.toChars());
