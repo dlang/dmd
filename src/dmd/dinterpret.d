@@ -2967,6 +2967,75 @@ public:
         }
     }
 
+    override void visit(TraitsExp e)
+    {
+        Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+        {
+            if (auto e = isExpression(oarg))
+            {
+                if (e.op == TOK.dotVariable)
+                    return (cast(DotVarExp)e).var;
+                if (e.op == TOK.dotTemplateDeclaration)
+                    return (cast(DotTemplateExp)e).td;
+                if (e.op == TOK.type)
+                {
+                    auto type = (cast(TypeExp)e).type;
+                    printf("type: %s\n", type.toChars());
+                    return type.toDsymbol(null);
+                }
+            }
+            return getDsymbol(oarg);
+        }
+        debug (LOG)
+        {
+            printf("%s TraitsExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        // some checking has already been done by semantic
+        if (e.ident == Id.getAttributes)
+        {
+            auto o = (*e.args)[0];
+            import dmd.asttypename;
+
+            if (o.dyncast() != DYNCAST.expression || !(cast(Expression)o).isVarExp())
+            {
+                e.error("VarExp expected!");
+                result = new ErrorExp();
+                return ;
+            }
+            // we've got a var exp;
+            auto e1 = interpretRegion(cast(VarExp)o, istate);
+
+            auto po = isParameter(o);
+            auto s = getDsymbolWithoutExpCtx(e1);
+            UserAttributeDeclaration udad = null;
+            if (po)
+            {
+                udad = po.userAttribDecl;
+            }
+            else if (s)
+            {
+                if (s.isImport())
+                {
+                    s = s.isImport().mod;
+                }
+                //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
+                udad = s.userAttribDecl;
+            }
+            else
+            {
+                e.error("first argument is not a symbol %s", astTypeName(e1).ptr);
+                result = new ErrorExp();
+                return ;
+            }
+
+            auto exps = udad ? udad.getAttributes() : new Expressions();
+            expandTuples(exps);
+
+            result = new ArrayLiteralExp(e.loc, Type.talias.arrayOf(), exps);
+        }
+
+    }
+
     extern (D) private void interpretCommon(BinExp e, fp_t fp)
     {
         debug (LOG)

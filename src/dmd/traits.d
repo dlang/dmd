@@ -1252,6 +1252,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
+        auto type = o.getType();
+        if (type && type.ty == Talias)
+        {
+            // TODO: :PERFORMANCE: commonly used type; we should cache it
+            auto t = Type.talias.arrayOf();
+            e.type = t;
+            return e;
+        }
+
         auto po = isParameter(o);
         auto s = getDsymbolWithoutExpCtx(o);
         UserAttributeDeclaration udad = null;
