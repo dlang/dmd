@@ -443,6 +443,14 @@ Expression paintTypeOntoLiteral(Type type, Expression lit)
 
 Expression paintTypeOntoLiteral(UnionExp* pue, Type type, Expression lit)
 {
+    // painting to alias is a no-op
+    if (type.ty == Talias)
+    {
+        auto nlit = lit.copy();
+        //nlit.type = Type.talias;
+        return nlit;
+    }
+
     if (lit.type.equals(type))
         return lit;
     *pue = paintTypeOntoLiteralCopy(type, lit);
