@@ -1613,7 +1613,7 @@ Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expres
         return paint();
 
     Expression r;
-    if (e.type.equals(type) && type.equals(to))
+    if (((type is to && e.type is type) || (e.type.equals(type) && type.equals(to))))
     {
         // necessary not to change e's address for pointer comparisons
         r = e;
