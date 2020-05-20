@@ -94,8 +94,7 @@ struct Escape
  */
 private class Section
 {
-    const(char)* name;
-    size_t namelen;
+    const(char)[] name;
     const(char)* _body;
     size_t bodylen;
     int nooutput;
@@ -108,7 +107,7 @@ private class Section
     void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
-        if (namelen)
+        if (name.length)
         {
             static immutable table =
             [
@@ -128,7 +127,7 @@ private class Section
             ];
             foreach (entry; table)
             {
-                if (iequals(entry, name[0 .. namelen]))
+                if (iequals(entry, name))
                 {
                     buf.printf("$(DDOC_%s ", entry.ptr);
                     goto L1;
@@ -138,11 +137,8 @@ private class Section
             // Replace _ characters with spaces
             buf.writestring("$(DDOC_SECTION_H ");
             size_t o = buf.length;
-            for (size_t u = 0; u < namelen; u++)
-            {
-                char c = name[u];
+            foreach (char c; name)
                 buf.writeByte((c == '_') ? ' ' : c);
-            }
             escapeStrayParenthesis(loc, buf, o, false);
             buf.writestring(")");
         }
@@ -442,7 +438,7 @@ extern(C++) void gendocfile(Module m)
         // Don't push m in a, to prevent emphasize ddoc file name.
         if (dc.macros)
         {
-            commentlen = dc.macros.name - m.comment;
+            commentlen = dc.macros.name.ptr - m.comment;
             dc.macros.write(loc, dc, sc, &a, &buf);
         }
         buf.write(m.comment[0 .. commentlen]);
@@ -1563,11 +1559,11 @@ struct DocComment
         for (size_t i = 0; i < dc.sections.dim; i++)
         {
             Section sec = dc.sections[i];
-            if (iequals("copyright", sec.name[0 .. sec.namelen]))
+            if (iequals("copyright", sec.name))
             {
                 dc.copyright = sec;
             }
-            if (iequals("macros", sec.name[0 .. sec.namelen]))
+            if (iequals("macros", sec.name))
             {
                 dc.macros = sec;
             }
@@ -1850,8 +1846,7 @@ struct DocComment
                     s = new MacroSection();
                 else
                     s = new Section();
-                s.name = name;
-                s.namelen = namelen;
+                s.name = name[0 .. namelen];
                 s._body = pstart;
                 s.bodylen = pend - pstart;
                 s.nooutput = 0;
@@ -1894,7 +1889,7 @@ struct DocComment
             if (sec.nooutput)
                 continue;
             //printf("Section: '%.*s' = '%.*s'\n", cast(int)sec.namelen, sec.name, cast(int)sec.bodylen, sec.body);
-            if (!sec.namelen && i == 0)
+            if (!sec.name.length && i == 0)
             {
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.length;
