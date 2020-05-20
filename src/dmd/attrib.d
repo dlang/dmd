@@ -1428,9 +1428,15 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
             if (isGNUABITag(exp))
             {
                 if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
+                {
                     exp.error("`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
+                    sym.errors = true;
+                }
                 else if (linkage != LINK.cpp)
+                {
                     exp.error("`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
+                    sym.errors = true;
+                }
                 // Only one `@gnuAbiTag` is allowed by semantic2
                 return;
             }
