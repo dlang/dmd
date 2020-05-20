@@ -1727,6 +1727,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     }
     else if ((e1.op == TOK.arrayLiteral || e1.op == TOK.null_) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
     {
+    L4:
         auto elems = (e1.op == TOK.arrayLiteral)
                 ? copyElements(e1) : new Expressions();
         elems.push(e2);
@@ -1791,8 +1792,16 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
             e = ue.exp();
         }
     }
+    else if (e1.op == TOK.arrayLiteral && e2.op == TOK.type)
+    {
+        // when we have a type here we can just go the regular array cat
+        goto L4;
+    }
     else
+    {
+        //printf("don't know how to deal with exps.ops: {%s, %s}\n", Token.toChars(e1.op), Token.toChars(e2.op));
         cantExp(ue);
+    }
     assert(ue.exp().type);
     return ue;
 }
