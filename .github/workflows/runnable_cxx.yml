@@ -124,6 +124,11 @@ jobs:
           - { os: macOS-10.15,  arch: x86_64-apple-darwin }
           # Clang 9.0.0 have a different arch for OSX
           - { os: macOS-10.15, target: clang-9.0.0, arch: x86_64-darwin-apple }
+          # Those targets will generate artifacts that can be used by other testers
+          - { storeArtifacts: false }
+          - { os: ubuntu-16.04, target: g++-9,       storeArtifacts: true }
+          - { os: macOS-10.15,  target: clang-9.0.0, storeArtifacts: true }
+          #- { os: windows-2019, target: msvc-2019,   storeArtifacts: true }
 
     # We're using the latest available images at the time of this commit.
     # Using a specific version for reproductibility.
@@ -274,9 +279,9 @@ jobs:
         # Both version can live side by side (they end up in a different directory)
         # However, since clang does not provide a multilib package, only test 32 bits with g++
         if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/src/build.d -j2 MODEL=32
-          make -C druntime -f posix.mak -j2 MODEL=32
-          make -C phobos   -f posix.mak -j2 MODEL=32
+          ./dmd/src/build.d install -j2 MODEL=32
+          make -C druntime -f posix.mak install -j2 MODEL=32
+          make -C phobos   -f posix.mak install -j2 MODEL=32
         fi
 
     ########################################
@@ -289,3 +294,13 @@ jobs:
           ./dmd/test/run.d clean
           ./dmd/test/run.d runnable_cxx MODEL=32
         fi
+
+    ########################################
+    #      Store generated artifacts       #
+    ########################################
+    - name: Store artifacts
+      if: ${{ matrix.storeArtifacts }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: dmd-${{ matrix.os }}
+        path: install
