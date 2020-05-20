@@ -111,7 +111,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         if (t.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)t).sym;
-            if (sd.ctor)
+            if (sd.hasNonDisabledCtor())
             {
                 error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
                 return new ErrorInitializer();
