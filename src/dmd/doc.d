@@ -95,8 +95,7 @@ struct Escape
 private class Section
 {
     const(char)[] name;
-    const(char)* _body;
-    size_t bodylen;
+    const(char)[] body_;
     int nooutput;
 
     override string toString() const
@@ -148,7 +147,7 @@ private class Section
         }
     L1:
         size_t o = buf.length;
-        buf.write(_body[0 .. bodylen]);
+        buf.write(body_);
         escapeStrayParenthesis(loc, buf, o, true);
         highlightText(sc, a, loc, *buf, o);
         buf.writestring(")");
@@ -163,8 +162,8 @@ private final class ParamSection : Section
     {
         assert(a.dim);
         Dsymbol s = (*a)[0]; // test
-        const(char)* p = _body;
-        size_t len = bodylen;
+        const(char)* p = body_.ptr;
+        size_t len = body_.length;
         const(char)* pend = p + len;
         const(char)* tempstart = null;
         size_t templen = 0;
@@ -321,7 +320,7 @@ private final class MacroSection : Section
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
-        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, _body, bodylen);
+        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, body_.ptr, body_.length);
     }
 }
 
@@ -423,7 +422,7 @@ extern(C++) void gendocfile(Module m)
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
-        m.macrotable.define("COPYRIGHT", dc.copyright._body[0 .. dc.copyright.bodylen]);
+        m.macrotable.define("COPYRIGHT", dc.copyright.body_);
     }
     if (m.isDocFile)
     {
@@ -1847,8 +1846,7 @@ struct DocComment
                 else
                     s = new Section();
                 s.name = name[0 .. namelen];
-                s._body = pstart;
-                s.bodylen = pend - pstart;
+                s.body_ = pstart[0 .. pend - pstart];
                 s.nooutput = 0;
                 //printf("Section: '%.*s' = '%.*s'\n", cast(int)s.namelen, s.name, cast(int)s.bodylen, s.body);
                 sections.push(s);
@@ -1893,7 +1891,7 @@ struct DocComment
             {
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.length;
-                buf.write(sec._body[0 .. sec.bodylen]);
+                buf.write(sec.body_);
                 escapeStrayParenthesis(loc, buf, o, true);
                 highlightText(sc, a, loc, *buf, o);
                 buf.writestring(")");
