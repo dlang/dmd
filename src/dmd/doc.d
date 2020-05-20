@@ -320,7 +320,7 @@ private final class MacroSection : Section
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
-        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, body_.ptr, body_.length);
+        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, body_);
     }
 }
 
@@ -394,7 +394,7 @@ extern(C++) void gendocfile(Module m)
             mbuf.write(data);
         }
     }
-    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[].ptr, mbuf[].length);
+    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[]);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
@@ -1577,10 +1577,11 @@ struct DocComment
      *
      *      name2 = value2
      */
-    static void parseMacros(Escape* escapetable, ref MacroTable pmacrotable, const(char)* m, size_t mlen)
+    extern(D) static void parseMacros(
+        Escape* escapetable, ref MacroTable pmacrotable, const(char)[] m)
     {
-        const(char)* p = m;
-        size_t len = mlen;
+        const(char)* p = m.ptr;
+        size_t len = m.length;
         const(char)* pend = p + len;
         const(char)* tempstart = null;
         size_t templen = 0;
