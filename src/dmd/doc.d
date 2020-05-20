@@ -1648,7 +1648,7 @@ struct DocComment
             L1:
                 //printf("macro '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 if (iequals("ESCAPES", namestart[0 .. namelen]))
-                    parseEscapes(escapetable, textstart, textlen);
+                    parseEscapes(escapetable, textstart[0 .. textlen]);
                 else
                     pmacrotable.define(namestart[0 .. namelen], textstart[0 .. textlen]);
                 namelen = 0;
@@ -1685,16 +1685,16 @@ struct DocComment
      * Multiple escapes can be separated
      * by whitespace and/or commas.
      */
-    static void parseEscapes(Escape* escapetable, const(char)* textstart, size_t textlen)
+    static void parseEscapes(Escape* escapetable, const(char)[] text)
     {
         if (!escapetable)
         {
             escapetable = new Escape();
             memset(escapetable, 0, Escape.sizeof);
         }
-        //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)textlen, textstart, pescapetable);
-        const(char)* p = textstart;
-        const(char)* pend = p + textlen;
+        //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)text.length, text.ptr, escapetable);
+        const(char)* p = text.ptr;
+        const(char)* pend = p + text.length;
         while (1)
         {
             while (1)
