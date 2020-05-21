@@ -7272,13 +7272,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         Module mi = minst; // instantiated . inserted module
 
-        if (global.params.useUnitTests)
-        {
-            // Turn all non-root instances to speculative
-            if (mi && !mi.isRoot())
-                mi = null;
-        }
-
         //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),
         //    enclosing ? enclosing.toPrettyChars() : null,
