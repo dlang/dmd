@@ -6272,41 +6272,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
-        if (global.params.useUnitTests)
-        {
-            // Prefer instantiations from root modules, to maximize link-ability.
-            if (minst.isRoot())
-                return true;
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
-
-            if (tinst && tinst.needsCodegen())
-            {
-                minst = tinst.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-            if (tnext && tnext.needsCodegen())
-            {
-                minst = tnext.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-
-            // https://issues.dlang.org/show_bug.cgi?id=2500 case
-            if (minst.rootImports())
-                return true;
-
-            // Elide codegen because this is not included in root instances.
-            return false;
-        }
-        else
-        {
             // Prefer instantiations from non-root module, to minimize object code size.
 
             /* If a TemplateInstance is ever instantiated by non-root modules,
@@ -6336,7 +6301,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             // Do codegen because this is not included in non-root instances.
             return true;
-        }
     }
 
     /**********************************************
@@ -7335,13 +7299,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     extern (D) final Dsymbols* appendToModuleMember()
     {
         Module mi = minst; // instantiated . inserted module
-
-        if (global.params.useUnitTests)
-        {
-            // Turn all non-root instances to speculative
-            if (mi && !mi.isRoot())
-                mi = null;
-        }
 
         //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),
