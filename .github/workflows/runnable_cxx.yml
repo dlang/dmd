@@ -140,13 +140,11 @@ jobs:
     #    Setting up the host D compiler    #
     ########################################
     - name: Prepare compiler
-      uses: mihails-strasuns/setup-dlang@v0.5.0
+      uses: mihails-strasuns/setup-dlang@v1
       with:
           # The host compiler does not matter too much, it is simply used for building DMD
           # Other CIs will test bootstrapping.
           compiler: dmd-2.091.0
-          # Token required to avoid hitting unauthenticated API limit
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
     #########################################
     # Checking out up DMD, druntime, Phobos #
