@@ -5439,6 +5439,58 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    static struct ResolveResult
+    {
+        enum ResolveKind
+        {
+            Undefined,
+
+            Expression,
+            Type,
+            Symbol,
+        }
+
+        Type type;
+        Expression exp;
+        Dsymbol sym;
+
+        ResolveKind kind;
+    }
+
+    private ResolveResult resolve_(Type t, const ref Loc loc, Scope* sc)
+    {
+        ResolveResult r;
+        resolve(t, loc, sc, &r.exp, &r.type, &r.sym);
+
+        if (r.exp)
+        {
+            assert(r.type is null && r.sym is null);
+            r.kind = ResolveResult.ResolveKind.Expression;
+        }
+
+        if (r.type)
+        {
+            assert(r.exp is null && r.sym is null);
+            r.kind = ResolveResult.ResolveKind.Type;
+        }
+
+
+        if (r.sym)
+        {
+            assert(r.exp is null && r.type is null);
+            r.kind = ResolveResult.ResolveKind.Symbol;
+        }
+
+
+        if (!global.gag)
+        {
+            error(loc, "Resolving `%s` failed.", t.toChars());
+        }
+
+
+        return r;
+    }
+
     override void visit(IsExp e)
     {
         /* is(targ id tok tspec)
@@ -5495,6 +5547,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+        auto oldgag = global.startGagging();
+
+        import dmd.asttypename;
+        printf("(IsExp: %s) (at: %s)\n", e.toChars(), e.loc.toChars());
+        printf("before sema e.trag: %s (IsAliasType: %d) ... astType: %s\n", e.targ.toChars(), e.targ.isAliasType(), e.targ.astTypeName().ptr);
+        {
+            auto res = resolve_(e.targ, e.loc, sc);
+
+        }
+
+        global.endGagging(oldgag);
+
+        Type tded = null;
+
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
             const oldErrors = global.startGagging();
@@ -5525,6 +5591,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return no();
             e.targ = t;
         }
+        printf("after sema e.trag: %s ... astType: %s\n", e.targ.toChars(), e.targ.astTypeName().ptr);
 
         if (e.tok2 != TOK.reserved)
         {
