@@ -147,6 +147,7 @@ shared static this()
         "getLocation",
         "hasPostblit",
         "hasCopyConstructor",
+        "isCopyable",
     ];
 
     StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
@@ -651,6 +652,29 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                  : (sd.hasCopyCtor ? True() : False());
         }
         return False();
+    }
+    if (e.ident == Id.isCopyable)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+            return new ErrorExp();
+        }
+
+        t = t.toBasetype();     // get the base in case `t` is an `enum`
+
+        if (auto ts = t.isTypeStruct())
+        {
+            ts.sym.dsymbolSemantic(sc);
+        }
+
+        return isCopyable(t) ? True() : False();
     }
 
     if (e.ident == Id.isNested)

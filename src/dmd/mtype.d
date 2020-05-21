@@ -6827,7 +6827,7 @@ bool isIndexableNonAggregate(Type t)
  * Returns:
  *      true if we can copy it
  */
-bool isCopyable(const Type t) pure nothrow @nogc
+bool isCopyable(Type t)
 {
     //printf("isCopyable() %s\n", t.toChars());
     if (auto ts = t.isTypeStruct())
@@ -6835,6 +6835,20 @@ bool isCopyable(const Type t) pure nothrow @nogc
         if (ts.sym.postblit &&
             ts.sym.postblit.storage_class & STC.disable)
             return false;
+        if (ts.sym.hasCopyCtor)
+        {
+            // check if there is a matching overload of the copy constructor and whether it is disabled or not
+            // `assert(ctor)` fails on Win32 and Win_32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
+            Dsymbol ctor = search_function(ts.sym, Id.ctor);
+            assert(ctor);
+            scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
+            el.type = cast() ts;
+            Expressions args;
+            args.push(el);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, &args, FuncResolveFlag.quiet);
+            if (!f || f.storage_class & STC.disable)
+                return false;
+        }
     }
     return true;
 }
