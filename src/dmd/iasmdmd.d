@@ -2421,7 +2421,6 @@ ILLEGAL_ADDRESS_ERROR:
 
 void asm_merge_symbol(ref OPND o1, Dsymbol s)
 {
-    VarDeclaration v;
     EnumMember em;
 
     //printf("asm_merge_symbol(s = %s %s)\n", s.kind(), s.toChars());
@@ -2433,17 +2432,13 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
         return;
     }
 
-    v = s.isVarDeclaration();
+    auto v = s.isVarDeclaration();
     if (v)
     {
         if (v.isParameter())
             asmstate.statement.refparam = true;
 
         v.checkNestedReference(asmstate.sc, asmstate.loc);
-        if (0 && !v.isDataseg() && v.parent != asmstate.sc.parent && v.parent)
-        {
-            asmerr("uplevel nested reference to variable `%s`", v.toChars());
-        }
         if (v.isField())
         {
             o1.disp += v.offset;
@@ -4200,8 +4195,45 @@ void asm_br_exp(out OPND o1)
 void asm_una_exp(ref OPND o1)
 {
     Type ptype;
-    ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
-    bool bPtr = false;
+
+    static void type_ref(ref OPND o1, Type ptype)
+    {
+        asm_token();
+        // try: <BasicType>.<min/max etc>
+        if (asmstate.tokValue == TOK.dot)
+        {
+            asm_token();
+            if (asmstate.tokValue == TOK.identifier)
+            {
+                TypeExp te = new TypeExp(asmstate.loc, ptype);
+                DotIdExp did = new DotIdExp(asmstate.loc, te, asmstate.tok.ident);
+                Dsymbol s;
+                tryExpressionToOperand(did, o1, s);
+            }
+            else
+            {
+                asmerr("property of basic type `%s` expected", ptype.toChars());
+            }
+            asm_token();
+            return;
+        }
+        // else: ptr <BasicType>
+        asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
+        asm_cond_exp(o1);
+        o1.ptype = ptype;
+        o1.bPtr = true;
+    }
+
+    static void jump_ref(ref OPND o1, ASM_JUMPTYPE ajt, bool readPtr)
+    {
+        if (readPtr)
+        {
+            asm_token();
+            asm_chktok(cast(TOK) ASMTKptr, "ptr expected".ptr);
+        }
+        asm_cond_exp(o1);
+        o1.ajt = ajt;
+    }
 
     switch (cast(int)asmstate.tokValue)
     {
@@ -4285,109 +4317,55 @@ version (none)
         case TOK.int16:
             if (asmstate.ucItype != ITjump)
             {
-                ptype = Type.tint16;
-                goto TYPE_REF;
+                return type_ref(o1, Type.tint16);
             }
-            ajt = ASM_JUMPTYPE_SHORT;
             asm_token();
-            goto JUMP_REF2;
+            return jump_ref(o1, ASM_JUMPTYPE_SHORT, false);
 
         case ASMTKnear:
-            ajt = ASM_JUMPTYPE_NEAR;
-            goto JUMP_REF;
+            return jump_ref(o1, ASM_JUMPTYPE_NEAR, true);
 
         case ASMTKfar:
-            ajt = ASM_JUMPTYPE_FAR;
-JUMP_REF:
-            asm_token();
-            asm_chktok(cast(TOK) ASMTKptr, "ptr expected".ptr);
-JUMP_REF2:
-            asm_cond_exp(o1);
-            o1.ajt = ajt;
-            break;
+            return jump_ref(o1, ASM_JUMPTYPE_FAR, true);
 
         case TOK.void_:
-            ptype = Type.tvoid;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tvoid);
 
         case TOK.bool_:
-            ptype = Type.tbool;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tbool);
 
         case TOK.char_:
-            ptype = Type.tchar;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tchar);
         case TOK.wchar_:
-            ptype = Type.twchar;
-            goto TYPE_REF;
+            return type_ref(o1, Type.twchar);
         case TOK.dchar_:
-            ptype = Type.tdchar;
-            goto TYPE_REF;
-
+            return type_ref(o1, Type.tdchar);
         case TOK.uns8:
-            ptype = Type.tuns8;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns8);
         case TOK.uns16:
-            ptype = Type.tuns16;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns16);
         case TOK.uns32:
-            ptype = Type.tuns32;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns32);
         case TOK.uns64 :
-            ptype = Type.tuns64;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns64);
 
         case TOK.int8:
-            ptype = Type.tint8;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint8);
         case ASMTKword:
-            ptype = Type.tint16;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint16);
         case TOK.int32:
         case ASMTKdword:
-            ptype = Type.tint32;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint32);
         case TOK.int64:
         case ASMTKqword:
-            ptype = Type.tint64;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint64);
 
         case TOK.float32:
-            ptype = Type.tfloat32;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tfloat32);
         case TOK.float64:
-            ptype = Type.tfloat64;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tfloat64);
         case TOK.float80:
-            ptype = Type.tfloat80;
-            goto TYPE_REF;
-TYPE_REF:
-            bPtr = true;
-            asm_token();
-            // try: <BasicType>.<min/max etc>
-            if (asmstate.tokValue == TOK.dot)
-            {
-                asm_token();
-                if (asmstate.tokValue == TOK.identifier)
-                {
-                    TypeExp te = new TypeExp(asmstate.loc, ptype);
-                    DotIdExp did = new DotIdExp(asmstate.loc, te, asmstate.tok.ident);
-                    Dsymbol s;
-                    tryExpressionToOperand(did, o1, s);
-                }
-                else
-                {
-                    asmerr("property of basic type `%s` expected", ptype.toChars());
-                }
-                asm_token();
-                break;
-            }
-            // else: ptr <BasicType>
-            asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
-            asm_cond_exp(o1);
-            o1.ptype = ptype;
-            o1.bPtr = bPtr;
-            break;
+            return type_ref(o1, Type.tfloat80);
 
         default:
             asm_primary_exp(o1);
@@ -4400,11 +4378,6 @@ TYPE_REF:
 
 void asm_primary_exp(out OPND o1)
 {
-    Dsymbol s;
-    Dsymbol scopesym;
-
-    immutable(REG)* regp;
-
     switch (asmstate.tokValue)
     {
         case TOK.dollar:
@@ -4414,7 +4387,7 @@ void asm_primary_exp(out OPND o1)
 
         case TOK.this_:
         case TOK.identifier:
-            regp = asm_reg_lookup(asmstate.tok.ident.toString());
+            const regp = asm_reg_lookup(asmstate.tok.ident.toString());
             if (regp != null)
             {
                 asm_token();
@@ -4472,11 +4445,11 @@ void asm_primary_exp(out OPND o1)
             }
             else
             {
-                s = null;
+                Dsymbol s;
                 if (asmstate.sc.func.labtab)
                     s = asmstate.sc.func.labtab.lookup(asmstate.tok.ident);
                 if (!s)
-                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, &scopesym);
+                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, null);
                 if (!s)
                 {
                     // Assume it is a label, and define that label
