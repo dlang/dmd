@@ -225,7 +225,12 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
         if (close >= 0)
         {
             string[] oss = split(result[1 .. close], " ");
-            if (oss.canFind(envData.os))
+
+            // Check if the current environment matches an entry in oss, which can either
+            // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
+            // The latter is important on windows because m32 might require other
+            // parameters than m32mscoff/m64.
+            if (oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                 result = result[close + 1 .. $];
             else
                 result = null;
