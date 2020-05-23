@@ -344,7 +344,6 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    enum WUNTRACED      = 2;
     enum WSTOPPED       = WUNTRACED;
     enum WCONTINUED     = 4;
     enum WNOWAIT        = 8;
