@@ -5053,6 +5053,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // Check for errors, handle forward references
             bool multiClassError = false;
 
+            BCLoop:
             for (size_t i = (cldec.baseClass ? 1 : 0); i < cldec.baseclasses.dim;)
             {
                 BaseClass* b = (*cldec.baseclasses)[i];
@@ -5095,7 +5096,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         cldec.error("inherits from duplicate interface `%s`", b2.sym.toChars());
                         cldec.baseclasses.remove(i);
-                        continue;
+                        continue BCLoop;
                     }
                 }
                 if (tc.sym.isDeprecated())
@@ -5644,6 +5645,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             // Check for errors, handle forward references
+            BCLoop:
             for (size_t i = 0; i < idec.baseclasses.dim;)
             {
                 BaseClass* b = (*idec.baseclasses)[i];
@@ -5665,7 +5667,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         idec.error("inherits from duplicate interface `%s`", b2.sym.toChars());
                         idec.baseclasses.remove(i);
-                        continue;
+                        continue BCLoop;
                     }
                 }
                 if (tc.sym == idec || idec.isBaseOf2(tc.sym))
