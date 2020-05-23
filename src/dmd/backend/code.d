@@ -273,7 +273,7 @@ struct seg_data
         int isCode() { return seg_data_isCode(this); }
 }
 
-extern int seg_data_isCode(const ref seg_data sd);
+extern int seg_data_isCode(const ref seg_data sd) @system;
 
 struct linnum_data
 {
@@ -316,8 +316,8 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
-extern FuncParamRegs FuncParamRegs_create(tym_t tyf);
-extern int FuncParamRegs_alloc(ref FuncParamRegs fpr, type *t, tym_t ty, reg_t *preg1, reg_t *preg2);
+extern FuncParamRegs FuncParamRegs_create(tym_t tyf) @system;
+extern int FuncParamRegs_alloc(ref FuncParamRegs fpr, type *t, tym_t ty, reg_t *preg1, reg_t *preg2) @system;
 
 extern __gshared
 {

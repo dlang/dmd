@@ -53,7 +53,7 @@ static if (ELFOBJ)
 import dmd.backend.dwarf;
 import dmd.backend.melf;
 
-extern bool symbol_iscomdat2(Symbol* s);
+extern bool symbol_iscomdat2(Symbol* s) @system;
 
 static if (TARGET_LINUX)
     enum ELFOSABI = ELFOSABI_LINUX;
