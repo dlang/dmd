@@ -787,6 +787,29 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         return ret;
     }
 
+    void printOperands()
+    {
+        printf("\t%s\t", asm_opstr(pop));
+        if (popnd1)
+            asm_output_popnd(popnd1);
+        if (popnd2)
+        {
+            printf(",");
+            asm_output_popnd(popnd2);
+        }
+        if (popnd3)
+        {
+            printf(",");
+            asm_output_popnd(popnd3);
+        }
+        if (popnd4)
+        {
+            printf(",");
+            asm_output_popnd(popnd4);
+        }
+        printf("\n");
+    }
+
 //
 //  The number of arguments matches, now check to find the opcode
 //  in the associated opcode table
@@ -863,21 +886,7 @@ RETRY:
             {
                 debug (debuga)
                 {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                            asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                            printf(",");
-                            asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                            printf(",");
-                            asm_output_popnd(popnd3);
-                    }
-                    printf("\n");
-
+                    printOperands();
                     printf("OPCODE mism = ");
                     if (popnd1)
                         asm_output_flags(popnd1.usFlags);
@@ -991,21 +1000,7 @@ version (none)
             {
                 debug (debuga)
                 {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                        asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd3);
-                    }
-                    printf("\n");
-
+                    printOperands();
                     printf("OPCODE mismatch = ");
                     if (popnd1)
                         asm_output_flags(popnd1.usFlags);
@@ -1065,21 +1060,7 @@ version (none)
             {
                 debug (debuga)
                 {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                        asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd3);
-                    }
-                    printf("\n");
-
+                    printOperands();
                     printf("OPCODE mismatch = ");
                     if (popnd1)
                         asm_output_flags(popnd1.usFlags);
@@ -1146,26 +1127,7 @@ version (none)
             {
                 debug (debuga)
                 {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                        asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd3);
-                    }
-                    if (popnd4)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd4);
-                    }
-                    printf("\n");
-
+                    printOperands();
                     printf("OPCODE mismatch = ");
                     if (popnd1)
                         asm_output_flags(popnd1.usFlags);
