@@ -347,8 +347,19 @@ else version (FreeBSD)
     enum WSTOPPED       = WUNTRACED;
     enum WCONTINUED     = 4;
     enum WNOWAIT        = 8;
+    enum WEXITED        = 16;
+    enum WTRAPPED       = 32;
 
-    // http://www.freebsd.org/projects/c99/
+    // Only these id types supported by waitid according to wait(2)
+    enum idtype_t
+    {
+        P_UID,
+        P_GID,
+        P_SID,
+        P_JAILID
+    }
+
+    int waitid(idtype_t, id_t, siginfo_t*, int);
 }
 else version (NetBSD)
 {
