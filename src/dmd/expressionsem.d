@@ -5895,6 +5895,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (generateMsg)
         // no message - use assert expression as msg
         {
+            if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
+                return setError();
+
             /*
             {
               auto a = e1, b = e2;
@@ -5940,6 +5943,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = e1;
             }
 
+            Expressions* es;
+            Objects* tiargs;
+            Loc loc = exp.e1.loc;
+
             const tok = exp.e1.op;
             bool isEqualsCallExpression;
             if (tok == TOK.call)
@@ -5963,12 +5970,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
-                if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
-                    return setError();
-
-                auto es = new Expressions(2);
-                auto tiargs = new Objects(3);
-                Loc loc = exp.e1.loc;
+                es = new Expressions(2);
+                tiargs = new Objects(3);
 
                 if (isEqualsCallExpression)
                 {
@@ -6009,22 +6012,66 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 (*tiargs)[0] = comp;
                 (*tiargs)[1] = (*es)[0].type;
                 (*tiargs)[2] = (*es)[1].type;
+            }
 
-                Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
-                auto assertFail = new DotIdExp(loc, __assertFail, Id.object);
+            // Format exp.e1 before any additional boolean conversion
+            // Ignore &&/|| because "assert(...) failed" is more informative than "false != true"
+            else if (tok != TOK.andAnd && tok != TOK.orOr)
+            {
+                es = new Expressions(1);
+                tiargs = new Objects(2);
 
-                auto dt = new DotTemplateInstanceExp(loc, assertFail, Id._d_assert_fail, tiargs);
-                auto ec = CallExp.create(Loc.initial, dt, es);
-                exp.msg = ec;
+                if (auto ne = exp.e1.isNotExp())
+                {
+                    // Fetch the (potential non-bool) expression and fold
+                    // (n) negations into (n % 2) negations, e.g. !!a => a
+                    for (bool neg = true; ; neg = !neg)
+                    {
+                        if (auto ne2 = ne.e1.isNotExp())
+                            ne = ne2;
+                        else
+                        {
+                            (*es)[0] = maybePromoteToTmp(ne.e1);
+                            (*tiargs)[0] = new StringExp(loc, neg ? "!" : "");
+                            break;
+                        }
+                    }
+                }
+                else
+                {   // Simply format exp.e1
+                    (*es)[0] = maybePromoteToTmp(exp.e1);
+                    // No special treatment for other operators to avoid redundant template instantions
+                    (*tiargs)[0] = new StringExp(loc, "");
+                }
+
+                (*tiargs)[1] = (*es)[0].type;
+
+                // Passing __ctfe to auto ref infers ref and aborts compilation:
+                // "cannot modify compiler-generated variable __ctfe"
+                auto ve = (*es)[0].isVarExp();
+                if (ve && ve.var.ident == Id.ctfe)
+                {
+                    exp.msg = new StringExp(loc, "assert(__ctfe) failed!");
+                    goto LSkip;
+                }
             }
             else
             {
                 OutBuffer buf;
                 buf.printf("%s failed", exp.toChars());
                 exp.msg = new StringExp(Loc.initial, buf.extractSlice());
+                goto LSkip;
             }
+
+            Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
+            auto assertFail = new DotIdExp(loc, __assertFail, Id.object);
+
+            auto dt = new DotTemplateInstanceExp(loc, assertFail, Id._d_assert_fail, tiargs);
+            auto ec = CallExp.create(Loc.initial, dt, es);
+            exp.msg = ec;
         }
 
+        LSkip:
         if (Expression ex = unaSemantic(exp, sc))
         {
             result = ex;
