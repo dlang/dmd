@@ -680,7 +680,7 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     opflag_t opflags4 = 0;
     bool    bInvalid64bit = false;
 
-    bool   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = false;
+    bool   bRetry = false;
 
     // How many arguments are there?  the parser is strictly left to right
     // so this should work.
@@ -811,7 +811,7 @@ RETRY:
                     table1++)
             {
                 //printf("table    = "); asm_output_flags(table1.usOp1); printf("\n");
-                bMatch1 = asm_match_flags(opflags1, table1.usOp1);
+                const bMatch1 = asm_match_flags(opflags1, table1.usOp1);
                 //printf("bMatch1 = x%x\n", bMatch1);
                 if (bMatch1)
                 {
@@ -900,8 +900,8 @@ RETRY:
                 if (global.params.is64bit && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
-                bMatch1 = asm_match_flags(opflags1, table2.usOp1);
-                bMatch2 = asm_match_flags(opflags2, table2.usOp2);
+                const bMatch1 = asm_match_flags(opflags1, table2.usOp1);
+                const bMatch2 = asm_match_flags(opflags2, table2.usOp2);
                 //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
                 if (bMatch1 && bMatch2)
                 {
@@ -1026,9 +1026,9 @@ version (none)
                  table3.opcode != ASM_END;
                  table3++)
             {
-                bMatch1 = asm_match_flags(opflags1, table3.usOp1);
-                bMatch2 = asm_match_flags(opflags2, table3.usOp2);
-                bMatch3 = asm_match_flags(opflags3, table3.usOp3);
+                const bMatch1 = asm_match_flags(opflags1, table3.usOp1);
+                const bMatch2 = asm_match_flags(opflags2, table3.usOp2);
+                const bMatch3 = asm_match_flags(opflags3, table3.usOp3);
                 if (bMatch1 && bMatch2 && bMatch3)
                     goto Lfound3;
                 if (asmstate.ucItype == ITopt)
@@ -1102,10 +1102,10 @@ version (none)
                  table4.opcode != ASM_END;
                  table4++)
             {
-                bMatch1 = asm_match_flags(opflags1, table4.usOp1);
-                bMatch2 = asm_match_flags(opflags2, table4.usOp2);
-                bMatch3 = asm_match_flags(opflags3, table4.usOp3);
-                bMatch4 = asm_match_flags(opflags4, table4.usOp4);
+                const bMatch1 = asm_match_flags(opflags1, table4.usOp1);
+                const bMatch2 = asm_match_flags(opflags2, table4.usOp2);
+                const bMatch3 = asm_match_flags(opflags3, table4.usOp3);
+                const bMatch4 = asm_match_flags(opflags4, table4.usOp4);
                 if (bMatch1 && bMatch2 && bMatch3 && bMatch4)
                     goto Lfound4;
                 if (asmstate.ucItype == ITopt)
