@@ -18,7 +18,7 @@ import core.internal.traits : externDFunc;
 
 
 @nogc nothrow:
-extern extern(C) string[] rt_args();
+extern extern(C) string[] rt_args() @system;
 
 extern extern(C) __gshared bool rt_envvars_enabled;
 extern extern(C) __gshared bool rt_cmdline_enabled;
