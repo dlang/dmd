@@ -2264,8 +2264,15 @@ private @safe pure bool asm_is_fpreg(const(char)[] szReg)
 
 private void asm_merge_opnds(ref OPND o1, ref OPND o2)
 {
+
+    void illegalAddressError(string debugWhy)
+    {
+        debug (debuga) printf("Invalid addr because /%.s/\n",
+                              cast(int)debugWhy.length, debugWhy.ptr);
+        error(asmstate.loc, "cannot have two symbols in addressing mode");
+    }
+
     //printf("asm_merge_opnds()\n");
-    debug const(char)* psz;
     debug (EXTRA_DEBUG) debug (debuga)
     {
         printf("asm_merge_opnds(o1 = ");
@@ -2281,10 +2288,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     if (o2.segreg)
     {
         if (o1.segreg)
-        {
-            debug psz = "o1.segment && o2.segreg";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o1.segment && o2.segreg");
         else
             o1.segreg = o2.segreg;
     }
@@ -2292,12 +2296,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     // combine the OPND's symbol field
     if (o1.s && o2.s)
     {
-        debug psz = "o1.s && os.s";
-ILLEGAL_ADDRESS_ERROR:
-        debug (debuga) printf("Invalid addr because /%s/\n", psz);
-
-        error(asmstate.loc, "cannot have two symbols in addressing mode");
-        return;
+        return illegalAddressError("o1.s && os.s");
     }
     else if (o2.s)
     {
@@ -2345,21 +2344,15 @@ ILLEGAL_ADDRESS_ERROR:
 
     /* combine the OPND's base field */
     if (o1.base != null && o2.base != null)
-    {
-            debug psz = "o1.base != null && o2.base != null";
-            goto ILLEGAL_ADDRESS_ERROR;
-    }
+        return illegalAddressError("o1.base != null && o2.base != null");
     else if (o2.base)
-            o1.base = o2.base;
+        o1.base = o2.base;
 
     /* Combine the displacement register fields */
     if (o2.pregDisp1)
     {
         if (o1.pregDisp2)
-        {
-            debug psz = "o2.pregDisp1 && o1.pregDisp2";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o2.pregDisp1 && o1.pregDisp2");
         else if (o1.pregDisp1)
         {
             if (o1.uchMultiplier ||
@@ -2379,20 +2372,14 @@ ILLEGAL_ADDRESS_ERROR:
     if (o2.pregDisp2)
     {
         if (o1.pregDisp2)
-        {
-            debug psz = "o1.pregDisp2 && o2.pregDisp2";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o1.pregDisp2 && o2.pregDisp2");
         else
             o1.pregDisp2 = o2.pregDisp2;
     }
     if (o2.uchMultiplier)
     {
         if (o1.uchMultiplier)
-        {
-            debug psz = "o1.uchMultiplier && o2.uchMultiplier";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o1.uchMultiplier && o2.uchMultiplier");
         else
             o1.uchMultiplier = o2.uchMultiplier;
     }
