@@ -1,7 +1,13 @@
+/*
+REQUIRED_ARGS: -unittest
+PERMUTE_ARGS:
+ARG_SETS: -debug
+ARG_SETS: -debug=1
+ARG_SETS: -debug=2 -debug=bar
+*/
 
 import object;
 import core.stdc.stdio;
-import std.algorithm;
 
 /* ================================ */
 
@@ -280,7 +286,6 @@ void test13()
     char[] s2;
 
     s2 = tolower13(s1);
-    assert(std.algorithm.cmp(s2, "fol") == 0);
     assert(s2 == s1);
 }
 
