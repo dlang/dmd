@@ -882,23 +882,23 @@ RETRY:
                 }
             }
         Lfound1:
-            if (table1.opcode == ASM_END)
+            if (table1.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printOperands();
-                    printf("OPCODE mism = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb1 : table1 };
+                return returnIt(ret);
             }
-            PTRNTAB ret = { pptb1 : table1 };
-            return returnIt(ret);
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mism = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         case 2:
         {
@@ -996,28 +996,28 @@ version (none)
 }
             }
         Lfound2:
-            if (table2.opcode == ASM_END)
+            if (table2.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printOperands();
-                    printf("OPCODE mismatch = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op2 = ");
-                    if (popnd2)
-                        asm_output_flags(popnd2.usFlags);
-                    else
-                        printf("NONE");
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb2 : table2 };
+                return returnIt(ret);
             }
-            PTRNTAB ret = { pptb2 : table2 };
-            return returnIt(ret);
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mismatch = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op2 = ");
+                if (popnd2)
+                    asm_output_flags(popnd2.usFlags);
+                else
+                    printf("NONE");
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         case 3:
         {
@@ -1056,30 +1056,30 @@ version (none)
                 }
             }
         Lfound3:
-            if (table3.opcode == ASM_END)
+            if (table3.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printOperands();
-                    printf("OPCODE mismatch = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op2 = ");
-                    if (popnd2)
-                        asm_output_flags(popnd2.usFlags);
-                    else
-                        printf("NONE");
-                    if (popnd3)
-                        asm_output_flags(popnd3.usFlags);
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb3 : table3 };
+                return returnIt(ret);
             }
-            PTRNTAB ret = { pptb3 : table3 };
-            return returnIt(ret);
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mismatch = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op2 = ");
+                if (popnd2)
+                    asm_output_flags(popnd2.usFlags);
+                else
+                    printf("NONE");
+                if (popnd3)
+                    asm_output_flags(popnd3.usFlags);
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         case 4:
         {
@@ -1123,38 +1123,38 @@ version (none)
                 }
             }
         Lfound4:
-            if (table4.opcode == ASM_END)
+            if (table4.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printOperands();
-                    printf("OPCODE mismatch = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op2 = ");
-                    if (popnd2)
-                        asm_output_flags(popnd2.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op3 = ");
-                    if (popnd3)
-                        asm_output_flags(popnd3.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op4 = ");
-                    if (popnd4)
-                        asm_output_flags(popnd4.usFlags);
-                    else
-                        printf("NONE");
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb4 : table4 };
+                return returnIt(ret);
             }
-            PTRNTAB ret = { pptb4 : table4 };
-            return returnIt(ret);
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mismatch = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op2 = ");
+                if (popnd2)
+                    asm_output_flags(popnd2.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op3 = ");
+                if (popnd3)
+                    asm_output_flags(popnd3.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op4 = ");
+                if (popnd4)
+                    asm_output_flags(popnd4.usFlags);
+                else
+                    printf("NONE");
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         default:
             break;
