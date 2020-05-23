@@ -6299,6 +6299,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
             }
 
+            // The template might originate from a selective import which implies that
+            // s is a lowered AliasDeclaration of the actual TemplateDeclaration.
+            // This is the last place where we see the deprecated alias because it is
+            // stripped below, so check if the selective import was deprecated.
+            // See https://issues.dlang.org/show_bug.cgi?id=20840.
+            if (s.isAliasDeclaration())
+                s.checkDeprecated(this.loc, sc);
+
             if (!updateTempDecl(sc, s))
             {
                 return false;
