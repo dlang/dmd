@@ -1118,7 +1118,17 @@ int tryMain(string[] args)
                 return 0;
             }
         }
-
+        version (linux)
+        {
+            string gdbScript;
+            findTestParameter(envData, file, "GDB_SCRIPT", gdbScript);
+            if (gdbScript !is null)
+            {
+                return runGDBTestWithLock(envData, () {
+                    return runBashTest(input_dir, test_name, envData);
+                });
+            }
+        }
         return runBashTest(input_dir, test_name, envData);
     }
 
@@ -1341,25 +1351,23 @@ int tryMain(string[] args)
                 }
                 else version (linux)
                 {
-                    // Tests failed on SemaphoreCI when multiple GDB tests were run at once
-                    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
-                    lockfile.lock();
-                    scope (exit) lockfile.unlock();
-
-                    auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
-                    toCleanup ~= script;
-                    with (File(script, "w"))
-                    {
-                        writeln("set disable-randomization off");
-                        write(testArgs.gdbScript);
-                    }
-                    string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
-                    if (testArgs.gdbMatch !is null)
-                    {
-                        enforce(match(gdb_output, regex(testArgs.gdbMatch)),
-                                "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~gdb_output~"\n----\n");
-                    }
+                    runGDBTestWithLock(envData, () {
+                        auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
+                        toCleanup ~= script;
+                        with (File(script, "w"))
+                        {
+                            writeln("set disable-randomization off");
+                            write(testArgs.gdbScript);
+                        }
+                        string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
+                        auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
+                        if (testArgs.gdbMatch !is null)
+                        {
+                            enforce(match(gdb_output, regex(testArgs.gdbMatch)),
+                                    "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~gdb_output~"\n----\n");
+                        }
+                        return 0;
+                    });
                 }
             }
 
@@ -1441,7 +1449,7 @@ int tryMain(string[] args)
             if (e.msg.canFind("exited with rc == 139"))
             {
                 auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
-                spawnShell(gdbCommand).wait;
+                runGDBTestWithLock(envData, () => spawnShell(gdbCommand).wait);
             }
 
             return Result.return1;
@@ -1504,6 +1512,16 @@ int runBashTest(string input_dir, string test_name, const ref EnvData envData)
         auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
+}
+
+int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
+{
+    // Tests failed on SemaphoreCI when multiple GDB tests were run at once
+    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
+    lockfile.lock();
+    scope (exit) lockfile.unlock();
+
+    return fun();
 }
 
 /// Run a dshell test
