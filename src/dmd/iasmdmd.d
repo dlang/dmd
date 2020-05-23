@@ -673,7 +673,6 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         OPND *popnd3, OPND *popnd4, out int outNumops)
 {
     uint usNumops;
-    PTRNTAB ptbRet = { null };
     opflag_t opflags1 = 0 ;
     opflag_t opflags2 = 0;
     opflag_t opflags3 = 0;
@@ -779,6 +778,15 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         bRetry = true;
     }
 
+    PTRNTAB returnIt(PTRNTAB ret)
+    {
+        if (bRetry)
+        {
+            asmerr("bad type/size of operands `%s`", asm_opstr(pop));
+        }
+        return ret;
+    }
+
 //
 //  The number of arguments matches, now check to find the opcode
 //  in the associated opcode table
@@ -798,10 +806,7 @@ RETRY:
                 paramError();
                 goto RETRY;
             }
-
-            ptbRet = pop.ptb;
-
-            goto RETURN_IT;
+            return returnIt(pop.ptb);
 
         case 1:
         {
@@ -883,8 +888,8 @@ RETRY:
                 TYPE_SIZE_ERROR();
                 goto RETRY;
             }
-            ptbRet.pptb1 = table1;
-            goto RETURN_IT;
+            PTRNTAB ret = { pptb1 : table1 };
+            return returnIt(ret);
         }
         case 2:
         {
@@ -1016,8 +1021,8 @@ version (none)
                 TYPE_SIZE_ERROR();
                 goto RETRY;
             }
-            ptbRet.pptb2 = table2;
-            goto RETURN_IT;
+            PTRNTAB ret = { pptb2 : table2 };
+            return returnIt(ret);
         }
         case 3:
         {
@@ -1092,8 +1097,8 @@ version (none)
                 TYPE_SIZE_ERROR();
                 goto RETRY;
             }
-            ptbRet.pptb3 = table3;
-            goto RETURN_IT;
+            PTRNTAB ret = { pptb3 : table3 };
+            return returnIt(ret);
         }
         case 4:
         {
@@ -1186,18 +1191,14 @@ version (none)
                 TYPE_SIZE_ERROR();
                 goto RETRY;
             }
-            ptbRet.pptb4 = table4;
-            goto RETURN_IT;
+            PTRNTAB ret = { pptb4 : table4 };
+            return returnIt(ret);
         }
         default:
             break;
     }
-RETURN_IT:
-    if (bRetry)
-    {
-        asmerr("bad type/size of operands `%s`", asm_opstr(pop));
-    }
-    return ptbRet;
+
+    return returnIt(PTRNTAB(null));
 }
 
 /*******************************
