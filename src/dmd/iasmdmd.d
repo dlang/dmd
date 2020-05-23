@@ -203,7 +203,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
 
-            ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
+            ptb = asm_classify(o, o1, o2, o3, o4, usNumops);
             assert(ptb.pptb0);
 
             //
@@ -225,7 +225,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 // Re-classify the opcode because the first classification
                 // assumed 2 operands.
 
-                ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
+                ptb = asm_classify(o, o1, o2, o3, o4, usNumops);
             }
             else
             {
@@ -670,10 +670,9 @@ void asm_chktok(TOK toknum, const(char)* msg)
  */
 
 PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
-        OPND *popnd3, OPND *popnd4, uint *pusNumops)
+        OPND *popnd3, OPND *popnd4, out int outNumops)
 {
     uint usNumops;
-    uint usActual;
     PTRNTAB ptbRet = { null };
     opflag_t opflags1 = 0 ;
     opflag_t opflags2 = 0;
@@ -721,7 +720,7 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     }
 
     // Now check to insure that the number of operands is correct
-    usActual = (pop.usNumops & ITSIZE);
+    auto usActual = (pop.usNumops & ITSIZE);
     if (usActual != usNumops && asmstate.ucItype != ITopt &&
         asmstate.ucItype != ITfloat)
     {
@@ -729,9 +728,9 @@ PARAM_ERROR:
         asmerr("%u operands found for `%s` instead of the expected %u", usNumops, asm_opstr(pop), usActual);
     }
     if (usActual < usNumops)
-        *pusNumops = usActual;
+        outNumops = usActual;
     else
-        *pusNumops = usNumops;
+        outNumops = usNumops;
 
     void TYPE_SIZE_ERROR()
     {
