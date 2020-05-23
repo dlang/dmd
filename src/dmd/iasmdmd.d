@@ -719,18 +719,25 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         }
     }
 
+
     // Now check to insure that the number of operands is correct
     auto usActual = (pop.usNumops & ITSIZE);
+
+    void paramError()
+    {
+        asmerr("%u operands found for `%s` instead of the expected %d", usNumops, asm_opstr(pop), usActual);
+    }
+
     if (usActual != usNumops && asmstate.ucItype != ITopt &&
         asmstate.ucItype != ITfloat)
     {
-PARAM_ERROR:
-        asmerr("%u operands found for `%s` instead of the expected %u", usNumops, asm_opstr(pop), usActual);
+        paramError();
     }
     if (usActual < usNumops)
         outNumops = usActual;
     else
         outNumops = usNumops;
+
 
     void TYPE_SIZE_ERROR()
     {
@@ -787,7 +794,10 @@ RETRY:
             if ((asmstate.ucItype == ITopt ||
                  asmstate.ucItype == ITfloat) &&
                 usNumops != 0)
-                goto PARAM_ERROR;
+            {
+                paramError();
+                goto RETRY;
+            }
 
             ptbRet = pop.ptb;
 
@@ -838,7 +848,8 @@ RETRY:
                         case 1:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
             }
@@ -955,7 +966,8 @@ RETRY:
                         case 2:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
 version (none)
@@ -1038,7 +1050,8 @@ version (none)
                         case 3:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
             }
@@ -1118,7 +1131,8 @@ version (none)
                         case 4:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
             }
