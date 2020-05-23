@@ -1,0 +1,10 @@
+/*
+ARG_SETS: -revert=?
+ARG_SETS: -revert=h
+TEST_OUTPUT:
+----
+Revertable language changes listed by -revert=name:
+  =all              list information on all revertable language changes
+  =dip25            revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md
+----
+*/
