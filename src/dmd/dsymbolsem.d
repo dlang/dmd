@@ -5925,6 +5925,14 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         return aliasSeqInstanceSemantic(tempinst, sc, fargs, tempdecl);
     }
 
+    /* Greatly simplified semantic processing for Alias templates
+     */
+    else if (tempdecl.isAlias)
+    {
+        tempinst.inst = tempinst;
+        return aliasInstanceSemantic(tempinst, sc, fargs, tempdecl);
+    }
+
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
@@ -6401,6 +6409,31 @@ void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     TemplateTupleParameter ttp = (*tempdecl.parameters)[0].isTemplateTupleParameter();
     Tuple va = tempinst.tdtypes[0].isTuple();
     Declaration d = new TupleDeclaration(tempinst.loc, ttp.ident, &va.objects);
+    d.storage_class |= STC.templateparameter;
+    d.dsymbolSemantic(sc);
+
+    paramscope.pop();
+
+    tempinst.aliasdecl = d;
+
+    tempinst.semanticRun = PASS.semanticdone;
+}
+
+/******************************************************
+ * Do template instance semantic for isAlias templates.
+ * This is a greatly simplified version of templateInstanceSemantic().
+ */
+private
+void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs, TemplateDeclaration tempdecl)
+{
+    //printf("[%s] aliasInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
+    Scope* paramscope = sc.push();
+    paramscope.stc = 0;
+    paramscope.protection = Prot(Prot.Kind.public_);
+
+    TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
+    Type ta = tempinst.tdtypes[0].isType();
+    Declaration d = new AliasDeclaration(tempinst.loc, ttp.ident, ta.addMod(tempdecl.onemember.isAliasDeclaration.type.mod));
     d.storage_class |= STC.templateparameter;
     d.dsymbolSemantic(sc);
 
