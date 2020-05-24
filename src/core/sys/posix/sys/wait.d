@@ -359,7 +359,6 @@ else version (FreeBSD)
         P_PID,
         P_PPID,
         P_PGID,
-        P_SID,
         P_CID,
         P_ALL,
         P_LWPID,
