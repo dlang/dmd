@@ -203,7 +203,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
 
-            ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
+            ptb = asm_classify(o, o1, o2, o3, o4, usNumops);
             assert(ptb.pptb0);
 
             //
@@ -225,7 +225,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 // Re-classify the opcode because the first classification
                 // assumed 2 operands.
 
-                ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
+                ptb = asm_classify(o, o1, o2, o3, o4, usNumops);
             }
             else
             {
@@ -670,18 +670,16 @@ void asm_chktok(TOK toknum, const(char)* msg)
  */
 
 PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
-        OPND *popnd3, OPND *popnd4, uint *pusNumops)
+        OPND *popnd3, OPND *popnd4, out int outNumops)
 {
     uint usNumops;
-    uint usActual;
-    PTRNTAB ptbRet = { null };
     opflag_t opflags1 = 0 ;
     opflag_t opflags2 = 0;
     opflag_t opflags3 = 0;
     opflag_t opflags4 = 0;
     bool    bInvalid64bit = false;
 
-    bool   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = false;
+    bool   bRetry = false;
 
     // How many arguments are there?  the parser is strictly left to right
     // so this should work.
@@ -720,18 +718,25 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         }
     }
 
+
     // Now check to insure that the number of operands is correct
-    usActual = (pop.usNumops & ITSIZE);
+    auto usActual = (pop.usNumops & ITSIZE);
+
+    void paramError()
+    {
+        asmerr("%u operands found for `%s` instead of the expected %d", usNumops, asm_opstr(pop), usActual);
+    }
+
     if (usActual != usNumops && asmstate.ucItype != ITopt &&
         asmstate.ucItype != ITfloat)
     {
-PARAM_ERROR:
-        asmerr("%u operands found for `%s` instead of the expected %u", usNumops, asm_opstr(pop), usActual);
+        paramError();
     }
     if (usActual < usNumops)
-        *pusNumops = usActual;
+        outNumops = usActual;
     else
-        *pusNumops = usNumops;
+        outNumops = usNumops;
+
 
     void TYPE_SIZE_ERROR()
     {
@@ -773,6 +778,38 @@ PARAM_ERROR:
         bRetry = true;
     }
 
+    PTRNTAB returnIt(PTRNTAB ret)
+    {
+        if (bRetry)
+        {
+            asmerr("bad type/size of operands `%s`", asm_opstr(pop));
+        }
+        return ret;
+    }
+
+    void printOperands()
+    {
+        printf("\t%s\t", asm_opstr(pop));
+        if (popnd1)
+            asm_output_popnd(popnd1);
+        if (popnd2)
+        {
+            printf(",");
+            asm_output_popnd(popnd2);
+        }
+        if (popnd3)
+        {
+            printf(",");
+            asm_output_popnd(popnd3);
+        }
+        if (popnd4)
+        {
+            printf(",");
+            asm_output_popnd(popnd4);
+        }
+        printf("\n");
+    }
+
 //
 //  The number of arguments matches, now check to find the opcode
 //  in the associated opcode table
@@ -788,11 +825,11 @@ RETRY:
             if ((asmstate.ucItype == ITopt ||
                  asmstate.ucItype == ITfloat) &&
                 usNumops != 0)
-                goto PARAM_ERROR;
-
-            ptbRet = pop.ptb;
-
-            goto RETURN_IT;
+            {
+                paramError();
+                goto RETRY;
+            }
+            return returnIt(pop.ptb);
 
         case 1:
         {
@@ -802,7 +839,7 @@ RETRY:
                     table1++)
             {
                 //printf("table    = "); asm_output_flags(table1.usOp1); printf("\n");
-                bMatch1 = asm_match_flags(opflags1, table1.usOp1);
+                const bMatch1 = asm_match_flags(opflags1, table1.usOp1);
                 //printf("bMatch1 = x%x\n", bMatch1);
                 if (bMatch1)
                 {
@@ -839,42 +876,29 @@ RETRY:
                         case 1:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
             }
         Lfound1:
-            if (table1.opcode == ASM_END)
+            if (table1.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                            asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                            printf(",");
-                            asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                            printf(",");
-                            asm_output_popnd(popnd3);
-                    }
-                    printf("\n");
-
-                    printf("OPCODE mism = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb1 : table1 };
+                return returnIt(ret);
             }
-            ptbRet.pptb1 = table1;
-            goto RETURN_IT;
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mism = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         case 2:
         {
@@ -890,8 +914,8 @@ RETRY:
                 if (global.params.is64bit && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
-                bMatch1 = asm_match_flags(opflags1, table2.usOp1);
-                bMatch2 = asm_match_flags(opflags2, table2.usOp2);
+                const bMatch1 = asm_match_flags(opflags1, table2.usOp1);
+                const bMatch2 = asm_match_flags(opflags2, table2.usOp2);
                 //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
                 if (bMatch1 && bMatch2)
                 {
@@ -956,7 +980,8 @@ RETRY:
                         case 2:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
 version (none)
@@ -971,42 +996,28 @@ version (none)
 }
             }
         Lfound2:
-            if (table2.opcode == ASM_END)
+            if (table2.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                        asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd3);
-                    }
-                    printf("\n");
-
-                    printf("OPCODE mismatch = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op2 = ");
-                    if (popnd2)
-                        asm_output_flags(popnd2.usFlags);
-                    else
-                        printf("NONE");
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb2 : table2 };
+                return returnIt(ret);
             }
-            ptbRet.pptb2 = table2;
-            goto RETURN_IT;
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mismatch = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op2 = ");
+                if (popnd2)
+                    asm_output_flags(popnd2.usFlags);
+                else
+                    printf("NONE");
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         case 3:
         {
@@ -1015,9 +1026,9 @@ version (none)
                  table3.opcode != ASM_END;
                  table3++)
             {
-                bMatch1 = asm_match_flags(opflags1, table3.usOp1);
-                bMatch2 = asm_match_flags(opflags2, table3.usOp2);
-                bMatch3 = asm_match_flags(opflags3, table3.usOp3);
+                const bMatch1 = asm_match_flags(opflags1, table3.usOp1);
+                const bMatch2 = asm_match_flags(opflags2, table3.usOp2);
+                const bMatch3 = asm_match_flags(opflags3, table3.usOp3);
                 if (bMatch1 && bMatch2 && bMatch3)
                     goto Lfound3;
                 if (asmstate.ucItype == ITopt)
@@ -1039,49 +1050,36 @@ version (none)
                         case 3:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
             }
         Lfound3:
-            if (table3.opcode == ASM_END)
+            if (table3.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                        asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd3);
-                    }
-                    printf("\n");
-
-                    printf("OPCODE mismatch = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op2 = ");
-                    if (popnd2)
-                        asm_output_flags(popnd2.usFlags);
-                    else
-                        printf("NONE");
-                    if (popnd3)
-                        asm_output_flags(popnd3.usFlags);
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb3 : table3 };
+                return returnIt(ret);
             }
-            ptbRet.pptb3 = table3;
-            goto RETURN_IT;
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mismatch = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op2 = ");
+                if (popnd2)
+                    asm_output_flags(popnd2.usFlags);
+                else
+                    printf("NONE");
+                if (popnd3)
+                    asm_output_flags(popnd3.usFlags);
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         case 4:
         {
@@ -1090,10 +1088,10 @@ version (none)
                  table4.opcode != ASM_END;
                  table4++)
             {
-                bMatch1 = asm_match_flags(opflags1, table4.usOp1);
-                bMatch2 = asm_match_flags(opflags2, table4.usOp2);
-                bMatch3 = asm_match_flags(opflags3, table4.usOp3);
-                bMatch4 = asm_match_flags(opflags4, table4.usOp4);
+                const bMatch1 = asm_match_flags(opflags1, table4.usOp1);
+                const bMatch2 = asm_match_flags(opflags2, table4.usOp2);
+                const bMatch3 = asm_match_flags(opflags3, table4.usOp3);
+                const bMatch4 = asm_match_flags(opflags4, table4.usOp4);
                 if (bMatch1 && bMatch2 && bMatch3 && bMatch4)
                     goto Lfound4;
                 if (asmstate.ucItype == ITopt)
@@ -1119,72 +1117,50 @@ version (none)
                         case 4:
                             break;
                         default:
-                            goto PARAM_ERROR;
+                            paramError();
+                            goto RETRY;
                     }
                 }
             }
         Lfound4:
-            if (table4.opcode == ASM_END)
+            if (table4.opcode != ASM_END)
             {
-                debug (debuga)
-                {
-                    printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
-                        asm_output_popnd(popnd1);
-                    if (popnd2)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd2);
-                    }
-                    if (popnd3)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd3);
-                    }
-                    if (popnd4)
-                    {
-                        printf(",");
-                        asm_output_popnd(popnd4);
-                    }
-                    printf("\n");
-
-                    printf("OPCODE mismatch = ");
-                    if (popnd1)
-                        asm_output_flags(popnd1.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op2 = ");
-                    if (popnd2)
-                        asm_output_flags(popnd2.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op3 = ");
-                    if (popnd3)
-                        asm_output_flags(popnd3.usFlags);
-                    else
-                        printf("NONE");
-                    printf( " Op4 = ");
-                    if (popnd4)
-                        asm_output_flags(popnd4.usFlags);
-                    else
-                        printf("NONE");
-                    printf("\n");
-                }
-                TYPE_SIZE_ERROR();
-                goto RETRY;
+                PTRNTAB ret = { pptb4 : table4 };
+                return returnIt(ret);
             }
-            ptbRet.pptb4 = table4;
-            goto RETURN_IT;
+            debug (debuga)
+            {
+                printOperands();
+                printf("OPCODE mismatch = ");
+                if (popnd1)
+                    asm_output_flags(popnd1.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op2 = ");
+                if (popnd2)
+                    asm_output_flags(popnd2.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op3 = ");
+                if (popnd3)
+                    asm_output_flags(popnd3.usFlags);
+                else
+                    printf("NONE");
+                printf( " Op4 = ");
+                if (popnd4)
+                    asm_output_flags(popnd4.usFlags);
+                else
+                    printf("NONE");
+                printf("\n");
+            }
+            TYPE_SIZE_ERROR();
+            goto RETRY;
         }
         default:
             break;
     }
-RETURN_IT:
-    if (bRetry)
-    {
-        asmerr("bad type/size of operands `%s`", asm_opstr(pop));
-    }
-    return ptbRet;
+
+    return returnIt(PTRNTAB(null));
 }
 
 /*******************************
@@ -2264,8 +2240,15 @@ private @safe pure bool asm_is_fpreg(const(char)[] szReg)
 
 private void asm_merge_opnds(ref OPND o1, ref OPND o2)
 {
+
+    void illegalAddressError(string debugWhy)
+    {
+        debug (debuga) printf("Invalid addr because /%.s/\n",
+                              cast(int)debugWhy.length, debugWhy.ptr);
+        error(asmstate.loc, "cannot have two symbols in addressing mode");
+    }
+
     //printf("asm_merge_opnds()\n");
-    debug const(char)* psz;
     debug (EXTRA_DEBUG) debug (debuga)
     {
         printf("asm_merge_opnds(o1 = ");
@@ -2281,10 +2264,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     if (o2.segreg)
     {
         if (o1.segreg)
-        {
-            debug psz = "o1.segment && o2.segreg";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o1.segment && o2.segreg");
         else
             o1.segreg = o2.segreg;
     }
@@ -2292,12 +2272,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     // combine the OPND's symbol field
     if (o1.s && o2.s)
     {
-        debug psz = "o1.s && os.s";
-ILLEGAL_ADDRESS_ERROR:
-        debug (debuga) printf("Invalid addr because /%s/\n", psz);
-
-        error(asmstate.loc, "cannot have two symbols in addressing mode");
-        return;
+        return illegalAddressError("o1.s && os.s");
     }
     else if (o2.s)
     {
@@ -2345,21 +2320,15 @@ ILLEGAL_ADDRESS_ERROR:
 
     /* combine the OPND's base field */
     if (o1.base != null && o2.base != null)
-    {
-            debug psz = "o1.base != null && o2.base != null";
-            goto ILLEGAL_ADDRESS_ERROR;
-    }
+        return illegalAddressError("o1.base != null && o2.base != null");
     else if (o2.base)
-            o1.base = o2.base;
+        o1.base = o2.base;
 
     /* Combine the displacement register fields */
     if (o2.pregDisp1)
     {
         if (o1.pregDisp2)
-        {
-            debug psz = "o2.pregDisp1 && o1.pregDisp2";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o2.pregDisp1 && o1.pregDisp2");
         else if (o1.pregDisp1)
         {
             if (o1.uchMultiplier ||
@@ -2379,20 +2348,14 @@ ILLEGAL_ADDRESS_ERROR:
     if (o2.pregDisp2)
     {
         if (o1.pregDisp2)
-        {
-            debug psz = "o1.pregDisp2 && o2.pregDisp2";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o1.pregDisp2 && o2.pregDisp2");
         else
             o1.pregDisp2 = o2.pregDisp2;
     }
     if (o2.uchMultiplier)
     {
         if (o1.uchMultiplier)
-        {
-            debug psz = "o1.uchMultiplier && o2.uchMultiplier";
-            goto ILLEGAL_ADDRESS_ERROR;
-        }
+            return illegalAddressError("o1.uchMultiplier && o2.uchMultiplier");
         else
             o1.uchMultiplier = o2.uchMultiplier;
     }
@@ -2421,7 +2384,6 @@ ILLEGAL_ADDRESS_ERROR:
 
 void asm_merge_symbol(ref OPND o1, Dsymbol s)
 {
-    VarDeclaration v;
     EnumMember em;
 
     //printf("asm_merge_symbol(s = %s %s)\n", s.kind(), s.toChars());
@@ -2433,17 +2395,13 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
         return;
     }
 
-    v = s.isVarDeclaration();
+    auto v = s.isVarDeclaration();
     if (v)
     {
         if (v.isParameter())
             asmstate.statement.refparam = true;
 
         v.checkNestedReference(asmstate.sc, asmstate.loc);
-        if (0 && !v.isDataseg() && v.parent != asmstate.sc.parent && v.parent)
-        {
-            asmerr("uplevel nested reference to variable `%s`", v.toChars());
-        }
         if (v.isField())
         {
             o1.disp += v.offset;
@@ -4200,8 +4158,45 @@ void asm_br_exp(out OPND o1)
 void asm_una_exp(ref OPND o1)
 {
     Type ptype;
-    ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
-    bool bPtr = false;
+
+    static void type_ref(ref OPND o1, Type ptype)
+    {
+        asm_token();
+        // try: <BasicType>.<min/max etc>
+        if (asmstate.tokValue == TOK.dot)
+        {
+            asm_token();
+            if (asmstate.tokValue == TOK.identifier)
+            {
+                TypeExp te = new TypeExp(asmstate.loc, ptype);
+                DotIdExp did = new DotIdExp(asmstate.loc, te, asmstate.tok.ident);
+                Dsymbol s;
+                tryExpressionToOperand(did, o1, s);
+            }
+            else
+            {
+                asmerr("property of basic type `%s` expected", ptype.toChars());
+            }
+            asm_token();
+            return;
+        }
+        // else: ptr <BasicType>
+        asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
+        asm_cond_exp(o1);
+        o1.ptype = ptype;
+        o1.bPtr = true;
+    }
+
+    static void jump_ref(ref OPND o1, ASM_JUMPTYPE ajt, bool readPtr)
+    {
+        if (readPtr)
+        {
+            asm_token();
+            asm_chktok(cast(TOK) ASMTKptr, "ptr expected".ptr);
+        }
+        asm_cond_exp(o1);
+        o1.ajt = ajt;
+    }
 
     switch (cast(int)asmstate.tokValue)
     {
@@ -4285,109 +4280,55 @@ version (none)
         case TOK.int16:
             if (asmstate.ucItype != ITjump)
             {
-                ptype = Type.tint16;
-                goto TYPE_REF;
+                return type_ref(o1, Type.tint16);
             }
-            ajt = ASM_JUMPTYPE_SHORT;
             asm_token();
-            goto JUMP_REF2;
+            return jump_ref(o1, ASM_JUMPTYPE_SHORT, false);
 
         case ASMTKnear:
-            ajt = ASM_JUMPTYPE_NEAR;
-            goto JUMP_REF;
+            return jump_ref(o1, ASM_JUMPTYPE_NEAR, true);
 
         case ASMTKfar:
-            ajt = ASM_JUMPTYPE_FAR;
-JUMP_REF:
-            asm_token();
-            asm_chktok(cast(TOK) ASMTKptr, "ptr expected".ptr);
-JUMP_REF2:
-            asm_cond_exp(o1);
-            o1.ajt = ajt;
-            break;
+            return jump_ref(o1, ASM_JUMPTYPE_FAR, true);
 
         case TOK.void_:
-            ptype = Type.tvoid;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tvoid);
 
         case TOK.bool_:
-            ptype = Type.tbool;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tbool);
 
         case TOK.char_:
-            ptype = Type.tchar;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tchar);
         case TOK.wchar_:
-            ptype = Type.twchar;
-            goto TYPE_REF;
+            return type_ref(o1, Type.twchar);
         case TOK.dchar_:
-            ptype = Type.tdchar;
-            goto TYPE_REF;
-
+            return type_ref(o1, Type.tdchar);
         case TOK.uns8:
-            ptype = Type.tuns8;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns8);
         case TOK.uns16:
-            ptype = Type.tuns16;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns16);
         case TOK.uns32:
-            ptype = Type.tuns32;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns32);
         case TOK.uns64 :
-            ptype = Type.tuns64;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tuns64);
 
         case TOK.int8:
-            ptype = Type.tint8;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint8);
         case ASMTKword:
-            ptype = Type.tint16;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint16);
         case TOK.int32:
         case ASMTKdword:
-            ptype = Type.tint32;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint32);
         case TOK.int64:
         case ASMTKqword:
-            ptype = Type.tint64;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tint64);
 
         case TOK.float32:
-            ptype = Type.tfloat32;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tfloat32);
         case TOK.float64:
-            ptype = Type.tfloat64;
-            goto TYPE_REF;
+            return type_ref(o1, Type.tfloat64);
         case TOK.float80:
-            ptype = Type.tfloat80;
-            goto TYPE_REF;
-TYPE_REF:
-            bPtr = true;
-            asm_token();
-            // try: <BasicType>.<min/max etc>
-            if (asmstate.tokValue == TOK.dot)
-            {
-                asm_token();
-                if (asmstate.tokValue == TOK.identifier)
-                {
-                    TypeExp te = new TypeExp(asmstate.loc, ptype);
-                    DotIdExp did = new DotIdExp(asmstate.loc, te, asmstate.tok.ident);
-                    Dsymbol s;
-                    tryExpressionToOperand(did, o1, s);
-                }
-                else
-                {
-                    asmerr("property of basic type `%s` expected", ptype.toChars());
-                }
-                asm_token();
-                break;
-            }
-            // else: ptr <BasicType>
-            asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
-            asm_cond_exp(o1);
-            o1.ptype = ptype;
-            o1.bPtr = bPtr;
-            break;
+            return type_ref(o1, Type.tfloat80);
 
         default:
             asm_primary_exp(o1);
@@ -4400,11 +4341,6 @@ TYPE_REF:
 
 void asm_primary_exp(out OPND o1)
 {
-    Dsymbol s;
-    Dsymbol scopesym;
-
-    immutable(REG)* regp;
-
     switch (asmstate.tokValue)
     {
         case TOK.dollar:
@@ -4414,7 +4350,7 @@ void asm_primary_exp(out OPND o1)
 
         case TOK.this_:
         case TOK.identifier:
-            regp = asm_reg_lookup(asmstate.tok.ident.toString());
+            const regp = asm_reg_lookup(asmstate.tok.ident.toString());
             if (regp != null)
             {
                 asm_token();
@@ -4472,11 +4408,11 @@ void asm_primary_exp(out OPND o1)
             }
             else
             {
-                s = null;
+                Dsymbol s;
                 if (asmstate.sc.func.labtab)
                     s = asmstate.sc.func.labtab.lookup(asmstate.tok.ident);
                 if (!s)
-                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, &scopesym);
+                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, null);
                 if (!s)
                 {
                     // Assume it is a label, and define that label
