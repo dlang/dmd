@@ -257,9 +257,17 @@ extern (C++) void expandTuples(Expressions* exps)
                     exps.remove(i);
                     if (i == exps.dim)
                         return;
-                    i--;
-                    continue;
                 }
+                else // Expand a TypeTuple
+                {
+                    exps.remove(i);
+                    auto texps = new Expressions(tt.arguments.length);
+                    foreach (j, a; *tt.arguments)
+                        (*texps)[j] = new TypeExp(e.loc, a.type);
+                    exps.insert(i, texps);
+                }
+                i--;
+                continue;
             }
         }
 
