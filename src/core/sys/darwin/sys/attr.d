@@ -19,6 +19,7 @@ extern (C):
 nothrow:
 @nogc:
 
+import core.internal.attributes : betterC;
 import core.sys.darwin.sys.cdefs : c_ulong;
 import core.sys.posix.sys.time : timeval;
 
@@ -53,8 +54,7 @@ alias uint text_encoding_t, fsobj_type_t, fsobj_tag_t, fsfile_type_t, fsvolid_t,
 
 struct attrlist
 {
-    ushort bitmapcount = ATTR_BIT_MAP_COUNT;
-    ushort reserved = 0;
+    ushort bitmapcount, reserved;
     attrgroup_t commonattr, volattr, dirattr, fileattr, forkattr;
 }
 enum ATTR_BIT_MAP_COUNT = 5;
@@ -314,3 +314,25 @@ static assert(searchstate.sizeof == uint.sizeof * 2 + searchstate.ss_fsstate.siz
     "searchstate struct must be packed");
 
 enum FST_EOF = -1;
+
+@betterC @nogc nothrow pure @safe unittest
+{
+    // Use an enum instead of `version (Darwin)` so it works with the betterc test extractor.
+    version (OSX) enum isDarwin = true;
+    else version (iOS) enum isDarwin = true;
+    else version (TVOS) enum isDarwin = true;
+    else version (WatchOS) enum isDarwin = true;
+    else enum isDarwin = false;
+    static if (isDarwin)
+    {
+        // Verify that these types don't need __initZ and so can be used in betterC.
+        attrlist al;
+        attribute_set_t as;
+        attrreference_t ar;
+        diskextent de;
+        vol_capabilities_attr_t vca;
+        vol_attributes_attr_t vaa;
+        fssearchblock fsb;
+        searchstate ss;
+    }
+}
