@@ -10897,6 +10897,36 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.e1.op == TOK.type || exp.e2.op == TOK.type)
         {
+            /* https://issues.dlang.org/show_bug.cgi?id=12520
+             * empty tuples are represented as types so special cases are added
+             * so that they can be compared for equality with tuples of values.
+             */
+            static auto extractTypeTupAndExpTup(Expression e)
+            {
+                static struct Result { bool ttEmpty; TupleExp te; }
+                auto tt = e.op == TOK.type ? e.isTypeExp().type.isTypeTuple() : null;
+                return Result(tt && ((tt.arguments && !tt.arguments.dim) || !tt.arguments), e.isTupleExp());
+            }
+            auto tups1 = extractTypeTupAndExpTup(exp.e1);
+            auto tups2 = extractTypeTupAndExpTup(exp.e2);
+            if (tups1.ttEmpty && tups2.te)
+            {
+                result = IntegerExp.createBool(exp.op != TOK.equal);
+                return;
+            }
+            // AliasSeq!(<at least a value>) == AliasSeq!()
+            else if (tups1.te && tups2.ttEmpty)
+            {
+                result = IntegerExp.createBool(exp.op != TOK.equal);
+                return;
+            }
+            // AliasSeq!() == AliasSeq!()
+            else if (tups1.ttEmpty && tups2.ttEmpty)
+            {
+                result = IntegerExp.createBool(exp.op == TOK.equal);
+                return;
+            }
+            // otherwise, two types are really not comparable
             result = exp.incompatibleTypes();
             return;
         }
