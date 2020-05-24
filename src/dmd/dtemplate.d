@@ -6515,7 +6515,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                     if (ea.op == TOK.variable)
                     {
-                        /* This test is to skip substituting a const var with
+                        /* If the parameter is a function that is not called
+                         * explicitly, i.e. `foo!func` as opposed to `foo!func()`,
+                         * then it is a dsymbol, not the return value of `func()`
+                         */
+                        Declaration vd = (cast(VarExp)ea).var;
+                        if (auto fd = vd.isFuncDeclaration())
+                        {
+                            sa = fd;
+                            goto Ldsym;
+                        }
+                        /* Otherwise skip substituting a const var with
                          * its initializer. The problem is the initializer won't
                          * match with an 'alias' parameter. Instead, do the
                          * const substitution in TemplateValueParameter.matchArg().
