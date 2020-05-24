@@ -347,8 +347,30 @@ else version (FreeBSD)
     enum WSTOPPED       = WUNTRACED;
     enum WCONTINUED     = 4;
     enum WNOWAIT        = 8;
+    enum WEXITED        = 16;
+    enum WTRAPPED       = 32;
 
-    // http://www.freebsd.org/projects/c99/
+    enum idtype_t
+    {
+        P_PID,                  /* A process identifier. */
+        P_PPID,                 /* A parent process identifier. */
+        P_PGID,                 /* A process group identifier. */
+        P_SID,                  /* A session identifier. */
+        P_CID,                  /* A scheduling class identifier. */
+        P_UID,                  /* A user identifier. */
+        P_GID,                  /* A group identifier. */
+        P_ALL,                  /* All processes. */
+        P_LWPID,                /* An LWP identifier. */
+        P_TASKID,               /* A task identifier. */
+        P_PROJID,               /* A project identifier. */
+        P_POOLID,               /* A pool identifier. */
+        P_JAILID,               /* A zone identifier. */
+        P_CTID,                 /* A (process) contract identifier. */
+        P_CPUID,                /* CPU identifier. */
+        P_PSETID                /* Processor set identifier. */
+    }
+
+    int waitid(idtype_t, id_t, siginfo_t*, int);
 }
 else version (NetBSD)
 {
