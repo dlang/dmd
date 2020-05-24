@@ -1260,6 +1260,13 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
     }
 
+    final bool isExternal()
+    {
+        if (fbody || storage_class & STC.disable)
+            return false;
+        return (storage_class & STC.extern_) || (linkage != LINK.default_);
+    }
+
     /**********************************
      * Decide if attributes for this function can be inferred from examining
      * the function body.

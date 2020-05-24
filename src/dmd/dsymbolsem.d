@@ -4049,6 +4049,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (funcdecl.canInferAttributes(sc))
             funcdecl.initInferAttributes();
 
+        /* Warn about external function declarations that may become incorrect
+         * when @safe is made the default.
+         *
+         * extern(D) virtual functions are ok because the compiler will check
+         * them when they are overridden.
+         */
+        if (funcdecl.isExternal()
+            && funcdecl.type.toTypeFunction().trust == TRUST.default_
+            && !(funcdecl.isVirtual()
+                && (funcdecl.linkage == LINK.d || funcdecl.linkage == LINK.default_)))
+        {
+            deprecation(funcdecl.loc,
+                "`extern` function `%s` should be marked explicitly as `@safe`, `@system`, or `@trusted`",
+                funcdecl.toPrettyChars);
+        }
+
         Module.dprogress++;
         funcdecl.semanticRun = PASS.semanticdone;
 
