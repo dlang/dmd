@@ -558,8 +558,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool literal;           // this template declaration is a literal
     bool ismixin;           // this is a mixin template declaration
     bool isstatic;          // this is static template declaration
-    bool isAliasSeq;        /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
-    bool isAlias;           /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
+    bool isTrivialAliasSeq; /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
+    bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     Prot protection;
     int inuse;              /// for recursive expansion detection
 
@@ -602,49 +602,48 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         // Compute in advance for Ddoc's use
         // https://issues.dlang.org/show_bug.cgi?id=11153: ident could be NULL if parsing fails.
-        if (members && ident)
+        if (!members || !ident)
+            return;
+
+        Dsymbol s;
+        if (!Dsymbol.oneMembers(members, &s, ident) || !s)
+            return;
+
+        onemember = s;
+        s.parent = this;
+
+        /* Set isTrivialAliasSeq if this fits the pattern:
+         *   template AliasSeq(T...) { alias AliasSeq = T; }
+         * or set isTrivialAlias if this fits the pattern:
+         *   template Alias(T) { alias Alias = qualifiers(T); }
+         */
+        if (!(parameters && parameters.length == 1))
+            return;
+
+        auto ad = s.isAliasDeclaration();
+        if (!ad || !ad.type)
+            return;
+
+        auto ti = ad.type.isTypeIdentifier();
+
+        if (!ti || ti.idents.length != 0)
+            return;
+
+        if (auto ttp = (*parameters)[0].isTemplateTupleParameter())
         {
-            Dsymbol s;
-            if (Dsymbol.oneMembers(members, &s, ident) && s)
+            if (ti.ident is ttp.ident &&
+                ti.mod == 0)
             {
-                onemember = s;
-                s.parent = this;
-
-                /* Set isAliasSeq if this fits the pattern:
-                 *   template AliasSeq(T...) { alias AliasSeq = T; }
-                 * or set isAlias if this fits the pattern:
-                 *   template Alias(T) { alias Alias = qualifiers(T); }
-                 */
-                if (!(parameters && parameters.length == 1))
-                    return;
-
-                if (auto ad = s.isAliasDeclaration())
-                {
-                    if (!ad.type)
-                        return;
-                    if (auto ti = ad.type.isTypeIdentifier())
-                    {
-                        if (auto ttp = (*parameters)[0].isTemplateTupleParameter())
-                        {
-                            if (ti.idents.length == 0 &&
-                                ti.ident is ttp.ident &&
-                                ti.mod == 0)
-                            {
-                                //printf("found isAliasSeq %s %s\n", s.toChars(), ad.type.toChars());
-                                isAliasSeq = true;
-                            }
-                        }
-                        else if (auto ttp = (*parameters)[0].isTemplateTypeParameter())
-                        {
-                            if (ti.idents.length == 0 &&
-                                ti.ident is ttp.ident)
-                            {
-                                //printf("found isAlias %s %s\n", s.toChars(), ad.type.toChars());
-                                isAlias = true;
-                            }
-                        }
-                    }
-                }
+                //printf("found isTrivialAliasSeq %s %s\n", s.toChars(), ad.type.toChars());
+                isTrivialAliasSeq = true;
+            }
+        }
+        else if (auto ttp = (*parameters)[0].isTemplateTypeParameter())
+        {
+            if (ti.ident is ttp.ident)
+            {
+                //printf("found isTrivialAlias %s %s\n", s.toChars(), ad.type.toChars());
+                isTrivialAlias = true;
             }
         }
     }

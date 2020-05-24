@@ -5919,7 +5919,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     /* Greatly simplified semantic processing for AliasSeq templates
      */
-    if (tempdecl.isAliasSeq)
+    if (tempdecl.isTrivialAliasSeq)
     {
         tempinst.inst = tempinst;
         return aliasSeqInstanceSemantic(tempinst, sc, fargs, tempdecl);
@@ -5927,7 +5927,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     /* Greatly simplified semantic processing for Alias templates
      */
-    else if (tempdecl.isAlias)
+    else if (tempdecl.isTrivialAlias)
     {
         tempinst.inst = tempinst;
         return aliasInstanceSemantic(tempinst, sc, fargs, tempdecl);
