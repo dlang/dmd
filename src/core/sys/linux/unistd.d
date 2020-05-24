@@ -19,3 +19,6 @@ enum {
 
 /// Prompt for a password without echoing it.
 char* getpass(const(char)* prompt);
+
+// Exit all threads in a process
+void exit_group(int status);

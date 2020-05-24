@@ -352,22 +352,23 @@ else version (FreeBSD)
 
     enum idtype_t
     {
-        P_PID,                  /* A process identifier. */
-        P_PPID,                 /* A parent process identifier. */
-        P_PGID,                 /* A process group identifier. */
-        P_SID,                  /* A session identifier. */
-        P_CID,                  /* A scheduling class identifier. */
-        P_UID,                  /* A user identifier. */
-        P_GID,                  /* A group identifier. */
-        P_ALL,                  /* All processes. */
-        P_LWPID,                /* An LWP identifier. */
-        P_TASKID,               /* A task identifier. */
-        P_PROJID,               /* A project identifier. */
-        P_POOLID,               /* A pool identifier. */
-        P_JAILID,               /* A zone identifier. */
-        P_CTID,                 /* A (process) contract identifier. */
-        P_CPUID,                /* CPU identifier. */
-        P_PSETID                /* Processor set identifier. */
+        P_UID,
+        P_GID,
+        P_SID,
+        P_JAILID,
+        P_PID,
+        P_PPID,
+        P_PGID,
+        P_SID,
+        P_CID,
+        P_ALL,
+        P_LWPID,
+        P_TASKID,
+        P_PROJID,
+        P_POOLID,
+        P_CTID,
+        P_CPUID,
+        P_PSETID
     }
 
     int waitid(idtype_t, id_t, siginfo_t*, int);
