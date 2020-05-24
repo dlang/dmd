@@ -6067,6 +6067,68 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return hash;
     }
 
+    /**
+        Returns: true if the instances' innards are discardable.
+
+        The idea of this function is to see if the template instantiation
+        can be 100% replaced with its eponymous member. All other members
+        can be discarded, even in the compiler to free memory (for example,
+        the template could be expanded in a region allocator, deemed trivial,
+        the end result copied back out independently and the entire region freed),
+        and can be elided entirely from the binary.
+
+        The current implementation affects code that generally looks like:
+
+        ---
+        template foo(args...) {
+            some_basic_type_or_string helper() { .... }
+            enum foo = helper();
+        }
+        ---
+
+        since it was the easiest starting point of implementation but it can and
+        should be expanded more later.
+    */
+    final bool isDiscardable()
+    {
+        if (aliasdecl is null)
+            return false;
+
+        auto v = aliasdecl.isVarDeclaration();
+        if (v is null)
+            return false;
+
+        if (!(v.storage_class & STC.manifest))
+            return false;
+
+        // Currently only doing basic types here because it is the easiest proof-of-concept
+        // implementation with minimal risk of side effects, but it could likely be
+        // expanded to any type that already exists outside this particular instance.
+        if (!(v.type.equals(Type.tstring) || (v.type.isTypeBasic() !is null)))
+            return false;
+
+        // Static ctors and dtors, even in an eponymous enum template, are still run,
+        // so if any of them are in here, we'd better not assume it is trivial lest
+        // we break useful code
+        foreach(member; *members)
+        {
+            if(member.hasStaticCtorOrDtor())
+                return false;
+            if(member.isStaticDtorDeclaration())
+                return false;
+            if(member.isStaticCtorDeclaration())
+                return false;
+        }
+
+        // but if it passes through this gauntlet... it should be fine. D code will
+        // see only the eponymous member, outside stuff can never access it, even through
+        // reflection; the outside world ought to be none the wiser. Even dmd should be
+        // able to simply free the memory of everything except the final result.
+
+        return true;
+    }
+
+
     /***********************************************
      * Returns true if this is not instantiated in non-root module, and
      * is a part of non-speculative instantiatiation.
@@ -6112,6 +6174,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 return !enclosing.inNonRoot();
             }
             return true;
+        }
+
+        if (isDiscardable())
+        {
+            return false;
         }
 
         if (!minst)
