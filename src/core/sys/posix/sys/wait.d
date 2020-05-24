@@ -350,13 +350,24 @@ else version (FreeBSD)
     enum WEXITED        = 16;
     enum WTRAPPED       = 32;
 
-    // Only these id types supported by waitid according to wait(2)
     enum idtype_t
     {
         P_UID,
         P_GID,
         P_SID,
-        P_JAILID
+        P_JAILID,
+        P_PID,
+        P_PPID,
+        P_PGID,
+        P_CID,
+        P_ALL,
+        P_LWPID,
+        P_TASKID,
+        P_PROJID,
+        P_POOLID,
+        P_CTID,
+        P_CPUID,
+        P_PSETID
     }
 
     int waitid(idtype_t, id_t, siginfo_t*, int);
