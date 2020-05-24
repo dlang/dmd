@@ -1,4 +1,4 @@
-extern(C++) {
+extern(C++) @system {
     template Foo(T) {
         static int boo();
     }

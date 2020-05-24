@@ -14,6 +14,6 @@ struct S
     int i;
 }
 
-void destroyMutex(int i);
+void destroyMutex(int i) @system;
 
 struct Mutex { int i; }

@@ -8,8 +8,8 @@ count = 10000
 ---
 */
 
-extern(C) int printf(const char *, ...);
-extern(C) int atoi(const char *);
+extern(C) int printf(const char *, ...) @system;
+extern(C) int atoi(const char *) @system;
 
     int main (string[] argv)
     {

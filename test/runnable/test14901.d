@@ -10,7 +10,7 @@ import imports.test14901d;
 
 extern(C) __gshared static int initCount;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 void main()
 {

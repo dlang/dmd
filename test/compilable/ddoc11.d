@@ -35,6 +35,7 @@ class Foo
 
 
 extern (C):
+@system:
 
 ///
 struct div_t { int  quot,rem; }
@@ -49,7 +50,7 @@ struct lldiv_t { long quot,rem; }
 
 
 
-    void *calloc(size_t, size_t);	/// 
+    void *calloc(size_t, size_t);	///
     void *malloc(size_t);	/// dittx
 
 /**

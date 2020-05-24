@@ -8,8 +8,8 @@ fail_compilation/goto2.d(1003): Error: cannot `goto` into `try` block
  */
 
 
-void foo();
-void bar();
+void foo() @system;
+void bar() @system;
 
 #line 1000
 

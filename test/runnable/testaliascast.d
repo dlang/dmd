@@ -2,7 +2,7 @@
 
 string result;
 
-extern(C) void rt_finalize(void *ptr, bool det=true);
+extern(C) void rt_finalize(void *ptr, bool det=true) @system;
 void clear(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);

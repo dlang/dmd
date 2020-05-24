@@ -15,10 +15,10 @@ import core.stdc.stdio;
 
 struct SS
 {
-    ref ulong foo1(return ref int* delegate() return p) return;
-    ref int foo2(return ref int delegate() p);
-    ref int foo3(inout ref int* p);
-    ref int foo4(return inout ref int* p);
+    ref ulong foo1(return ref int* delegate() return p) return @system;
+    ref int foo2(return ref int delegate() p) @system;
+    ref int foo3(inout ref int* p) @system;
+    ref int foo4(return inout ref int* p) @system;
 }
 
 pragma(msg, "foo1 ", typeof(&SS.foo1));

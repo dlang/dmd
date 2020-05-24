@@ -14,7 +14,7 @@ struct Vector2f
     alias xxx this;
 }
 
-void foo(ref Vector2f pos);
+void foo(ref Vector2f pos) @system;
 
 void test()
 {

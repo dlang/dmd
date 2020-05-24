@@ -27,7 +27,7 @@ fail_compilation/typeerrors.d(57): Error: slice `[2..1]` is out of range of [0..
 
 template tuple(T...) { alias T tuple; }
 
-void bar();
+void bar() @system;
 
 scope class C { }
 

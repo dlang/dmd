@@ -12,7 +12,7 @@ struct A
 
 }
 
-extern(C) void dmd_coverDestPath(string pathname);
+extern(C) void dmd_coverDestPath(string pathname) @system;
 
 void main(string[] args)
 {

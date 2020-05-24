@@ -75,7 +75,7 @@ void arg()
     S x;
     tem!().S y;
 
-    void f(int i, S s);
+    void f(int i, S s) @system;
     f(4, y);
     (tem!().S s){}(x);
 

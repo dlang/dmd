@@ -53,7 +53,7 @@ fail_compilation/nogc2.d(51): Error: cannot use operator `~=` in `@nogc` functio
 
 /***************** ArrayLiteralExp *******************/
 
-@nogc int* barA();
+@system @nogc int* barA();
 
 /*
 TEST_OUTPUT:

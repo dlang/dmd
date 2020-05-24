@@ -7,7 +7,7 @@
 
 alias P = int*;
 
-ref P foo(return ref P);
+ref P foo(return ref P) @system;
 
 P bar()
 {
@@ -24,7 +24,7 @@ P bar()
 struct S
 {
    string x;
-   ref S foo() return;
+   ref S foo() return @system;
 }
 
 

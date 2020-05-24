@@ -5,7 +5,7 @@
 
 module hello;
 
-extern(C)
+extern(C) @system
 {
     int printf(const char*, ...);
     int trace_setlogfilename(string name);

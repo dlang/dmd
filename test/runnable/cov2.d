@@ -3,7 +3,7 @@
 // REQUIRED_ARGS: -cov
 // EXECUTE_ARGS: ${RESULTS_DIR}/runnable
 
-extern(C) void dmd_coverDestPath(string pathname);
+extern(C) void dmd_coverDestPath(string pathname) @system;
 
 /***************************************************/
 

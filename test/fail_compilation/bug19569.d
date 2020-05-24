@@ -53,11 +53,11 @@ fail_compilation/bug19569.d(66):     `bug19569.test3!().test3()`
 */
 
 
-void test0();
-void test0() nothrow;
+void test0() @system;
+void test0() nothrow @system;
 
-void test1();
-void test1() @nogc;
+void test1() @system;
+void test1() @nogc @system;
 
 void test2()();
 void test2()() nothrow;

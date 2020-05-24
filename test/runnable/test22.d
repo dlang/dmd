@@ -2,7 +2,7 @@
 
 import core.stdc.stdarg;
 
-extern(C)
+extern(C) @system
 {
     int printf(const char*, ...);
     version(Windows)

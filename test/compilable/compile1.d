@@ -476,7 +476,7 @@ template test8163(T...)
     }
 
     enum N = 2; // N>=2 triggers the bug
-    extern Point[N] bar();
+    @system extern Point[N] bar();
 
     void foo()
     {

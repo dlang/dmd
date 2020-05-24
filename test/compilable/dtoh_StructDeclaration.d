@@ -145,7 +145,7 @@ extern (C++) align(1) struct Aligned
     this(int a) {}
 }
 
-extern (C++) struct A
+extern (C++) @system struct A
 {
     int a;
     S s;

@@ -12,7 +12,7 @@ import imports.template_ovs1;
 import imports.template_ovs2;
 import imports.template_ovs3;
 
-extern(C) int printf(const char* fmt, ...);
+extern(C) int printf(const char* fmt, ...) @system;
 
 template TypeTuple(T...){ alias T TypeTuple; }
 template Id(      T){ alias T Id; }
@@ -459,7 +459,7 @@ void test8943()
 {
     struct S
     {
-        void foo();
+        void foo() @system;
     }
 
     alias TypeTuple!(__traits(getOverloads, S, "foo")) Overloads;

@@ -1593,7 +1593,7 @@ void test4612()
 
 struct S4841(alias pred)
 {
-    void unused_func();
+    void unused_func() @system;
 }
 
 void abc4841() {

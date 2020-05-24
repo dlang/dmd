@@ -2,8 +2,8 @@
 REQUIRED_ARGS: -preview=dip1021
  */
 
-int* malloc();
-void free(int*);
+int* malloc() @system;
+void free(int*) @system;
 
 /* TEST_OUTPUT:
 ---
@@ -40,7 +40,7 @@ fail_compilation/fob2.d(202): Error: variable `fob2.zoo2.p` is left dangling at 
     foo2(p, p + 1);
 }
 
-@live void foo2( scope int* p, scope int* q );
+@live void foo2( scope int* p, scope int* q ) @system;
 
 /* TEST_OUTPUT:
 ---
@@ -67,7 +67,7 @@ fail_compilation/fob2.d(432): Error: variable `fob2.test43.p` is not Owner, cann
 #line 400
 
 
-bool f();
+bool f() @system;
 
 @live void test41(int* p, int i)
 {

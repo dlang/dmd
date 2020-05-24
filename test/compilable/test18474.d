@@ -1,6 +1,6 @@
 shared struct A
 {
-    this(this);
+    this(this) @system;
 }
 
 struct B

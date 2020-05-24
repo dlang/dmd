@@ -5,6 +5,7 @@ module stdint_test;
 import core.stdc.stdint;
 
 extern(C++):
+@system:
 
 int testCppI8Mangle (int8_t,  uint8_t,  int_least8_t,  uint_least8_t,  int_fast8_t,  uint_fast8_t);
 int testCppI16Mangle(int16_t, uint16_t, int_least16_t, uint_least16_t, int_fast16_t, uint_fast16_t);

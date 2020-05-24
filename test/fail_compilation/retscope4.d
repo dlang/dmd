@@ -14,7 +14,7 @@ fail_compilation/retscope4.d(3007): Deprecation: slice of static array temporary
 
 // https://issues.dlang.org/show_bug.cgi?id=12625
 
-int[16] func();
+int[16] func() @system;
 
 void foo()
 {

@@ -10,7 +10,7 @@ else version(Windows)
     enum __c_wchar_t : wchar;
 alias wchar_t = __c_wchar_t;
 
-extern(C++) {
+extern(C++) @system {
 
 struct S
 {
@@ -20,7 +20,7 @@ struct S
 struct S18784
 {
     int i;
-    this(int);
+    this(int) @system;
 }
 
 extern(C++, std)
@@ -184,7 +184,7 @@ T[] values(T)()
     return values;
 }
 
-extern(C++, `ns1`)
+extern(C++, `ns1`) @system
  {
     // C++: `const char*, const char**`
     int constFunction1(const(char)*, const(char)**);
@@ -196,7 +196,7 @@ extern(C++, `ns1`)
     int constFunction4(const(char*), const(char***));
 }
 
-extern(C++)
+extern(C++) @system
 {
     struct SmallStruct
     {

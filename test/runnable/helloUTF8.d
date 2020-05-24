@@ -6,7 +6,7 @@ hello world
 ---
 */
 
-extern(C) int printf(const char *, ...);
+extern(C) int printf(const char *, ...) @system;
 
 int main(char[][] args)
 {

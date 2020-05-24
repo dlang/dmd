@@ -70,8 +70,8 @@ else
 static assert(__traits(getLocation, MyStruct)[1] == 40);
 static assert(__traits(getLocation, MyStruct)[2] == 1);
 
-int foo();
-int foo(int);
+int foo() @system;
+int foo(int) @system;
 
 static assert(__traits(getLocation, __traits(getOverloads, traits, "foo")[1])[1] == 74);
 

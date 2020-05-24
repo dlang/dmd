@@ -7710,7 +7710,7 @@ static assert(!__traits(compiles, { alias bug18057 = RBNode!int; }));
 
 void test19140()
 {
-    real f19140();
+    real f19140() @system;
     static if (__traits(compiles, (){ enum real r = f19140(); })) {}
 }
 

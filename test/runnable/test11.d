@@ -1,7 +1,7 @@
 // REQUIRED_ARGS:
 
-extern(C) int printf(const char*, ...);
-extern(C) size_t strlen(const char*);
+extern(C) int printf(const char*, ...) @system;
+extern(C) size_t strlen(const char*) @system;
 
 /**************************************/
 

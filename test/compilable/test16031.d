@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -fPIC -lib
 // PERMUTE_ARGS:
 // DISABLED: win32 win64
-extern void throwing();
+@system extern void throwing();
 
 void foo()
 {

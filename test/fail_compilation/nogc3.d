@@ -20,7 +20,7 @@ fail_compilation/nogc3.d(18): Error: setting `length` in `@nogc` function `nogc3
 
 /***************** CallExp *******************/
 
-void barCall();
+void barCall() @system;
 
 /*
 TEST_OUTPUT:

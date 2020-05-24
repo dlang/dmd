@@ -40,14 +40,14 @@ enum u32_19658 : uint { a }
 enum i64_19658 : long { a }
 enum u64_19658 : ulong { a }
 
-extern(C++) void test19658_i8(i8_19658);
-extern(C++) void test19658_u8(u8_19658);
-extern(C++) void test19658_i16(i16_19658);
-extern(C++) void test19658_u16(u16_19658);
-extern(C++) void test19658_i32(i32_19658);
-extern(C++) void test19658_u32(u32_19658);
-extern(C++) void test19658_i64(i64_19658);
-extern(C++) void test19658_u64(u64_19658);
+extern(C++) void test19658_i8(i8_19658) @system;
+extern(C++) void test19658_u8(u8_19658) @system;
+extern(C++) void test19658_i16(i16_19658) @system;
+extern(C++) void test19658_u16(u16_19658) @system;
+extern(C++) void test19658_i32(i32_19658) @system;
+extern(C++) void test19658_u32(u32_19658) @system;
+extern(C++) void test19658_i64(i64_19658) @system;
+extern(C++) void test19658_u64(u64_19658) @system;
 
 void test19658()
 {

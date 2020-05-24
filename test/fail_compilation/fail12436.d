@@ -15,8 +15,8 @@ fail_compilation/fail12436.d(18): Error: functions cannot return a function
 fail_compilation/fail12436.d(19): Error: functions cannot return a tuple
 ---
 */
-FuncType test1();
-TupleType test2();
+FuncType test1() @system;
+TupleType test2() @system;
 
 /*
 TEST_OUTPUT:
@@ -25,14 +25,14 @@ fail_compilation/fail12436.d(28): Error: functions cannot return opaque type `Op
 fail_compilation/fail12436.d(29): Error: functions cannot return opaque type `Opaque[1]` by value
 ---
 */
-Opaque    ret12436a();  // error
-Opaque[1] ret12436b();  // error
-Opaque*   ret12436c();  // no error
-Opaque[]  ret12436d();  // no error
-Opaque[]* ret12436e();  // no error
+Opaque    ret12436a() @system;  // error
+Opaque[1] ret12436b() @system;  // error
+Opaque*   ret12436c() @system;  // no error
+Opaque[]  ret12436d() @system;  // no error
+Opaque[]* ret12436e() @system;  // no error
 
-ref Opaque    ret12436f();  // no error
-ref Opaque[1] ret12436g();  // no error
+ref Opaque    ret12436f() @system;  // no error
+ref Opaque[1] ret12436g() @system;  // no error
 
 /******************************************/
 // parameter type
@@ -54,14 +54,14 @@ fail_compilation/fail12436.d(56): Error: cannot have parameter of opaque type `O
 */
 void param12436a(Opaque);     // error
 void param12436b(Opaque[1]);  // error
-void param12436c(Opaque*);    // no error
-void param12436d(Opaque[]);   // no error
-void param12436e(Opaque[]*);  // no error
+void param12436c(Opaque*) @system;    // no error
+void param12436d(Opaque[]) @system;   // no error
+void param12436e(Opaque[]*) @system;  // no error
 
-void param12436f(ref Opaque);     // no error
-void param12436g(ref Opaque[1]);  // no error
-void param12436h(out Opaque);     // no error
-void param12436i(out Opaque[1]);  // no error
+void param12436f(ref Opaque) @system;     // no error
+void param12436g(ref Opaque[1]) @system;  // no error
+void param12436h(out Opaque) @system;     // no error
+void param12436i(out Opaque[1]) @system;  // no error
 
 /*
 TEST_OUTPUT:

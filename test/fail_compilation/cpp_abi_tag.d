@@ -39,19 +39,19 @@ extern(C++) struct H {}
 // Note: There is no way to distinguish between
 // `extern(C++, "ns") { ... }` and `extern(C++, "ns") ...;`
 // So ABI tags have to be on the inside
-extern(C++, "ns") @gnuAbiTag("x") void func1();
-extern(C++, ns2)  @gnuAbiTag("x") void  func2();
+extern(C++, "ns") @gnuAbiTag("x") void func1() @system;
+extern(C++, ns2)  @gnuAbiTag("x") void  func2() @system;
 
 @gnuAbiTag("x")
-extern(C++, "ns3")
+extern(C++, "ns3") @system
 {
     void func3();
 }
 @gnuAbiTag("x")
-extern(C++, ns4)
+extern(C++, ns4) @system
 {
     void func4();
 }
 
 @gnuAbiTag("x") @gnuAbiTag("a")
-extern(C++) void func5();
+extern(C++) void func5() @system;

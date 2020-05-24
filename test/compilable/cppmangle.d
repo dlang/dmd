@@ -11,7 +11,7 @@ TEST_OUTPUT:
 
 import core.stdc.stdio;
 
-extern (C++) int foob(int i, int j, int k);
+extern (C++) int foob(int i, int j, int k) @system;
 
 class C
 {
@@ -70,13 +70,13 @@ version (Win64)
 
 /****************************************/
 
-extern (C++)
+extern (C++) @system
 interface D
 {
     int bar(int i, int j, int k);
 }
 
-extern (C++) D getD();
+extern (C++) D getD() @system;
 
 void test2()
 {
@@ -93,9 +93,9 @@ version (Posix)
 
 /****************************************/
 
-extern (C++) int callE(E);
+extern (C++) int callE(E) @system;
 
-extern (C++)
+extern (C++) @system
 interface E
 {
     int bar(int i, int j, int k);
@@ -131,7 +131,7 @@ version (Posix)
 
 /****************************************/
 
-extern (C++) void foo4(char* p);
+extern (C++) void foo4(char* p) @system;
 
 void test4()
 {
@@ -145,7 +145,7 @@ version (Posix)
 
 /****************************************/
 
-extern(C++)
+extern(C++) @system
 {
   struct foo5 { int i; int j; void* p; }
 
@@ -172,7 +172,7 @@ version (Posix)
 
 /****************************************/
 
-extern(C++)
+extern(C++) @system
 {
     struct S6
     {
@@ -182,7 +182,7 @@ extern(C++)
     S6 foo6();
 }
 
-extern (C) int foosize6();
+extern (C) int foosize6() @system;
 
 void test6()
 {
@@ -201,7 +201,7 @@ version (Posix)
 
 /****************************************/
 
-extern (C) int foo7();
+extern (C) int foo7() @system;
 
 struct S
 {
@@ -217,7 +217,7 @@ void test7()
 
 /****************************************/
 
-extern (C++) void foo8(const char *);
+extern (C++) void foo8(const char *) @system;
 
 void test8()
 {
@@ -235,7 +235,7 @@ version (Posix)
 
 struct elem9 { }
 
-extern(C++) void foobar9(elem9*, elem9*);
+extern(C++) void foobar9(elem9*, elem9*) @system;
 
 void test9()
 {
@@ -251,7 +251,7 @@ version (Posix)
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=5148
 
-extern (C++)
+extern (C++) @system
 {
     void foo10(const char*, const char*);
     void foo10(const int, const int);
@@ -277,7 +277,7 @@ void test10()
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=19504
-extern(C++) struct Class19504 {
+extern(C++) @system struct Class19504 {
     pragma(mangle, "HOHOHO")
     ~this();
 }
@@ -324,7 +324,7 @@ version (Posix)
 class Expression;
 struct Loc {}
 
-extern(C++)
+extern(C++) @system
 class CallExp
 {
     static void test11696a(Loc, Expression, Expression);
@@ -344,13 +344,13 @@ version (Posix)
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=13337
 
-extern(C++, N13337a.N13337b.N13337c)
+extern(C++, N13337a.N13337b.N13337c) @system
 {
   struct S13337{}
   void foo13337(S13337 s);
 }
 
-extern(C++, `N13337a`, `N13337b`, `N13337c`)
+extern(C++, `N13337a`, `N13337b`, `N13337c`) @system
 {
     struct S13337_2{}
     void foo13337_2(S13337 s);
@@ -367,7 +367,7 @@ version (Posix)
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15789
 
-extern (C++) void test15789a(T...)(T args);
+extern (C++) void test15789a(T...)(T args) @system;
 
 void test15789()
 {
@@ -377,7 +377,7 @@ void test15789()
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=7030
 
-extern(C++)
+extern(C++) @system
 {
     struct Struct7030
     {
@@ -398,7 +398,7 @@ version (Posix)
 
 // Special cases of Itanium mangling
 
-extern (C++, std)
+extern (C++, std) @system
 {
     struct pair(T1, T2)
     {
@@ -441,7 +441,7 @@ extern (C++, std)
     struct test18957 {}
 }
 
-extern (C++, `std`)
+extern (C++, `std`) @system
 {
     struct pair(T1, T2)
     {
@@ -484,7 +484,7 @@ extern (C++, `std`)
     struct Struct18957 {}
 }
 
-extern(C++)
+extern(C++) @system
 {
     // Nspace
     std.allocator!int func_18957_1(std.allocator!(int)* v);
@@ -493,7 +493,7 @@ extern(C++)
     X func_18957_2(X)(X* v);
 }
 
-extern (C++)
+extern (C++) @system
 {
     void func_20413(pair!(int, float), pair!(float, int));
 }
@@ -558,7 +558,7 @@ version (Posix) // all non-Windows machines
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15388
 
-extern (C++) void test15388(typeof(null));
+extern (C++) void test15388(typeof(null)) @system;
 
 version (Posix)
 {
@@ -572,16 +572,16 @@ version (Windows)
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=14086
 
-extern (C++) class Test14086
+extern (C++) @system class Test14086
 {
     this();
     ~this();
 }
-extern (C++) class Test14086_2
+extern (C++) @system class Test14086_2
 {
     final ~this();
 }
-extern (C++) struct Test14086_S
+extern (C++) @system struct Test14086_S
 {
     this(int);
     ~this();
@@ -615,7 +615,7 @@ version(Win64)
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=18888
 
-extern (C++)
+extern (C++) @system
 struct T18888(T)
 {
     void fun();
@@ -682,7 +682,7 @@ version (Win64)
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=18891
 
-extern (C++) class C18891
+extern (C++) @system class C18891
 {
     ~this();
     extern (C++) struct Agg
@@ -711,7 +711,7 @@ version (Win64)
 /**************************************/
 // Test C++ operator mangling
 
-extern (C++) struct TestOperators
+extern (C++) @system struct TestOperators
 {
     int opCast(T)();
     int opBinary(string op)(int x);
@@ -894,7 +894,7 @@ version(Windows)
 
 // https://issues.dlang.org/show_bug.cgi?id=16479
 //  Missing substitution while mangling C++ template parameter for functions
-version (Posix) extern (C++)
+version (Posix) extern (C++) @system
 {
     // Make sure aliases are still resolved
     alias Alias16479 = int;
@@ -1068,23 +1068,23 @@ version (Posix) extern (C++)
 // https://issues.dlang.org/show_bug.cgi?id=19278
 // extern(C++, "name") doesn't accept expressions
 
-extern(C++, "hello" ~ "world")
+extern(C++, "hello" ~ "world") @system
 {
     void test19278();
 }
 enum NS = "lookup";
-extern(C++, (NS))
+extern(C++, (NS)) @system
 {
     void test19278_2();
 }
 alias AliasSeq(Args...) = Args;
 alias Tup = AliasSeq!("hello", "world");
-extern(C++, (Tup))
+extern(C++, (Tup)) @system
 {
     void test19278_3();
     __gshared size_t test19278_var;
 }
-extern(C++, (AliasSeq!(Tup, "yay")))
+extern(C++, (AliasSeq!(Tup, "yay"))) @system
 {
     void test19278_4();
 }
@@ -1114,7 +1114,7 @@ version(Posix)
 else version(Windows)
     enum __c_wchar_t : wchar;
 alias wchar_t = __c_wchar_t;
-extern (C++) void test_char_mangling(char, wchar, dchar, wchar_t);
+extern (C++) void test_char_mangling(char, wchar, dchar, wchar_t) @system;
 version (Posix)
 {
     static assert(test_char_mangling.mangleof == "_Z18test_char_manglingcDsDiw");
@@ -1128,14 +1128,14 @@ version (Win64)
 version (Posix)
 {
     extern(C++, PR10021_NS) struct PR10021_Struct(T){}
-    extern(C++) void PR10021_fun(int i)(PR10021_Struct!int);
+    extern(C++) void PR10021_fun(int i)(PR10021_Struct!int) @system;
     static assert(PR10021_fun!0.mangleof == `_Z11PR10021_funILi0EEvN10PR10021_NS14PR10021_StructIiEE`);
 }
 
 // https://github.com/dlang/dmd/pull/10021#discussion_r294095749
 version (Posix)
 {
-    extern(C++, "a", "b")
+    extern(C++, "a", "b") @system
     struct PR10021_Struct2
     {
         void func();
@@ -1149,17 +1149,17 @@ version (Posix)
 version (Posix)
 {
     extern(C++, `ns20022`) enum Enum20022_1 { A = 1, }
-    extern(C++) void fun20022_1(Enum20022_1);
-    extern(C++, `ns20022`) void fun20022_2(Enum20022_1);
+    extern(C++) void fun20022_1(Enum20022_1) @system;
+    extern(C++, `ns20022`) void fun20022_2(Enum20022_1) @system;
 
-    extern(C++, ns20022)
+    extern(C++, ns20022) @system
     {
         enum Enum20022_2 { A = 1, }
         void fun20022_5(Enum20022_1);
         void fun20022_6(Enum20022_2);
     }
-    extern(C++) void fun20022_3(Enum20022_2);
-    extern(C++, `ns20022`) void fun20022_4(Enum20022_2);
+    extern(C++) void fun20022_3(Enum20022_2) @system;
+    extern(C++, `ns20022`) void fun20022_4(Enum20022_2) @system;
 
     static assert(fun20022_1.mangleof == `_Z10fun20022_1N7ns2002211Enum20022_1E`);
     static assert(fun20022_2.mangleof == `_ZN7ns2002210fun20022_2ENS_11Enum20022_1E`);
@@ -1179,14 +1179,14 @@ version (Posix)
         alias V20094 = xvector20094!(ubyte);
     }
 
-    extern(C++) void test20094(xvector20094!(V20094)* v);
+    extern(C++) void test20094(xvector20094!(V20094)* v) @system;
     static assert(test20094.mangleof == `_Z9test20094PN7ns2009412xvector20094INS0_IhEEEE`);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20223
 version (Posix)
 {
-    extern(C++)
+    extern(C++) @system
     {
         int test20223_1(T)(int function(const(T)* value));
         int test20223_2(T)(int function(ref const(T) value));
@@ -1212,8 +1212,8 @@ version (Posix)
 // https://issues.dlang.org/show_bug.cgi?id=20224
 version (Posix)
 {
-    extern(C++) public int test20224_1(T)(set20224!T set);  // ok
-    extern(C++) public int test20224_2(T)(ref set20224!T set);  // segfault
+    extern(C++) public int test20224_1(T)(set20224!T set) @system;  // ok
+    extern(C++) public int test20224_2(T)(ref set20224!T set) @system;  // segfault
 
     extern(C++) struct set20224 (T)
     {
@@ -1235,11 +1235,11 @@ version (Posix)
 version (Posix)
 {
     extern (C++) struct Loc2 {};
-    extern (C++) class FuncDeclaration
+    extern (C++) @system class FuncDeclaration
     {
         static FuncDeclaration create(ref const Loc2, ref const Loc2);
     };
-    extern (C++) FuncDeclaration FuncDeclaration_create(ref const Loc2, ref const Loc2);
+    extern (C++) FuncDeclaration FuncDeclaration_create(ref const Loc2, ref const Loc2) @system;
 
     static assert(FuncDeclaration_create.mangleof == `_Z22FuncDeclaration_createRK4Loc2S1_`);
     static assert(FuncDeclaration.create.mangleof == `_ZN15FuncDeclaration6createERK4Loc2S2_`);
@@ -1247,7 +1247,7 @@ version (Posix)
 
 enum Enum19542 = func19542!(int).mangleof;
 
-extern(C++, `bar`)
+extern(C++, `bar`) @system
 {
     void func19542(T)();
 }

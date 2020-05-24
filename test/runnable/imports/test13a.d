@@ -1,6 +1,6 @@
 module imports.test13a;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 public alias bool boolean;
 public alias int Order;

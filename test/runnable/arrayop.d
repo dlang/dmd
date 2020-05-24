@@ -1,6 +1,6 @@
 import std.math;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 string abc;
 

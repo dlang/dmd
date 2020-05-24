@@ -1,6 +1,6 @@
 // PERMUTE_ARGS: -inline -g -O
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 /*******************************************/
 

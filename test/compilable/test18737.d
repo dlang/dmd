@@ -6,7 +6,7 @@
 
 struct S
 {
-    this(char);
+    this(char) @system;
 
     this(int j)
     {

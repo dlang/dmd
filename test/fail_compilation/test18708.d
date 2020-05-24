@@ -40,8 +40,8 @@ class C
     }
 }
 
-int bar(S s);
-int foo();
+int bar(S s) @system;
+int foo() @system;
 
 /***********************************/
 

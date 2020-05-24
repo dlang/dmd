@@ -10,14 +10,14 @@ fail_compilation/format.d(104): Error: function `format.printf4` `pragma(printf)
 
 #line 100
 
-pragma(printf)           void printf1(const(char)*, ...);
-pragma(printf) extern (C) int printf2(const(int )*, ...);
-pragma(printf) extern (C) int printf3(const(char)*);
-pragma(printf) extern (C) int printf4(const(char)*, int, ...);
+pragma(printf)           void printf1(const(char)*, ...) @system;
+pragma(printf) extern (C) int printf2(const(int )*, ...) @system;
+pragma(printf) extern (C) int printf3(const(char)*) @system;
+pragma(printf) extern (C) int printf4(const(char)*, int, ...) @system;
 
-pragma(printf) extern (C) int printf5(const(char)*, ...);
-pragma(printf) extern (C) int printf6(immutable(char)*, ...);
-pragma(printf) extern (C) int printf7(char*, ...);
+pragma(printf) extern (C) int printf5(const(char)*, ...) @system;
+pragma(printf) extern (C) int printf6(immutable(char)*, ...) @system;
+pragma(printf) extern (C) int printf7(char*, ...) @system;
 
 /*
 TEST_OUTPUT:
@@ -33,12 +33,12 @@ fail_compilation/format.d(206): Error: function `format.vprintf4` `pragma(printf
 
 import core.stdc.stdarg;
 
-pragma(printf)           void vprintf1(const(char)*, va_list);
-pragma(printf) extern (C) int vprintf2(const(int )*, va_list);
-pragma(printf) extern (C) int vprintf3(const(char)*);
-pragma(printf) extern (C) int vprintf4(const(char)*, int, va_list);
+pragma(printf)           void vprintf1(const(char)*, va_list) @system;
+pragma(printf) extern (C) int vprintf2(const(int )*, va_list) @system;
+pragma(printf) extern (C) int vprintf3(const(char)*) @system;
+pragma(printf) extern (C) int vprintf4(const(char)*, int, va_list) @system;
 
-pragma(printf) extern (C) int vprintf5(const(char)*, va_list);
-pragma(printf) extern (C) int vprintf6(immutable(char)*, va_list);
-pragma(printf) extern (C) int vprintf7(char*, va_list);
+pragma(printf) extern (C) int vprintf5(const(char)*, va_list) @system;
+pragma(printf) extern (C) int vprintf6(immutable(char)*, va_list) @system;
+pragma(printf) extern (C) int vprintf7(char*, va_list) @system;
 

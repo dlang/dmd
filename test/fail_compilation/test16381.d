@@ -9,7 +9,7 @@ fail_compilation/test16381.d(16): Error: `foo()` is not an lvalue and cannot be 
 
 // https://issues.dlang.org/show_bug.cgi?id=16381
 
-__vector(float[4]) foo();
+__vector(float[4]) foo() @system;
 
 void bar()
 {

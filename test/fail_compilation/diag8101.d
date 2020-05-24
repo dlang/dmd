@@ -28,17 +28,17 @@ fail_compilation/diag8101.d(63):        ... (1 more, -v to show) ...
 ---
 */
 
-void f_0(int);
+void f_0(int) @system;
 
-void f_1(int);
-void f_1(int, int);
+void f_1(int) @system;
+void f_1(int, int) @system;
 
-void f_2(int);
-void f_2(int, int);
-void f_2(int, int, int);
-void f_2(int, int, int, int);
-void f_2(int, int, int, int, int);
-void f_2(int, int, int, int, int, int);
+void f_2(int) @system;
+void f_2(int, int) @system;
+void f_2(int, int, int) @system;
+void f_2(int, int, int, int) @system;
+void f_2(int, int, int, int, int) @system;
+void f_2(int, int, int, int, int, int) @system;
 
 void t_0(T1)();
 

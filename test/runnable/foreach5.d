@@ -12,7 +12,7 @@ test7406()
 ---
 */
 
-extern(C) int printf(const char* fmt, ...);
+extern(C) int printf(const char* fmt, ...) @system;
 
 alias AliasSeq(X...) = X;
 

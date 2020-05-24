@@ -16,7 +16,7 @@ Success
 */
 import core.vararg;
 
-extern (C) int printf(const char*, ...);
+extern (C) int printf(const char*, ...) @system;
 
 /***************************************************/
 // lambda syntax check

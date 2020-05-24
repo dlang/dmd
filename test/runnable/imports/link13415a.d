@@ -7,7 +7,7 @@ struct S(alias func)
     }
 }
 
-extern(C) int printf(in char*, ...);
+extern(C) int printf(in char*, ...) @system;
 
 void f(int i = 77)
 {

@@ -1,7 +1,7 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 
-extern(C) int printf(const char*, ...);
-extern(C) int sprintf(char*, const char*, ...);
+extern(C) int printf(const char*, ...) @system;
+extern(C) int sprintf(char*, const char*, ...) @system;
 
 /**************************************/
 
@@ -413,7 +413,7 @@ void test15()
 class Conversion(T)
 {
   class Big {char[2] dummy;}
-  static Big Test(...);
+  static Big Test(...) @system;
 
   enum { exists = Test().sizeof }
 }
@@ -1060,7 +1060,7 @@ struct S50()
         int i=f50(0).sizeof;
 }
 
-int f50(...);
+int f50(...) @system;
 
 /**************************************/
 

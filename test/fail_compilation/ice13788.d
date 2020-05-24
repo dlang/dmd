@@ -8,7 +8,7 @@ fail_compilation/ice13788.d(14): Error: pragma `mangle` mangled name characters 
 ---
 */
 
-pragma(mangle) void f1();
-pragma(mangle, 1) void f2();
-pragma(mangle, "") void f3();
-pragma(mangle, "a"w) void f4();
+pragma(mangle) void f1() @system;
+pragma(mangle, 1) void f2() @system;
+pragma(mangle, "") void f3() @system;
+pragma(mangle, "a"w) void f4() @system;

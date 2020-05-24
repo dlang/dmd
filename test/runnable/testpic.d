@@ -1,7 +1,7 @@
 // PERMUTE_ARGS: -fPIC -O -fPIE
 // DISABLED: win32 win64
 
-extern (C) int printf(const char*, ...);
+extern (C) int printf(const char*, ...) @system;
 
 /***************************************************/
 

@@ -7,7 +7,7 @@ Success
 ---
 */
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 template TypeTuple(TL...) { alias TypeTuple = TL; }
 

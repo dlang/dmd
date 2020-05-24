@@ -16,7 +16,7 @@ import core.attribute;
 alias Tuple(A...) = A;
 enum foo_bar = gnuAbiTag("foo", "bar");
 
-extern(C++)
+extern(C++) @system
 {
     @gnuAbiTag("tag1") struct Tagged1 {}
     @gnuAbiTag("tag2") struct Tagged2 {}

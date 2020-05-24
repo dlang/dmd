@@ -44,7 +44,7 @@ int sieve()
     return 0;
 }
 
-extern(C) void dmd_coverDestPath(string path);
+extern(C) void dmd_coverDestPath(string path) @system;
 
 int main(string[] args)
 {

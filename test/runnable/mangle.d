@@ -56,7 +56,7 @@ void test10077i()
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=13050
 
-void func13050(int);
+void func13050(int) @system;
 template decl13050(Arg)
 {
     void decl13050(Arg);

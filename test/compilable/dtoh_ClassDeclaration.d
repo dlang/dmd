@@ -125,7 +125,7 @@ extern (C++) align(1) class Aligned
     this(int a) {}
 }
 
-extern (C++) class A
+extern (C++) @system class A
 {
     int a;
     C c;

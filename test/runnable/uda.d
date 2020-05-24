@@ -100,8 +100,8 @@ void test3()
 
 /************************************************/
 
-@(1) void foo4();
-@(2) void foo4(int x);
+@(1) void foo4() @system;
+@(2) void foo4(int x) @system;
 
 void test4()
 {

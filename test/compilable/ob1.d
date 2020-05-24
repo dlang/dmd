@@ -7,14 +7,14 @@ struct Allocation {
     size_t length;
 }
 
-void canFind(scope Allocation);
+void canFind(scope Allocation) @system;
 
-int* malloc();
-void free(int*);
-void pitcher();
-void borrow(scope int*);
-void borrow2c(const scope int*, const scope int*);
-void out1(out int*);
+int* malloc() @system;
+void free(int*) @system;
+void pitcher() @system;
+void borrow(scope int*) @system;
+void borrow2c(const scope int*, const scope int*) @system;
+void out1(out int*) @system;
 
 
 /*****************************/
@@ -109,7 +109,7 @@ void deallocate(int* ptr, size_t length) @live
 
 /*******************************/
 
-void zoo1(int);
+void zoo1(int) @system;
 
 @live void zoo2() {
     int* p = malloc();

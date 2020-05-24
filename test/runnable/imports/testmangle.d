@@ -8,7 +8,7 @@ public import core.demangle : demangle, demangleType;
 private
 {
     struct Detect;
-    Detect* detectMangle(Detect*);
+    Detect* detectMangle(Detect*) @system;
     void DetectTmpl(T)() {}
 }
 

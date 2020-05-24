@@ -9,8 +9,8 @@ fail_compilation/vararg2.d(111):        cannot pass argument `1.0` of type `doub
 
 #line 100
 
-int* foo(int x, return const ...);
-int* bar(int x, scope shared ...);
+int* foo(int x, return const ...) @system;
+int* bar(int x, scope shared ...) @system;
 
 void test1()
 {

@@ -22,7 +22,7 @@ int foo; // no name clashing with above namespace
 
 extern(C++, "std", "chrono")
 {
-    void func();
+    void func() @system;
 }
 
 version(Windows) static assert(func.mangleof == "?func@chrono@std@@YAXXZ");
@@ -32,7 +32,7 @@ struct Foo
 {
     extern(C++, "namespace")
     {
-        static void bar();
+        static void bar() @system;
     }
 }
 

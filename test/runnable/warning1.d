@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -w
 // PERMUTE_ARGS:
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 /******************************************/
 

@@ -14,4 +14,4 @@ void test2(int delegate() dg) @safe
     dg.funcptr = &func;
 }
 
-int func();
+int func() @system;

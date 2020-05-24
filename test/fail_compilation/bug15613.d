@@ -8,8 +8,8 @@ fail_compilation/bug15613.d(17):        cannot pass argument `8` of type `int` t
 ---
 */
 
-void f(int...);
-void g(Object, ...);
+void f(int...) @system;
+void g(Object, ...) @system;
 
 void main()
 {
@@ -25,7 +25,7 @@ fail_compilation/bug15613.d(32):        cannot pass argument `& h` of type `void
 ---
 */
 
-void h(int[]...);
+void h(int[]...) @system;
 
 void test()
 {

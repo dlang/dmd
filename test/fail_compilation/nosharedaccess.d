@@ -32,8 +32,8 @@ int test1(shared int j, shared(int)* p, shared(int)[] a, ref S s, ref shared S t
 
 /**************************************/
 
-void byref(ref shared int);
-void byptr(shared(int)*);
+void byref(ref shared int) @system;
+void byptr(shared(int)*) @system;
 
 shared int x;
 
@@ -56,7 +56,7 @@ fail_compilation/nosharedaccess.d(2010): Error: direct access to shared `k` is n
 
 #line 2000
 
-void func(int);
+void func(int) @system;
 
 shared int i;
 

@@ -1,11 +1,11 @@
 // PERMUTE_ARGS:
 
-ref int frvv();
+ref int frvv() @system;
 class A {}
 class B : A {}
 
 B restrictedfunc(in const(int)) @safe pure nothrow;
-A relaxedfunc(in int);
+A relaxedfunc(in int) @system;
 
 void bug3797()
 {

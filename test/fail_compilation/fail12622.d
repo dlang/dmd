@@ -17,7 +17,7 @@ fail_compilation/fail12622.d(30): Error: `@nogc` function `fail12622.foo` cannot
 
 
 
-void bar();
+void bar() @system;
 
 pure nothrow @nogc @safe void foo()
 {

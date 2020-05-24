@@ -2,6 +2,7 @@
 // DISABLED: win
 
 extern(C++):
+@system:
 
 struct Test32NS1
 {

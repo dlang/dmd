@@ -14,7 +14,7 @@ fail_compilation/test16193.d(41):        test16193.abc.__foreachbody1 closes ove
 // https://issues.dlang.org/show_bug.cgi?id=16193
 
 struct S {
-    int opApply(int delegate(int) dg) @nogc;
+    int opApply(int delegate(int) dg) @nogc @system;
 }
 
 void foo() {
@@ -25,7 +25,7 @@ void foo() {
 }
 
 struct T {
-    int opApply(scope int delegate(int) dg) @nogc;
+    int opApply(scope int delegate(int) dg) @nogc @system;
 }
 
 

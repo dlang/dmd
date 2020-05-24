@@ -3,7 +3,7 @@
 
 import imports.test3a;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 class Foo
 {

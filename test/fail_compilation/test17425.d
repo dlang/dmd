@@ -9,7 +9,7 @@ fail_compilation/test17425.d(31): Error: expected 2 arguments for `getParameterS
 
 // https://issues.dlang.org/show_bug.cgi?id=17425
 
-ref int foo(return ref const int* p, scope int* a, out int b, lazy int c);
+ref int foo(return ref const int* p, scope int* a, out int b, lazy int c) @system;
 
 //pragma(msg, __traits(getParameterStorageClasses, foo, 0));
 

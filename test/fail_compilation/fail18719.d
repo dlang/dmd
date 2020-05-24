@@ -18,7 +18,7 @@ struct S
         import core.stdc.stdio;
         printf("Ctor called with %d\n", y);
     }
-    void opAssign(int) immutable;
+    void opAssign(int) immutable @system;
 }
 
 class C

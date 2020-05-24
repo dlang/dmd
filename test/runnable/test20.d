@@ -6,7 +6,7 @@ runnable/test20.d(448): Deprecation: The `delete` keyword has been deprecated.  
 */
 import core.vararg;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 /*****************************************/
 

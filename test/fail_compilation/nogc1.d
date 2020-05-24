@@ -4,8 +4,8 @@
 /***************** NewExp *******************/
 
 struct S1 { }
-struct S2 { this(int); }
-struct S3 { this(int) @nogc; }
+struct S2 { this(int) @system; }
+struct S3 { this(int) @nogc @system; }
 
 /*
 TEST_OUTPUT:

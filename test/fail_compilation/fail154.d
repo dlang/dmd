@@ -12,7 +12,7 @@ class X(T:Policy!(T), alias Policy)
 
 template MYP(T)
 {
-    void foo(T);
+    void foo(T) @system;
 }
 
 X!(MYP!(int)) x;

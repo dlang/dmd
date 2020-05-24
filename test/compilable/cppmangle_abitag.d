@@ -8,6 +8,7 @@
 import core.attribute;
 
 extern(C++):
+@system:
 
 alias Tuple(A...) = A;
 enum foo_bar = gnuAbiTag("foo", "bar");

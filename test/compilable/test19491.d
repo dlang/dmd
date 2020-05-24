@@ -2,7 +2,7 @@
 
 class Foo
 {
-    shared this();
+    shared this() @system;
 }
 
 void test()

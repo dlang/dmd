@@ -9,7 +9,7 @@ module testxxx8;
 
 import core.vararg;
 
-extern(C)
+extern(C) @system
 {
     int atoi(const char*);
     int printf(const char*, ...);

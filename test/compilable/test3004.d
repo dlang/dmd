@@ -11,7 +11,7 @@ function  test3004.test
 ---
 */
 
-extern(C) int printf(char*, ...);
+extern(C) int printf(char*, ...) @system;
 
 pragma(GNU_attribute, flatten)
 void test() { printf("Hello GNU world!\n".dup.ptr); }

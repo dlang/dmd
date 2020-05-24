@@ -17,8 +17,8 @@ fail_compilation/fail20000.d(39): Error: cast from `fail20000.CppInterface` to `
 */
 extern(C++) class CppClass { int a; }
 extern(C++) class CppClass2 { void* a; }
-extern(C++) interface CppInterface { int b(); }
-extern(C++) interface CppInterface2 { void* b(); }
+extern(C++) @system interface CppInterface { int b(); }
+extern(C++) @system interface CppInterface2 { void* b(); }
 class DClass { int c; }
 interface DInterface { int d(); }
 

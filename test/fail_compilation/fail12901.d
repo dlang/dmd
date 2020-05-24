@@ -8,7 +8,7 @@ fail_compilation/fail12901.d(11): Error: constructor `fail12901.S.this` `in` and
 struct S
 {
     int a;
-    this(int n)
+    this(int n) @system
     in { a = n; }
     // no body
 }

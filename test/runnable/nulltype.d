@@ -11,7 +11,7 @@ RUN_OUTPUT:
 Success
 ---
 */
-extern (C) int printf(const(char*) fmt, ...);
+extern (C) int printf(const(char*) fmt, ...) @system;
 
 alias typeof(null) null_t;
 

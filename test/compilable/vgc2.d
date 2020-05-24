@@ -53,7 +53,7 @@ void testCatAssign(int[] a, string s)
 
 /***************** ArrayLiteralExp *******************/
 
-int* barA();
+int* barA() @system;
 
 /*
 TEST_OUTPUT:

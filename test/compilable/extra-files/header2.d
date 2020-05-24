@@ -10,10 +10,10 @@ void bar(in void *p)
 {
 }
 
-void f(void function() f2);
+void f(void function() f2) @system;
 
 class C2;
-void foo2(const C2 c);
+void foo2(const C2 c) @system;
 
 struct Foo3
 {

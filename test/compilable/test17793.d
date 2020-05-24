@@ -3,8 +3,8 @@ import core.simd;
 
 version (D_AVX)
 {
-    double4 foo();
-    void test(double[4]);
+    double4 foo() @system;
+    void test(double[4]) @system;
 
     void main()
     {

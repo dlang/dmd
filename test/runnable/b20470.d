@@ -78,8 +78,8 @@ void test2()
 
     static struct S
     {
-        void f();
-        void g();
+        void f() @system;
+        void g() @system;
         alias funcs = AliasSeq!(f, g);
     }
 

@@ -4,7 +4,7 @@ RUN_OUTPUT:
 Success
 ---
 */
-extern (C) int printf(const char* fmt, ...);
+extern (C) int printf(const char* fmt, ...) @system;
 
 int pass(int n){ return n; }
 

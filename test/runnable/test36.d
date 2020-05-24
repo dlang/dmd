@@ -2,7 +2,7 @@
 
 import core.stdc.stdio;
 interface IUnknown{
-        extern(Windows):
+        extern(Windows) @system:
         void func();
 }
 class ComObject :IUnknown
@@ -14,7 +14,7 @@ extern (Windows):
 }
 interface IDataObject: IUnknown
 {
-        extern(Windows):
+        extern(Windows) @system:
         void method();
 }
 package class invarianttest:ComObject, IDataObject

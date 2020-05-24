@@ -4894,7 +4894,7 @@ void test5696()
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=5933
 
-int dummyfunc5933();
+int dummyfunc5933() @system;
 alias typeof(dummyfunc5933) FuncType5933;
 
 struct S5933a { auto x() { return 0; } }
@@ -6369,7 +6369,7 @@ void test8665()
 
 /***************************************************/
 
-int foo8108(int, int);
+int foo8108(int, int) @system;
 
 int foo8108(int a, int b)
 {
@@ -6501,7 +6501,7 @@ template ParameterTuple(alias func)
         static assert(0);
 }
 
-int foo161(ref float y);
+int foo161(ref float y) @system;
 
 void test161()
 {
@@ -6606,13 +6606,13 @@ struct S162
 
     enum int ttt = generateMethodStubs!( S162 )();
 
-    float height();
-    int get( int );
-    int get( long );
-    void clear();
+    float height() @system;
+    int get( int ) @system;
+    int get( long ) @system;
+    void clear() @system;
 
-    void draw( int );
-    void draw( long );
+    void draw( int ) @system;
+    void draw( long ) @system;
 }
 
 /***************************************************/

@@ -7,7 +7,7 @@ runnable/interface2.d(98): Deprecation: The `delete` keyword has been deprecated
 ---
 */
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 /*******************************************************/
 
@@ -1130,7 +1130,7 @@ void testTypeid()
 
 /*******************************************************/
 
-extern (C++)
+extern (C++) @system
 {
     interface IA47
     {

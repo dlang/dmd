@@ -1750,12 +1750,12 @@ void test3748a(inout int = 1)
 void test3748b(inout int = 1)
 {
     // Top of the parameter type is non-ref & qualified
-    static        inout(int[])  foo1(       inout(int[])  a);
-    static shared(inout(int[])) bar1(shared(inout(int[])) a);
+    static        inout(int[])  foo1(       inout(int[])  a) @system;
+    static shared(inout(int[])) bar1(shared(inout(int[])) a) @system;
 
     // Top of the parameter type is non-ref & un-qualified
-    static        inout(int) [] foo2(       inout(int) [] a);
-    static shared(inout(int))[] bar2(shared(inout(int))[] a);
+    static        inout(int) [] foo2(       inout(int) [] a) @system;
+    static shared(inout(int))[] bar2(shared(inout(int))[] a) @system;
 
     // Top of the argument type is qualified
                  int[]    ma1;
@@ -1815,12 +1815,12 @@ void test3748b(inout int = 1)
 void test3748c(inout int = 1)
 {
     // Top of the parameter type is ref & qualified
-    static        inout(int[])  foo1(ref        inout(int[])  a);
-    static shared(inout(int[])) bar1(ref shared(inout(int[])) a);
+    static        inout(int[])  foo1(ref        inout(int[])  a) @system;
+    static shared(inout(int[])) bar1(ref shared(inout(int[])) a) @system;
 
     // Top of the parameter type is ref & un-qualified
-    static        inout(int) [] foo2(ref        inout(int) [] a);
-    static shared(inout(int))[] bar2(ref shared(inout(int))[] a);
+    static        inout(int) [] foo2(ref        inout(int) [] a) @system;
+    static shared(inout(int))[] bar2(ref shared(inout(int))[] a) @system;
 
     // Top of the argument type is qualified
                  int[]    ma1;
@@ -2204,7 +2204,7 @@ void test5473()
         static void g(){};
     }
 
-    void dummy();
+    void dummy() @system;
     alias typeof(dummy) VoidFunc;
 
     const C c = new C;
@@ -3595,7 +3595,7 @@ void test11257()
 /************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11215
 
-shared(inout(void)**) f11215(inout int);
+shared(inout(void)**) f11215(inout int) @system;
 
 static assert(is(typeof(f11215(0)) == shared(void**)));
 static assert(is(typeof(f11215((const int).init)) == shared(const(void)**)));

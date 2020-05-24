@@ -9,7 +9,7 @@ abcd = none1
 bcdef = none23
 ... = doo
 */
-void foo(int abcd, int bcdef, ...);
+void foo(int abcd, int bcdef, ...) @system;
 
 /**
 Params:
@@ -17,4 +17,4 @@ abcd = none1
 bcdef = none23
 arr = doo
 */
-void foo(int abcd, int bcdef, int[] arr...);
+void foo(int abcd, int bcdef, int[] arr...) @system;

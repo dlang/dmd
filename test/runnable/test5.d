@@ -1,11 +1,11 @@
 // PERMUTE_ARGS:
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 interface foo
 {
-    extern (C) int testc(int i);
-    extern (Windows) int testw(int i);
+    extern (C) int testc(int i) @system;
+    extern (Windows) int testw(int i) @system;
     extern (D) int testd(int i);
 }
 

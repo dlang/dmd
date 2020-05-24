@@ -4,7 +4,7 @@ RUN_OUTPUT:
 Success
 ---
 */
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 void test14040()
 {

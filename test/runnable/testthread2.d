@@ -61,7 +61,7 @@ struct LinearAA(K, V) {
     }
 }
 
-extern (C) int rand();
+extern (C) int rand() @system;
 
 uint random(const uint max = uint.max)
 {

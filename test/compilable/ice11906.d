@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
 
-nothrow /*extern(Windows) */export int GetModuleHandleA(const char* lpModuleName);
+nothrow /*extern(Windows) */export int GetModuleHandleA(const char* lpModuleName) @system;
 
 void main()
 {

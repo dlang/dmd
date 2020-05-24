@@ -12,8 +12,8 @@ import core.memory;
 import core.exception;
 import core.vararg;
 
-extern(C) void* malloc(size_t size);
-extern(C) int printf(const char*, ...);
+extern(C) void* malloc(size_t size) @system;
+extern(C) int printf(const char*, ...) @system;
 
 /* ================================ */
 

@@ -3871,7 +3871,7 @@ static assert(mixin(ice4390()) == ``);
 // https://issues.dlang.org/show_bug.cgi?id=190
 
 alias int avocado;
-void eat(avocado x225 = .x225);
+void eat(avocado x225 = .x225) @system;
 avocado x225;
 
 void test225()

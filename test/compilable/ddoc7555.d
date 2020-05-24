@@ -50,4 +50,4 @@ Macros:
     X8=$8
     X9=$9
 */
-void dummy();
+void dummy() @system;

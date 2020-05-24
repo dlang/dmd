@@ -14,7 +14,7 @@ int i;
 string str;
 union U {}
 alias typeAlias = const(int)[];
-void getVoid();
+void getVoid() @system;
 alias getTuple(T...) = T;
 
 void test19534() // https://issues.dlang.org/show_bug.cgi?id=19534

@@ -11,9 +11,9 @@ fail_compilation/diag4528.d(18): Error: function `diag4528.Foo.pbsa` `static` fu
 
 class Foo
 {
-    private abstract void pva();
-    package abstract void pka();
-    private static abstract void pvsa();
-    package static abstract void pksa();
-    public static abstract void pbsa();
+    private abstract void pva() @system;
+    package abstract void pka() @system;
+    private static abstract void pvsa() @system;
+    package static abstract void pksa() @system;
+    public static abstract void pbsa() @system;
 }

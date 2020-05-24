@@ -1930,9 +1930,9 @@ class Conversion(T,U){
         class Big{
                 char[2] dummy;
         }
-        static Small Test(U u);
-        static Big Test(...);
-        static T MakeT();
+        static Small Test(U u) @system;
+        static Big Test(...) @system;
+        static T MakeT() @system;
         enum {
                 exists = (Test(MakeT())).sizeof == (Small).sizeof
         }

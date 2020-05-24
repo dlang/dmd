@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -o-
 
-void lazyfun(scope lazy int a) @nogc;
+void lazyfun(scope lazy int a) @nogc @system;
 
 // Test that returning a local _static_ struct does not lead to allocation of a closure.
 auto foo_static(int a, bool b) @nogc {

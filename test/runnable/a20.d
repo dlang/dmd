@@ -6,7 +6,7 @@
 
 import a20a;
 
-extern(C) void dmd_coverDestPath(string path);
+extern(C) void dmd_coverDestPath(string path) @system;
 
 void main(string[] args)
 {

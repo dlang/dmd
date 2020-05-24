@@ -26,7 +26,7 @@ Templ!([1, 2, 3]) max(T...)() { }
 template Base64Impl(char Map62th, char Map63th, char Padding) { }
 
 ///
-int sqlite3_config(int,...);
+int sqlite3_config(int,...) @system;
 
 template staticIndexOf(T, TList...) { alias int staticIndexOf; }
 

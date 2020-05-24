@@ -5,7 +5,7 @@ fail_compilation/fail20775.d(19): Error: cannot pass types that need destruction
 fail_compilation/fail20775.d(20): Error: cannot pass types that need destruction as variadic arguments
 ---
 */
-extern void variadic(...);
+@system extern void variadic(...);
 
 struct S20775
 {

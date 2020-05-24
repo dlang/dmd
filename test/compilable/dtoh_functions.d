@@ -35,8 +35,8 @@ int foo(int x)
     return x * 42;
 }
 
-extern (C) int fun();
-extern (C++) int fun2();
+extern (C) int fun() @system;
+extern (C++) int fun2() @system;
 
 extern (C) int bar(int x)
 {

@@ -13,7 +13,7 @@ import core.exception;
 import core.stdc.math;
 import core.vararg;
 
-extern(C)
+extern(C) @system
 {
     int atoi(const char*);
     int memcmp(const void*, const void*, size_t);

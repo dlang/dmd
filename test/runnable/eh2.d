@@ -1,6 +1,6 @@
 // PERMUTE_ARGS: -fPIC
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 class Abc : Throwable
 {

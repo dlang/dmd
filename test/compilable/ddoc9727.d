@@ -4,7 +4,7 @@
 module ddoc9727;
 
 /** The function foo. */
-void foo(int x);
+void foo(int x) @system;
 
 /**  */
 unittest

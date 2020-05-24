@@ -5,7 +5,7 @@ fail_compilation/fail20771.d(19): Error: cannot pass types with postblits or cop
 fail_compilation/fail20771.d(20): Error: cannot pass types with postblits or copy constructors as variadic arguments
 ---
 */
-extern void variadic(...);
+@system extern void variadic(...);
 
 struct S20771
 {

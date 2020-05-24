@@ -1,4 +1,4 @@
-void f(int x, Object y);
+void f(int x, Object y) @system;
 
 void g()
 {
@@ -7,7 +7,7 @@ void g()
 	f(5, 6, 404);
 }
 
-/* 
+/*
 TEST_OUTPUT:
 ---
 fail_compilation/bug16165.d(6): Error: function `bug16165.f(int x, Object y)` is not callable using argument types `(Object, Object, int)`

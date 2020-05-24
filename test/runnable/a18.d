@@ -10,7 +10,7 @@ Test enumerator
 
 import imports.a18a;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 alias   IContainer!(int) icontainer_t;
 

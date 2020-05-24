@@ -25,7 +25,7 @@ Success
 ---
 */
 
-extern (C) int printf(const(char*) fmt, ...);
+extern (C) int printf(const(char*) fmt, ...) @system;
 import core.vararg;
 
 struct Tup(T...)
@@ -169,7 +169,7 @@ struct S4617
     alias forward.square sqr;    // okay
 
     int field;
-    void mfunc();
+    void mfunc() @system;
     template Templ(){}
     void tfunc()(){}
 }
@@ -1363,7 +1363,7 @@ void test8735()
     assert(n == 1);
 
     // https://issues.dlang.org/show_bug.cgi?id=11502
-    static void f(int i);
+    static void f(int i) @system;
     S8735!f sf;
 
     // https://issues.dlang.org/show_bug.cgi?id=9709

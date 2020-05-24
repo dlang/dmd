@@ -3,7 +3,7 @@
 
 import std.file;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 int main (string[] args)
 {

@@ -8,6 +8,6 @@ class Test
 {
     public void publicFoo();
     protected void protectedFoo();
-    package void packageFoo();
-    private void privateFoo();
+    package void packageFoo() @system;
+    private void privateFoo() @system;
 }

@@ -21,7 +21,7 @@ void test()
 {
     foo();
     foo(null);
-    
+
     baz("");
     baz(3, null);
 }
@@ -43,7 +43,7 @@ fail_compilation/fail332.d(55): Error: function `fail332.bar(Object, int[2]...)`
 fail_compilation/fail332.d(55):        expected 2 variadic argument(s), not 3
 ---
 */
-void bar(Object, int[2]...);
+void bar(Object, int[2]...) @system;
 
 void test2()
 {

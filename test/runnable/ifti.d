@@ -1,4 +1,4 @@
-extern (C) int printf(const scope char*, ...);
+extern (C) int printf(const scope char*, ...) @system;
 
 struct S {
     int x = 3;

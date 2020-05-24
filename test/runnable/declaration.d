@@ -12,7 +12,7 @@ Success
 ---
 */
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6475

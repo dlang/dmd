@@ -1516,10 +1516,10 @@ alias T7643!( Specs7643[] ) U7643;  // Error: tuple A is used as a type
 /**********************************/
 // https://issues.dlang.org/show_bug.cgi?id=7671
 
-       inout(int)[3]  id7671n1             ( inout(int)[3] );
+       inout(int)[3]  id7671n1             ( inout(int)[3] ) @system;
        inout( U )[n]  id7671x1(U, size_t n)( inout( U )[n] );
 
-shared(inout int)[3]  id7671n2             ( shared(inout int)[3] );
+shared(inout int)[3]  id7671n2             ( shared(inout int)[3] ) @system;
 shared(inout  U )[n]  id7671x2(U, size_t n)( shared(inout  U )[n] );
 
 void test7671()
@@ -3580,7 +3580,7 @@ static assert(!__traits(compiles, TemplateArgsOf12651!(S12651!int, S, float)));
 
 struct A12719
 {
-    B12719!int b();
+    B12719!int b() @system;
 }
 
 struct B12719(T)
@@ -4617,7 +4617,7 @@ struct Hoge14481
 template M14520(alias  a) { enum M14520 = 1; }
 template M14520(string s) { enum M14520 = 2; }
 
-int f14520a();
+int f14520a() @system;
 string f14520b() { assert(0); }
 string f14520c() { return "a"; }
 

@@ -4,6 +4,7 @@ import core.stdc.config;
 import core.stdc.stdint;
 
 extern(C++):
+@system:
 
 struct Foo(X)
 {

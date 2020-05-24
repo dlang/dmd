@@ -9,7 +9,7 @@ fail_compilation/test8556.d(55): Error: template instance `test8556.grab!(Circle
 ---
 */
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 template isSliceable(R)
 {

@@ -472,8 +472,8 @@ void test15()
 
 struct S16 { }
 
-int foo16();
-int bar16();
+int foo16() @system;
+int bar16() @system;
 
 void test16()
 {
@@ -493,7 +493,7 @@ struct S17
     int s2;
 }
 
-int foo17();
+int foo17() @system;
 
 void test17()
 {
@@ -513,7 +513,7 @@ void test17()
 
 interface D18
 {
-  extern(Windows):
+  extern(Windows) @system:
     void foo();
     int foo(int);
 }

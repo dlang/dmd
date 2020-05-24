@@ -1,7 +1,7 @@
 // https://issues.dlang.org/show_bug.cgi?id=751
 // Compiler segfault on template expansion
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 template TypeTuple( TList... )
 {

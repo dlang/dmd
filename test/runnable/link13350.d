@@ -4,9 +4,9 @@ RUN_OUTPUT:
 Success
 ---
 */
-extern (C) int printf(const(char*) fmt, ...);
+extern (C) int printf(const(char*) fmt, ...) @system;
 
-static int foo();
+static int foo() @system;
 
 /**********************************/
 

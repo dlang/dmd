@@ -159,7 +159,7 @@ class Z17502
 
 final class Foo17893(T)
 {
-    extern(C) void maythrow();
+    extern(C) void maythrow() @system;
 
     void bar()
     in

@@ -13,8 +13,8 @@ extern (C++, std)
     class exception { }
 }
 
-void bar();
-void abc();
+void bar() @system;
+void abc() @system;
 
 void foo()
 {

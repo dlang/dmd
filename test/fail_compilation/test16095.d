@@ -22,7 +22,7 @@ void test1(C a)
 
 struct S
 {
-    void ping() shared;
+    void ping() shared @system;
 }
 
 void test2(S* a)

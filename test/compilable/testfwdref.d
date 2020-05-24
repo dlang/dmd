@@ -122,7 +122,7 @@ S10015!int s10015;
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10101
 
-int front10101(int);
+int front10101(int) @system;
 
 mixin template reflectRange10101()
 {
@@ -303,8 +303,8 @@ class C12983(T) : B12983!float
 
 alias MyB12983 = B12983!float;
 
-void f12983();
-void f12983(I12983);
+void f12983() @system;
+void f12983(I12983) @system;
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=12984
@@ -635,7 +635,7 @@ struct Array15726y(T)
 {
     struct Payload
     {
-        ~this();
+        ~this() @system;
     }
 
     alias Data = RefCounted15726y!(Payload);

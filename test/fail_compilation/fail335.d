@@ -5,8 +5,8 @@ fail_compilation/fail335.d(9): Error: cannot overload both property and non-prop
 ---
 */
 
-void foo();
-@property void foo(int);
+void foo() @system;
+@property void foo(int) @system;
 
 void main()
 {

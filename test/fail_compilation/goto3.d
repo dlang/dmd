@@ -7,8 +7,8 @@ fail_compilation/goto3.d(1012): Error: default cannot be in different `try` bloc
  */
 
 
-void foo();
-void bar();
+void foo() @system;
+void bar() @system;
 
 #line 1000
 

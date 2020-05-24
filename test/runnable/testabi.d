@@ -7,7 +7,7 @@ else version(X86_64)
         //version = Run_X86_64_Tests;
 }
 
-extern (C) int printf(const char*, ...);
+extern (C) int printf(const char*, ...) @system;
 
 template tuple(A...) { alias A tuple; }
 

@@ -17,7 +17,7 @@ S7353
 
 import core.vararg;
 
-extern (C) int printf(const(char*) fmt, ...) nothrow;
+extern (C) int printf(const(char*) fmt, ...) nothrow @system;
 
 template TypeTuple(T...) { alias TypeTuple = T; }
 

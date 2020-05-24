@@ -6,7 +6,7 @@ Success
 */
 
 //import core.stdc.stdio;
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 template Tuple(A...)
 {

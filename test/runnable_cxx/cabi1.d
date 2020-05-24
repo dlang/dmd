@@ -12,13 +12,13 @@ struct Foo5 { int i, j; }
 struct Foo6 { int i, j, k; }
 struct S7 { float a, b; }
 
-extern (C) Foo1 ctest1();
-extern (C) Foo2 ctest2();
-extern (C) Foo3 ctest3();
-extern (C) Foo4 ctest4();
-extern (C) Foo5 ctest5();
-extern (C) Foo6 ctest6();
-extern (C) S7 ctest10();
+extern (C) Foo1 ctest1() @system;
+extern (C) Foo2 ctest2() @system;
+extern (C) Foo3 ctest3() @system;
+extern (C) Foo4 ctest4() @system;
+extern (C) Foo5 ctest5() @system;
+extern (C) Foo6 ctest6() @system;
+extern (C) S7 ctest10() @system;
 
 version(Windows)
     version = Windows_or_32bit;
@@ -59,7 +59,7 @@ version(Windows_or_32bit)
 
 /*******************************************/
 
-extern (C)
+extern (C) @system
 {
     char ctest7(char);
     ubyte ctest8(ubyte);
@@ -75,7 +75,7 @@ void test2()
 
 /******************************************/
 
-extern (C)
+extern (C) @system
 {
     void ctestrir(int x1, int x2, int x3, int x4, int x5, int x6, c_long_double a, int b, c_long_double c);
 }
@@ -94,13 +94,13 @@ extern (C) void dtestrir(int x1, int x2, int x3, int x4, int x5, int x6, c_long_
     assert(c == 401.0);
 }
 
-extern (C) void test4();
+extern (C) void test4() @system;
 
 /******************************************/
 
 struct S11 { ubyte a, b, c; }
 
-extern (C) S11 ctest11(ubyte x, S11, ubyte y);
+extern (C) S11 ctest11(ubyte x, S11, ubyte y) @system;
 
 void test11()
 {
@@ -122,7 +122,7 @@ void test11()
 
 struct S12 { char a,d; char b,e; ubyte c; }
 
-extern (C) S12 ctest12(ubyte x, S12, ubyte y);
+extern (C) S12 ctest12(ubyte x, S12, ubyte y) @system;
 
 void test12()
 {
@@ -145,7 +145,7 @@ void test12()
 
 struct S13 { ushort a, b, c; }
 
-extern (C) S13 ctest13(ubyte x, S13, ubyte y);
+extern (C) S13 ctest13(ubyte x, S13, ubyte y) @system;
 
 void test13()
 {
@@ -167,7 +167,7 @@ void test13()
 
 struct S14 { char a,d,e,f; char b,g; ubyte c; }
 
-extern (C) S14 ctest14(ubyte x, S14, ubyte y);
+extern (C) S14 ctest14(ubyte x, S14, ubyte y) @system;
 
 void test14()
 {
@@ -189,7 +189,7 @@ void test14()
 
 struct S15 { char a,d,e,f; char b,g,h,i; ubyte c; }
 
-extern (C) S15 ctest15(ubyte x, S15, ubyte y);
+extern (C) S15 ctest15(ubyte x, S15, ubyte y) @system;
 
 void test15()
 {
@@ -218,7 +218,7 @@ struct S16 {
   }
 }
 
-extern (C) S16 ctest16(ubyte x, S16, ubyte y);
+extern (C) S16 ctest16(ubyte x, S16, ubyte y) @system;
 
 void test16()
 {

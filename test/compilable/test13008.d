@@ -6,5 +6,5 @@ TEST_OUTPUT*
 ---
 */
 deprecated class Dep { }
-deprecated Dep depFunc1(); // error
-deprecated void depFunc2(Dep); // error
+deprecated Dep depFunc1() @system; // error
+deprecated void depFunc2(Dep) @system; // error

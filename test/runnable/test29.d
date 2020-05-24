@@ -11,7 +11,7 @@ RUN_OUTPUT:
 import imports.test29a;
 import imports.test29b;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 void main() {
         printf("%d\n", qwert);

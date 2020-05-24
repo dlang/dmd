@@ -3,7 +3,7 @@
 
 // Test operator overloading
 
-extern (C) int printf(const(char*) fmt, ...);
+extern (C) int printf(const(char*) fmt, ...) @system;
 
 template Seq(T...){ alias T Seq; }
 
@@ -803,7 +803,7 @@ struct T
 
 void test11161()
 {
-    T t1, t2; 
+    T t1, t2;
     assert(t1.tupleof != t2.tupleof);
     assert(t1 != t2); // fails
 }
@@ -1522,7 +1522,7 @@ struct R10597
 {
     void opIndex(int) {}
     void opSlice(int, int) {}
-    int opDollar();
+    int opDollar() @system;
 }
 R10597 r;
 

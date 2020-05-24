@@ -5,7 +5,7 @@ fail_compilation/fail15626.d(12): Error: class `fail15626.D` C++ base class `C` 
 ---
 */
 
-extern (C++)
+extern (C++) @system
 {
     class C { }
     interface I { void f(); }

@@ -4,12 +4,12 @@
 
 struct OnlyResult
 {
-    this(return scope ref int v2);
+    this(return scope ref int v2) @system;
 
     void* data;
 }
 
-OnlyResult foo(return scope ref int v2);
+OnlyResult foo(return scope ref int v2) @system;
 
 OnlyResult only(int y)
 {

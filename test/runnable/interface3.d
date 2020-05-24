@@ -6,7 +6,7 @@ OK
 ---
 */
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 interface IWriter
 {

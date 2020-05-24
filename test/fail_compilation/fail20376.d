@@ -9,7 +9,7 @@ fail_compilation/fail20376.d(17): Error: cannot implicitly convert expression `F
 
 struct Foo
 {
-    this(ref scope Foo);
+    this(ref scope Foo) @system;
 }
 
 ubyte fun()

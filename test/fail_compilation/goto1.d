@@ -6,8 +6,8 @@ fail_compilation/goto1.d(1010): Error: `return` statements cannot be in `finally
 ---
  */
 
-void foo();
-void bar();
+void foo() @system;
+void bar() @system;
 
 #line 1000
 

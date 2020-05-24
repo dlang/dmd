@@ -65,8 +65,8 @@ ref int test()
 
 /************/
 
-ref int foo8(ref int x);
-ref int foo8(return ref int x);
+ref int foo8(ref int x) @system;
+ref int foo8(return ref int x) @system;
 
 void testover()
 {

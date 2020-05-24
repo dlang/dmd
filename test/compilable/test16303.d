@@ -1,7 +1,7 @@
 // https://issues.dlang.org/show_bug.cgi?id=16303
 
-void yayf(void function(int*) fp);
-void yayd(void delegate(int*) dg);
+void yayf(void function(int*) fp) @system;
+void yayd(void delegate(int*) dg) @system;
 
 void bar()
 {

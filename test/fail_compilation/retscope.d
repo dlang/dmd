@@ -135,7 +135,7 @@ char[] bar9() @safe
 
 struct S10
 {
-    static int opApply(int delegate(S10*) dg);
+    static int opApply(int delegate(S10*) dg) @system;
 }
 
 S10* test10()
@@ -513,10 +513,10 @@ fail_compilation/retscope.d(1716): Error: cannot implicitly convert expression `
 ---
 */
 
-int* func(int* p);
-int* funcs(scope int* p);
-int* funcr(return int* p);
-int* funcrs(return scope int* p);
+int* func(int* p) @system;
+int* funcs(scope int* p) @system;
+int* funcr(return int* p) @system;
+int* funcrs(return scope int* p) @system;
 
 void foo17()
 {

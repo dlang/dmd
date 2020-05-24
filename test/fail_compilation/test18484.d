@@ -10,7 +10,7 @@ fail_compilation/test18484.d(24): Error: escaping reference to stack allocated v
 
 struct S
 {
-    int* bar() return;
+    int* bar() return @system;
     int i;
 }
 

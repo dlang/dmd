@@ -8,5 +8,5 @@ fail_compilation/diag9247.d(12): Error: functions cannot return opaque type `S` 
 
 struct S;
 
-S foo();
+S foo() @system;
 S function() bar;

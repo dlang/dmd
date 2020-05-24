@@ -14,7 +14,7 @@ import core.stdc.config;
 import core.stdc.stdint;
 
 extern (C++)
-        int foob(int i, int j, int k);
+        int foob(int i, int j, int k) @system;
 
 class C
 {
@@ -54,12 +54,12 @@ void test1()
 
 /****************************************/
 
-extern (C++) interface D
+extern (C++) @system interface D
 {
     int bar(int i, int j, int k);
 }
 
-extern (C++) D getD();
+extern (C++) D getD() @system;
 
 void test2()
 {
@@ -70,9 +70,9 @@ void test2()
 
 /****************************************/
 
-extern (C++) int callE(E);
+extern (C++) int callE(E) @system;
 
-extern (C++) interface E
+extern (C++) @system interface E
 {
     int bar(int i, int j, int k);
 }
@@ -100,7 +100,7 @@ void test3()
 
 /****************************************/
 
-extern (C++) void foo4(char* p);
+extern (C++) void foo4(char* p) @system;
 
 void test4()
 {
@@ -109,7 +109,7 @@ void test4()
 
 /****************************************/
 
-extern(C++)
+extern(C++) @system
 {
   struct foo5 { int i; int j; void* p; }
 
@@ -131,7 +131,7 @@ void test5()
 
 /****************************************/
 
-extern(C++)
+extern(C++) @system
 {
     struct S6
     {
@@ -155,7 +155,7 @@ extern(C++)
     S6_3 foo6_3();
 }
 
-extern (C) int foosize6();
+extern (C) int foosize6() @system;
 
 void test6()
 {
@@ -174,7 +174,7 @@ version (X86)
 
 /****************************************/
 
-extern (C) int foo7();
+extern (C) int foo7() @system;
 
 struct S
 {
@@ -190,7 +190,7 @@ void test7()
 
 /****************************************/
 
-extern (C++) void foo8(const(char)*);
+extern (C++) void foo8(const(char)*) @system;
 
 void test8()
 {
@@ -203,7 +203,7 @@ void test8()
 
 struct elem9 { }
 
-extern(C++) void foobar9(elem9*, elem9*);
+extern(C++) void foobar9(elem9*, elem9*) @system;
 
 void test9()
 {
@@ -230,7 +230,7 @@ extern(C++) class D11802 : C11802
     override void fun(B11802*) { x *= 3; }
 }
 
-extern(C++) void test11802x(D11802);
+extern(C++) void test11802x(D11802) @system;
 
 void test11802()
 {
@@ -247,7 +247,7 @@ struct S13956
 {
 }
 
-extern(C++) void func13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6);
+extern(C++) void func13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6) @system;
 
 extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
@@ -268,7 +268,7 @@ void test13956()
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=5148
 
-extern (C++)
+extern (C++) @system
 {
     void foo10(const(char)*, const(char)*);
     void foo10(const int, const int);
@@ -296,9 +296,9 @@ void test10()
 
 /****************************************/
 
-extern (C++, N11.M) { void bar11(); }
+extern (C++, N11.M) @system { void bar11(); }
 
-extern (C++, A11.B) { extern (C++, C) { void bar(); }}
+extern (C++, A11.B) @system { extern (C++, C) { void bar(); }}
 
 void test11()
 {
@@ -313,7 +313,7 @@ struct Struct10071
     c_long_double r;
 }
 
-extern(C++) size_t offset10071();
+extern(C++) size_t offset10071() @system;
 void test10071()
 {
     assert(offset10071() == Struct10071.r.offsetof);
@@ -327,7 +327,7 @@ extern(C++) void myvprintfx(const(char)* format, va_list va)
 {
     vsprintf(valistbuffer.ptr, format, va);
 }
-extern(C++) void myvprintf(const(char)*, va_list);
+extern(C++) void myvprintf(const(char)*, va_list) @system;
 extern(C++) void myprintf(const(char)* format, ...)
 {
     va_list ap;
@@ -393,7 +393,7 @@ extern(C++) void check13955(S13955a a, S13955b b, S13955c c, S13955d d)
     assert(d.b == 256);
 }
 
-extern(C++) void func13955(S13955a a, S13955b b, S13955c c, S13955d d);
+extern(C++) void func13955(S13955a a, S13955b b, S13955c c, S13955d d) @system;
 
 void test13955()
 {
@@ -402,7 +402,7 @@ void test13955()
 
 /****************************************/
 
-extern(C++) class C13161
+extern(C++) @system class C13161
 {
     void dummyfunc();
     long val_5;
@@ -415,9 +415,9 @@ extern(C++) class Test : C13161
     long val_1;
 }
 
-extern(C++) size_t getoffset13161();
+extern(C++) size_t getoffset13161() @system;
 
-extern(C++) class C13161a
+extern(C++) @system class C13161a
 {
     void dummyfunc();
     c_long_double val_5;
@@ -429,7 +429,7 @@ extern(C++) class Testa : C13161a
     bool val_0;
 }
 
-extern(C++) size_t getoffset13161a();
+extern(C++) size_t getoffset13161a() @system;
 
 void test13161()
 {
@@ -441,7 +441,7 @@ void test13161()
 
 version (linux)
 {
-    extern(C++, __gnu_cxx)
+    extern(C++, __gnu_cxx) @system
     {
         struct new_allocator(T)
         {
@@ -454,7 +454,7 @@ version (linux)
     }
 }
 
-extern (C++, std)
+extern (C++, std) @system
 {
     extern (C++, class) struct allocator(T)
     {
@@ -513,7 +513,7 @@ extern (C++, std)
     }
 }
 
-extern (C++)
+extern (C++) @system
 {
     version (linux)
     {
@@ -578,7 +578,7 @@ else version(Windows)
     enum __c_wchar_t : wchar;
 }
 alias wchar_t = __c_wchar_t;
-extern(C++)
+extern(C++) @system
 {
     bool f13289_cpp_test();
 
@@ -631,8 +631,8 @@ version (CRuntime_Microsoft)
 else
     alias c_long_double myld;
 
-extern (C++) myld testld(myld);
-extern (C++) myld testldld(myld, myld);
+extern (C++) myld testld(myld) @system;
+extern (C++) myld testldld(myld, myld) @system;
 
 
 void test15()
@@ -672,8 +672,8 @@ enum __c_ulong : x_ulong;
 alias __c_long mylong;
 alias __c_ulong myulong;
 
-extern (C++) mylong testl(mylong);
-extern (C++) myulong testul(myulong);
+extern (C++) mylong testl(mylong) @system;
+extern (C++) myulong testul(myulong) @system;
 
 
 void test16()
@@ -747,7 +747,7 @@ struct S13707
     }
 }
 
-extern(C++) S13707 func13707();
+extern(C++) S13707 func13707() @system;
 
 void test13707()
 {
@@ -763,11 +763,11 @@ struct S13932(int x)
         int member;
 }
 
-extern(C++) void func13932(S13932!(-1) s);
+extern(C++) void func13932(S13932!(-1) s) @system;
 
 /****************************************/
 
-extern(C++, N13337.M13337)
+extern(C++, N13337.M13337) @system
 {
   struct S13337{}
   void foo13337(S13337 s);
@@ -784,7 +784,7 @@ template Signature(T)
     alias Signature = typeof(*(T.init));
 }
 
-extern(C++)
+extern(C++) @system
 {
     alias del1_t = Delegate1!(Signature!(void function()));
     alias del2_t = Delegate2!(Signature!(int function(float, double)), Signature!(int function(float, double)));
@@ -807,8 +807,8 @@ template Tuple14200(T...)
   alias Tuple14200 = T;
 }
 
-extern(C++) void test14200a(Tuple14200!(int));
-extern(C++) void test14200b(float, Tuple14200!(int, double));
+extern(C++) void test14200a(Tuple14200!(int)) @system;
+extern(C++) void test14200b(float, Tuple14200!(int, double)) @system;
 
 void test14200()
 {
@@ -819,7 +819,7 @@ void test14200()
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=14956
 
-extern(C++) void test14956(S14956 s);
+extern(C++) void test14956(S14956 s) @system;
 
 /****************************************/
 // check order of overloads in vtable
@@ -844,8 +844,8 @@ extern (C++) class Visitor2 : Visitor
     int visit2(DtorExpStatement) { return 5; }
 }
 
-extern(C++) bool testVtableCpp(Visitor2 sv);
-extern(C++) Visitor2 getVisitor2();
+extern(C++) bool testVtableCpp(Visitor2 sv) @system;
+extern(C++) Visitor2 getVisitor2() @system;
 
 bool testVtableD(Visitor2 sv)
 {
@@ -876,7 +876,7 @@ void testVtable()
 
 /****************************************/
 /* problems detected by fuzzer */
-extern(C++) void fuzz1_cppvararg(int64_t arg10, int64_t arg11, bool arg12);
+extern(C++) void fuzz1_cppvararg(int64_t arg10, int64_t arg11, bool arg12) @system;
 extern(C++) void fuzz1_dvararg(int64_t arg10, int64_t arg11, bool arg12)
 {
     fuzz1_checkValues(arg10, arg11, arg12);
@@ -899,7 +899,7 @@ void fuzz1()
 }
 
 ////////
-extern(C++) void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12);
+extern(C++) void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12) @system;
 extern(C++) void fuzz2_dvararg(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
@@ -931,7 +931,7 @@ else
 
 static if (UNICODE)
 {
-extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
+extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12) @system;
 extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
@@ -963,7 +963,7 @@ void fuzz()
 
 /****************************************/
 
-extern (C++)
+extern (C++) @system
 {
     void throwit();
 }
@@ -1031,7 +1031,7 @@ else
 
 /****************************************/
 
-extern (C++) { void throwle(); void throwpe(); }
+extern (C++) @system { void throwle(); void throwpe(); }
 
 void testeh3()
 {
@@ -1075,7 +1075,7 @@ void test15576()
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15579
 
-extern (C++)
+extern (C++) @system
 {
     class Base
     {
@@ -1163,9 +1163,9 @@ extern(C++) class Base2
     void baser() { }
 }
 
-extern(C++) interface Interface2 { abstract void f(); }
+extern(C++) @system interface Interface2 { abstract void f(); }
 
-extern(C++) class Derived2 : Base2, Interface2
+extern(C++) @system class Derived2 : Base2, Interface2
 {
     final
         override void f();
@@ -1210,7 +1210,7 @@ void test15455a(X8 s)
     assert(s.b.d == 5);
 }
 
-extern (C++) void test15455b(X8 s);
+extern (C++) void test15455b(X8 s) @system;
 
 void test15455()
 {
@@ -1228,7 +1228,7 @@ void test15455()
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15372
 
-extern(C++) int foo15372(T)(int v);
+extern(C++) int foo15372(T)(int v) @system;
 
 void test15372()
 {
@@ -1240,7 +1240,7 @@ void test15372()
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15802
 
-extern(C++) {
+extern(C++) @system {
     template Foo15802(T) {
         static int boo(T v);
     }
@@ -1268,7 +1268,7 @@ void test16536()
 // https://issues.dlang.org/show_bug.cgi?id=15589
 // extern(C++) virtual destructors are not put in vtbl[]
 
-extern(C++)
+extern(C++) @system
 {
     class A15589
     {
@@ -1308,7 +1308,7 @@ void test15589()
     assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
 }
 
-extern(C++)
+extern(C++) @system
 {
     class Cpp15589Base
     {
@@ -1422,14 +1422,14 @@ extern(C++) struct Small18928
     int x;
 }
 
-extern(C++) class CC18928
+extern(C++) @system class CC18928
 {
     Small18928 getVirtual(); // { return S(3); }
     final Small18928 getFinal(); // { return S(4); }
     static Small18928 getStatic(); // { return S(5); }
 }
 
-extern(C++) CC18928 newCC18928();
+extern(C++) CC18928 newCC18928() @system;
 
 void test18928()
 {
@@ -1470,6 +1470,7 @@ void test18953()
 // https://issues.dlang.org/show_bug.cgi?id=18966
 
 extern(C++):
+@system:
 class Base18966
 {
     this() @safe nothrow;
@@ -1599,7 +1600,7 @@ alias std_string = std.basic_string!(char);
 extern(C++) void callback18955(ref const(std_string) str)
 {
 }
-extern(C++) void test18955();
+extern(C++) void test18955() @system;
 
 /****************************************/
 

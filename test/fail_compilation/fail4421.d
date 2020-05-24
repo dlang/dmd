@@ -13,15 +13,15 @@ fail_compilation/fail4421.d(18): Error: function `fail4421.U1.__invariant1` dest
 
 union U1
 {
-    this(this);
-    ~this();
+    this(this) @system;
+    ~this() @system;
     invariant() { }
 }
 
 struct S1
 {
-    this(this);
-    ~this();
+    this(this) @system;
+    ~this() @system;
     invariant() { }
 }
 

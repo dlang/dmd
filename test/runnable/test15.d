@@ -12,7 +12,7 @@ import core.vararg;
 import std.string;
 import std.stdio : File;
 
-extern (C)
+extern (C) @system
 {
     int printf(const char*, ...);
 }

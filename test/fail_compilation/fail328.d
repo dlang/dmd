@@ -6,7 +6,7 @@ fail_compilation/fail328.d(9):        `fail328.bar` is declared here
 ---
 */
 
-void bar();
+void bar() @system;
 
 @safe void foo()
 {

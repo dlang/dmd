@@ -20,7 +20,7 @@ void testArrayLength(int[] a)
 
 /***************** CallExp *******************/
 
-void barCall();
+void barCall() @system;
 
 /*
 TEST_OUTPUT:

@@ -1,7 +1,7 @@
 
 import core.stdc.stdio: fflush, stdout;
 
-extern(C) int printf(const char*, ...);
+extern(C) int printf(const char*, ...) @system;
 
 void ulog(string s)
 {

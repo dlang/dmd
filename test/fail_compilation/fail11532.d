@@ -8,8 +8,8 @@ fail_compilation/fail11532.d(20): Error: cannot pass dynamic arrays to `extern(C
 ---
 */
 
-extern(C) void cvararg(int, ...);
-extern(C++) void cppvararg(int, ...);
+extern(C) void cvararg(int, ...) @system;
+extern(C++) void cppvararg(int, ...) @system;
 
 void main()
 {

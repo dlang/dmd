@@ -25,6 +25,7 @@ else
 }
 
 extern(C++):
+@system:
 
 ref T identity (T) (ref T v);
 T** identityPP (T) (T** v);
