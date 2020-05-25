@@ -3800,6 +3800,11 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writeByte(')');
     }
 
+    void visitExpression(TypeExpression t)
+    {
+        toCBuffer(t.exp, buf, hgs);
+    }
+
     switch (t.ty)
     {
         default:        return t.isTypeBasic() ?
@@ -3827,5 +3832,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tslice:     return visitSlice(cast(TypeSlice)t);
         case Tnull:      return visitNull(cast(TypeNull)t);
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
+        case Texp:       return visitExpression(cast(TypeExpression)t);
     }
 }
