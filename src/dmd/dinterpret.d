@@ -2972,6 +2972,16 @@ public:
         }
     }
 
+    override void visit(IsExp e)
+    {
+        auto targe = e.targ.isTypeExpression();
+        assert(targe);
+        auto targ = ctfeInterpret(targe.exp);
+        auto te = targ.isTypeExp();
+        result = IntegerExp.createBool(te && te.type && te.type.ty != Terror);
+    }
+
+
     override void visit(TraitsExp e)
     {
         Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)

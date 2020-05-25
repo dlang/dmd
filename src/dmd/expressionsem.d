@@ -5546,19 +5546,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e.error("can only declare type aliases within `static if` conditionals or `static assert`s");
             return setError();
         }
-
-        auto oldgag = global.startGagging();
-
-        import dmd.asttypename;
-        printf("(IsExp: %s) (at: %s)\n", e.toChars(), e.loc.toChars());
-        printf("before sema e.trag: %s (IsAliasType: %d) ... astType: %s\n", e.targ.toChars(), e.targ.isAliasType(), e.targ.astTypeName().ptr);
-        {
-            auto res = resolve_(e.targ, e.loc, sc);
-
-        }
-
-        global.endGagging(oldgag);
-
         Type tded = null;
 
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
@@ -5591,7 +5578,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return no();
             e.targ = t;
         }
-        printf("after sema e.trag: %s ... astType: %s\n", e.targ.toChars(), e.targ.astTypeName().ptr);
+
+        if (e.targ.isTypeExpression())
+        {
+            e.type = Type.tbool;
+            result = e;
+            return ;
+        }
 
         if (e.tok2 != TOK.reserved)
         {

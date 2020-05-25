@@ -47,6 +47,7 @@ extern (C++) class RootObject
         {
             serial = ++nextSerial;
             // this.serial = atomicFetchAdd(nextSerial, 1);
+            // assert(serial != 459715);
         }
     }
 
