@@ -1,6 +1,10 @@
 module support;
 
+import core.stdc.stdarg : va_list;
+
+import dmd.console : Color;
 import dmd.frontend : DiagnosticReporter;
+import dmd.globals : Loc;
 
 /// UDA used to indicate a function should be run before each test.
 enum beforeEach;
@@ -46,8 +50,27 @@ string stripDelimited(string str)
         .chomp;
 }
 
+const struct CompilationResult
+{
+    Diagnostic[] diagnostics;
+
+    alias diagnostics this;
+
+    bool opCast(T : bool)()
+    {
+        return diagnostics.length == 0;
+    }
+
+    string toString()
+    {
+        import std.format : format;
+
+        return format!"%(%s\n%)"(diagnostics);
+    }
+}
+
 /**
- * Returns `true` if the given code compiles.
+ * Compiles the given code.
  *
  * This will run the frontend up to, including, the semantic analysis.
  *
@@ -55,25 +78,28 @@ string stripDelimited(string str)
  *  code = the code to compile
  *  filename = the filename to use when compiling the code
  *
- * Returns: `true` if the given code compiles
+ * Returns: the diagnostics reported during the compilation
  */
-bool compiles(string code, string filename = "test.d")
+CompilationResult compiles(string code, string filename = "test.d")
 {
     import dmd.globals : global;
     import std.algorithm : each;
 
     import dmd.frontend : addImport, fullSemantic, parseModule;
+    import dmd.errors : diagnosticHandler;
 
     defaultImportPaths.each!addImport;
+    auto diagnosticCollector = DiagnosticCollector();
+    diagnosticHandler = &diagnosticCollector.handleDiagnostic;
 
     auto t = parseModule(filename, code);
 
     if (t.diagnostics.hasErrors)
-        return false;
+        return CompilationResult(diagnosticCollector.diagnostics);
 
     t.module_.fullSemantic();
 
-    return global.errors == 0;
+    return CompilationResult(diagnosticCollector.diagnostics);
 }
 
 class NoopDiagnosticReporter : DiagnosticReporter
@@ -90,4 +116,63 @@ class NoopDiagnosticReporter : DiagnosticReporter
     override bool warningSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
     override bool deprecation(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
     override bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+}
+
+/// A single diagnostic.
+const struct Diagnostic
+{
+    /// The location of the diagnostic.
+    Loc location;
+
+    /// The diagnostic message.
+    string message;
+
+    string toString() nothrow
+    {
+        import dmd.root.outbuffer : OutBuffer;
+
+        auto buffer = OutBuffer();
+        buffer.printf("%s: %.*s", location.toChars(true),
+            cast(int) message.length, message.ptr);
+
+        return buffer.extractSlice;
+    }
+}
+
+/// Collects all diagnostics that are reported.
+struct DiagnosticCollector
+{
+    private Diagnostic[] diagnostics_;
+
+    /// Returns: the collected diagnostics
+    const(Diagnostic[]) diagnostics() const pure nothrow @nogc @safe
+    {
+        return diagnostics_;
+    }
+
+    /// Handles a diagnostic.
+    bool handleDiagnostic (
+        const ref Loc location,
+        Color headerColor,
+        const(char)* header,
+        const(char)* messageFormat,
+        va_list args,
+        const(char)* prefix1,
+        const(char)* prefix2
+    ) nothrow
+    {
+        import std.array : replace;
+        import dmd.root.outbuffer : OutBuffer;
+
+        auto argsBuffer = OutBuffer();
+        argsBuffer.vprintf(messageFormat, args);
+
+        auto buffer = OutBuffer();
+        buffer.printf("%s%s %s %s", header, prefix1, prefix2, argsBuffer.peekChars);
+
+        const string message = buffer.extractSlice.replace("`", "");
+        diagnostics_ ~= Diagnostic(location, message);
+
+        return true;
+    }
 }

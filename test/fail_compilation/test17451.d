@@ -40,6 +40,6 @@ struct ThreadSlot {
         ArraySet!Task tasks;
 }
 
-class Libevent2ManualEvent {
+class Libevent2ManualEvent : ManualEvent {
         HashMap!ThreadSlot m_waiters;
 }
