@@ -289,6 +289,7 @@ enum ENUMTY : int
     Tuns128,
     Ttraits,
     Tmixin,
+    Texp,
     TMAX,
 }
 
@@ -339,6 +340,7 @@ alias Tint128 = ENUMTY.Tint128;
 alias Tuns128 = ENUMTY.Tuns128;
 alias Ttraits = ENUMTY.Ttraits;
 alias Tmixin = ENUMTY.Tmixin;
+alias Texp = ENUMTY.Texp;
 alias TMAX = ENUMTY.TMAX;
 
 alias TY = ubyte;
@@ -507,6 +509,7 @@ extern (C++) abstract class Type : ASTNode
             sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
             sizeTy[Ttraits] = __traits(classInstanceSize, TypeTraits);
             sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
+            sizeTy[Texp] = __traits(classInstanceSize, TypeExpression);
             return sizeTy;
         }();
 
@@ -2708,6 +2711,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
         inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
+        inout(TypeExpression) isTypeExpression() { return ty == Texp       ? cast(typeof(return))this : null; }
     }
 
     override void accept(Visitor v)
@@ -5438,6 +5442,48 @@ extern (C++) final class TypeTraits : Type
 }
 
 /******
+ * Type Expressions.
+ *
+ * Those are Wrapper types which are required to represnt
+ * A reference to an alias variable when it is used in place of a type
+ *
+ * We should only see this one in type functions.
+ */
+extern (C++) final class TypeExpression : Type
+{
+    Loc loc;
+    Expression exp;
+
+    extern (D) this(const ref Loc loc, Expression exp)
+    {
+        super(Texp);
+        this.loc = loc;
+        this.exp = exp;
+    }
+
+    override const(char)* kind() const
+    {
+        return "type-expression";
+    }
+
+    override Type syntaxCopy()
+    {
+        return new TypeExpression(loc, exp.syntaxCopy());
+    }
+
+    override Dsymbol toDsymbol(Scope* sc)
+    {
+        return getDsymbol(exp);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+
+/******
  * Implements mixin types.
  *
  * Semantic analysis will convert it to a real type.
@@ -7246,6 +7292,7 @@ bool isCopyable(Type t)
  */
 static bool isAliasType(Type t)
 {
+    // printf("isAliasType: %s\n", t.toChars());
     static Type[128] prevTypes;
     static size_t n = 0;
     prevTypes[n++] = t;
@@ -7267,18 +7314,20 @@ static bool isAliasType(Type t)
         }
     }
 
+    Type tnext = null;
+    tnext = t.nextOf();
+    //printf("tnext: %s\n", tnext.toChars());
+
+
     foreach(idx;0 .. n)
     {
         // crappy protection against infinite recursion
-        if (t == prevTypes[idx])
+        if (tnext is prevTypes[idx])
         {
             // printf("exiting because we're seeing %s again\n", t.toChars());
             return false;
         }
     }
-    Type tnext = null;
-
-    tnext = t.nextOf();
 
     return tnext ? isAliasType(tnext) : false;
 }
