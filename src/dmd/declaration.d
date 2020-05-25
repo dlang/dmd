@@ -1339,7 +1339,7 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool isCTFE()
     {
-        return (storage_class & STC.ctfe) != 0; // || !isDataseg();
+        return ((storage_class & STC.ctfe) != 0)  || isAliasType(type);
     }
 
     final bool isOverlappedWith(VarDeclaration v)
