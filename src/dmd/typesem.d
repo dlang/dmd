@@ -1678,6 +1678,11 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 Dsymbol varDecl = mtype.toDsymbol(sc);
                 const(Loc) varDeclLoc = varDecl.getLoc();
                 Module varDeclModule = varDecl.getModule();
+                // special special case when the variable is a type variable
+                if (e.type.isAliasType())
+                {
+                    return new TypeExpression(e.loc, e).addMod(mtype.mod);
+                }
 
                 .error(loc, "variable `%s` is used as a type", mtype.toChars());
 
