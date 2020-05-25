@@ -81,7 +81,7 @@ struct Location
     size_t address;
 }
 
-int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
+int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
 {
     import core.stdc.stdio : snprintf;
     import core.sys.posix.stdlib : free;

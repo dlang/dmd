@@ -926,11 +926,11 @@ version (CoreUnittest)
 
         testXCHG!(shared int)(42);
 
-        testType!(float)(1.0f);
+        testType!(float)(0.1f);
 
         static if (has64BitCAS)
         {
-            testType!(double)(1.0);
+            testType!(double)(0.1);
             testType!(long)();
             testType!(ulong)();
         }
@@ -970,15 +970,15 @@ version (CoreUnittest)
         atomicOp!"-="(i, cast(size_t) 1);
         assert(i == 0);
 
-        shared float f = 0;
-        atomicOp!"+="(f, 1);
-        assert(f == 1);
+        shared float f = 0.1f;
+        atomicOp!"+="(f, 0.1f);
+        assert(f > 0.1999f && f < 0.2001f);
 
         static if (has64BitCAS)
         {
-            shared double d = 0;
-            atomicOp!"+="(d, 1);
-            assert(d == 1);
+            shared double d = 0.1;
+            atomicOp!"+="(d, 0.1);
+            assert(d > 0.1999 && d < 0.2001);
         }
     }
 

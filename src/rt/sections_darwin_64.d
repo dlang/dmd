@@ -11,10 +11,6 @@
  */
 module rt.sections_darwin_64;
 
-import core.sys.darwin.mach.dyld;
-import core.sys.darwin.mach.getsect;
-import core.sys.posix.pthread;
-
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -26,6 +22,12 @@ else version (WatchOS)
 
 version (Darwin):
 version (D_LP64):
+
+import core.sys.darwin.mach.dyld;
+import core.sys.darwin.mach.getsect;
+import core.sys.posix.pthread;
+
+import rt.util.utility : safeAssert;
 
 extern (C) size_t malloc_size(const void* ptr) nothrow @nogc;
 
@@ -175,4 +177,29 @@ const(section_64)[] sections(const segment_command_64* segment) pure nothrow @no
     const size = segment_command_64.sizeof;
     const firstSection = cast(const(section_64)*)(cast(ubyte*) segment + size);
     return firstSection[0 .. segment.nsects];
+}
+
+/// Invokes the specified delegate for each (non-empty) data section.
+void foreachDataSection(in mach_header* header, intptr_t slide,
+                        scope void delegate(void[] sectionData) processor)
+{
+    foreach (section; [ SECT_DATA, SECT_BSS, SECT_COMMON ])
+    {
+        auto data = getSection(header, slide, SEG_DATA.ptr, section.ptr);
+        if (data !is null)
+            processor(data);
+    }
+}
+
+/// Returns a section's memory range, or null if not found or empty.
+void[] getSection(in mach_header* header, intptr_t slide,
+                  in char* segmentName, in char* sectionName)
+{
+    safeAssert(header.magic == MH_MAGIC_64, "Unsupported header.");
+    auto sect = getsectbynamefromheader_64(cast(mach_header_64*) header,
+                                           segmentName, sectionName);
+
+    if (sect !is null && sect.size > 0)
+        return (cast(void*)sect.addr + slide)[0 .. cast(size_t) sect.size];
+    return null;
 }

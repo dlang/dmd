@@ -820,7 +820,7 @@ static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
 
             alias traceHandlerOpApplyImpl = externDFunc!(
                 "rt.backtrace.dwarf.traceHandlerOpApplyImpl",
-                int function(const void*[], scope int delegate(ref size_t, ref const(char[])))
+                int function(const(void*)[], scope int delegate(ref size_t, ref const(char[])))
                 );
 
             if (numframes >= FIRSTFRAME)
