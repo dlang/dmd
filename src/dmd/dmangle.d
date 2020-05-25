@@ -211,6 +211,7 @@ private immutable char[TMAX] mangleChar =
     Ttraits      : '@',
     Tmixin       : '@',
     Talias       : '@',
+    Texp         : '@',
 ];
 
 unittest
