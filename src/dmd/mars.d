@@ -227,7 +227,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     sections.push("Environment");
     parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
 
-    const(char)* arch = params.is64bit ? "64" : "32"; // use default
+    const(char)[] arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
@@ -241,12 +241,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     bool is64bit = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-        if (is64bit || strcmp(arch, "32mscoff") == 0)
+        if (is64bit || arch == "32mscoff")
             environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section
     char[80] envsection = void;
-    sprintf(envsection.ptr, "Environment%s", arch);
+    sprintf(envsection.ptr, "Environment%.*s", cast(int) arch.length, arch.ptr);
     sections.push(envsection.ptr);
     parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
@@ -1049,15 +1049,17 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  *   "32", "64" or "32mscoff" if the "-m32", "-m64", "-m32mscoff" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
-const(char)* parse_arch_arg(Strings* args, const(char)* arch)
+const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 {
     foreach (const p; *args)
     {
-        if (p[0] == '-')
+        const(char)[] arg = p.toDString;
+
+        if (arg.length && arg[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
-                arch = p + 2;
-            else if (strcmp(p + 1, "run") == 0)
+            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m32mscoff" || arg[1 .. $] == "m64")
+                arch = arg[2 .. $];
+            else if (arg[1 .. $] == "run")
                 break;
         }
     }
@@ -1428,9 +1430,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 {
     bool errors;
 
-    void error(const(char)* format, const(char*) arg = null)
+    void error(Args ...)(const(char)* format, Args args)
     {
-        dmd.errors.error(Loc.initial, format, arg);
+        dmd.errors.error(Loc.initial, format, args);
         errors = true;
     }
 
@@ -1457,7 +1459,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     If a help argument has been used, it will set the `usageFlag`.
 
     Params:
-        p = 0 terminated string
+        p = string as a D array
         usageFlag = parameter for the usage help page to set (by `ref`)
         missingMsg = error message to use when no argument has been provided
 
@@ -1466,23 +1468,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         `error` if an error occurred (e.g. `-foobar`)
         `help` if a help page has been request (e.g. `-flag` or `-flag=h`)
     */
-    CheckOptions checkOptions(const(char)* p, ref bool usageFlag, string missingMsg)
+    CheckOptions checkOptions(const(char)[] p, ref bool usageFlag, string missingMsg)
     {
         // Checks whether a flag has no options (e.g. -foo or -foo=)
-        if (*p == 0 || *p == '=' && !p[1])
+        if (p.length == 0 || p == "=")
         {
             .error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
             errors = true;
             usageFlag = true;
             return CheckOptions.help;
         }
-        if (*p != '=')
+        if (p[0] != '=')
             return CheckOptions.error;
-        p++;
+        p = p[1 .. $];
         /* Checks whether the option pointer supplied is a request
            for the help page, e.g. -foo=j */
-        if (((*p == 'h' || *p == '?') && !p[1]) || // -flag=h || -flag=?
-            strcmp(p, "help") == 0)
+        if ((p == "h" || p == "?") || // -flag=h || -flag=?
+             p == "help")
         {
             usageFlag = true;
             return CheckOptions.help;
@@ -1493,7 +1495,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     static string checkOptionsMixin(string usageFlag, string missingMsg)
     {
         return q{
-            final switch (checkOptions(p + len - 1, params.}~usageFlag~","~
+            final switch (checkOptions(arg[len - 1 .. $], params.}~usageFlag~","~
                           `"`~missingMsg~`"`~q{))
             {
                 case CheckOptions.error:
@@ -1507,12 +1509,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     }
 
     import dmd.cli : Usage;
-    bool parseCLIOption(string name, Usage.Feature[] features)(ref Param params, const(char)* p)
+    bool parseCLIOption(string name, Usage.Feature[] features)(ref Param params, const(char)[] p)
     {
         // Parse:
         //      -<name>=<feature>
-        const ps = p + name.length + 1;
-        if (Identifier.isValidIdentifier(ps + 1))
+        const(char)[] ps = p[name.length + 1 .. $];
+        const(char)[] ident = ps[1 .. $];
+        if (Identifier.isValidIdentifier(ident))
         {
             string generateTransitionsText()
             {
@@ -1536,8 +1539,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 return buf;
             }
-            const ident = ps + 1;
-            switch (ident.toDString())
+
+            switch (ident)
             {
                 mixin(generateTransitionsText());
             default:
@@ -1596,16 +1599,21 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-checkaction=".length;
             mixin(checkOptionsMixin("checkActionUsage",
                 "`-check=<behavior>` requires a behavior"));
-            if (strcmp(p + len, "D") == 0)
-                params.checkAction = CHECKACTION.D;
-            else if (strcmp(p + len, "C") == 0)
-                params.checkAction = CHECKACTION.C;
-            else if (strcmp(p + len, "halt") == 0)
-                params.checkAction = CHECKACTION.halt;
-            else if (strcmp(p + len, "context") == 0)
-                params.checkAction = CHECKACTION.context;
-            else
+            switch (arg[len .. $])
             {
+            case "D":
+                params.checkAction = CHECKACTION.D;
+                break;
+            case "C":
+                params.checkAction = CHECKACTION.C;
+                break;
+            case "halt":
+                params.checkAction = CHECKACTION.halt;
+                break;
+            case "context":
+                params.checkAction = CHECKACTION.context;
+                break;
+            default:
                 errorInvalidSwitch(p);
                 params.checkActionUsage = true;
                 return false;
@@ -1621,19 +1629,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
              */
 
             // Check for legal option string; return true if so
-            static bool check(const(char)* p, string name, ref CHECKENABLE ce)
+            static bool check(const(char)[] checkarg, string name, ref CHECKENABLE ce)
             {
-                p += len;
-                if (startsWith(p, name))
+                if (checkarg.length >= name.length &&
+                    checkarg[0 .. name.length] == name)
                 {
-                    p += name.length;
-                    if (*p == 0 ||
-                        strcmp(p, "=on") == 0)
+                    checkarg = checkarg[name.length .. $];
+
+                    if (checkarg.length == 0 ||
+                        checkarg == "=on")
                     {
                         ce = CHECKENABLE.on;
                         return true;
                     }
-                    else if (strcmp(p, "=off") == 0)
+                    else if (checkarg == "=off")
                     {
                         ce = CHECKENABLE.off;
                         return true;
@@ -1642,12 +1651,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
 
-            if (!(check(p, "assert",    params.useAssert     ) ||
-                  check(p, "bounds",    params.useArrayBounds) ||
-                  check(p, "in",        params.useIn         ) ||
-                  check(p, "invariant", params.useInvariants ) ||
-                  check(p, "out",       params.useOut        ) ||
-                  check(p, "switch",    params.useSwitchError)))
+            const(char)[] checkarg = arg[len .. $];
+            if (!(check(checkarg, "assert",    params.useAssert     ) ||
+                  check(checkarg, "bounds",    params.useArrayBounds) ||
+                  check(checkarg, "in",        params.useIn         ) ||
+                  check(checkarg, "invariant", params.useInvariants ) ||
+                  check(checkarg, "out",       params.useOut        ) ||
+                  check(checkarg, "switch",    params.useSwitchError)))
             {
                 errorInvalidSwitch(p);
                 params.checkUsage = true;
@@ -1661,12 +1671,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -color=auto|on|off
             if (p[6] == '=')
             {
-                if (strcmp(p + 7, "on") == 0)
-                    params.color = true;
-                else if (strcmp(p + 7, "off") == 0)
-                    params.color = false;
-                else if (strcmp(p + 7, "auto") != 0)
+                switch(arg[7 .. $])
                 {
+                case "on":
+                    params.color = true;
+                    break;
+                case "off":
+                    params.color = false;
+                    break;
+                case "auto":
+                    break;
+                default:
                     errorInvalidSwitch(p, "Available options for `-color` are `on`, `off` and `auto`");
                     return true;
                 }
@@ -1789,11 +1804,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("-m32mscoff can only be used on windows");
             }
         }
-        else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
+        else if (startsWith(p + 1, "mscrtlib="))
         {
             static if (TARGET.Windows)
             {
-                params.mscrtlib = (p + 10).toDString;
+                params.mscrtlib = arg[10 .. $];
             }
             else
             {
@@ -1807,7 +1822,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -profile=gc
             if (p[8] == '=')
             {
-                if (strcmp(p + 9, "gc") == 0)
+                if (arg[9 .. $] == "gc")
                     params.tracegc = true;
                 else
                 {
@@ -1853,14 +1868,19 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "verror-style="))
         {
-            const style = p + 1 + "verror-style=".length;
+            const(char)[] style = arg["verror-style=".length + 1 .. $];
 
-            if (strcmp(style, "digitalmars") == 0)
+            switch (style)
+            {
+            case "digitalmars":
                 params.messageStyle = MessageStyle.digitalmars;
-            else if (strcmp(style, "gnu") == 0)
+                break;
+            case "gnu":
                 params.messageStyle = MessageStyle.gnu;
-            else
-                error("unknown error style '%s', must be 'digitalmars' or 'gnu'", style);
+                break;
+            default:
+                error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
+            }
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
@@ -1906,16 +1926,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -extern-std=identifier
             mixin(checkOptionsMixin("externStdUsage",
                 "`-extern-std=<standard>` requires a standard"));
-            if (strcmp(p + len, "c++98") == 0)
-                params.cplusplus = CppStdRevision.cpp98;
-            else if (strcmp(p + len, "c++11") == 0)
-                params.cplusplus = CppStdRevision.cpp11;
-            else if (strcmp(p + len, "c++14") == 0)
-                params.cplusplus = CppStdRevision.cpp14;
-            else if (strcmp(p + len, "c++17") == 0)
-                params.cplusplus = CppStdRevision.cpp17;
-            else
+            const(char)[] cpprev = arg[len .. $];
+
+            switch (cpprev)
             {
+            case "c++98":
+                params.cplusplus = CppStdRevision.cpp98;
+                break;
+            case "c++11":
+                params.cplusplus = CppStdRevision.cpp11;
+                break;
+            case "c++14":
+                params.cplusplus = CppStdRevision.cpp14;
+                break;
+            case "c++17":
+                params.cplusplus = CppStdRevision.cpp17;
+                break;
+            default:
                 error("Switch `%s` is invalid", p);
                 params.externStdUsage = true;
                 return false;
@@ -1928,7 +1955,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -transition=number
             mixin(checkOptionsMixin("transitionUsage",
                 "`-transition=<name>` requires a name"));
-            if (!parseCLIOption!("transition", Usage.transitions)(params, p))
+            if (!parseCLIOption!("transition", Usage.transitions)(params, arg))
             {
                 // Legacy -transition flags
                 // Before DMD 2.085, DMD `-transition` was used for all language flags
@@ -1993,7 +2020,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             mixin(checkOptionsMixin("previewUsage",
                 "`-preview=<name>` requires a name"));
 
-            if (!parseCLIOption!("preview", Usage.previews)(params, p))
+            if (!parseCLIOption!("preview", Usage.previews)(params, arg))
             {
                 error("Preview `%s` is invalid", p);
                 params.previewUsage = true;
@@ -2016,7 +2043,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             mixin(checkOptionsMixin("revertUsage",
                 "`-revert=<name>` requires a name"));
 
-            if (!parseCLIOption!("revert", Usage.reverts)(params, p))
+            if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
             {
                 error("Revert `%s` is invalid", p);
                 params.revertUsage = true;
@@ -2239,20 +2266,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -boundscheck=[on|safeonly|off]
             if (p[12] == '=')
             {
-                if (strcmp(p + 13, "on") == 0)
+                const(char)[] boundscheck = arg[13 .. $];
+
+                switch (boundscheck)
                 {
+                case "on":
                     params.boundscheck = CHECKENABLE.on;
-                }
-                else if (strcmp(p + 13, "safeonly") == 0)
-                {
+                    break;
+                case "safeonly":
                     params.boundscheck = CHECKENABLE.safeonly;
-                }
-                else if (strcmp(p + 13, "off") == 0)
-                {
+                    break;
+                case "off":
                     params.boundscheck = CHECKENABLE.off;
-                }
-                else
+                    break;
+                default:
                     goto Lerror;
+                }
             }
             else
                 goto Lerror;
@@ -2402,13 +2431,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             size_t length = argc - i - 1;
             if (length)
             {
-                const(char)[] ext = FileName.ext(arguments[i + 1].toDString());
+                const(char)[] runarg = arguments[i + 1].toDString();
+                const(char)[] ext = FileName.ext(runarg);
                 if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
                 {
                     error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
                     break;
                 }
-                if (strcmp(arguments[i + 1], "-") == 0)
+                if (runarg == "-")
                     files.push("__stdin.d");
                 else
                     files.push(arguments[i + 1]);
