@@ -32,6 +32,7 @@ import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -84,7 +85,7 @@ void rmdeadass();
 void elimass(elem *);
 void deadvar();
 void verybusyexp();
-list_t listrds(vec_t, elem *, vec_t);
+Barray!(elem*) listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
 void sliceStructs(symtab_t*, block*);

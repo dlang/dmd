@@ -61,9 +61,9 @@ nothrow:
     Elemdata *next;         // linked list
     elem *pelem;            // the elem in question
     block *pblock;          // which block it's in
-    list_t  rdlist;         // list of definition elems for *pelem
+    Barray!(elem*) rdlist;  // list of definition elems for *pelem
 
-    static Elemdata *ctor(elem *e,block *b,list_t rd)
+    static Elemdata *ctor(elem *e,block *b, Barray!(elem*) rd)
     {
         Elemdata* ed = cast(Elemdata *) calloc(1, Elemdata.sizeof);
         assert(ed);
@@ -103,7 +103,7 @@ private void elemdatafree(Elemdata **plist)
 
     for (Elemdata *el = *plist; el; el = eln)
     {   eln = el.next;
-        list_free(&el.rdlist);
+        el.rdlist.dtor();
         free(el);
     }
     *plist = null;
@@ -279,9 +279,8 @@ private void conpropwalk(elem *n,vec_t IN)
                 if (OTopeq(op) && sytab[t.EV.Vsym.Sclass] & SCRD)
                 {
                     elem *e;
-                    list_t rdl;
 
-                    rdl = listrds(IN,t,null);
+                    auto rdl = listrds(IN,t,null);
                     if (!(config.flags & CFGnowarning)) // if warnings are enabled
                         chkrd(t,rdl);
                     e = chkprop(t,rdl);
@@ -293,7 +292,7 @@ private void conpropwalk(elem *n,vec_t IN)
                         n.EV.E2 = el_bin(opeqtoop(op),n.Ety,e,n.EV.E2);
                         n.Eoper = OPeq;
                     }
-                    list_free(&rdl);
+                    rdl.dtor();
                 }
             }
             else
@@ -375,10 +374,8 @@ private void conpropwalk(elem *n,vec_t IN)
     /* propagate a constant.                                */
     if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
     {
-        list_t rdl;
-
         //printf("const prop: %s\n", n.EV.Vsym.Sident);
-        rdl = listrds(IN,n,null);
+        auto rdl = listrds(IN,n,null);
 
         if (!(config.flags & CFGnowarning))     // if warnings are enabled
             chkrd(n,rdl);
@@ -390,7 +387,7 @@ private void conpropwalk(elem *n,vec_t IN)
             el_copy(n,e);
             n.Ety = nty;                       // retain original type
         }
-        list_free(&rdl);
+        rdl.dtor();
     }
 }
 
@@ -398,7 +395,7 @@ private void conpropwalk(elem *n,vec_t IN)
  * Give error if there are no reaching defs for variable v.
  */
 
-private void chkrd(elem *n,list_t rdlist)
+private void chkrd(elem *n, Barray!(elem*) rdlist)
 {
     Symbol *sv;
     int unambig;
@@ -410,9 +407,8 @@ private void chkrd(elem *n,list_t rdlist)
     if (sv.ty() & (mTYvolatile | mTYshared))
         return;
     unambig = sv.Sflags & SFLunambig;
-    foreach (l; ListRange(rdlist))
-    {   elem *d = cast(elem *) list_ptr(l);
-
+    foreach (d; rdlist)
+    {
         elem_debug(d);
         if (d.Eoper == OPasm)          /* OPasm elems ruin everything  */
             return;
@@ -508,7 +504,7 @@ private void chkrd(elem *n,list_t rdlist)
  *      e       constant elem that we should replace n with
  */
 
-private elem * chkprop(elem *n,list_t rdlist)
+private elem * chkprop(elem *n, Barray!(elem*) rdlist)
 {
     elem *foundelem = null;
     int unambig;
@@ -528,10 +524,8 @@ private elem * chkprop(elem *n,list_t rdlist)
     nsize = cast(uint)size(nty);
     noff = n.EV.Voffset;
     unambig = sv.Sflags & SFLunambig;
-    foreach (l; ListRange(rdlist))
+    foreach (d; rdlist)
     {
-        elem *d = cast(elem *) list_ptr(l);
-
         elem_debug(d);
 
         //printf("\trd: "); WReqn(d); printf("\n");
@@ -614,11 +608,15 @@ noprop:
 
 /***********************************
  * Find all the reaching defs of OPvar e.
- * Put into a linked list, or just set the RD bits in a vector.
- *
+ * Params:
+ *      IN = vector of definition nodes
+ *      e = OPvar
+ *      f = if not null, set RD bits in it
+ * Returns:
+ *      (f) ? null : array of reaching defs
  */
 
-extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
+Barray!(elem*) listrds(vec_t IN,elem *e,vec_t f)
 {
     uint i;
     uint unambig;
@@ -629,7 +627,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
 
     //printf("listrds: "); WReqn(e); printf("\n");
     assert(IN);
-    list_t rdlist = null;
+    Barray!(elem*) rdlist;
     assert(e.Eoper == OPvar);
     s = e.EV.Vsym;
     ty = e.Ety;
@@ -671,7 +669,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
         if (f)
             vec_setbit(i,f);
         else
-            list_prepend(&rdlist,d);     // add the definition node
+            rdlist.push(d);     // add the definition node
     }
     return rdlist;
 }
@@ -700,9 +698,8 @@ private void eqeqranges()
         c = el_tolong(e.EV.E2);
 
         result = -1;                    // result not known yet
-        foreach (rdl; ListRange(rel.rdlist))
+        foreach (erd; rel.rdlist)
         {
-            elem *erd = cast(elem *) list_ptr(rdl);
             elem *erd1;
             int szrd;
             int tmp;
@@ -768,17 +765,17 @@ private void intranges()
             continue;
 
         /* Look for two rd's: an = and an increment     */
-        if (list_nitems(rel.rdlist) != 2)
+        if (rel.rdlist.length != 2)
             continue;
-        rdeq = list_elem(list_next(rel.rdlist));
+        rdeq = rel.rdlist[1];
         if (rdeq.Eoper != OPeq)
         {   rdinc = rdeq;
-            rdeq = list_elem(rel.rdlist);
+            rdeq = rel.rdlist[0];
             if (rdeq.Eoper != OPeq)
                 continue;
         }
         else
-            rdinc = list_elem(rel.rdlist);
+            rdinc = rel.rdlist[0];
 
         static if (0)
         {
@@ -810,13 +807,13 @@ private void intranges()
             ib = iel.pblock;
             if (iel.pelem != rdinc)
                 continue;               /* not our increment elem       */
-            if (list_nitems(iel.rdlist) != 2)
+            if (iel.rdlist.length != 2)
             {
                 //printf("!= 2\n");
                 goto nextrel;
             }
-            rd1 = list_elem(iel.rdlist);
-            rd2 = list_elem(list_next(iel.rdlist));
+            rd1 = iel.rdlist[0];
+            rd2 = iel.rdlist[1];
             /* The rd's for the relational elem (rdeq,rdinc) must be    */
             /* the same as the rd's for tne increment elem (rd1,rd2).   */
             if (rd1 == rdeq && rd2 == rdinc || rd1 == rdinc && rd2 == rdeq)
@@ -959,13 +956,13 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 
 
     // Look for one reaching definition: an increment
-    if (list_nitems(rel.rdlist) != 1)
+    if (rel.rdlist.length != 1)
     {
-        if (log) printf("\tnitems = %d\n", list_nitems(rel.rdlist));
+        if (log) printf("\tnitems = %d\n", cast(int)rel.rdlist.length);
         return returnResult(false);
     }
 
-    rdinc = list_elem(rel.rdlist);
+    rdinc = rel.rdlist[0];
 
     static if (0)
     {
@@ -993,13 +990,13 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
      *   the increment itself
      * We already have the increment (as rdinc), but need the initialization (rdeq)
      */
-    if (list_nitems(iel.rdlist) != 2)
+    if (iel.rdlist.length != 2)
     {
         if (log) printf("nitems != 2\n");
         return returnResult(false);
     }
-    elem *rd1 = list_elem(iel.rdlist);
-    elem *rd2 = list_elem(list_next(iel.rdlist));
+    elem *rd1 = iel.rdlist[0];
+    elem *rd2 = iel.rdlist[1];
     if (rd1 == rdinc)
         rdeq = rd2;
     else if (rd2 == rdinc)

@@ -128,7 +128,7 @@ void rmdeadass();
 void elimass(elem *);
 void deadvar();
 void verybusyexp();
-extern (C) list_t listrds(vec_t, elem *, vec_t);
+Barray!(elem*) listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
 void sliceStructs(symtab_t* symtab, block* startblock);
