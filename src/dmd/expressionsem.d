@@ -10903,12 +10903,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             static auto extractTypeTupAndExpTup(Expression e)
             {
-                static struct Result { bool ttEmpty; TupleExp te; }
+                static struct Result { bool ttEmpty; bool te; }
                 auto tt = e.op == TOK.type ? e.isTypeExp().type.isTypeTuple() : null;
-                return Result(tt && ((tt.arguments && !tt.arguments.dim) || !tt.arguments), e.isTupleExp());
+                return Result(tt && (!tt.arguments || !tt.arguments.dim), e.isTupleExp() !is null);
             }
             auto tups1 = extractTypeTupAndExpTup(exp.e1);
             auto tups2 = extractTypeTupAndExpTup(exp.e2);
+            // AliasSeq!() == AliasSeq!(<at least a value>)
             if (tups1.ttEmpty && tups2.te)
             {
                 result = IntegerExp.createBool(exp.op != TOK.equal);
