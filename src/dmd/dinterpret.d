@@ -2302,6 +2302,13 @@ public:
                     result = CTFEExp.cantexp;
                 }
             }
+            else if (v.type.ty == Talias)
+            {
+                // Hack
+                // We have to set values for talias.
+                result = v.type.defaultInitLiteral(e.loc);
+                setValue(v, result);
+            }
             else if (v.type.size() == 0)
             {
                 // Zero-length arrays don't need an initializer
