@@ -77,8 +77,8 @@ public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
     //printf("InlineAsmStatement.semantic()\n");
 
     OP *o;
-    OPND opnd1, opnd2, opnd3, opnd4;
-    OPND* o1, o2, o3, o4;
+    OPND[4] opnds;
+    int nOps;
     PTRNTAB ptb;
     int usNumops;
 
@@ -179,23 +179,23 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             // get the first part of an expr
             if (asmstate.tokValue != TOK.endOfFile)
             {
-                asm_cond_exp(opnd1);
-                o1 = &opnd1;
+                asm_cond_exp(opnds[0]);
+                nOps = 1;
                 if (asmstate.tokValue == TOK.comma)
                 {
                     asm_token();
-                    asm_cond_exp(opnd2);
-                    o2 = &opnd2;
+                    asm_cond_exp(opnds[1]);
+                    nOps = 2;
                     if (asmstate.tokValue == TOK.comma)
                     {
                         asm_token();
-                        asm_cond_exp(opnd3);
-                        o3 = &opnd3;
+                        asm_cond_exp(opnds[2]);
+                        nOps = 3;
                         if (asmstate.tokValue == TOK.comma)
                         {
                             asm_token();
-                            asm_cond_exp(opnd4);
-                            o4 = &opnd4;
+                            asm_cond_exp(opnds[3]);
+                            nOps = 4;
                         }
                     }
                 }
@@ -204,7 +204,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
 
-            ptb = asm_classify(o, o1, o2, o3, o4, usNumops);
+            ptb = asm_classify(o, opnds[0 .. nOps], usNumops);
             assert(ptb.pptb0);
 
             //
@@ -214,19 +214,18 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             //
 
             if (asmstate.ucItype == ITopt &&
-                    (usNumops == 2) &&
-                    (ASM_GET_aopty(o2.usFlags) == _imm) &&
-                    ((o.usNumops & ITSIZE) == 3) &&
-                    o2 && !o3)
+                    nOps == 2 && usNumops == 2 &&
+                    (ASM_GET_aopty(opnds[1].usFlags) == _imm) &&
+                    ((o.usNumops & ITSIZE) == 3))
             {
-                o3 = o2;
-                o2 = &opnd3;
-                *o2 = *o1;
+                nOps = 3;
+                opnds[2] = opnds[1];
+                opnds[1] = opnds[0];
 
                 // Re-classify the opcode because the first classification
                 // assumed 2 operands.
 
-                ptb = asm_classify(o, o1, o2, o3, o4, usNumops);
+                ptb = asm_classify(o, opnds[0 .. nOps], usNumops);
             }
             else
             {
@@ -240,7 +239,7 @@ version (none)
                 }
 }
             }
-            s.asmcode = asm_emit(s.loc, usNumops, ptb, o, o1, o2, o3, o4);
+            s.asmcode = asm_emit(s.loc, usNumops, ptb, o, opnds[0 .. nOps]);
             break;
 
         default:
@@ -663,8 +662,7 @@ void asm_chktok(TOK toknum, const(char)* msg)
 /*******************************
  */
 
-PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
-        OPND *popnd3, OPND *popnd4, out int outNumops)
+PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
 {
     uint usNumops;
     opflag_t opflags1 = 0 ;
@@ -674,6 +672,11 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     bool    bInvalid64bit = false;
 
     bool   bRetry = false;
+
+    OPND* popnd1 = opnds.length >= 1 ? &opnds[0] : null;
+    OPND* popnd2 = opnds.length >= 2 ? &opnds[1] : null;
+    OPND* popnd3 = opnds.length >= 3 ? &opnds[2] : null;
+    OPND* popnd4 = opnds.length >= 4 ? &opnds[3] : null;
 
     // How many arguments are there?  the parser is strictly left to right
     // so this should work.
@@ -1366,8 +1369,7 @@ opflag_t asm_determine_operand_flags(OPND *popnd)
 
 code *asm_emit(Loc loc,
     uint usNumops, PTRNTAB ptb,
-    OP *pop,
-    OPND *popnd1, OPND *popnd2, OPND *popnd3, OPND *popnd4)
+    OP *pop, OPND[] opnds)
 {
     ubyte[16] auchOpcode;
     uint usIdx = 0;
@@ -1395,6 +1397,11 @@ code *asm_emit(Loc loc,
     ASM_MODIFIERS       amodTable1 = _normal,
                         amodTable2 = _normal;
     uint            uRegmaskTable1 = 0, uRegmaskTable2 =0;
+
+    OPND* popnd1 = opnds.length >= 1 ? &opnds[0] : null;
+    OPND* popnd2 = opnds.length >= 2 ? &opnds[1] : null;
+    OPND* popnd3 = opnds.length >= 3 ? &opnds[2] : null;
+    OPND* popnd4 = opnds.length >= 4 ? &opnds[3] : null;
 
     pc = code_calloc();
     pc.Iflags |= CFpsw;            // assume we want to keep the flags
