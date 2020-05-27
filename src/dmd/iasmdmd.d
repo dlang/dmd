@@ -44,6 +44,7 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;
+import dmd.backend.ptrntab : asm_opstr, asm_op_lookup, init_optab;
 import dmd.backend.xmm;
 
 //debug = EXTRA_DEBUG;
@@ -343,13 +344,6 @@ struct ASM_STATE
 
 __gshared ASM_STATE asmstate;
 
-// From ptrntab.c
-extern (C++)
-{
-    const(char)* asm_opstr(OP *pop);
-    OP *asm_op_lookup(const(char)* s);
-    void init_optab();
-}
 
 /**
  * Describes a register
