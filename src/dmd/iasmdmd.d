@@ -664,56 +664,18 @@ void asm_chktok(TOK toknum, const(char)* msg)
 
 PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
 {
-    uint usNumops;
-    opflag_t opflags1 = 0 ;
-    opflag_t opflags2 = 0;
-    opflag_t opflags3 = 0;
-    opflag_t opflags4 = 0;
+    opflag_t[4] opflags;
     bool    bInvalid64bit = false;
 
     bool   bRetry = false;
 
-    OPND* popnd1 = opnds.length >= 1 ? &opnds[0] : null;
-    OPND* popnd2 = opnds.length >= 2 ? &opnds[1] : null;
-    OPND* popnd3 = opnds.length >= 3 ? &opnds[2] : null;
-    OPND* popnd4 = opnds.length >= 4 ? &opnds[3] : null;
-
     // How many arguments are there?  the parser is strictly left to right
     // so this should work.
-
-    if (!popnd1)
+    foreach (i, ref opnd; opnds)
     {
-        usNumops = 0;
+        opnd.usFlags = opflags[i] = asm_determine_operand_flags(opnd);
     }
-    else
-    {
-        popnd1.usFlags = opflags1 = asm_determine_operand_flags(popnd1);
-        if (!popnd2)
-        {
-            usNumops = 1;
-        }
-        else
-        {
-            popnd2.usFlags = opflags2 = asm_determine_operand_flags(popnd2);
-            if (!popnd3)
-            {
-                usNumops = 2;
-            }
-            else
-            {
-                popnd3.usFlags = opflags3 = asm_determine_operand_flags(popnd3);
-                if (!popnd4)
-                {
-                    usNumops = 3;
-                }
-                else
-                {
-                    popnd4.usFlags = opflags4 = asm_determine_operand_flags(popnd4);
-                    usNumops = 4;
-                }
-            }
-        }
-    }
+    const usNumops = cast(int)opnds.length;
 
 
     // Now check to insure that the number of operands is correct
@@ -737,32 +699,32 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
 
     void TYPE_SIZE_ERROR()
     {
-        if (popnd1 && ASM_GET_aopty(popnd1.usFlags) != _reg)
+        if (opnds.length >= 1 && ASM_GET_aopty(opnds[0].usFlags) != _reg)
         {
-            opflags1 = popnd1.usFlags |= _anysize;
+            opflags[0] = opnds[0].usFlags |= _anysize;
             if (asmstate.ucItype == ITjump)
             {
-                if (bRetry && popnd1.s && !popnd1.s.isLabel())
+                if (bRetry && opnds[0].s && !opnds[0].s.isLabel())
                 {
-                    asmerr("label expected", popnd1.s.toChars());
+                    asmerr("label expected", opnds[0].s.toChars());
                 }
 
-                popnd1.usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
+                opnds[0].usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                         _fanysize);
             }
         }
-        if (popnd2 && ASM_GET_aopty(popnd2.usFlags) != _reg)
+        if (opnds.length >= 2 && ASM_GET_aopty(opnds[1].usFlags) != _reg)
         {
-            opflags2 = popnd2.usFlags |= (_anysize);
+            opflags[1] = opnds[1].usFlags |= (_anysize);
             if (asmstate.ucItype == ITjump)
-                popnd2.usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
+                opnds[1].usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                         _fanysize);
         }
-        if (popnd3 && ASM_GET_aopty(popnd3.usFlags) != _reg)
+        if (opnds.length >= 3 && ASM_GET_aopty(opnds[2].usFlags) != _reg)
         {
-            opflags3 = popnd3.usFlags |= (_anysize);
+            opflags[2] = opnds[2].usFlags |= (_anysize);
             if (asmstate.ucItype == ITjump)
-                popnd3.usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
+                opnds[2].usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                         _fanysize);
         }
         if (bRetry)
@@ -787,22 +749,11 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
     void printOperands()
     {
         printf("\t%s\t", asm_opstr(pop));
-        if (popnd1)
-            asm_output_popnd(popnd1);
-        if (popnd2)
+        foreach (i, ref  opnd; opnds)
         {
-            printf(",");
-            asm_output_popnd(popnd2);
-        }
-        if (popnd3)
-        {
-            printf(",");
-            asm_output_popnd(popnd3);
-        }
-        if (popnd4)
-        {
-            printf(",");
-            asm_output_popnd(popnd4);
+            asm_output_popnd(opnd);
+            if (i != opnds.length - 1)
+                printf(",");
         }
         printf("\n");
     }
@@ -836,7 +787,7 @@ RETRY:
                     table1++)
             {
                 //printf("table    = "); asm_output_flags(table1.usOp1); printf("\n");
-                const bMatch1 = asm_match_flags(opflags1, table1.usOp1);
+                const bMatch1 = asm_match_flags(opflags[0], table1.usOp1);
                 //printf("bMatch1 = x%x\n", bMatch1);
                 if (bMatch1)
                 {
@@ -856,10 +807,10 @@ RETRY:
                     break;
                 }
                 if ((asmstate.ucItype == ITimmed) &&
-                    asm_match_flags(opflags1,
+                    asm_match_flags(opflags[0],
                         CONSTRUCT_FLAGS(_8 | _16 | _32, _imm, _normal,
                                          0)) &&
-                        popnd1.disp == table1.usFlags)
+                        opnds[0].disp == table1.usFlags)
                     break;
                 if (asmstate.ucItype == ITopt ||
                     asmstate.ucItype == ITfloat)
@@ -888,8 +839,8 @@ RETRY:
             {
                 printOperands();
                 printf("OPCODE mism = ");
-                if (popnd1)
-                    asm_output_flags(popnd1.usFlags);
+                if (opnds.length >= 1)
+                    asm_output_flags(opnd[0].usFlags);
                 else
                     printf("NONE");
                 printf("\n");
@@ -911,8 +862,8 @@ RETRY:
                 if (global.params.is64bit && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
-                const bMatch1 = asm_match_flags(opflags1, table2.usOp1);
-                const bMatch2 = asm_match_flags(opflags2, table2.usOp2);
+                const bMatch1 = asm_match_flags(opflags[0], table2.usOp1);
+                const bMatch2 = asm_match_flags(opflags[1], table2.usOp2);
                 //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
                 if (bMatch1 && bMatch2)
                 {
@@ -943,15 +894,15 @@ RETRY:
                             switch(ASM_GET_uSizemask(table2.usOp2))
                             {
                                 case _8:
-                                    if (popnd2.disp > byte.max)
+                                    if (opnds[1].disp > byte.max)
                                         continue;
                                     break;
                                 case _16:
-                                    if (popnd2.disp > short.max)
+                                    if (opnds[1].disp > short.max)
                                         continue;
                                     break;
                                 case _32:
-                                    if (popnd2.disp > int.max)
+                                    if (opnds[1].disp > int.max)
                                         continue;
                                     break;
                                 default:
@@ -985,7 +936,7 @@ version (none)
 {
                 if (asmstate.ucItype == ITshift &&
                     !table2.usOp2 &&
-                    bMatch1 && popnd2.disp == 1 &&
+                    bMatch1 && opnds[1].disp == 1 &&
                     asm_match_flags(opflags2,
                         CONSTRUCT_FLAGS(_8|_16|_32, _imm,_normal,0))
                   )
@@ -1007,8 +958,8 @@ version (none)
                 else
                     printf("NONE");
                 printf( " Op2 = ");
-                if (popnd2)
-                    asm_output_flags(popnd2.usFlags);
+                if (opnds.length >= 2)
+                    asm_output_flags(opnds[1].usFlags);
                 else
                     printf("NONE");
                 printf("\n");
@@ -1023,9 +974,9 @@ version (none)
                  table3.opcode != ASM_END;
                  table3++)
             {
-                const bMatch1 = asm_match_flags(opflags1, table3.usOp1);
-                const bMatch2 = asm_match_flags(opflags2, table3.usOp2);
-                const bMatch3 = asm_match_flags(opflags3, table3.usOp3);
+                const bMatch1 = asm_match_flags(opflags[0], table3.usOp1);
+                const bMatch2 = asm_match_flags(opflags[1], table3.usOp2);
+                const bMatch3 = asm_match_flags(opflags[2], table3.usOp3);
                 if (bMatch1 && bMatch2 && bMatch3)
                     goto Lfound3;
                 if (asmstate.ucItype == ITopt)
@@ -1085,10 +1036,10 @@ version (none)
                  table4.opcode != ASM_END;
                  table4++)
             {
-                const bMatch1 = asm_match_flags(opflags1, table4.usOp1);
-                const bMatch2 = asm_match_flags(opflags2, table4.usOp2);
-                const bMatch3 = asm_match_flags(opflags3, table4.usOp3);
-                const bMatch4 = asm_match_flags(opflags4, table4.usOp4);
+                const bMatch1 = asm_match_flags(opflags[0], table4.usOp1);
+                const bMatch2 = asm_match_flags(opflags[1], table4.usOp2);
+                const bMatch3 = asm_match_flags(opflags[2], table4.usOp3);
+                const bMatch4 = asm_match_flags(opflags[3], table4.usOp4);
                 if (bMatch1 && bMatch2 && bMatch3 && bMatch4)
                     goto Lfound4;
                 if (asmstate.ucItype == ITopt)
@@ -1163,7 +1114,7 @@ version (none)
 /*******************************
  */
 
-opflag_t asm_determine_float_flags(OPND *popnd)
+opflag_t asm_determine_float_flags(ref OPND popnd)
 {
     //printf("asm_determine_float_flags()\n");
 
@@ -1227,7 +1178,7 @@ version (none)
 /*******************************
  */
 
-opflag_t asm_determine_operand_flags(OPND *popnd)
+opflag_t asm_determine_operand_flags(ref OPND popnd)
 {
     Dsymbol ps;
     int ty;
@@ -3323,7 +3274,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
  */
 
 //debug
- void asm_output_popnd(OPND *popnd)
+ void asm_output_popnd(const ref OPND popnd)
 {
     if (popnd.segreg)
             printf("%s:", popnd.segreg.regstr.ptr);
