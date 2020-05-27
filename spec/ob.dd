@@ -61,7 +61,7 @@ $(P Functions with the `@live` attribute enable diagnosing these sorts of errors
 tracking the status of owner pointers.
 )
 
-$(H2 Ownership/Borrowing)
+$(H2 $(LNAME2 ob, Ownership/Borrowing))
 
 $(P Tracking the ownership status of a pointer can be safely extended by adding the
 capability of temporarilly $(I borrowing) ownership of a pointer from the $(I owner).
@@ -109,7 +109,7 @@ $(P It will not detect attempts to dereference `null` pointers or possibly
 of annotating a type as a non-`null` pointer.
 )
 
-$(H3 Tracked Pointers)
+$(H3 $(LNAME2 tracked, Tracked Pointers))
 
 $(P The only pointers that are tracked are those declared in the `@live` function
 as `this`, function parameters or local variables. Variables from other
@@ -120,7 +120,7 @@ Parameters that are `const` are not tracked.
 )
 
 
-$(H3 Pointer States)
+$(H3 $(LNAME2 state, Pointer States))
 
 $(P Each tracked pointer is in one of the following states:
 )
@@ -163,7 +163,7 @@ must not be a pointer to mutable.
 )
 )
 
-$(H3 Lifetimes)
+$(H3 $(LNAME2 lifetime, Lifetimes))
 
 $(P The lifetime of a Borrowed or Readonly pointer value starts when it is
 assigned a value from an Owner or another Borrowed pointer, and ends at
@@ -174,7 +174,7 @@ $(P This is also known as $(I Non-Lexical Lifetimes).
 )
 
 
-$(H3 Pointer State Transitions)
+$(H3 $(LNAME2 transition, Pointer State Transitions))
 
 $(P A pointer changes its state when one of these operations is done to it:
 )
@@ -214,7 +214,7 @@ $(LI merging of control flow reconciles the state of each variable based on the
 states they have from each edge)
 )
 
-$(H3 Borrowers can be Owners)
+$(H3 $(LNAME2 borrower, Borrowers can be Owners))
 
 $(P Borrowers are considered Owners if they are initialized from other than
 a pointer.
@@ -229,7 +229,7 @@ a pointer.
 
 ---
 
-$(H3 Exceptions)
+$(H3 $(LNAME2 exception, Exceptions))
 
 $(P The analysis assumes no exceptions are thrown.
 )
@@ -258,12 +258,12 @@ $(P One solution is to use `scope(exit)`:
 $(P or use RAII objects or call only `nothrow` functions.
 )
 
-$(H3 Lazy Parameters)
+$(H3 $(LNAME2 lazy, Lazy Parameters))
 
 $(P Lazy parameters are not considered.
 )
 
-$(H3 Mixing Memory Pools)
+$(H3 $(LNAME2 mempool, Mixing Memory Pools))
 
 $(P Conflation of different memory pools:
 )
@@ -298,7 +298,7 @@ vfree(p);  // type mismatch
 $(P and perhaps disabling implicit conversions to `void*` in `@live` functions.
 )
 
-$(H3 Variadic Function Arguments)
+$(H3 $(LNAME2 vargs, Variadic Function Arguments))
 
 $(P Arguments to variadic functions (such as `printf`) are considered to be consumed.
 )
