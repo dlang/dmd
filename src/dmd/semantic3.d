@@ -414,17 +414,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Declare all the function parameters as variables
              * and install them in parameters[]
              */
-            size_t nparams = f.parameterList.length;
-            if (nparams)
+            if (const nparams = f.parameterList.length)
             {
                 /* parameters[] has all the tuples removed, as the back end
                  * doesn't know about tuples
                  */
                 funcdecl.parameters = new VarDeclarations();
                 funcdecl.parameters.reserve(nparams);
-                for (size_t i = 0; i < nparams; i++)
+                foreach (i, fparam; f.parameterList)
                 {
-                    Parameter fparam = f.parameterList[i];
                     Identifier id = fparam.ident;
                     StorageClass stc = 0;
                     if (!id)
@@ -1287,14 +1285,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
-            size_t nfparams = f.parameterList.length;
-            assert(nfparams == funcdecl.parameters.dim);
-            foreach (u, v; *funcdecl.parameters)
+            assert(f.parameterList.length == funcdecl.parameters.dim);
+            foreach (u, p; f.parameterList)
             {
+                auto v = (*funcdecl.parameters)[u];
                 if (v.storage_class & STC.maybescope)
                 {
                     //printf("Inferring scope for %s\n", v.toChars());
-                    Parameter p = f.parameterList[u];
                     notMaybeScope(v);
                     v.storage_class |= STC.scope_ | STC.scopeinferred;
                     p.storageClass |= STC.scope_ | STC.scopeinferred;

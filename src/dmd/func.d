@@ -998,7 +998,6 @@ extern (C++) class FuncDeclaration : Declaration
 
         TypeFunction tf = type.toTypeFunction();
         TypeFunction tg = g.type.toTypeFunction();
-        size_t nfparams = tf.parameterList.length;
 
         /* If both functions have a 'this' pointer, and the mods are not
          * the same and g's is not const, then this is less specialized.
@@ -1019,10 +1018,9 @@ extern (C++) class FuncDeclaration : Declaration
 
         /* Create a dummy array of arguments out of the parameters to f()
          */
-        Expressions args = Expressions(nfparams);
-        for (size_t u = 0; u < nfparams; u++)
+        Expressions args;
+        foreach (u, p; tf.parameterList)
         {
-            Parameter p = tf.parameterList[u];
             Expression e;
             if (p.storageClass & (STC.ref_ | STC.out_))
             {
@@ -1031,7 +1029,7 @@ extern (C++) class FuncDeclaration : Declaration
             }
             else
                 e = p.type.defaultInitLiteral(Loc.initial);
-            args[u] = e;
+            args.push(e);
         }
 
         MATCH m = tg.callMatch(null, args[], 1);
@@ -1567,10 +1565,8 @@ extern (C++) class FuncDeclaration : Declaration
 
         //printf("isTypeIsolatedIndirect(%s) t = %s\n", tf.toChars(), t.toChars());
 
-        size_t dim = tf.parameterList.length;
-        for (size_t i = 0; i < dim; i++)
+        foreach (i, fparam; tf.parameterList)
         {
-            Parameter fparam = tf.parameterList[i];
             Type tp = fparam.type;
             if (!tp)
                 continue;
