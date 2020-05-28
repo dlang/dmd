@@ -10,6 +10,7 @@ versions "CallbackAPI"
  */
 
 import core.stdc.stdarg;
+import core.stdc.string;
 
 import std.conv;
 import std.string;
@@ -50,7 +51,8 @@ private struct CallbackHelper {
     static Scope *scp;
 
     static extern (C++) void statementSem(Statement s, Scope *sc) {
-        if (s.loc.linnum == cursorLoc.linnum) {
+        if (s.loc.linnum == cursorLoc.linnum
+                && strcmp(s.loc.filename, cursorLoc.filename) == 0) {
             sc.setNoFree();
             scp = sc;
         }
@@ -76,13 +78,14 @@ int main()
     initDMD(diagnosticHandler);
 
     Strings libmodules;
-    Module m = createModule("testfiles/correct.d", libmodules);
+    Module m = createModule((dirName(__FILE_FULL_PATH__) ~ "/testfiles/correct.d").ptr,
+                                libmodules);
     m.importedFrom = m; // m.isRoot() == true
 
     m.read(Loc.initial);
     m.parse();
 
-    CallbackHelper.cursorLoc = Loc(null, 22, 10);
+    CallbackHelper.cursorLoc = Loc(to!string(m.srcfile).ptr, 22, 10);
 
     Compiler.onStatementSemanticStart = &CallbackHelper.statementSem;
 
