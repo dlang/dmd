@@ -699,33 +699,18 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
 
     void TYPE_SIZE_ERROR()
     {
-        if (opnds.length >= 1 && ASM_GET_aopty(opnds[0].usFlags) != _reg)
+        foreach (i, ref opnd; opnds)
         {
-            opflags[0] = opnds[0].usFlags |= _anysize;
-            if (asmstate.ucItype == ITjump)
+            if (ASM_GET_aopty(opnd.usFlags) != _reg)
             {
-                if (bRetry && opnds[0].s && !opnds[0].s.isLabel())
+                opflags[i] = opnd.usFlags |= _anysize;
+                if(asmstate.ucItype == ITjump)
                 {
-                    asmerr("label expected", opnds[0].s.toChars());
+                    if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
+                        asmerr("label expected", opnd.s.toChars());
+                    opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
                 }
-
-                opnds[0].usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
-                        _fanysize);
             }
-        }
-        if (opnds.length >= 2 && ASM_GET_aopty(opnds[1].usFlags) != _reg)
-        {
-            opflags[1] = opnds[1].usFlags |= (_anysize);
-            if (asmstate.ucItype == ITjump)
-                opnds[1].usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
-                        _fanysize);
-        }
-        if (opnds.length >= 3 && ASM_GET_aopty(opnds[2].usFlags) != _reg)
-        {
-            opflags[2] = opnds[2].usFlags |= (_anysize);
-            if (asmstate.ucItype == ITjump)
-                opnds[2].usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
-                        _fanysize);
         }
         if (bRetry)
         {
@@ -754,6 +739,20 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
             asm_output_popnd(opnd);
             if (i != opnds.length - 1)
                 printf(",");
+        }
+        printf("\n");
+    }
+
+    void printMismatches(int usActual)
+    {
+        printOperands();
+        printf("OPCODE mismatch = ");
+        foreach (i; 0 .. usActual)
+        {
+            if (i < opnds.length)
+                asm_output_flags(opnds[i].usFlags);
+            else
+                printf("NONE");
         }
         printf("\n");
     }
@@ -835,16 +834,7 @@ RETRY:
                 PTRNTAB ret = { pptb1 : table1 };
                 return returnIt(ret);
             }
-            debug (debuga)
-            {
-                printOperands();
-                printf("OPCODE mism = ");
-                if (opnds.length >= 1)
-                    asm_output_flags(opnd[0].usFlags);
-                else
-                    printf("NONE");
-                printf("\n");
-            }
+            debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
             goto RETRY;
         }
@@ -949,21 +939,7 @@ version (none)
                 PTRNTAB ret = { pptb2 : table2 };
                 return returnIt(ret);
             }
-            debug (debuga)
-            {
-                printOperands();
-                printf("OPCODE mismatch = ");
-                if (popnd1)
-                    asm_output_flags(popnd1.usFlags);
-                else
-                    printf("NONE");
-                printf( " Op2 = ");
-                if (opnds.length >= 2)
-                    asm_output_flags(opnds[1].usFlags);
-                else
-                    printf("NONE");
-                printf("\n");
-            }
+            debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
             goto RETRY;
         }
@@ -1009,23 +985,7 @@ version (none)
                 PTRNTAB ret = { pptb3 : table3 };
                 return returnIt(ret);
             }
-            debug (debuga)
-            {
-                printOperands();
-                printf("OPCODE mismatch = ");
-                if (popnd1)
-                    asm_output_flags(popnd1.usFlags);
-                else
-                    printf("NONE");
-                printf( " Op2 = ");
-                if (popnd2)
-                    asm_output_flags(popnd2.usFlags);
-                else
-                    printf("NONE");
-                if (popnd3)
-                    asm_output_flags(popnd3.usFlags);
-                printf("\n");
-            }
+            debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
             goto RETRY;
         }
@@ -1076,31 +1036,7 @@ version (none)
                 PTRNTAB ret = { pptb4 : table4 };
                 return returnIt(ret);
             }
-            debug (debuga)
-            {
-                printOperands();
-                printf("OPCODE mismatch = ");
-                if (popnd1)
-                    asm_output_flags(popnd1.usFlags);
-                else
-                    printf("NONE");
-                printf( " Op2 = ");
-                if (popnd2)
-                    asm_output_flags(popnd2.usFlags);
-                else
-                    printf("NONE");
-                printf( " Op3 = ");
-                if (popnd3)
-                    asm_output_flags(popnd3.usFlags);
-                else
-                    printf("NONE");
-                printf( " Op4 = ");
-                if (popnd4)
-                    asm_output_flags(popnd4.usFlags);
-                else
-                    printf("NONE");
-                printf("\n");
-            }
+            debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
             goto RETRY;
         }
@@ -2085,16 +2021,16 @@ L2:
 
         printf("\t%s\t", asm_opstr(pop));
         if (popnd1)
-            asm_output_popnd(popnd1);
+            asm_output_popnd(*popnd1);
         if (popnd2)
         {
             printf(",");
-            asm_output_popnd(popnd2);
+            asm_output_popnd(*popnd2);
         }
         if (popnd3)
         {
             printf(",");
-            asm_output_popnd(popnd3);
+            asm_output_popnd(*popnd3);
         }
         printf("\n");
     }
@@ -2196,7 +2132,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     void illegalAddressError(string debugWhy)
     {
         debug (debuga) printf("Invalid addr because /%.s/\n",
-                              cast(int)debugWhy.length, debugWhy.ptr);
+                              debugWhy.ptr, cast(int)debugWhy.length);
         error(asmstate.loc, "cannot have two symbols in addressing mode");
     }
 
@@ -2326,7 +2262,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     debug (debuga)
     {
         printf("Merged result = /");
-        asm_output_popnd(&o1);
+        asm_output_popnd(o1);
         printf("/\n");
     }
 }
