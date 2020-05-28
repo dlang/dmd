@@ -124,16 +124,14 @@ private Expression checkAssignmentAsCondition(Expression e)
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
-    version (callback_API)
-        if (Compiler.onStatementSemanticStart)
-            Compiler.onStatementSemanticStart(s, sc);
+    version (CallbackAPI)
+        Compiler.onStatementSemanticStart(s, sc);
 
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
 
-    version (callback_API)
-        if (Compiler.onStatementSemanticDone)
-            Compiler.onStatementSemanticDone(s, sc);
+    version (CallbackAPI)
+        Compiler.onStatementSemanticDone(s, sc);
 
     return v.result;
 }

@@ -154,7 +154,7 @@ extern (C++) struct Compiler
         return false; // this import will not be compiled
     }
 
-    version (callback_API)
+    version (CallbackAPI)
     {
         alias OnStatementSemanticStart = void function(Statement, Scope*);
         alias OnStatementSemanticDone = void function(Statement, Scope*);
@@ -163,13 +163,15 @@ extern (C++) struct Compiler
          * Used to insert functionality before the start of the
          * semantic analysis of a statement when importing DMD as a library
          */
-        __gshared OnStatementSemanticStart onStatementSemanticStart;
+        __gshared OnStatementSemanticStart onStatementSemanticStart
+                    = function void(Statement s, Scope *sc) {};
 
         /**
          * Used to insert functionality after the end of the
          * semantic analysis of a statement when importing DMD as a library
          */
-        __gshared OnStatementSemanticDone onStatementSemanticDone;
+        __gshared OnStatementSemanticDone onStatementSemanticDone
+                    = function void(Statement s, Scope *sc) {};
     }
 }
 

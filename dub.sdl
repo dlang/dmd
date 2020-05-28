@@ -31,7 +31,7 @@ subPackage {
     "src/dmd/utf.d" \
     "src/dmd/utils.d"
 
-  versions "callback_API"
+  versions "CallbackAPI"
 
   preGenerateCommands `
     "$${DUB_EXE}" \
@@ -62,7 +62,7 @@ subPackage {
     "src/dmd/permissivevisitor.d" \
     "src/dmd/strictvisitor.d"
 
-  versions "callback_API"
+  versions "CallbackAPI"
 
   dependency "dmd:lexer" version="*"
 }
@@ -78,7 +78,7 @@ subPackage {
     "GC" \
     "NoMain" \
     "MARS" \
-    "callback_API"
+    "CallbackAPI"
 
   excludedSourceFiles "src/dmd/backend/*"
   excludedSourceFiles "src/dmd/root/*"

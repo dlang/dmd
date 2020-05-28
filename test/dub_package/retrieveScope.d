@@ -1,7 +1,7 @@
 #!/usr/bin/env dub
 /+dub.sdl:
 dependency "dmd" path="../.."
-versions "callback_API"
+versions "CallbackAPI"
 +/
 /*
  * This file contains an example of how to retrieve the scope of a statement.
@@ -15,6 +15,7 @@ import std.conv;
 import std.string;
 import std.algorithm.sorting;
 import std.algorithm.mutation : SwapStrategy;
+import std.path : dirName;
 
 import dmd.errors;
 import dmd.frontend;
@@ -58,23 +59,10 @@ private struct CallbackHelper {
 
 int main()
 {
-    string dirName(string path, char separator)
-    {
-        for (size_t i = path.length - 1; i > 0; i--)
-        {
-            if (path[i] == separator)
-                return path[0..i];
-        }
-        return path;
-    }
-
-    version (Windows)
-        enum dmdParentDir = dirName(dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\'), '\\');
-    else
-        enum dmdParentDir = dirName(dirName(dirName(__FILE_FULL_PATH__, '/'), '/'), '/');
+    auto dmdParentDir = dirName(dirName(dirName(__FILE_FULL_PATH__)));
     global.path = new Strings();
-    global.path.push(dmdParentDir ~ "/phobos");
-    global.path.push(dmdParentDir ~ "/druntime/import");
+    global.path.push((dmdParentDir ~ "/phobos").ptr);
+    global.path.push((dmdParentDir ~ "/druntime/import").ptr);
 
     /* comment for error output in parsing & semantic */
     diagnosticHandler = (const ref Loc location,
