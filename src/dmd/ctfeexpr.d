@@ -1587,6 +1587,11 @@ Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expres
         return paintTypeOntoLiteral(pue, to, e);
     }
 
+    if (to.ty == Talias)
+    {
+        return e;
+    }
+
     if (e.op == TOK.null_)
         return paint();
 
