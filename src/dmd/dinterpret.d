@@ -3972,7 +3972,13 @@ public:
             }
         }
 
-        if (newval.op == TOK.structLiteral && oldval)
+        // Super super hacky!
+        if (e1.type.ty == Talias)
+        {
+            // we are doing an alias assign ... so just assign!
+            oldval = newval;
+        }
+        else if (newval.op == TOK.structLiteral && oldval)
         {
             assert(oldval.op == TOK.structLiteral || oldval.op == TOK.arrayLiteral || oldval.op == TOK.string_);
             newval = copyLiteral(newval).copy();
