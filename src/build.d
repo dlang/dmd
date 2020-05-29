@@ -524,7 +524,7 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
 
 alias style = makeRule!((builder, rule)
 {
-    const dscannerDir = env["G"].buildPath("dscanner");
+    const dscannerDir = env["GENERATED"].buildPath("dscanner");
     alias dscannerRepo = methodInit!(BuildRule, (repoBuilder, repoRule) => repoBuilder
         .msg("(GIT) DScanner")
         .target(dscannerDir)
