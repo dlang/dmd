@@ -179,25 +179,13 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             // get the first part of an expr
             if (asmstate.tokValue != TOK.endOfFile)
             {
-                asm_cond_exp(opnds[0]);
-                nOps = 1;
-                if (asmstate.tokValue == TOK.comma)
+                foreach (i; 0 .. 4)
                 {
+                    asm_cond_exp(opnds[i]);
+                    nOps = i + 1;
+                    if (asmstate.tokValue != TOK.comma)
+                        break;
                     asm_token();
-                    asm_cond_exp(opnds[1]);
-                    nOps = 2;
-                    if (asmstate.tokValue == TOK.comma)
-                    {
-                        asm_token();
-                        asm_cond_exp(opnds[2]);
-                        nOps = 3;
-                        if (asmstate.tokValue == TOK.comma)
-                        {
-                            asm_token();
-                            asm_cond_exp(opnds[3]);
-                            nOps = 4;
-                        }
-                    }
                 }
             }
 
@@ -701,16 +689,16 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
     {
         foreach (i, ref opnd; opnds)
         {
-            if (ASM_GET_aopty(opnd.usFlags) != _reg)
-            {
-                opflags[i] = opnd.usFlags |= _anysize;
-                if(asmstate.ucItype == ITjump)
-                {
-                    if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
-                        asmerr("label expected", opnd.s.toChars());
-                    opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
-                }
-            }
+            if (ASM_GET_aopty(opnd.usFlags) == _reg)
+                continue;
+
+            opflags[i] = opnd.usFlags |= _anysize;
+            if(asmstate.ucItype != ITjump)
+                continue;
+
+            if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
+                asmerr("label expected", opnd.s.toChars());
+            opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
         }
         if (bRetry)
         {
@@ -731,21 +719,9 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
         return ret;
     }
 
-    void printOperands()
-    {
-        printf("\t%s\t", asm_opstr(pop));
-        foreach (i, ref  opnd; opnds)
-        {
-            asm_output_popnd(opnd);
-            if (i != opnds.length - 1)
-                printf(",");
-        }
-        printf("\n");
-    }
-
     void printMismatches(int usActual)
     {
-        printOperands();
+        printOperands(pop, opnds);
         printf("OPCODE mismatch = ");
         foreach (i; 0 .. usActual)
         {
@@ -1488,7 +1464,7 @@ code *asm_emit(Loc loc,
                     auchOpcode.ptr, &usIdx,
                     pc,
                     ptb.pptb1.usFlags,
-                    opnds[0 .. 2]);
+                    opnds[0 .. opnds.length >= 2 ? 2 : 1]);
             else if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
                 asm_make_modrm_byte(
                     auchOpcode.ptr, &usIdx,
@@ -2021,20 +1997,7 @@ L2:
         for (u = 0; u < usIdx; u++)
             printf("  %02X", auchOpcode[u]);
 
-        printf("\t%s\t", asm_opstr(pop));
-        if (popnd1)
-            asm_output_popnd(*popnd1);
-        if (popnd2)
-        {
-            printf(",");
-            asm_output_popnd(*popnd2);
-        }
-        if (popnd3)
-        {
-            printf(",");
-            asm_output_popnd(*popnd3);
-        }
-        printf("\n");
+        printOperands(pop, opnds);
     }
 
     CodeBuilder cdb;
@@ -2814,7 +2777,7 @@ void asm_make_modrm_byte(
 /*******************************
  */
 
-regm_t asm_modify_regs(PTRNTAB ptb, OPND[] opnds)
+regm_t asm_modify_regs(PTRNTAB ptb, scope OPND[] opnds)
 {
     regm_t usRet = 0;
 
@@ -3259,6 +3222,19 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
     else if (popnd.disp)
             printf("+%llxh", cast(long)popnd.disp);
 }
+
+void printOperands(OP* pop, scope OPND[] opnds)
+{
+    printf("\t%s\t", asm_opstr(pop));
+    foreach (i, ref  opnd; opnds)
+    {
+        asm_output_popnd(opnd);
+        if (i != opnds.length - 1)
+            printf(",");
+    }
+    printf("\n");
+}
+
 
 
 /*******************************
