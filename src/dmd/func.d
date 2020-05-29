@@ -2252,21 +2252,19 @@ extern (C++) class FuncDeclaration : Declaration
         TypeFunction f = cast(TypeFunction) type;
 
         /* Make a copy of the parameters and make them all ref */
-        static Parameters* toRefCopy(Parameters* params)
+        static Parameters* toRefCopy(ParameterList parameterList)
         {
             auto result = new Parameters();
 
-            int toRefDg(size_t n, Parameter p)
+            foreach (n, p; parameterList)
             {
                 p = p.syntaxCopy();
                 if (!(p.storageClass & STC.lazy_))
                     p.storageClass = (p.storageClass | STC.ref_) & ~STC.out_;
                 p.defaultArg = null; // won't be the same with ref
                 result.push(p);
-                return 0;
             }
 
-            Parameter._foreach(params, &toRefDg);
             return result;
         }
 
@@ -2285,7 +2283,7 @@ extern (C++) class FuncDeclaration : Declaration
                     fdrequireParams.push(new VarExp(loc, vd));
             }
             auto fo = cast(TypeFunction)(originalType ? originalType : f);
-            auto fparams = toRefCopy(fo.parameterList.parameters);
+            auto fparams = toRefCopy(fo.parameterList);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
@@ -2328,7 +2326,7 @@ extern (C++) class FuncDeclaration : Declaration
                 fparams.push(p);
             }
             auto fo = cast(TypeFunction)(originalType ? originalType : f);
-            fparams.pushSlice((*toRefCopy(fo.parameterList.parameters))[]);
+            fparams.pushSlice((*toRefCopy(fo.parameterList))[]);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
