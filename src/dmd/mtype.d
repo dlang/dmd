@@ -6398,11 +6398,13 @@ extern (C++) final class TypeNull : Type
 }
 
 /***********************************************************
- * Encapsulate Parameters* so .length and [i] can be used on it.
+ * Represents a function's formal parameters + variadics info.
+ * Length, indexing and iteration are based on a depth-first tuple expansion.
  * https://dlang.org/spec/function.html#ParameterList
  */
 extern (C++) struct ParameterList
 {
+    /// The raw (unexpanded) formal parameters, possibly containing tuples.
     Parameters* parameters;
     StorageClass stc;                   // storage class of ...
     VarArg varargs = VarArg.none;
@@ -6414,21 +6416,22 @@ extern (C++) struct ParameterList
         this.stc = stc;
     }
 
+    /// Returns the number of expanded parameters. Complexity: O(N).
     size_t length()
     {
         return Parameter.dim(parameters);
     }
 
+    /// Returns the expanded parameter at the given index, or null if out of
+    /// bounds. Complexity: O(i).
     Parameter opIndex(size_t i)
     {
         return Parameter.getNth(parameters, i);
     }
 
-    /***************************************
-     * Iterates over all parameters, expanding tuples in depth first order.
-     * Prefer this to avoid the O(N + N^2/2) complexity of calculating length
-     * and calling N times opIndex.
-     */
+    /// Iterates over the expanded parameters. Complexity: O(N).
+    /// Prefer this to avoid the O(N + N^2/2) complexity of calculating length
+    /// and calling N times opIndex.
     extern (D) int opApply(scope Parameter.ForeachDg dg)
     {
         return Parameter._foreach(parameters, dg);
