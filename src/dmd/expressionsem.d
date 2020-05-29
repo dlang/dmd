@@ -1124,6 +1124,27 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     Dsymbol s;
     Objects* tiargs;
     Type tthis;
+
+    // This got added for UFCS on type function which can't do the usual way
+    {
+        if (e1.op == TOK.dotIdentifier)
+        {
+            DotIdExp die = cast(DotIdExp) e1;
+            auto p = searchUFCS(sc, die, die.ident);
+            import dmd.asttypename;
+            if (auto ds = p.isDsymbolExp())
+            {
+                auto ss = ds.s;
+                auto fd = ss.isFuncDeclaration();
+                if (fd)
+                {
+                    e1 = new CallExp(e1.loc, fd, die.e1);
+                    e1 = expressionSemantic(e1, sc);
+                }
+            }
+        }
+    }
+
     if (e1.op == TOK.dot)
     {
         DotExp de = cast(DotExp)e1;
