@@ -7982,6 +7982,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
         {
             if (sa == TemplateAliasParameter.sdummy)
                 return matchArgNoMatch();
+            // check specialization if template arg is a symbol
             Dsymbol sx = isDsymbol(sa);
             if (sa != tap.specAlias && sx)
             {
@@ -8003,6 +8004,22 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
                 MATCH m2 = deduceType(t, sc, talias, parameters, dedtypes);
                 if (m2 <= MATCH.nomatch)
                     return matchArgNoMatch();
+            }
+            // check specialization if template arg is a type
+            else if (ta)
+            {
+                if (Type tspec = isType(tap.specAlias))
+                {
+                    MATCH m2 = ta.implicitConvTo(tspec);
+                    if (m2 <= MATCH.nomatch)
+                        return matchArgNoMatch();
+                }
+                else
+                {
+                    error(tap.loc, "template parameter specialization for a type must be a type and not `%s`",
+                        tap.specAlias.toChars());
+                    return matchArgNoMatch();
+                }
             }
         }
         else if ((*dedtypes)[i])
