@@ -352,7 +352,7 @@ extern (C++) final class StaticForeach : RootObject
         if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));
         sfe.push(new ReturnStatement(aloc, res[0]));
         s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
-        s1.push(new ExpStatement(aloc, new AssertExp(aloc, new IntegerExp(aloc, 0, Type.tint32))));
+        s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
         auto ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
         auto aty = ety.arrayOf();
         auto idres = Identifier.generateId("__res");
