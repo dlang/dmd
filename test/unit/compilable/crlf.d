@@ -70,7 +70,8 @@ unittest
 
     enum code = crLFCode ~ "\r\n" ~ codeLines.join('\n') ~ '\n';
 
-    assert(compiles(code));
+    const result = compiles(code);
+    assert(result, "\n" ~ result.toString);
 }
 
 private:
