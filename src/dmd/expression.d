@@ -3206,16 +3206,15 @@ extern (C++) final class StructLiteralExp : Expression
             /* Make an identifier for the temporary of the form:
              *   __sl%s%d, where %s is the struct name
              */
-            const size_t len = 10;
-            char[len] buf = void;
-
-            const ident = sd.ident.toString;
+            char[10] buf = void;
             const prefix = "__sl";
-            const charsToUse = ident.length > len - prefix.length ? len - prefix.length : ident.length;
+            const ident = sd.ident.toString;
+            const fullLen = prefix.length + ident.length;
+            const len = fullLen < buf.length ? fullLen : buf.length;
             buf[0 .. prefix.length] = prefix;
-            buf[prefix.length .. prefix.length + charsToUse] = ident[0 .. charsToUse];
+            buf[prefix.length .. len] = ident[0 .. len - prefix.length];
 
-            auto tmp = copyToTemp(0, buf, this);
+            auto tmp = copyToTemp(0, buf[0 .. len], this);
             Expression ae = new DeclarationExp(loc, tmp);
             Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
             e = e.expressionSemantic(sc);
