@@ -107,7 +107,7 @@ unittest
  * | Line separator      |                   | `U+2028`           |
  * | Paragraph separator |                   | `U+2029`           |
  *
- * This function will also strip `\n\r`.
+ * This function will also strip `\r\n`.
  */
 string stripLeadingLineTerminator(string str) pure nothrow @nogc @safe
 {
@@ -115,18 +115,20 @@ string stripLeadingLineTerminator(string str) pure nothrow @nogc @safe
     enum lineSeparator = "\xE2\x80\xA8";
     enum paragraphSeparator = "\xE2\x80\xA9";
 
+    static assert(lineSeparator.length == paragraphSeparator.length);
+
     if (str.length == 0)
         return str;
 
     switch (str[0])
     {
-        case '\n':
+        case '\r':
         {
-            if (str.length >= 2 && str[1] == '\r')
+            if (str.length >= 2 && str[1] == '\n')
                 return str[2 .. $];
             goto case;
         }
-        case '\v', '\f', '\r': return str[1 .. $];
+        case '\v', '\f', '\n': return str[1 .. $];
 
         case nextLine[0]:
         {
@@ -138,12 +140,12 @@ string stripLeadingLineTerminator(string str) pure nothrow @nogc @safe
 
         case lineSeparator[0]:
         {
-            if (str.length >= 3)
+            if (str.length >= lineSeparator.length)
             {
-                const prefix = str[0 .. 3];
+                const prefix = str[0 .. lineSeparator.length];
 
                 if (prefix == lineSeparator || prefix == paragraphSeparator)
-                    return str[3 .. $];
+                    return str[lineSeparator.length .. $];
             }
 
             return str;
@@ -166,7 +168,8 @@ unittest
     assert("\u0085foo".stripLeadingLineTerminator == "foo");
     assert("\u2028foo".stripLeadingLineTerminator == "foo");
     assert("\u2029foo".stripLeadingLineTerminator == "foo");
-    assert("\n\rfoo".stripLeadingLineTerminator == "foo");
+    assert("\n\rfoo".stripLeadingLineTerminator == "\rfoo");
+    assert("\r\nfoo".stripLeadingLineTerminator == "foo");
 }
 
 /**
