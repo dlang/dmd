@@ -2636,7 +2636,7 @@ else
                     /* Rewrite as an assert(0) and let e2ir generate
                      * the call to the C assert failure function
                      */
-                    s = new ExpStatement(ss.loc, new AssertExp(ss.loc, new IntegerExp(ss.loc, 0, Type.tint32)));
+                    s = new ExpStatement(ss.loc, new AssertExp(ss.loc, IntegerExp.literal!0));
                 }
                 else
                 {

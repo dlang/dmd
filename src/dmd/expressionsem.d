@@ -120,7 +120,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         const ty = (ie && ie.type) ? ie.type.ty : Terror;
         if (ty.isSomeChar)
         {
-            auto tsa = new TypeSArray(ie.type, new IntegerExp(1));
+            auto tsa = new TypeSArray(ie.type, IntegerExp.literal!1);
             e4 = new ArrayLiteralExp(ex.loc, tsa, ie);
         }
 
@@ -8145,9 +8145,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // Rewrite as e1+=1 or e1-=1
         if (exp.op == TOK.prePlusPlus)
-            e = new AddAssignExp(exp.loc, exp.e1, new IntegerExp(exp.loc, 1, Type.tint32));
+            e = new AddAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
         else
-            e = new MinAssignExp(exp.loc, exp.e1, new IntegerExp(exp.loc, 1, Type.tint32));
+            e = new MinAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
         result = e.expressionSemantic(sc);
     }
 
@@ -8169,7 +8169,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // https://issues.dlang.org/show_bug.cgi?id=14606
             // Always use BlitExp for the special expression: (struct = 0)
-            return new IntegerExp(loc, 0, Type.tint32);
+            return IntegerExp.literal!0;
         }
 
         if (sd.isNested())
@@ -8445,7 +8445,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 if (dim == 0)
                 {
-                    e = new IntegerExp(exp.loc, 0, Type.tint32);
+                    e = IntegerExp.literal!0;
                     e = new CastExp(exp.loc, e, Type.tvoid); // avoid "has no effect" error
                     e = Expression.combine(tup1.e0, tup2.e0, e);
                 }
@@ -10801,7 +10801,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (e.op == TOK.call)
             {
-                e = new CmpExp(cmpop, exp.loc, e, new IntegerExp(exp.loc, 0, Type.tint32));
+                e = new CmpExp(cmpop, exp.loc, e, IntegerExp.literal!0);
                 e = e.expressionSemantic(sc);
             }
             result = e;
