@@ -933,10 +933,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         auto id = Identifier.idPool(se.peekString());
 
-        /* Prefer dsymbol, because it might need some runtime contexts.
+        /* Prefer a Type, because getDsymbol(Type) can lose type modifiers.
+           Then a Dsymbol, because it might need some runtime contexts.
          */
+
         Dsymbol sym = getDsymbol(o);
-        if (sym)
+        if (auto t = isType(o))
+            ex = typeDotIdExp(e.loc, t, id);
+        else if (sym)
         {
             if (e.ident == Id.hasMember)
             {
@@ -946,8 +950,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = new DsymbolExp(e.loc, sym);
             ex = new DotIdExp(e.loc, ex, id);
         }
-        else if (auto t = isType(o))
-            ex = typeDotIdExp(e.loc, t, id);
         else if (auto ex2 = isExpression(o))
             ex = new DotIdExp(e.loc, ex2, id);
         else
