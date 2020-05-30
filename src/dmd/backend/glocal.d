@@ -114,7 +114,6 @@ void localize()
 
 private void local_exp(ref Barray!loc_t lt, elem *e, int goal)
 {
-    Symbol *s;
     elem *e1;
     OPER op1;
 
@@ -165,7 +164,8 @@ Loop:
             e1 = e.EV.E1;
             local_exp(lt,e.EV.E2,1);
             if (e1.Eoper == OPvar)
-            {   s = e1.EV.Vsym;
+            {
+                const s = e1.EV.Vsym;
                 if (s.Sflags & SFLunambig)
                 {   local_symdef(lt, s);
                     if (!goal)
@@ -211,11 +211,10 @@ Loop:
                 }
                 else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
-                    s = e1.EV.Vsym;
+                    const s = e1.EV.Vsym;
                     for (uint u = 0; u < lt.length; u++)
-                    {   elem *em;
-
-                        em = lt[u].e;
+                    {
+                        auto em = lt[u].e;
                         if (em.Eoper == op &&
                             em.EV.E1.EV.Vsym == s &&
                             tysize(em.Ety) == tysize(e1.Ety) &&
@@ -254,7 +253,9 @@ Loop:
                         local_exp(lt,e1.EV.E2,1);
                 }
                 if (lt.length)
-                {   if (op1 == OPvar &&
+                {
+                    Symbol* s;
+                    if (op1 == OPvar &&
                         ((s = e1.EV.Vsym).Sflags & SFLunambig))
                         local_symref(lt, s);
                     else
@@ -262,6 +263,8 @@ Loop:
                 }
                 local_exp(lt,e.EV.E2,1);
             }
+
+            Symbol* s;
             if (op1 == OPvar &&
                 ((s = e1.EV.Vsym).Sflags & SFLunambig))
             {   local_symref(lt, s);
@@ -323,7 +326,7 @@ Loop:
                 /* Don't want to rearrange (p = get(); p memset 0;)
                  * as elemxxx() will rearrange it back.
                  */
-                s = e.EV.E1.EV.Vsym;
+                const s = e.EV.E1.EV.Vsym;
                 if (s.Sflags & SFLunambig)
                     local_symref(lt, s);
                 else
@@ -335,7 +338,7 @@ Loop:
             break;
 
         case OPvar:
-            s = e.EV.Vsym;
+            const s = e.EV.Vsym;
             if (lt.length)
             {
                 // If potential candidate for replacement
@@ -389,7 +392,7 @@ Loop:
         case OPremquo:
             if (e.EV.E1.Eoper != OPvar)
                 goto case_bin;
-            s = e.EV.E1.EV.Vsym;
+            const s = e.EV.E1.EV.Vsym;
             if (lt.length)
             {
                 if (s.Sflags & SFLunambig)
@@ -410,7 +413,7 @@ Loop:
                 {
                     const f = lt[u].flags;
                     elem* eu = lt[u].e;
-                    s = eu.EV.E1.EV.Vsym;
+                    const s = eu.EV.E1.EV.Vsym;
                     const f1 = local_getflags(e.EV.E1,s);
                     const f2 = local_getflags(e.EV.E2,s);
                     if (f1 & f2 & LFsymref ||   // if both reference or
@@ -448,7 +451,7 @@ Loop:
 // Returns:
 //      true if it does
 
-private bool local_chkrem(elem *e,elem *eu)
+private bool local_chkrem(const elem* e, const(elem)* eu)
 {
     while (1)
     {
@@ -456,7 +459,7 @@ private bool local_chkrem(elem *e,elem *eu)
         const op = eu.Eoper;
         if (OTassign(op) && eu.EV.E1.Eoper == OPvar)
         {
-            auto s = eu.EV.E1.EV.Vsym;
+            const s = eu.EV.E1.EV.Vsym;
             const f1 = local_getflags(e.EV.E1,s);
             const f2 = local_getflags(e.EV.E2,s);
             if ((f1 | f2) & (LFsymref | LFsymdef))      // if either reference or define
@@ -482,7 +485,7 @@ private void local_ins(ref Barray!loc_t lt, elem *e)
     elem_debug(e);
     if (e.EV.E1.Eoper == OPvar)
     {
-        auto s = e.EV.E1.EV.Vsym;
+        const s = e.EV.E1.EV.Vsym;
         symbol_debug(s);
         if (s.Sflags & SFLunambig)     // if can only be referenced directly
         {
@@ -511,7 +514,7 @@ private void local_rem(ref Barray!loc_t lt, size_t u)
 //////////////////////////////////////
 // Analyze and gather LFxxxx flags about expression e and symbol s.
 
-private int local_getflags(elem *e,Symbol *s)
+private int local_getflags(const(elem)* e, const Symbol* s)
 {
     elem_debug(e);
     if (s)
@@ -527,7 +530,7 @@ private int local_getflags(elem *e,Symbol *s)
             case OPstreq:
                 if (e.EV.E1.Eoper == OPvar)
                 {
-                    auto s1 = e.EV.E1.EV.Vsym;
+                    const s1 = e.EV.E1.EV.Vsym;
                     if (s1.Sflags & SFLunambig)
                         flags |= (s1 == s) ? LFsymdef : LFunambigdef;
                     else
@@ -553,7 +556,7 @@ private int local_getflags(elem *e,Symbol *s)
             case OPcmpxchg:
                 if (e.EV.E1.Eoper == OPvar)
                 {
-                    auto s1 = e.EV.E1.EV.Vsym;
+                    const s1 = e.EV.E1.EV.Vsym;
                     if (s1.Sflags & SFLunambig)
                         flags |= (s1 == s) ? LFsymdef | LFsymref
                                            : LFunambigdef | LFunambigref;
@@ -667,7 +670,7 @@ private void local_ambigdef(ref Barray!loc_t lt)
 // Reference to symbol.
 // Remove any that define that symbol.
 
-private void local_symref(ref Barray!loc_t lt, Symbol *s)
+private void local_symref(ref Barray!loc_t lt, const Symbol* s)
 {
     symbol_debug(s);
     for (uint u = 0; u < lt.length;)
@@ -683,7 +686,7 @@ private void local_symref(ref Barray!loc_t lt, Symbol *s)
 // Definition of symbol.
 // Remove any that reference that symbol.
 
-private void local_symdef(ref Barray!loc_t lt, Symbol *s)
+private void local_symdef(ref Barray!loc_t lt, const Symbol* s)
 {
     symbol_debug(s);
     for (uint u = 0; u < lt.length;)
