@@ -50,7 +50,7 @@ extern (C++):
 
 bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
 
-alias Loops = Barray!loop;
+alias Loops = Rarray!loop;
 
 
 /*********************************
@@ -67,21 +67,21 @@ nothrow:
     block *Lpreheader;  // Pointer to preheader (if any)
     Barray!(elem*) Llis; // loop invariant elems moved to Lpreheader, so
                         // redundant temporaries aren't created
-    Barray!Iv Livlist;        // basic induction variables
-    Barray!Iv Lopeqlist;      // list of other op= variables
+    Rarray!Iv Livlist;        // basic induction variables
+    Rarray!Iv Lopeqlist;      // list of other op= variables
 
     /*************************
-     * Free memory so this allocation can be re-used.
+     * Reset memory so this allocation can be re-used.
      */
-    void dtor()
+    void reset()
     {
         vec_free(Lloop);
         vec_free(Lexit);
 
         foreach (ref iv; Livlist)
-            iv.dtor();
+            iv.reset();
         foreach (ref iv; Lopeqlist)
-            iv.dtor();
+            iv.reset();
 
         Llis.dtor();
         Livlist.dtor();
@@ -120,7 +120,7 @@ nothrow:
                             /* not necessarilly the type of the IV  */
                             /* elem!)                               */
 
-    void dtor()
+    void reset()
     {
         el_free(c1);
         el_free(c2);
@@ -153,13 +153,13 @@ nothrow:
     elem **IVincr;          // pointer to parent of IV increment elem
     Barray!famlist IVfamily;      // variables in this family
 
-    void dtor()
+    void reset()
     {
         foreach (ref fl; IVfamily)
         {
-            fl.dtor();
+            fl.reset();
         }
-        IVfamily.dtor();
+        IVfamily.reset();
     }
 
     void print() const
@@ -198,7 +198,9 @@ void makeLI(elem* n) { n.Nflags |= NFLli; }
 
 private void freeloop(ref Loops loops)
 {
-    loops.dtor();
+    foreach (ref loop; loops)
+        loop.reset();
+    loops.reset();
 }
 
 
@@ -409,6 +411,7 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
     l.Lexit = vec_calloc(maxblks);       /* bit vector for exit blocks   */
     l.Lhead = head;
     l.Ltail = tail;
+    l.Lpreheader = null;
 
     vec_setbit(head.Bdfoidx,l.Lloop);    /* add head to the loop         */
     head.Bweight = loop_weight(head.Bweight, 2);  // *20 usage for loop header
@@ -677,8 +680,9 @@ private __gshared
 
 void loopopt()
 {
-    vec_t rd;
-    Loops startloop;
+    __gshared Loops startloop_cache;
+
+    Loops startloop = startloop_cache;
 
     if (debugc) printf("loopopt()\n");
 restart:
@@ -687,6 +691,7 @@ restart:
     {
         findloops(dfo[], startloop);    // Compute Bweights
         freeloop(startloop);            // free existing loops
+        startloop_cache = startloop;
         return;                         // can't handle ASM blocks
     }
     compdom();                          // compute dominators
@@ -843,7 +848,7 @@ restart:
 
         /* Find & mark all LIs   */
         gin = vec_clone(l.Lpreheader.Bout);
-        rd = vec_calloc(go.defnod.length);        /* allocate our running RD vector */
+        vec_t rd = vec_calloc(go.defnod.length);        /* allocate our running RD vector */
         for (uint i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i) // for each block in loop
         {
             block *b = dfo[i];
@@ -928,6 +933,7 @@ restart:
         }
     } /* for */
     freeloop(startloop);
+    startloop_cache = startloop;
 }
 
 /*****************************
@@ -2052,12 +2058,12 @@ private void loopiv(ref loop l)
         elimopeqs(l);           // eliminate op= variables
 
     foreach (ref iv; l.Livlist)
-        iv.dtor();
-    l.Livlist.dtor();         // free up IV list
+        iv.reset();
+    l.Livlist.reset();          // reset for reuse
 
     foreach (ref iv; l.Lopeqlist)
-        iv.dtor();
-    l.Lopeqlist.dtor();       // free up list
+        iv.reset();
+    l.Lopeqlist.reset();        // reset for reuse
 
     /* Do copy propagation and dead assignment elimination        */
     /* upon return to optfunc()                                   */
@@ -2169,6 +2175,7 @@ private void findbasivs(ref loop l)
 
         auto biv = l.Livlist.push();
         biv.IVbasic = s;               // symbol of basic IV
+        biv.IVincr = null;
 
         if (debugc) printf("Symbol '%s' (%d) is a basic IV, ", s.Sident.ptr, i);
 
@@ -2303,6 +2310,7 @@ private void findopeqs(ref loop l)
 
         auto biv = l.Lopeqlist.push();
         biv.IVbasic = s;               // symbol of basic IV
+        biv.IVincr = null;
 
         if (debugc) printf("Symbol '%s' (%d) is an opeq IV, ",s.Sident.ptr,i);
 
