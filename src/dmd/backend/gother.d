@@ -54,66 +54,68 @@ version (MARS)
 
 /**********************************************************************/
 
+alias Elemdatas = Rarray!(Elemdata);
+
 // Lists to help identify ranges of variables
 struct Elemdata
 {
 nothrow:
-    Elemdata *next;         // linked list
     elem *pelem;            // the elem in question
     block *pblock;          // which block it's in
     Barray!(elem*) rdlist;  // list of definition elems for *pelem
 
-    static Elemdata *ctor(elem *e,block *b, Barray!(elem*) rd)
+    /***************************
+     * Reset memory so this allocation can be re-used.
+     */
+    void reset()
     {
-        Elemdata* ed = cast(Elemdata *) calloc(1, Elemdata.sizeof);
-        assert(ed);
-        ed.pelem = e;
-        ed.pblock = b;
-        ed.rdlist = rd;
-        return ed;
+        rdlist.reset();
     }
 
-    /********************************
-     * Find `e` in Elemdata list.
-     * Params:
-     *      e = elem to find
-     * Returns:
-     *      Elemdata entry if found,
-     *      null if not
+    /******************
+     * Initialize instance at ed.
      */
-    Elemdata* find(elem *e)
+    void emplace(elem *e,block *b)
     {
-        Elemdata* edl = &this;
-        for (; edl; edl = edl.next)
-        {
-            if (edl.pelem == e)
-                break;
-        }
-        return edl;
+        this.pelem = e;
+        this.pblock = b;
     }
+}
+
+/********************************
+ * Find `e` in Elemdata list.
+ * Params:
+ *      e = elem to find
+ * Returns:
+ *      Elemdata entry if found,
+ *      null if not
+ */
+Elemdata* find(ref Elemdatas eds, elem *e)
+{
+    foreach (ref edl; eds)
+    {
+        if (edl.pelem == e)
+            return &edl;
+    }
+    return null;
 }
 
 /*****************
  * Free list of Elemdata's.
  */
 
-private void elemdatafree(Elemdata **plist)
+private void elemdatafree(ref Elemdatas eds)
 {
-    Elemdata *eln;
-
-    for (Elemdata *el = *plist; el; el = eln)
-    {   eln = el.next;
-        el.rdlist.dtor();
-        free(el);
-    }
-    *plist = null;
+    foreach (ref ed; eds)
+        ed.reset();
+    eds.reset();
 }
 
 private __gshared
 {
-    Elemdata *eqeqlist = null;       // list of Elemdata's of OPeqeq & OPne elems
-    Elemdata *rellist = null;        // list of Elemdata's of relop elems
-    Elemdata *inclist = null;        // list of Elemdata's of increment elems
+    Elemdatas eqeqlist;       // array of Elemdata's of OPeqeq & OPne elems
+    Elemdatas rellist;        // array of Elemdata's of relop elems
+    Elemdatas inclist;        // array of Elemdata's of increment elems
 }
 
 /*************************** Constant Propagation ***************************/
@@ -129,9 +131,9 @@ void constprop()
     rd_compute();
     intranges();                // compute integer ranges
     eqeqranges();               // see if we can eliminate some relationals
-    elemdatafree(&eqeqlist);
-    elemdatafree(&rellist);
-    elemdatafree(&inclist);
+    elemdatafree(eqeqlist);
+    elemdatafree(rellist);
+    elemdatafree(inclist);
 }
 
 /************************************
@@ -148,7 +150,7 @@ private void rd_compute()
     flowrd();               /* compute reaching definitions (rd)    */
     if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
-    assert(rellist == null && inclist == null && eqeqlist == null);
+    assert(rellist.length == 0 && inclist.length == 0 && eqeqlist.length == 0);
     block_clearvisit();
     foreach (b; dfo[])    // for each block
     {
@@ -216,7 +218,6 @@ private void rd_compute()
 
 private void conpropwalk(elem *n,vec_t IN)
 {
-    Elemdata *pdata;
     vec_t L,R;
     elem *t;
 
@@ -278,13 +279,11 @@ private void conpropwalk(elem *n,vec_t IN)
                 // Note that the following ignores OPnegass
                 if (OTopeq(op) && sytab[t.EV.Vsym.Sclass] & SCRD)
                 {
-                    elem *e;
-
-                    auto rdl = listrds(IN,t,null);
+                    Barray!(elem*) rdl;
+                    listrds(IN,t,null,&rdl);
                     if (!(config.flags & CFGnowarning)) // if warnings are enabled
                         chkrd(t,rdl);
-                    e = chkprop(t,rdl);
-                    if (e)
+                    if (auto e = chkprop(t,rdl))
                     {   // Replace (t op= exp) with (t = e op exp)
 
                         e = el_copytree(e);
@@ -329,9 +328,9 @@ private void conpropwalk(elem *n,vec_t IN)
                 {
                     //printf("appending to rellist\n"); elem_print(n);
                     //printf("\trellist IN: "); vec_print(IN); printf("\n");
-                    pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
-                    pdata.next = rellist;
-                    rellist = pdata;
+                    auto pdata = rellist.push();
+                    pdata.emplace(n,thisblock);
+                    listrds(IN, n.EV.E1, null, &pdata.rdlist);
                 }
                 break;
 
@@ -344,9 +343,9 @@ private void conpropwalk(elem *n,vec_t IN)
                 {
                     //printf("appending to inclist\n"); elem_print(n);
                     //printf("\tinclist IN: "); vec_print(IN); printf("\n");
-                    pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
-                    pdata.next = inclist;
-                    inclist = pdata;
+                    auto pdata = inclist.push();
+                    pdata.emplace(n,thisblock);
+                    listrds(IN, n.EV.E1, null, &pdata.rdlist);
                 }
                 break;
 
@@ -355,9 +354,9 @@ private void conpropwalk(elem *n,vec_t IN)
                 // Collect compare elems and their rd's in the rellist list
                 if (tyintegral(n.EV.E1.Ety))
                 {   //printf("appending to eqeqlist\n"); elem_print(n);
-                    pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
-                    pdata.next = eqeqlist;
-                    eqeqlist = pdata;
+                    auto pdata = eqeqlist.push();
+                    pdata.emplace(n,thisblock);
+                    listrds(IN, n.EV.E1, null, &pdata.rdlist);
                 }
                 break;
 
@@ -375,7 +374,8 @@ private void conpropwalk(elem *n,vec_t IN)
     if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
     {
         //printf("const prop: %s\n", n.EV.Vsym.Sident);
-        auto rdl = listrds(IN,n,null);
+        Barray!(elem*) rdl;
+        listrds(IN,n,null,&rdl);
 
         if (!(config.flags & CFGnowarning))     // if warnings are enabled
             chkrd(n,rdl);
@@ -612,11 +612,10 @@ noprop:
  *      IN = vector of definition nodes
  *      e = OPvar
  *      f = if not null, set RD bits in it
- * Returns:
- *      (f) ? null : array of reaching defs
+ *      rdlist = if not null, append reaching defs to it
  */
 
-Barray!(elem*) listrds(vec_t IN,elem *e,vec_t f)
+void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
 {
     uint i;
     uint unambig;
@@ -627,7 +626,6 @@ Barray!(elem*) listrds(vec_t IN,elem *e,vec_t f)
 
     //printf("listrds: "); WReqn(e); printf("\n");
     assert(IN);
-    Barray!(elem*) rdlist;
     assert(e.Eoper == OPvar);
     s = e.EV.Vsym;
     ty = e.Ety;
@@ -669,9 +667,8 @@ Barray!(elem*) listrds(vec_t IN,elem *e,vec_t f)
         if (f)
             vec_setbit(i,f);
         else
-            rdlist.push(d);     // add the definition node
+            (*rdlist).push(d);     // add the definition node
     }
-    return rdlist;
 }
 
 /********************************************
@@ -688,7 +685,7 @@ private void eqeqranges()
     targ_llong c;
     int result;
 
-    for (Elemdata *rel = eqeqlist; rel; rel = rel.next)
+    foreach (ref rel; eqeqlist)
     {
         e = rel.pelem;
         v = e.EV.E1.EV.Vsym;
@@ -753,7 +750,7 @@ private void intranges()
     targ_llong initial,increment,final_;
 
     if (debugc) printf("intranges()\n");
-    for (Elemdata *rel = rellist; rel; rel = rel.next)
+    foreach (ref rel; rellist)
     {
         rb = rel.pblock;
         //printf("rel.pelem: "); WReqn(rel.pelem); printf("\n");
@@ -797,29 +794,29 @@ private void intranges()
 
         /* Ensure that the only defs reaching the increment elem (rdinc) */
         /* are rdeq and rdinc.                                          */
-        for (Elemdata *iel = inclist; true; iel = iel.next)
+        foreach (ref iel; inclist)
         {
             elem *rd1;
             elem *rd2;
 
-            if (!iel)
-                goto nextrel;
             ib = iel.pblock;
             if (iel.pelem != rdinc)
                 continue;               /* not our increment elem       */
             if (iel.rdlist.length != 2)
             {
                 //printf("!= 2\n");
-                goto nextrel;
+                break;
             }
             rd1 = iel.rdlist[0];
             rd2 = iel.rdlist[1];
             /* The rd's for the relational elem (rdeq,rdinc) must be    */
             /* the same as the rd's for tne increment elem (rd1,rd2).   */
             if (rd1 == rdeq && rd2 == rdinc || rd1 == rdinc && rd2 == rdeq)
-                break;
+                goto found;
         }
+        goto nextrel;
 
+    found:
         // Check that all paths from rdinc to rdinc must pass through rdrel
         {
             int i;
@@ -922,9 +919,9 @@ private void intranges()
 
 private bool returnResult(bool result)
 {
-    elemdatafree(&eqeqlist);
-    elemdatafree(&rellist);
-    elemdatafree(&inclist);
+    elemdatafree(eqeqlist);
+    elemdatafree(rellist);
+    elemdatafree(inclist);
     return result;
 }
 
