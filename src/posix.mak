@@ -159,7 +159,7 @@ CXXFLAGS := $(WARNINGS) \
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
-	-std=gnu++98
+	-std=c++11
 endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
@@ -226,6 +226,12 @@ DMD_FLAGS  := -I$(ROOT) $(DMD_WARNINGS)
 GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C) $(GLUE_WARNINGS)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1 $(BACK_WARNINGS)
 ROOT_FLAGS := -I$(ROOT) $(ROOT_WARNINGS)
+
+# GCC Specific
+ifeq ($(CXX_KIND), g++)
+BACK_FLAGS += \
+	-std=gnu++11
+endif
 
 ifeq ($(OS), osx)
 ifeq ($(MODEL), 64)
