@@ -365,7 +365,7 @@ void CodeBuilder::gen2sib(unsigned op, unsigned rm, unsigned sib)
  * Generate an ASM sequence.
  */
 
-code *genasm(code *c,char *s,unsigned slen)
+code *genasm(code *c,unsigned char *s,unsigned slen)
 {   code *ce;
 
     ce = code_calloc();

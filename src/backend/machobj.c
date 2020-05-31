@@ -2648,7 +2648,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 }
 
                 val = pseg->SDbuf->size();
-                static char halts[5] = { 0xF4,0xF4,0xF4,0xF4,0xF4 };
+                static unsigned char halts[5] = { 0xF4,0xF4,0xF4,0xF4,0xF4 };
                 pseg->SDbuf->write(halts, 5);
 
                 // Add symbol s to indirectsymbuf1

@@ -544,7 +544,7 @@ code *gen (code *c , code *cs );
 code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib);
-code *genasm (code *c , char *s , unsigned slen );
+code *genasm (code *c , unsigned char *s , unsigned slen );
 code *gencsi (code *c , unsigned op , unsigned rm , unsigned FL2 , SYMIDX si );
 code *gencs (code *c , unsigned op , unsigned rm , unsigned FL2 , symbol *s );
 code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );

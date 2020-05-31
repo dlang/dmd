@@ -74,7 +74,6 @@ endif
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
-	-Wno-narrowing \
 	-Wwrite-strings \
 	-Wno-long-long \
 	-Wno-variadic-macros \
@@ -110,7 +109,6 @@ endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-	-Wno-c++11-narrowing \
 	-Wno-undefined-var-template \
 	-Wno-absolute-value \
 	-Wno-missing-braces \
@@ -134,7 +132,6 @@ BACK_WARNINGS := $(GLUE_WARNINGS) \
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-	-Wno-c++11-narrowing \
 	-Wno-undefined-var-template \
 	-Wno-absolute-value
 GLUE_WARNINGS += \
