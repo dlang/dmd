@@ -711,7 +711,7 @@ __body
 #define M_LN2_L         0x1.62e42fefa39ef358p-1L        // 0.693147 fldln2
     {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
 #endif
-    static char opcode[7 + 1] =
+    static unsigned char opcode[7 + 1] =
         /* FLDZ,FLD1,FLDPI,FLDL2T,FLDL2E,FLDLG2,FLDLN2,0 */
         {0xEE,0xE8,0xEB,0xE9,0xEA,0xEC,0xED,0};
     int i;

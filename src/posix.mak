@@ -74,7 +74,6 @@ endif
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
-	-Wno-narrowing \
 	-Wwrite-strings \
 	-Wno-long-long \
 	-Wno-variadic-macros \
@@ -110,7 +109,6 @@ endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-	-Wno-c++11-narrowing \
 	-Wno-undefined-var-template \
 	-Wno-absolute-value \
 	-Wno-missing-braces \
@@ -134,7 +132,6 @@ BACK_WARNINGS := $(GLUE_WARNINGS) \
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-	-Wno-c++11-narrowing \
 	-Wno-undefined-var-template \
 	-Wno-absolute-value
 GLUE_WARNINGS += \
@@ -162,7 +159,7 @@ CXXFLAGS := $(WARNINGS) \
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
-	-std=gnu++98
+	-std=c++11
 endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
@@ -229,6 +226,12 @@ DMD_FLAGS  := -I$(ROOT) $(DMD_WARNINGS)
 GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C) $(GLUE_WARNINGS)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1 $(BACK_WARNINGS)
 ROOT_FLAGS := -I$(ROOT) $(ROOT_WARNINGS)
+
+# GCC Specific
+ifeq ($(CXX_KIND), g++)
+BACK_FLAGS += \
+	-std=gnu++11
+endif
 
 ifeq ($(OS), osx)
 ifeq ($(MODEL), 64)

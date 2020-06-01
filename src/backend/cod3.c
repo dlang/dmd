@@ -423,12 +423,12 @@ void cod3_align_bytes(size_t nbytes)
         }
         else
         {
-            static const char nops[] = {
+            static const unsigned char nops[] = {
                 0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
             }; // XCHG AX,AX
             if (n > sizeof(nops))
                 n = sizeof(nops);
-            p = nops;
+            p = (char *)nops;
         }
         objmod->write_bytes(SegData[cseg],n,const_cast<char*>(p));
         nbytes -= n;
@@ -2672,7 +2672,7 @@ L1:
                         goto L4;
                     c = genclrreg(c,reg);
                     goto inc;
-                case -1:
+                case ~(targ_size_t)0:
                     if (I64)
                         goto L4;
                     c = genclrreg(c,reg);

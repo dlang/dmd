@@ -65,7 +65,7 @@ void dbg_optprint(char *);
 
 int go_flag(char *cp)
 {   unsigned i;
-    unsigned flag;
+    int flag;
 
     enum GL     // indices of various flags in flagtab[]
     {
