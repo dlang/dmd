@@ -1513,11 +1513,16 @@ void genKill(ref ObState obstate, ObNode* ob)
                             if (vi == size_t.max)
                                 return;
 
-                            obstate.varStack.push(vi);
-                            obstate.mutableStack.push(isMutableRef(arg.type));
-
-                            // move (i.e. consume arg)
-                            makeUndefined(vi, ob.gen);
+                            if (tf.parameterList.stc & STC.scope_)
+                            {
+                                // borrow
+                                obstate.varStack.push(vi);
+                                obstate.mutableStack.push(isMutableRef(arg.type) &&
+                                        !(tf.parameterList.stc & (STC.const_ | STC.immutable_)));
+                            }
+                            else
+                                // move (i.e. consume arg)
+                                makeUndefined(vi, ob.gen);
                         }
 
                         foreach (VarDeclaration v2; er.byvalue)
@@ -2219,13 +2224,21 @@ void checkObErrors(ref ObState obstate)
                                 return;
 
                             auto pvs = &cpvs[vi];
-                            obstate.varStack.push(vi);
-                            obstate.mutableStack.push(isMutableRef(arg.type));
 
-                            // move (i.e. consume arg)
-                            if (pvs.state != PtrState.Owner)
-                                v.error(arg.loc, "is not Owner, cannot consume its value");
-                            makeUndefined(vi, cpvs);
+                            if (tf.parameterList.stc & STC.scope_)
+                            {
+                                // borrow
+                                obstate.varStack.push(vi);
+                                obstate.mutableStack.push(isMutableRef(arg.type) &&
+                                        !(tf.parameterList.stc & (STC.const_ | STC.immutable_)));
+                            }
+                            else
+                            {
+                                // move (i.e. consume arg)
+                                if (pvs.state != PtrState.Owner)
+                                    v.error(arg.loc, "is not Owner, cannot consume its value");
+                                makeUndefined(vi, cpvs);
+                            }
                         }
 
                         foreach (VarDeclaration v2; er.byvalue)
