@@ -110,7 +110,7 @@ $(H2 $(LNAME2 access_control, Access Control))
 
 $(H2 $(LNAME2 fields, Fields))
 
-        $(P Class members are always accessed with the . operator.
+        $(P Class members are always accessed with the `.` operator.
         )
 
         $(P Members of a base class can be accessed by prepending the name of
@@ -206,8 +206,8 @@ void test(Foo foo)
 $(H2 $(LNAME2 super_class, Super Class))
 
         All classes inherit from a super class. If one is not specified,
-        it inherits from Object. Object forms the root of the D class
-        inheritance hierarchy.
+        it inherits from $(REF1 Object, object). `Object` forms the root
+        of the D class inheritance hierarchy.
 
 $(H2 $(LNAME2 member-functions, Member Functions))
 
