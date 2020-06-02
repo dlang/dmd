@@ -335,7 +335,7 @@ $(GNAME Constructor):
         called.)
 
         $(P Constructors are defined with a function name of $(D this)
-        and having no return value:)
+        and have no return value:)
 
         ------
         class Foo
