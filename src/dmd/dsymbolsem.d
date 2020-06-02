@@ -5944,6 +5944,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
 
+    TemplateStats.incInstance(tempdecl);
+
     // If tempdecl is a mixin, disallow it
     if (tempdecl.ismixin)
     {
@@ -6079,6 +6081,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     tempinst.inst = tempinst;
     tempinst.parent = tempinst.enclosing ? tempinst.enclosing : tempdecl.parent;
     //printf("parent = '%s'\n", parent.kind());
+
+    TemplateStats.incUnique(tempdecl.isTemplateDeclaration());
 
     TemplateInstance tempdecl_instance_idx = tempdecl.addInstance(tempinst);
 

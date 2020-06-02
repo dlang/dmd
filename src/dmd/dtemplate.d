@@ -8173,3 +8173,58 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
     else
         assert(0);
 }
+
+
+/***********************************************
+ * Collect and print statistics on template instantiations.
+ */
+struct TemplateStats
+{
+    __gshared TemplateStats[const void*] stats;
+
+    uint numInstantiations;     // number of instantiations of the template
+    uint uniqueInstantiations;  // number of unique instantiations of the template
+
+    /*******************************
+     * Add this instance
+     */
+    static void incInstance(const TemplateDeclaration td)
+    {
+        if (!global.params.vtemplates)
+            return;
+        if (!td)
+            return;
+        if (auto ts = cast(const void*) td in stats)
+            ++ts.numInstantiations;
+        else
+            stats[cast(const void*) td] = TemplateStats(1, 0);
+    }
+
+    /*******************************
+     * Add this unique instance
+     */
+    static void incUnique(const TemplateDeclaration td)
+    {
+        if (!global.params.vtemplates)
+            return;
+        if (!td)
+            return;
+        if (auto ts = cast(const void*) td in stats)
+            ++ts.uniqueInstantiations;
+        else
+            stats[cast(const void*) td] = TemplateStats(0, 1);
+    }
+}
+
+
+void printTemplateStats()
+{
+    if (!global.params.vtemplates)
+        return;
+
+    printf("  Number   Unique   Name\n");
+    foreach (td, ref ts; TemplateStats.stats)
+    {
+        printf("%8u %8u   %s\n", ts.numInstantiations, ts.uniqueInstantiations, (cast(const TemplateDeclaration) td).toChars());
+    }
+}

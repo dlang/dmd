@@ -34,6 +34,7 @@ import dmd.dmodule;
 import dmd.doc;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
@@ -643,6 +644,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     printCtfePerformanceStats();
+    printTemplateStats();
 
     Library library = null;
     if (params.lib)
@@ -1841,6 +1843,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.vcg_ast = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
+        else if (arg == "-vtemplates") // https://dlang.org/dmd.html#switch-vtemplates
+            params.vtemplates = true;
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc

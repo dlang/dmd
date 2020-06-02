@@ -681,6 +681,9 @@ dmd -cov -unittest myprog.d
         Option("vtls",
             "list all variables going into thread local storage"
         ),
+        Option("vtemplates",
+            "list statistics on template instantiations"
+        ),
         Option("w",
             "warnings as errors (compilation will halt)",
             `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, warnings)`
