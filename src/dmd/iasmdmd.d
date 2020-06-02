@@ -1245,13 +1245,8 @@ code *asm_emit(Loc loc,
         void emit(uint op) { }
     }
 //  uint us;
-    ubyte *puc;
-    uint usDefaultseg;
     code *pc = null;
     OPND *popndTmp = null;
-    ASM_OPERAND_TYPE    aoptyTmp;
-    uint  uSizemaskTmp;
-    const(REG) *pregSegment;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
     ASM_MODIFIERS[2] amods = _normal;
     uint[3] uSizemaskTable = 0;
@@ -1309,7 +1304,6 @@ code *asm_emit(Loc loc,
 
     if (opnds.length >= 1)
     {
-        //aopty1 = ASM_GET_aopty(popnd1.usFlags);
         amods[0] = ASM_GET_amod(opnds[0].usFlags);
 
         uSizemaskTable[0] = ASM_GET_uSizemask(ptb.pptb1.usOp1);
@@ -1329,7 +1323,6 @@ code *asm_emit(Loc loc,
             printf("\n");
         }
 
-        //aopty2 = ASM_GET_aopty(popnd2.usFlags);
         amods[1] = ASM_GET_amod(opnds[1].usFlags);
 
         uSizemaskTable[1] = ASM_GET_uSizemask(ptb.pptb2.usOp2);
@@ -1339,8 +1332,6 @@ code *asm_emit(Loc loc,
     }
     if (opnds.length >= 3)
     {
-        //aopty3 = ASM_GET_aopty(popnd3.usFlags);
-
         uSizemaskTable[2] = ASM_GET_uSizemask(ptb.pptb3.usOp3);
         aoptyTable[2] = ASM_GET_aopty(ptb.pptb3.usOp3);
     }
@@ -1430,6 +1421,8 @@ code *asm_emit(Loc loc,
                     pc.Iflags |= CFopsize;
                 }
             }
+
+            const(REG) *pregSegment;
             if (opnds[0].segreg != null)
             {
                 popndTmp = &opnds[0];
@@ -1442,6 +1435,7 @@ code *asm_emit(Loc loc,
             }
             if (pregSegment)
             {
+                uint usDefaultseg;
                 if ((popndTmp.pregDisp1 &&
                         popndTmp.pregDisp1.val == _BP) ||
                         popndTmp.pregDisp2 &&
@@ -1495,6 +1489,8 @@ code *asm_emit(Loc loc,
     if (pc.Ivex.pfx == 0xC4)
     {
         debug uint oIdx = usIdx;
+        ASM_OPERAND_TYPE    aoptyTmp;
+        uint  uSizemaskTmp;
 
         // vvvv
         switch (pc.Ivex.vvvv)
@@ -1649,20 +1645,22 @@ code *asm_emit(Loc loc,
             goto L3;
 
         case 0x0F0000:                      // an AMD instruction
-            puc = (cast(ubyte *) &opcode);
-            if (puc[1] != 0x0F)             // if not AMD instruction 0x0F0F
-                goto L4;
+            const puc = (cast(ubyte *) &opcode);
             emit(puc[2]);
             emit(puc[1]);
             emit(puc[0]);
             pc.Iop >>= 8;
-            pc.IEV2.Vint = puc[0];
-            pc.IFL2 = FLconst;
+            if (puc[1] == 0x0F)             // if AMD instruction 0x0F0F
+            {
+                pc.IEV2.Vint = puc[0];
+                pc.IFL2 = FLconst;
+            }
+            else
+                pc.Irm = puc[0];
             goto L3;
 
         default:
-            puc = (cast(ubyte *) &opcode);
-        L4:
+            const puc = (cast(ubyte *) &opcode);
             emit(puc[2]);
             emit(puc[1]);
             emit(puc[0]);
@@ -1672,7 +1670,7 @@ code *asm_emit(Loc loc,
     }
     if (opcode & 0xff00)
     {
-        puc = (cast(ubyte *) &(opcode));
+        const puc = (cast(ubyte *) &(opcode));
         emit(puc[1]);
         emit(puc[0]);
         pc.Iop = puc[1];
