@@ -306,7 +306,6 @@ immutable Msgtable[] msgtable =
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
-    { "__ArrayEq" },
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
     { "_d_delThrowable" },

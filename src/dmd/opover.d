@@ -262,7 +262,7 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
  *      sc = context
  *      pop = if not null, is set to the operator that was actually overloaded,
  *            which may not be `e.op`. Happens when operands are reversed to
- *            to match an overload
+ *            match an overload
  * Returns:
  *      `null` if not an operator overload,
  *      otherwise the lowered expression
@@ -917,52 +917,14 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             Type t1 = e.e1.type.toBasetype();
             Type t2 = e.e2.type.toBasetype();
 
-            /* Check for array equality.
+            /* Array equality is handled by expressionSemantic() potentially
+             * lowering to object.__equals(), which takes care of overloaded
+             * operators for the element types.
              */
             if ((t1.ty == Tarray || t1.ty == Tsarray) &&
                 (t2.ty == Tarray || t2.ty == Tsarray))
             {
-                bool needsDirectEq()
-                {
-                    Type t1n = t1.nextOf().toBasetype();
-                    Type t2n = t2.nextOf().toBasetype();
-                    if ((t1n.ty.isSomeChar && t2n.ty.isSomeChar) ||
-                        (t1n.ty == Tvoid || t2n.ty == Tvoid))
-                    {
-                        return false;
-                    }
-                    if (t1n.constOf() != t2n.constOf())
-                        return true;
-
-                    Type t = t1n;
-                    while (t.toBasetype().nextOf())
-                        t = t.nextOf().toBasetype();
-                    if (t.ty != Tstruct)
-                        return false;
-
-                    if (global.params.useTypeInfo && Type.dtypeinfo)
-                        semanticTypeInfo(sc, t);
-
-                    return (cast(TypeStruct)t).sym.hasIdentityEquals;
-                }
-
-                if (needsDirectEq() && !(t1.ty == Tarray && t2.ty == Tarray))
-                {
-                    /* Rewrite as:
-                     *      __ArrayEq(e1, e2)
-                     */
-                    Expression eeq = new IdentifierExp(e.loc, Id.__ArrayEq);
-                    result = new CallExp(e.loc, eeq, e.e1, e.e2);
-                    if (e.op == TOK.notEqual)
-                        result = new NotExp(e.loc, result);
-                    result = result.trySemantic(sc); // for better error message
-                    if (!result)
-                    {
-                        e.error("cannot compare `%s` and `%s`", t1.toChars(), t2.toChars());
-                        result = new ErrorExp();
-                    }
-                    return;
-                }
+                return;
             }
 
             /* Check for class equality with null literal or typeof(null).
@@ -1027,9 +989,6 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 }
                 return;
             }
-
-            if (t1.ty == Tarray && t2.ty == Tarray)
-                return;
 
             /* Check for pointer equality.
              */

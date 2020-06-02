@@ -3525,29 +3525,6 @@ void fix16997(Scope* sc, UnaExp ue)
 
 /***********************************
  * See if both types are arrays that can be compared
- * for equality. Return true if so.
- * If they are arrays, but incompatible, issue error.
- * This is to enable comparing things like an immutable
- * array with a mutable one.
- */
-extern (C++) bool arrayTypeCompatible(Loc loc, Type t1, Type t2)
-{
-    t1 = t1.toBasetype().merge2();
-    t2 = t2.toBasetype().merge2();
-
-    if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
-    {
-        if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCH.constant && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCH.constant && (t1.nextOf().ty != Tvoid && t2.nextOf().ty != Tvoid))
-        {
-            error(loc, "array equality comparison type mismatch, `%s` vs `%s`", t1.toChars(), t2.toChars());
-        }
-        return true;
-    }
-    return false;
-}
-
-/***********************************
- * See if both types are arrays that can be compared
  * for equality without any casting. Return true if so.
  * This is to enable comparing things like an immutable
  * array with a mutable one.

@@ -11044,7 +11044,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
 
-        bool needsDirectEq(Type t1, Type t2)
+        // Indicates whether the comparison of the 2 specified array types
+        // requires an object.__equals() lowering.
+        static bool needsDirectEq(Type t1, Type t2, Scope* sc)
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
@@ -11059,13 +11061,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Type t = t1n;
             while (t.toBasetype().nextOf())
                 t = t.nextOf().toBasetype();
-            if (t.ty != Tstruct)
-                return false;
+            if (auto ts = t.isTypeStruct())
+            {
+                // semanticTypeInfo() makes sure hasIdentityEquals has been computed
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    semanticTypeInfo(sc, ts);
 
-            if (global.params.useTypeInfo && Type.dtypeinfo)
-                semanticTypeInfo(sc, t);
+                return ts.sym.hasIdentityEquals; // has custom opEquals
+            }
 
-            return (cast(TypeStruct)t).sym.hasIdentityEquals;
+            return false;
         }
 
         if (auto e = exp.op_overload(sc))
@@ -11075,7 +11080,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
 
-        if (!(t1.ty == Tarray && t2.ty == Tarray && needsDirectEq(t1, t2)))
+        const isArrayComparison = (t1.ty == Tarray || t1.ty == Tsarray) &&
+                                  (t2.ty == Tarray || t2.ty == Tsarray);
+        const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc);
+
+        if (!needsArrayLowering)
         {
             if (auto e = typeCombine(exp, sc))
             {
@@ -11091,26 +11100,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = Type.tbool;
 
-        // Special handling for array comparisons
-        if (!(t1.ty == Tarray && t2.ty == Tarray && needsDirectEq(t1, t2)))
+        if (!isArrayComparison)
         {
-            if (!arrayTypeCompatible(exp.loc, exp.e1.type, exp.e2.type))
+            if (exp.e1.type != exp.e2.type && exp.e1.type.isfloating() && exp.e2.type.isfloating())
             {
-                if (exp.e1.type != exp.e2.type && exp.e1.type.isfloating() && exp.e2.type.isfloating())
-                {
-                    // Cast both to complex
-                    exp.e1 = exp.e1.castTo(sc, Type.tcomplex80);
-                    exp.e2 = exp.e2.castTo(sc, Type.tcomplex80);
-                }
+                // Cast both to complex
+                exp.e1 = exp.e1.castTo(sc, Type.tcomplex80);
+                exp.e2 = exp.e2.castTo(sc, Type.tcomplex80);
             }
         }
 
-        if (t1.ty == Tarray && t2.ty == Tarray)
+        // lower some array comparisons to object.__equals(e1, e2)
+        if (needsArrayLowering || (t1.ty == Tarray && t2.ty == Tarray))
         {
-            //printf("Lowering to __equals %s %s\n", e1.toChars(), e2.toChars());
-
-            // For e1 and e2 of struct type, lowers e1 == e2 to object.__equals(e1, e2)
-            // and e1 != e2 to !(object.__equals(e1, e2)).
+            //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
             if (!verifyHookExist(exp.loc, *sc, Id.__equals, "equal checks on arrays"))
                 return setError();
@@ -11129,7 +11132,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 __equals = new NotExp(exp.loc, __equals);
             }
-            __equals = __equals.expressionSemantic(sc);
+            __equals = __equals.trySemantic(sc); // for better error message
+            if (!__equals)
+            {
+                exp.error("incompatible types for array comparison: `%s` and `%s`",
+                          exp.e1.type.toChars(), exp.e2.type.toChars());
+                __equals = new ErrorExp();
+            }
 
             result = __equals;
             return;
