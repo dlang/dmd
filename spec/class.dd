@@ -490,6 +490,8 @@ $(H3 $(LNAME2 class-instantiation, Class Instantiation))
         )
     )
 
+$(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
+
         $(P Constructors can have one of these member function attributes:
         $(D const), $(D immutable), and $(D shared). Construction of qualified
         objects will then be restricted to the implemented qualified constructors.
@@ -503,7 +505,7 @@ $(H3 $(LNAME2 class-instantiation, Class Instantiation))
         // create mutable object
         C m = new C();
 
-        // create const object using by mutable constructor
+        // create const object using mutable constructor
         const C c2 = new const C();
 
         // a mutable constructor cannot create an immutable object
@@ -527,6 +529,8 @@ $(H3 $(LNAME2 class-instantiation, Class Instantiation))
         shared s = new shared C();
         immutable i = new immutable C();
         ------
+
+$(H4 $(LNAME2 pure-constructors, Pure Constructors))
 
         $(P If the constructor can create a unique object (e.g. if it is `pure`),
         the object can be implicitly convertible to any qualifiers.
@@ -552,7 +556,7 @@ $(H3 $(LNAME2 class-instantiation, Class Instantiation))
         C m = new C([1,2,3]);       // this(int[]) immutable pure is called
         ------
 
-$(H2 $(LNAME2 field-init, Field initialization inside constructor))
+$(H3 $(LNAME2 field-init, Field initialization inside a constructor))
 
         $(P In a constructor body, the first instance of field assignment is
         its initialization.
