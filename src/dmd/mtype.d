@@ -2191,9 +2191,13 @@ extern (C++) abstract class Type : ASTNode
      * If this is a shell around another type,
      * get that other type.
      */
-    Type toBasetype()
+    final Type toBasetype()
     {
-        return this;
+        /* This function is used heavily.
+         * De-virtualize it so it can be easily inlined.
+         */
+        TypeEnum te;
+        return ((te = isTypeEnum()) !is null) ? te.toBasetype2() : this;
     }
 
     bool isBaseOf(Type t, int* poffset)
@@ -5966,7 +5970,7 @@ extern (C++) final class TypeEnum : Type
         return MATCH.nomatch;
     }
 
-    override Type toBasetype()
+    extern (D) Type toBasetype2()
     {
         if (!sym.members && !sym.memtype)
             return this;
