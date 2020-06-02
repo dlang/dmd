@@ -443,9 +443,9 @@ $(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
         ------
 
         $(P If no calls to a delegating constructor or $(D super) appear in a
-        constructor, and the base class has a nullary constructor, a call to 
+        constructor, and the base class has a nullary constructor, a call to
         `super()` is inserted at the beginning of the constructor. If that
-        base class has a constructor that requires arguments and no 
+        base class has a constructor that requires arguments and no
         nullary constructor, a matching call to `super` is required.)
 
 $(H3 $(LNAME2 class-instantiation, Class Instantiation))
