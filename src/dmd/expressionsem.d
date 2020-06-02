@@ -822,6 +822,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
  */
 Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads)
 {
+    import dmd.trace; mixin(traceString("s"));
     static if (LOGSEMANTIC)
     {
         printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());

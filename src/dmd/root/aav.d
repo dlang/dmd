@@ -60,7 +60,7 @@ private size_t dmd_aaLen(const AA* aa) pure nothrow @nogc @safe
  * Add entry for key if it is not already there, returning a pointer to a null Value.
  * Create the associative array if it does not already exist.
  */
-private Value* dmd_aaGet(AA** paa, Key key) pure nothrow
+private Value* dmd_aaGet(AA** paa, Key key) nothrow
 {
     //printf("paa = %p\n", paa);
     if (!*paa)
@@ -221,7 +221,7 @@ unittest
 /********************************************
  * Rehash an array.
  */
-private void dmd_aaRehash(AA** paa) pure nothrow
+private void dmd_aaRehash(AA** paa) nothrow
 {
     //printf("Rehash\n");
     if (*paa)
@@ -290,7 +290,7 @@ struct AssocArray(K,V)
     Returns: the address to the value associated with `key`. If `key` does not exist, it
              is added and the address to the new value is returned.
     */
-    V* getLvalue(const(K) key) pure nothrow
+    V* getLvalue(const(K) key) nothrow
     {
         return cast(V*)dmd_aaGet(&aa, cast(void*)key);
     }
@@ -304,7 +304,7 @@ struct AssocArray(K,V)
 
     Returns: the value associated with `key` if present, otherwise, null.
     */
-    V opIndex(const(K) key) pure nothrow @nogc
+    V opIndex(const(K) key) nothrow @nogc
     {
         return cast(V)dmd_aaGetRvalue(aa, cast(void*)key);
     }

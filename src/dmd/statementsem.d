@@ -127,6 +127,7 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
     version (CallbackAPI)
         Compiler.onStatementSemanticStart(s, sc);
 
+    import dmd.trace; mixin(traceString("s"));
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
 
@@ -659,6 +660,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
      */
     MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
     {
+        import dmd.trace; mixin(traceString("fs"));
+
         auto returnEarly()
         {
             static if (isDecl)

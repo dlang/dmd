@@ -5535,6 +5535,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
 
     override Type syntaxCopy()
     {
+        import dmd.trace; mixin(traceString("this"));
         auto t = new TypeIdentifier(loc, ident);
         t.syntaxCopyHelper(this);
         t.mod = mod;

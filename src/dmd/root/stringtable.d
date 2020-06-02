@@ -86,7 +86,7 @@ private:
     size_t countTrigger;   // amount which will trigger growing the table
 
 public:
-    void _init(size_t size = 0) nothrow pure
+    void _init(size_t size = 0) nothrow 
     {
         size = nextpow2((size * loadFactorDenominator) / loadFactorNumerator);
         if (size < 32)
@@ -98,13 +98,13 @@ public:
         count = 0;
     }
 
-    void reset(size_t size = 0) nothrow pure
+    void reset(size_t size = 0) nothrow 
     {
         freeMem();
         _init(size);
     }
 
-    ~this() nothrow pure
+    ~this() nothrow 
     {
         freeMem();
     }
@@ -149,7 +149,7 @@ public:
     Returns: the newly inserted value, or `null` if the string table already
      contains the string
     */
-    StringValue!(T)* insert(const(char)[] str, T value) nothrow pure
+    StringValue!(T)* insert(const(char)[] str, T value) nothrow
     {
         const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
@@ -167,12 +167,12 @@ public:
     }
 
     /// ditto
-    StringValue!(T)* insert(const(char)* s, size_t length, T value) nothrow pure
+    StringValue!(T)* insert(const(char)* s, size_t length, T value) nothrow
     {
         return insert(s[0 .. length], value);
     }
 
-    StringValue!(T)* update(const(char)[] str) nothrow pure
+    StringValue!(T)* update(const(char)[] str) nothrow
     {
         const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
@@ -190,7 +190,7 @@ public:
         return getValue(table[i].vptr);
     }
 
-    StringValue!(T)* update(const(char)* s, size_t length) nothrow pure
+    StringValue!(T)* update(const(char)* s, size_t length) nothrow
     {
         return update(s[0 .. length]);
     }
@@ -234,7 +234,7 @@ public:
 
 private:
     /// Free all memory in use by this StringTable
-    void freeMem() nothrow pure
+    void freeMem() nothrow
     {
         foreach (pool; pools)
             mem.xfree(pool);
@@ -244,7 +244,7 @@ private:
         pools = null;
     }
 
-    uint allocValue(const(char)[] str, T value) nothrow pure
+    uint allocValue(const(char)[] str, T value) nothrow
     {
         const(size_t) nbytes = (StringValue!T).sizeof + str.length + 1;
         if (!pools.length || nfill + nbytes > POOL_SIZE)
@@ -288,7 +288,7 @@ private:
         }
     }
 
-    void grow() nothrow pure
+    void grow() nothrow
     {
         const odim = table.length;
         auto otab = table;

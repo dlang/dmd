@@ -275,6 +275,8 @@ extern (C++) struct Param
     OutBuffer* moduleDeps;              // contents to be written to deps file
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
+    const(char)[] traceFile = null;     // write dmd internal profiling
+
     // Hidden debug switches
     bool debugb;
     bool debugc;
@@ -574,7 +576,7 @@ nothrow:
 
     extern (C++) const(char)* toChars(
         bool showColumns = global.params.showColumns,
-        ubyte messageStyle = global.params.messageStyle) const pure nothrow
+        ubyte messageStyle = global.params.messageStyle) const nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -628,7 +630,7 @@ nothrow:
      * may lead to multiple equivalent filenames (`foo.d-mixin-<line>`),
      * e.g., for test/runnable/test18880.d.
      */
-    extern (D) bool opEquals(ref const(Loc) loc) const @trusted pure nothrow @nogc
+    extern (D) bool opEquals(ref const(Loc) loc) const @trusted  nothrow @nogc
     {
         import core.stdc.string : strcmp;
 
@@ -638,7 +640,7 @@ nothrow:
                 (filename && loc.filename && strcmp(filename, loc.filename) == 0));
     }
 
-    extern (D) size_t toHash() const @trusted pure nothrow
+    extern (D) size_t toHash() const @trusted  nothrow
     {
         import dmd.root.string : toDString;
 
@@ -652,7 +654,7 @@ nothrow:
      * Returns:
      *   true if Loc has been set to other than the default initialization
      */
-    bool isValid() const pure
+    bool isValid() const 
     {
         return filename !is null;
     }

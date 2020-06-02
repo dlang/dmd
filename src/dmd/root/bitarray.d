@@ -29,7 +29,7 @@ nothrow:
         return len;
     }
 
-    void length(size_t nlen) pure nothrow
+    void length(size_t nlen) nothrow
     {
         immutable ochunks = chunks(len);
         immutable nchunks = chunks(nlen);
@@ -118,7 +118,7 @@ nothrow:
         }
     }
 
-    ~this() pure nothrow
+    ~this() nothrow
     {
         debug
         {

@@ -31,6 +31,8 @@ extern (C++) struct Mem
 {
     static char* xstrdup(const(char)* s) nothrow
     {
+        Mem.allocated += s ? strlen(s) + 1 : 0;
+
         version (GC)
             if (isGCEnabled)
                 return s ? s[0 .. strlen(s) + 1].dup.ptr : null;
@@ -38,7 +40,7 @@ extern (C++) struct Mem
         return s ? cast(char*)check(.strdup(s)) : null;
     }
 
-    static void xfree(void* p) pure nothrow
+    static void xfree(void* p)  nothrow
     {
         version (GC)
             if (isGCEnabled)
@@ -47,8 +49,9 @@ extern (C++) struct Mem
         pureFree(p);
     }
 
-    static void* xmalloc(size_t size) pure nothrow
+    static void* xmalloc(size_t size) nothrow
     {
+        Mem.allocated += size;
         version (GC)
             if (isGCEnabled)
                 return size ? GC.malloc(size) : null;
@@ -56,8 +59,9 @@ extern (C++) struct Mem
         return size ? check(pureMalloc(size)) : null;
     }
 
-    static void* xmalloc_noscan(size_t size) pure nothrow
+    static void* xmalloc_noscan(size_t size) nothrow
     {
+        Mem.allocated += size;
         version (GC)
             if (isGCEnabled)
                 return size ? GC.malloc(size, GC.BlkAttr.NO_SCAN) : null;
@@ -65,8 +69,9 @@ extern (C++) struct Mem
         return size ? check(pureMalloc(size)) : null;
     }
 
-    static void* xcalloc(size_t size, size_t n) pure nothrow
+    static void* xcalloc(size_t size, size_t n) nothrow
     {
+        Mem.allocated += (size * n);
         version (GC)
             if (isGCEnabled)
                 return size * n ? GC.calloc(size * n) : null;
@@ -74,8 +79,10 @@ extern (C++) struct Mem
         return (size && n) ? check(pureCalloc(size, n)) : null;
     }
 
-    static void* xcalloc_noscan(size_t size, size_t n) pure nothrow
+    static void* xcalloc_noscan(size_t size, size_t n) nothrow
     {
+        Mem.allocated += (size * n);
+
         version (GC)
             if (isGCEnabled)
                 return size * n ? GC.calloc(size * n, GC.BlkAttr.NO_SCAN) : null;
@@ -83,8 +90,10 @@ extern (C++) struct Mem
         return (size && n) ? check(pureCalloc(size, n)) : null;
     }
 
-    static void* xrealloc(void* p, size_t size) pure nothrow
+    static void* xrealloc(void* p, size_t size) nothrow
     {
+        Mem.allocated += size;
+
         version (GC)
             if (isGCEnabled)
                 return GC.realloc(p, size);
@@ -98,8 +107,10 @@ extern (C++) struct Mem
         return check(pureRealloc(p, size));
     }
 
-    static void* xrealloc_noscan(void* p, size_t size) pure nothrow
+    static void* xrealloc_noscan(void* p, size_t size) nothrow
     {
+        Mem.allocated += size;
+
         version (GC)
             if (isGCEnabled)
                 return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
@@ -161,6 +172,8 @@ extern (C++) struct Mem
                 GC.removeRange(p);
         }
     }
+
+    __gshared ulong allocated = 0;
 }
 
 extern (C++) const __gshared Mem mem;
@@ -172,6 +185,8 @@ __gshared void* heapp;
 
 extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
 {
+    Mem.allocated += m_size;
+
     // 16 byte alignment is better (and sometimes needed) for doubles
     m_size = (m_size + 15) & ~15;
 
@@ -235,12 +250,16 @@ static if (OVERRIDE_MEMALLOC)
 
     extern (C) void* _d_allocmemory(size_t m_size) nothrow
     {
+        version (GC)
+            if (mem.isGCEnabled)
+                return GC.malloc(m_size);
+
         return allocmemory(m_size);
     }
 
     version (GC)
     {
-        private void* allocClass(const ClassInfo ci) nothrow pure
+        private void* allocClass(const ClassInfo ci) nothrow 
         {
             alias BlkAttr = GC.BlkAttr;
 
@@ -309,7 +328,7 @@ static if (OVERRIDE_MEMALLOC)
     // TypeInfo.initializer for compilers older than 2.070
     static if(!__traits(hasMember, TypeInfo, "initializer"))
     private const(void[]) initializer(T : TypeInfo)(const T t)
-    nothrow pure @safe @nogc
+    nothrow  @safe @nogc
     {
         return t.init;
     }
@@ -355,7 +374,7 @@ Params:
 
 Returns: A null-terminated copy of the input array.
 */
-extern (D) char[] xarraydup(const(char)[] s) pure nothrow
+extern (D) char[] xarraydup(const(char)[] s)  nothrow
 {
     if (!s)
         return null;
@@ -368,7 +387,7 @@ extern (D) char[] xarraydup(const(char)[] s) pure nothrow
 }
 
 ///
-pure nothrow unittest
+ nothrow unittest
 {
     auto s1 = "foo";
     auto s2 = s1.xarraydup;
@@ -388,7 +407,7 @@ Params:
 
 Returns: A copy of the input array.
 */
-extern (D) T[] arraydup(T)(const scope T[] s) pure nothrow
+extern (D) T[] arraydup(T)(const scope T[] s)  nothrow
 {
     if (!s)
         return null;
@@ -400,7 +419,7 @@ extern (D) T[] arraydup(T)(const scope T[] s) pure nothrow
 }
 
 ///
-pure nothrow unittest
+ nothrow unittest
 {
     auto s1 = [0, 1, 2];
     auto s2 = s1.arraydup;

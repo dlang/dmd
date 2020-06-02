@@ -391,6 +391,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool functionSemantic()
     {
+        import dmd.trace; mixin(traceString("this"));
         if (!_scope)
             return !errors;
 

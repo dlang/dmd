@@ -560,6 +560,7 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
  */
 extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 {
+    import dmd.trace; mixin(traceString("dsym"));
     scope v = new DsymbolSemanticVisitor(sc);
     dsym.accept(v);
 }
@@ -5869,6 +5870,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs)
 {
+    import dmd.trace; mixin(traceString("tempinst"));
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
     {
