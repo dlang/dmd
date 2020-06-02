@@ -1806,7 +1806,7 @@ Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
 */
 BuildException abortBuild(string msg = "Build failed!")
 {
-    throw new BuildException("ERROR: " ~ msg);
+    throw new BuildException(msg);
 }
 
 class BuildException : Exception
