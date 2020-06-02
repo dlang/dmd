@@ -71,7 +71,7 @@ bool response_expand(Strings *args)
     const char *cp;
     int recurse = 0;
 
-    for (size_t i = 0; i < args->dim; )
+    for (size_t i = 0; i < args->length; )
     {
         cp = (*args)[i];
         if (*cp != '@')

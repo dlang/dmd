@@ -216,7 +216,7 @@ public:
         //printf("PragmaStatement::toIR()\n");
         if (s->ident == Id::startaddress)
         {
-            assert(s->args && s->args->dim == 1);
+            assert(s->args && s->args->length == 1);
             Expression *e = (*s->args)[0];
             Dsymbol *sa = getDsymbol(e);
             FuncDeclaration *f = sa->isFuncDeclaration();
@@ -491,7 +491,7 @@ public:
 
         size_t numcases = 0;
         if (s->cases)
-            numcases = s->cases->dim;
+            numcases = s->cases->length;
 
         incUsage(irs, s->loc);
         elem *econd = toElemDtor(s->condition, &mystate);
@@ -844,7 +844,7 @@ public:
     {
         if (s->statements)
         {
-            size_t dim = s->statements->dim;
+            size_t dim = s->statements->length;
             for (size_t i = 0 ; i < dim ; i++)
             {
                 Statement *s2 = (*s->statements)[i];
@@ -875,7 +875,7 @@ public:
 
         block *bdox;
 
-        size_t dim = s->statements->dim;
+        size_t dim = s->statements->length;
         for (size_t i = 0 ; i < dim ; i++)
         {
             Statement *s2 = (*s->statements)[i];
@@ -1078,7 +1078,7 @@ public:
             bswitch->Belem = el_combine(el_combine(e1, e2),
                                         el_combine(e3, el_var(shandler)));
 
-            size_t numcases = s->catches->dim;
+            size_t numcases = s->catches->length;
             bswitch->BS.Bswitch = (targ_llong *) ::malloc(sizeof(targ_llong) * (numcases + 1));
             assert(bswitch->BS.Bswitch);
             bswitch->BS.Bswitch[0] = numcases;
@@ -1205,7 +1205,7 @@ public:
         }
         else
         {
-            for (size_t i = 0 ; i < s->catches->dim; i++)
+            for (size_t i = 0 ; i < s->catches->length; i++)
             {
                 Catch *cs = (*s->catches)[i];
                 if (cs->var)

@@ -375,13 +375,13 @@ unsigned short LibOMF::numDictPages(unsigned padding)
     unsigned short      bucksForSize;
     unsigned symSize = 0;
 
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *s = objsymbols[i];
 
         symSize += ( strlen(s->name) + 4 ) & ~1;
     }
 
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         size_t len = strlen(om->name);
@@ -390,7 +390,7 @@ unsigned short LibOMF::numDictPages(unsigned padding)
         symSize += ( len + 4 + 1 ) & ~1;
     }
 
-    bucksForHash = (objsymbols.dim + objmodules.dim + HASHMOD - 3) /
+    bucksForHash = (objsymbols.length + objmodules.length + HASHMOD - 3) /
                 (HASHMOD - 2);
     bucksForSize = (symSize + BUCKETSIZE - padding - padding - 1) /
                 (BUCKETSIZE - padding);
@@ -558,7 +558,7 @@ bool LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
     //printf("FillDict()\n");
 
     // Add each of the module names
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         unsigned short n = strlen( om->name );
@@ -582,10 +582,10 @@ bool LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
     }
 
     // Sort the symbols
-    qsort( objsymbols.tdata(), objsymbols.dim, sizeof(objsymbols[0]), (cmpfunc_t)NameCompare );
+    qsort( objsymbols.tdata(), objsymbols.length, sizeof(objsymbols[0]), (cmpfunc_t)NameCompare );
 
     // Add each of the symbols
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         unsigned short n = strlen( os->name );
@@ -626,7 +626,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
     /* Scan each of the object modules for symbols
      * to go into the dictionary
      */
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         scanObjModule(om);
@@ -646,7 +646,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
 #endif
         unsigned offset = g_page_size;
 
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {   ObjModule *om = objmodules[i];
 
             unsigned page = offset / g_page_size;
@@ -675,7 +675,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
 
     /* Write each object module into the library
      */
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         unsigned page = libbuf->offset / g_page_size;

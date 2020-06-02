@@ -149,7 +149,7 @@ int runLINK()
 
         cmdbuf.writestring("/NOLOGO ");
 
-        for (size_t i = 0; i < global.params.objfiles->dim; i++)
+        for (size_t i = 0; i < global.params.objfiles->length; i++)
         {
             if (i)
                 cmdbuf.writeByte(' ');
@@ -209,7 +209,7 @@ int runLINK()
             writeFilename(&cmdbuf, p);
         }
 
-        for (size_t i = 0; i < global.params.libfiles->dim; i++)
+        for (size_t i = 0; i < global.params.libfiles->length; i++)
         {
             cmdbuf.writeByte(' ');
             cmdbuf.writestring("/DEFAULTLIB:");
@@ -239,7 +239,7 @@ int runLINK()
             cmdbuf.writestring("/DLL");
         }
 
-        for (size_t i = 0; i < global.params.linkswitches->dim; i++)
+        for (size_t i = 0; i < global.params.linkswitches->length; i++)
         {
             cmdbuf.writeByte(' ');
             cmdbuf.writestring((*global.params.linkswitches)[i]);
@@ -316,7 +316,7 @@ int runLINK()
         global.params.libfiles->push("user32");
         global.params.libfiles->push("kernel32");
 
-        for (size_t i = 0; i < global.params.objfiles->dim; i++)
+        for (size_t i = 0; i < global.params.objfiles->length; i++)
         {
             if (i)
                 cmdbuf.writeByte('+');
@@ -367,7 +367,7 @@ int runLINK()
             cmdbuf.writestring("nul");
         cmdbuf.writeByte(',');
 
-        for (size_t i = 0; i < global.params.libfiles->dim; i++)
+        for (size_t i = 0; i < global.params.libfiles->length; i++)
         {
             if (i)
                 cmdbuf.writeByte('+');
@@ -412,7 +412,7 @@ int runLINK()
 #endif
 
         cmdbuf.writestring("/noi");
-        for (size_t i = 0; i < global.params.linkswitches->dim; i++)
+        for (size_t i = 0; i < global.params.linkswitches->length; i++)
         {
             cmdbuf.writestring((*global.params.linkswitches)[i]);
         }
@@ -580,7 +580,7 @@ int runLINK()
         argv.push("--gc-sections");
     }
 
-    for (size_t i = 0; i < global.params.linkswitches->dim; i++)
+    for (size_t i = 0; i < global.params.linkswitches->length; i++)
     {   const char *p = (*global.params.linkswitches)[i];
         if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
         {
@@ -600,7 +600,7 @@ int runLINK()
      *     to global.params.libfiles.
      *  4. standard libraries.
      */
-    for (size_t i = 0; i < global.params.libfiles->dim; i++)
+    for (size_t i = 0; i < global.params.libfiles->length; i++)
     {   const char *p = (*global.params.libfiles)[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
@@ -615,7 +615,7 @@ int runLINK()
         }
     }
 
-    for (size_t i = 0; i < global.params.dllfiles->dim; i++)
+    for (size_t i = 0; i < global.params.dllfiles->length; i++)
     {
         const char *p = (*global.params.dllfiles)[i];
         argv.push(p);
@@ -657,7 +657,7 @@ int runLINK()
     if (global.params.verbose)
     {
         // Print it
-        for (size_t i = 0; i < argv.dim; i++)
+        for (size_t i = 0; i < argv.length; i++)
             fprintf(global.stdmsg, "%s ", argv[i]);
         fprintf(global.stdmsg, "\n");
     }
@@ -842,7 +842,7 @@ int runProgram()
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "%s", global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs.dim; ++i)
+        for (size_t i = 0; i < global.params.runargs.length; ++i)
             fprintf(global.stdmsg, " %s", global.params.runargs[i]);
         fprintf(global.stdmsg, "\n");
     }
@@ -851,7 +851,7 @@ int runProgram()
     Strings argv;
 
     argv.push(global.params.exefile);
-    for (size_t i = 0; i < global.params.runargs.dim; ++i)
+    for (size_t i = 0; i < global.params.runargs.length; ++i)
     {   const char *a = global.params.runargs[i];
 
 #if _WIN32

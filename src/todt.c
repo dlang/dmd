@@ -108,7 +108,7 @@ void Initializer_toDt(Initializer *init, DtBuilder& dtb)
             unsigned size = tn->size();
 
             unsigned length = 0;
-            for (size_t i = 0; i < ai->index.dim; i++)
+            for (size_t i = 0; i < ai->index.length; i++)
             {
                 Expression *idx = ai->index[i];
                 if (idx)
@@ -419,7 +419,7 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
             //printf("ArrayLiteralExp::toDt() '%s', type = %s\n", e->toChars(), e->type->toChars());
 
             DtBuilder dtbarray;
-            for (size_t i = 0; i < e->elements->dim; i++)
+            for (size_t i = 0; i < e->elements->length; i++)
             {
                 Expression_toDt(e->getElement(i), dtbarray);
             }
@@ -435,7 +435,7 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
                 case Tarray:
                 {
                     if (t->ty == Tarray)
-                        dtb.size(e->elements->dim);
+                        dtb.size(e->elements->length);
                     dt_t *d = dtbarray.finish();
                     if (d)
                         dtb.dtoff(d, 0);
@@ -453,7 +453,7 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
         void visit(StructLiteralExp *sle)
         {
             //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", sle->toChars(), sle->ownedByCtfe);
-            assert(sle->sd->fields.dim - sle->sd->isNested() <= sle->elements->dim);
+            assert(sle->sd->fields.length - sle->sd->isNested() <= sle->elements->length);
             membersToDt(sle->sd, dtb, sle->elements, 0, NULL);
         }
 
@@ -642,7 +642,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
     ClassDeclaration *cd = ad->isClassDeclaration();
 #if 0
     printf(" interfaces.length = %d\n", (int)cd->interfaces.length);
-    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    for (size_t i = 0; i < cd->vtblInterfaces->length; i++)
     {
         BaseClass *b = (*cd->vtblInterfaces)[i];
         printf("  vbtblInterfaces[%d] b = %p, b->sym = %s\n", (int)i, b, b->sym->toChars());
@@ -662,14 +662,14 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
         {
             size_t index = 0;
             for (ClassDeclaration *c = cdb->baseClass; c; c = c->baseClass)
-                index += c->fields.dim;
+                index += c->fields.length;
             membersToDt(cdb, dtb, elements, index, concreteType);
             offset = cdb->structsize;
         }
         else if (InterfaceDeclaration *id = cd->isInterfaceDeclaration())
         {
             offset = (**ppb)->offset;
-            if (id->vtblInterfaces->dim == 0)
+            if (id->vtblInterfaces->length == 0)
             {
                 BaseClass *b = **ppb;
                 //printf("  Interface %s, b = %p\n", id->toChars(), b);
@@ -705,7 +705,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
         BaseClass **pb;
         if (!ppb)
         {
-            pb = cd->vtblInterfaces->data;
+            pb = cd->vtblInterfaces->tdata();
             ppb = &pb;
         }
 
@@ -723,10 +723,10 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
         offset = 0;
 
     assert(!elements ||
-           firstFieldIndex <= elements->dim &&
-           firstFieldIndex + ad->fields.dim <= elements->dim);
+           firstFieldIndex <= elements->length &&
+           firstFieldIndex + ad->fields.length <= elements->length);
 
-    for (size_t i = 0; i < ad->fields.dim; i++)
+    for (size_t i = 0; i < ad->fields.length; i++)
     {
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
@@ -735,7 +735,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
 
         VarDeclaration *vd = NULL;
         size_t k;
-        for (size_t j = i; j < ad->fields.dim; j++)
+        for (size_t j = i; j < ad->fields.length; j++)
         {
             VarDeclaration *v2 = ad->fields[j];
             if (v2->offset < offset)
@@ -883,7 +883,7 @@ void toDtElem(TypeSArray *tsa, DtBuilder& dtb, Expression *e)
             if (e->op == TOKstring)
                 len /= ((StringExp *)e)->numberOfCodeUnits();
             else if (e->op == TOKarrayliteral)
-                len /= ((ArrayLiteralExp *)e)->elements->dim;
+                len /= ((ArrayLiteralExp *)e)->elements->length;
         }
 
         DtBuilder dtb2;
@@ -911,7 +911,7 @@ void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder& dtb)
     // Put in the rest
     size_t firstFieldIndex = 0;
     for (ClassDeclaration *c = cd->baseClass; c; c = c->baseClass)
-        firstFieldIndex += c->fields.dim;
+        firstFieldIndex += c->fields.length;
     membersToDt(cd, dtb, ce->value->elements, firstFieldIndex, cd);
 }
 
@@ -1396,7 +1396,7 @@ public:
 
         TypeTuple *tu = (TypeTuple *)d->tinfo;
 
-        size_t dim = tu->arguments->dim;
+        size_t dim = tu->arguments->length;
         dtb.size(dim);                       // elements.length
 
         DtBuilder dtbargs;

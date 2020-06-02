@@ -112,7 +112,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
         FuncDeclaration *fdthis = thisfd;
         for (size_t i = 0; ; )
         {
-            if (i == fdthis->foverrides.dim)
+            if (i == fdthis->foverrides.length)
             {
                 if (i == 0)
                     break;
@@ -713,7 +713,7 @@ void setClosureVarOffset(FuncDeclaration *fd)
     {
         unsigned offset = Target::ptrsize;      // leave room for previous sthis
 
-        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        for (size_t i = 0; i < fd->closureVars.length; i++)
         {
             VarDeclaration *v = fd->closureVars[i];
 
@@ -822,9 +822,9 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         symbol_add(sclosure);
         irs->sclosure = sclosure;
 
-        assert(fd->closureVars.dim);
+        assert(fd->closureVars.length);
         assert(fd->closureVars[0]->offset >= Target::ptrsize);
-        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        for (size_t i = 0; i < fd->closureVars.length; i++)
         {
             VarDeclaration *v = fd->closureVars[i];
             //printf("closure var %s\n", v->toChars());
@@ -858,7 +858,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         }
 
         // Calculate the size of the closure
-        VarDeclaration *vlast = fd->closureVars[fd->closureVars.dim - 1];
+        VarDeclaration *vlast = fd->closureVars[fd->closureVars.length - 1];
         unsigned structsize;
         if (vlast->storage_class & STClazy)
             structsize = vlast->offset + Target::ptrsize * 2;
@@ -891,7 +891,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         e = el_combine(e, ex);
 
         // Copy function parameters into closure
-        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        for (size_t i = 0; i < fd->closureVars.length; i++)
         {
             VarDeclaration *v = fd->closureVars[i];
 
@@ -967,7 +967,7 @@ RET retStyle(TypeFunction *tf)
             StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (!sd->isPOD() || sz > 8)
                 return RETstack;
-            if (sd->fields.dim == 0)
+            if (sd->fields.length == 0)
                 return RETstack;
         }
         if (sz <= 16 && !(sz & (sz - 1)))

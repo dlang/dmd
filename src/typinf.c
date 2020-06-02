@@ -198,7 +198,7 @@ bool isSpeculativeType(Type *t)
         {
             if (t->arguments)
             {
-                for (size_t i = 0; i < t->arguments->dim; i++)
+                for (size_t i = 0; i < t->arguments->length; i++)
                 {
                     Type *tprm = (*t->arguments)[i]->type;
                     if (tprm)

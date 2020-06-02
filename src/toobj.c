@@ -90,8 +90,8 @@ void genModuleInfo(Module *m)
     DtBuilder dtb;
     ClassDeclarations aclasses;
 
-    //printf("members->dim = %d\n", members->dim);
-    for (size_t i = 0; i < m->members->dim; i++)
+    //printf("members->length = %d\n", members->length);
+    for (size_t i = 0; i < m->members->length; i++)
     {
         Dsymbol *member = (*m->members)[i];
 
@@ -100,8 +100,8 @@ void genModuleInfo(Module *m)
     }
 
     // importedModules[]
-    size_t aimports_dim = m->aimports.dim;
-    for (size_t i = 0; i < m->aimports.dim; i++)
+    size_t aimports_dim = m->aimports.length;
+    for (size_t i = 0; i < m->aimports.length; i++)
     {
         Module *mod = m->aimports[i];
         if (!mod->needmoduleinfo)
@@ -142,7 +142,7 @@ void genModuleInfo(Module *m)
         flags |= MIunitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
-    if (aclasses.dim)
+    if (aclasses.length)
         flags |= MIlocalClasses;
     flags |= MIname;
 
@@ -166,7 +166,7 @@ void genModuleInfo(Module *m)
     if (flags & MIimportedModules)
     {
         dtb.size(aimports_dim);
-        for (size_t i = 0; i < m->aimports.dim; i++)
+        for (size_t i = 0; i < m->aimports.length; i++)
         {
             Module *mod = m->aimports[i];
 
@@ -185,8 +185,8 @@ void genModuleInfo(Module *m)
     }
     if (flags & MIlocalClasses)
     {
-        dtb.size(aclasses.dim);
-        for (size_t i = 0; i < aclasses.dim; i++)
+        dtb.size(aclasses.length);
+        for (size_t i = 0; i < aclasses.length; i++)
         {
             ClassDeclaration *cd = aclasses[i];
             dtb.xoff(toSymbol(cd), 0, TYnptr);
@@ -273,7 +273,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             enum_SC scclass = SCcomdat;
 
             // Put out the members
-            for (size_t i = 0; i < cd->members->dim; i++)
+            for (size_t i = 0; i < cd->members->length; i++)
             {
                 Dsymbol *member = (*cd->members)[i];
                 /* There might be static ctors in the members, and they cannot
@@ -377,15 +377,15 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 dt_t *pdtname = dtb.xoffpatch(cd->csym, 0, TYnptr);
 
                 // vtbl[]
-                dtb.size(cd->vtbl.dim);
-                if (cd->vtbl.dim)
+                dtb.size(cd->vtbl.length);
+                if (cd->vtbl.length)
                     dtb.xoff(cd->vtblsym, 0, TYnptr);
                 else
                     dtb.size(0);
 
                 // interfaces[]
-                dtb.size(cd->vtblInterfaces->dim);
-                if (cd->vtblInterfaces->dim)
+                dtb.size(cd->vtblInterfaces->length);
+                if (cd->vtblInterfaces->length)
                     dtb.xoff(cd->csym, offset, TYnptr);      // (*)
                 else
                     dtb.size(0);
@@ -430,7 +430,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 {
                     if (pc->members)
                     {
-                        for (size_t i = 0; i < pc->members->dim; i++)
+                        for (size_t i = 0; i < pc->members->length; i++)
                         {
                             Dsymbol *sm = (*pc->members)[i];
                             //printf("sm = %s %s\n", sm->kind(), sm->toChars());
@@ -475,8 +475,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
                 // of the fixup (*)
 
-                offset += cd->vtblInterfaces->dim * (4 * Target::ptrsize);
-                for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+                offset += cd->vtblInterfaces->length * (4 * Target::ptrsize);
+                for (size_t i = 0; i < cd->vtblInterfaces->length; i++)
                 {
                     BaseClass *b = (*cd->vtblInterfaces)[i];
                     ClassDeclaration *id = b->sym;
@@ -496,18 +496,18 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     dtb.xoff(toSymbol(id), 0, TYnptr);         // ClassInfo
 
                     // vtbl[]
-                    dtb.size(id->vtbl.dim);
+                    dtb.size(id->vtbl.length);
                     dtb.xoff(cd->csym, offset, TYnptr);
 
                     dtb.size(b->offset);                        // this offset
 
-                    offset += id->vtbl.dim * Target::ptrsize;
+                    offset += id->vtbl.length * Target::ptrsize;
                 }
 
                 // Put out the (*vtblInterfaces)[].vtbl[]
                 // This must be mirrored with ClassDeclaration::baseVtblOffset()
-                //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->dim, toChars());
-                for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+                //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->length, toChars());
+                for (size_t i = 0; i < cd->vtblInterfaces->length; i++)
                 {
                     BaseClass *b = (*cd->vtblInterfaces)[i];
                     ClassDeclaration *id = b->sym;
@@ -523,10 +523,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         dtb.xoff(cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
                         j = 1;
                     }
-                    assert(id->vtbl.dim == b->vtbl.dim);
-                    for (; j < id->vtbl.dim; j++)
+                    assert(id->vtbl.length == b->vtbl.length);
+                    for (; j < id->vtbl.length; j++)
                     {
-                        assert(j < b->vtbl.dim);
+                        assert(j < b->vtbl.length);
             #if 0
                         RootObject *o = b->vtbl[j];
                         if (o)
@@ -558,7 +558,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 ClassDeclaration *pc;
                 for (pc = cd->baseClass; pc; pc = pc->baseClass)
                 {
-                    for (size_t k = 0; k < pc->vtblInterfaces->dim; k++)
+                    for (size_t k = 0; k < pc->vtblInterfaces->length; k++)
                     {
                         BaseClass *bs = (*pc->vtblInterfaces)[k];
                         FuncDeclarations bvtbl;
@@ -579,9 +579,9 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                                 j = 1;
                             }
 
-                            for (; j < id->vtbl.dim; j++)
+                            for (; j < id->vtbl.length; j++)
                             {
-                                assert(j < bvtbl.dim);
+                                assert(j < bvtbl.length);
                                 FuncDeclaration *fd = bvtbl[j];
                                 if (fd)
                                 {
@@ -622,7 +622,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             DtBuilder dtbv;
             if (cd->vtblOffset())
                 dtbv.xoff(cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
-            for (size_t i = cd->vtblOffset(); i < cd->vtbl.dim; i++)
+            for (size_t i = cd->vtblOffset(); i < cd->vtbl.length; i++)
             {
                 FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
 
@@ -640,7 +640,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                          * If fd overlaps with any function in the vtbl[], then
                          * issue 'hidden' error.
                          */
-                        for (size_t j = 1; j < cd->vtbl.dim; j++)
+                        for (size_t j = 1; j < cd->vtbl.length; j++)
                         {
                             if (j == i)
                                 continue;
@@ -707,7 +707,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             enum_SC scclass = SCcomdat;
 
             // Put out the members
-            for (size_t i = 0; i < id->members->dim; i++)
+            for (size_t i = 0; i < id->members->length; i++)
             {
                 Dsymbol *member = (*id->members)[i];
                 visitNoMultiObj(member);
@@ -775,8 +775,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // (*vtblInterfaces)[]
             unsigned offset = Target::classinfosize;
-            dtb.size(id->vtblInterfaces->dim);
-            if (id->vtblInterfaces->dim)
+            dtb.size(id->vtblInterfaces->length);
+            if (id->vtblInterfaces->length)
             {
                 if (Type::typeinfoclass)
                 {
@@ -835,8 +835,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
             // of the fixup (*)
 
-            offset += id->vtblInterfaces->dim * (4 * Target::ptrsize);
-            for (size_t i = 0; i < id->vtblInterfaces->dim; i++)
+            offset += id->vtblInterfaces->length * (4 * Target::ptrsize);
+            for (size_t i = 0; i < id->vtblInterfaces->length; i++)
             {
                 BaseClass *b = (*id->vtblInterfaces)[i];
                 ClassDeclaration *base = b->sym;
@@ -912,7 +912,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 outdata(sd->sinit);
 
                 // Put out the members
-                for (size_t i = 0; i < sd->members->dim; i++)
+                for (size_t i = 0; i < sd->members->length; i++)
                 {
                     Dsymbol *member = (*sd->members)[i];
                     /* There might be static ctors in the members, and they cannot
@@ -1115,7 +1115,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             if (d)
             {
-                for (size_t i = 0; i < d->dim; i++)
+                for (size_t i = 0; i < d->length; i++)
                 {
                     Dsymbol *s = (*d)[i];
                     s->accept(this);
@@ -1127,7 +1127,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         {
             if (pd->ident == Id::lib)
             {
-                assert(pd->args && pd->args->dim == 1);
+                assert(pd->args && pd->args->length == 1);
 
                 Expression *e = (*pd->args)[0];
 
@@ -1152,7 +1152,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
             else if (pd->ident == Id::startaddress)
             {
-                assert(pd->args && pd->args->dim == 1);
+                assert(pd->args && pd->args->length == 1);
                 Expression *e = (*pd->args)[0];
                 Dsymbol *sa = getDsymbol(e);
                 FuncDeclaration *f = sa->isFuncDeclaration();
@@ -1184,7 +1184,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 }
                 else
                 {
-                    for (size_t i = 0; i < ti->members->dim; i++)
+                    for (size_t i = 0; i < ti->members->length; i++)
                     {
                         Dsymbol *s = (*ti->members)[i];
                         s->accept(this);
@@ -1198,7 +1198,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //printf("TemplateMixin::toObjFile('%s')\n", tm->toChars());
             if (!isError(tm) && tm->members)
             {
-                for (size_t i = 0; i < tm->members->dim; i++)
+                for (size_t i = 0; i < tm->members->length; i++)
                 {
                     Dsymbol *s = (*tm->members)[i];
                     s->accept(this);
@@ -1224,7 +1224,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 }
                 else
                 {
-                    for (size_t i = 0; i < ns->members->dim; i++)
+                    for (size_t i = 0; i < ns->members->length; i++)
                     {
                         Dsymbol *s = (*ns->members)[i];
                         s->accept(this);
@@ -1385,15 +1385,15 @@ unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc)
 {
     //printf("ClassDeclaration::baseVtblOffset('%s', bc = %p)\n", cd->toChars(), bc);
     unsigned csymoffset = Target::classinfosize;    // must be ClassInfo.size
-    csymoffset += cd->vtblInterfaces->dim * (4 * Target::ptrsize);
+    csymoffset += cd->vtblInterfaces->length * (4 * Target::ptrsize);
 
-    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    for (size_t i = 0; i < cd->vtblInterfaces->length; i++)
     {
         BaseClass *b = (*cd->vtblInterfaces)[i];
 
         if (b == bc)
             return csymoffset;
-        csymoffset += b->sym->vtbl.dim * Target::ptrsize;
+        csymoffset += b->sym->vtbl.length * Target::ptrsize;
     }
 
     // Put out the overriding interface vtbl[]s.
@@ -1403,7 +1403,7 @@ unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc)
 
     for (cd2 = cd->baseClass; cd2; cd2 = cd2->baseClass)
     {
-        for (size_t k = 0; k < cd2->vtblInterfaces->dim; k++)
+        for (size_t k = 0; k < cd2->vtblInterfaces->length; k++)
         {
             BaseClass *bs = (*cd2->vtblInterfaces)[k];
             if (bs->fillVtbl(cd, NULL, 0))
@@ -1413,7 +1413,7 @@ unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc)
                     //printf("\tcsymoffset = x%x\n", csymoffset);
                     return csymoffset;
                 }
-                csymoffset += bs->sym->vtbl.dim * Target::ptrsize;
+                csymoffset += bs->sym->vtbl.length * Target::ptrsize;
             }
         }
     }

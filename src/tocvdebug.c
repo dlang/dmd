@@ -154,7 +154,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     unsigned fnamelen = 2;
     if (!property)
     {
-        for (size_t i = 0; i < e->members->dim; i++)
+        for (size_t i = 0; i < e->members->length; i++)
         {   EnumMember *sf = (*e->members)[i]->isEnumMember();
             if (sf)
             {
@@ -223,7 +223,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
         // And fill it in
         unsigned j = 2;
         unsigned fieldi = 0;
-        for (size_t i = 0; i < e->members->dim; i++)
+        for (size_t i = 0; i < e->members->length; i++)
         {   EnumMember *sf = (*e->members)[i]->isEnumMember();
 
             if (sf)
@@ -445,7 +445,7 @@ void toDebug(StructDeclaration *sd)
     CvMemberCount mc;
     mc.nfields = 0;
     mc.fnamelen = 2;
-    for (size_t i = 0; i < sd->members->dim; i++)
+    for (size_t i = 0; i < sd->members->length; i++)
     {
         Dsymbol *s = (*sd->members)[i];
         s->apply(&cv_mem_count, &mc);
@@ -469,7 +469,7 @@ void toDebug(StructDeclaration *sd)
     p += 2;
     if (nfields)
     {
-        for (size_t i = 0; i < sd->members->dim; i++)
+        for (size_t i = 0; i < sd->members->length; i++)
         {
             Dsymbol *s = (*sd->members)[i];
             s->apply(&cv_mem_p, &p);
@@ -541,7 +541,7 @@ void toDebug(ClassDeclaration *cd)
 
     if (cd->parent->isAggregateDeclaration()) // if class is nested
         property |= 8;
-    if (cd->ctor || cd->dtors.dim)
+    if (cd->ctor || cd->dtors.length)
         property |= 2;          // class has ctors and/or dtors
 //    if (st->Sopoverload)
 //      property |= 4;          // class has overloaded operators
@@ -562,7 +562,7 @@ void toDebug(ClassDeclaration *cd)
     idx_t vshapeidx = 0;
     if (1)
     {
-        size_t n = cd->vtbl.dim;                   // number of virtual functions
+        size_t n = cd->vtbl.length;                   // number of virtual functions
         if (n)
         {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(4 + (n + 1) / 2);
@@ -571,7 +571,7 @@ void toDebug(ClassDeclaration *cd)
 
             n = 0;
             unsigned char descriptor = 0;
-            for (size_t i = 0; i < cd->vtbl.dim; i++)
+            for (size_t i = 0; i < cd->vtbl.length; i++)
             {
                 FuncDeclaration *fd = (FuncDeclaration *)cd->vtbl[i];
                 //if (intsize == 4)
@@ -633,7 +633,7 @@ void toDebug(ClassDeclaration *cd)
     if (addInBaseClasses)
     {
         // Add in base classes
-        for (size_t i = 0; i < cd->baseclasses->dim; i++)
+        for (size_t i = 0; i < cd->baseclasses->length; i++)
         {
             BaseClass *bc = (*cd->baseclasses)[i];
             mc.nfields++;
@@ -643,7 +643,7 @@ void toDebug(ClassDeclaration *cd)
         }
     }
 
-    for (size_t i = 0; i < cd->members->dim; i++)
+    for (size_t i = 0; i < cd->members->length; i++)
     {
         Dsymbol *s = (*cd->members)[i];
         s->apply(&cv_mem_count, &mc);
@@ -672,7 +672,7 @@ void toDebug(ClassDeclaration *cd)
         if (addInBaseClasses)
         {
             // Add in base classes
-            for (size_t i = 0; i < cd->baseclasses->dim; i++)
+            for (size_t i = 0; i < cd->baseclasses->length; i++)
             {
                 BaseClass *bc = (*cd->baseclasses)[i];
                 idx_t typidx = cv4_typidx(Type_toCtype(bc->sym->type)->Tnext);
@@ -703,7 +703,7 @@ void toDebug(ClassDeclaration *cd)
             }
         }
 
-        for (size_t i = 0; i < cd->members->dim; i++)
+        for (size_t i = 0; i < cd->members->length; i++)
         {
             Dsymbol *s = (*cd->members)[i];
             s->apply(&cv_mem_p, &p);

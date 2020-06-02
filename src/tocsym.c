@@ -210,7 +210,7 @@ Symbol *toSymbol(Dsymbol *s)
                 s->Sclass = SCauto;
                 s->Sfl = FLauto;
 
-                if (vd->nestedrefs.dim)
+                if (vd->nestedrefs.length)
                 {
                     /* Symbol is accessed by a nested function. Make sure
                      * it is not put in a register, and that the optimizer
@@ -595,7 +595,7 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
         sprintf(id, "_aa%s", func);
 
         // See if symbol is already in sarray
-        for (size_t i = 0; i < sarray.dim; i++)
+        for (size_t i = 0; i < sarray.length; i++)
         {
             Symbol *s = sarray[i];
             if (strcmp(id, s->Sident) == 0)

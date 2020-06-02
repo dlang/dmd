@@ -583,7 +583,7 @@ private:
             }
 
             bool is_var_arg = false;
-            for (size_t i = 0; i < ti->tiargs->dim; i++)
+            for (size_t i = 0; i < ti->tiargs->length; i++)
             {
                 RootObject *o = (*ti->tiargs)[i];
 
@@ -1005,7 +1005,7 @@ private:
             rettype->accept(&tmp);
             tmp.flags &= ~MANGLE_RETURN_TYPE;
         }
-        if (!type->parameters || !type->parameters->dim)
+        if (!type->parameters || !type->parameters->length)
         {
             if (type->varargs == 1)
                 tmp.buf.writeByte('Z');

@@ -161,7 +161,7 @@ public:
              */
             if (global.params.symdebug)
             {
-                for (size_t i = 0; i < sym->fields.dim; i++)
+                for (size_t i = 0; i < sym->fields.length; i++)
                 {
                     VarDeclaration *v = sym->fields[i];
                     symbol_struct_addField(t->ctype->Ttag, v->ident->toChars(), Type_toCtype(v->type), v->offset);
@@ -241,7 +241,7 @@ public:
          */
         if (global.params.symdebug)
         {
-            for (size_t i = 0; i < t->sym->fields.dim; i++)
+            for (size_t i = 0; i < t->sym->fields.length; i++)
             {
                 VarDeclaration *v = t->sym->fields[i];
                 symbol_struct_addField(tc->Ttag, v->ident->toChars(), Type_toCtype(v->type), v->offset);

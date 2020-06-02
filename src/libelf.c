@@ -313,7 +313,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
         unsigned symtab_size = 0;
         char *filenametab = NULL;
         unsigned filenametab_size = 0;
-        unsigned mstart = objmodules.dim;
+        unsigned mstart = objmodules.length;
         while (offset < buflen)
         {
             if (offset + sizeof(Header) >= buflen)
@@ -442,7 +442,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
             unsigned moff = Port::readlongBE(symtab + 4 + i * 4);
 //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name);
             for (unsigned m = mstart; 1; m++)
-            {   if (m == objmodules.dim)
+            {   if (m == objmodules.length)
                 {   reason = __LINE__;
                     goto Lcorrupt;              // didn't find it
                 }
@@ -523,7 +523,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 
     /************* Scan Object Modules for Symbols ******************/
 
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
         if (om->scan)
         {
@@ -536,7 +536,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     /* The string section is where we store long file names.
      */
     unsigned noffset = 0;
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
         size_t len = strlen(om->name);
         if (len >= OBJECT_NAME_SIZE)
@@ -556,7 +556,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 
     unsigned moffset = 8 + sizeof(Header) + 4;
 
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         moffset += 4 + strlen(os->name) + 1;
@@ -571,7 +571,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     if (noffset)
          moffset += sizeof(Header) + noffset;
 
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         moffset += moffset & 1;
@@ -599,17 +599,17 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     OmToHeader(&h, &om);
     libbuf->write(&h, sizeof(h));
     char buf[4];
-    Port::writelongBE(objsymbols.dim, buf);
+    Port::writelongBE(objsymbols.length, buf);
     libbuf->write(buf, 4);
 
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         Port::writelongBE(os->om->offset, buf);
         libbuf->write(buf, 4);
     }
 
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         libbuf->writestring(os->name);
@@ -638,7 +638,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
         h.trailer[1] = '\n';
         libbuf->write(&h, sizeof(h));
 
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
         {   ObjModule *om = objmodules[i];
             if (om->name_offset >= 0)
             {   libbuf->writestring(om->name);
@@ -650,7 +650,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 
     /* Write out each of the object modules
      */
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         if (libbuf->offset & 1)

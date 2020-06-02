@@ -336,7 +336,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
         unsigned offset = 8;
         char *symtab = NULL;
         unsigned symtab_size = 0;
-        unsigned mstart = objmodules.dim;
+        unsigned mstart = objmodules.length;
         while (offset < buflen)
         {
             if (offset + sizeof(Header) >= buflen)
@@ -418,7 +418,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
             unsigned moff = Port::readlongLE(symtab + 4 + i * 8 + 4);
             //printf("symtab[%d] moff = x%x  x%x, name = %s\n", i, moff, moff + sizeof(Header), name);
             for (unsigned m = mstart; 1; m++)
-            {   if (m == objmodules.dim)
+            {   if (m == objmodules.length)
                 {   reason = __LINE__;
                     goto Lcorrupt;              // didn't find it
                 }
@@ -499,7 +499,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     /************* Scan Object Modules for Symbols ******************/
 
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
         if (om->scan)
         {
@@ -511,7 +511,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     unsigned moffset = 8 + sizeof(Header) + 4 + 4;
 
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         moffset += 8 + strlen(os->name) + 1;
@@ -525,7 +525,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
     printf("\tmoffset = x%x\n", moffset);
 #endif
 
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         moffset += moffset & 1;
@@ -572,11 +572,11 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     char buf[4];
 
-    Port::writelongLE(objsymbols.dim * 8, buf);
+    Port::writelongLE(objsymbols.length * 8, buf);
     libbuf->write(buf, 4);
 
     int stringoff = 0;
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         Port::writelongLE(stringoff, buf);
@@ -591,7 +591,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
     Port::writelongLE(stringoff, buf);
     libbuf->write(buf, 4);
 
-    for (size_t i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.length; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         libbuf->writestring(os->name);
@@ -610,7 +610,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     /* Write out each of the object modules
      */
-    for (size_t i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
         if (libbuf->offset & 1)
