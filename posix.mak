@@ -1,6 +1,6 @@
 INSTALL_DIR=$(PWD)/../install
 ECTAGS_LANGS = Make,C,C++,D,Sh
-ECTAGS_FILES = src/*.[chd] src/backend/*.[chd] src/root/*.[chd] src/tk/*.[chd]
+ECTAGS_FILES = src/dmd/*.[chd] src/dmd/backend/*.[chd] src/dmd/root/*.[chd]
 
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
