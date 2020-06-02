@@ -1262,6 +1262,51 @@ code *asm_emit(Loc loc,
     pc = code_calloc();
     pc.Iflags |= CFpsw;            // assume we want to keep the flags
 
+
+    void setCodeForImmediate(ref OPND opnd, uint sizeMask){
+        Declaration d = opnd.s ? opnd.s.isDeclaration() : null;
+        if (opnd.bSeg)
+        {
+            if (!(d && d.isDataseg()))
+                asmerr("bad addr mode");
+        }
+        switch (sizeMask)
+        {
+            case _8:
+            case _16:
+            case _32:
+            case _64:
+                if (opnd.s == asmstate.psLocalsize)
+                {
+                    pc.IFL2 = FLlocalsize;
+                    pc.IEV2.Vdsym = null;
+                    pc.Iflags |= CFoff;
+                    pc.IEV2.Voffset = opnd.disp;
+                }
+                else if (d)
+                {
+                    //if ((pc.IFL2 = d.Sfl) == 0)
+                    pc.IFL2 = FLdsymbol;
+                    pc.Iflags &= ~(CFseg | CFoff);
+                    if (opnd.bSeg)
+                        pc.Iflags |= CFseg;
+                    else
+                        pc.Iflags |= CFoff;
+                    pc.IEV2.Voffset = opnd.disp;
+                    pc.IEV2.Vdsym = cast(_Declaration*)d;
+                }
+                else
+                {
+                    pc.IEV2.Vllong = opnd.disp;
+                    pc.IFL2 = FLconst;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
     if (opnds.length >= 1)
     {
         //aopty1 = ASM_GET_aopty(popnd1.usFlags);
@@ -1574,8 +1619,8 @@ code *asm_emit(Loc loc,
         }
         pc.Iflags |= CFvex;
         emit(pc.Ivex.op);
-        if (popndTmp)
-            goto L1;
+        if (popndTmp && aoptyTmp == _imm)
+            setCodeForImmediate(*popndTmp, uSizemaskTmp);
         goto L2;
     }
     else if ((opcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
@@ -1722,56 +1767,8 @@ L3:
                     ptb.pptb1.usFlags,
                     [opnds[0]]);
             }
-            popndTmp = &opnds[0];
-            aoptyTmp = aoptyTable[0];
-            uSizemaskTmp = uSizemaskTable[0];
-L1:
-            if (aoptyTmp == _imm)
-            {
-                Declaration d = popndTmp.s ? popndTmp.s.isDeclaration()
-                                             : null;
-                if (popndTmp.bSeg)
-                {
-                    if (!(d && d.isDataseg()))
-                        asmerr("bad addr mode");
-                }
-                switch (uSizemaskTmp)
-                {
-                    case _8:
-                    case _16:
-                    case _32:
-                    case _64:
-                        if (popndTmp.s == asmstate.psLocalsize)
-                        {
-                            pc.IFL2 = FLlocalsize;
-                            pc.IEV2.Vdsym = null;
-                            pc.Iflags |= CFoff;
-                            pc.IEV2.Voffset = popndTmp.disp;
-                        }
-                        else if (d)
-                        {
-                            //if ((pc.IFL2 = d.Sfl) == 0)
-                                pc.IFL2 = FLdsymbol;
-                            pc.Iflags &= ~(CFseg | CFoff);
-                            if (popndTmp.bSeg)
-                                pc.Iflags |= CFseg;
-                            else
-                                pc.Iflags |= CFoff;
-                            pc.IEV2.Voffset = popndTmp.disp;
-                            pc.IEV2.Vdsym = cast(_Declaration*)d;
-                        }
-                        else
-                        {
-                            pc.IEV2.Vllong = popndTmp.disp;
-                            pc.IFL2 = FLconst;
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-
+            if (aoptyTable[0] == _imm)
+                setCodeForImmediate(opnds[0], uSizemaskTable[0]);
             break;
     case 2:
 //
@@ -1822,9 +1819,8 @@ L1:
                     ptb.pptb1.usFlags,
                     [opnds[1], opnds[0]]);
             }
-            popndTmp = &opnds[0];
-            aoptyTmp = aoptyTable[0];
-            uSizemaskTmp = uSizemaskTable[0];
+            if(aoptyTable[0] == _imm)
+                setCodeForImmediate(opnds[0], uSizemaskTable[0]);
         }
         else
         {
@@ -1898,18 +1894,14 @@ L1:
             }
             if (aoptyTable[0] == _imm)
             {
-                popndTmp = &opnds[0];
-                aoptyTmp = aoptyTable[0];
-                uSizemaskTmp = uSizemaskTable[0];
+                setCodeForImmediate(opnds[0], uSizemaskTable[0]);
             }
-            else
+            else if(aoptyTable[1] == _imm)
             {
-                popndTmp = &opnds[1];
-                aoptyTmp = aoptyTable[1];
-                uSizemaskTmp = uSizemaskTable[1];
+                setCodeForImmediate(opnds[1], uSizemaskTable[1]);
             }
         }
-        goto L1;
+        break;
 
     case 3:
         if (aoptyTable[1] == _m || aoptyTable[1] == _rm ||
@@ -1924,9 +1916,6 @@ L1:
                 pc,
                 ptb.pptb1.usFlags,
                 [opnds[1], opnds[0]]);
-        popndTmp = &opnds[2];
-        aoptyTmp = aoptyTable[2];
-        uSizemaskTmp = uSizemaskTable[2];
         }
         else
         {
@@ -1972,12 +1961,10 @@ L1:
                     ptb.pptb1.usFlags,
                     opnds[0 .. 2]);
 
-            popndTmp = &opnds[2];
-            aoptyTmp = aoptyTable[2];
-            uSizemaskTmp = uSizemaskTable[2];
-
         }
-        goto L1;
+        if (aoptyTable[2] == _imm)
+            setCodeForImmediate(opnds[2], uSizemaskTable[2]);
+        break;
     }
 L2:
 
