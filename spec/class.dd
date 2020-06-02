@@ -369,7 +369,7 @@ $(GNAME Constructor):
 
 $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
 
-        $(P Constructors can call other constructors for the same class
+        $(P A constructor can call another constructor for the same class
         in order to share common initializations.
         This is called a $(I delegating constructor):
         )
@@ -390,25 +390,7 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         }
         ------
 
-$(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
-
-        $(P If there is no constructor for a class, but there is a constructor
-        for the base class, a default constructor is implicitly generated with
-        the form:)
-
-        ------
-        this() { }
-        ------
-
-        $(P If no calls to a delegating constructor or $(D super) appear in a
-        constructor, and the base class has a nullary constructor, a call to 
-        `super()` is inserted at the beginning of the constructor. If that
-        base class has a constructor that requires arguments and no 
-        nullary constructor, a matching call to `super` is required.)
-
-$(H3 $(LNAME2 constructor-restrictions, Restrictions))
-
-        $(P The following restrictions apply to class construction:)
+        $(P The following restrictions apply:)
 
     $(OL
         $(LI It is illegal for constructors to mutually call each other.
@@ -449,6 +431,22 @@ $(H3 $(LNAME2 constructor-restrictions, Restrictions))
 
         $(LI Delegating constructor calls cannot appear after labels.)
     )
+
+$(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
+
+        $(P If there is no constructor for a class, but there is a constructor
+        for the base class, a default constructor is implicitly generated with
+        the form:)
+
+        ------
+        this() { }
+        ------
+
+        $(P If no calls to a delegating constructor or $(D super) appear in a
+        constructor, and the base class has a nullary constructor, a call to 
+        `super()` is inserted at the beginning of the constructor. If that
+        base class has a constructor that requires arguments and no 
+        nullary constructor, a matching call to `super` is required.)
 
 $(H3 $(LNAME2 class-instantiation, Class Instantiation))
 
