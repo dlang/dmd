@@ -1253,25 +1253,24 @@ code *asm_emit(Loc loc,
     uint  uSizemaskTmp;
     const(REG) *pregSegment;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
-    ASM_MODIFIERS       amod1 = _normal, amod2 = _normal;
-    uint            uSizemaskTable1 =0, uSizemaskTable2 =0,
-                        uSizemaskTable3 =0;
-    ASM_OPERAND_TYPE    aoptyTable1 = _reg, aoptyTable2 = _reg, aoptyTable3 = _reg;
-    ASM_MODIFIERS       amodTable1 = _normal,
-                        amodTable2 = _normal;
-    uint            uRegmaskTable1 = 0, uRegmaskTable2 =0;
+    ASM_MODIFIERS[2] amods = _normal;
+    uint[3] uSizemaskTable = 0;
+    ASM_OPERAND_TYPE[3] aoptyTable = _reg;
+    ASM_MODIFIERS[2] amodTable = _normal;
+    uint[2] uRegmaskTable = 0;
 
     pc = code_calloc();
     pc.Iflags |= CFpsw;            // assume we want to keep the flags
+
     if (opnds.length >= 1)
     {
         //aopty1 = ASM_GET_aopty(popnd1.usFlags);
-        amod1 = ASM_GET_amod(opnds[0].usFlags);
+        amods[0] = ASM_GET_amod(opnds[0].usFlags);
 
-        uSizemaskTable1 = ASM_GET_uSizemask(ptb.pptb1.usOp1);
-        aoptyTable1 = ASM_GET_aopty(ptb.pptb1.usOp1);
-        amodTable1 = ASM_GET_amod(ptb.pptb1.usOp1);
-        uRegmaskTable1 = ASM_GET_uRegmask(ptb.pptb1.usOp1);
+        uSizemaskTable[0] = ASM_GET_uSizemask(ptb.pptb1.usOp1);
+        aoptyTable[0] = ASM_GET_aopty(ptb.pptb1.usOp1);
+        amodTable[0] = ASM_GET_amod(ptb.pptb1.usOp1);
+        uRegmaskTable[0] = ASM_GET_uRegmask(ptb.pptb1.usOp1);
 
     }
     if (opnds.length >= 2)
@@ -1286,19 +1285,19 @@ code *asm_emit(Loc loc,
         }
 
         //aopty2 = ASM_GET_aopty(popnd2.usFlags);
-        amod2 = ASM_GET_amod(opnds[1].usFlags);
+        amods[1] = ASM_GET_amod(opnds[1].usFlags);
 
-        uSizemaskTable2 = ASM_GET_uSizemask(ptb.pptb2.usOp2);
-        aoptyTable2 = ASM_GET_aopty(ptb.pptb2.usOp2);
-        amodTable2 = ASM_GET_amod(ptb.pptb2.usOp2);
-        uRegmaskTable2 = ASM_GET_uRegmask(ptb.pptb2.usOp2);
+        uSizemaskTable[1] = ASM_GET_uSizemask(ptb.pptb2.usOp2);
+        aoptyTable[1] = ASM_GET_aopty(ptb.pptb2.usOp2);
+        amodTable[1] = ASM_GET_amod(ptb.pptb2.usOp2);
+        uRegmaskTable[1] = ASM_GET_uRegmask(ptb.pptb2.usOp2);
     }
     if (opnds.length >= 3)
     {
         //aopty3 = ASM_GET_aopty(popnd3.usFlags);
 
-        uSizemaskTable3 = ASM_GET_uSizemask(ptb.pptb3.usOp3);
-        aoptyTable3 = ASM_GET_aopty(ptb.pptb3.usOp3);
+        uSizemaskTable[2] = ASM_GET_uSizemask(ptb.pptb3.usOp3);
+        aoptyTable[2] = ASM_GET_aopty(ptb.pptb3.usOp3);
     }
 
     asmstate.statement.regs |= asm_modify_regs(ptb, opnds);
@@ -1332,9 +1331,9 @@ code *asm_emit(Loc loc,
         case 3:
         case 2:
             if ((!global.params.is64bit &&
-                  (amod2 == _addr16 ||
-                   (uSizemaskTable2 & _16 && aoptyTable2 == _rel) ||
-                   (uSizemaskTable2 & _32 && aoptyTable2 == _mnoi) ||
+                  (amods[1] == _addr16 ||
+                   (uSizemaskTable[1] & _16 && aoptyTable[1] == _rel) ||
+                   (uSizemaskTable[1] & _32 && aoptyTable[1] == _mnoi) ||
                    (ptb.pptb2.usFlags & _16_bit_addr)
                  )
                 )
@@ -1343,11 +1342,11 @@ code *asm_emit(Loc loc,
                 emit(0x67);
                 pc.Iflags |= CFaddrsize;
                 if (!global.params.is64bit)
-                    amod2 = _addr16;
+                    amods[1] = _addr16;
                 else
-                    amod2 = _addr32;
+                    amods[1] = _addr32;
                 opnds[1].usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
-                opnds[1].usFlags |= CONSTRUCT_FLAGS(0,0,amod2,0);
+                opnds[1].usFlags |= CONSTRUCT_FLAGS(0,0,amods[1],0);
             }
 
 
@@ -1361,19 +1360,19 @@ code *asm_emit(Loc loc,
 
         case 1:
             if ((!global.params.is64bit &&
-                  (amod1 == _addr16 ||
-                   (uSizemaskTable1 & _16 && aoptyTable1 == _rel) ||
-                    (uSizemaskTable1 & _32 && aoptyTable1 == _mnoi) ||
+                  (amods[0] == _addr16 ||
+                   (uSizemaskTable[0] & _16 && aoptyTable[0] == _rel) ||
+                    (uSizemaskTable[0] & _32 && aoptyTable[0] == _mnoi) ||
                     (ptb.pptb1.usFlags & _16_bit_addr))))
             {
                 emit(0x67);     // address size prefix
                 pc.Iflags |= CFaddrsize;
                 if (!global.params.is64bit)
-                    amod1 = _addr16;
+                    amods[0] = _addr16;
                 else
-                    amod1 = _addr32;
+                    amods[0] = _addr32;
                 opnds[0].usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
-                opnds[0].usFlags |= CONSTRUCT_FLAGS(0,0,amod1,0);
+                opnds[0].usFlags |= CONSTRUCT_FLAGS(0,0,amods[0],0);
             }
 
             // If the size of the operand is unknown, assume that it is
@@ -1458,14 +1457,14 @@ code *asm_emit(Loc loc,
         case VEX_NOO:
             pc.Ivex.vvvv = 0xF; // not used
 
-            if ((aoptyTable1 == _m || aoptyTable1 == _rm) &&
-                aoptyTable2 == _reg)
+            if ((aoptyTable[0] == _m || aoptyTable[0] == _rm) &&
+                aoptyTable[1] == _reg)
                 asm_make_modrm_byte(
                     auchOpcode.ptr, &usIdx,
                     pc,
                     ptb.pptb1.usFlags,
                     opnds[0 .. opnds.length >= 2 ? 2 : 1]);
-            else if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
+            else if (usNumops == 2 || usNumops == 3 && aoptyTable[2] == _imm)
                 asm_make_modrm_byte(
                     auchOpcode.ptr, &usIdx,
                     pc,
@@ -1515,7 +1514,7 @@ code *asm_emit(Loc loc,
         case VEX_NDS:
             pc.Ivex.vvvv = cast(ubyte) ~int(opnds[1].base.val);
 
-            if (aoptyTable1 == _m || aoptyTable1 == _rm)
+            if (aoptyTable[0] == _m || aoptyTable[0] == _rm)
                 asm_make_modrm_byte(
                     auchOpcode.ptr, &usIdx,
                     pc,
@@ -1668,9 +1667,9 @@ L3:
         if (s == asmstate.psDollar)
         {
             pc.IFL2 = FLconst;
-            if (uSizemaskTable1 & (_8 | _16))
+            if (uSizemaskTable[0] & (_8 | _16))
                 pc.IEV2.Vint = cast(int)opnds[0].disp;
-            else if (uSizemaskTable1 & _32)
+            else if (uSizemaskTable[0] & _32)
                 pc.IEV2.Vpointer = cast(targ_size_t) opnds[0].disp;
         }
         else
@@ -1699,8 +1698,8 @@ L3:
         case 0:
             break;
         case 1:
-            if (((aoptyTable1 == _reg || aoptyTable1 == _float) &&
-                 amodTable1 == _normal && (uRegmaskTable1 & _rplus_r)))
+            if (((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
+                 amodTable[0] == _normal && (uRegmaskTable[0] & _rplus_r)))
             {
                 uint reg = opnds[0].base.val;
                 if (reg & 8)
@@ -1724,8 +1723,8 @@ L3:
                     [opnds[0]]);
             }
             popndTmp = &opnds[0];
-            aoptyTmp = aoptyTable1;
-            uSizemaskTmp = uSizemaskTable1;
+            aoptyTmp = aoptyTable[0];
+            uSizemaskTmp = uSizemaskTable[0];
 L1:
             if (aoptyTmp == _imm)
             {
@@ -1778,8 +1777,8 @@ L1:
 //
 // If there are two immediate operands then
 //
-        if (aoptyTable1 == _imm &&
-            aoptyTable2 == _imm)
+        if (aoptyTable[0] == _imm &&
+            aoptyTable[1] == _imm)
         {
                 pc.IEV1.Vint = cast(int)opnds[0].disp;
                 pc.IFL1 = FLconst;
@@ -1787,21 +1786,21 @@ L1:
                 pc.IFL2 = FLconst;
                 break;
         }
-        if (aoptyTable2 == _m ||
-            aoptyTable2 == _rel ||
+        if (aoptyTable[1] == _m ||
+            aoptyTable[1] == _rel ||
             // If not MMX register (_mm) or XMM register (_xmm)
-            (amodTable1 == _rspecial && !(uRegmaskTable1 & (0x08 | 0x10)) && !uSizemaskTable1) ||
-            aoptyTable2 == _rm ||
+            (amodTable[0] == _rspecial && !(uRegmaskTable[0] & (0x08 | 0x10)) && !uSizemaskTable[0]) ||
+            aoptyTable[1] == _rm ||
             (opnds[0].usFlags == _r32 && opnds[1].usFlags == _xmm) ||
             (opnds[0].usFlags == _r32 && opnds[1].usFlags == _mm))
         {
             version (none)
             {
                 printf("test4 %d,%d,%d,%d\n",
-                    (aoptyTable2 == _m),
-                    (aoptyTable2 == _rel),
-                    (amodTable1 == _rspecial && !(uRegmaskTable1 & (0x08 | 0x10))),
-                    (aoptyTable2 == _rm)
+                    (aoptyTable[1] == _m),
+                    (aoptyTable[1] == _rel),
+                    (amodTable[0] == _rspecial && !(uRegmaskTable[0] & (0x08 | 0x10))),
+                    (aoptyTable[1] == _rm)
                     );
                 printf("opcode = %x\n", opcode);
             }
@@ -1824,14 +1823,14 @@ L1:
                     [opnds[1], opnds[0]]);
             }
             popndTmp = &opnds[0];
-            aoptyTmp = aoptyTable1;
-            uSizemaskTmp = uSizemaskTable1;
+            aoptyTmp = aoptyTable[0];
+            uSizemaskTmp = uSizemaskTable[0];
         }
         else
         {
-            if (((aoptyTable1 == _reg || aoptyTable1 == _float) &&
-                 amodTable1 == _normal &&
-                 (uRegmaskTable1 & _rplus_r)))
+            if (((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
+                 amodTable[0] == _normal &&
+                 (uRegmaskTable[0] & _rplus_r)))
             {
                 uint reg = opnds[0].base.val;
                 if (reg & 8)
@@ -1851,9 +1850,9 @@ L1:
                     pc.Iop += reg;
                 debug auchOpcode[usIdx-1] += reg;
             }
-            else if (((aoptyTable2 == _reg || aoptyTable2 == _float) &&
-                 amodTable2 == _normal &&
-                 (uRegmaskTable2 & _rplus_r)))
+            else if (((aoptyTable[1] == _reg || aoptyTable[1] == _float) &&
+                 amodTable[1] == _normal &&
+                 (uRegmaskTable[1] & _rplus_r)))
             {
                 uint reg = opnds[1].base.val;
                 if (reg & 8)
@@ -1897,23 +1896,23 @@ L1:
                     opnds[0 .. 2]);
 
             }
-            if (aoptyTable1 == _imm)
+            if (aoptyTable[0] == _imm)
             {
                 popndTmp = &opnds[0];
-                aoptyTmp = aoptyTable1;
-                uSizemaskTmp = uSizemaskTable1;
+                aoptyTmp = aoptyTable[0];
+                uSizemaskTmp = uSizemaskTable[0];
             }
             else
             {
                 popndTmp = &opnds[1];
-                aoptyTmp = aoptyTable2;
-                uSizemaskTmp = uSizemaskTable2;
+                aoptyTmp = aoptyTable[1];
+                uSizemaskTmp = uSizemaskTable[1];
             }
         }
         goto L1;
 
     case 3:
-        if (aoptyTable2 == _m || aoptyTable2 == _rm ||
+        if (aoptyTable[1] == _m || aoptyTable[1] == _rm ||
             opcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
             opcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
             opcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
@@ -1926,15 +1925,15 @@ L1:
                 ptb.pptb1.usFlags,
                 [opnds[1], opnds[0]]);
         popndTmp = &opnds[2];
-        aoptyTmp = aoptyTable3;
-        uSizemaskTmp = uSizemaskTable3;
+        aoptyTmp = aoptyTable[2];
+        uSizemaskTmp = uSizemaskTable[2];
         }
         else
         {
 
-            if (((aoptyTable1 == _reg || aoptyTable1 == _float) &&
-                 amodTable1 == _normal &&
-                 (uRegmaskTable1 &_rplus_r)))
+            if (((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
+                 amodTable[0] == _normal &&
+                 (uRegmaskTable[0] &_rplus_r)))
             {
                 uint reg = opnds[0].base.val;
                 if (reg & 8)
@@ -1949,9 +1948,9 @@ L1:
                     pc.Iop += reg;
                 debug auchOpcode[usIdx-1] += reg;
             }
-            else if (((aoptyTable2 == _reg || aoptyTable2 == _float) &&
-                 amodTable2 == _normal &&
-                 (uRegmaskTable2 &_rplus_r)))
+            else if (((aoptyTable[1] == _reg || aoptyTable[1] == _float) &&
+                 amodTable[1] == _normal &&
+                 (uRegmaskTable[1] &_rplus_r)))
             {
                 uint reg = opnds[0].base.val;
                 if (reg & 8)
@@ -1974,8 +1973,8 @@ L1:
                     opnds[0 .. 2]);
 
             popndTmp = &opnds[2];
-            aoptyTmp = aoptyTable3;
-            uSizemaskTmp = uSizemaskTable3;
+            aoptyTmp = aoptyTable[2];
+            uSizemaskTmp = uSizemaskTable[2];
 
         }
         goto L1;
