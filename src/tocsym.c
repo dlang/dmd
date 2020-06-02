@@ -347,7 +347,7 @@ Symbol *toSymbol(Dsymbol *s)
                         s->Sflags |= SFLpublic;
                         if (fd->isThis() && !global.params.is64bit && global.params.isWindows)
                         {
-                            if (((TypeFunction *)fd->type)->varargs == 1)
+                            if (((TypeFunction *)fd->type)->parameterList.varargs == VARARGvariadic)
                             {
                                 t->Tty = TYnfunc;
                             }

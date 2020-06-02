@@ -195,7 +195,7 @@ elem *callfunc(Loc loc,
         }
 
         // j=1 if _arguments[] is first argument
-        int j = (tf->linkage == LINKd && tf->varargs == 1);
+        int j = tf->isDstyleVariadic();
 
         for (size_t i = 0; i < arguments->length ; i++)
         {
@@ -204,10 +204,10 @@ elem *callfunc(Loc loc,
 
             //printf("\targ[%d]: %s\n", i, arg->toChars());
 
-            size_t nparams = Parameter::dim(tf->parameters);
+            size_t nparams = tf->parameterList.length();
             if (i - j < nparams && i >= j)
             {
-                Parameter *p = Parameter::getNth(tf->parameters, i - j);
+                Parameter *p = tf->parameterList[i - j];
 
                 if (p->storageClass & (STCout | STCref))
                 {
@@ -482,7 +482,7 @@ if (I32) assert(tysize[TYnptr] == 4);
         else
             e = el_una(ns ? OPucallns : OPucall, tyret, ec);
 
-        if (tf->varargs)
+        if (tf->parameterList.varargs)
             e->Eflags |= EFLAGS_variadic;
     }
 

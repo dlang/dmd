@@ -1416,11 +1416,11 @@ unsigned totym(Type *tx)
                 case LINKwindows:
                     if (global.params.is64bit)
                         goto Lc;
-                    t = (tf->varargs == 1) ? TYnfunc : TYnsfunc;
+                    t = (tf->parameterList.varargs == VARARGvariadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINKpascal:
-                    t = (tf->varargs == 1) ? TYnfunc : TYnpfunc;
+                    t = (tf->parameterList.varargs == VARARGvariadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINKc:
@@ -1435,7 +1435,7 @@ unsigned totym(Type *tx)
                     break;
 
                 case LINKd:
-                    t = (tf->varargs == 1) ? TYnfunc : TYjfunc;
+                    t = (tf->parameterList.varargs == VARARGvariadic) ? TYnfunc : TYjfunc;
                     break;
 
                 default:

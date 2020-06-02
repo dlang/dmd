@@ -534,7 +534,7 @@ Type *TargetCPP::parameterType(Parameter *p)
     else if (p->storageClass & STClazy)
     {
         // Mangle as delegate
-        Type *td = new TypeFunction(NULL, t, 0, LINKd);
+        Type *td = new TypeFunction(ParameterList(), t, LINKd);
         td = new TypeDelegate(td);
         t = t->merge();
     }

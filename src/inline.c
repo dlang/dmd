@@ -1459,7 +1459,7 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, bool statementsToo
     {
         assert(fd->type->ty == Tfunction);
         TypeFunction *tf = (TypeFunction *)fd->type;
-        if (tf->varargs == 1)   // no variadic parameter lists
+        if (tf->parameterList.varargs == VARARGvariadic)   // no variadic parameter lists
             goto Lno;
 
         /* Don't inline a function that returns non-void, but has
