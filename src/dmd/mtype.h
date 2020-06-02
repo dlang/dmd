@@ -292,7 +292,7 @@ public:
     virtual Type *makeSharedWildConst();
     virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
-    virtual Type *toBasetype();
+    Type *toBasetype();
     virtual bool isBaseOf(Type *t, int *poffset);
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
@@ -784,7 +784,6 @@ public:
     bool needsNested();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    Type *toBasetype();
     bool isZeroInit(const Loc &loc);
     bool hasPointers();
     bool hasVoidInitPointers();
