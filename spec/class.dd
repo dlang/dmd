@@ -367,9 +367,11 @@ $(GNAME Constructor):
         }
         ------
 
-        $(P Constructors can call other constructors for the same class
-        in order to share common initializations
-        (this is called a $(LNAME2 delegating-constructors, delegating constructor)):
+$(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
+
+        $(P A constructor can call another constructor for the same class
+        in order to share common initializations.
+        This is called a $(I delegating constructor):
         )
 
         ------
@@ -388,19 +390,7 @@ $(GNAME Constructor):
         }
         ------
 
-        $(P If no call to constructors via $(D this) or $(D super) appear in a
-        constructor, and the base class has a constructor, a call to
-        `super()` is inserted at the beginning of the constructor.)
-
-        $(P If there is no constructor for a class, but there is a constructor
-        for the base class, a default constructor is implicitly generated with
-        the form:)
-
-        ------
-        this() { }
-        ------
-
-        $(P The following restrictions apply to class construction:)
+        $(P The following restrictions apply:)
 
     $(OL
         $(LI It is illegal for constructors to mutually call each other.
@@ -417,9 +407,9 @@ $(GNAME Constructor):
         calls.)
         )
 
-        $(LI If a constructor's code contains a delegate constructor call, all
+        $(LI If a constructor's code contains a delegating constructor call, all
         possible execution paths through the constructor must make exactly one
-        delegate constructor call:
+        delegating constructor call:
 
         ------
         this() { a || super(); }       // illegal
@@ -437,10 +427,28 @@ $(GNAME Constructor):
         )
 
         $(LI It is illegal to refer to $(D this) implicitly or explicitly
-        prior to making a delegate constructor call.)
+        prior to making a delegating constructor call.)
 
-        $(LI Delegate constructor calls cannot appear after labels.)
+        $(LI Delegating constructor calls cannot appear after labels.)
     )
+
+$(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
+
+        $(P If there is no constructor for a class, but there is a constructor
+        for the base class, a default constructor is implicitly generated with
+        the form:)
+
+        ------
+        this() { }
+        ------
+
+        $(P If no calls to a delegating constructor or $(D super) appear in a
+        constructor, and the base class has a nullary constructor, a call to
+        `super()` is inserted at the beginning of the constructor. If that
+        base class has a constructor that requires arguments and no
+        nullary constructor, a matching call to `super` is required.)
+
+$(H3 $(LNAME2 class-instantiation, Class Instantiation))
 
         $(P Instances of class objects are created with a $(GLINK2 expression, NewExpression):)
 
@@ -482,6 +490,8 @@ $(GNAME Constructor):
         )
     )
 
+$(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
+
         $(P Constructors can have one of these member function attributes:
         $(D const), $(D immutable), and $(D shared). Construction of qualified
         objects will then be restricted to the implemented qualified constructors.
@@ -495,7 +505,7 @@ $(GNAME Constructor):
         // create mutable object
         C m = new C();
 
-        // create const object using by mutable constructor
+        // create const object using mutable constructor
         const C c2 = new const C();
 
         // a mutable constructor cannot create an immutable object
@@ -519,6 +529,8 @@ $(GNAME Constructor):
         shared s = new shared C();
         immutable i = new immutable C();
         ------
+
+$(H4 $(LNAME2 pure-constructors, Pure Constructors))
 
         $(P If the constructor can create a unique object (e.g. if it is `pure`),
         the object can be implicitly convertible to any qualifiers.
@@ -544,7 +556,7 @@ $(GNAME Constructor):
         C m = new C([1,2,3]);       // this(int[]) immutable pure is called
         ------
 
-$(H2 $(LNAME2 field-init, Field initialization inside constructor))
+$(H3 $(LNAME2 field-init, Field initialization inside a constructor))
 
         $(P In a constructor body, the first instance of field assignment is
         its initialization.
