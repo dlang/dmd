@@ -15,6 +15,7 @@
 #include "root/dcompat.h" // for d_size_t
 
 #include "arraytypes.h"
+#include "ast_node.h"
 #include "expression.h"
 #include "visitor.h"
 
@@ -134,7 +135,7 @@ enum VarArg
                          ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 };
 
-class Type : public RootObject
+class Type : public ASTNode
 {
 public:
     TY ty;
@@ -348,7 +349,7 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeError : public Type
@@ -595,7 +596,7 @@ enum PURE
     PUREstrong = 4      // parameters are values or immutable
 };
 
-class Parameter : public RootObject
+class Parameter : public ASTNode
 {
 public:
     StorageClass storageClass;
@@ -609,7 +610,7 @@ public:
     Type *isLazyArray();
     // kludge for template.isType()
     int dyncast() const { return DYNCAST_PARAMETER; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static size_t dim(Parameters *parameters);

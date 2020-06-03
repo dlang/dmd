@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ast_node.h"
 #include "complex_t.h"
 #include "globals.h"
 #include "identifier.h"
@@ -121,7 +122,7 @@ enum OwnedBy
 #define WANTvalue   0   // default
 #define WANTexpand  1   // expand const/immutable variables if possible
 
-class Expression : public RootObject
+class Expression : public ASTNode
 {
 public:
     Loc loc;                    // file location
@@ -218,7 +219,7 @@ public:
         return true;
     }
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class IntegerExp : public Expression
