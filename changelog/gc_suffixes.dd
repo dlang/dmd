@@ -1,0 +1,12 @@
+Memory-related GC options stored in bytes
+
+Memory-related GC options stored in bytes instead of megabytes to
+provide fine-tune GC on low memory devices.
+
+Added ability to use suffixes B, K or M:
+---
+extern(C) __gshared string[] rt_options =
+    [ "gcopt=minPoolSize:4K maxPoolSize:2M incPoolSize:8K" ];
+---
+
+Values without suffix treated as megabytes.
