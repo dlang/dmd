@@ -1,3 +1,4 @@
+//PERMUTE_ARGS: -release -g -O
 struct S
 {
     __gshared int numDtor;
