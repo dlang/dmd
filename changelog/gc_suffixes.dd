@@ -1,4 +1,4 @@
-Memory-related GC options stored in bytes
+Memory releated GC options can now be specified with higher accuracy
 
 Memory-related GC options stored in bytes instead of megabytes to
 provide fine-tune GC on low memory devices.
