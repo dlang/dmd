@@ -83,9 +83,9 @@ nothrow:
         foreach (ref iv; Lopeqlist)
             iv.reset();
 
-        Llis.dtor();
-        Livlist.dtor();
-        Lopeqlist.dtor();
+        Llis.reset();
+        Livlist.reset();
+        Lopeqlist.reset();
     }
 
     /***********************
