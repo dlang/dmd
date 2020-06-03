@@ -48,10 +48,10 @@ struct Config
         }
         printf(" - select gc implementation (default = conservative)
 
-    initReserve:N  - initial memory to reserve in MB (%lld)
-    minPoolSize:N  - initial and minimum pool size in MB (%lld)
-    maxPoolSize:N  - maximum pool size in MB (%lld)
-    incPoolSize:N  - pool size increment MB (%lld)
+    initReserve:N  - initial memory to reserve in MB (%lldB)
+    minPoolSize:N  - initial and minimum pool size in MB (%lldB)
+    maxPoolSize:N  - maximum pool size in MB (%lldB)
+    incPoolSize:N  - pool size increment MB (%lldB)
     parallel:N     - number of additional threads for marking (%lld)
     heapSizeFactor:N - targeted heap size to used memory ratio (%g)
     cleanup:none|collect|finalize - how to treat live objects when terminating (collect)
