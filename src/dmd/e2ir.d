@@ -6006,6 +6006,98 @@ elem *toElemDtor(Expression e, IRState *irs)
     elem* ex = appendDtors(irs, er, starti, endi);
     return ex;
 }
+//copy pasta from toElemDtor!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+elem *toElemDtor2(Expression e, IRState *irs)
+{
+    //printf("Expression.toElemDtor() %s\n", e.toChars());
+    //copy pasta from appendDtors !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    elem *appendDtors2(IRState *irs, elem *er, size_t starti, size_t endi)
+    {
+        //printf("appendDtors(%d .. %d)\n", starti, endi);
+
+        /* Code gen can be improved by determining if no exceptions can be thrown
+        * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
+        */
+
+        /* Build edtors, an expression that calls destructors on all the variables
+        * going out of the scope starti..endi
+        */
+        elem *edtors = null;
+        foreach (i; starti .. endi)
+        {
+            elem *ed = (*irs.varsInScope)[i];
+            if (ed)                                 // if not skipped
+            {
+                //printf("appending dtor\n");
+                (*irs.varsInScope)[i] = null;       // so these are skipped by outer scopes
+                edtors = el_combine(ed, edtors);    // execute in reverse order
+            }
+        }
+
+        if (edtors)
+        {
+            if (irs.params.isWindows && !irs.params.is64bit) // Win32
+            {
+                Blockx *blx = irs.blx;
+                nteh_declarvars(blx);
+            }
+
+            /* Append edtors to er, while preserving the value of er
+            */
+            // if (tybasic(er.Ety) == TYvoid)
+            // {
+            //     /* No value to preserve, so simply append
+            //     */
+            //     er = el_combine(er, edtors);
+            // }
+            // else
+            // {
+                elem **pe;
+                for (pe = &er; (*pe).Eoper == OPcomma; pe = &(*pe).EV.E2)
+                {
+                }
+                elem *erx = *pe;
+
+                // if (erx.Eoper == OPconst || erx.Eoper == OPrelconst)
+                // {
+                //     *pe = el_combine(edtors, erx);
+                // }
+                // else if (elemIsLvalue(erx))
+                // {
+                //     /* Lvalue, take a pointer to it
+                //     */
+                //     elem *ep = el_una(OPaddr, TYnptr, erx);
+                //     elem *e = el_same(&ep);
+                //     ep = el_combine(ep, edtors);
+                //     ep = el_combine(ep, e);
+                //     e = el_una(OPind, erx.Ety, ep);
+                //     e.ET = erx.ET;
+                //     *pe = e;
+                // }
+                // else
+                // {
+                    elem *e = el_same(&erx);
+                    erx = el_combine(erx, edtors);
+                    *pe = el_combine(erx, e);
+                // }
+            // }
+        }
+        return er;
+    }
+    const mayThrowSave = irs.mayThrow;
+    if (irs.mayThrow && !canThrow(e, irs.getFunc(), false))
+        irs.mayThrow = false;
+
+    const starti = irs.varsInScope.dim;
+    elem* er = toElem(e, irs);
+    const endi = irs.varsInScope.dim;
+
+    irs.mayThrow = mayThrowSave;
+
+    // Add destructors
+    elem* ex = appendDtors2(irs, er, starti, endi);
+    return ex;
+}
 
 
 /*******************************************************

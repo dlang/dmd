@@ -691,7 +691,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
             else
             {
-                e = toElemDtor(s.exp, irs);
+                e = toElemDtor2(s.exp, irs);
                 assert(e);
             }
         L1:
