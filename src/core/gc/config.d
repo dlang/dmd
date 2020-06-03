@@ -55,6 +55,8 @@ struct Config
     parallel:N     - number of additional threads for marking (%lld)
     heapSizeFactor:N - targeted heap size to used memory ratio (%g)
     cleanup:none|collect|finalize - how to treat live objects when terminating (collect)
+
+    Memory-related values can use B, K or M suffixes.
 ".ptr,
                cast(long)initReserve, cast(long)minPoolSize,
                cast(long)maxPoolSize, cast(long)incPoolSize,
