@@ -110,7 +110,7 @@ $(H2 $(LNAME2 access_control, Access Control))
 
 $(H2 $(LNAME2 fields, Fields))
 
-        $(P Class members are always accessed with the . operator.
+        $(P Class members are always accessed with the `.` operator.
         )
 
         $(P Members of a base class can be accessed by prepending the name of
@@ -206,29 +206,20 @@ void test(Foo foo)
 $(H2 $(LNAME2 super_class, Super Class))
 
         All classes inherit from a super class. If one is not specified,
-        it inherits from Object. Object forms the root of the D class
-        inheritance hierarchy.
+        it inherits from $(REF1 Object, object). `Object` forms the root
+        of the D class inheritance hierarchy.
 
-$(H2 $(LNAME2 member-functions, Member Functions))
+$(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
-        $(P Non-static member functions or static member functions with
-        `Objective-C` linkage have an extra hidden parameter called $(I this)
-        through which the class object's other members can be accessed.
-        )
-
-        $(P Member functions with the Objective-C linkage has an additional
-        hidden, anonymous, parameter which is the selector the function was
-        called with.
+        $(P Non-static member functions have an extra hidden parameter
+        called $(I this) through which the class object's other members
+        can be accessed.
         )
 
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
         $(D const), $(D immutable), $(D shared), or $(D inout).
         These attributes apply to the hidden $(I this) parameter.
-        )
-
-        $(P Static member functions with the Objective-C linkage are placed in
-        the hidden nested metaclass as non-static member functions.
         )
 ---
 class C
@@ -244,6 +235,22 @@ class C
     }
 }
 ---
+
+$(H3 $(LNAME2 objc-member-functions, Objective-C linkage))
+
+        $(P Static member functions with
+        `Objective-C` linkage also have an extra hidden parameter called $(I this)
+        through which the class object's other members can be accessed.
+        )
+
+        $(P Member functions with Objective-C linkage have an additional
+        hidden, anonymous, parameter which is the selector the function was
+        called with.
+        )
+
+        $(P Static member functions with Objective-C linkage are placed in
+        the hidden nested metaclass as non-static member functions.
+        )
 
 
 $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))

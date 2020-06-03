@@ -801,7 +801,7 @@ class Bar : Foo
         )
 
         $(P
-            Functions with `Objective-C` linkage has an additional hidden,
+            Functions with `Objective-C` linkage have an additional hidden,
             unnamed, parameter which is the selector it was called with.
         )
 
