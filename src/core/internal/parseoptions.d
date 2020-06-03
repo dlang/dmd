@@ -211,7 +211,7 @@ do
                         break;
 
                     default:
-                        return parseError("value with unit type M, K or B", optname, str, "unknown unit");
+                        return parseError("value with unit type M, K or B", optname, str, "with suffix");
                 }
 
                 i++;
