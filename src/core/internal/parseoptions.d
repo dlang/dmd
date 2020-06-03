@@ -178,7 +178,7 @@ bool parse (T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, c
     return parseSuff(optname, str, res, errName, false);
 }
 
-bool parseSuff(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName, bool mayHaveSuffix)
+bool parseSuff(T : size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName, bool mayHaveSuffix)
 in { assert(str.length); }
 do
 {
