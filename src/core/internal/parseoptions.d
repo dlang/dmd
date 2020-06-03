@@ -199,6 +199,10 @@ do
             {
                 switch (c)
                 {
+                    case 'G':
+                        v <<= 30;
+                        break;
+
                     case 'M':
                         v <<= 20;
                         break;
@@ -371,6 +375,10 @@ unittest
     assert(conf.parseOptions("disable:1 minPoolSize:2K help"));
     assert(conf.disable);
     assert(conf.minPoolSize == 2048);
+
+    assert(conf.parseOptions("minPoolSize:5G help"));
+    assert(conf.disable);
+    assert(conf.minPoolSize == 1024UL * 1024 * 1024 * 5);
 
     assert(conf.parseOptions("heapSizeFactor:3.1"));
     assert(conf.heapSizeFactor == 3.1f);
