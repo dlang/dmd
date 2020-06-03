@@ -173,7 +173,7 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse (T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
+bool parse(T : size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
 {
     return parseSuff(optname, str, res, errName, false);
 }
