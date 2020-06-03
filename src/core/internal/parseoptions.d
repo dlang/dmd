@@ -376,9 +376,9 @@ unittest
     assert(conf.disable);
     assert(conf.minPoolSize == 2048);
 
-    assert(conf.parseOptions("minPoolSize:5G help"));
+    assert(conf.parseOptions("minPoolSize:3G help"));
     assert(conf.disable);
-    assert(conf.minPoolSize == 1024UL * 1024 * 1024 * 5);
+    assert(conf.minPoolSize == 1024UL * 1024 * 1024 * 3);
 
     assert(conf.parseOptions("heapSizeFactor:3.1"));
     assert(conf.heapSizeFactor == 3.1f);
