@@ -349,6 +349,27 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
+    TypeError *isTypeError();
+    TypeVector *isTypeVector();
+    TypeSArray *isTypeSArray();
+    TypeDArray *isTypeDArray();
+    TypeAArray *isTypeAArray();
+    TypePointer *isTypePointer();
+    TypeReference *isTypeReference();
+    TypeFunction *isTypeFunction();
+    TypeDelegate *isTypeDelegate();
+    TypeIdentifier *isTypeIdentifier();
+    TypeInstance *isTypeInstance();
+    TypeTypeof *isTypeTypeof();
+    TypeReturn *isTypeReturn();
+    TypeStruct *isTypeStruct();
+    TypeEnum *isTypeEnum();
+    TypeClass *isTypeClass();
+    TypeTuple *isTypeTuple();
+    TypeSlice *isTypeSlice();
+    TypeNull *isTypeNull();
+    TypeTraits *isTypeTraits();
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
