@@ -94,7 +94,24 @@ bool parseOptions(CFG)(ref CFG cfg, string opt)
                 static if (!is(typeof(__traits(getMember, cfg, field)) == function))
                 {
                     case field:
-                        if (!parse(name, tail, __traits(getMember, cfg, field), errName))
+                        alias fieldT = typeof(__traits(getMember, cfg, field));
+
+                        static if (is(fieldT == size_t))
+                        {
+                             // names of field what can contain B/K/M suffixes
+                            bool isSuffValue = (
+                                name == "initReserve" ||
+                                name == "minPoolSize" ||
+                                name == "maxPoolSize" ||
+                                name == "incPoolSize"
+                            );
+
+                            bool r = parseSuff(name, tail, __traits(getMember, cfg, field), errName, true);
+                        }
+                        else
+                            bool r = parse(name, tail, __traits(getMember, cfg, field), errName);
+
+                        if (!r)
                             return false;
                         break;
                 }
@@ -156,16 +173,64 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
+bool parse (T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
+{
+    return parseSuff(optname, str, res, errName, false);
+}
+
+bool parseSuff(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName, bool mayHaveSuffix)
 in { assert(str.length); }
 do
 {
     size_t i, v;
-    for (; i < str.length && isdigit(str[i]); ++i)
-        v = 10 * v + str[i] - '0';
+
+    auto tail = find!(c => c == ' ')(str);
+    size_t len = str.length - tail.length;
+
+    for (; i < len; i++)
+    {
+        char c = str[i];
+
+        if (isdigit(c))
+            v = 10 * v + c - '0';
+        else // non-digit
+        {
+            if (mayHaveSuffix && i == len-1) // suffix
+            {
+                switch (c)
+                {
+                    case 'M':
+                        v <<= 20;
+                        break;
+
+                    case 'K':
+                        v <<= 10;
+                        break;
+
+                    case 'B':
+                        break;
+
+                    default:
+                        return parseError("value with unit type M, K or B", optname, str, "unknown unit");
+                }
+
+                i++;
+                break;
+            }
+            else // unexpected non-digit character
+            {
+                i = 0;
+                break;
+            }
+        }
+    }
 
     if (!i)
         return parseError("a number", optname, str, errName);
+
+    if (mayHaveSuffix && isdigit(str[len-1]))
+        v <<= 20; // No suffix found, default to megabytes
+
     if (v > res.max)
         return parseError("a number " ~ T.max.stringof ~ " or below", optname, str[0 .. i], errName);
     str = str[i .. $];
@@ -267,8 +332,8 @@ unittest
         ubyte profile;           // enable profiling with summary when terminating program
         string gc = "conservative"; // select gc implementation conservative|manual
 
-        size_t initReserve;      // initial reserve (MB)
-        size_t minPoolSize = 1;  // initial and minimum pool size (MB)
+        size_t initReserve;      // initial reserve (bytes)
+        size_t minPoolSize = 1 << 20;  // initial and minimum pool size (bytes)
         float heapSizeFactor = 2.0; // heap size to used memory ratio
 
         @nogc nothrow:
@@ -297,7 +362,15 @@ unittest
 
     assert(conf.parseOptions("disable:1 minPoolSize:16"));
     assert(conf.disable);
-    assert(conf.minPoolSize == 16);
+    assert(conf.minPoolSize == 1024 * 1024 * 16);
+
+    assert(conf.parseOptions("disable:1 minPoolSize:4096B"));
+    assert(conf.disable);
+    assert(conf.minPoolSize == 4096);
+
+    assert(conf.parseOptions("disable:1 minPoolSize:2K help"));
+    assert(conf.disable);
+    assert(conf.minPoolSize == 2048);
 
     assert(conf.parseOptions("heapSizeFactor:3.1"));
     assert(conf.heapSizeFactor == 3.1f);

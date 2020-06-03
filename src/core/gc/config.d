@@ -18,10 +18,10 @@ struct Config
     ubyte profile;           // enable profiling with summary when terminating program
     string gc = "conservative"; // select gc implementation conservative|precise|manual
 
-    size_t initReserve;      // initial reserve (MB)
-    size_t minPoolSize = 1;  // initial and minimum pool size (MB)
-    size_t maxPoolSize = 64; // maximum pool size (MB)
-    size_t incPoolSize = 3;  // pool size increment (MB)
+    size_t initReserve;      // initial reserve (bytes)
+    size_t minPoolSize = 1  << 20;  // initial and minimum pool size (bytes)
+    size_t maxPoolSize = 64 << 20;  // maximum pool size (bytes)
+    size_t incPoolSize = 3  << 20;  // pool size increment (bytes)
     uint parallel = 99;      // number of additional threads for marking (limited by cpuid.threadsPerCPU-1)
     float heapSizeFactor = 2.0; // heap size to used memory ratio
     string cleanup = "collect"; // select gc cleanup method none|collect|finalize
