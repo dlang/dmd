@@ -1302,6 +1302,38 @@ code *asm_emit(Loc loc,
         }
     }
 
+    code* finalizeCode()
+    {
+        if ((pc.Iop & ~7) == 0xD8 &&
+            ADDFWAIT &&
+            !(ptb.pptb0.usFlags & _nfwait))
+            pc.Iflags |= CFwait;
+        else if ((ptb.pptb0.usFlags & _fwait) &&
+                 config.target_cpu >= TARGET_80386)
+            pc.Iflags |= CFwait;
+
+        debug (debuga)
+        {
+            uint u;
+
+            for (u = 0; u < usIdx; u++)
+                printf("  %02X", auchOpcode[u]);
+
+            printOperands(pop, opnds);
+        }
+
+        CodeBuilder cdb;
+        cdb.ctor();
+
+        if (global.params.symdebug)
+        {
+            cdb.genlinnum(Srcpos.create(loc.filename, loc.linnum, loc.charnum));
+        }
+
+        cdb.append(pc);
+        return cdb.finish();
+    }
+
     if (opnds.length >= 1)
     {
         amods[0] = ASM_GET_amod(opnds[0].usFlags);
@@ -1617,7 +1649,7 @@ code *asm_emit(Loc loc,
         emit(pc.Ivex.op);
         if (popndTmp && aoptyTmp == _imm)
             setCodeForImmediate(*popndTmp, uSizemaskTmp);
-        goto L2;
+        return finalizeCode();
     }
     else if ((opcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
     {
@@ -1683,7 +1715,7 @@ code *asm_emit(Loc loc,
             if (opcode == 0xDFE0) // FSTSW AX
             {
                 pc.Irm = puc[0];
-                goto L2;
+                return finalizeCode();
             }
             if (asmstate.ucItype == ITfloat)
             {
@@ -1964,36 +1996,7 @@ L3:
             setCodeForImmediate(opnds[2], uSizemaskTable[2]);
         break;
     }
-L2:
-
-    if ((pc.Iop & ~7) == 0xD8 &&
-        ADDFWAIT &&
-        !(ptb.pptb0.usFlags & _nfwait))
-            pc.Iflags |= CFwait;
-    else if ((ptb.pptb0.usFlags & _fwait) &&
-        config.target_cpu >= TARGET_80386)
-            pc.Iflags |= CFwait;
-
-    debug (debuga)
-    {
-        uint u;
-
-        for (u = 0; u < usIdx; u++)
-            printf("  %02X", auchOpcode[u]);
-
-        printOperands(pop, opnds);
-    }
-
-    CodeBuilder cdb;
-    cdb.ctor();
-
-    if (global.params.symdebug)
-    {
-        cdb.genlinnum(Srcpos.create(loc.filename, loc.linnum, loc.charnum));
-    }
-
-    cdb.append(pc);
-    return cdb.finish();
+    return finalizeCode();
 }
 
 
