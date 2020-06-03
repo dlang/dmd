@@ -6612,6 +6612,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     sa = (cast(DotTemplateExp)ea).td;
                     goto Ldsym;
                 }
+                if (ea.op == TOK.dot)
+                {
+                    if (auto se = (cast(DotExp)ea).e2.isScopeExp())
+                    {
+                        sa = se.sds;
+                        goto Ldsym;
+                    }
+                }
             }
             else if (sa)
             {
@@ -7394,7 +7402,8 @@ bool definitelyValueParameter(Expression e)
         e.op == TOK.type || e.op == TOK.dotType ||
         e.op == TOK.template_ || e.op == TOK.dotTemplateDeclaration ||
         e.op == TOK.function_ || e.op == TOK.error ||
-        e.op == TOK.this_ || e.op == TOK.super_)
+        e.op == TOK.this_ || e.op == TOK.super_ ||
+        e.op == TOK.dot)
         return false;
 
     if (e.op != TOK.dotVariable)
