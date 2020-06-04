@@ -99,7 +99,7 @@ bool parseOptions(CFG)(ref CFG cfg, string opt)
                         bool r;
 
                         static if (hasUDA!(__traits(getMember, cfg, field), MemVal))
-                            r = parseSuff(name, tail, __traits(getMember, cfg, field), errName, true);
+                            r = parse(name, tail, __traits(getMember, cfg, field), errName, true);
                         else
                             r = parse(name, tail, __traits(getMember, cfg, field), errName);
 
@@ -165,12 +165,7 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse(T : size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
-{
-    return parseSuff(optname, str, res, errName, false);
-}
-
-bool parseSuff(T : size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName, bool mayHaveSuffix)
+bool parse(T : size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName, bool mayHaveSuffix = false)
 in { assert(str.length); }
 do
 {
