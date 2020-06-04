@@ -1148,7 +1148,7 @@ Language changes listed by -transition=id:\n\
     Type::_init();
     Id::initialize();
     Module::_init();
-    Target::_init();
+    target._init(global.params);
     Expression::_init();
     Objc::_init();
     builtin_init();

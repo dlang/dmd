@@ -549,7 +549,7 @@ public:
             Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
             DtBuilder dtb;
             dtb.size(numcases);
-            dtb.xoff(si, Target::ptrsize * 2, TYnptr);
+            dtb.xoff(si, target.ptrsize * 2, TYnptr);
 
             for (size_t i = 0; i < numcases; i++)
             {   CaseStatement *cs = (*s->cases)[i];
@@ -1028,7 +1028,7 @@ public:
              * BCjcatch:
              *  __hander = __RDX;
              *  __exception_object = __RAX;
-             *  jcatchvar = *(__exception_object - Target::ptrsize); // old way
+             *  jcatchvar = *(__exception_object - target.ptrsize); // old way
              *  jcatchvar = __dmd_catch_begin(__exception_object);   // new way
              *  switch (__handler)
              *      case 1:     // first catch handler
@@ -1055,10 +1055,10 @@ public:
             elem *e2 = el_bin(OPeq, TYvoid, el_var(seo), el_var(seax)); // __exception_object = __RAX
 
 #if 0
-            // jcatchvar = *(__exception_object - Target::ptrsize)
+            // jcatchvar = *(__exception_object - target.ptrsize)
             union eve c;
             memset(&c, 0, sizeof(c));
-            c.Vllong = Target::ptrsize;
+            c.Vllong = target.ptrsize;
             elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_const(TYsize_t, &c));
             elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), el_una(OPind, TYnptr, e));
 #else

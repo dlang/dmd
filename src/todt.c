@@ -306,8 +306,8 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
                 case Timaginary80:
                 {
                     real_t evalue = e->value;
-                    dtb.nbytes(Target::realsize - Target::realpad,(char *)&evalue);
-                    dtb.nzeros(Target::realpad);
+                    dtb.nbytes(target.realsize - target.realpad,(char *)&evalue);
+                    dtb.nzeros(target.realpad);
                     break;
                 }
 
@@ -345,11 +345,11 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
                 case Tcomplex80:
                 {
                     real_t evalue = creall(e->value);
-                    dtb.nbytes(Target::realsize - Target::realpad,(char *)&evalue);
-                    dtb.nzeros(Target::realpad);
+                    dtb.nbytes(target.realsize - target.realpad,(char *)&evalue);
+                    dtb.nzeros(target.realpad);
                     evalue = cimagl(e->value);
-                    dtb.nbytes(Target::realsize - Target::realpad,(char *)&evalue);
-                    dtb.nzeros(Target::realpad);
+                    dtb.nbytes(target.realsize - target.realpad,(char *)&evalue);
+                    dtb.nzeros(target.realpad);
                     break;
                 }
 
@@ -682,7 +682,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
                     if (csymoffset != ~0)
                     {
                         dtb.xoff(toSymbol(cd2), csymoffset);
-                        offset += Target::ptrsize;
+                        offset += target.ptrsize;
                         break;
                     }
                 }
@@ -691,11 +691,11 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
         else
         {
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
-            offset = Target::ptrsize;
+            offset = target.ptrsize;
             if (!cd->isCPPclass())
             {
                 dtb.size(0);              // __monitor
-                offset += Target::ptrsize;
+                offset += target.ptrsize;
             }
         }
 
@@ -946,7 +946,7 @@ public:
     void visit(TypeInfoDeclaration *d)
     {
         //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::dtypeinfo, 2 * Target::ptrsize);
+        verifyStructSize(Type::dtypeinfo, 2 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::dtypeinfo), 0);        // vtbl for TypeInfo
         dtb.size(0);                                     // monitor
@@ -955,7 +955,7 @@ public:
     void visit(TypeInfoConstDeclaration *d)
     {
         //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfoconst, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoconst, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfoconst), 0);    // vtbl for TypeInfo_Const
         dtb.size(0);                                     // monitor
@@ -968,7 +968,7 @@ public:
     void visit(TypeInfoInvariantDeclaration *d)
     {
         //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfoinvariant, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoinvariant, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfoinvariant), 0);    // vtbl for TypeInfo_Invariant
         dtb.size(0);                                         // monitor
@@ -981,7 +981,7 @@ public:
     void visit(TypeInfoSharedDeclaration *d)
     {
         //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfoshared, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoshared, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfoshared), 0);   // vtbl for TypeInfo_Shared
         dtb.size(0);                                     // monitor
@@ -994,7 +994,7 @@ public:
     void visit(TypeInfoWildDeclaration *d)
     {
         //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfowild, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfowild, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfowild), 0); // vtbl for TypeInfo_Wild
         dtb.size(0);                                 // monitor
@@ -1007,7 +1007,7 @@ public:
     void visit(TypeInfoEnumDeclaration *d)
     {
         //printf("TypeInfoEnumDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoenum, 7 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoenum, 7 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfoenum), 0); // vtbl for TypeInfo_Enum
         dtb.size(0);                        // monitor
@@ -1058,7 +1058,7 @@ public:
     void visit(TypeInfoPointerDeclaration *d)
     {
         //printf("TypeInfoPointerDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfopointer, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfopointer, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
         dtb.size(0);                                     // monitor
@@ -1074,7 +1074,7 @@ public:
     void visit(TypeInfoArrayDeclaration *d)
     {
         //printf("TypeInfoArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoarray, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoarray, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfoarray), 0);    // vtbl for TypeInfo_Array
         dtb.size(0);                                     // monitor
@@ -1090,7 +1090,7 @@ public:
     void visit(TypeInfoStaticArrayDeclaration *d)
     {
         //printf("TypeInfoStaticArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfostaticarray, 4 * Target::ptrsize);
+        verifyStructSize(Type::typeinfostaticarray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
         dtb.size(0);                                         // monitor
@@ -1108,7 +1108,7 @@ public:
     void visit(TypeInfoVectorDeclaration *d)
     {
         //printf("TypeInfoVectorDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfovector, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfovector, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfovector), 0);   // vtbl for TypeInfo_Vector
         dtb.size(0);                                     // monitor
@@ -1124,7 +1124,7 @@ public:
     void visit(TypeInfoAssociativeArrayDeclaration *d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoassociativearray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         dtb.size(0);                        // monitor
@@ -1143,7 +1143,7 @@ public:
     void visit(TypeInfoFunctionDeclaration *d)
     {
         //printf("TypeInfoFunctionDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfofunction, 5 * Target::ptrsize);
+        verifyStructSize(Type::typeinfofunction, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfofunction), 0); // vtbl for TypeInfo_Function
         dtb.size(0);                                     // monitor
@@ -1168,7 +1168,7 @@ public:
     void visit(TypeInfoDelegateDeclaration *d)
     {
         //printf("TypeInfoDelegateDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfodelegate, 5 * Target::ptrsize);
+        verifyStructSize(Type::typeinfodelegate, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
         dtb.size(0);                                     // monitor
@@ -1194,9 +1194,9 @@ public:
     {
         //printf("TypeInfoStructDeclaration::toDt() '%s'\n", d->toChars());
         if (global.params.is64bit)
-            verifyStructSize(Type::typeinfostruct, 17 * Target::ptrsize);
+            verifyStructSize(Type::typeinfostruct, 17 * target.ptrsize);
         else
-            verifyStructSize(Type::typeinfostruct, 15 * Target::ptrsize);
+            verifyStructSize(Type::typeinfostruct, 15 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfostruct), 0); // vtbl for TypeInfo_Struct
         dtb.size(0);                        // monitor
@@ -1368,7 +1368,7 @@ public:
     void visit(TypeInfoInterfaceDeclaration *d)
     {
         //printf("TypeInfoInterfaceDeclaration::toDt() %s\n", tinfo->toChars());
-        verifyStructSize(Type::typeinfointerface, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfointerface, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfointerface), 0);    // vtbl for TypeInfoInterface
         dtb.size(0);                                           // monitor
@@ -1387,7 +1387,7 @@ public:
     void visit(TypeInfoTupleDeclaration *d)
     {
         //printf("TypeInfoTupleDeclaration::toDt() %s\n", tinfo->toChars());
-        verifyStructSize(Type::typeinfotypelist, 4 * Target::ptrsize);
+        verifyStructSize(Type::typeinfotypelist, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type::typeinfotypelist), 0); // vtbl for TypeInfoInterface
         dtb.size(0);                                       // monitor

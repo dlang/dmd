@@ -702,7 +702,7 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
  */
 Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
 {
-    const char *id = Target::cppTypeInfoMangle(cd);
+    const char *id = target.cpp.typeInfoMangle(cd);
     Symbol* s = symbol_calloc(id);
     s->Sclass = SCextern;
     s->Sfl = FLextern;          // C++ code will provide the definition

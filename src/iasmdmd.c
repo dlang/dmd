@@ -2041,7 +2041,7 @@ static opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
     if (ptype && ptype->isscalar())
     {
         int sz = (int)ptype->size();
-        if (sz == Target::realsize)
+        if (sz == target.realsize)
         {
             *pusFloat = _f80;
             return 0;

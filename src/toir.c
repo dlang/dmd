@@ -711,7 +711,7 @@ void setClosureVarOffset(FuncDeclaration *fd)
 {
     if (fd->needsClosure())
     {
-        unsigned offset = Target::ptrsize;      // leave room for previous sthis
+        unsigned offset = target.ptrsize;      // leave room for previous sthis
 
         for (size_t i = 0; i < fd->closureVars.length; i++)
         {
@@ -728,14 +728,14 @@ void setClosureVarOffset(FuncDeclaration *fd)
                 /* Lazy variables are really delegates,
                  * so give same answers that TypeDelegate would
                  */
-                memsize = Target::ptrsize * 2;
+                memsize = target.ptrsize * 2;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
             }
             else if (v->storage_class & (STCout | STCref))
             {
                 // reference parameters are just pointers
-                memsize = Target::ptrsize;
+                memsize = target.ptrsize;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
             }
@@ -812,7 +812,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
-        type *Closstru = type_struct_class(closname, Target::ptrsize, 0, NULL, NULL, false, false, true);
+        type *Closstru = type_struct_class(closname, target.ptrsize, 0, NULL, NULL, false, false, true);
         free(closname);
         symbol_struct_addField(Closstru->Ttag, "__chain", Type_toCtype(Type::tvoidptr), 0);
 
@@ -823,7 +823,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         irs->sclosure = sclosure;
 
         assert(fd->closureVars.length);
-        assert(fd->closureVars[0]->offset >= Target::ptrsize);
+        assert(fd->closureVars[0]->offset >= target.ptrsize);
         for (size_t i = 0; i < fd->closureVars.length; i++)
         {
             VarDeclaration *v = fd->closureVars[i];
@@ -861,9 +861,9 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         VarDeclaration *vlast = fd->closureVars[fd->closureVars.length - 1];
         unsigned structsize;
         if (vlast->storage_class & STClazy)
-            structsize = vlast->offset + Target::ptrsize * 2;
+            structsize = vlast->offset + target.ptrsize * 2;
         else if (vlast->isRef() || vlast->isOut())
-            structsize = vlast->offset + Target::ptrsize;
+            structsize = vlast->offset + target.ptrsize;
         else
             structsize = vlast->offset + vlast->type->size();
         //printf("structsize = %d\n", structsize);
