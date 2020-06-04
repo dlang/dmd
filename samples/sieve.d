@@ -1,41 +1,28 @@
-
 /* Eratosthenes Sieve prime number calculation. */
 
+import std.conv;
 import std.stdio;
+import std.range;
 
-bool flags[8191];
-
-int main()
+void main(string[] args)
 {
-    int i, prime, k, count, iter;
+    immutable max = (1 < args.length)
+        ? args[1].to!size_t
+        : 0x4000;
+    size_t count = 1; // we have 2.
+    // flags[i] = isPrime(2 * i + 3)
+    auto flags = new bool[(max - 1) / 2];
+    flags[] = true;
 
-    writefln("10 iterations");
-
-    for (iter = 1;
-         iter <= 10;
-         iter++)
+    foreach (i; 0..flags.length)
     {
-        count   = 0;
-        flags[] = true;
+        if (!flags[i])
+            continue;
+        auto prime = i + i + 3;
+        foreach (k; iota(i + prime, flags.length, prime))
+            flags[k] = false;
 
-        for (i = 0; i < flags.length; i++)
-        {
-            if (flags[i])
-            {
-                prime = i + i + 3;
-                k     = i + prime;
-
-                while (k < flags.length)
-                {
-                    flags[k] = false;
-                    k       += prime;
-                }
-
-                count += 1;
-            }
-        }
+        count++;
     }
-
     writefln("%d primes", count);
-    return 0;
 }

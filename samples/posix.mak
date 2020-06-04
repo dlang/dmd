@@ -54,7 +54,11 @@ DMD	= dmd
 RM	= rm -rf
 OBJS	= $(SRC:.d=.o)
 
-all:	$(TARGETS)
+# Disable D2 testsuite for DMD.
+all:
+	echo "Auto-tester tests disabled, run 'make run_tests' to force testsuite run"
+
+run_tests:	$(TARGETS)
 
 clean:
 	$(RM) $(OBJS)

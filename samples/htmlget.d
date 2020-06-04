@@ -6,10 +6,10 @@
         This code has no warranties and is provided 'as-is'.
  */
 
-// debug = HTMLGET;
+debug = HTMLGET;
 
-import std.string, std.conv, std.stream, std.stdio;
-import std.socket, std.socketstream;
+import std.string, std.conv, std.stdio;
+import std.socket;
 
 int main(string[] args)
 {
@@ -67,7 +67,6 @@ int main(string[] args)
 
     Socket sock = new TcpSocket(new InternetAddress(domain, port));
     scope(exit) sock.close();
-    Stream ss   = new SocketStream(sock);
 
     debug (HTMLGET)
         writefln("Connected! Requesting URL \"%s\"...", url);
@@ -75,17 +74,26 @@ int main(string[] args)
     if (port != 80)
         domain = domain ~ ":" ~ to!string(port);
 
-    ss.writeString("GET " ~ url ~ " HTTP/1.0\r\n"
-                   "Host: " ~ domain ~ "\r\n"
+    sock.send("GET " ~ url ~ " HTTP/1.0\r\n" ~
+                   "Host: " ~ domain ~ "\r\n" ~
                    "\r\n");
 
     // Skip HTTP header.
     while (true)
     {
-        auto line = ss.readLine();
+        char[] line;
+        char[1] buf;
+        while(sock.receive(buf))
+        {
+            line ~= buf;
+            if (buf[0] == '\n')
+                break;
+        }
 
         if (!line.length)
             break;
+
+        write(line);
 
         enum CONTENT_TYPE_NAME = "Content-Type: ";
 
@@ -97,12 +105,6 @@ int main(string[] args)
             if (type.length <= 5 || icmp("text/", type[0 .. 5]))
                 throw new Exception("URL is not text");
         }
-    }
-
-    while (!ss.eof())
-    {
-        auto line = ss.readLine();
-        writeln(line);
     }
 
     return 0;

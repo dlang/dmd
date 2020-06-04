@@ -1,11 +1,21 @@
 MAKE=make
 
+defaulttarget:
+	cd src
+	$(MAKE) -f win32.mak
+	cd ..
+
 auto-tester-build:
 	cd src
 	$(MAKE) -f win32.mak auto-tester-build
 	cd ..
 
-# Disable D2 testsuite for DMD.
 auto-tester-test:
-	@echo "Auto-tester tests disabled"
+	cd test
+	$(MAKE)
+	cd ..
+	cd samples
+	gmake -f win32.mak DMD=..\src\dmd.exe MODEL=$(MODEL) "LIB=..\..\phobos;$(LIB)" \
+		"DFLAGS=-I..\..\druntime\import -I..\..\phobos -m$(MODEL)"
+	cd ..
 

@@ -10,9 +10,7 @@ all:
 auto-tester-build:
 	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build
 
-# Disable D2 testsuite for DMD.
-auto-tester-test:
-	@echo "Auto-tester tests disabled"
+auto-tester-test: test
 
 clean:
 	$(QUIET)$(MAKE) -C src -f posix.mak clean
