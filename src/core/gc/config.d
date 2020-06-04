@@ -46,22 +46,82 @@ struct Config
             if (i) printf("|");
             printf("%.*s", cast(int) entry.name.length, entry.name.ptr);
         }
+        auto _initReserve = initReserve.bytes2prettyStruct;
+        auto _minPoolSize = minPoolSize.bytes2prettyStruct;
+        auto _maxPoolSize = maxPoolSize.bytes2prettyStruct;
+        auto _incPoolSize = incPoolSize.bytes2prettyStruct;
         printf(" - select gc implementation (default = conservative)
 
-    initReserve:N  - initial memory to reserve in MB (%lldB)
-    minPoolSize:N  - initial and minimum pool size in MB (%lldB)
-    maxPoolSize:N  - maximum pool size in MB (%lldB)
-    incPoolSize:N  - pool size increment MB (%lldB)
+    initReserve:N  - initial memory to reserve in MB (%lld%c)
+    minPoolSize:N  - initial and minimum pool size in MB (%lld%c)
+    maxPoolSize:N  - maximum pool size in MB (%lld%c)
+    incPoolSize:N  - pool size increment MB (%lld%c)
     parallel:N     - number of additional threads for marking (%lld)
     heapSizeFactor:N - targeted heap size to used memory ratio (%g)
     cleanup:none|collect|finalize - how to treat live objects when terminating (collect)
 
     Memory-related values can use B, K, M or G suffixes.
 ".ptr,
-               cast(long)initReserve, cast(long)minPoolSize,
-               cast(long)maxPoolSize, cast(long)incPoolSize,
+               _initReserve.v, _initReserve.u,
+               _minPoolSize.v, _minPoolSize.u,
+               _maxPoolSize.v, _maxPoolSize.u,
+               _incPoolSize.v, _incPoolSize.u,
                cast(long)parallel, heapSizeFactor);
     }
 
     string errorName() @nogc nothrow { return "GC"; }
+}
+
+private struct PrettyBytes
+{
+    long v;
+    char u; /// unit
+}
+
+pure @nogc nothrow:
+
+private PrettyBytes bytes2prettyStruct(size_t val)
+{
+    char c = prettyBytes(val);
+
+    return PrettyBytes(val, c);
+}
+
+private static char prettyBytes(ref size_t val)
+{
+    char sym = 'B';
+
+    if (val == 0)
+        return sym;
+
+    char[3] units = ['K', 'M', 'G'];
+
+    foreach (u; units)
+        if (val % (1 << 10) == 0)
+        {
+            val /= (1 << 10);
+            sym = u;
+        }
+        else if (sym != 'B')
+            break;
+
+    return sym;
+}
+unittest
+{
+    size_t v = 1024;
+    assert(prettyBytes(v) == 'K');
+    assert(v == 1);
+
+    v = 1025;
+    assert(prettyBytes(v) == 'B');
+    assert(v == 1025);
+
+    v = 1024UL * 1024 * 1024 * 3;
+    assert(prettyBytes(v) == 'G');
+    assert(v == 3);
+
+    v = 1024 * 1024 + 1;
+    assert(prettyBytes(v) == 'B');
+    assert(v == 1024 * 1024 + 1);
 }
