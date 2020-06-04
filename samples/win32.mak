@@ -5,7 +5,11 @@ DFLAGS=-m$(MODEL)
 EXAMPLES = hello d2html dhry pi sieve wc wc2 \
 	winsamp dserver$(MODEL) mydll htmlget listener
 
-all: $(EXAMPLES)
+# Disable D2 testsuite for DMD.
+all:
+	echo "Auto-tester tests disabled, run 'make run_tests' to force testsuite run"
+
+run_tests: $(EXAMPLES)
 	echo done
 
 d2html:

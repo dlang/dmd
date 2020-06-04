@@ -192,9 +192,8 @@ fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilat
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 # Disable D2 testsuite for DMD.
-#all: run_tests
 all:
-	$(QUIET) echo "Auto-tester tests disabled"
+	$(QUIET) echo "Auto-tester tests disabled, run 'make run_tests' to force testsuite run"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
