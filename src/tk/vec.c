@@ -1,6 +1,6 @@
-/* Copyright (C) 1986-2019 by The D Language Foundation, All Rights Reserved              */
-/* Written by Walter Bright                             */
-/* Bit vector package                                   */
+/* Copyright (C) 1986-2020 by The D Language Foundation, All Rights Reserved */
+/* Written by Walter Bright                                                  */
+/* Bit vector package                                                        */
 
 #include        <stdio.h>
 #include        <string.h>

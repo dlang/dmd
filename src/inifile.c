@@ -1,7 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
  *
