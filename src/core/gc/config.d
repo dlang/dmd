@@ -12,9 +12,6 @@ import core.internal.parseoptions;
 
 __gshared Config config;
 
-/// UDA for field treated as memory value
-struct MemVal {}
-
 struct Config
 {
     bool disable;            // start disabled

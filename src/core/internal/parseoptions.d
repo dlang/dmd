@@ -15,7 +15,6 @@ import core.stdc.ctype;
 import core.stdc.string;
 import core.vararg;
 import core.internal.traits : externDFunc, hasUDA;
-import core.gc.config : MemVal;
 
 
 @nogc nothrow:
@@ -28,6 +27,9 @@ extern extern(C) __gshared string[] rt_options;
 alias rt_configCallBack = string delegate(string) @nogc nothrow;
 alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
 alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
+
+/// UDA for field treated as memory value
+struct MemVal {}
 
 /**
 * initialize members of struct CFG from rt_config options
