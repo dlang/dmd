@@ -312,7 +312,7 @@ TypeTuple *toArgTypes(Type *t)
         void visit(TypeStruct *t)
         {
             //printf("TypeStruct::toArgTypes() %s\n", t->toChars());
-            if (!t->sym->isPOD() || t->sym->fields.dim == 0)
+            if (!t->sym->isPOD() || t->sym->fields.length == 0)
             {
             Lmemory:
                 //printf("\ttoArgTypes() %s => [ ]\n", t->toChars());
@@ -364,10 +364,10 @@ TypeTuple *toArgTypes(Type *t)
                 default:
                     goto Lmemory;
             }
-            if (global.params.is64bit && t->sym->fields.dim)
+            if (global.params.is64bit && t->sym->fields.length)
             {
                 t1 = NULL;
-                for (size_t i = 0; i < t->sym->fields.dim; i++)
+                for (size_t i = 0; i < t->sym->fields.length; i++)
                 {
                     VarDeclaration *f = t->sym->fields[i];
                     //printf("  [%d] %s f->type = %s\n", (int)i, f->toChars(), f->type->toChars());
@@ -375,7 +375,7 @@ TypeTuple *toArgTypes(Type *t)
                     TypeTuple *tup = toArgTypes(f->type);
                     if (!tup)
                         goto Lmemory;
-                    size_t dim = tup->arguments->dim;
+                    size_t dim = tup->arguments->length;
                     Type *ft1 = NULL;
                     Type *ft2 = NULL;
                     switch (dim)

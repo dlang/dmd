@@ -94,10 +94,10 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 
         void visit(CompoundStatement *s)
         {
-            //printf("CompoundStatement::inlineAsStatement() %d\n", s->statements->dim);
+            //printf("CompoundStatement::inlineAsStatement() %d\n", s->statements->length);
             Statements *as = new Statements();
-            as->reserve(s->statements->dim);
-            for (size_t i = 0; i < s->statements->dim; i++)
+            as->reserve(s->statements->length);
+            for (size_t i = 0; i < s->statements->length; i++)
             {
                 Statement *sx = (*s->statements)[i];
                 if (sx)
@@ -114,10 +114,10 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 
         void visit(UnrolledLoopStatement *s)
         {
-            //printf("UnrolledLoopStatement::inlineAsStatement() %d\n", s->statements->dim);
+            //printf("UnrolledLoopStatement::inlineAsStatement() %d\n", s->statements->length);
             Statements *as = new Statements();
-            as->reserve(s->statements->dim);
-            for (size_t i = 0; i < s->statements->dim; i++)
+            as->reserve(s->statements->length);
+            for (size_t i = 0; i < s->statements->length; i++)
             {
                 Statement *sx = (*s->statements)[i];
                 if (sx)
@@ -134,7 +134,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 
         void visit(ScopeStatement *s)
         {
-            //printf("ScopeStatement::inlineAsStatement() %d\n", s->statement->dim);
+            //printf("ScopeStatement::inlineAsStatement() %d\n", s->statement->length);
             result = s->statement ? new ScopeStatement(s->loc, inlineAsStatement(s->statement, ids), s->endloc) : s;
         }
 
@@ -220,8 +220,8 @@ Expression *doInline(Statement *s, InlineDoState *ids)
 
         void visit(CompoundStatement *s)
         {
-            //printf("CompoundStatement::doInline() %d\n", s->statements->dim);
-            for (size_t i = 0; i < s->statements->dim; i++)
+            //printf("CompoundStatement::doInline() %d\n", s->statements->length);
+            for (size_t i = 0; i < s->statements->length; i++)
             {
                 Statement *sx =  (*s->statements)[i];
                 if (sx)
@@ -237,8 +237,8 @@ Expression *doInline(Statement *s, InlineDoState *ids)
 
         void visit(UnrolledLoopStatement *s)
         {
-            //printf("UnrolledLoopStatement::doInline() %d\n", s->statements->dim);
-            for (size_t i = 0; i < s->statements->dim; i++)
+            //printf("UnrolledLoopStatement::doInline() %d\n", s->statements->length);
+            for (size_t i = 0; i < s->statements->length; i++)
             {
                 Statement *sx =  (*s->statements)[i];
                 if (sx)
@@ -336,9 +336,9 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 return NULL;
 
             Expressions *newa = new Expressions();
-            newa->setDim(a->dim);
+            newa->setDim(a->length);
 
-            for (size_t i = 0; i < a->dim; i++)
+            for (size_t i = 0; i < a->length; i++)
             {
                 Expression *e = (*a)[i];
                 if (e)
@@ -357,7 +357,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
         void visit(SymOffExp *e)
         {
             //printf("SymOffExp::doInline(%s)\n", e->toChars());
-            for (size_t i = 0; i < ids->from.dim; i++)
+            for (size_t i = 0; i < ids->from.length; i++)
             {
                 if (e->var == ids->from[i])
                 {
@@ -373,7 +373,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
         void visit(VarExp *e)
         {
             //printf("VarExp::doInline(%s)\n", e->toChars());
-            for (size_t i = 0; i < ids->from.dim; i++)
+            for (size_t i = 0; i < ids->from.length; i++)
             {
                 if (e->var == ids->from[i])
                 {
@@ -410,7 +410,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
              *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
              */
             VarDeclaration *v = e->var->isVarDeclaration();
-            if (v && v->nestedrefs.dim && ids->vthis)
+            if (v && v->nestedrefs.length && ids->vthis)
             {
                 Dsymbol *s = ids->fd;
                 FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
@@ -482,13 +482,13 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
                 if (td)
                 {
-                    for (size_t i = 0; i < td->objects->dim; i++)
+                    for (size_t i = 0; i < td->objects->length; i++)
                     {
                         DsymbolExp *se = (*td->objects)[i];
                         assert(se->op == TOKdsymbol);
                         se->s;
                     }
-                    result = st->objects->dim;
+                    result = st->objects->length;
                     return;
                 }
         #endif
@@ -496,7 +496,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 {
                     if (ids->fd && vd == ids->fd->nrvo_var)
                     {
-                        for (size_t i = 0; i < ids->from.dim; i++)
+                        for (size_t i = 0; i < ids->from.length; i++)
                         {
                             if (vd == ids->from[i])
                             {
@@ -889,7 +889,7 @@ public:
 
     void visit(CompoundStatement *s)
     {
-        for (size_t i = 0; i < s->statements->dim; i++)
+        for (size_t i = 0; i < s->statements->length; i++)
         {
             inlineScan(&(*s->statements)[i]);
         }
@@ -897,7 +897,7 @@ public:
 
     void visit(UnrolledLoopStatement *s)
     {
-        for (size_t i = 0; i < s->statements->dim; i++)
+        for (size_t i = 0; i < s->statements->length; i++)
         {
             inlineScan(&(*s->statements)[i]);
         }
@@ -958,7 +958,7 @@ public:
         s->sdefault = (DefaultStatement *)sdefault;
         if (s->cases)
         {
-            for (size_t i = 0; i < s->cases->dim; i++)
+            for (size_t i = 0; i < s->cases->length; i++)
             {
                 Statement *scase = (*s->cases)[i];
                 inlineScan(&scase);
@@ -1002,7 +1002,7 @@ public:
         inlineScan(&s->_body);
         if (s->catches)
         {
-            for (size_t i = 0; i < s->catches->dim; i++)
+            for (size_t i = 0; i < s->catches->length; i++)
             {
                 Catch *c = (*s->catches)[i];
                 inlineScan(&c->handler);
@@ -1044,7 +1044,7 @@ public:
     {
         if (arguments)
         {
-            for (size_t i = 0; i < arguments->dim; i++)
+            for (size_t i = 0; i < arguments->length; i++)
             {
                 inlineScan(&(*arguments)[i]);
             }
@@ -1064,7 +1064,7 @@ public:
             TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
             if (td)
             {
-                for (size_t i = 0; i < td->objects->dim; i++)
+                for (size_t i = 0; i < td->objects->length; i++)
                 {
                     DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
                     assert(se->op == TOKdsymbol);
@@ -1325,7 +1325,7 @@ public:
 
         if (decls)
         {
-            for (size_t i = 0; i < decls->dim; i++)
+            for (size_t i = 0; i < decls->length; i++)
             {
                 Dsymbol *s = (*decls)[i];
                 //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
@@ -1339,7 +1339,7 @@ public:
         //printf("AggregateDeclaration::inlineScan(%s)\n", toChars());
         if (ad->members)
         {
-            for (size_t i = 0; i < ad->members->dim; i++)
+            for (size_t i = 0; i < ad->members->length; i++)
             {
                 Dsymbol *s = (*ad->members)[i];
                 //printf("inline scan aggregate symbol '%s'\n", s->toChars());
@@ -1355,7 +1355,7 @@ public:
     #endif
         if (!ti->errors && ti->members)
         {
-            for (size_t i = 0; i < ti->members->dim; i++)
+            for (size_t i = 0; i < ti->members->length; i++)
             {
                 Dsymbol *s = (*ti->members)[i];
                 s->accept(this);
@@ -1376,7 +1376,7 @@ void inlineScan(Module *m)
     // gets imported, it is unaffected by context.
     //printf("Module = %p\n", m->sc.scopesym);
 
-    for (size_t i = 0; i < m->members->dim; i++)
+    for (size_t i = 0; i < m->members->length; i++)
     {
         Dsymbol *s = (*m->members)[i];
         //if (global.params.verbose)
@@ -1713,11 +1713,11 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
 
     // Set up parameters
     Expression *eparams = NULL;
-    if (arguments && arguments->dim)
+    if (arguments && arguments->length)
     {
-        assert(fd->parameters->dim == arguments->dim);
+        assert(fd->parameters->length == arguments->length);
 
-        for (size_t i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->length; i++)
         {
             VarDeclaration *vfrom = (*fd->parameters)[i];
             Expression *arg = (*arguments)[i];

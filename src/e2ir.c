@@ -180,7 +180,7 @@ elem *callfunc(Loc loc,
     op = fd ? intrinsic_op(fd) : -1;
     if (arguments)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->length; i++)
         {
         Lagain:
             Expression *arg = (*arguments)[i];
@@ -197,7 +197,7 @@ elem *callfunc(Loc loc,
         // j=1 if _arguments[] is first argument
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
-        for (size_t i = 0; i < arguments->dim ; i++)
+        for (size_t i = 0; i < arguments->length ; i++)
         {
             Expression *arg = (*arguments)[i];
             elem *ea;
@@ -1697,8 +1697,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
-                assert(ne->arguments && ne->arguments->dim >= 1);
-                if (ne->arguments->dim == 1)
+                assert(ne->arguments && ne->arguments->length >= 1);
+                if (ne->arguments->length == 1)
                 {
                     // Single dimension array allocations
                     Expression *arg = (*ne->arguments)[0]; // gives array length
@@ -1713,7 +1713,7 @@ elem *toElem(Expression *e, IRState *irs)
                 else
                 {
                     // Multidimensional array allocations
-                    for (size_t i = 0; i < ne->arguments->dim; i++)
+                    for (size_t i = 0; i < ne->arguments->length; i++)
                     {
                         assert(t->ty == Tarray);
                         t = t->nextOf();
@@ -1724,7 +1724,7 @@ elem *toElem(Expression *e, IRState *irs)
                     Symbol *sdata = NULL;
                     elem *earray = ExpressionsToStaticArray(ne->loc, ne->arguments, &sdata);
 
-                    e = el_pair(TYdarray, el_long(TYsize_t, ne->arguments->dim), el_ptr(sdata));
+                    e = el_pair(TYdarray, el_long(TYsize_t, ne->arguments->length), el_ptr(sdata));
                     if (config.exe == EX_WIN64)
                         e = addressElem(e, Type::tsize_t->arrayOf());
                     e = el_param(e, getTypeInfo(ne->loc, ne->type, irs));
@@ -1749,7 +1749,7 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, &ne->loc);
 
-                if (ne->arguments && ne->arguments->dim == 1)
+                if (ne->arguments && ne->arguments->length == 1)
                 {
                     /* ezprefix, ts=_d_newitemT(ti), *ts=arguments[0], ts
                      */
@@ -2157,7 +2157,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Symbol *sdata;
                 elem *earr = ElemsToStaticArray(ce->loc, ce->type, &elems, &sdata);
 
-                elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
+                elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.length), el_ptr(sdata));
                 if (config.exe == EX_WIN64)
                     ep = addressElem(ep, Type::tvoid->arrayOf());
                 ep = el_param(ep, getTypeInfo(ce->loc, ta, irs));
@@ -2295,7 +2295,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             //printf("EqualExp::toElem()\n");
             elem *e;
-            if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->fields.dim == 0)
+            if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->fields.length == 0)
             {
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ee->op == TOKequal);
@@ -2439,7 +2439,7 @@ elem *toElem(Expression *e, IRState *irs)
             //printf("IdentityExp::toElem() %s\n", toChars());
 
             elem *e;
-            if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->fields.dim == 0)
+            if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->fields.length == 0)
             {
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ie->op == TOKidentity);
@@ -2943,7 +2943,7 @@ elem *toElem(Expression *e, IRState *irs)
                     ae->e2->op == TOKarrayliteral)
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)ae->e2;
-                    if (ale->elements->dim == 0)
+                    if (ale->elements->length == 0)
                     {
                         e = e1;
                     }
@@ -3635,7 +3635,7 @@ elem *toElem(Expression *e, IRState *irs)
                 if (dctor)
                 {
                 }
-                else if (ce->arguments && ce->arguments->dim && ec->Eoper != OPvar)
+                else if (ce->arguments && ce->arguments->length && ec->Eoper != OPvar)
                 {
                     if (ec->Eoper == OPind && el_sideeffect(ec->E1))
                     {
@@ -3668,7 +3668,7 @@ elem *toElem(Expression *e, IRState *irs)
               // see issue 3822
                 if (fd && fd->ident == Id::__alloca &&
                     !fd->fbody && fd->linkage == LINKc &&
-                    arguments && arguments->dim == 1)
+                    arguments && arguments->length == 1)
                 {   Expression *arg = (*arguments)[0];
                     arg = arg->optimize(WANTvalue);
                     if (arg->isConst() && arg->type->isintegral())
@@ -3695,7 +3695,7 @@ elem *toElem(Expression *e, IRState *irs)
             else
             {
                 ec = toElem(ce->e1, irs);
-                if (ce->arguments && ce->arguments->dim)
+                if (ce->arguments && ce->arguments->length)
                 {
                     /* The idea is to enforce expressions being evaluated left to right,
                      * even though call trees are evaluated parameters first.
@@ -4947,7 +4947,7 @@ elem *toElem(Expression *e, IRState *irs)
             elem *e = NULL;
             if (te->e0)
                 e = toElem(te->e0, irs);
-            for (size_t i = 0; i < te->exps->dim; i++)
+            for (size_t i = 0; i < te->exps->length; i++)
             {
                 Expression *el = (*te->exps)[i];
                 elem *ep = toElem(el, irs);
@@ -4968,7 +4968,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(ArrayLiteralExp *ale)
         {
-            size_t dim = ale->elements ? ale->elements->dim : 0;
+            size_t dim = ale->elements ? ale->elements->length : 0;
 
             //printf("ArrayLiteralExp::toElem() %s, type = %s\n", ale->toChars(), ale->type->toChars());
             Type *tb = ale->type->toBasetype();
@@ -5044,9 +5044,9 @@ elem *toElem(Expression *e, IRState *irs)
             if (AttribDeclaration *ad = s->isAttribDeclaration())
             {
                 Dsymbols *decl = ad->include(NULL, NULL);
-                if (decl && decl->dim)
+                if (decl && decl->length)
                 {
-                    for (size_t i = 0; i < decl->dim; i++)
+                    for (size_t i = 0; i < decl->length; i++)
                     {
                         s = (*decl)[i];
                         e = el_combine(e, Dsymbol_toElem(s));
@@ -5111,7 +5111,7 @@ elem *toElem(Expression *e, IRState *irs)
                 //printf("%s\n", tm->toChars());
                 if (tm->members)
                 {
-                    for (size_t i = 0; i < tm->members->dim; i++)
+                    for (size_t i = 0; i < tm->members->length; i++)
                     {
                         Dsymbol *sm = (*tm->members)[i];
                         e = el_combine(e, Dsymbol_toElem(sm));
@@ -5120,7 +5120,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else if (TupleDeclaration *td = s->isTupleDeclaration())
             {
-                for (size_t i = 0; i < td->objects->dim; i++)
+                for (size_t i = 0; i < td->objects->length; i++)
                 {   RootObject *o = (*td->objects)[i];
                     if (o->dyncast() == DYNCAST_EXPRESSION)
                     {   Expression *eo = (Expression *)o;
@@ -5149,7 +5149,7 @@ elem *toElem(Expression *e, IRState *irs)
         elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym)
         {
             // Create a static array of type telem[dim]
-            size_t dim = elems->dim;
+            size_t dim = elems->length;
             assert(dim);
 
             Type *tsarray = telem->sarrayOf(dim);
@@ -5194,7 +5194,7 @@ elem *toElem(Expression *e, IRState *irs)
         elem *ExpressionsToStaticArray(Loc loc, Expressions *exps, symbol **psym, size_t offset = 0, Expression *basis = NULL)
         {
             // Create a static array of type telem[dim]
-            size_t dim = exps->dim;
+            size_t dim = exps->length;
             assert(dim);
 
             Type *telem = ((*exps)[0] ? (*exps)[0] : basis)->type;
@@ -5220,7 +5220,7 @@ elem *toElem(Expression *e, IRState *irs)
                     el->type->toBasetype()->ty == Tsarray)
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)el;
-                    if (ale->elements && ale->elements->dim)
+                    if (ale->elements && ale->elements->length)
                     {
                         elem *ex = ExpressionsToStaticArray(
                             ale->loc, ale->elements, &stmp, offset + i * szelem, ale->basis);
@@ -5286,7 +5286,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             Type *t = aale->type->toBasetype()->mutableOf();
 
-            size_t dim = aale->keys->dim;
+            size_t dim = aale->keys->length;
             if (dim)
             {
                 // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
@@ -5448,8 +5448,8 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
      *  U u3 = U(1, 2);     // error
      *  U u4 = {x:1, y:2};  // error
      */
-    size_t dim = sle->elements ? sle->elements->dim : 0;
-    assert(dim <= sle->sd->fields.dim);
+    size_t dim = sle->elements ? sle->elements->length : 0;
+    assert(dim <= sle->sd->fields.length);
 
     if (fillHoles)
     {
@@ -5460,7 +5460,7 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
         const size_t structsize = sle->sd->structsize;
         size_t offset = 0;
         //printf("-- %s - fillHoles, structsize = %d\n", sle->toChars(), structsize);
-        for (size_t i = 0; i < sle->sd->fields.dim && offset < structsize; )
+        for (size_t i = 0; i < sle->sd->fields.length && offset < structsize; )
         {
             VarDeclaration *v = sle->sd->fields[i];
 
@@ -5492,7 +5492,7 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
              *  }
              *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
              */
-            size_t vend = sle->sd->fields.dim;
+            size_t vend = sle->sd->fields.length;
         Lagain:
             size_t holeEnd = structsize;
             size_t offset2 = structsize;
@@ -5584,10 +5584,10 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
         }
     }
 
-    if (sle->sd->isNested() && dim != sle->sd->fields.dim)
+    if (sle->sd->isNested() && dim != sle->sd->fields.length)
     {
         // Initialize the hidden 'this' pointer
-        assert(sle->sd->fields.dim);
+        assert(sle->sd->fields.length);
 
         elem *e1;
         if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -5696,9 +5696,9 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 elem *toElemDtor(Expression *e, IRState *irs)
 {
     //printf("Expression::toElemDtor() %s\n", toChars());
-    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
+    size_t starti = irs->varsInScope ? irs->varsInScope->length : 0;
     elem *er = toElem(e, irs);
-    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
+    size_t endi = irs->varsInScope ? irs->varsInScope->length : 0;
 
     // Add destructors
     er = appendDtors(irs, er, starti, endi);

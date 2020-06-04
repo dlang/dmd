@@ -229,7 +229,7 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, const char* nam
                 }
 
                 unsigned idx = parseIdx(&p);    // public name index
-                if( idx == 0 || idx >= names.dim)
+                if( idx == 0 || idx >= names.length)
                 {
                     //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
                     error(loc, "corrupt COMDAT");
@@ -305,7 +305,7 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, const char* nam
         }
     }
 Ret:
-    for (size_t u = 1; u < names.dim; u++)
+    for (size_t u = 1; u < names.length; u++)
         free((void *)names[u]);
 }
 

@@ -2161,9 +2161,9 @@ ILLEGAL_ADDRESS_ERROR:
     {
         TupleDeclaration *tup = o1->s->isTupleDeclaration();
         size_t index = o2->disp;
-        if (index >= tup->objects->dim)
+        if (index >= tup->objects->length)
         {
-            error(asmstate.loc, "tuple index %lu exceeds length %lu", index, tup->objects->dim);
+            error(asmstate.loc, "tuple index %lu exceeds length %lu", index, tup->objects->length);
         }
         else
         {

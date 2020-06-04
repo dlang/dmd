@@ -89,7 +89,7 @@ void obj_append(Dsymbol *s)
 
 void obj_write_deferred(Library *library)
 {
-    for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
+    for (size_t i = 0; i < obj_symbols_towrite.length; i++)
     {
         Dsymbol *s = obj_symbols_towrite[i];
         Module *m = s->getModule();
@@ -158,7 +158,7 @@ void obj_write_deferred(Library *library)
         File *objfile = File::create(fname);
         obj_end(library, objfile);
     }
-    obj_symbols_towrite.dim = 0;
+    obj_symbols_towrite.length = 0;
 }
 
 /***********************************************
@@ -170,8 +170,8 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
 {
     symbol *sctor = NULL;
 
-    if ((sctors && sctors->dim) ||
-        (ectorgates && ectorgates->dim))
+    if ((sctors && sctors->length) ||
+        (ectorgates && ectorgates->length))
     {
         static type *t;
         if (!t)
@@ -190,7 +190,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
 
         if (ectorgates)
         {
-            for (size_t i = 0; i < ectorgates->dim; i++)
+            for (size_t i = 0; i < ectorgates->length; i++)
             {   StaticDtorDeclaration *f = (*ectorgates)[i];
 
                 Symbol *s = toSymbol(f->vgate);
@@ -202,7 +202,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
 
         if (sctors)
         {
-            for (size_t i = 0; i < sctors->dim; i++)
+            for (size_t i = 0; i < sctors->length; i++)
             {   symbol *s = (*sctors)[i];
                 elem *e = el_una(OPucall, TYvoid, el_var(s));
                 ector = el_combine(ector, e);
@@ -302,7 +302,7 @@ void genObjFile(Module *m, bool multiobj)
         bool v = global.params.verbose;
         global.params.verbose = false;
 
-        for (size_t i = 0; i < m->members->dim; i++)
+        for (size_t i = 0; i < m->members->length; i++)
         {
             Dsymbol *member = (*m->members)[i];
             //printf("toObjFile %s %s\n", member->kind(), member->toChars());
@@ -377,7 +377,7 @@ void genObjFile(Module *m, bool multiobj)
         m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
     }
 
-    for (size_t i = 0; i < m->members->dim; i++)
+    for (size_t i = 0; i < m->members->length; i++)
     {
         Dsymbol *member = (*m->members)[i];
         //printf("toObjFile %s %s\n", member->kind(), member->toChars());
@@ -444,8 +444,8 @@ void genObjFile(Module *m, bool multiobj)
     }
 
     // If coverage / static constructor / destructor / unittest calls
-    if (eictor || sctors.dim || ectorgates.dim || sdtors.dim ||
-        ssharedctors.dim || esharedctorgates.dim || sshareddtors.dim || stests.dim)
+    if (eictor || sctors.length || ectorgates.length || sdtors.length ||
+        ssharedctors.length || esharedctorgates.length || sshareddtors.length || stests.length)
     {
         if (eictor)
         {
@@ -956,7 +956,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-        if (fd->nrvo_can && fd->nrvo_var && fd->nrvo_var->nestedrefs.dim)
+        if (fd->nrvo_can && fd->nrvo_var && fd->nrvo_var->nestedrefs.length)
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
         fd->shidden = shidden;
@@ -981,7 +981,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     // Estimate number of parameters, pi
     size_t pi = (fd->v_arguments != NULL);
     if (fd->parameters)
-        pi += fd->parameters->dim;
+        pi += fd->parameters->length;
 
     // Create a temporary buffer, params[], to hold function parameters
     Symbol *paramsbuf[10];
@@ -1001,14 +1001,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     }
     if (fd->parameters)
     {
-        for (size_t i = 0; i < fd->parameters->dim; i++)
+        for (size_t i = 0; i < fd->parameters->length; i++)
         {
             VarDeclaration *v = (*fd->parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v->toChars());
             assert(!v->csym);
             params[pi + i] = toSymbol(v);
         }
-        pi += fd->parameters->dim;
+        pi += fd->parameters->length;
     }
 
     if (reverse)
@@ -1267,7 +1267,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     if (fd->isExport())
         objmod->export_symbol(s, Para.offset);
 
-    for (size_t i = 0; i < irs.deferToObj->dim; i++)
+    for (size_t i = 0; i < irs.deferToObj->length; i++)
     {
         Dsymbol *s = (*irs.deferToObj)[i];
         toObjFile(s, false);
@@ -1275,7 +1275,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     if (ud)
     {
-        for (size_t i = 0; i < ud->deferredNested.dim; i++)
+        for (size_t i = 0; i < ud->deferredNested.length; i++)
         {
             FuncDeclaration *fd = ud->deferredNested[i];
             toObjFile(fd, false);

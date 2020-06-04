@@ -297,7 +297,7 @@ void parseConfFile(StringTable *environment, const char *path, size_t length, un
                  */
                 for (size_t j = 0; 1; ++j)
                 {
-                    if (j == sections->dim)
+                    if (j == sections->length)
                     {
                         // Didn't find it
                         envsection = false;

@@ -212,9 +212,9 @@ int tryMain(size_t argc, const char *argv[])
     if (response_expand(&arguments))   // expand response files
         error(Loc(), "can't open response file");
 
-    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
+    //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
 
-    files.reserve(arguments.dim - 1);
+    files.reserve(arguments.length - 1);
 
     // Set default values
     global.params.argv0 = arguments[0];
@@ -354,13 +354,13 @@ int tryMain(size_t argc, const char *argv[])
     environment.reset(1);               // don't need environment cache any more
 
 #if 0
-    for (size_t i = 0; i < arguments.dim; i++)
+    for (size_t i = 0; i < arguments.length; i++)
     {
         printf("arguments[%d] = '%s'\n", i, arguments[i]);
     }
 #endif
 
-    for (size_t i = 1; i < arguments.dim; i++)
+    for (size_t i = 1; i < arguments.length; i++)
     {
         const char *p = arguments[i];
         if (*p == '-')
@@ -972,7 +972,7 @@ Language changes listed by -transition=id:\n\
     {
         fatal();
     }
-    if (files.dim == 0)
+    if (files.length == 0)
     {   usage();
         return EXIT_FAILURE;
     }
@@ -1054,7 +1054,7 @@ Language changes listed by -transition=id:\n\
     }
     else
     {
-        if (global.params.objname && files.dim > 1)
+        if (global.params.objname && files.length > 1)
         {
             global.params.oneobj = true;
             //error("multiple source files, but only one .obj name");
@@ -1160,12 +1160,12 @@ Language changes listed by -transition=id:\n\
                                                                     : "(none)");
     }
 
-    //printf("%d source files\n",files.dim);
+    //printf("%d source files\n",files.length);
 
     // Build import search path
     if (global.params.imppath)
     {
-        for (size_t i = 0; i < global.params.imppath->dim; i++)
+        for (size_t i = 0; i < global.params.imppath->length; i++)
         {
             const char *path = (*global.params.imppath)[i];
             Strings *a = FileName::splitPath(path);
@@ -1182,7 +1182,7 @@ Language changes listed by -transition=id:\n\
     // Build string import search path
     if (global.params.fileImppath)
     {
-        for (size_t i = 0; i < global.params.fileImppath->dim; i++)
+        for (size_t i = 0; i < global.params.fileImppath->length; i++)
         {
             const char *path = (*global.params.fileImppath)[i];
             Strings *a = FileName::splitPath(path);
@@ -1203,9 +1203,9 @@ Language changes listed by -transition=id:\n\
 
     // Create Modules
     Modules modules;
-    modules.reserve(files.dim);
+    modules.reserve(files.length);
     bool firstmodule = true;
-    for (size_t i = 0; i < files.dim; i++)
+    for (size_t i = 0; i < files.length; i++)
     {
         const char *name;
 
@@ -1338,7 +1338,7 @@ Language changes listed by -transition=id:\n\
     {
         for (size_t i = 0; 1; i++)
         {
-            assert(i != modules.dim);
+            assert(i != modules.length);
             Module *m = modules[i];
             if (strcmp(m->srcfile->name->str, global.main_d) == 0)
             {
@@ -1353,8 +1353,8 @@ Language changes listed by -transition=id:\n\
 #define ASYNCREAD 1
 #if ASYNCREAD
     // Multi threaded
-    AsyncRead *aw = AsyncRead::create(modules.dim);
-    for (size_t i = 0; i < modules.dim; i++)
+    AsyncRead *aw = AsyncRead::create(modules.length);
+    for (size_t i = 0; i < modules.length; i++)
     {
         Module *m = modules[i];
         aw->addFile(m->srcfile);
@@ -1362,7 +1362,7 @@ Language changes listed by -transition=id:\n\
     aw->start();
 #else
     // Single threaded
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.length; i++)
     {
         Module *m = modules[i];
         m->read(Loc());
@@ -1371,7 +1371,7 @@ Language changes listed by -transition=id:\n\
 
     // Parse files
     bool anydocfiles = false;
-    size_t filecount = modules.dim;
+    size_t filecount = modules.length;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module *m = modules[modi];
@@ -1400,7 +1400,7 @@ Language changes listed by -transition=id:\n\
             modi--;
 
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < global.params.objfiles->dim; j++)
+            for (size_t j = 0; j < global.params.objfiles->length; j++)
             {
                 if (m->objfile->name->str == (*global.params.objfiles)[j])
                 {
@@ -1409,7 +1409,7 @@ Language changes listed by -transition=id:\n\
                 }
             }
 
-            if (global.params.objfiles->dim == 0)
+            if (global.params.objfiles->length == 0)
                 global.params.link = false;
         }
     }
@@ -1417,7 +1417,7 @@ Language changes listed by -transition=id:\n\
     AsyncRead::dispose(aw);
 #endif
 
-    if (anydocfiles && modules.dim &&
+    if (anydocfiles && modules.length &&
         (global.params.oneobj || global.params.objname))
     {
         error(Loc(), "conflicting Ddoc and obj generation options");
@@ -1432,7 +1432,7 @@ Language changes listed by -transition=id:\n\
          * line switches and what else is imported, they are generated
          * before any semantic analysis.
          */
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.length; i++)
         {
             Module *m = modules[i];
             if (global.params.verbose)
@@ -1444,7 +1444,7 @@ Language changes listed by -transition=id:\n\
         fatal();
 
     // load all unconditional imports for better symbol resolving
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.length; i++)
     {
        Module *m = modules[i];
        if (global.params.verbose)
@@ -1457,7 +1457,7 @@ Language changes listed by -transition=id:\n\
     backend_init();
 
     // Do semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.length; i++)
     {
         Module *m = modules[i];
         if (global.params.verbose)
@@ -1469,9 +1469,9 @@ Language changes listed by -transition=id:\n\
 
     Module::dprogress = 1;
     Module::runDeferredSemantic();
-    if (Module::deferred.dim)
+    if (Module::deferred.length)
     {
-        for (size_t i = 0; i < Module::deferred.dim; i++)
+        for (size_t i = 0; i < Module::deferred.length; i++)
         {
             Dsymbol *sd = Module::deferred[i];
             sd->error("unable to resolve forward reference in definition");
@@ -1480,7 +1480,7 @@ Language changes listed by -transition=id:\n\
     }
 
     // Do pass 2 semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.length; i++)
     {
         Module *m = modules[i];
         if (global.params.verbose)
@@ -1491,7 +1491,7 @@ Language changes listed by -transition=id:\n\
         fatal();
 
     // Do pass 3 semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.length; i++)
     {
         Module *m = modules[i];
         if (global.params.verbose)
@@ -1505,7 +1505,7 @@ Language changes listed by -transition=id:\n\
     // Scan for functions to inline
     if (global.params.useInline)
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.length; i++)
         {
             Module *m = modules[i];
             if (global.params.verbose)
@@ -1542,7 +1542,7 @@ Language changes listed by -transition=id:\n\
         library->setFilename(global.params.objdir, global.params.libname);
 
         // Add input object and input library files to output library
-        for (size_t i = 0; i < libmodules.dim; i++)
+        for (size_t i = 0; i < libmodules.length; i++)
         {
             const char *p = libmodules[i];
             library->addObject(p, NULL, 0);
@@ -1599,7 +1599,7 @@ Language changes listed by -transition=id:\n\
 
     if (!global.errors && global.params.doDocComments)
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.length; i++)
         {
             Module *m = modules[i];
             gendocfile(m);
@@ -1611,9 +1611,9 @@ Language changes listed by -transition=id:\n\
     }
     else if (global.params.oneobj)
     {
-        if (modules.dim)
+        if (modules.length)
             obj_start(const_cast<char *>(modules[0]->srcfile->toChars()));
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.length; i++)
         {
             Module *m = modules[i];
             if (global.params.verbose)
@@ -1622,14 +1622,14 @@ Language changes listed by -transition=id:\n\
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
-        if (!global.errors && modules.dim)
+        if (!global.errors && modules.length)
         {
             obj_end(library, modules[0]->objfile);
         }
     }
     else
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.length; i++)
         {
             Module *m = modules[i];
             if (global.params.verbose)
@@ -1655,7 +1655,7 @@ Language changes listed by -transition=id:\n\
         fatal();
 
     int status = EXIT_SUCCESS;
-    if (!global.params.objfiles->dim)
+    if (!global.params.objfiles->length)
     {
         if (global.params.link)
             error(Loc(), "no object files to link");
@@ -1673,7 +1673,7 @@ Language changes listed by -transition=id:\n\
 
                 /* Delete .obj files and .exe file
                  */
-                for (size_t i = 0; i < modules.dim; i++)
+                for (size_t i = 0; i < modules.length; i++)
                 {
                     modules[i]->deleteObjFile();
                     if (global.params.oneobj)
@@ -1789,7 +1789,7 @@ void getenv_setargv(const char *envvalue, Strings *args)
 
 static const char* parse_arch_arg(Strings *args, const char* arch)
 {
-    for (size_t i = 0; i < args->dim; ++i)
+    for (size_t i = 0; i < args->length; ++i)
     {
         const char* p = (*args)[i];
         if (p[0] == '-')
@@ -1810,7 +1810,7 @@ static const char* parse_arch_arg(Strings *args, const char* arch)
 static const char* parse_conf_arg(Strings *args)
 {
     const char *conf=NULL;
-    for (size_t i = 0; i < args->dim; ++i)
+    for (size_t i = 0; i < args->length; ++i)
     {
         const char* p = (*args)[i];
         if (p[0] == '-')

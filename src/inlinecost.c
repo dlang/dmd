@@ -99,7 +99,7 @@ public:
     void visit(CompoundStatement *s)
     {
         InlineCostVisitor icv(this);
-        for (size_t i = 0; i < s->statements->dim; i++)
+        for (size_t i = 0; i < s->statements->length; i++)
         {
             Statement *s2 = (*s->statements)[i];
             if (s2)
@@ -115,7 +115,7 @@ public:
     void visit(UnrolledLoopStatement *s)
     {
         InlineCostVisitor icv(this);
-        for (size_t i = 0; i < s->statements->dim; i++)
+        for (size_t i = 0; i < s->statements->length; i++)
         {
             Statement *s2 = (*s->statements)[i];
             if (s2)
