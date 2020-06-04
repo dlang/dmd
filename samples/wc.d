@@ -1,9 +1,7 @@
-
 import std.stdio;
 import std.file;
-import std.conv;
 
-int main(string[] args)
+void main(string[] args)
 {
     int w_total;
     int l_total;
@@ -13,11 +11,10 @@ int main(string[] args)
 
     foreach (arg; args[1 .. $])
     {
-        string input;
         int w_cnt, l_cnt, c_cnt;
-        int inword;
+        bool inword;
 
-        input = to!string(std.file.read(arg));
+        string input = readText(arg);
 
         foreach (char c; input)
         {
@@ -28,12 +25,12 @@ int main(string[] args)
             {
                 if (!inword)
                 {
-                    inword = 1;
+                    inword = true;
                     ++w_cnt;
                 }
             }
             else
-                inword = 0;
+                inword = false;
 
             ++c_cnt;
         }
@@ -49,6 +46,4 @@ int main(string[] args)
         writefln("--------------------------------------\n%8s%8s%8s total",
                  l_total, w_total, c_total);
     }
-
-    return 0;
 }
