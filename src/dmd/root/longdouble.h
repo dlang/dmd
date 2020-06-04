@@ -1,6 +1,6 @@
 
 /* Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Rainer Schuetze
+ * written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
