@@ -793,10 +793,14 @@ Language changes listed by -transition=id:\n\
                         level = strtol(p + 7, const_cast<char **>(&p), 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
-                        DebugCondition::setGlobalLevel((int)level);
+                        global.params.debuglevel = (int)level;
                     }
                     else if (Identifier::isValidIdentifier(p + 7))
-                        DebugCondition::addGlobalIdent(p + 7);
+                    {
+                        if (!global.params.debugids)
+                            global.params.debugids = new Strings();
+                        global.params.debugids->push(p + 7);
+                    }
                     else
                         goto Lerror;
                 }
@@ -819,10 +823,14 @@ Language changes listed by -transition=id:\n\
                         level = strtol(p + 9, const_cast<char **>(&p), 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
-                        VersionCondition::setGlobalLevel((int)level);
+                        global.params.versionlevel = (int)level;
                     }
                     else if (Identifier::isValidIdentifier(p + 9))
-                        VersionCondition::addGlobalIdent(p + 9);
+                    {
+                        if (!global.params.versionids)
+                            global.params.versionids = new Strings();
+                        global.params.versionids->push(p + 9);
+                    }
                     else
                         goto Lerror;
                 }
@@ -1061,6 +1069,25 @@ Language changes listed by -transition=id:\n\
             //fatal();
         }
     }
+
+    // Add in command line versions
+    if (global.params.versionids)
+    {
+        for (size_t i = 0; i < global.params.versionids->length; i++)
+        {
+            const char *s = (*global.params.versionids)[i];
+            VersionCondition::addGlobalIdent(s);
+        }
+    }
+    if (global.params.debugids)
+    {
+        for (size_t i = 0; i < global.params.debugids->length; i++)
+        {
+            const char *s = (*global.params.debugids)[i];
+            DebugCondition::addGlobalIdent(s);
+        }
+    }
+
     if (global.params.is64bit)
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
