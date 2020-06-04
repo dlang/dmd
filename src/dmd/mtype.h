@@ -338,6 +338,8 @@ public:
     TypeTuple *isTypeTuple();
     TypeSlice *isTypeSlice();
     TypeNull *isTypeNull();
+    TypeMixin *isTypeMixin();
+    TypeTraits *isTypeTraits();
 
     void accept(Visitor *v) { v->visit(this); }
 };
