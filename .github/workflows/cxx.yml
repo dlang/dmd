@@ -102,7 +102,7 @@ jobs:
     #    Setting up the host D compiler    #
     ########################################
     - name: Prepare compiler
-      uses: mihails-strasuns/setup-dlang@v1
+      uses: dlang-community/setup-dlang@v1
       with:
           compiler: dmd-2.091.0
 
