@@ -5875,12 +5875,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
                 auto n = peek(&token);
-                if (storageClass != 0 && token.value == TOK.identifier &&
-                    n.value != TOK.assign && n.value != TOK.identifier)
-                {
-                    error("found `%s` while expecting `=` or identifier", n.toChars());
-                }
-                else if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
+                if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
                 {
                     Identifier ai = token.ident;
                     AST.Type at = null; // infer parameter type
@@ -5895,6 +5890,8 @@ final class Parser(AST) : Lexer
                     check(TOK.assign);
                     param = new AST.Parameter(storageClass, at, ai, null, null);
                 }
+                else if (storageClass != 0)
+                    error("found `%s` while expecting `=` or identifier", n.toChars());
 
                 condition = parseExpression();
                 check(TOK.rightParentheses);

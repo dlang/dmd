@@ -189,3 +189,18 @@ struct S5
     @disable this(ref S5);
 }
 static assert(!__traits(isCopyable, S5));
+
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20884
+
+struct S20884
+{
+  int x;
+}
+
+alias T20884 = immutable(S20884);
+enum m20884 = "x";
+
+static assert(is(typeof(__traits(getMember, T20884, m20884)) == immutable(int))); // OK now
+static assert(is(          typeof(mixin("T20884." ~ m20884)) == immutable(int)));
+static assert(is(                           typeof(T20884.x) == immutable(int)));

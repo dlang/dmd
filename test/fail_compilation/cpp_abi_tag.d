@@ -2,14 +2,14 @@
 REQUIRED_ARGS: -extern-std=c++11
 TEST_OUTPUT:
 ---
+fail_compilation/cpp_abi_tag.d(111): Error: `@gnuAbiTag` can only apply to C++ symbols
+fail_compilation/cpp_abi_tag.d(131): Error: `@gnuAbiTag` cannot be applied to namespaces
 fail_compilation/cpp_abi_tag.d(102): Error: `@gnuAbiTag` at least one argument expected
 fail_compilation/cpp_abi_tag.d(105): Error: `@gnuAbiTag` at least one argument expected
 fail_compilation/cpp_abi_tag.d(108): Error: `@gnuAbiTag` char `0x99` not allowed in mangling
-fail_compilation/cpp_abi_tag.d(111): Error: `@gnuAbiTag` can only apply to C++ symbols
 fail_compilation/cpp_abi_tag.d(114): Error: argument `2` to `@gnuAbiTag` cannot be `null`
 fail_compilation/cpp_abi_tag.d(114): Error: argument `3` to `@gnuAbiTag` cannot be empty
 fail_compilation/cpp_abi_tag.d(117): Error: `@gnuAbiTag` at least one argument expected
-fail_compilation/cpp_abi_tag.d(131): Error: `@gnuAbiTag` cannot be applied to namespaces
 fail_compilation/cpp_abi_tag.d(137): Error: only one `@gnuAbiTag` allowed per symbol
 fail_compilation/cpp_abi_tag.d(137):        instead of `@gnuAbiTag(["x"]) @gnuAbiTag(["a"])`, use `@gnuAbiTag("x", "a")`
 ---
