@@ -476,7 +476,7 @@ if (I32) assert(tysize[TYnptr] == 4);
         int ns = ((fd ? callSideEffectLevel(fd)
                       : callSideEffectLevel(t)) == 2 &&
                   retmethod != RETstack &&
-                  !global.params.useAssert && global.params.optimize);
+                  global.params.useAssert == CHECKENABLEoff && global.params.optimize);
         if (ep)
             e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
         else
@@ -1882,7 +1882,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             //printf("AssertExp::toElem() %s\n", toChars());
             elem *e;
-            if (global.params.useAssert)
+            if (global.params.useAssert == CHECKENABLEon)
             {
                 e = toElem(ae->e1, irs);
                 symbol *ts = NULL;
@@ -1892,14 +1892,14 @@ elem *toElem(Expression *e, IRState *irs)
                 FuncDeclaration *inv;
 
                 // If e1 is a class object, call the class invariant on it
-                if (global.params.useInvariants && t1->ty == Tclass &&
+                if (global.params.useInvariants == CHECKENABLEon && t1->ty == Tclass &&
                     !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
                     !((TypeClass *)t1)->sym->isCPPclass())
                 {
                     ts = symbol_genauto(Type_toCtype(t1));
                     einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
                 }
-                else if (global.params.useInvariants &&
+                else if (global.params.useInvariants == CHECKENABLEon &&
                     t1->ty == Tpointer &&
                     t1->nextOf()->ty == Tstruct &&
                     (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
