@@ -6042,6 +6042,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return hash;
     }
 
+    enum needsCodegen_recursion_limit = 1000;
+    
     /***********************************************
      * Returns true if this is not instantiated in non-root module, and
      * is a part of non-speculative instantiatiation.
@@ -6051,6 +6053,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        static uint recursionLevel = 0;
+        if (recursionLevel++ > needsCodegen_recursion_limit)
+        {
+            return true;
+        }
+        recursionLevel++;
+        scope(exit) recursionLevel--;
         // Now -allInst is just for the backward compatibility.
         if (global.params.allInst)
         {
