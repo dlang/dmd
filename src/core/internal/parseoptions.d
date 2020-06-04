@@ -14,7 +14,8 @@ import core.stdc.stdio;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.vararg;
-import core.internal.traits : externDFunc;
+import core.internal.traits : externDFunc, hasUDA;
+import core.gc.config : MemVal;
 
 
 @nogc nothrow:
@@ -87,36 +88,27 @@ bool parseOptions(CFG)(ref CFG cfg, string opt)
             return optError("Missing argument for", name, errName);
         tail = tail[1 .. $];
 
+        NAMES_SWITCH:
         switch (name)
         {
-            foreach (field; __traits(allMembers, CFG))
+            static foreach (field; __traits(allMembers, CFG))
             {
                 static if (!is(typeof(__traits(getMember, cfg, field)) == function))
                 {
                     case field:
-                        alias fieldT = typeof(__traits(getMember, cfg, field));
+                        bool r;
 
-                        static if (is(fieldT == size_t))
-                        {
-                             // names of field what can contain B/K/M suffixes
-                            bool isSuffValue = (
-                                name == "initReserve" ||
-                                name == "minPoolSize" ||
-                                name == "maxPoolSize" ||
-                                name == "incPoolSize"
-                            );
-
-                            bool r = parseSuff(name, tail, __traits(getMember, cfg, field), errName, true);
-                        }
+                        static if (hasUDA!(__traits(getMember, cfg, field), MemVal))
+                            r = parseSuff(name, tail, __traits(getMember, cfg, field), errName, true);
                         else
-                            bool r = parse(name, tail, __traits(getMember, cfg, field), errName);
+                            r = parse(name, tail, __traits(getMember, cfg, field), errName);
 
                         if (!r)
                             return false;
-                        break;
+
+                        break NAMES_SWITCH;
                 }
             }
-            break;
 
             default:
                 return optError("Unknown", name, errName);
@@ -336,8 +328,8 @@ unittest
         ubyte profile;           // enable profiling with summary when terminating program
         string gc = "conservative"; // select gc implementation conservative|manual
 
-        size_t initReserve;      // initial reserve (bytes)
-        size_t minPoolSize = 1 << 20;  // initial and minimum pool size (bytes)
+        @MemVal size_t initReserve;      // initial reserve (bytes)
+        @MemVal size_t minPoolSize = 1 << 20;  // initial and minimum pool size (bytes)
         float heapSizeFactor = 2.0; // heap size to used memory ratio
 
         @nogc nothrow:
