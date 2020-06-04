@@ -651,6 +651,17 @@ class TypeTraits : public Type
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class TypeMixin : public Type
+{
+    Loc loc;
+    Expressions *exps;
+
+    const char *kind();
+    Type *syntaxCopy();
+    Dsymbol *toDsymbol(Scope *sc);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class TypeQualified : public Type
 {
 public:
