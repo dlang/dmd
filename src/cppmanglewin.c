@@ -1043,4 +1043,5 @@ const char *cppTypeInfoMangleMSVC(Dsymbol *)
 {
     //printf("cppTypeInfoMangleMSVC(%s)\n", s->toChars());
     assert(0);
+    return NULL;
 }
