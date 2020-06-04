@@ -338,6 +338,8 @@ public:
     TypeTuple *isTypeTuple();
     TypeSlice *isTypeSlice();
     TypeNull *isTypeNull();
+    TypeMixin *isTypeMixin();
+    TypeTraits *isTypeTraits();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -647,6 +649,17 @@ class TypeTraits : public Type
 
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
+    Dsymbol *toDsymbol(Scope *sc);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeMixin : public Type
+{
+    Loc loc;
+    Expressions *exps;
+
+    const char *kind();
+    Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

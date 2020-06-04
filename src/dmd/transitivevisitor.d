@@ -464,6 +464,11 @@ package mixin template ParseVisitMethods(AST)
         t.exp.accept(this);
     }
 
+    override void visit(AST.TypeMixin t)
+    {
+        visitArgs(t.exps);
+    }
+
 //      Miscellaneous
 //========================================================
 
