@@ -144,6 +144,8 @@ struct Param
 
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
+    unsigned errorLimit;
+
     DString  argv0;    // program name
     Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
@@ -235,8 +237,6 @@ struct Global
     FILE *stdmsg;          // where to send verbose messages
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
-
-    unsigned errorLimit;
 
     void* console;         // opaque pointer to console for controlling text attributes
 

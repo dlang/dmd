@@ -235,6 +235,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useDeprecated = DIAGNOSTICinform;
     global.params.warnings = DIAGNOSTICoff;
     global.params.cplusplus = CppStdRevisionCpp98;
+    global.params.errorLimit = 20;
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (sizeof(size_t) == 8);
@@ -505,7 +506,7 @@ int tryMain(size_t argc, const char *argv[])
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
                     // Bugzilla issue number
-                    global.errorLimit = (unsigned) num;
+                    global.params.errorLimit = (unsigned) num;
                 }
                 else
                     goto Lerror;
