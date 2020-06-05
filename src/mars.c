@@ -81,7 +81,7 @@ static void logo()
 {
     printf("DMD%llu D Compiler %s\n%s %s\n",
            (unsigned long long) sizeof(size_t) * 8,
-        global.version, global.copyright, global.written);
+        global.version.ptr, global.copyright.ptr, global.written.ptr);
 }
 
 static void usage()
@@ -169,7 +169,7 @@ Usage:\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
-", FileName::canonicalName(global.inifilename), fpic);
+", FileName::canonicalName(global.inifilename.ptr), fpic);
 }
 
 extern signed char tyalignsize[];
@@ -186,7 +186,7 @@ int tryMain(size_t argc, const char *argv[])
     global._init();
 
 #ifdef DEBUG
-    printf("DMD %s DEBUG\n", global.version);
+    printf("DMD %s DEBUG\n", global.version.ptr);
 #endif
 
     unittests();
@@ -299,30 +299,30 @@ int tryMain(size_t argc, const char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
     global.inifilename = parse_conf_arg(&arguments);
-    if (global.inifilename)
+    if (global.inifilename.ptr)
     {
         // can be empty as in -conf=
-        if (strlen(global.inifilename) && !FileName::exists(global.inifilename))
-            error(Loc(), "Config file '%s' does not exist.", global.inifilename);
+        if (global.inifilename.length && !FileName::exists(global.inifilename.ptr))
+            error(Loc(), "Config file '%s' does not exist.", global.inifilename.ptr);
     }
     else
     {
 #if _WIN32
-        global.inifilename = findConfFile(global.params.argv0, "sc.ini");
+        global.inifilename = findConfFile(global.params.argv0.ptr, "sc.ini");
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-        global.inifilename = findConfFile(global.params.argv0, "dmd.conf");
+        global.inifilename = findConfFile(global.params.argv0.ptr, "dmd.conf");
 #else
 #error "fix this"
 #endif
     }
 
     // Read the configurarion file
-    File inifile(global.inifilename);
+    File inifile(global.inifilename.ptr);
     inifile.read();
 
     /* Need path of configuration file, for use in expanding @P macro
      */
-    const char *inifilepath = FileName::path(global.inifilename);
+    const char *inifilepath = FileName::path(global.inifilename.ptr);
 
     Strings sections;
 
@@ -884,7 +884,7 @@ Language changes listed by -transition=id:\n\
                 if (p[5] == '=')
                 {
                     global.params.moduleDepsFile = p + 1 + 5;
-                    if (!global.params.moduleDepsFile[0])
+                    if (!global.params.moduleDepsFile.ptr[0])
                         goto Lnoarg;
                 }
                 else if (p[5]!='\0')
@@ -972,7 +972,7 @@ Language changes listed by -transition=id:\n\
 
     if(global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s",
-              envsection, global.inifilename);
+              envsection, global.inifilename.ptr);
 
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
@@ -1066,19 +1066,19 @@ Language changes listed by -transition=id:\n\
     {
         global.params.exefile = global.params.objname;
         global.params.oneobj = true;
-        if (global.params.objname)
+        if (global.params.objname.length)
         {
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            global.params.objname = const_cast<char *>(FileName::forceExt(global.params.objname, global.obj_ext));
+            global.params.objname = const_cast<char *>(FileName::forceExt(global.params.objname.ptr, global.obj_ext.ptr));
 
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
-            if (global.params.objdir)
-            {   const char *name = FileName::name(global.params.objname);
-                global.params.objname = const_cast<char *>(FileName::combine(global.params.objdir, name));
+            if (global.params.objdir.length)
+            {   const char *name = FileName::name(global.params.objname.ptr);
+                global.params.objname = const_cast<char *>(FileName::combine(global.params.objdir.ptr, name));
             }
         }
     }
@@ -1098,7 +1098,7 @@ Language changes listed by -transition=id:\n\
     }
     else
     {
-        if (global.params.objname && files.length > 1)
+        if (global.params.objname.length && files.length > 1)
         {
             global.params.oneobj = true;
             //error("multiple source files, but only one .obj name");
@@ -1217,9 +1217,9 @@ Language changes listed by -transition=id:\n\
     builtin_init();
 
     if (global.params.verbose)
-    {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
-        fprintf(global.stdmsg, "version   %s\n", global.version);
-        fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename
+    {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0.ptr);
+        fprintf(global.stdmsg, "version   %s\n", global.version.ptr);
+        fprintf(global.stdmsg, "config    %s\n", global.inifilename.length ? global.inifilename.ptr
                                                                     : "(none)");
     }
 
@@ -1284,14 +1284,14 @@ Language changes listed by -transition=id:\n\
         if (ext)
         {   /* Deduce what to do with a file based on its extension
              */
-            if (FileName::equals(ext, global.obj_ext))
+            if (FileName::equals(ext, global.obj_ext.ptr))
             {
                 global.params.objfiles->push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
 
-            if (FileName::equals(ext, global.lib_ext))
+            if (FileName::equals(ext, global.lib_ext.ptr))
             {
                 global.params.libfiles->push(files[i]);
                 libmodules.push(files[i]);
@@ -1299,7 +1299,7 @@ Language changes listed by -transition=id:\n\
             }
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (FileName::equals(ext, global.dll_ext))
+            if (FileName::equals(ext, global.dll_ext.ptr))
             {
                 global.params.dllfiles->push(files[i]);
                 libmodules.push(files[i]);
@@ -1307,20 +1307,20 @@ Language changes listed by -transition=id:\n\
             }
 #endif
 
-            if (strcmp(ext, global.ddoc_ext) == 0)
+            if (strcmp(ext, global.ddoc_ext.ptr) == 0)
             {
                 global.params.ddocfiles->push(files[i]);
                 continue;
             }
 
-            if (FileName::equals(ext, global.json_ext))
+            if (FileName::equals(ext, global.json_ext.ptr))
             {
                 global.params.doJsonGeneration = true;
                 global.params.jsonfilename = files[i];
                 continue;
             }
 
-            if (FileName::equals(ext, global.map_ext))
+            if (FileName::equals(ext, global.map_ext.ptr))
             {
                 global.params.mapfile = files[i];
                 continue;
@@ -1348,8 +1348,8 @@ Language changes listed by -transition=id:\n\
             /* Examine extension to see if it is a valid
              * D source file extension
              */
-            if (FileName::equals(ext, global.mars_ext) ||
-                FileName::equals(ext, global.hdr_ext) ||
+            if (FileName::equals(ext, global.mars_ext.ptr) ||
+                FileName::equals(ext, global.hdr_ext.ptr) ||
                 FileName::equals(ext, "dd"))
             {
                 ext--;                  // skip onto '.'
@@ -1481,7 +1481,7 @@ Language changes listed by -transition=id:\n\
 #endif
 
     if (anydocfiles && modules.length &&
-        (global.params.oneobj || global.params.objname))
+        (global.params.oneobj || global.params.objname.length))
     {
         error(Loc(), "conflicting Ddoc and obj generation options");
         fatal();
@@ -1586,9 +1586,9 @@ Language changes listed by -transition=id:\n\
     if (global.params.moduleDeps)
     {
         OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile)
+        if (global.params.moduleDepsFile.length)
         {
-            File deps(global.params.moduleDepsFile);
+            File deps(global.params.moduleDepsFile.ptr);
             deps.setbuffer((void*)ob->data, ob->offset);
             writeFile(Loc(), &deps);
         }
@@ -1602,7 +1602,7 @@ Language changes listed by -transition=id:\n\
     if (global.params.lib)
     {
         library = Library::factory();
-        library->setFilename(global.params.objdir, global.params.libname);
+        library->setFilename(global.params.objdir.ptr, global.params.libname.ptr);
 
         // Add input object and input library files to output library
         for (size_t i = 0; i < libmodules.length; i++)
@@ -1620,7 +1620,7 @@ Language changes listed by -transition=id:\n\
         json_generate(&buf, &modules);
 
         // Write buf to file
-        const char *name = global.params.jsonfilename;
+        const char *name = global.params.jsonfilename.ptr;
 
         if (name && name[0] == '-' && name[1] == 0)
         {   // Write to stdout; assume it succeeds
@@ -1636,7 +1636,7 @@ Language changes listed by -transition=id:\n\
 
             if (name && *name)
             {
-                jsonfilename = FileName::defaultExt(name, global.json_ext);
+                jsonfilename = FileName::defaultExt(name, global.json_ext.ptr);
             }
             else
             {
@@ -1647,7 +1647,7 @@ Language changes listed by -transition=id:\n\
                 //if (!FileName::absolute(name))
                     //name = FileName::combine(dir, name);
 
-                jsonfilename = FileName::forceExt(n, global.json_ext);
+                jsonfilename = FileName::forceExt(n, global.json_ext.ptr);
             }
 
             ensurePathToNameExists(Loc(), jsonfilename);

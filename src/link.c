@@ -166,16 +166,16 @@ int runLINK()
             FileName::free(basename);
         }
 
-        if (global.params.resfile)
+        if (global.params.resfile.length)
         {
             cmdbuf.writeByte(' ');
-            writeFilename(&cmdbuf, global.params.resfile);
+            writeFilename(&cmdbuf, global.params.resfile.ptr);
         }
 
         cmdbuf.writeByte(' ');
-        if (global.params.exefile)
+        if (global.params.exefile.length)
         {   cmdbuf.writestring("/OUT:");
-            writeFilename(&cmdbuf, global.params.exefile);
+            writeFilename(&cmdbuf, global.params.exefile.ptr);
         }
         else
         {   /* Generate exe file name from first obj name.
@@ -187,21 +187,21 @@ int runLINK()
         }
 
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc(), global.params.exefile);
+        ensurePathToNameExists(Loc(), global.params.exefile.ptr);
 
         cmdbuf.writeByte(' ');
-        if (global.params.mapfile)
+        if (global.params.mapfile.length)
         {   cmdbuf.writestring("/MAP:");
-            writeFilename(&cmdbuf, global.params.mapfile);
+            writeFilename(&cmdbuf, global.params.mapfile.ptr);
         }
         else if (global.params.map)
         {
-            const char *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile.ptr, "map");
 
-            const char *path = FileName::path(global.params.exefile);
+            const char *path = FileName::path(global.params.exefile.ptr);
             const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn);
+                p = FileName::combine(global.params.objdir.ptr, fn);
             else
                 p = fn;
 
@@ -216,11 +216,11 @@ int runLINK()
             writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
         }
 
-        if (global.params.deffile)
+        if (global.params.deffile.length)
         {
             cmdbuf.writeByte(' ');
             cmdbuf.writestring("/DEF:");
-            writeFilename(&cmdbuf, global.params.deffile);
+            writeFilename(&cmdbuf, global.params.deffile.ptr);
         }
 
         if (global.params.symdebug)
@@ -273,7 +273,7 @@ int runLINK()
         size_t plen = strlen(p);
         if (plen > 7000)
         {
-            lnkfilename = FileName::forceExt(global.params.exefile, "lnk");
+            lnkfilename = FileName::forceExt(global.params.exefile.ptr, "lnk");
             File flnk(lnkfilename);
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
@@ -333,8 +333,8 @@ int runLINK()
             FileName::free(basename);
         }
         cmdbuf.writeByte(',');
-        if (global.params.exefile)
-            writeFilename(&cmdbuf, global.params.exefile);
+        if (global.params.exefile.length)
+            writeFilename(&cmdbuf, global.params.exefile.ptr);
         else
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
@@ -345,19 +345,19 @@ int runLINK()
         }
 
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc(), global.params.exefile);
+        ensurePathToNameExists(Loc(), global.params.exefile.ptr);
 
         cmdbuf.writeByte(',');
-        if (global.params.mapfile)
-            writeFilename(&cmdbuf, global.params.mapfile);
+        if (global.params.mapfile.length)
+            writeFilename(&cmdbuf, global.params.mapfile.ptr);
         else if (global.params.map)
         {
-            const char *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile.ptr, "map");
 
-            const char *path = FileName::path(global.params.exefile);
+            const char *path = FileName::path(global.params.exefile.ptr);
             const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn);
+                p = FileName::combine(global.params.objdir.ptr, fn);
             else
                 p = fn;
 
@@ -374,10 +374,10 @@ int runLINK()
             writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
         }
 
-        if (global.params.deffile)
+        if (global.params.deffile.length)
         {
             cmdbuf.writeByte(',');
-            writeFilename(&cmdbuf, global.params.deffile);
+            writeFilename(&cmdbuf, global.params.deffile.ptr);
         }
 
         /* Eliminate unnecessary trailing commas    */
@@ -388,13 +388,13 @@ int runLINK()
             cmdbuf.offset--;
         }
 
-        if (global.params.resfile)
+        if (global.params.resfile.length)
         {
             cmdbuf.writestring("/RC:");
-            writeFilename(&cmdbuf, global.params.resfile);
+            writeFilename(&cmdbuf, global.params.resfile.ptr);
         }
 
-        if (global.params.map || global.params.mapfile)
+        if (global.params.map || global.params.mapfile.length)
             cmdbuf.writestring("/m");
 
 #if 0
@@ -424,7 +424,7 @@ int runLINK()
         size_t plen = strlen(p);
         if (plen > 7000)
         {
-            lnkfilename = FileName::forceExt(global.params.exefile, "lnk");
+            lnkfilename = FileName::forceExt(global.params.exefile.ptr, "lnk");
             File flnk(lnkfilename);
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
@@ -471,9 +471,9 @@ int runLINK()
     // None of that a.out stuff. Use explicit exe file name, or
     // generate one from name of first source file.
     argv.push("-o");
-    if (global.params.exefile)
+    if (global.params.exefile.length)
     {
-        argv.push(global.params.exefile);
+        argv.push(global.params.exefile.ptr);
     }
     else if (global.params.run)
     {
@@ -489,7 +489,7 @@ int runLINK()
         else
             close(fd);
         global.params.exefile = mem.xstrdup(name);
-        argv.push(global.params.exefile);
+        argv.push(global.params.exefile.ptr);
 #else
         /* The use of tmpnam raises the issue of "is this a security hole"?
          * The hole is that after tmpnam and before the file is opened,
@@ -502,7 +502,7 @@ int runLINK()
         char s[L_tmpnam + 1];
         char *n = tmpnam(s);
         global.params.exefile = mem.xstrdup(n);
-        argv.push(global.params.exefile);
+        argv.push(global.params.exefile.ptr);
 #endif
     }
     else
@@ -520,7 +520,7 @@ int runLINK()
             ex[e - n] = 0;
             // If generating dll then force dll extension
             if (global.params.dll)
-                ex = const_cast<char *>(FileName::forceExt(ex, global.dll_ext));
+                ex = const_cast<char *>(FileName::forceExt(ex, global.dll_ext.ptr));
         }
         else
             ex = const_cast<char *>("a.out");       // no extension, so give up
@@ -529,7 +529,7 @@ int runLINK()
     }
 
     // Make sure path to exe file exists
-    ensurePathToNameExists(Loc(), global.params.exefile);
+    ensurePathToNameExists(Loc(), global.params.exefile.ptr);
 
     if (global.params.symdebug)
         argv.push("-g");
@@ -539,7 +539,7 @@ int runLINK()
     else
         argv.push("-m32");
 
-    if (global.params.map || global.params.mapfile)
+    if (global.params.map || global.params.mapfile.length)
     {
         argv.push("-Xlinker");
 #if __APPLE__
@@ -547,24 +547,24 @@ int runLINK()
 #else
         argv.push("-Map");
 #endif
-        if (!global.params.mapfile)
+        if (!global.params.mapfile.length)
         {
-            const char *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile.ptr, "map");
 
-            const char *path = FileName::path(global.params.exefile);
+            const char *path = FileName::path(global.params.exefile.ptr);
             const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn);
+                p = FileName::combine(global.params.objdir.ptr, fn);
             else
                 p = fn;
 
             global.params.mapfile = const_cast<char *>(p);
         }
         argv.push("-Xlinker");
-        argv.push(global.params.mapfile);
+        argv.push(global.params.mapfile.ptr);
     }
 
-    if (0 && global.params.exefile)
+    if (0 && global.params.exefile.length)
     {
         /* This switch enables what is known as 'smart linking'
          * in the Windows world, where unreferenced sections
@@ -625,8 +625,8 @@ int runLINK()
      * passed with -l.
      */
     const char *libname = (global.params.symdebug)
-                                ? global.params.debuglibname
-                                : global.params.defaultlibname;
+                                ? global.params.debuglibname.ptr
+                                : global.params.defaultlibname.ptr;
     size_t slen = strlen(libname);
     if (slen)
     {
@@ -728,10 +728,10 @@ int runLINK()
 
 void deleteExeFile()
 {
-    if (global.params.exefile)
+    if (global.params.exefile.length)
     {
-        //printf("deleteExeFile() %s\n", global.params.exefile);
-        remove(global.params.exefile);
+        //printf("deleteExeFile() %s\n", global.params.exefile.ptr);
+        remove(global.params.exefile.ptr);
     }
 }
 
@@ -815,7 +815,7 @@ int executecmd(const char *cmd, const char *args)
 int executearg0(const char *cmd, const char *args)
 {
     const char *file;
-    const char *argv0 = global.params.argv0;
+    const char *argv0 = global.params.argv0.ptr;
 
     //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
 
@@ -841,7 +841,7 @@ int runProgram()
     //printf("runProgram()\n");
     if (global.params.verbose)
     {
-        fprintf(global.stdmsg, "%s", global.params.exefile);
+        fprintf(global.stdmsg, "%s", global.params.exefile.ptr);
         for (size_t i = 0; i < global.params.runargs.length; ++i)
             fprintf(global.stdmsg, " %s", global.params.runargs[i]);
         fprintf(global.stdmsg, "\n");
@@ -850,7 +850,7 @@ int runProgram()
     // Build argv[]
     Strings argv;
 
-    argv.push(global.params.exefile);
+    argv.push(global.params.exefile.ptr);
     for (size_t i = 0; i < global.params.runargs.length; ++i)
     {   const char *a = global.params.runargs[i];
 
@@ -867,11 +867,11 @@ int runProgram()
     argv.push(NULL);
 
 #if _WIN32
-    const char *ex = FileName::name(global.params.exefile);
-    if (ex == global.params.exefile)
+    const char *ex = FileName::name(global.params.exefile.ptr);
+    if (ex == global.params.exefile.ptr)
         ex = FileName::combine(".", ex);
     else
-        ex = global.params.exefile;
+        ex = global.params.exefile.ptr;
     // spawnlp returns intptr_t in some systems, not int
     return spawnv(0,ex,argv.tdata());
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
