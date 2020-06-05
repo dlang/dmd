@@ -226,6 +226,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useArrayBounds = CHECKENABLEdefault;   // set correct value later
     global.params.useSwitchError = CHECKENABLEdefault;
     global.params.boundscheck = CHECKENABLEdefault;
+    global.params.checkAction = CHECKACTION_D;
     global.params.useModuleInfo = true;
     global.params.useTypeInfo = true;
     global.params.useExceptions = true;
