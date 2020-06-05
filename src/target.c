@@ -29,118 +29,138 @@ const char *toCppMangleMSVC(Dsymbol *);
 const char *cppTypeInfoMangleMSVC(Dsymbol *);
 TypeTuple *toArgTypes(Type *t);
 
-int Target::ptrsize;
-int Target::realsize;
-int Target::realpad;
-int Target::realalignsize;
-bool Target::reverseCppOverloads;
-bool Target::cppExceptions;
-int Target::c_longsize;
-int Target::c_long_doublesize;
-int Target::classinfosize;
-unsigned long long Target::maxStaticDataSize;
-
-/* Floating point constants for for .max, .min, and other properties.  */
-template <typename T> real_t Target::FPTypeProperties<T>::max;
-template <typename T> real_t Target::FPTypeProperties<T>::min_normal;
-template <typename T> real_t Target::FPTypeProperties<T>::nan;
-template <typename T> real_t Target::FPTypeProperties<T>::snan;
-template <typename T> real_t Target::FPTypeProperties<T>::infinity;
-template <typename T> real_t Target::FPTypeProperties<T>::epsilon;
-template <typename T> d_int64 Target::FPTypeProperties<T>::dig;
-template <typename T> d_int64 Target::FPTypeProperties<T>::mant_dig;
-template <typename T> d_int64 Target::FPTypeProperties<T>::max_exp;
-template <typename T> d_int64 Target::FPTypeProperties<T>::min_exp;
-template <typename T> d_int64 Target::FPTypeProperties<T>::max_10_exp;
-template <typename T> d_int64 Target::FPTypeProperties<T>::min_10_exp;
+Target target;
 
 /* Initialize the floating point constants for TYPE.  */
 
-template <typename T, typename V>
-static void initFloatConstants()
+template <typename T>
+static void initFloatConstants(Target::FPTypeProperties<T> &f)
 {
 #if defined(__GNUC__) || defined(__clang__)
-    T::max = std::numeric_limits<V>::max();
-    T::min_normal = std::numeric_limits<V>::min();
+    f.max = std::numeric_limits<T>::max();
+    f.min_normal = std::numeric_limits<T>::min();
 
-    assert(std::numeric_limits<V>::has_quiet_NaN);
-    T::nan = std::numeric_limits<V>::quiet_NaN();
+    assert(std::numeric_limits<T>::has_quiet_NaN);
+    f.nan = std::numeric_limits<T>::quiet_NaN();
 
-    assert(std::numeric_limits<V>::has_signaling_NaN);
-    T::snan = std::numeric_limits<V>::signaling_NaN();
+    assert(std::numeric_limits<T>::has_signaling_NaN);
+    f.snan = std::numeric_limits<T>::signaling_NaN();
 
-    assert(std::numeric_limits<V>::has_infinity);
-    T::infinity = std::numeric_limits<V>::infinity();
+    assert(std::numeric_limits<T>::has_infinity);
+    f.infinity = std::numeric_limits<T>::infinity();
 
-    T::epsilon = std::numeric_limits<V>::epsilon();
-    T::dig = std::numeric_limits<V>::digits10;
-    T::mant_dig = std::numeric_limits<V>::digits;
-    T::max_exp = std::numeric_limits<V>::max_exponent;
-    T::min_exp = std::numeric_limits<V>::min_exponent;
-    T::max_10_exp = std::numeric_limits<V>::max_exponent10;
-    T::min_10_exp = std::numeric_limits<V>::min_exponent10;
+    f.epsilon = std::numeric_limits<T>::epsilon();
+    f.dig = std::numeric_limits<T>::digits10;
+    f.mant_dig = std::numeric_limits<T>::digits;
+    f.max_exp = std::numeric_limits<T>::max_exponent;
+    f.min_exp = std::numeric_limits<T>::min_exponent;
+    f.max_10_exp = std::numeric_limits<T>::max_exponent10;
+    f.min_10_exp = std::numeric_limits<T>::min_exponent10;
 #else
     union
     {   unsigned int ui[4];
         real_t ld;
     } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
 
-    if (sizeof(V) == sizeof(float))
+    if (sizeof(T) == sizeof(float))
     {
-        T::max = FLT_MAX;
-        T::min_normal = FLT_MIN;
+        f.max = FLT_MAX;
+        f.min_normal = FLT_MIN;
 
-        T::nan = NAN;
-        T::snan = snan.ld;
-        T::infinity = INFINITY;
+        f.nan = NAN;
+        f.snan = snan.ld;
+        f.infinity = INFINITY;
 
-        T::epsilon = FLT_EPSILON;
-        T::dig = FLT_DIG;
-        T::mant_dig = FLT_MANT_DIG;
-        T::max_exp = FLT_MAX_EXP;
-        T::min_exp = FLT_MIN_EXP;
-        T::max_10_exp = FLT_MAX_10_EXP;
-        T::min_10_exp = FLT_MIN_10_EXP;
+        f.epsilon = FLT_EPSILON;
+        f.dig = FLT_DIG;
+        f.mant_dig = FLT_MANT_DIG;
+        f.max_exp = FLT_MAX_EXP;
+        f.min_exp = FLT_MIN_EXP;
+        f.max_10_exp = FLT_MAX_10_EXP;
+        f.min_10_exp = FLT_MIN_10_EXP;
     }
-    else if (sizeof(V) == sizeof(double))
+    else if (sizeof(T) == sizeof(double))
     {
-        T::max = DBL_MAX;
-        T::min_normal = DBL_MIN;
+        f.max = DBL_MAX;
+        f.min_normal = DBL_MIN;
 
-        T::nan = NAN;
-        T::snan = snan.ld;
-        T::infinity = INFINITY;
+        f.nan = NAN;
+        f.snan = snan.ld;
+        f.infinity = INFINITY;
 
-        T::epsilon = DBL_EPSILON;
-        T::dig = DBL_DIG;
-        T::mant_dig = DBL_MANT_DIG;
-        T::max_exp = DBL_MAX_EXP;
-        T::min_exp = DBL_MIN_EXP;
-        T::max_10_exp = DBL_MAX_10_EXP;
-        T::min_10_exp = DBL_MIN_10_EXP;
+        f.epsilon = DBL_EPSILON;
+        f.dig = DBL_DIG;
+        f.mant_dig = DBL_MANT_DIG;
+        f.max_exp = DBL_MAX_EXP;
+        f.min_exp = DBL_MIN_EXP;
+        f.max_10_exp = DBL_MAX_10_EXP;
+        f.min_10_exp = DBL_MIN_10_EXP;
     }
     else
     {
-        T::max = LDBL_MAX;
-        T::min_normal = LDBL_MIN;
+        f.max = LDBL_MAX;
+        f.min_normal = LDBL_MIN;
 
-        T::nan = NAN;
-        T::snan = snan.ld;
-        T::infinity = INFINITY;
+        f.nan = NAN;
+        f.snan = snan.ld;
+        f.infinity = INFINITY;
 
-        T::epsilon = LDBL_EPSILON;
-        T::dig = LDBL_DIG;
-        T::mant_dig = LDBL_MANT_DIG;
-        T::max_exp = LDBL_MAX_EXP;
-        T::min_exp = LDBL_MIN_EXP;
-        T::max_10_exp = LDBL_MAX_10_EXP;
-        T::min_10_exp = LDBL_MIN_10_EXP;
+        f.epsilon = LDBL_EPSILON;
+        f.dig = LDBL_DIG;
+        f.mant_dig = LDBL_MANT_DIG;
+        f.max_exp = LDBL_MAX_EXP;
+        f.min_exp = LDBL_MIN_EXP;
+        f.max_10_exp = LDBL_MAX_10_EXP;
+        f.min_10_exp = LDBL_MIN_10_EXP;
     }
 #endif
 }
 
-void Target::_init()
+static unsigned getCriticalSectionSize(const Param &params)
 {
+    if (params.isWindows)
+    {
+        // sizeof(CRITICAL_SECTION) for Windows.
+        return params.isLP64 ? 40 : 24;
+    }
+    else if (params.isLinux)
+    {
+        // sizeof(pthread_mutex_t) for Linux.
+        if (params.is64bit)
+            return params.isLP64 ? 40 : 32;
+        else
+            return params.isLP64 ? 40 : 24;
+    }
+    else if (params.isFreeBSD)
+    {
+        // sizeof(pthread_mutex_t) for FreeBSD.
+        return params.isLP64 ? 8 : 4;
+    }
+    else if (params.isOpenBSD)
+    {
+        // sizeof(pthread_mutex_t) for OpenBSD.
+        return params.isLP64 ? 8 : 4;
+    }
+    else if (params.isOSX)
+    {
+        // sizeof(pthread_mutex_t) for OSX.
+        return params.isLP64 ? 64 : 44;
+    }
+    else if (params.isSolaris)
+    {
+        // sizeof(pthread_mutex_t) for Solaris.
+        return 24;
+    }
+    assert(0);
+    return 0;
+}
+
+void Target::_init(const Param &params)
+{
+    initFloatConstants<float>(target.FloatProperties);
+    initFloatConstants<double>(target.DoubleProperties);
+    initFloatConstants<real_t>(target.RealProperties);
+
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.
     ptrsize = 4;
@@ -154,34 +174,31 @@ void Target::_init()
      */
     maxStaticDataSize = 0x7FFFFFFF;
 
-    if (global.params.isLP64)
+    if (params.isLP64)
     {
         ptrsize = 8;
         classinfosize = 0x98;   // 152
     }
 
-    if (global.params.isLinux || global.params.isFreeBSD
-        || global.params.isOpenBSD || global.params.isSolaris)
+    if (params.isLinux || params.isFreeBSD
+        || params.isOpenBSD || params.isSolaris)
     {
         realsize = 12;
         realpad = 2;
         realalignsize = 4;
-        c_longsize = 4;
     }
-    else if (global.params.isOSX)
+    else if (params.isOSX)
     {
         realsize = 16;
         realpad = 6;
         realalignsize = 16;
-        c_longsize = 4;
     }
-    else if (global.params.isWindows)
+    else if (params.isWindows)
     {
         realsize = 10;
         realpad = 0;
         realalignsize = 2;
-        reverseCppOverloads = !global.params.is64bit;
-        c_longsize = 4;
+        cpp.reverseOverloads = !params.is64bit;
         if (ptrsize == 4)
         {
             /* Optlink cannot deal with individual data chunks
@@ -193,32 +210,51 @@ void Target::_init()
     else
         assert(0);
 
-    if (global.params.is64bit)
+    if (params.is64bit)
     {
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
+        if (params.isLinux || params.isFreeBSD || params.isSolaris)
         {
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
-            c_longsize = 8;
-        }
-        else if (global.params.isOSX)
-        {
-            c_longsize = 8;
         }
     }
 
-    c_long_doublesize = realsize;
-    if (global.params.is64bit && global.params.isWindows)
-        c_long_doublesize = 8;
+    if (params.isLinux || params.isFreeBSD || params.isOpenBSD || params.isSolaris)
+        c.longsize = 4;
+    else if (params.isOSX)
+        c.longsize = 4;
+    else if (params.isWindows)
+        c.longsize = 4;
+    else
+        assert(0);
+    if (params.is64bit)
+    {
+        if (params.isLinux || params.isFreeBSD || params.isSolaris)
+            c.longsize = 8;
+        else if (params.isOSX)
+            c.longsize = 8;
+    }
+    if (params.is64bit && params.isWindows)
+        c.long_doublesize = 8;
+    else
+        c.long_doublesize = realsize;
 
-    cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
-        global.params.isOSX;
+    c.criticalSectionSize = getCriticalSectionSize(params);
 
-    initFloatConstants<Target::FloatProperties, float>();
-    initFloatConstants<Target::DoubleProperties, double>();
-    initFloatConstants<Target::RealProperties, real_t>();
+    if (params.isLinux || params.isFreeBSD
+        || params.isOpenBSD || params.isSolaris)
+        cpp.twoDtorInVtable = true;
+    else if (params.isOSX)
+        cpp.twoDtorInVtable = true;
+    else if (params.isWindows)
+        cpp.reverseOverloads = true;
+    else
+        assert(0);
+    cpp.exceptions = params.isLinux || params.isFreeBSD || params.isOSX;
 
+    if (params.isOSX && params.is64bit)
+        objc.supported = true;
 }
 
 /******************************
@@ -275,41 +311,7 @@ unsigned Target::fieldalign(Type* type)
  */
 unsigned Target::critsecsize()
 {
-    if (global.params.isWindows)
-    {
-        // sizeof(CRITICAL_SECTION) for Windows.
-        return global.params.isLP64 ? 40 : 24;
-    }
-    else if (global.params.isLinux)
-    {
-        // sizeof(pthread_mutex_t) for Linux.
-        if (global.params.is64bit)
-            return global.params.isLP64 ? 40 : 32;
-        else
-            return global.params.isLP64 ? 40 : 24;
-    }
-    else if (global.params.isFreeBSD)
-    {
-        // sizeof(pthread_mutex_t) for FreeBSD.
-        return global.params.isLP64 ? 8 : 4;
-    }
-    else if (global.params.isOpenBSD)
-    {
-        // sizeof(pthread_mutex_t) for OpenBSD.
-        return global.params.isLP64 ? 8 : 4;
-    }
-    else if (global.params.isOSX)
-    {
-        // sizeof(pthread_mutex_t) for OSX.
-        return global.params.isLP64 ? 64 : 44;
-    }
-    else if (global.params.isSolaris)
-    {
-        // sizeof(pthread_mutex_t) for Solaris.
-        return 24;
-    }
-    assert(0);
-    return 0;
+    return c.criticalSectionSize;
 }
 
 /***********************************
@@ -317,11 +319,14 @@ unsigned Target::critsecsize()
  * NOTE: For Posix/x86_64 this returns the type which will really
  * be used for passing an argument of type va_list.
  */
-Type *Target::va_listType()
+Type *Target::va_listType(const Loc &loc, Scope *sc)
 {
+    if (tvalist)
+        return tvalist;
+
     if (global.params.isWindows)
     {
-        return Type::tchar->pointerTo();
+        tvalist = Type::tchar->pointerTo();
     }
     else if (global.params.isLinux ||
              global.params.isFreeBSD ||
@@ -331,11 +336,12 @@ Type *Target::va_listType()
     {
         if (global.params.is64bit)
         {
-            return (new TypeIdentifier(Loc(), Identifier::idPool("__va_list_tag")))->pointerTo();
+            tvalist = (new TypeIdentifier(Loc(), Identifier::idPool("__va_list_tag")))->pointerTo();
+            tvalist = tvalist->semantic(loc, sc);
         }
         else
         {
-            return Type::tchar->pointerTo();
+            tvalist = Type::tchar->pointerTo();
         }
     }
     else
@@ -343,6 +349,8 @@ Type *Target::va_listType()
         assert(0);
         return NULL;
     }
+
+    return tvalist;
 }
 
 /**
@@ -456,8 +464,30 @@ bool Target::isVectorOpSupported(Type *type, TOK op, Type *)
     }
     return supported;
 }
+/******************************
+ * Return the default system linkage for the target.
+ */
+LINK Target::systemLinkage()
+{
+    return global.params.isWindows ? LINKwindows : LINKc;
+}
 
-const char *Target::toCppMangle(Dsymbol *s)
+/**
+ * Return a tuple describing how argument type is put to a function.
+ * Value is an empty tuple if type is always passed on the stack.
+ * NULL if the type is a `void` or argtypes aren't supported by the target.
+ */
+TypeTuple *Target::toArgTypes(Type *t)
+{
+  return ::toArgTypes(t);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * Functions and variables specific to interface with extern(C++) ABI.
+ */
+
+const char *TargetCPP::toMangle(Dsymbol *s)
 {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     return toCppMangleItanium(s);
@@ -468,7 +498,7 @@ const char *Target::toCppMangle(Dsymbol *s)
 #endif
 }
 
-const char *Target::cppTypeInfoMangle(ClassDeclaration *cd)
+const char *TargetCPP::typeInfoMangle(ClassDeclaration *cd)
 {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     return cppTypeInfoMangleItanium(cd);
@@ -483,7 +513,7 @@ const char *Target::cppTypeInfoMangle(ClassDeclaration *cd)
  * For a vendor-specific type, return a string containing the C++ mangling.
  * In all other cases, return null.
  */
-const char* Target::cppTypeMangle(Type *)
+const char* TargetCPP::typeMangle(Type *)
 {
     return NULL;
 }
@@ -496,7 +526,7 @@ const char* Target::cppTypeMangle(Type *)
  * Returns:
  *      `Type` to use for parameter `p`.
  */
-Type *Target::cppParameterType(Parameter *p)
+Type *TargetCPP::parameterType(Parameter *p)
 {
     Type *t = p->type->merge2();
     if (p->storageClass & (STCout | STCref))
@@ -519,25 +549,8 @@ Type *Target::cppParameterType(Parameter *p)
  * Returns:
  *      true if isFundamental was set by function
  */
-bool Target::cppFundamentalType(const Type *t, bool& isFundamental)
+bool TargetCPP::fundamentalType(const Type *t, bool& isFundamental)
 {
     return false;
 }
 
-/******************************
- * Return the default system linkage for the target.
- */
-LINK Target::systemLinkage()
-{
-    return global.params.isWindows ? LINKwindows : LINKc;
-}
-
-/**
- * Return a tuple describing how argument type is put to a function.
- * Value is an empty tuple if type is always passed on the stack.
- * NULL if the type is a `void` or argtypes aren't supported by the target.
- */
-TypeTuple *Target::toArgTypes(Type *t)
-{
-  return ::toArgTypes(t);
-}
