@@ -424,7 +424,7 @@ public:
     Type *basetype;
 
     TypeVector(Type *basetype);
-    static TypeVector *create(Loc loc, Type *basetype);
+    static TypeVector *create(Type *basetype);
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);

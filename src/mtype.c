@@ -3688,7 +3688,7 @@ TypeVector::TypeVector(Type *basetype)
     this->basetype = basetype;
 }
 
-TypeVector *TypeVector::create(Loc, Type *basetype)
+TypeVector *TypeVector::create(Type *basetype)
 {
     return new TypeVector(basetype);
 }
