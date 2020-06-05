@@ -2896,7 +2896,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (auto f = mt.exp.op == TOK.variable    ? (cast(   VarExp)mt.exp).var.isFuncDeclaration()
                    : mt.exp.op == TOK.dotVariable ? (cast(DotVarExp)mt.exp).var.isFuncDeclaration() : null)
         {
-            if (f.checkForwardRef(loc))
+            // f might be a unittest declaration which is incomplete when compiled
+            // without -unittest. That causes a segfault in checkForwardRef, see
+            // https://issues.dlang.org/show_bug.cgi?id=20626
+            if ((!f.isUnitTestDeclaration() || global.params.useUnitTests) && f.checkForwardRef(loc))
                 goto Lerr;
         }
         if (auto f = isFuncAddress(mt.exp))
