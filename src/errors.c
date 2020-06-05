@@ -253,12 +253,18 @@ void verrorSupplemental(const Loc& loc, const char *format, va_list ap)
 
 void vwarning(const Loc& loc, const char *format, va_list ap)
 {
-    if (global.params.warnings != DIAGNOSTICoff && !global.gag)
+    if (global.params.warnings != DIAGNOSTICoff)
     {
-        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
-//halt();
-        if (global.params.warnings == DIAGNOSTICerror)
-            global.warnings++;  // warnings don't count if gagged
+        if (!global.gag)
+        {
+            verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
+            if (global.params.warnings == DIAGNOSTICerror)
+                global.warnings++;  // warnings don't count if gagged
+        }
+        else
+        {
+            global.gaggedWarnings++;
+        }
     }
 }
 
@@ -274,8 +280,17 @@ void vdeprecation(const Loc& loc, const char *format, va_list ap,
     static const char *header = "Deprecation: ";
     if (global.params.useDeprecated == DIAGNOSTICerror)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == DIAGNOSTICinform && !global.gag)
-        verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+    else if (global.params.useDeprecated == DIAGNOSTICinform)
+    {
+       if (!global.gag)
+       {
+           verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+       }
+       else
+       {
+           global.gaggedWarnings++;
+       }
+    }
 }
 
 /**

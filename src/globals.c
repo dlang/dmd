@@ -74,6 +74,7 @@ void Global::_init()
 unsigned Global::startGagging()
 {
     ++gag;
+    gaggedWarnings = 0;
     return gaggedErrors;
 }
 

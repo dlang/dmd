@@ -237,6 +237,7 @@ struct Global
     FILE *stdmsg;          // where to send verbose messages
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
+    unsigned gaggedWarnings; // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
