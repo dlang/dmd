@@ -231,7 +231,8 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useExceptions = true;
     global.params.useInline = false;
     global.params.obj = true;
-    global.params.useDeprecated = 2;
+    global.params.useDeprecated = DIAGNOSTICinform;
+    global.params.warnings = DIAGNOSTICoff;
     global.params.cplusplus = CppStdRevisionCpp98;
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
@@ -362,11 +363,11 @@ int tryMain(size_t argc, const char *argv[])
             if (strcmp(p + 1, "allinst") == 0)
                 global.params.allInst = true;
             else if (strcmp(p + 1, "de") == 0)
-                global.params.useDeprecated = 0;
+                global.params.useDeprecated = DIAGNOSTICerror;
             else if (strcmp(p + 1, "d") == 0)
-                global.params.useDeprecated = 1;
+                global.params.useDeprecated = DIAGNOSTICoff;
             else if (strcmp(p + 1, "dw") == 0)
-                global.params.useDeprecated = 2;
+                global.params.useDeprecated = DIAGNOSTICinform;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = false;
             else if (memcmp(p + 1, "color", 5) == 0)
@@ -592,9 +593,9 @@ Language changes listed by -transition=id:\n\
                     goto Lerror;
             }
             else if (strcmp(p + 1, "w") == 0)
-                global.params.warnings = 1;
+                global.params.warnings = DIAGNOSTICerror;
             else if (strcmp(p + 1, "wi") == 0)
-                global.params.warnings = 2;
+                global.params.warnings = DIAGNOSTICinform;
             else if (strcmp(p + 1, "O") == 0)
                 global.params.optimize = true;
             else if (p[1] == 'o')
