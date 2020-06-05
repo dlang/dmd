@@ -1321,7 +1321,7 @@ public:
 
     void visit(AttribDeclaration *d)
     {
-        Dsymbols *decls = d->include(NULL, NULL);
+        Dsymbols *decls = d->include(NULL);
 
         if (decls)
         {
