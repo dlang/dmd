@@ -1388,6 +1388,8 @@ $(H3 $(LNAME2 implicit-nesting, Implicit Nesting))
         }
         ----
 
+    $(P See also: $(DDSUBLINK spec/class, nested-explicit, Nested Class Instantiation).)
+
         ----
         void main()
         {
