@@ -6044,43 +6044,44 @@ elem *toElemDtor2(Expression e, IRState *irs)
 
             /* Append edtors to er, while preserving the value of er
             */
-            // if (tybasic(er.Ety) == TYvoid)
-            // {
-            //     /* No value to preserve, so simply append
-            //     */
-            //     er = el_combine(er, edtors);
-            // }
-            // else
-            // {
+            if (tybasic(er.Ety) == TYvoid)
+            {
+                /* No value to preserve, so simply append
+                */
+                er = el_combine(er, edtors);
+            }
+            else
+            {
                 elem **pe;
                 for (pe = &er; (*pe).Eoper == OPcomma; pe = &(*pe).EV.E2)
                 {
                 }
                 elem *erx = *pe;
 
-                // if (erx.Eoper == OPconst || erx.Eoper == OPrelconst)
-                // {
-                //     *pe = el_combine(edtors, erx);
-                // }
-                // else if (elemIsLvalue(erx))
-                // {
-                //     /* Lvalue, take a pointer to it
-                //     */
-                //     elem *ep = el_una(OPaddr, TYnptr, erx);
-                //     elem *e = el_same(&ep);
-                //     ep = el_combine(ep, edtors);
-                //     ep = el_combine(ep, e);
-                //     e = el_una(OPind, erx.Ety, ep);
-                //     e.ET = erx.ET;
-                //     *pe = e;
-                // }
-                // else
-                // {
+                if (erx.Eoper == OPconst || erx.Eoper == OPrelconst)
+                {
+                    *pe = el_combine(edtors, erx);
+                }
+                else if ((tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
+                     !(erx.ET && type_size(erx.ET) <= 16))
+                {
+                    /* Lvalue, take a pointer to it
+                    */
+                    elem *ep = el_una(OPaddr, TYnptr, erx);
+                    elem *e = el_same(&ep);
+                    ep = el_combine(ep, edtors);
+                    ep = el_combine(ep, e);
+                    e = el_una(OPind, erx.Ety, ep);
+                    e.ET = erx.ET;
+                    *pe = e;
+                }
+                else
+                {
                     elem *e = el_same(&erx);
                     erx = el_combine(erx, edtors);
                     *pe = el_combine(erx, e);
-                // }
-            // }
+                }
+            }
         }
         return er;
     }
