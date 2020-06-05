@@ -227,7 +227,8 @@ struct S
     int b;    // placed at offset 4
     long c;   // placed at offset 8
 }
-auto sz = S.sizeof;  // 16
+static assert(S.alignof == 8);
+static assert(S.sizeof == 16);
 --------
 
         $(P $(I AssignExpression) specifies the alignment
@@ -247,12 +248,13 @@ struct S
     int b;    // placed at offset 1
     long c;   // placed at offset 5
 }
-auto sz = S.sizeof;  // 16
+static assert(S.alignof == 1);
+static assert(S.sizeof == 13);
 --------
 
-        $(P The alignment for the fields of an aggregate does not affect the alignment
-        of the aggregate itself - that is affected by the alignment setting outside
-        of the aggregate.)
+        $(P The natural alignment of an aggregate is the maximum alignment of its
+        fields. It can be overridden by setting the alignment outside of the
+        aggregate.)
 
 --------
 align (2) struct S
@@ -262,7 +264,8 @@ align (2) struct S
     int b;    // placed at offset 1
     long c;   // placed at offset 5
 }
-auto sz = S.sizeof;  // 14
+static assert(S.alignof == 2);
+static assert(S.sizeof == 14);
 --------
 
         $(P Setting the alignment of a field aligns it to that power of 2, regardless
@@ -271,12 +274,12 @@ auto sz = S.sizeof;  // 14
 --------
 struct S
 {
-  align (4):
-    byte a;   // placed at offset 0
-    byte b;   // placed at offset 4
-    short c;  // placed at offset 8
+               byte a;  // placed at offset 0
+    align (4)  byte b;  // placed at offset 4
+    align (16) short c; // placed at offset 16
 }
-auto sz = S.sizeof;  // 12
+static assert(S.alignof == 16);
+static assert(S.sizeof == 32);
 --------
 
 
