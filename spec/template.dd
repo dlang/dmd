@@ -990,7 +990,8 @@ $(GNAME UnionTemplateDeclaration):
 )
 
     $(P If a template declares exactly one member, and that member is a class
-        with the same name as the template:)
+        with the same name as the template (see
+        $(RELATIVE_LINK2 implicit_template_properties, Eponymous Templates):)
 
         ------
         template $(CODE_HIGHLIGHT Bar)(T)
@@ -1011,6 +1012,9 @@ $(GNAME UnionTemplateDeclaration):
             T member;
         }
         ------
+
+    $(P See also: $(RELATIVE_LINK2 template_this_parameter, Template This Parameters).
+    )
 
     $(P Analogously to class templates, struct, union and interfaces
         can be transformed into templates by supplying a template parameter list.
@@ -1170,10 +1174,11 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         ---
         )
 
-$(H2 $(LNAME2 variable-template, Variable Templates))
+$(H2 $(LNAME2 variable-template, Enum & Variable Templates))
 
-    $(P Same as aggregates and functions, variable declarations with
-        $(GLINK2 declaration, Initializer) can have optional template parameters:)
+    $(P Like aggregates and functions, manifest constant and variable
+        declarations can have template parameters, providing there is
+        an $(GLINK2 declaration, Initializer):)
 
         ------
         enum string constant(TL...) = TL.stringof;
@@ -1471,22 +1476,23 @@ $(H2 $(LNAME2 recursive_templates, Recursive Templates))
         effects, such as compile time evaluation of non-trivial functions.
         For example, a factorial template can be written:)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
-        template factorial(int n : 1)
-        {
-            enum { factorial = 1 }
-        }
-
         template factorial(int n)
         {
-            enum { factorial = n* factorial!(n-1) }
+            static if (n == 1)
+                enum factorial = 1;
+            else
+                enum factorial = n * factorial!(n - 1);
         }
 
-        void test()
-        {
-            writefln("%s", factorial!(4)); // prints 24
-        }
+        static assert(factorial!(4) == 24);
         ------
+    )
+    $(P For more information and a $(ACRONYM CTFE, Compile-time Function Execution)
+        factorial alternative, see:
+        $(DDSUBLINK articles/templates-revisited, template-recursion, Template Recursion).
+    )
 
 $(H2 $(LNAME2 template_constraints, Template Constraints))
 
@@ -1519,7 +1525,7 @@ $(GNAME Constraint):
         ---
 
     $(P Template constraints can be used with aggregate types (structs, classes, unions).
-        Constraints are effectively used with library module "std.traits":)
+        Constraints are effectively used with library module $(MREF std, traits):)
 
         ---
         import std.traits;
