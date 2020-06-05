@@ -545,23 +545,26 @@ class C
     $(CODE_HIGHLIGHT static if) (k == 5) // ok, k is in current scope
         int z;
 }
-
-template INT(int i)
+---
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+template Int(int i)
 {
     $(ARGS static if) (i == 32)
-        alias INT = int;
+        alias Int = int;
     $(ARGS else static if) (i == 16)
-        alias INT = short;
+        alias Int = short;
     $(ARGS else)
         static assert(0); // not supported
 }
 
-INT!(32) a;  // a is an int
-INT!(16) b;  // b is a short
-INT!(17) c;  // error, static assert trips
+Int!(32) a;  // a is an int
+Int!(16) b;  // b is a short
+Int!(17) c;  // error, static assert trips
 ------
+)
 
-        $(P A $(I StaticIfConditional) condition differs from an
+        $(P A $(I StaticIfCondition) differs from an
         $(I IfStatement) in the following ways:
         )
 
