@@ -545,23 +545,26 @@ class C
     $(CODE_HIGHLIGHT static if) (k == 5) // ok, k is in current scope
         int z;
 }
-
-template INT(int i)
+---
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+template Int(int i)
 {
     $(ARGS static if) (i == 32)
-        alias INT = int;
+        alias Int = int;
     $(ARGS else static if) (i == 16)
-        alias INT = short;
+        alias Int = short;
     $(ARGS else)
         static assert(0); // not supported
 }
 
-INT!(32) a;  // a is an int
-INT!(16) b;  // b is a short
-INT!(17) c;  // error, static assert trips
+Int!(32) a;  // a is an int
+Int!(16) b;  // b is a short
+Int!(17) c;  // error, static assert trips
 ------
+)
 
-        $(P A $(I StaticIfConditional) condition differs from an
+        $(P A $(I StaticIfCondition) differs from an
         $(I IfStatement) in the following ways:
         )
 
@@ -607,17 +610,19 @@ $(GNAME StaticForeachStatement):
         variables are never runtime variables.)
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 static foreach(i; [0, 1, 2, 3])
 {
     pragma(msg, i);
 }
 ------
+)
 
         $(P $(D static foreach) supports multiple variables in cases where the
         corresponding $(D foreach) statement supports them. (In this case,
         $(D static foreach) generates a compile-time sequence of tuples, and the
-        tuples are subsequently unpacked during iteration.)
+        tuples are subsequently unpacked during iteration).
         )
 
 ------
@@ -632,17 +637,35 @@ static foreach(i, v; ['a', 'b', 'c', 'd'])
         used to generate declarations:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import std.range : iota;
-import std.algorithm : map;
-import std.conv : text;
-static foreach(i; iota(0, 3).map!text)
+
+static foreach(i; iota(0, 3))
 {
-    mixin(`enum x` ~ i ~ ` = i;`);
+    mixin(`enum x`, i, ` = i;`);
 }
 
 pragma(msg, x0, " ", x1," ", x2); // 0 1 2
 ------
+)
+
+        $(P If a new scope is desired for each expansion, use another
+        set of braces:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static foreach(s; ["hi", "hey", "hello"])
+{{
+    enum len = s.length;    // local to each iteration
+    static assert(len <= 5);
+}}
+
+static assert(!is(typeof(len)));
+---
+)
+
+$(H3 $(LNAME2 break-continue, `break` and `continue`))
 
         $(P As $(D static foreach) is a code generation construct and not a
         loop, $(D break) and $(D continue) cannot be used to change control
@@ -670,7 +693,7 @@ int test(int x)
 
 static foreach(i; 0 .. 200)
 {
-    static assert(test(i) == (i<100 ? i : -1));
+    static assert(test(i) == (i < 100 ? i : -1));
 }
 -------
 
@@ -711,7 +734,7 @@ $(GNAME StaticAssert):
     $(D static assert $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN);)
 )
 
-        $(P $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
+        $(P The first $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
         to a boolean value. If the value is true, the static assert
         is ignored. If the value is false, an error diagnostic is issued
         and the compile fails.
