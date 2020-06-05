@@ -220,12 +220,13 @@ int tryMain(size_t argc, const char *argv[])
     global.params.argv0 = arguments[0];
     global.params.color = isConsoleColorSupported();
     global.params.link = true;
-    global.params.useAssert = true;
-    global.params.useInvariants = true;
-    global.params.useIn = true;
-    global.params.useOut = true;
-    global.params.useArrayBounds = BOUNDSCHECKdefault;   // set correct value later
-    global.params.useSwitchError = true;
+    global.params.useAssert = CHECKENABLEdefault;
+    global.params.useInvariants = CHECKENABLEdefault;
+    global.params.useIn = CHECKENABLEdefault;
+    global.params.useOut = CHECKENABLEdefault;
+    global.params.useArrayBounds = CHECKENABLEdefault;   // set correct value later
+    global.params.useSwitchError = CHECKENABLEdefault;
+    global.params.boundscheck = CHECKENABLEdefault;
     global.params.useModuleInfo = true;
     global.params.useTypeInfo = true;
     global.params.useExceptions = true;
@@ -738,7 +739,7 @@ Language changes listed by -transition=id:\n\
                 global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
-                global.params.useArrayBounds = BOUNDSCHECKoff;
+                global.params.boundscheck = CHECKENABLEoff;
             }
             else if (memcmp(p + 1, "boundscheck", 11) == 0)
             {
@@ -748,15 +749,15 @@ Language changes listed by -transition=id:\n\
                 {
                     if (strcmp(p + 13, "on") == 0)
                     {
-                        global.params.useArrayBounds = BOUNDSCHECKon;
+                        global.params.boundscheck = CHECKENABLEon;
                     }
                     else if (strcmp(p + 13, "safeonly") == 0)
                     {
-                        global.params.useArrayBounds = BOUNDSCHECKsafeonly;
+                        global.params.boundscheck = CHECKENABLEsafeonly;
                     }
                     else if (strcmp(p + 13, "off") == 0)
                     {
-                        global.params.useArrayBounds = BOUNDSCHECKoff;
+                        global.params.boundscheck = CHECKENABLEoff;
                     }
                     else
                         goto Lerror;
@@ -989,23 +990,58 @@ Language changes listed by -transition=id:\n\
         error(Loc(), "cannot mix -lib and -shared");
 #endif
 
-    if (global.params.useArrayBounds == BOUNDSCHECKdefault)
+    if (global.params.boundscheck != CHECKENABLEdefault)
     {
-        // Set the real default value
-        global.params.useArrayBounds = global.params.release ? BOUNDSCHECKsafeonly : BOUNDSCHECKon;
+        if (global.params.useArrayBounds == CHECKENABLEdefault)
+            global.params.useArrayBounds = global.params.boundscheck;
+    }
+
+    if (global.params.useUnitTests)
+    {
+        if (global.params.useAssert == CHECKENABLEdefault)
+            global.params.useAssert = CHECKENABLEon;
     }
 
     if (global.params.release)
     {
-        global.params.useInvariants = false;
-        global.params.useIn = false;
-        global.params.useOut = false;
-        global.params.useAssert = false;
-        global.params.useSwitchError = false;
-    }
+        if (global.params.useInvariants == CHECKENABLEdefault)
+            global.params.useInvariants = CHECKENABLEoff;
 
-    if (global.params.useUnitTests)
-        global.params.useAssert = true;
+        if (global.params.useIn == CHECKENABLEdefault)
+            global.params.useIn = CHECKENABLEoff;
+
+        if (global.params.useOut == CHECKENABLEdefault)
+            global.params.useOut = CHECKENABLEoff;
+
+        if (global.params.useArrayBounds == CHECKENABLEdefault)
+            global.params.useArrayBounds = CHECKENABLEsafeonly;
+
+        if (global.params.useAssert == CHECKENABLEdefault)
+            global.params.useAssert = CHECKENABLEoff;
+
+        if (global.params.useSwitchError == CHECKENABLEdefault)
+            global.params.useSwitchError = CHECKENABLEoff;
+    }
+    else
+    {
+        if (global.params.useInvariants == CHECKENABLEdefault)
+            global.params.useInvariants = CHECKENABLEon;
+
+        if (global.params.useIn == CHECKENABLEdefault)
+            global.params.useIn = CHECKENABLEon;
+
+        if (global.params.useOut == CHECKENABLEdefault)
+            global.params.useOut = CHECKENABLEon;
+
+        if (global.params.useArrayBounds == CHECKENABLEdefault)
+            global.params.useArrayBounds = CHECKENABLEon;
+
+        if (global.params.useAssert == CHECKENABLEdefault)
+            global.params.useAssert = CHECKENABLEon;
+
+        if (global.params.useSwitchError == CHECKENABLEdefault)
+            global.params.useSwitchError = CHECKENABLEon;
+    }
 
     if (global.params.betterC)
     {
@@ -1126,9 +1162,9 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_PIC");
     if (global.params.useUnitTests)
         VersionCondition::addPredefinedGlobalIdent("unittest");
-    if (global.params.useAssert)
+    if (global.params.useAssert == CHECKENABLEon)
         VersionCondition::addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == BOUNDSCHECKoff)
+    if (global.params.useArrayBounds == CHECKENABLEoff)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     if (global.params.betterC)

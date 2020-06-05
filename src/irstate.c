@@ -164,15 +164,15 @@ bool IRState::arrayBoundsCheck()
     bool result;
     switch (global.params.useArrayBounds)
     {
-        case BOUNDSCHECKoff:
+        case CHECKENABLEoff:
             result = false;
             break;
 
-        case BOUNDSCHECKon:
+        case CHECKENABLEon:
             result = true;
             break;
 
-        case BOUNDSCHECKsafeonly:
+        case CHECKENABLEsafeonly:
         {
             result = false;
             FuncDeclaration *fd = getFunc();
