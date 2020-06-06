@@ -607,14 +607,19 @@ string unifyNewLine(string str)
     // On Windows, Outbuffer.writenl() puts `\r\n` into the buffer,
     // then fprintf() adds another `\r` when formatting the message.
     // This is why there's a match for `\r\r\n` in this regex.
-    static re = regex(`\r\r\n|\r\n|\r|\n`, "g");
-    return std.regex.replace(str, re, "\n");
+
+    static Regex!char* re;
+    if (re is null)
+        (*re) = regex(`\r\r\n|\r\n|\r|\n`, "g");
+    return std.regex.replace(str, (*re), "\n");
 }
 
 string unifyDirSep(string str, string sep)
 {
-    static re = regex(`(?<=[-\w{}][-\w{}]*)/(?=[-\w][-\w/]*\.(di?|mixin)\b)`, "g");
-    return std.regex.replace(str, re, sep);
+    static Regex!char* re;
+    if (re is null)
+        (*re) = regex(`(?<=[-\w{}][-\w{}]*)/(?=[-\w][-\w/]*\.(di?|mixin)\b)`, "g");
+    return std.regex.replace(str, (*re), sep);
 }
 unittest
 {
