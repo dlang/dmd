@@ -673,45 +673,6 @@ struct Scope
         }
     }
 
-    extern (D) this(ref Scope sc)
-    {
-        this._module = sc._module;
-        this.scopesym = sc.scopesym;
-        this.enclosing = sc.enclosing;
-        this.parent = sc.parent;
-        this.sw = sc.sw;
-        this.tryBody = sc.tryBody;
-        this.tf = sc.tf;
-        this.os = sc.os;
-        this.tinst = sc.tinst;
-        this.minst = sc.minst;
-        this.sbreak = sc.sbreak;
-        this.scontinue = sc.scontinue;
-        this.fes = sc.fes;
-        this.callsc = sc.callsc;
-        this.aligndecl = sc.aligndecl;
-        this.func = sc.func;
-        this.slabel = sc.slabel;
-        this.linkage = sc.linkage;
-        this.cppmangle = sc.cppmangle;
-        this.inlining = sc.inlining;
-        this.protection = sc.protection;
-        this.explicitProtection = sc.explicitProtection;
-        this.stc = sc.stc;
-        this.depdecl = sc.depdecl;
-        this.inunion = sc.inunion;
-        this.nofree = sc.nofree;
-        this.inLoop = sc.inLoop;
-        this.intypeof = sc.intypeof;
-        this.lastVar = sc.lastVar;
-        this.ctorflow = sc.ctorflow;
-        this.flags = sc.flags;
-        this.lastdc = sc.lastdc;
-        this.anchorCounts = sc.anchorCounts;
-        this.prevAnchor = sc.prevAnchor;
-        this.userAttribDecl = sc.userAttribDecl;
-    }
-
     structalign_t alignment()
     {
         if (aligndecl)
