@@ -1258,6 +1258,18 @@ code *asm_emit(Loc loc,
     pc.Iflags |= CFpsw;            // assume we want to keep the flags
 
 
+    void setImmediateFlags(size_t i)
+    {
+        emit(0x67);
+        pc.Iflags |= CFaddrsize;
+        if (!global.params.is64bit)
+            amods[i] = _addr16;
+        else
+            amods[i] = _addr32;
+        opnds[i].usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
+        opnds[i].usFlags |= CONSTRUCT_FLAGS(0,0,amods[i],0);
+    }
+
     void setCodeForImmediate(ref OPND opnd, uint sizeMask){
         Declaration d = opnd.s ? opnd.s.isDeclaration() : null;
         if (opnd.bSeg)
@@ -1302,7 +1314,7 @@ code *asm_emit(Loc loc,
         }
     }
 
-    code* finalizeCode()
+    static code* finalizeCode(Loc loc, code* pc, PTRNTAB ptb)
     {
         if ((pc.Iop & ~7) == 0xD8 &&
             ADDFWAIT &&
@@ -1406,17 +1418,7 @@ code *asm_emit(Loc loc,
                  )
                 )
               )
-            {
-                emit(0x67);
-                pc.Iflags |= CFaddrsize;
-                if (!global.params.is64bit)
-                    amods[1] = _addr16;
-                else
-                    amods[1] = _addr32;
-                opnds[1].usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
-                opnds[1].usFlags |= CONSTRUCT_FLAGS(0,0,amods[1],0);
-            }
-
+                setImmediateFlags(1);
 
         /* Fall through, operand 1 controls the opsize, but the
             address size can be in either operand 1 or operand 2,
@@ -1432,16 +1434,7 @@ code *asm_emit(Loc loc,
                    (uSizemaskTable[0] & _16 && aoptyTable[0] == _rel) ||
                     (uSizemaskTable[0] & _32 && aoptyTable[0] == _mnoi) ||
                     (ptb.pptb1.usFlags & _16_bit_addr))))
-            {
-                emit(0x67);     // address size prefix
-                pc.Iflags |= CFaddrsize;
-                if (!global.params.is64bit)
-                    amods[0] = _addr16;
-                else
-                    amods[0] = _addr32;
-                opnds[0].usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
-                opnds[0].usFlags |= CONSTRUCT_FLAGS(0,0,amods[0],0);
-            }
+                setImmediateFlags(0);
 
             // If the size of the operand is unknown, assume that it is
             // the default size
@@ -1649,7 +1642,7 @@ code *asm_emit(Loc loc,
         emit(pc.Ivex.op);
         if (popndTmp && aoptyTmp == _imm)
             setCodeForImmediate(*popndTmp, uSizemaskTmp);
-        return finalizeCode();
+        return finalizeCode(loc, pc, ptb);
     }
     else if ((opcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
     {
@@ -1715,7 +1708,7 @@ code *asm_emit(Loc loc,
             if (opcode == 0xDFE0) // FSTSW AX
             {
                 pc.Irm = puc[0];
-                return finalizeCode();
+                return finalizeCode(loc, pc, ptb);
             }
             if (asmstate.ucItype == ITfloat)
             {
@@ -1996,7 +1989,7 @@ L3:
             setCodeForImmediate(opnds[2], uSizemaskTable[2]);
         break;
     }
-    return finalizeCode();
+    return finalizeCode(loc, pc, ptb);
 }
 
 
