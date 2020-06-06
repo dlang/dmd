@@ -29,7 +29,7 @@ struct DString : public DArray<const char>
     DString() : DArray() { }
 
     DString(const char *ptr)
-        : DArray(strlen(ptr), ptr) { }
+        : DArray(ptr ? strlen(ptr) : 0, ptr) { }
 
     DString(size_t length, const char *ptr)
         : DArray(length, ptr) { }
