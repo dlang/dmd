@@ -3449,7 +3449,6 @@ struct Pool
         }
     }
 
-    pragma(inline,true)
     void setPointerBitmapSmall(void* p, size_t s, size_t allocSize, uint attr, const TypeInfo ti) nothrow
     {
         if (!(attr & BlkAttr.NO_SCAN))
