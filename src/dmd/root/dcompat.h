@@ -26,13 +26,13 @@ struct DArray
 
 struct DString : public DArray<const char>
 {
-    DString() : DArray() { }
+    DString() : DArray<const char>() { }
 
     DString(const char *ptr)
-        : DArray(strlen(ptr), ptr) { }
+        : DArray<const char>(ptr ? strlen(ptr) : 0, ptr) { }
 
     DString(size_t length, const char *ptr)
-        : DArray(length, ptr) { }
+        : DArray<const char>(length, ptr) { }
 };
 
 /// Corresponding C++ type that maps to D size_t

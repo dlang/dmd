@@ -69,6 +69,7 @@ static void frontend_init()
     global._init();
     global.params.isLinux = true;
     global.vendor = "Front-End Tester";
+    global.params.objname = NULL;
 
     Type::_init();
     Id::initialize();
