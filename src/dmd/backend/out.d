@@ -663,9 +663,9 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
             break;
 
         case 2:
-            for (int i = 0; i < len; ++i)
+            foreach (i; 0 .. len)
             {
-                const(ushort)* p = cast(const(ushort)*)str;
+                auto p = cast(const(ushort)*)str;
                 if (p[i] == 0)
                 {
                     s.Sseg = CDATA;
@@ -675,9 +675,9 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
             break;
 
         case 4:
-            for (int i = 0; i < len; ++i)
+            foreach (i; 0 .. len)
             {
-                const(uint)* p = cast(const(uint)*)str;
+                auto p = cast(const(uint)*)str;
                 if (p[i] == 0)
                 {
                     s.Sseg = CDATA;
