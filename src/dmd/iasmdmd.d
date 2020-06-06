@@ -1644,6 +1644,7 @@ code *asm_emit(Loc loc,
             setCodeForImmediate(*popndTmp, uSizemaskTmp);
         return finalizeCode(loc, pc, ptb);
     }
+
     else if ((opcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
     {
         emit(0xFF);
@@ -1943,47 +1944,35 @@ L3:
         else
         {
 
-            if (((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
-                 amodTable[0] == _normal &&
-                 (uRegmaskTable[0] &_rplus_r)))
+            bool setRegisterProperties(int i)
             {
-                uint reg = opnds[0].base.val;
-                if (reg & 8)
+                if (((aoptyTable[i] == _reg || aoptyTable[i] == _float) &&
+                     amodTable[i] == _normal &&
+                     (uRegmaskTable[i] &_rplus_r)))
                 {
-                    reg &= 7;
-                    pc.Irex |= REX_B;
-                    assert(global.params.is64bit);
+                    uint reg = opnds[i].base.val;
+                    if (reg & 8)
+                    {
+                        reg &= 7;
+                        pc.Irex |= REX_B;
+                        assert(global.params.is64bit);
+                    }
+                    if (asmstate.ucItype == ITfloat)
+                        pc.Irm += reg;
+                    else
+                        pc.Iop += reg;
+                    debug auchOpcode[usIdx-1] += reg;
+                    return true;
                 }
-                if (asmstate.ucItype == ITfloat)
-                    pc.Irm += reg;
-                else
-                    pc.Iop += reg;
-                debug auchOpcode[usIdx-1] += reg;
+                return false;
             }
-            else if (((aoptyTable[1] == _reg || aoptyTable[1] == _float) &&
-                 amodTable[1] == _normal &&
-                 (uRegmaskTable[1] &_rplus_r)))
-            {
-                uint reg = opnds[0].base.val;
-                if (reg & 8)
-                {
-                    reg &= 7;
-                    pc.Irex |= REX_B;
-                    assert(global.params.is64bit);
-                }
-                if (asmstate.ucItype == ITfloat)
-                    pc.Irm += reg;
-                else
-                    pc.Iop += reg;
-                debug auchOpcode[usIdx-1] += reg;
-            }
-            else
+
+            if(!setRegisterProperties(0) && !setRegisterProperties(1))
                 asm_make_modrm_byte(
                     auchOpcode.ptr, &usIdx,
                     pc,
                     ptb.pptb1.usFlags,
                     opnds[0 .. 2]);
-
         }
         if (aoptyTable[2] == _imm)
             setCodeForImmediate(opnds[2], uSizemaskTable[2]);
