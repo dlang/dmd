@@ -2413,7 +2413,7 @@ else
                 return;
             }
         }
-        else if (ps.ident == Id.Pinline)
+        else if (ps.ident == Id.Pinline) // https://dlang.org/spec/pragma.html#inline
         {
             PINLINE inlining = PINLINE.default_;
             if (!ps.args || ps.args.dim == 0)
@@ -2437,13 +2437,19 @@ else
                 else if (e.isBool(false))
                     inlining = PINLINE.never;
 
-                    FuncDeclaration fd = sc.func;
-                if (!fd)
+                if (FuncDeclaration fd = sc.func)
                 {
-                    ps.error("`pragma(inline)` is not inside a function");
-                    return setError();
+                    /* Allow only if semantic analysis will be done before function is called
+                     */
+                    if (!fd.isFuncLiteralDeclaration() &&
+                        !fd.inferRetType &&
+                        !fd.toParent2().isFuncDeclaration() &&
+                        !fd.isInstantiated())
+                    {
+                        ps.deprecation("move `pragma(inline)` outside of function `%s`", fd.toChars());
+                    }
+                    fd.inlining = inlining;
                 }
-                fd.inlining = inlining;
             }
         }
         else if (!global.params.ignoreUnsupportedPragmas)
