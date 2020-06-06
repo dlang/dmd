@@ -8514,7 +8514,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
-        exp.e1.checkSharedAccess(sc);
+        if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
+            exp.e1.checkSharedAccess(sc);
 
         /* Inside constructor, if this is the first assignment of object field,
          * rewrite this to initializing the field.

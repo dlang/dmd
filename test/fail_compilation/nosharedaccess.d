@@ -68,3 +68,10 @@ void test3(shared int k)
     func(k);
 }
 
+/**************************************/
+
+void test4() // no errors for initialization
+{
+    shared int x;
+    shared int y = 3;
+}
