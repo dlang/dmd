@@ -227,6 +227,7 @@ void test5()
 
 /********************************************/
 // inline tests
+// http://issues.dlang.org/show_bug.cgi?id=14730
 
 void test6a()
 {
