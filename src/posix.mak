@@ -265,7 +265,7 @@ DMD_OBJS = \
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o rootobject.o \
-	filename.o file.o async.o checkedint.o \
+	filename.o file.o checkedint.o \
 	newdelete.o ctfloat.o
 
 GLUE_OBJS = \
@@ -336,7 +336,7 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/man.c $(ROOT)/newdelete.c \
 	$(ROOT)/checkedint.h $(ROOT)/checkedint.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
-	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
+	$(ROOT)/response.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
 	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c \

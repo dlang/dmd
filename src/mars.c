@@ -21,7 +21,6 @@
 
 #include "root/rmem.h"
 #include "root/root.h"
-#include "root/async.h"
 #include "target.h"
 #include "root/file.h"
 #include "root/filename.h"
@@ -1413,24 +1412,11 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-#define ASYNCREAD 1
-#if ASYNCREAD
-    // Multi threaded
-    AsyncRead *aw = AsyncRead::create(modules.length);
-    for (size_t i = 0; i < modules.length; i++)
-    {
-        Module *m = modules[i];
-        aw->addFile(m->srcfile);
-    }
-    aw->start();
-#else
-    // Single threaded
     for (size_t i = 0; i < modules.length; i++)
     {
         Module *m = modules[i];
         m->read(Loc());
     }
-#endif
 
     // Parse files
     bool anydocfiles = false;
@@ -1445,13 +1431,6 @@ Language changes listed by -transition=id:\n\
         m->importedFrom = m;    // m->isRoot() == true
         if (!global.params.oneobj || modi == 0 || m->isDocFile)
             m->deleteObjFile();
-#if ASYNCREAD
-        if (aw->read(filei))
-        {
-            error(Loc(), "cannot read file %s", m->srcfile->name->toChars());
-            fatal();
-        }
-#endif
         m->parse();
         if (m->isDocFile)
         {
@@ -1476,9 +1455,6 @@ Language changes listed by -transition=id:\n\
                 global.params.link = false;
         }
     }
-#if ASYNCREAD
-    AsyncRead::dispose(aw);
-#endif
 
     if (anydocfiles && modules.length &&
         (global.params.oneobj || global.params.objname.length))

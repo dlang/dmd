@@ -182,7 +182,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 
 # Root package
 ROOTOBJS= man.obj port.obj checkedint.obj \
-	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
+	stringtable.obj response.obj speller.obj aav.obj outbuffer.obj \
 	rootobject.obj filename.obj file.obj \
 	rmem.obj newdelete.obj ctfloat.obj
 
@@ -242,14 +242,13 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
 ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
-	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
+	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
 	$(ROOT)\checkedint.c $(ROOT)\newdelete.c \
 	$(ROOT)\outbuffer.c $(ROOT)\rootobject.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
-	$(ROOT)\async.h \
 	$(ROOT)\checkedint.h \
 	$(ROOT)\speller.h \
 	$(ROOT)\aav.h \
@@ -645,9 +644,6 @@ tk.obj : tk.c
 # Root
 aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
 	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
-
-async.obj : $(ROOT)\async.h $(ROOT)\async.c
-	$(CC) -c $(CFLAGS) $(ROOT)\async.c
 
 checkedint.obj : $(ROOT)\checkedint.h $(ROOT)\checkedint.c
 	$(CC) -c $(CFLAGS) $(ROOT)\checkedint.c
