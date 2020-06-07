@@ -1147,7 +1147,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                      * so instead append the library name to the list to be passed
                      * to the linker.
                      */
-                    global.params.libfiles->push(name);
+                    global.params.libfiles.push(name);
                 }
             }
             else if (pd->ident == Id::startaddress)
