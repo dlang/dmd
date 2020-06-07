@@ -287,9 +287,9 @@ void Port::writelongLE(unsigned value, void* buffer)
 }
 
 // Little endian
-unsigned Port::readlongLE(void* buffer)
+unsigned Port::readlongLE(const void* buffer)
 {
-    unsigned char *p = (unsigned char*)buffer;
+    const unsigned char *p = (const unsigned char*)buffer;
     return (((((p[3] << 8) | p[2]) << 8) | p[1]) << 8) | p[0];
 }
 
@@ -304,23 +304,23 @@ void Port::writelongBE(unsigned value, void* buffer)
 }
 
 // Big endian
-unsigned Port::readlongBE(void* buffer)
+unsigned Port::readlongBE(const void* buffer)
 {
-    unsigned char *p = (unsigned char*)buffer;
+    const unsigned char *p = (const unsigned char*)buffer;
     return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
 }
 
 // Little endian
-unsigned Port::readwordLE(void *buffer)
+unsigned Port::readwordLE(const void *buffer)
 {
-    unsigned char *p = (unsigned char*)buffer;
+    const unsigned char *p = (const unsigned char*)buffer;
     return (p[1] << 8) | p[0];
 }
 
 // Big endian
-unsigned Port::readwordBE(void *buffer)
+unsigned Port::readwordBE(const void *buffer)
 {
-    unsigned char *p = (unsigned char*)buffer;
+    const unsigned char *p = (const unsigned char*)buffer;
     return (p[0] << 8) | p[1];
 }
 
