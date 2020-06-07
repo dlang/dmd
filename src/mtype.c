@@ -8678,7 +8678,7 @@ L1:
             return e;
         }
 
-        if (ident == Id::__monitor)
+        if (ident == Id::__monitor && sym->hasMonitor())
         {
             /* The handle to the monitor (call it a void*)
              * *(cast(void**)e + 1)
