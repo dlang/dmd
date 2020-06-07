@@ -54,20 +54,20 @@ int cvMember(Dsymbol *s, unsigned char *p);
  * Convert D protection attribute to cv attribute.
  */
 
-unsigned PROTtoATTR(PROTKIND prot)
+unsigned PROTtoATTR(Prot::Kind prot)
 {
     unsigned attribute;
 
     switch (prot)
     {
-        case PROTprivate:       attribute = 1;  break;
-        case PROTpackage:       attribute = 2;  break;
-        case PROTprotected:     attribute = 2;  break;
-        case PROTpublic:        attribute = 3;  break;
-        case PROTexport:        attribute = 3;  break;
+        case Prot::private_:       attribute = 1;  break;
+        case Prot::package_:       attribute = 2;  break;
+        case Prot::protected_:     attribute = 2;  break;
+        case Prot::public_:        attribute = 3;  break;
+        case Prot::export_:        attribute = 3;  break;
 
-        case PROTundefined:
-        case PROTnone:
+        case Prot::undefined:
+        case Prot::none:
         default:
             //printf("prot = %d\n", prot);
             assert(0);
@@ -676,7 +676,7 @@ void toDebug(ClassDeclaration *cd)
             {
                 BaseClass *bc = (*cd->baseclasses)[i];
                 idx_t typidx = cv4_typidx(Type_toCtype(bc->sym->type)->Tnext);
-                unsigned attribute = PROTtoATTR(PROTpublic);
+                unsigned attribute = PROTtoATTR(Prot::public_);
 
                 unsigned elementlen;
                 switch (config.fulltypes)
