@@ -267,7 +267,7 @@ int runLINK()
                 cmdbuf.writestring("\\lib\"");
         }
 
-        char *p = cmdbuf.peekString();
+        char *p = cmdbuf.peekChars();
 
         const char *lnkfilename = NULL;
         size_t plen = strlen(p);
@@ -296,7 +296,7 @@ int runLINK()
                     linkcmdbuf.writestring("\\bin\\amd64\\link");
                 else
                     linkcmdbuf.writestring("\\bin\\link");
-                linkcmd = linkcmdbuf.extractString();
+                linkcmd = linkcmdbuf.extractChars();
             }
             else
                 linkcmd = "link";
@@ -418,7 +418,7 @@ int runLINK()
         }
         cmdbuf.writeByte(';');
 
-        char *p = cmdbuf.peekString();
+        char *p = cmdbuf.peekChars();
 
         const char *lnkfilename = NULL;
         size_t plen = strlen(p);

@@ -117,7 +117,7 @@ void obj_write_deferred(Library *library)
          */
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m->ident->toChars() : mname, count);
-        char *idstr = idbuf.peekString();
+        char *idstr = idbuf.peekChars();
 
         if (!m)
         {
@@ -152,7 +152,7 @@ void obj_write_deferred(Library *library)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext.ptr);
         FileName::free((char *)fname);
-        fname = namebuf.extractString();
+        fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
         File *objfile = File::create(fname);

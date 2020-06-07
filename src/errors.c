@@ -221,7 +221,7 @@ void verrorPrint(const Loc& loc, COLOR headerColor, const char *header, const ch
         fprintf(stderr, "%s ", p2);
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fprintf(stderr, "%s\n", tmp.peekString());
+    fprintf(stderr, "%s\n", tmp.peekChars());
     fflush(stderr);
 }
 
@@ -295,7 +295,7 @@ void vmessage(const Loc &loc, const char *format, va_list ap)
     }
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fputs(tmp.peekString(), stdout);
+    fputs(tmp.peekChars(), stdout);
     fputc('\n', stdout);
     fflush(stdout);     // ensure it gets written out in case of compiler aborts
 }

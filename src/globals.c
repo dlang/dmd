@@ -114,7 +114,7 @@ const char *Loc::toChars() const
             buf.printf(",%d", charnum);
         buf.writeByte(')');
     }
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 Loc::Loc(const char *filename, unsigned linnum, unsigned charnum)

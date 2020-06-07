@@ -1324,7 +1324,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             buffer.writestring(s->Sident);
             buffer.write("$tlv$init", 9);
 
-            const char *tlvInitName = buffer.extractString();
+            const char *tlvInitName = buffer.extractChars();
             Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, type_fake(vd->type->ty));
             tlvInit->Sdt = NULL;
             tlvInit->Salignment = type_alignsize(s->Stype);
