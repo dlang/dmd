@@ -234,12 +234,6 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useDeprecated = 2;
     global.params.cplusplus = CppStdRevisionCpp98;
 
-    global.params.linkswitches = new Strings();
-    global.params.libfiles = new Strings();
-    global.params.dllfiles = new Strings();
-    global.params.objfiles = new Strings();
-    global.params.ddocfiles = new Strings();
-
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (sizeof(size_t) == 8);
     global.params.mscoff = false;
@@ -859,7 +853,7 @@ Language changes listed by -transition=id:\n\
                 global.params.debugy = true;
             else if (p[1] == 'L')
             {
-                global.params.linkswitches->push(p + 2);
+                global.params.linkswitches.push(p + 2);
             }
             else if (memcmp(p + 1, "defaultlib=", 11) == 0)
             {
@@ -1285,14 +1279,14 @@ Language changes listed by -transition=id:\n\
              */
             if (FileName::equals(ext, global.obj_ext.ptr))
             {
-                global.params.objfiles->push(files[i]);
+                global.params.objfiles.push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.lib_ext.ptr))
             {
-                global.params.libfiles->push(files[i]);
+                global.params.libfiles.push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
@@ -1300,7 +1294,7 @@ Language changes listed by -transition=id:\n\
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (FileName::equals(ext, global.dll_ext.ptr))
             {
-                global.params.dllfiles->push(files[i]);
+                global.params.dllfiles.push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
@@ -1308,7 +1302,7 @@ Language changes listed by -transition=id:\n\
 
             if (strcmp(ext, global.ddoc_ext.ptr) == 0)
             {
-                global.params.ddocfiles->push(files[i]);
+                global.params.ddocfiles.push(files[i]);
                 continue;
             }
 
@@ -1387,7 +1381,7 @@ Language changes listed by -transition=id:\n\
         modules.push(m);
 
         if (firstmodule)
-        {   global.params.objfiles->push(m->objfile->name->str);
+        {   global.params.objfiles.push(m->objfile->name->str);
             firstmodule = false;
         }
     }
@@ -1442,16 +1436,16 @@ Language changes listed by -transition=id:\n\
             modi--;
 
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < global.params.objfiles->length; j++)
+            for (size_t j = 0; j < global.params.objfiles.length; j++)
             {
-                if (m->objfile->name->str == (*global.params.objfiles)[j])
+                if (m->objfile->name->str == global.params.objfiles[j])
                 {
-                    global.params.objfiles->remove(j);
+                    global.params.objfiles.remove(j);
                     break;
                 }
             }
 
-            if (global.params.objfiles->length == 0)
+            if (global.params.objfiles.length == 0)
                 global.params.link = false;
         }
     }
@@ -1617,7 +1611,7 @@ Language changes listed by -transition=id:\n\
             else
             {
                 // Generate json file name from first obj name
-                const char *n = (*global.params.objfiles)[0];
+                const char *n = global.params.objfiles[0];
                 n = FileName::name(n);
 
                 //if (!FileName::absolute(name))
@@ -1694,7 +1688,7 @@ Language changes listed by -transition=id:\n\
         fatal();
 
     int status = EXIT_SUCCESS;
-    if (!global.params.objfiles->length)
+    if (!global.params.objfiles.length)
     {
         if (global.params.link)
             error(Loc(), "no object files to link");

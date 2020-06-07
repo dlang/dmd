@@ -149,11 +149,11 @@ int runLINK()
 
         cmdbuf.writestring("/NOLOGO ");
 
-        for (size_t i = 0; i < global.params.objfiles->length; i++)
+        for (size_t i = 0; i < global.params.objfiles.length; i++)
         {
             if (i)
                 cmdbuf.writeByte(' ');
-            const char *p = (*global.params.objfiles)[i];
+            const char *p = global.params.objfiles[i];
             const char *basename = FileName::removeExt(FileName::name(p));
             const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
@@ -181,7 +181,7 @@ int runLINK()
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
              */
-            const char *n = (*global.params.objfiles)[0];
+            const char *n = global.params.objfiles[0];
             n = FileName::name(n);
             global.params.exefile = (char *)FileName::forceExt(n, "exe");
         }
@@ -209,11 +209,11 @@ int runLINK()
             writeFilename(&cmdbuf, p);
         }
 
-        for (size_t i = 0; i < global.params.libfiles->length; i++)
+        for (size_t i = 0; i < global.params.libfiles.length; i++)
         {
             cmdbuf.writeByte(' ');
             cmdbuf.writestring("/DEFAULTLIB:");
-            writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
+            writeFilename(&cmdbuf, global.params.libfiles[i]);
         }
 
         if (global.params.deffile.length)
@@ -239,10 +239,10 @@ int runLINK()
             cmdbuf.writestring("/DLL");
         }
 
-        for (size_t i = 0; i < global.params.linkswitches->length; i++)
+        for (size_t i = 0; i < global.params.linkswitches.length; i++)
         {
             cmdbuf.writeByte(' ');
-            cmdbuf.writestring((*global.params.linkswitches)[i]);
+            cmdbuf.writestring(global.params.linkswitches[i]);
         }
 
         /* Append the path to the VC lib files, and then the SDK lib files
@@ -313,14 +313,14 @@ int runLINK()
     {
         OutBuffer cmdbuf;
 
-        global.params.libfiles->push("user32");
-        global.params.libfiles->push("kernel32");
+        global.params.libfiles.push("user32");
+        global.params.libfiles.push("kernel32");
 
-        for (size_t i = 0; i < global.params.objfiles->length; i++)
+        for (size_t i = 0; i < global.params.objfiles.length; i++)
         {
             if (i)
                 cmdbuf.writeByte('+');
-            const char *p = (*global.params.objfiles)[i];
+            const char *p = global.params.objfiles[i];
             const char *basename = FileName::removeExt(FileName::name(p));
             const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
@@ -339,7 +339,7 @@ int runLINK()
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
              */
-            const char *n = (*global.params.objfiles)[0];
+            const char *n = global.params.objfiles[0];
             n = FileName::name(n);
             global.params.exefile = (char *)FileName::forceExt(n, "exe");
         }
@@ -367,11 +367,11 @@ int runLINK()
             cmdbuf.writestring("nul");
         cmdbuf.writeByte(',');
 
-        for (size_t i = 0; i < global.params.libfiles->length; i++)
+        for (size_t i = 0; i < global.params.libfiles.length; i++)
         {
             if (i)
                 cmdbuf.writeByte('+');
-            writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
+            writeFilename(&cmdbuf, global.params.libfiles[i]);
         }
 
         if (global.params.deffile.length)
@@ -412,9 +412,9 @@ int runLINK()
 #endif
 
         cmdbuf.writestring("/noi");
-        for (size_t i = 0; i < global.params.linkswitches->length; i++)
+        for (size_t i = 0; i < global.params.linkswitches.length; i++)
         {
-            cmdbuf.writestring((*global.params.linkswitches)[i]);
+            cmdbuf.writestring(global.params.linkswitches[i]);
         }
         cmdbuf.writeByte(';');
 
@@ -456,7 +456,7 @@ int runLINK()
     if (!cc)
         cc = "gcc";
     argv.push(cc);
-    argv.insert(1, global.params.objfiles);
+    argv.insert(1, &global.params.objfiles);
 
 #if __APPLE__
     // If we are on Mac OS X and linking a dynamic library,
@@ -507,7 +507,7 @@ int runLINK()
     }
     else
     {   // Generate exe file name from first obj name
-        const char *n = (*global.params.objfiles)[0];
+        const char *n = global.params.objfiles[0];
         char *ex;
 
         n = FileName::name(n);
@@ -580,8 +580,8 @@ int runLINK()
         argv.push("--gc-sections");
     }
 
-    for (size_t i = 0; i < global.params.linkswitches->length; i++)
-    {   const char *p = (*global.params.linkswitches)[i];
+    for (size_t i = 0; i < global.params.linkswitches.length; i++)
+    {   const char *p = global.params.linkswitches[i];
         if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
         {
             // Don't need -Xlinker if switch starts with -l or -L.
@@ -600,8 +600,8 @@ int runLINK()
      *     to global.params.libfiles.
      *  4. standard libraries.
      */
-    for (size_t i = 0; i < global.params.libfiles->length; i++)
-    {   const char *p = (*global.params.libfiles)[i];
+    for (size_t i = 0; i < global.params.libfiles.length; i++)
+    {   const char *p = global.params.libfiles[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
             argv.push(p);
@@ -615,9 +615,9 @@ int runLINK()
         }
     }
 
-    for (size_t i = 0; i < global.params.dllfiles->length; i++)
+    for (size_t i = 0; i < global.params.dllfiles.length; i++)
     {
-        const char *p = (*global.params.dllfiles)[i];
+        const char *p = global.params.dllfiles[i];
         argv.push(p);
     }
 

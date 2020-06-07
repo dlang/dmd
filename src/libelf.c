@@ -95,7 +95,7 @@ void LibElf::setFilename(const char *dir, const char *filename)
     const char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        const char *n = (*global.params.objfiles)[0];
+        const char *n = global.params.objfiles[0];
 
         n = FileName::name(n);
         arg = FileName::forceExt(n, global.lib_ext.ptr);
