@@ -2618,6 +2618,125 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
 }
 
 /**
+Creates the module based on the file provided
+
+The file is dispatched in one of the various arrays
+(global.params.{ddocfiles,dllfiles,jsonfiles,etc...})
+according to its extension.
+If it is a binary file, it is added to libmodules.
+
+Params:
+  file = File name to dispatch
+  libmodules = Array to which binaries (shared/static libs and object files)
+               will be appended
+
+Returns:
+  A D module
+*/
+Module createModule(const(char)* file, ref Strings libmodules)
+{
+    const(char)[] name;
+    version (Windows)
+    {
+        file = toWinPath(file);
+    }
+    const(char)[] p = file.toDString();
+    p = FileName.name(p); // strip path
+    const(char)[] ext = FileName.ext(p);
+    if (!ext)
+    {
+        if (!p.length)
+        {
+            error(Loc.initial, "invalid file name '%s'", file);
+            fatal();
+        }
+        auto id = Identifier.idPool(p);
+        return new Module(file.toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
+    }
+
+    /* Deduce what to do with a file based on its extension
+        */
+    if (FileName.equals(ext, global.obj_ext))
+    {
+        global.params.objfiles.push(file);
+        libmodules.push(file);
+        return null;
+    }
+    if (FileName.equals(ext, global.lib_ext))
+    {
+        global.params.libfiles.push(file);
+        libmodules.push(file);
+        return null;
+    }
+    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+    {
+        if (FileName.equals(ext, global.dll_ext))
+        {
+            global.params.dllfiles.push(file);
+            libmodules.push(file);
+            return null;
+        }
+    }
+    if (ext == global.ddoc_ext)
+    {
+        global.params.ddocfiles.push(file);
+        return null;
+    }
+    if (FileName.equals(ext, global.json_ext))
+    {
+        global.params.doJsonGeneration = true;
+        global.params.jsonfilename = file.toDString;
+        return null;
+    }
+    if (FileName.equals(ext, global.map_ext))
+    {
+        global.params.mapfile = file.toDString;
+        return null;
+    }
+    static if (TARGET.Windows)
+    {
+        if (FileName.equals(ext, "res"))
+        {
+            global.params.resfile = file.toDString;
+            return null;
+        }
+        if (FileName.equals(ext, "def"))
+        {
+            global.params.deffile = file.toDString;
+            return null;
+        }
+        if (FileName.equals(ext, "exe"))
+        {
+            assert(0); // should have already been handled
+        }
+    }
+    /* Examine extension to see if it is a valid
+        * D source file extension
+        */
+    if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
+    {
+        name = FileName.removeExt(p);
+        if (!name.length || name == ".." || name == ".")
+        {
+            error(Loc.initial, "invalid file name '%s'", file);
+            fatal();
+        }
+    }
+    else
+    {
+        error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
+        fatal();
+    }
+
+    /* At this point, name is the D source file name stripped of
+     * its path and extension.
+     */
+    auto id = Identifier.idPool(name);
+
+    return new Module(file.toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
+}
+
+/**
 Creates the list of modules based on the files provided
 
 Files are dispatched in the various arrays
@@ -2640,102 +2759,11 @@ Modules createModules(ref Strings files, ref Strings libmodules)
     bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
-        const(char)[] name;
-        version (Windows)
-        {
-            files[i] = toWinPath(files[i]);
-        }
-        const(char)[] p = files[i].toDString();
-        p = FileName.name(p); // strip path
-        const(char)[] ext = FileName.ext(p);
-        if (ext)
-        {
-            /* Deduce what to do with a file based on its extension
-             */
-            if (FileName.equals(ext, global.obj_ext))
-            {
-                global.params.objfiles.push(files[i]);
-                libmodules.push(files[i]);
-                continue;
-            }
-            if (FileName.equals(ext, global.lib_ext))
-            {
-                global.params.libfiles.push(files[i]);
-                libmodules.push(files[i]);
-                continue;
-            }
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                if (FileName.equals(ext, global.dll_ext))
-                {
-                    global.params.dllfiles.push(files[i]);
-                    libmodules.push(files[i]);
-                    continue;
-                }
-            }
-            if (ext == global.ddoc_ext)
-            {
-                global.params.ddocfiles.push(files[i]);
-                continue;
-            }
-            if (FileName.equals(ext, global.json_ext))
-            {
-                global.params.doJsonGeneration = true;
-                global.params.jsonfilename = files[i].toDString;
-                continue;
-            }
-            if (FileName.equals(ext, global.map_ext))
-            {
-                global.params.mapfile = files[i].toDString;
-                continue;
-            }
-            static if (TARGET.Windows)
-            {
-                if (FileName.equals(ext, "res"))
-                {
-                    global.params.resfile = files[i].toDString;
-                    continue;
-                }
-                if (FileName.equals(ext, "def"))
-                {
-                    global.params.deffile = files[i].toDString;
-                    continue;
-                }
-                if (FileName.equals(ext, "exe"))
-                {
-                    assert(0); // should have already been handled
-                }
-            }
-            /* Examine extension to see if it is a valid
-             * D source file extension
-             */
-            if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
-            {
-                name = FileName.removeExt(p);
-                if (!name.length || name == ".." || name == ".")
-                {
-                Linvalid:
-                    error(Loc.initial, "invalid file name '%s'", files[i]);
-                    fatal();
-                }
-            }
-            else
-            {
-                error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
-                fatal();
-            }
-        }
-        else
-        {
-            name = p;
-            if (!name.length)
-                goto Linvalid;
-        }
-        /* At this point, name is the D source file name stripped of
-         * its path and extension.
-         */
-        auto id = Identifier.idPool(name);
-        auto m = new Module(files[i].toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
+        auto m = createModule(files[i], libmodules);
+
+        if (m is null)
+            continue;
+
         modules.push(m);
         if (firstmodule)
         {

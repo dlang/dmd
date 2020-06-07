@@ -57,6 +57,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.compiler;
 
 /*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
@@ -123,8 +124,15 @@ private Expression checkAssignmentAsCondition(Expression e)
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
+    version (CallbackAPI)
+        Compiler.onStatementSemanticStart(s, sc);
+
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
+
+    version (CallbackAPI)
+        Compiler.onStatementSemanticDone(s, sc);
+
     return v.result;
 }
 
