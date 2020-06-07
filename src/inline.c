@@ -279,12 +279,12 @@ Expression *doInline(Statement *s, InlineDoState *ids)
             }
             else if (e1)
             {
-                result = new AndAndExp(econd->loc, econd, e1);
+                result = new LogicalExp(econd->loc, TOKandand, econd, e1);
                 result->type = Type::tvoid;
             }
             else if (e2)
             {
-                result = new OrOrExp(econd->loc, econd, e2);
+                result = new LogicalExp(econd->loc, TOKoror, econd, e2);
                 result->type = Type::tvoid;
             }
             else
