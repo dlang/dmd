@@ -72,7 +72,7 @@ public:
 
     void visit(TypeFunction *t)
     {
-        size_t nparams = Parameter::dim(t->parameters);
+        size_t nparams = t->parameterList.length();
 
         type *tmp[10];
         type **ptypes = tmp;
@@ -81,7 +81,7 @@ public:
 
         for (size_t i = 0; i < nparams; i++)
         {
-            Parameter *p = Parameter::getNth(t->parameters, i);
+            Parameter *p = t->parameterList[i];
             type *tp = Type_toCtype(p->type);
             if (p->storageClass & (STCout | STCref))
                 tp = type_allocn(TYnref, tp);
@@ -94,7 +94,7 @@ public:
             ptypes[i] = tp;
         }
 
-        t->ctype = type_function(totym(t), ptypes, nparams, t->varargs == 1, Type_toCtype(t->next));
+        t->ctype = type_function(totym(t), ptypes, nparams, t->parameterList.varargs == 1, Type_toCtype(t->next));
 
         if (nparams > 10)
             free(ptypes);

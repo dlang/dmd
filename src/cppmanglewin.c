@@ -924,7 +924,7 @@ private:
         else if (p->storageClass & STClazy)
         {
             // Mangle as delegate
-            Type *td = new TypeFunction(NULL, t, 0, LINKd);
+            Type *td = new TypeFunction(ParameterList(), t, LINKd);
             td = new TypeDelegate(td);
             t = t->merge();
         }
@@ -957,7 +957,7 @@ private:
                     tmp.buf.writeByte('A');
                     break;
                 case LINKcpp:
-                    if (needthis && type->varargs != 1)
+                    if (needthis && type->parameterList.varargs != VARARGvariadic)
                         tmp.buf.writeByte('E'); // thiscall
                     else
                         tmp.buf.writeByte('A'); // cdecl
@@ -1005,17 +1005,17 @@ private:
             rettype->accept(&tmp);
             tmp.flags &= ~MANGLE_RETURN_TYPE;
         }
-        if (!type->parameters || !type->parameters->length)
+        if (!type->parameterList.parameters || !type->parameterList.parameters->length)
         {
-            if (type->varargs == 1)
+            if (type->parameterList.varargs == VARARGvariadic)
                 tmp.buf.writeByte('Z');
             else
                 tmp.buf.writeByte('X');
         }
         else
         {
-            Parameter_foreach(type->parameters, &mangleParameterDg, (void*)&tmp);
-            if (type->varargs == 1)
+            Parameter_foreach(type->parameterList.parameters, &mangleParameterDg, (void*)&tmp);
+            if (type->parameterList.varargs == VARARGvariadic)
             {
                 tmp.buf.writeByte('Z');
             }
