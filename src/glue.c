@@ -150,7 +150,7 @@ void obj_write_deferred(Library *library)
         unsigned hash = 0;
         for (const char *p = s->toChars(); *p; p++)
             hash += *p;
-        namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
+        namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext.ptr);
         FileName::free((char *)fname);
         fname = namebuf.extractString();
 
@@ -838,8 +838,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     else
     {
         const char *libname = (global.params.symdebug)
-                                ? global.params.debuglibname
-                                : global.params.defaultlibname;
+                                ? global.params.debuglibname.ptr
+                                : global.params.defaultlibname.ptr;
 
         // Pull in RTL startup code (but only once)
         if (fd->isMain() && onlyOneMain(fd->loc))
