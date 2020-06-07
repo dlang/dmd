@@ -269,7 +269,7 @@ void parseConfFile(StringTable *environment, const char *path, size_t length, un
         while (buf.offset && isspace(buf.data[buf.offset - 1]))
             buf.offset--;
 
-        char *p = buf.peekString();
+        char *p = buf.peekChars();
 
         // The expanded line is in p.
         // Now parse it for meaning.

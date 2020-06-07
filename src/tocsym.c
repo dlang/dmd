@@ -63,7 +63,7 @@ Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const ch
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
-    const char *n = buf.peekString();
+    const char *n = buf.peekChars();
     assert(n);
     size_t nlen = strlen(n);
 
@@ -129,7 +129,7 @@ Symbol *toSymbol(Dsymbol *s)
             {
                 OutBuffer buf;
                 mangleToBuffer(vd, &buf);
-                const char *id = buf.peekString();
+                const char *id = buf.peekChars();
                 s = symbol_calloc(id);
             }
             else

@@ -407,7 +407,7 @@ public:
         {
             assert(0);
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 private:
 
@@ -715,7 +715,7 @@ private:
                     fatal();
                 }
             }
-            name = tmp.buf.extractString();
+            name = tmp.buf.extractChars();
         }
         else
         {
@@ -1026,7 +1026,7 @@ private:
         }
 
         tmp.buf.writeByte('Z');
-        const char *ret = tmp.buf.extractString();
+        const char *ret = tmp.buf.extractChars();
         memcpy(&saved_idents, &tmp.saved_idents, sizeof(const char*) * VC_SAVED_IDENT_CNT);
         memcpy(&saved_types, &tmp.saved_types, sizeof(Type*) * VC_SAVED_TYPE_CNT);
         return ret;
