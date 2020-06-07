@@ -1094,6 +1094,10 @@ version (MARS)
                 div0:
                     error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero");
                     break;
+
+                overflow:
+                    error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "integer overflow");
+                    break;
             }
         }
 }
@@ -1104,6 +1108,7 @@ else
             if (!boolres(e2))
             {
                 div0:
+                overflow:
                     version (SCPP)
                         synerr(EM_divby0);
                     break;
@@ -1183,6 +1188,8 @@ else
             rem = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
             quo = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
         }
+        else if (l1 == 0x8000_0000_0000_0000 && l2 == -1L)
+            goto overflow;  // overflow
         else
         {
             rem = l1 % l2;
