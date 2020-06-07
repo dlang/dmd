@@ -56,10 +56,10 @@ int bug5245d(U)()
 }
 
 
-static assert(!is(typeof(Compileable!(bug5245a!(int)()).OK)));
-static assert(!is(typeof(Compileable!(bug5245b!(int)()).OK)));
-static assert(!is(typeof(Compileable!(bug5245c!(int)()).OK)));
-static assert(!is(typeof(Compileable!(bug5245d!(int)()).OK)));
+static assert(is(typeof(Compileable!(bug5245a!(int)()).OK)));
+static assert(is(typeof(Compileable!(bug5245b!(int)()).OK)));
+static assert(is(typeof(Compileable!(bug5245c!(int)()).OK)));
+static assert(is(typeof(Compileable!(bug5245d!(int)()).OK)));
 
 /**************************************/
 

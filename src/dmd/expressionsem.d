@@ -5157,12 +5157,40 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (sc.func)
             {
+                //Func Aggregate Enum or (global) Var
+                const bool isFAEV = (s.isFuncDeclaration() !is null)        ||
+                                    (s.isAggregateDeclaration() !is null)   ||
+                                    (s.isEnumDeclaration() !is null)        ||
+                                    (v && v.isDataseg());
+                //  Try to insert static decl from subscope, see https://issues.dlang.org/show_bug.cgi?id=issue 3031
+                //  ---------------------------------------------------
+                //  let the func body `{ { static T decl; } { static T decl; } }`
+                //  second `decl` insertion fails.
+                //  the fix is to replace the static decl name and use the old sym name as **local** alias,
+                //  to get            `{ { static T decl; } { static T RndID; alias decl = RndID; }`
+                //  as 1) it is not possible to link against a global var that is hidden in a func body.
+                //     2) in a func body, out of order decls are not supported so we can patch the name without affecting prior code
+                bool insertedFAEV = isFAEV ? sc.func.localsymtab.insert(s) !is null : true;
+                if (!insertedFAEV)
+                {
+                    // printf("fixing 3031, on %s at line %d\n", s.toChars(), s.loc.linnum);
+                    OutBuffer ob;
+                    ob.printf("__id_%s_L%d_C%d", s.ident.toChars(), s.loc.linnum, s.loc.charnum);
+
+                    Identifier oldID    = s.ident;
+                    s.ident             = Identifier.generateId(ob.extractSlice());
+                    AliasDeclaration ad = new AliasDeclaration(s.loc, oldID, s);
+
+                    dsymbolSemantic(s, sc);
+                    dsymbolSemantic(ad, sc);
+
+                    sc.func.localsymtab.insert(ad);
+                    sc.func.localsymtab.insert(s);
+                    insertedFAEV = true;
+                }
                 // https://issues.dlang.org/show_bug.cgi?id=11720
                 // include Dataseg variables
-                if ((s.isFuncDeclaration() ||
-                     s.isAggregateDeclaration() ||
-                     s.isEnumDeclaration() ||
-                     v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
+                if (isFAEV && !insertedFAEV)
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=18266
                     // set parent so that type semantic does not assert
@@ -5172,28 +5200,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     e.error("declaration `%s` is already defined in another scope in `%s` at line `%d`", s.toPrettyChars(), sc.func.toChars(), originalSymbol.loc.linnum);
                     return setError();
                 }
-                else
+                // Disallow shadowing
+                for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (scx.func && sc.func.fes)); scx = scx.enclosing)
                 {
-                    // Disallow shadowing
-                    for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (scx.func && sc.func.fes)); scx = scx.enclosing)
+                    Dsymbol s2;
+                    if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                     {
-                        Dsymbol s2;
-                        if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
+                        // allow STC.local symbols to be shadowed
+                        // TODO: not really an optimal design
+                        auto decl = s2.isDeclaration();
+                        if (!decl || !(decl.storage_class & STC.local))
                         {
-                            // allow STC.local symbols to be shadowed
-                            // TODO: not really an optimal design
-                            auto decl = s2.isDeclaration();
-                            if (!decl || !(decl.storage_class & STC.local))
+                            if (sc.func.fes)
                             {
-                                if (sc.func.fes)
-                                {
-                                    e.deprecation("%s `%s` is shadowing %s `%s`. Rename the `foreach` variable.", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                }
-                                else
-                                {
-                                    e.error("%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                    return setError();
-                                }
+                                e.deprecation("%s `%s` is shadowing %s `%s`. Rename the `foreach` variable.", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                            }
+                            else
+                            {
+                                e.error("%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                                return setError();
                             }
                         }
                     }
