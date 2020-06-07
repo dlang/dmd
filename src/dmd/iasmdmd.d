@@ -2309,12 +2309,8 @@ void asm_make_modrm_byte(
     bool                bSib = false;
     bool                bDisp = false;
     debug ubyte        *puc;
-    bool                bModset = false;
     Dsymbol             s;
 
-    uint                uSizemask =0;
-    ASM_OPERAND_TYPE    aopty;
-    ASM_MODIFIERS       amod;
     bool                bOffsetsym = false;
 
     version (none)
@@ -2330,9 +2326,9 @@ void asm_make_modrm_byte(
         printf("\n");
     }
 
-    uSizemask = ASM_GET_uSizemask(opnds[0].usFlags);
-    aopty = ASM_GET_aopty(opnds[0].usFlags);
-    amod = ASM_GET_amod(opnds[0].usFlags);
+    const uSizemask = ASM_GET_uSizemask(opnds[0].usFlags);
+    auto aopty = ASM_GET_aopty(opnds[0].usFlags);
+    const amod = ASM_GET_amod(opnds[0].usFlags);
     s = opnds[0].s;
     if (s)
     {
@@ -2527,6 +2523,8 @@ void asm_make_modrm_byte(
     }
     else if (amod == _addr32 || (amod == _flbl && !global.params.is64bit))
     {
+        bool bModset = false;
+
         debug (debuga)
             printf("This is an ADDR32\n");
         if (!opnds[0].pregDisp1)
