@@ -176,6 +176,10 @@ do
     auto tail = find!(c => c == ' ')(str);
     size_t len = str.length - tail.length;
 
+    import core.checkedint : mulu;
+
+    bool overflowed;
+
     for (; i < len; i++)
     {
         char c = str[i];
@@ -188,16 +192,17 @@ do
             {
                 switch (c)
                 {
+
                     case 'G':
-                        v <<= 30;
+                        v = mulu(v, 1024 * 1024 * 1024, overflowed);
                         break;
 
                     case 'M':
-                        v <<= 20;
+                        v = mulu(v, 1024 * 1024, overflowed);
                         break;
 
                     case 'K':
-                        v <<= 10;
+                        v = mulu(v, 1024, overflowed);
                         break;
 
                     case 'B':
@@ -206,6 +211,9 @@ do
                     default:
                         return parseError("value with unit type M, K or B", optname, str, "with suffix");
                 }
+
+                if (overflowed)
+                    return overflowedError(optname, str);
 
                 i++;
                 break;
@@ -222,7 +230,14 @@ do
         return parseError("a number", optname, str, errName);
 
     if (mayHaveSuffix && isdigit(str[len-1]))
-        v <<= 20; // No suffix found, default to megabytes
+    {
+        // No suffix found, default to megabytes
+
+        v = mulu(v, 1024 * 1024, overflowed);
+
+        if (overflowed)
+            return overflowedError(optname, str);
+    }
 
     if (v > res.max)
         return parseError("a number " ~ T.max.stringof ~ " or below", optname, str[0 .. i], errName);
@@ -310,6 +325,16 @@ bool parseError(const scope char[] exp, const scope char[] opt, const scope char
     return false;
 }
 
+bool overflowedError(const scope char[] opt, const scope char[] got)
+{
+    version (CoreUnittest) if (inUnittest) return false;
+
+    fprintf(stderr, "Argument for %.*s option '%.*s' is too big.\n",
+            cast(int)opt.length, opt.ptr,
+            cast(int)got.length, got.ptr);
+    return false;
+}
+
 size_t min(size_t a, size_t b) { return a <= b ? a : b; }
 
 version (CoreUnittest) __gshared bool inUnittest;
@@ -368,6 +393,8 @@ unittest
     assert(conf.parseOptions("minPoolSize:3G help"));
     assert(conf.disable);
     assert(conf.minPoolSize == 1024UL * 1024 * 1024 * 3);
+
+    assert(!conf.parseOptions("minPoolSize:922337203685477G"), "size_t overflow");
 
     assert(conf.parseOptions("heapSizeFactor:3.1"));
     assert(conf.heapSizeFactor == 3.1f);
