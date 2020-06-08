@@ -794,3 +794,33 @@ unittest
     static assert(!isTrue!(T, "g"));
     static assert(!isTrue!(T, "h"));
 }
+
+template hasUDA(alias symbol, alias attribute)
+{
+    alias attrs = __traits(getAttributes, symbol);
+
+    static foreach (a; attrs)
+    {
+        static if (is(a == attribute))
+        {
+            enum hasUDA = true;
+        }
+    }
+
+    static if (!__traits(compiles, (hasUDA == true)))
+        enum hasUDA = false;
+}
+
+unittest
+{
+    struct SomeUDA{}
+
+    struct Test
+    {
+        int woUDA;
+        @SomeUDA int withUDA;
+    }
+
+    static assert(hasUDA!(Test.withUDA, SomeUDA));
+    static assert(!hasUDA!(Test.woUDA, SomeUDA));
+}

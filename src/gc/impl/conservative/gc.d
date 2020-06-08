@@ -173,7 +173,7 @@ class ConservativeGC : GC
         gcx.initialize();
 
         if (config.initReserve)
-            gcx.reserve(config.initReserve << 20);
+            gcx.reserve(config.initReserve);
         if (config.disable)
             gcx.disabled++;
     }
@@ -1804,7 +1804,7 @@ struct Gcx
         //debug(PRINTF) printf("************Gcx::newPool(npages = %d)****************\n", npages);
 
         // Minimum of POOLSIZE
-        size_t minPages = (config.minPoolSize << 20) / PAGESIZE;
+        size_t minPages = config.minPoolSize / PAGESIZE;
         if (npages < minPages)
             npages = minPages;
         else if (npages > minPages)
@@ -1821,7 +1821,7 @@ struct Gcx
             n = config.minPoolSize + config.incPoolSize * npools;
             if (n > config.maxPoolSize)
                 n = config.maxPoolSize;                 // cap pool size
-            n *= (1 << 20) / PAGESIZE;                     // convert MB to pages
+            n /= PAGESIZE; // convert bytes to pages
             if (npages < n)
                 npages = n;
         }
