@@ -16,8 +16,9 @@ void main(string[] args)
 {
 
     string[] supportedModes = [
-        "Tree", "Toplist", "Header", "PhaseHist", "KindHist", "Symbol", "Kind",
-        "Phase", "RandSample" ,"OutputSelfStats", "OutputParentTable", "Parent"
+        "Tree", "MemToplist", "TimeToplist", "Header", "PhaseHist", "KindHist", "Symbol", "Kind",
+        "Phase", "RandSample" ,"OutputSelfStats", "OutputParentTable", "Parent",
+        "ExpensiveTemplateInstances",
     ];
 
     if (args.length < 3)
@@ -212,19 +213,35 @@ void main(string[] args)
             writeln(st[1], "|", kinds[r.kind_id - 1], "|", /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
         }
     }
-    else if (mode == "Toplist")
+    else if (mode == "MemToplist")
     {
         import std.algorithm;
 
         auto sorted_records = records.sort!((a,
                 b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
         writeln("Toplist");
+        writeln("Memory (in Bytes),kind,phase,location,name");
         foreach (r; sorted_records)
         {
-            writeln(r.end_ticks - r.begin_ticks, "|", kinds[r.kind_id - 1], "|",
-                    getSymbolLocation(fileBytes, r));
+            writeln(r.end_mem - r.begin_mem, "|", kinds[r.kind_id - 1], "|", phases[r.phase_id - 1], "|",
+                    getSymbolLocation(fileBytes, r), getSymbolName(fileBytes, r));
         }
     }
+    else if (mode == "TimeToplist")
+    {
+        import std.algorithm;
+
+        auto sorted_records = records.sort!((a,
+                b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
+        writeln("Toplist");
+        writeln("Time (in cycles),kind,phase,location,name");
+        foreach (r; sorted_records)
+        {
+            writeln(r.end_ticks - r.begin_ticks, "|", kinds[r.kind_id - 1], "|", phases[r.phase_id - 1], "|",
+                    getSymbolLocation(fileBytes, r), "|", getSymbolName(fileBytes, r));
+        }
+    }
+
     else if (mode == "PhaseHist")
     {
         static struct SortRecord
@@ -350,6 +367,21 @@ void main(string[] args)
     {
         void [] parentsMem = (cast(void*)parents)[0 .. (parents.length * parents[0].sizeof)];
         std.file.write(traceFile ~ ".pt", parentsMem);
+    }
+    else if (mode == "ExpensiveTemplateInstances")
+    {
+        import std.algorithm;
+        import std.range;
+        auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
+        foreach(rec; 
+            records
+            .filter!((r) => r.kind_id == template_instance_kind_idx)
+            .array
+            .sort!((a, b) => a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks))
+        {
+            writeln(rec.end_ticks - rec.begin_ticks, "|", phases[rec.phase_id - 1], "|",
+                getSymbolLocation(fileBytes, rec), "|", getSymbolName(fileBytes, rec));
+        }
     }
 
 
