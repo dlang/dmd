@@ -5226,6 +5226,8 @@ private elem * elparam(elem *e, goal_t goal)
 private elem * optelem(elem *e, goal_t goal)
 {
 beg:
+    //__gshared uint count;
+    //printf("count: %u\n", ++count);
     //{ printf("xoptelem: %p ",e); WROP(e.Eoper); print(" goal x%x\n", goal); }
     assert(e);
     elem_debug(e);
@@ -5342,6 +5344,7 @@ beg:
                     rightgoal = GOALflags;
                 if (OPTIMIZER && optim_loglog(&e))
                     goto beg;
+                goto Llog;
 
             Llog:               // case (c log f()) with no goal
                 if (goal || el_sideeffect(e.EV.E2))
@@ -5414,6 +5417,54 @@ beg:
         }
         else
             e1 = e.EV.E1 = optelem(e1,leftgoal);
+
+        if ((op == OPandand || op == OPoror || op == OPcond) && e1) // short circuit evaluations
+        {
+            switch (op)
+            {
+                case OPandand:
+                    if (iffalse(e1))
+                    {
+                        // Do not evaluate E2
+                        el_free(e.EV.E2);
+                        e.EV.E2 = null;
+                        e.Eoper = OPbool;
+                        goto beg;
+                    }
+                    break;
+
+                case OPoror:
+                    if (iftrue(e1))
+                    {
+                        // Do not evaluate E2
+                        el_free(e.EV.E2);
+                        e.EV.E2 = null;
+                        e.Eoper = OPbool;
+                        goto beg;
+                    }
+                    break;
+
+                case OPcond:
+                    if (iftrue(e1))
+                    {
+                        e.EV.E2 = el_selecte1(e.EV.E2);
+                        e.EV.E2.Ety = e.Ety;
+                        e.Eoper = OPcomma;
+                        goto beg;
+                    }
+                    if (iffalse(e1))
+                    {
+                        e.EV.E2 = el_selecte2(e.EV.E2);
+                        e.EV.E2.Ety = e.Ety;
+                        e.Eoper = OPcomma;
+                        goto beg;
+                    }
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
 
         elem *e2 = e.EV.E2 = optelem(e.EV.E2,rightgoal);
         if (!e1)
