@@ -69,13 +69,12 @@ void Global::_init()
     stdmsg = stdout;
 
     main_d = "__main.d";
-
-    errorLimit = 20;
 }
 
 unsigned Global::startGagging()
 {
     ++gag;
+    gaggedWarnings = 0;
     return gaggedErrors;
 }
 

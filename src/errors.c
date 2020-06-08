@@ -233,7 +233,7 @@ void verror(const Loc& loc, const char *format, va_list ap,
     if (!global.gag)
     {
         verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
-        if (global.errorLimit && global.errors >= global.errorLimit)
+        if (global.params.errorLimit && global.errors >= global.params.errorLimit)
             fatal();    // moderate blizzard of cascading messages
     }
     else
@@ -253,18 +253,24 @@ void verrorSupplemental(const Loc& loc, const char *format, va_list ap)
 
 void vwarning(const Loc& loc, const char *format, va_list ap)
 {
-    if (global.params.warnings && !global.gag)
+    if (global.params.warnings != DIAGNOSTICoff)
     {
-        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
-//halt();
-        if (global.params.warnings == 1)
-            global.warnings++;  // warnings don't count if gagged
+        if (!global.gag)
+        {
+            verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
+            if (global.params.warnings == DIAGNOSTICerror)
+                global.warnings++;  // warnings don't count if gagged
+        }
+        else
+        {
+            global.gaggedWarnings++;
+        }
     }
 }
 
 void vwarningSupplemental(const Loc& loc, const char *format, va_list ap)
 {
-    if (global.params.warnings && !global.gag)
+    if (global.params.warnings != DIAGNOSTICoff && !global.gag)
         verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
 }
 
@@ -272,10 +278,19 @@ void vdeprecation(const Loc& loc, const char *format, va_list ap,
                 const char *p1, const char *p2)
 {
     static const char *header = "Deprecation: ";
-    if (global.params.useDeprecated == 0)
+    if (global.params.useDeprecated == DIAGNOSTICerror)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+    else if (global.params.useDeprecated == DIAGNOSTICinform)
+    {
+       if (!global.gag)
+       {
+           verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+       }
+       else
+       {
+           global.gaggedWarnings++;
+       }
+    }
 }
 
 /**
@@ -302,9 +317,9 @@ void vmessage(const Loc &loc, const char *format, va_list ap)
 
 void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap)
 {
-    if (global.params.useDeprecated == 0)
+    if (global.params.useDeprecated == DIAGNOSTICerror)
         verrorSupplemental(loc, format, ap);
-    else if (global.params.useDeprecated == 2 && !global.gag)
+    else if (global.params.useDeprecated == DIAGNOSTICinform && !global.gag)
         verrorPrint(loc, COLOR_BLUE, "       ", format, ap);
 }
 

@@ -355,10 +355,16 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 DtBuilder dtb;
 
                 if (Type::typeinfoclass)
+                {
                     dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+                    if (Type::typeinfoclass->hasMonitor())
+                        dtb.size(0);                // monitor
+                }
                 else
-                    dtb.size(0);                // BUG: should be an assert()
-                dtb.size(0);                    // monitor
+                {
+                    dtb.size(0);                    // BUG: should be an assert()
+                    dtb.size(0);                    // call hasMonitor()?
+                }
 
                 // initializer[]
                 assert(cd->structsize >= 8 || (cd->isCPPclass() && cd->structsize >= 4));
@@ -754,10 +760,16 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             DtBuilder dtb;
 
             if (Type::typeinfoclass)
+            {
                 dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+                if (Type::typeinfoclass->hasMonitor())
+                    dtb.size(0);                // monitor
+            }
             else
-                dtb.size(0);                // BUG: should be an assert()
-            dtb.size(0);                    // monitor
+            {
+                dtb.size(0);                    // BUG: should be an assert()
+                dtb.size(0);                    // call hasMonitor()?
+            }
 
             // initializer[]
             dtb.size(0);                    // size
