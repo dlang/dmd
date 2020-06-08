@@ -3124,6 +3124,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         {
             if (ident == Id.offsetof)
             {
+                v.dsymbolSemantic(null);
                 if (v.isField())
                 {
                     auto ad = v.toParent().isAggregateDeclaration();
