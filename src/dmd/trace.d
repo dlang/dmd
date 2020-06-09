@@ -31,7 +31,7 @@ enum COMPRESSED_TRACE = true;
 
 import dmd.trace_file;
 
-__gshared bool tracingEnabled = false;
+__gshared bool tracingEnabled = true;
 
 struct SymbolProfileEntry
 {
@@ -431,9 +431,9 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
             SymbolProfileRecord r = {
                 begin_ticks : dp.begin_ticks,
                 end_ticks : dp.end_ticks,
-    		    begin_mem :	dp.begin_mem,
+                begin_mem : dp.begin_mem,
                 end_mem : dp.end_mem,
-    	        symbol_id : id,
+                symbol_id : id,
                 kind_id : kindId,
                 phase_id : phaseId
 		    };
@@ -583,7 +583,7 @@ pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFi
         {
 
             auto fileNameLength =
-                snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.trace".ptr, nameStringLength, nameStringPointer);
+                snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.trace".ptr, cast(int)nameStringLength, nameStringPointer);
 
             int currentOffset32()
             {
@@ -613,7 +613,7 @@ pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFi
 
 
             fprintf(stderr, "unique symbols: %d\n", n_symInfos);
-            fprintf(stderr, "profile_records size: %dk\n", (bufferPos - fileBuffer) / 1024);
+            fprintf(stderr, "profile_records size: %lluk\n", (bufferPos - fileBuffer) / 1024);
             // after writing the records we know how many symbols infos we have
 
             // write phases
@@ -649,7 +649,7 @@ pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFi
             if (split_file)
             {
                 fileNameLength =
-                    snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.symbol".ptr, nameStringLength, nameStringPointer);
+                    snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.symbol".ptr, cast(int)nameStringLength, nameStringPointer);
 
                 // reset buffer
                 bufferPos = fileBuffer;
