@@ -5978,6 +5978,7 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi, bo
  * Params:
  *      e = Expression to convert
  *      irs = context
+ *      refFunc = does function return a reference
  * Returns:
  *      generated elem tree
  */
