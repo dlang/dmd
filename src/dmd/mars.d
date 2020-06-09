@@ -244,6 +244,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
+    {
+        import dmd.trace;
+        if (tracingEnabled)
+	{
+            initTraceMemory();
+            if (!params.traceFile)
+            {
+                params.traceFile = "";
+            }
+        }
+    }
+
     if (params.usage)
     {
         usage();
@@ -1883,7 +1895,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
             import dmd.trace;
             tracingEnabled = true;
-            initTraceMemory();
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
             params.verbose = true;
