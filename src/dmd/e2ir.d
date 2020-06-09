@@ -2162,7 +2162,7 @@ elem *toElem(Expression e, IRState *irs)
                          * msg is not evaluated at all. so should use
                          * toElemDtor(msg, irs) instead of toElem(msg, irs).
                          */
-                        elem *emsg = toElemDtor(ae.msg, irs);
+                        elem *emsg = toElemDtor(ae.msg, irs, false);
                         emsg = array_toDarray(ae.msg.type, emsg);
                         if (config.exe == EX_WIN64)
                             emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
@@ -3481,7 +3481,7 @@ elem *toElem(Expression e, IRState *irs)
             tym_t tym = totym(aae.type);
 
             elem *el = toElem(aae.e1, irs);
-            elem *er = toElemDtor(aae.e2, irs);
+            elem *er = toElemDtor(aae.e2, irs, false);
             elem *e = el_bin(aae.op == TOK.andAnd ? OPandand : OPoror,tym,el,er);
 
             elem_setLoc(e, aae.loc);
@@ -5890,13 +5890,14 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
  *      er = elem to append destructors to
  *      starti = starting index in varsInScope[]
  *      endi = ending index in varsInScope[]
+ *      refFunc = does function return a reference
  * Returns:
  *      er with destructors appended
  */
 
-private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
+private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi, bool refFunc)
 {
-    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    //printf("appendDtors(%ld .. %ld)\n", starti, endi);
 
     /* Code gen can be improved by determining if no exceptions can be thrown
      * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
@@ -5945,7 +5946,7 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 *pe = el_combine(edtors, erx);
             }
-            else if (elemIsLvalue(erx))
+            else if (refFunc && elemIsLvalue(erx))
             {
                 /* Lvalue, take a pointer to it
                  */
@@ -5979,7 +5980,7 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
  *      generated elem tree
  */
 
-elem *toElemDtor(Expression e, IRState *irs)
+elem *toElemDtor(Expression e, IRState *irs, bool refFunc)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
 
@@ -6003,103 +6004,9 @@ elem *toElemDtor(Expression e, IRState *irs)
     irs.mayThrow = mayThrowSave;
 
     // Add destructors
-    elem* ex = appendDtors(irs, er, starti, endi);
+    elem* ex = appendDtors(irs, er, starti, endi, refFunc);
     return ex;
 }
-//copy pasta from toElemDtor!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-elem *toElemDtor2(Expression e, IRState *irs)
-{
-    //printf("Expression.toElemDtor() %s\n", e.toChars());
-    //copy pasta from appendDtors !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    elem *appendDtors2(IRState *irs, elem *er, size_t starti, size_t endi)
-    {
-        //printf("appendDtors(%d .. %d)\n", starti, endi);
-
-        /* Code gen can be improved by determining if no exceptions can be thrown
-        * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
-        */
-
-        /* Build edtors, an expression that calls destructors on all the variables
-        * going out of the scope starti..endi
-        */
-        elem *edtors = null;
-        foreach (i; starti .. endi)
-        {
-            elem *ed = (*irs.varsInScope)[i];
-            if (ed)                                 // if not skipped
-            {
-                //printf("appending dtor\n");
-                (*irs.varsInScope)[i] = null;       // so these are skipped by outer scopes
-                edtors = el_combine(ed, edtors);    // execute in reverse order
-            }
-        }
-
-        if (edtors)
-        {
-            if (irs.params.isWindows && !irs.params.is64bit) // Win32
-            {
-                Blockx *blx = irs.blx;
-                nteh_declarvars(blx);
-            }
-
-            /* Append edtors to er, while preserving the value of er
-            */
-            if (tybasic(er.Ety) == TYvoid)
-            {
-                /* No value to preserve, so simply append
-                */
-                er = el_combine(er, edtors);
-            }
-            else
-            {
-                elem **pe;
-                for (pe = &er; (*pe).Eoper == OPcomma; pe = &(*pe).EV.E2)
-                {
-                }
-                elem *erx = *pe;
-
-                if (erx.Eoper == OPconst || erx.Eoper == OPrelconst)
-                {
-                    *pe = el_combine(edtors, erx);
-                }
-                else if ((tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
-                     !(erx.ET && type_size(erx.ET) <= 16))
-                {
-                    /* Lvalue, take a pointer to it
-                    */
-                    elem *ep = el_una(OPaddr, TYnptr, erx);
-                    elem *e = el_same(&ep);
-                    ep = el_combine(ep, edtors);
-                    ep = el_combine(ep, e);
-                    e = el_una(OPind, erx.Ety, ep);
-                    e.ET = erx.ET;
-                    *pe = e;
-                }
-                else
-                {
-                    elem *e = el_same(&erx);
-                    erx = el_combine(erx, edtors);
-                    *pe = el_combine(erx, e);
-                }
-            }
-        }
-        return er;
-    }
-    const mayThrowSave = irs.mayThrow;
-    if (irs.mayThrow && !canThrow(e, irs.getFunc(), false))
-        irs.mayThrow = false;
-
-    const starti = irs.varsInScope.dim;
-    elem* er = toElem(e, irs);
-    const endi = irs.varsInScope.dim;
-
-    irs.mayThrow = mayThrowSave;
-
-    // Add destructors
-    elem* ex = appendDtors2(irs, er, starti, endi);
-    return ex;
-}
-
 
 /*******************************************************
  * Write read-only string to object file, create a local symbol for it.
@@ -6398,7 +6305,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     if (emsg)
     {
         // Assuming here that emsg generates a 0 terminated string
-        auto e = toElemDtor(emsg, irs);
+        auto e = toElemDtor(emsg, irs, false);
         elmsg = array_toPtr(Type.tvoid.arrayOf(), e);
     }
     else if (exp)

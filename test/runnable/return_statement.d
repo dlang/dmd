@@ -19,6 +19,14 @@ struct St
 }
 int foo() { return St(2).a; }
 ref int passthrough(return ref int i) { return St(2).a ? i : i; }
+//-------------
+struct Str{
+    int[8] a;
+    ~this(){ a[] = 0; }
+    ref val(){ return a; }
+}
+Str barz(){ return Str([2,2,2,2,2,2,2,2]); }
+int[8] fooz(){ return barz.val; }
 
 void main()
 {
@@ -26,6 +34,8 @@ void main()
     assert(literal() == 123);
     assert(S.numDtor == 2);
     int i;
-    assert(&passthrough(i) == &i); //issue 20401
-    assert(foo() == 2); //issue 20809
+    assert(&passthrough(i) == &i);
+    assert(foo() == 2);
+
+    assert(fooz() == [2,2,2,2,2,2,2,2]);
 }
