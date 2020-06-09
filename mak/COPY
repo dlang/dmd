@@ -478,6 +478,9 @@ COPY=\
 	\
 	$(IMPDIR)\core\thread\context.d \
 	$(IMPDIR)\core\thread\fiber.d \
+	$(IMPDIR)\core\thread\types.d \
+	$(IMPDIR)\core\thread\threadgroup.d \
+	$(IMPDIR)\core\thread\threadbase.d \
 	$(IMPDIR)\core\thread\osthread.d \
 	$(IMPDIR)\core\thread\package.d \
 	\
