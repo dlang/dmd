@@ -5947,8 +5947,8 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi, bo
                 *pe = el_combine(edtors, erx);
             }
             else if (refFunc && elemIsLvalue(erx) ||
-                     (tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
-                     !(erx.ET && type_size(erx.ET) <= 16) )
+                     (!refFunc && (tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
+                     !(erx.ET && type_size(erx.ET) <= 16)) )
             {
                 /* Lvalue, take a pointer to it
                  */
