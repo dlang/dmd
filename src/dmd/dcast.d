@@ -1473,6 +1473,7 @@ private Expression tryAliasThisCast(Expression e, Scope* sc, Type tob, Type t1b,
  */
 Expression castTo(Expression e, Scope* sc, Type t)
 {
+    import dmd.trace; mixin(traceString("e"));
     extern (C++) final class CastTo : Visitor
     {
         alias visit = Visitor.visit;

@@ -643,6 +643,7 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
  */
 extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 {
+    import dmd.trace; mixin(traceString("t"));
     static Type error()
     {
         return Type.terror;
