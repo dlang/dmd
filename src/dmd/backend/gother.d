@@ -1399,6 +1399,20 @@ void rmdeadass()
             /* volatile/shared variables are not dead              */
             if ((v.ty() | nv.Ety) & (mTYvolatile | mTYshared))
                 continue;
+
+            /* Do not mix up floating and integer variables
+             * https://issues.dlang.org/show_bug.cgi?id=20363
+             */
+            if (OTbinary(n.Eoper))
+            {
+                elem* e2 = n.EV.E2;
+                if (e2.Eoper == OPvar &&
+                    config.fpxmmregs &&
+                    !tyfloating(v.Stype.Tty) != !tyfloating(e2.EV.Vsym.Stype.Tty)
+                   )
+                    continue;
+            }
+
             debug if (debugc)
             {
                 printf("dead assignment (");

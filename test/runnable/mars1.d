@@ -1915,6 +1915,22 @@ void testfastpar()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=20363
+
+ulong foo20363(double d)
+{
+    ulong u = * cast(ulong*) &d;
+    return (u >> 1) & 1;
+}
+
+void test20363()
+{
+    ulong u = 0b10;
+    if (foo20363(*cast(double*) &u) == 0)
+        assert(false);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 
 T testfooa(T)(T value)
@@ -2046,6 +2062,7 @@ int main()
     test19497();
     test18794();
     testfastpar();
+    test20363();
     testNegConst();
     test20050();
     testCpStatic();
