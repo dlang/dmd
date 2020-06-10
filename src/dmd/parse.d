@@ -8043,7 +8043,7 @@ final class Parser(AST) : Lexer
                         if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
                             || token.value == TOK.class_ || token.value == TOK.super_ || token.value == TOK.enum_
                             || token.value == TOK.interface_ || token.value == TOK.package_ || token.value == TOK.module_
-                            || token.value == TOK.argumentTypes || token.value == TOK.parameters
+                            || token.value == TOK.argumentTypes || token.value == TOK.parameters || token.value == TOK.version_
                             || token.value == TOK.const_ && peekNext() == TOK.rightParentheses
                             || token.value == TOK.immutable_ && peekNext() == TOK.rightParentheses
                             || token.value == TOK.shared_ && peekNext() == TOK.rightParentheses

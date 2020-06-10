@@ -5364,6 +5364,43 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return yes();
         }
 
+        /*  is(targ    == version)
+            is(targ id == version)  */
+        if (e.tok2 == TOK.version_ && sc && sc._module)
+        {
+            // try to get ident from e.targ as mixin() can be used directly as type
+            Identifier id;
+            switch (e.targ.ty)
+            {
+            case Tident:
+                id = (cast(TypeIdentifier) e.targ).ident;
+                break;
+            case Tmixin:
+                auto o = compileTypeMixin(cast(TypeMixin) e.targ, e.loc, sc);
+                Expression ex = isExpression(o);
+                if (ex && ex.op == TOK.identifier)
+                    id = (cast(IdentifierExp) ex).ident;
+                break;
+            default:
+            }
+            if (id is null)
+                return no();
+
+            import dmd.cond : findCondition;
+            // this "is" variant moslty exists because of locally defined versions. Test for this first.
+            if (sc._module.versionids && sc._module.versionids.findCondition(id))
+                return yes();
+            // for cmdline "-version=" and predefined versions
+            if (global.versionids && global.versionids.findCondition(id))
+                return yes();
+            // locally defined but in the imports
+            foreach (m; Module.amodules)
+                //FIXME: access to foreign version ident is not accepted, despite of the import
+                if (m.versionids /*&& !checkAccess(sc._module._scope, m)*/ && m.versionids.findCondition(id))
+                    return yes();
+            return no();
+        }
+
         {
             Scope* sc2 = sc.copy(); // keep sc.flags
             sc2.tinst = null;
