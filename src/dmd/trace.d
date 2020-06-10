@@ -597,6 +597,18 @@ pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFi
             header.FileVersion = fVersion;
 
             header.n_records = dsymbol_profile_array_count;
+            // write arg string behind the header
+            foreach(arg;*arguments)
+            {
+                bufferPos = copyAndPointPastEnd(cast(char*)bufferPos, arg);
+                *cast(char*)bufferPos++ = ' ';
+            }
+            // realign
+            if (auto unaligned = currentOffset32() % 4)
+            {
+                bufferPos += 4 - unaligned;
+            }
+
             // the records follow
             header.offset_records = currentOffset32();
             import std.datetime.stopwatch : StopWatch;
