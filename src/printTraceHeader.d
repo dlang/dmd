@@ -87,9 +87,10 @@ void main(string[] args)
 
     if (mode == "Header")
     {
+	import std.array;
         writeln(structToString(header));
-        writeln("kinds=", kinds);
-        writeln("phases=", phases);
+        writeln("kinds=", kinds.join("#"));
+        writeln("phases=", phases.join("#"));
 
         // a file with a correct header might not have a symbol table
         // and we don't want to scan for strange records
