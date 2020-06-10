@@ -108,6 +108,11 @@ extern (C++) final class DebugSymbol : Dsymbol
         return "debug";
     }
 
+    override inout(DebugSymbol) isDebugSymbol() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -196,6 +201,11 @@ extern (C++) final class VersionSymbol : Dsymbol
     override const(char)* kind() const nothrow
     {
         return "version";
+    }
+
+    override inout(VersionSymbol) isVersionSymbol() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)
