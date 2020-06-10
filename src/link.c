@@ -652,6 +652,8 @@ int runLINK()
 #if __linux__
     // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
     argv.push("-lrt");
+    // Link against libdl for phobos usage of dlopen
+    argv.push("-ldl");
 #endif
 
     if (global.params.verbose)

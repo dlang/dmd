@@ -17,10 +17,9 @@ make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd
 
 ## run unittest and testsuite.
 make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/dmd unittest
-#make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd unittest
+make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd unittest
 #make -j$N -C test DMD=../src/dmd MODEL=64
 
 ## build dmd master
-# Can't do anymore because of dependency on -mv
-#git clone --depth=1 https://github.com/dlang/dmd.git ../dmd-master
-#make -j$N -C ../dmd-master -f posix.mak HOST_DMD=../../dmd/src/dmd
+git clone --depth=1 https://github.com/dlang/dmd.git ../dmd-master
+make -j$N -C ../dmd-master -f posix.mak HOST_DMD=../../dmd/src/dmd
