@@ -53,7 +53,6 @@ enum
     NFLli     = 1,     // loop invariant
     NFLnogoal = 2,     // evaluate elem for side effects only
     NFLassign = 8,     // unambiguous assignment elem
-    NFLaecp   = 0x10,  // AE or CP or VBE expression
     NFLdelcse = 0x40,  // this is not the generating CSE
     NFLtouns  = 0x80,  // relational operator was changed from signed to unsigned
 }
