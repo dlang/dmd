@@ -398,7 +398,7 @@ size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
 /**
   get the start of the array for the given block
   */
-void *__arrayStart(BlkInfo info) nothrow pure
+void *__arrayStart(return BlkInfo info) nothrow pure
 {
     return info.base + ((info.size & BIGLENGTHMASK) ? LARGEPREFIX : 0);
 }
