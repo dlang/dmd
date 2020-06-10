@@ -1193,7 +1193,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (checkForArgTypes(fs))
                     goto case Terror;
 
-                if (dim < 1 || dim > 2)
+                if (dim > 2)
                 {
                     fs.error("only one or two arguments for array `foreach`");
                     goto case Terror;
@@ -1441,7 +1441,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 goto case Terror;
 
             taa = cast(TypeAArray)tab;
-            if (dim < 1 || dim > 2)
+            if (dim > 2)
             {
                 fs.error("only one or two arguments for associative array `foreach`");
                 goto case Terror;

@@ -4,6 +4,11 @@ TEST_OUTPUT:
 ---
 fail_compilation/misc_parser_err_cov1.d(29): Error: basic type expected, not `)`
 fail_compilation/misc_parser_err_cov1.d(30): Error: basic type expected, not `)`
+fail_compilation/misc_parser_err_cov1.d(101): Error: basic type expected, not `;`
+fail_compilation/misc_parser_err_cov1.d(101): Error: foreach parameter expected
+fail_compilation/misc_parser_err_cov1.d(102): Error: no identifier for declarator `int`
+fail_compilation/misc_parser_err_cov1.d(103): Error: basic type expected, not `;`
+fail_compilation/misc_parser_err_cov1.d(103): Error: foreach parameter expected
 fail_compilation/misc_parser_err_cov1.d(31): Error: `__traits(identifier, args...)` expected
 fail_compilation/misc_parser_err_cov1.d(31): Error: semicolon expected following auto declaration, not `o`
 fail_compilation/misc_parser_err_cov1.d(31): Error: expression expected, not `)`
@@ -35,7 +40,12 @@ void bar(int, const @tation);
 
 void main()
 {
-    // cover errors from line 7930 to EOF
+    #line 100
+    int[1] a;
+    foreach (;a){}
+    foreach (int;a){}
+    foreach (const;a){}
+    // cover errors from parse.d line 7930 to EOF
     #line  31
     auto tt = __traits(<o<);
     auto b = is ;

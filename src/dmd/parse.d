@@ -5336,10 +5336,18 @@ final class Parser(AST) : Lexer
             }
             at = parseType(&ai);
             if (!ai)
-                error("no identifier for declarator `%s`", at.toChars());
+            {
+                if (at.ty != AST.Terror)
+                    error("no identifier for declarator `%s`", at.toChars());
+                else
+                    error("foreach parameter expected");
+            }
         Larg:
-            auto p = new AST.Parameter(storageClass, at, ai, null, null);
-            parameters.push(p);
+            if (ai)
+            {
+                auto p = new AST.Parameter(storageClass, at, ai, null, null);
+                parameters.push(p);
+            }
             if (token.value == TOK.comma)
             {
                 nextToken();
