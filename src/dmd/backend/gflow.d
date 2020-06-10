@@ -581,14 +581,19 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                     asgcpelems(n.EV.E2);
                 }
 
-                /* look for elem of the form OPvar=OPvar, where they aren't the */
-                /* same variable.                                               */
+                /* look for elem of the form OPvar=OPvar, where they aren't the
+                 * same variable.
+                 * Don't mix XMM and integer registers.
+                 */
+                elem* e1;
+                elem* e2;
                 if ((op == OPeq || op == OPstreq) &&
-                    n.EV.E1.Eoper == OPvar &&
-                    n.EV.E2.Eoper == OPvar &&
-                    !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
-                    !((n.EV.E1.EV.Vsym.Sflags | n.EV.E2.EV.Vsym.Sflags) & SFLlivexit) &&
-                    n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
+                    (e1 = n.EV.E1).Eoper == OPvar &&
+                    (e2 = n.EV.E2).Eoper == OPvar &&
+                    !((e1.Ety | e2.Ety) & (mTYvolatile | mTYshared)) &&
+                    (!config.fpxmmregs ||
+                     (!tyfloating(e1.EV.Vsym.Stype.Tty) == !tyfloating(e2.EV.Vsym.Stype.Tty))) &&
+                    e1.EV.Vsym != e2.EV.Vsym)
                 {
                     n.Eexp = cast(uint)go.expnod.length;
                     go.expnod.push(n);
