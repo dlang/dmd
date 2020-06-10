@@ -1458,8 +1458,8 @@ to its `.init` value after it is moved into target, otherwise it is
 left unchanged.
 
 Preconditions:
-If source has internal pointers that point to itself, it cannot be moved, and
-will trigger an assertion failure.
+If source has internal pointers that point to itself and doesn't define
+opPostMove, it cannot be moved, and will trigger an assertion failure.
 
 Params:
     source = Data to copy.
@@ -1793,7 +1793,8 @@ void moveEmplace(T)(ref T source, ref T target) @system
 //    static if (!is(T == class) && hasAliasing!T) if (!__ctfe)
 //    {
 //        import std.exception : doesPointTo;
-//        assert(!doesPointTo(source, source), "Cannot move object with internal pointer.");
+//        assert(!doesPointTo(source, source) && !hasElaborateMove!T),
+//              "Cannot move object with internal pointer unless `opPostMove` is defined.");
 //    }
 
     static if (is(T == struct))
@@ -1804,6 +1805,9 @@ void moveEmplace(T)(ref T source, ref T target) @system
             memcpy(&target, &source, T.sizeof);
         else
             target = source;
+
+        static if (hasElaborateMove!T)
+            __move_post_blt(target, source);
 
         // If the source defines a destructor or a postblit hook, we must obliterate the
         // object in order to avoid double freeing and undue aliasing
