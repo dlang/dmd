@@ -10,11 +10,6 @@ detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe
 
 zip target - requires Info-ZIP or equivalent (zip32.exe)
   http://www.info-zip.org/Zip.html#Downloads
-
-TODO:
-- add all posix.mak Makefile targets
-- support 32-bit builds
-- test the script with LDC or GDC as host compiler
 */
 
 version(CoreDdoc) {} else:
