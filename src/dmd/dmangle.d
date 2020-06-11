@@ -178,11 +178,65 @@ public:
     static assert(Key.sizeof == size_t.sizeof);
     AssocArray!(Type, size_t) types;
     AssocArray!(Identifier, size_t) idents;
-    OutBuffer* buf;
 
-    extern (D) this(OutBuffer* buf)
+    OutBuffer* buf;
+    OutBuffer* targetBuffer;
+
+    __gshared mangleDepth = 0;
+
+    __gshared OutBuffer growingBuffer;
+
+    extern (D) this(OutBuffer* targetBuffer)
     {
-        this.buf = buf;
+        version (old_mangle)
+        {
+            this.buf = targetBuffer;
+        }
+        else
+        {
+            assert(targetBuffer !is &growingBuffer);
+            mangleDepth++;
+
+            if (mangleDepth > 1)
+            {
+                // we create a mangle while working on another
+                // we cannot use the growing buffer therefore.
+                this.buf = targetBuffer;
+                // let's fallback to the old way
+            }
+            else
+            {
+                growingBuffer.reset(); // should have been done by dtor .... but it doesn't always get called so screw it
+                if (targetBuffer.length)
+                {
+                    growingBuffer.reserve(targetBuffer.length + 32);
+                    growingBuffer.insert(0, targetBuffer.peekChars(), targetBuffer.length());
+                    targetBuffer.reset();
+                }
+                this.buf = &growingBuffer;
+                this.targetBuffer = targetBuffer;
+            }
+        }
+    }
+
+
+    extern (D) void memory_transfer()
+    {
+        version (old_mangle)
+        {
+        }
+        else
+        {
+            if (mangleDepth <= 1)
+            {
+                import dmd.root.rmem : _d_allocmemory;
+                char* newMangle = cast(char*)_d_allocmemory(buf.length + 1); // include space for null terminator
+                targetBuffer.setMemory(newMangle, buf.length, buf.length + 1);
+                newMangle[0 .. buf.length] = (*buf)[][];
+                growingBuffer.reset();
+            }
+            mangleDepth--;
+        }
     }
 
     /**
@@ -256,6 +310,8 @@ public:
     */
     bool backrefIdentifier(Identifier id)
     {
+        import std.stdio : writefln;
+
         auto p = idents.getLvalue(id);
         if (*p)
         {
@@ -1171,6 +1227,7 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
         OutBuffer buf;
         scope Mangler v = new Mangler(&buf);
         v.mangleExact(fd);
+        v.memory_transfer();
         fd.mangleString = buf.extractChars();
     }
     return fd.mangleString;
@@ -1184,6 +1241,7 @@ extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
     {
         scope Mangler v = new Mangler(buf);
         v.visitWithMask(t, 0);
+        v.memory_transfer();
     }
 }
 
@@ -1191,18 +1249,21 @@ extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
 {
     scope Mangler v = new Mangler(buf);
     e.accept(v);
+    v.memory_transfer();
 }
 
 extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
 {
     scope Mangler v = new Mangler(buf);
     s.accept(v);
+    v.memory_transfer();
 }
 
 extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
 {
     scope Mangler v = new Mangler(buf);
     v.mangleTemplateInstance(ti);
+    v.memory_transfer();
 }
 
 /******************************************************************************
@@ -1223,5 +1284,6 @@ void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
 
     MODtoDecoBuffer(&buf, tf.mod);
     v.paramsToDecoBuffer(tf.parameterList.parameters);
+    v.memory_transfer();
     buf.writeByte('Z' - tf.parameterList.varargs);
 }

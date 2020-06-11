@@ -37,8 +37,16 @@ enum DYNCAST : int
 
 extern (C++) class RootObject
 {
-    this() nothrow pure @nogc @safe
+    __gshared size_t runningSerial = 1;
+
+    size_t serial;
+
+    this() nothrow @nogc
     {
+        if (!__ctfe)
+        {
+            serial = runningSerial++;
+        }
     }
 
     bool equals(const RootObject o) const

@@ -28,6 +28,7 @@ struct OutBuffer
     private ubyte[] data;
     private size_t offset;
     private bool notlinehead;
+    private bool i_dont_own_this;
 
     /// Whether to indent
     bool doindent;
@@ -38,8 +39,11 @@ struct OutBuffer
 
     extern (C++) ~this() pure nothrow
     {
-        debug (stomp) memset(data.ptr, 0xFF, data.length);
-        mem.xfree(data.ptr);
+        if (!i_dont_own_this)
+        {
+            debug (stomp) memset(data.ptr, 0xFF, data.length);
+            mem.xfree(data.ptr);
+        }
     }
 
     extern (C++) size_t length() const pure @nogc @safe nothrow { return offset; }
@@ -496,6 +500,16 @@ struct OutBuffer
         if (!offset || data[offset - 1] != '\0')
             writeByte(0);
         return extractData();
+    }
+
+    /// used when Outbuffer is just a conduit
+    extern(C++) void setMemory(char* memory, size_t length, size_t bufferLength)
+    {
+        assert(!offset);
+        //assert(data.ptr is null);
+        data = (cast(ubyte*)memory)[0 .. bufferLength];
+        offset = length;
+        i_dont_own_this = true;
     }
 }
 
