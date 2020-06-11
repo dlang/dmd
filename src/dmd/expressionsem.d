@@ -6384,7 +6384,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (auto v = expToVariable(e.e1))
             {
-                if (!checkAddressVar(sc, e, v))
+                if (!checkAddressVar(sc, e.e1, v))
                     return setError();
             }
         }
@@ -6623,7 +6623,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (VarDeclaration v = expToVariable(dve.e1))
                 {
-                    if (!checkAddressVar(sc, exp, v))
+                    if (!checkAddressVar(sc, exp.e1, v))
                         return setError();
                 }
             }
@@ -6634,7 +6634,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v)
             {
-                if (!checkAddressVar(sc, exp, v))
+                if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
 
                 ve.checkPurity(sc, v);
@@ -6694,7 +6694,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                if (!checkAddressVar(sc, exp, v))
+                if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
             }
         }
@@ -6720,7 +6720,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                if (global.params.vsafe && !checkAddressVar(sc, exp, v))
+                if (global.params.vsafe && !checkAddressVar(sc, exp.e1, v))
                     return setError();
 
                 exp.e1.checkPurity(sc, v);
@@ -7452,7 +7452,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                     }
 
-                    if (v && !checkAddressVar(sc, exp, v))
+                    if (v && !checkAddressVar(sc, exp.e1, v))
                         return setError();
                 }
             }
@@ -12126,22 +12126,22 @@ bool checkSharedAccess(Expression e, Scope* sc)
 
 
 /****************************************************
- * Determine if `exp`, which takes the address of `v`, can do so safely.
+ * Determine if `exp`, which gets its address taken, can do so safely.
  * Params:
  *      sc = context
- *      exp = expression that takes the address of `v`
+ *      exp = expression having its address taken
  *      v = the variable getting its address taken
  * Returns:
  *      `true` if ok, `false` for error
  */
-private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
+bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
 {
     //printf("checkAddressVar(exp: %s, v: %s)\n", exp.toChars(), v.toChars());
     if (v)
     {
         if (!v.canTakeAddressOf())
         {
-            exp.error("cannot take address of `%s`", exp.e1.toChars());
+            exp.error("cannot take address of `%s`", exp.toChars());
             return false;
         }
         if (sc.func && !sc.intypeof && !v.isDataseg())
@@ -12152,14 +12152,15 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
                 // Taking the address of v means it cannot be set to 'scope' later
                 v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
-                if (exp.e1.type.hasPointers() && v.storage_class & STC.scope_ &&
+                if (exp.type.hasPointers() && v.storage_class & STC.scope_ &&
                     !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                 {
                     exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                     return false;
                 }
             }
-            else if (!(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+            else if (!(sc.flags & SCOPE.debug_) &&
+                     sc.func.setUnsafe())
             {
                 exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                 return false;
