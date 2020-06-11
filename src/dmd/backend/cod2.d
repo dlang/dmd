@@ -1040,7 +1040,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             else
             {
                 regm_t rretregsx = ALLREGS & ~mAX;
-                scodelem(cdb,e2.EV.E1,&rretregsx,retregs,true); // get rvalue
+                scodelem(cdb,e2.EV.E1,&rretregsx,retregsx,true); // get rvalue
                 getregs(cdb,mAX | mDX);
                 const rregx = findreg(rretregsx);
                 cdb.gen2(0xF7,grex | modregrmx(3,opx,rregx)); // OP AX,rregx
