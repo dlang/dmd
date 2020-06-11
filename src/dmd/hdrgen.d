@@ -3377,6 +3377,10 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
             objectToBuffer(arg, buf, hgs);
         }
     }
+    else if (auto p = isParameter(oarg))
+    {
+        parameterToBuffer(p, buf, hgs);
+    }
     else if (!oarg)
     {
         buf.writestring("NULL");
