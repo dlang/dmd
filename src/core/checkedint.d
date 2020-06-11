@@ -35,6 +35,10 @@ nothrow:
 @nogc:
 pure:
 
+/* The functions here are templates so they can be used with -betterC,
+ * as betterC does not link with this library.
+ */
+
 /*******************************
  * Add two signed integers, checking for overflow.
  *
