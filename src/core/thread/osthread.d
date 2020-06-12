@@ -1402,7 +1402,7 @@ version (Solaris)
 version (Windows)
 private extern (C) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase _t) nothrow
 {
-    auto t = cast(Thread) _t;
+    auto t = _t.toThread;
 
     scan( ScanType.stack, t.m_reg.ptr, t.m_reg.ptr + t.m_reg.length );
 }
