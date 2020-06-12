@@ -33,15 +33,17 @@ import dmd.visitor;
  * Returns:
  *      `true` if no errors
  */
-extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
-{
-    scope v = new TemplateParameterSemanticVisitor(sc, parameters);
-    tp.accept(v);
-    return v.result;
-}
+__gshared extern(C++) bool function(TemplateParameter tp, Scope* sc,
+                                    TemplateParameters* parameters) tpsemantic
+    = function bool(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
+        {
+            scope v = new TemplateParameterSemanticVisitor(sc, parameters);
+            tp.accept(v);
+            return v.result;
+        };
 
 
-private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
+extern (C++) class TemplateParameterSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
 

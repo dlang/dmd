@@ -121,22 +121,25 @@ private Expression checkAssignmentAsCondition(Expression e)
     return e;
 }
 
-// Performs semantic analysis in Statement AST nodes
-extern(C++) Statement statementSemantic(Statement s, Scope* sc)
-{
-    version (CallbackAPI)
-        Compiler.onStatementSemanticStart(s, sc);
+/**
+ * Performs semantic analysis in Statement AST nodes
+ */
+__gshared extern (C++) Statement function(Statement, Scope*) statementSemantic
+    = function Statement(Statement s, Scope* sc)
+        {
+            version (CallbackAPI)
+                Compiler.onStatementSemanticStart(s, sc);
 
-    scope v = new StatementSemanticVisitor(sc);
-    s.accept(v);
+            scope v = new StatementSemanticVisitor(sc);
+            s.accept(v);
 
-    version (CallbackAPI)
-        Compiler.onStatementSemanticDone(s, sc);
+            version (CallbackAPI)
+                Compiler.onStatementSemanticDone(s, sc);
 
-    return v.result;
-}
+            return v.result;
+        };
 
-private extern (C++) final class StatementSemanticVisitor : Visitor
+extern (C++) class StatementSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
 
