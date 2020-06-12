@@ -15,13 +15,13 @@ $(H2 Phases of Compilation)
 $(P The process of compiling is divided into multiple phases. Each phase is
 independent of subsequent phases. For example, the scanner is not affected by
 the semantic analyzer. This separation of passes makes language tools like
-syntax directed editors relatively easy to create. It is also possible to
+syntax-directed editors relatively easy to create. It is also possible to
 compress D source by storing it in $(SINGLEQUOTE tokenized) form.)
 
 $(OL
         $(LI $(B source character set)$(BR)
 
-        The source file is checked to see which encoding it is using,
+        The source file is checked to determine its encoding
         and the appropriate scanner is loaded. 7-bit ASCII and UTF
         encodings are accepted.
         )
@@ -34,7 +34,7 @@ $(OL
 
         $(LI $(B lexical analysis)$(BR)
 
-        The source file is divided up into a sequence of tokens.
+        The source file is divided into a sequence of tokens.
         $(DDSUBLINK spec/lex, specialtokens, Special tokens)
         are replaced with other tokens.
         $(GLINK_LEX SpecialTokenSequence)s
@@ -49,27 +49,27 @@ $(OL
         $(LI $(B semantic analysis)$(BR)
 
         The syntax trees are traversed to declare variables, load symbol tables, assign
-        types, and in general determine the meaning of the program.
+        types, and determine the meaning of the program.
         )
 
         $(LI $(B optimization)$(BR)
 
-        Optimization is an optional pass that tries to rewrite the program
-        in a semantically equivalent, but faster executing, version.
+        Optimization is an optional pass that attempts to rewrite the program
+        in a semantically equivalent, more performant, version.
         )
 
         $(LI $(B code generation)$(BR)
 
         Instructions are selected from the target architecture to implement
         the semantics of the program. The typical result will be
-        an object file, suitable for input to a linker.
+        an object file suitable for input to a linker.
         )
 )
 
 
 $(H2 Memory Model)
 
-    $(P A $(I byte) is the fundamental unit of storage. Each byte has 8 bits, and is stored at
+    $(P The $(I byte) is the fundamental unit of storage. Each byte has 8 bits and is stored at
     a unique address. A $(I memory location) is a sequence of one or more bytes of the exact size
     required to hold a scalar type. Multiple threads can access separate memory locations
     without interference.
@@ -78,30 +78,31 @@ $(H2 Memory Model)
     $(P Memory locations come in three groups:)
 
     $(OL
-    $(LI $(I Thread local memory locations) are accessible from only one thread at a time.)
+    $(LI $(I Thread-local memory locations) are accessible from only one thread at a time.)
     $(LI $(I Immutable memory locations) cannot be written to during their lifetime. Immutable
     memory locations can be read from by multiple threads without synchronization.)
     $(LI $(I Shared memory locations) are accessible from multiple threads.)
     )
 
-    $(UNDEFINED_BEHAVIOR Allowing multiple threads to access a thread local memory
+    $(UNDEFINED_BEHAVIOR Allowing multiple threads to access a thread-local memory
     location results in undefined behavior.)
 
     $(UNDEFINED_BEHAVIOR Writing to an immutable memory location during its lifetime
     results in undefined behavior.)
 
-    $(UNDEFINED_BEHAVIOR Unless synchronized, writing to a shared memory location in
-    one thread while other threads read or write to it results in undefined behavior.)
+    $(UNDEFINED_BEHAVIOR Writing to a shared memory location in
+    one thread while one or more additional threads read from or write to the same location is
+    undefined behavior unless all of the reads and writes are synchronized.)
 
-    $(P Execution of a single thread on thread local and immutable memory locations
-    is $(I sequentially consistent). This means the result of the operations
+    $(P Execution of a single thread on thread-local and immutable memory locations
+    is $(I sequentially consistent). This means the collective result of the operations
     is the same as if they were executed in the same order that the operations appear in the program.
     )
 
-    $(P A memory location can be transferred from thread local to immutable or shared
+    $(P A memory location can be transferred from thread-local to immutable or shared
     if there is only one reference to the location.)
 
-    $(P A memory location can be transferred from shared to immutable or thread local
+    $(P A memory location can be transferred from shared to immutable or thread-local
     if there is only one reference to the location.)
 
     $(P A memory location can be temporarily transferred from shared to local if
@@ -111,7 +112,7 @@ $(H2 Memory Model)
 
 $(H2 Object Model)
 
-    $(P An $(I object) is created when one of the following is executed:
+    $(P An $(I object) is created in the following circumstances:
     )
 
     $(UL
@@ -122,22 +123,22 @@ $(H2 Object Model)
     )
 
     $(P An object spans a sequence of memory locations which may or may not
-    be contiguous. It exists during construction, its lifetime, and destruction.
-    Each object has a type, which is determined either statically or by runtime
+    be contiguous. Its lifetime encompasses construction, destruction, and the period in between.
+    Each object has a type which is determined either statically or by runtime
     type information.
-    The memory locations may include any combination of thread local, immutable, or
-    shared memory locations.
+    The object's memory locations may include any combination of thread-local, immutable, or
+    shared.
     )
 
-    $(P Objects can be composed into a $(I composed object). The objects that make up
-    the composed object are $(I subobjects). An object that is not the subobject
+    $(P Objects can be composed into a $(I composed object). Objects that make up
+    a composed object are $(I subobjects). An object that is not the subobject
     of another object is a $(I complete object). The lifetime of a subobject
-    is always within the lifetime of its complete object.
+    is always within the lifetime of the complete object to which it belongs.
     )
 
     $(P An object's address is the address of the first byte of the first memory
-    location for that object. Object addresses are distinct from each other
-    unless one of the objects is nested within the other.
+    location for that object. Object addresses are distinct unless one
+    object is nested within the other.
     )
 
 $(SPEC_SUBNAV_NEXT lex, Lexical)
