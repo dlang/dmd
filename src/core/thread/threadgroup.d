@@ -29,11 +29,11 @@ class ThreadGroup
      * Returns:
      *  A reference to the newly created thread.
      */
-    final Thread create( void function() fn )
+    final Thread create(void function() fn)
     {
-        Thread t = new Thread( fn ).start();
+        Thread t = new Thread(fn).start();
 
-        synchronized( this )
+        synchronized(this)
         {
             m_all[t] = t;
         }
@@ -51,11 +51,11 @@ class ThreadGroup
      * Returns:
      *  A reference to the newly created thread.
      */
-    final Thread create( void delegate() dg )
+    final Thread create(void delegate() dg)
     {
-        Thread t = new Thread( dg ).start();
+        Thread t = new Thread(dg).start();
 
-        synchronized( this )
+        synchronized(this)
         {
             m_all[t] = t;
         }
@@ -72,14 +72,14 @@ class ThreadGroup
      * In:
      *  t must not be null.
      */
-    final void add( Thread t )
+    final void add(Thread t)
     in
     {
-        assert( t );
+        assert(t);
     }
     do
     {
-        synchronized( this )
+        synchronized(this)
         {
             m_all[t] = t;
         }
@@ -96,16 +96,16 @@ class ThreadGroup
      * In:
      *  t must not be null.
      */
-    final void remove( Thread t )
+    final void remove(Thread t)
     in
     {
-        assert( t );
+        assert(t);
     }
     do
     {
-        synchronized( this )
+        synchronized(this)
         {
-            m_all.remove( t );
+            m_all.remove(t);
         }
     }
 
@@ -113,18 +113,18 @@ class ThreadGroup
     /**
      * Operates on all threads currently tracked by this object.
      */
-    final int opApply( scope int delegate( ref Thread ) dg )
+    final int opApply(scope int delegate(ref Thread) dg)
     {
-        synchronized( this )
+        synchronized(this)
         {
             int ret = 0;
 
             // NOTE: This loop relies on the knowledge that m_all uses the
             //       Thread object for both the key and the mapped value.
-            foreach ( Thread t; m_all.keys )
+            foreach (Thread t; m_all.keys)
             {
-                ret = dg( t );
-                if ( ret )
+                ret = dg(t);
+                if (ret)
                     break;
             }
             return ret;
@@ -143,15 +143,15 @@ class ThreadGroup
      * Throws:
      *  Any exception not handled by the joined threads.
      */
-    final void joinAll( bool rethrow = true )
+    final void joinAll(bool rethrow = true)
     {
-        synchronized( this )
+        synchronized(this)
         {
             // NOTE: This loop relies on the knowledge that m_all uses the
             //       Thread object for both the key and the mapped value.
-            foreach ( Thread t; m_all.keys )
+            foreach (Thread t; m_all.keys)
             {
-                t.join( rethrow );
+                t.join(rethrow);
             }
         }
     }
