@@ -34,8 +34,6 @@ struct ll_ThreadData
 
 version (GNU)
 {
-    import gcc.builtins;
-
     version (GNU_StackGrowsDown)
         enum isStackGrowingDown = true;
     else
