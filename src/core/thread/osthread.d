@@ -123,23 +123,20 @@ version (Solaris)
  */
 private extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc;
 
-private mixin template swapContextDefault()
-{
-    extern(C) void* swapContext(void* newContext) nothrow @nogc
-    {
-        return _d_eh_swapContext(newContext);
-    }
-}
-
 version (DigitalMars)
 {
     version (Windows)
-        mixin swapContextDefault;
+    {
+        extern(D) void* swapContext(void* newContext) nothrow @nogc
+        {
+            return _d_eh_swapContext(newContext);
+        }
+    }
     else
     {
         extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow @nogc;
 
-        extern(C) void* swapContext(void* newContext) nothrow @nogc
+        extern(D) void* swapContext(void* newContext) nothrow @nogc
         {
             /* Detect at runtime which scheme is being used.
              * Eventually, determine it statically.
@@ -173,7 +170,12 @@ version (DigitalMars)
     }
 }
 else
-    mixin swapContextDefault;
+{
+    extern(D) void* swapContext(void* newContext) nothrow @nogc
+    {
+        return _d_eh_swapContext(newContext);
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread
