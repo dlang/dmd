@@ -1488,7 +1488,7 @@ package extern(D) void* getStackBottom() nothrow @nogc
         pthread_getattr_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
-        static if (isStackGrowsDown)
+        static if (isStackGrowingDown)
             addr += size;
         return addr;
     }
@@ -1501,7 +1501,7 @@ package extern(D) void* getStackBottom() nothrow @nogc
         pthread_attr_get_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
-        static if (isStackGrowsDown)
+        static if (isStackGrowingDown)
             addr += size;
         return addr;
     }

@@ -1078,10 +1078,10 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
 
     for (StackContext* c = ThreadBase.sm_cbeg; c; c = c.next)
     {
-        static if (isStackGrowsDown)
+        static if (isStackGrowingDown)
         {
             // NOTE: We can't index past the bottom of the stack
-            //       so don't do the "+1" if isStackGrowsDown.
+            //       so don't do the "+1" if isStackGrowingDown.
             if (c.tstack && c.tstack < c.bstack)
                 scan(ScanType.stack, c.tstack, c.bstack);
         }

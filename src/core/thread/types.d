@@ -37,14 +37,14 @@ version (GNU)
     import gcc.builtins;
 
     version (GNU_StackGrowsDown)
-        enum isStackGrowsDown = true;
+        enum isStackGrowingDown = true;
     else
-        enum isStackGrowsDown = false;
+        enum isStackGrowingDown = false;
 }
 else
 {
     // this should be true for most architectures
-    enum isStackGrowsDown = true;
+    enum isStackGrowingDown = true;
 }
 
 package
