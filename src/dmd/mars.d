@@ -446,7 +446,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.addMain)
         files.push("__main.d");
     // Create Modules
-    Modules modules = createModules(files, libmodules);
+    Modules modules = createModules(files, &libmodules);
     // Read files
     // Start by "reading" the special files (__main.d, __stdin.d)
     foreach (m; modules)
@@ -2633,7 +2633,7 @@ Params:
 Returns:
   A D module
 */
-Module createModule(const(char)* file, ref Strings libmodules)
+Module createModule(const(char)* file, Strings* libmodules = null)
 {
     const(char)[] name;
     version (Windows)
@@ -2659,13 +2659,15 @@ Module createModule(const(char)* file, ref Strings libmodules)
     if (FileName.equals(ext, global.obj_ext))
     {
         global.params.objfiles.push(file);
-        libmodules.push(file);
+        if (libmodules)
+            libmodules.push(file);
         return null;
     }
     if (FileName.equals(ext, global.lib_ext))
     {
         global.params.libfiles.push(file);
-        libmodules.push(file);
+        if (libmodules)
+            libmodules.push(file);
         return null;
     }
     static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
@@ -2673,7 +2675,8 @@ Module createModule(const(char)* file, ref Strings libmodules)
         if (FileName.equals(ext, global.dll_ext))
         {
             global.params.dllfiles.push(file);
-            libmodules.push(file);
+            if (libmodules)
+                libmodules.push(file);
             return null;
         }
     }
@@ -2752,7 +2755,7 @@ Params:
 Returns:
   An array of path to D modules
 */
-Modules createModules(ref Strings files, ref Strings libmodules)
+Modules createModules(ref Strings files, Strings* libmodules)
 {
     Modules modules;
     modules.reserve(files.dim);
