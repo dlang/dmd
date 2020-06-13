@@ -102,15 +102,15 @@ class ThreadBase
     // Initialization
     ///////////////////////////////////////////////////////////////////////////
 
-    this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
-    in( fn )
+    this(void function() fn, size_t sz = 0) @safe pure nothrow @nogc
+    in(fn)
     {
         this(sz);
         m_call = fn;
     }
 
-    this( void delegate() dg, size_t sz = 0 ) @safe pure nothrow @nogc
-    in( dg )
+    this(void delegate() dg, size_t sz = 0) @safe pure nothrow @nogc
+    in(dg)
     {
         this(sz);
         m_call = dg;
@@ -136,7 +136,7 @@ class ThreadBase
 
     package void dataStorageInit() nothrow
     {
-        assert( m_curr is &m_main );
+        assert(m_curr is &m_main);
 
         m_main.bstack = getStackBottom();
         m_main.tstack = m_main.bstack;
@@ -145,7 +145,7 @@ class ThreadBase
 
     package void dataStorageDestroy() nothrow @nogc
     {
-        rt_tlsgc_destroy( m_tlsgcdata );
+        rt_tlsgc_destroy(m_tlsgcdata);
         m_tlsgcdata = null;
     }
 
@@ -177,7 +177,7 @@ class ThreadBase
      *  Any exception not handled by this thread if rethrow = false, null
      *  otherwise.
      */
-    abstract Throwable join( bool rethrow = true );
+    abstract Throwable join(bool rethrow = true);
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -197,7 +197,7 @@ class ThreadBase
      */
     final @property ThreadID id() @safe @nogc
     {
-        synchronized( this )
+        synchronized(this)
         {
             return m_addr;
         }
@@ -212,7 +212,7 @@ class ThreadBase
      */
     final @property string name() @safe @nogc
     {
-        synchronized( this )
+        synchronized(this)
         {
             return m_name;
         }
@@ -225,9 +225,9 @@ class ThreadBase
      * Params:
      *  val = The new name of this thread.
      */
-    final @property void name( string val ) @safe @nogc
+    final @property void name(string val) @safe @nogc
     {
-        synchronized( this )
+        synchronized(this)
         {
             m_name = val;
         }
@@ -246,7 +246,7 @@ class ThreadBase
      */
     final @property bool isDaemon() @safe @nogc
     {
-        synchronized( this )
+        synchronized(this)
         {
             return m_isDaemon;
         }
@@ -263,9 +263,9 @@ class ThreadBase
      * Params:
      *  val = The new daemon status for this thread.
      */
-    final @property void isDaemon( bool val ) @safe @nogc
+    final @property void isDaemon(bool val) @safe @nogc
     {
-        synchronized( this )
+        synchronized(this)
         {
             m_isDaemon = val;
         }
@@ -291,7 +291,7 @@ class ThreadBase
      */
     @property bool isRunning() nothrow @nogc
     {
-        if ( m_addr == m_addr.init )
+        if (m_addr == m_addr.init)
             return false;
 
         return true;
@@ -464,7 +464,7 @@ package:
     //
     // Sets a thread-local reference to the current thread object.
     //
-    package static void setThis( ThreadBase t ) nothrow @nogc
+    package static void setThis(ThreadBase t) nothrow @nogc
     {
         sm_this = t;
     }
@@ -481,10 +481,10 @@ package(core.thread):
     ///////////////////////////////////////////////////////////////////////////
 
 
-    final void pushContext( StackContext* c ) nothrow @nogc
+    final void pushContext(StackContext* c) nothrow @nogc
     in
     {
-        assert( !c.within );
+        assert(!c.within);
     }
     do
     {
@@ -497,7 +497,7 @@ package(core.thread):
     final void popContext() nothrow @nogc
     in
     {
-        assert( m_curr && m_curr.within );
+        assert(m_curr && m_curr.within);
     }
     do
     {
@@ -508,7 +508,7 @@ package(core.thread):
     }
 
     private final StackContext* topContext() nothrow @nogc
-    in( m_curr )
+    in(m_curr)
     {
         return m_curr;
     }
@@ -608,11 +608,11 @@ package(core.thread):
     //
     // Add a context to the global context list.
     //
-    static void add( StackContext* c ) nothrow @nogc
+    static void add(StackContext* c) nothrow @nogc
     in
     {
-        assert( c );
-        assert( !c.next && !c.prev );
+        assert(c);
+        assert(!c.next && !c.prev);
     }
     do
     {
@@ -633,19 +633,19 @@ package(core.thread):
     //
     // This assumes slock being acquired. This isn't done here to
     // avoid double locking when called from remove(Thread)
-    static void remove( StackContext* c ) nothrow @nogc
+    static void remove(StackContext* c) nothrow @nogc
     in
     {
-        assert( c );
-        assert( c.next || c.prev );
+        assert(c);
+        assert(c.next || c.prev);
     }
     do
     {
-        if ( c.prev )
+        if (c.prev)
             c.prev.next = c.next;
-        if ( c.next )
+        if (c.next)
             c.next.prev = c.prev;
-        if ( sm_cbeg == c )
+        if (sm_cbeg == c)
             sm_cbeg = c.next;
         // NOTE: Don't null out c.next or c.prev because opApply currently
         //       follows c.next after removing a node.  This could be easily
@@ -664,11 +664,11 @@ package(core.thread):
     //
     // Add a thread to the global thread list.
     //
-    static void add( ThreadBase t, bool rmAboutToStart = true ) nothrow @nogc
+    static void add(ThreadBase t, bool rmAboutToStart = true) nothrow @nogc
     in
     {
-        assert( t );
-        assert( !t.next && !t.prev );
+        assert(t);
+        assert(!t.next && !t.prev);
     }
     do
     {
@@ -708,10 +708,10 @@ package(core.thread):
     //
     // Remove a thread from the global thread list.
     //
-    static void remove( ThreadBase t ) nothrow @nogc
+    static void remove(ThreadBase t) nothrow @nogc
     in
     {
-        assert( t );
+        assert(t);
     }
     do
     {
@@ -730,13 +730,13 @@ package(core.thread):
             //       elsewhere.  Therefore, it is the responsibility of any
             //       object that creates contexts to clean them up properly
             //       when it is done with them.
-            remove( &t.m_main );
+            remove(&t.m_main);
 
-            if ( t.prev )
+            if (t.prev)
                 t.prev.next = t.next;
-            if ( t.next )
+            if (t.next)
                 t.next.prev = t.prev;
-            if ( sm_tbeg is t )
+            if (sm_tbeg is t)
                 sm_tbeg = t.next;
             t.prev = t.next = null;
             --sm_tlen;
@@ -846,17 +846,17 @@ extern (C) void thread_detachThis() nothrow @nogc
  *
  *       $(D extern(C) void rt_moduleTlsDtor();)
  */
-extern (C) void thread_detachByAddr( ThreadID addr )
+extern (C) void thread_detachByAddr(ThreadID addr)
 {
-    if ( auto t = thread_findByAddr( addr ) )
-        ThreadBase.remove( t );
+    if (auto t = thread_findByAddr(addr))
+        ThreadBase.remove(t);
 }
 
 
 /// ditto
-extern (C) void thread_detachInstance( ThreadBase t ) nothrow @nogc
+extern (C) void thread_detachInstance(ThreadBase t) nothrow @nogc
 {
-    ThreadBase.remove( t );
+    ThreadBase.remove(t);
 }
 
 
@@ -868,7 +868,7 @@ extern (C) void thread_detachInstance( ThreadBase t ) nothrow @nogc
  * Returns:
  *  The thread object associated with the thread identifier, null if not found.
  */
-static ThreadBase thread_findByAddr( ThreadID addr )
+static ThreadBase thread_findByAddr(ThreadID addr)
 {
     ThreadBase.slock.lock_nothrow();
     scope(exit) ThreadBase.slock.unlock_nothrow();
@@ -969,7 +969,7 @@ package __gshared bool multiThreadedFlag = false;
 // Used for suspendAll/resumeAll below.
 package __gshared uint suspendDepth = 0;
 
-private extern (C) void resume( ThreadBase ) nothrow;
+private extern (C) void resume(ThreadBase) nothrow;
 
 /**
  * Resume all threads but the calling thread for "stop the world" garbage
@@ -985,28 +985,28 @@ private extern (C) void resume( ThreadBase ) nothrow;
 extern (C) void thread_resumeAll() nothrow
 in
 {
-    assert( suspendDepth > 0 );
+    assert(suspendDepth > 0);
 }
 do
 {
     // NOTE: See thread_suspendAll for the logic behind this.
-    if ( !multiThreadedFlag && ThreadBase.sm_tbeg )
+    if (!multiThreadedFlag && ThreadBase.sm_tbeg)
     {
-        if ( --suspendDepth == 0 )
-            resume( ThreadBase.getThis() );
+        if (--suspendDepth == 0)
+            resume(ThreadBase.getThis());
         return;
     }
 
     scope(exit) ThreadBase.slock.unlock_nothrow();
     {
-        if ( --suspendDepth > 0 )
+        if (--suspendDepth > 0)
             return;
 
-        for ( ThreadBase t = ThreadBase.sm_tbeg; t; t = t.next )
+        for (ThreadBase t = ThreadBase.sm_tbeg; t; t = t.next)
         {
             // NOTE: We do not need to care about critical regions at all
             //       here. thread_suspendAll takes care of everything.
-            resume( t );
+            resume(t);
         }
     }
 }
@@ -1033,10 +1033,10 @@ alias ScanAllThreadsTypeFn = void delegate(ScanType, void*, void*) nothrow; /// 
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan ) nothrow
+extern (C) void thread_scanAllType(scope ScanAllThreadsTypeFn scan) nothrow
 in
 {
-    assert( suspendDepth > 0 );
+    assert(suspendDepth > 0);
 }
 do
 {
@@ -1046,26 +1046,26 @@ do
 package alias callWithStackShellDg = void delegate(void* sp) nothrow;
 private extern(C) void callWithStackShell(scope callWithStackShellDg fn) nothrow;
 
-private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop ) nothrow
+private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop) nothrow
 {
     ThreadBase  thisThread  = null;
     void*   oldStackTop = null;
 
-    if ( ThreadBase.sm_tbeg )
+    if (ThreadBase.sm_tbeg)
     {
         thisThread  = ThreadBase.getThis();
-        if ( !thisThread.m_lock )
+        if (!thisThread.m_lock)
         {
             oldStackTop = thisThread.m_curr.tstack;
             thisThread.m_curr.tstack = curStackTop;
         }
     }
 
-    scope( exit )
+    scope(exit)
     {
-        if ( ThreadBase.sm_tbeg )
+        if (ThreadBase.sm_tbeg)
         {
-            if ( !thisThread.m_lock )
+            if (!thisThread.m_lock)
             {
                 thisThread.m_curr.tstack = oldStackTop;
             }
@@ -1078,23 +1078,23 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
     if (ThreadBase.nAboutToStart)
         scan(ScanType.stack, ThreadBase.pAboutToStart, ThreadBase.pAboutToStart + ThreadBase.nAboutToStart);
 
-    for ( StackContext* c = ThreadBase.sm_cbeg; c; c = c.next )
+    for (StackContext* c = ThreadBase.sm_cbeg; c; c = c.next)
     {
         static if (isStackGrowsDown)
         {
             // NOTE: We can't index past the bottom of the stack
             //       so don't do the "+1" if isStackGrowsDown.
-            if ( c.tstack && c.tstack < c.bstack )
-                scan( ScanType.stack, c.tstack, c.bstack );
+            if (c.tstack && c.tstack < c.bstack)
+                scan(ScanType.stack, c.tstack, c.bstack);
         }
         else
         {
-            if ( c.bstack && c.bstack < c.tstack )
-                scan( ScanType.stack, c.bstack, c.tstack + 1 );
+            if (c.bstack && c.bstack < c.tstack)
+                scan(ScanType.stack, c.bstack, c.tstack + 1);
         }
     }
 
-    for ( ThreadBase t = ThreadBase.sm_tbeg; t; t = t.next )
+    for (ThreadBase t = ThreadBase.sm_tbeg; t; t = t.next)
     {
         version (Windows)
         {
@@ -1120,7 +1120,7 @@ private extern (C) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadB
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAll( scope ScanAllThreadsFn scan ) nothrow
+extern (C) void thread_scanAll(scope ScanAllThreadsFn scan) nothrow
 {
     thread_scanAllType((type, p1, p2) => scan(p1, p2));
 }
@@ -1243,7 +1243,7 @@ enum IsMarked : int
     unknown, /// Address is not managed by the GC.
 }
 
-alias IsMarkedDg = int delegate( void* addr ) nothrow; /// The isMarked callback function.
+alias IsMarkedDg = int delegate(void* addr) nothrow; /// The isMarked callback function.
 
 /**
  * This routine allows the runtime to process any special per-thread handling
@@ -1257,9 +1257,9 @@ alias IsMarkedDg = int delegate( void* addr ) nothrow; /// The isMarked callback
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked ) nothrow
+extern(C) void thread_processGCMarks(scope IsMarkedDg isMarked) nothrow
 {
-    for ( ThreadBase t = ThreadBase.sm_tbeg; t; t = t.next )
+    for (ThreadBase t = ThreadBase.sm_tbeg; t; t = t.next)
     {
         /* Can be null if collection was triggered between adding a
          * thread and calling rt_tlsgc_init.
