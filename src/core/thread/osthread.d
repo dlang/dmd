@@ -2020,14 +2020,14 @@ version (Windows)
             Thread  obj = cast(Thread) arg;
             assert( obj );
 
-            obj.dataStorageInit();
+            obj.initDataStorage();
 
             Thread.setThis(obj);
             Thread.add(obj);
             scope (exit)
             {
                 Thread.remove(obj);
-                obj.dataStorageDestroy();
+                obj.destroyDataStorage();
             }
             Thread.add(&obj.m_main);
 
