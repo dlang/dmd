@@ -105,8 +105,6 @@ else version (Posix)
     }
 }
 
-package extern(C) immutable size_t threadSizeof = Thread.sizeof;
-
 version (Solaris)
 {
     import core.sys.solaris.sys.priocntl;
@@ -176,7 +174,6 @@ version (DigitalMars)
 }
 else
     mixin swapContextDefault;
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread
@@ -967,12 +964,12 @@ class Thread : ThreadBase
     }
 }
 
-private Thread toThread(ThreadBase t) @safe nothrow @nogc pure
+private Thread toThread(ThreadBase t) @trusted nothrow @nogc pure
 {
-    return cast(Thread) t;
+    return cast(Thread) cast(void*) t;
 }
 
-private extern(C) static void thread_yield() @nogc nothrow
+private extern(D) static void thread_yield() @nogc nothrow
 {
     Thread.yield();
 }
@@ -1201,8 +1198,10 @@ version (Posix)
     __gshared int resumeSignalNumber;
 }
 
-private extern (C) Thread attachThread(Thread thisThread) @nogc
+private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc
 {
+    Thread thisThread = _thisThread.toThread();
+
     StackContext* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
@@ -1219,7 +1218,7 @@ private extern (C) Thread attachThread(Thread thisThread) @nogc
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
 
-        atomicStore!(MemoryOrder.raw)(thisThread.m_isRunning, true);
+        atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
     }
     thisThread.m_isDaemon = true;
     thisThread.tlsGCdataInit();
@@ -1317,7 +1316,7 @@ version (Windows)
 
 
 // Calls the given delegate, passing the current thread's stack pointer to it.
-package extern(C) void callWithStackShell(scope callWithStackShellDg fn) nothrow
+package extern(D) void callWithStackShell(scope callWithStackShellDg fn) nothrow
 in (fn)
 {
     // The purpose of the 'shell' is to ensure all the registers get
@@ -1446,7 +1445,7 @@ extern (C) @nogc nothrow
 }
 
 
-package extern(C) void* getStackTop() nothrow @nogc
+package extern(D) void* getStackTop() nothrow @nogc
 {
     version (D_InlineAsm_X86)
         asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
@@ -1459,7 +1458,7 @@ package extern(C) void* getStackTop() nothrow @nogc
 }
 
 
-package extern(C) void* getStackBottom() nothrow @nogc
+package extern(D) void* getStackBottom() nothrow @nogc
 {
     version (Windows)
     {
@@ -1540,7 +1539,7 @@ package extern(C) void* getStackBottom() nothrow @nogc
  * Returns:
  *  Whether the thread is now suspended (true) or terminated (false).
  */
-private extern (C) bool suspend( Thread t ) nothrow
+private extern (D) bool suspend( Thread t ) nothrow
 {
     Duration waittime = dur!"usecs"(10);
  Lagain:
@@ -1841,8 +1840,10 @@ extern (C) void thread_suspendAll() nothrow
  * Throws:
  *  ThreadError if the resume fails for a running thread.
  */
-private extern (C) void resume( Thread t ) nothrow
+private extern (D) void resume(ThreadBase _t) nothrow
 {
+    Thread t = _t.toThread;
+
     version (Windows)
     {
         if ( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )

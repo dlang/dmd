@@ -20,9 +20,9 @@ import core.stdc.stdlib : free, realloc;
 
 private
 {
-    // interface to rt.tlsgc
     import core.internal.traits : externDFunc;
 
+    // interface to rt.tlsgc
     alias rt_tlsgc_init = externDFunc!("rt.tlsgc.init", void* function() nothrow @nogc);
     alias rt_tlsgc_destroy = externDFunc!("rt.tlsgc.destroy", void function(void*) nothrow @nogc);
 
@@ -84,10 +84,8 @@ private
 
     extern(C) void* swapContext(void* newContext) nothrow @nogc;
 
-    extern extern(C) immutable size_t threadSizeof;
-
-    extern(C) void* getStackBottom() nothrow @nogc;
-    extern(C) void* getStackTop() nothrow @nogc;
+    alias getStackBottom = externDFunc!("core.thread.osthread.getStackBottom", void* function() nothrow @nogc);
+    alias getStackTop = externDFunc!("core.thread.osthread.getStackTop", void* function() nothrow @nogc);
 }
 
 
@@ -355,7 +353,7 @@ class ThreadBase
     {
         static void resize(ref ThreadBase[] buf, size_t nlen)
         {
-            buf = (cast(ThreadBase*)realloc(buf.ptr, nlen * threadSizeof))[0 .. nlen];
+            buf = (cast(ThreadBase*)realloc(buf.ptr, nlen * size_t.sizeof))[0 .. nlen];
         }
         auto buf = getAllImpl!resize;
         scope(exit) if (buf.ptr) free(buf.ptr);
@@ -690,9 +688,9 @@ package(core.thread):
             }
             assert(idx != -1);
             import core.stdc.string : memmove;
-            memmove(pAboutToStart + idx, pAboutToStart + idx + 1, threadSizeof * (nAboutToStart - idx - 1));
+            memmove(pAboutToStart + idx, pAboutToStart + idx + 1, size_t.sizeof * (nAboutToStart - idx - 1));
             pAboutToStart =
-                cast(ThreadBase*)realloc(pAboutToStart, threadSizeof * --nAboutToStart);
+                cast(ThreadBase*)realloc(pAboutToStart, size_t.sizeof * --nAboutToStart);
         }
 
         if (sm_tbeg)
@@ -756,7 +754,7 @@ package(core.thread):
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
 
-extern (C) ThreadBase attachThread(ThreadBase thisThread) @nogc;
+private alias attachThread = externDFunc!("core.thread.osthread.attachThread", ThreadBase function(ThreadBase) @nogc);
 
 extern (C) void _d_monitordelete_nogc(Object h) @nogc;
 
@@ -969,7 +967,7 @@ package __gshared bool multiThreadedFlag = false;
 // Used for suspendAll/resumeAll below.
 package __gshared uint suspendDepth = 0;
 
-private extern (C) void resume(ThreadBase) nothrow;
+private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow);
 
 /**
  * Resume all threads but the calling thread for "stop the world" garbage
@@ -1044,7 +1042,7 @@ do
 }
 
 package alias callWithStackShellDg = void delegate(void* sp) nothrow;
-private extern(C) void callWithStackShell(scope callWithStackShellDg fn) nothrow;
+private alias callWithStackShell = externDFunc!("core.thread.osthread.callWithStackShell", void function(scope callWithStackShellDg) nothrow);
 
 private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop) nothrow
 {
@@ -1125,7 +1123,7 @@ extern (C) void thread_scanAll(scope ScanAllThreadsFn scan) nothrow
     thread_scanAllType((type, p1, p2) => scan(p1, p2));
 }
 
-private extern (C) static void thread_yield() @nogc nothrow;
+private alias thread_yield = externDFunc!("core.thread.osthread.thread_yield", void function() @nogc nothrow);
 
 /**
  * Signals that the code following this call is a critical region. Any code in
