@@ -2127,7 +2127,7 @@ else version (Posix)
                              void function(void*) @nogc nothrow)(loadedLibraries);
             }
 
-            obj.dataStorageInit();
+            obj.initDataStorage();
 
             atomicStore!(MemoryOrder.raw)(obj.m_isRunning, true);
             Thread.setThis(obj); // allocates lazy TLS (see Issue 11981)
@@ -2136,7 +2136,7 @@ else version (Posix)
             {
                 Thread.remove(obj);
                 atomicStore!(MemoryOrder.raw)(obj.m_isRunning, false);
-                obj.dataStorageDestroy();
+                obj.destroyDataStorage();
             }
             Thread.add(&obj.m_main);
 

@@ -119,7 +119,7 @@ class ThreadBase
      */
     package bool destructBeforeDtor() nothrow @nogc
     {
-        dataStorageDestroyIfAvail();
+        destroyDataStorageIfAvail();
 
         bool no_context = m_addr == m_addr.init;
         bool not_registered = !next && !prev && (sm_tbeg !is this);
@@ -132,7 +132,7 @@ class ThreadBase
         m_tlsgcdata = rt_tlsgc_init();
     }
 
-    package void dataStorageInit() nothrow
+    package void initDataStorage() nothrow
     {
         assert(m_curr is &m_main);
 
@@ -141,16 +141,16 @@ class ThreadBase
         tlsGCdataInit();
     }
 
-    package void dataStorageDestroy() nothrow @nogc
+    package void destroyDataStorage() nothrow @nogc
     {
         rt_tlsgc_destroy(m_tlsgcdata);
         m_tlsgcdata = null;
     }
 
-    package void dataStorageDestroyIfAvail() nothrow @nogc
+    package void destroyDataStorageIfAvail() nothrow @nogc
     {
         if (m_tlsgcdata)
-            dataStorageDestroy();
+            destroyDataStorage();
     }
 
 
