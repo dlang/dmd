@@ -1,0 +1,18 @@
+Support for alias of individual array elements
+
+Although generally speaking it is illegal to alias an expression
+it is now allowed to put an alias on a specific element of an aggregate iff
+
+* the aggregate can itself be aliased
+* the index is a single expression that gives an integer value and that is evaluable at compile-time
+
+using the alias generates the same code as using the aliased expression.
+
+---
+// give signification to individual elements of an array using aliases
+string[3] data  = ["Anna", "Miles", "AnnaMiles@jourrapide.com "];
+alias firstName = data[0];
+alias lastName  = data[1];
+alias email     = data[2];
+const bool addressContainsName = [firstName, lastName].all!(a => email.canFind(a));
+---

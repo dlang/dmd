@@ -1212,6 +1212,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
+    inout(OffsetVar)                   isOffsetVar()                   inout { return null; }
 }
 
 /***********************************************************
@@ -2136,4 +2137,26 @@ extern (C++) final class DsymbolTable : RootObject
     {
         return tab.length;
     }
+}
+
+/**
+ * Wrapper used when a variable is aliased along with a constant index,
+ * e.g an array element given by an integer literal.
+ *
+ * This symbol is not an AST node (so no visited) and is anonymous,
+ * only using the identifier of the alias for which an `OffsetVar` is created
+ * can give back the expression.
+ */
+extern (C++) final class OffsetVar : Dsymbol
+{
+    ArrayExp ae; /// gives a var and a constant offset
+
+    /// Only called in `aliasSemantic()`
+    package this(ArrayExp ae)
+    {
+        super(ae.loc, Identifier.anonymous());
+        this.ae     = ae;
+    }
+
+    override inout(OffsetVar) isOffsetVar() inout { return this; }
 }

@@ -6628,12 +6628,50 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             s = getDsymbol(e);
             if (!s)
             {
-                if (e.op != TOK.error)
-                    ds.error("cannot alias an expression `%s`", e.toChars());
-                t = Type.terror;
+                // given  `alias id = e1[e2];` we allow if...
+                if (ArrayExp ae = e.isArrayExp())
+                {
+                    // 1. `e1` is a symbol or an array literal (e.g enum id = arrayliteral)
+                    ae.e1 = expressionSemantic(ae.e1, sc);
+                    VarExp ve = ae.e1.isVarExp();
+                    ArrayLiteralExp ale = ae.e1.isArrayLiteralExp();
+                    // 2. `e2` is an integer known at compile time
+                    IntegerExp ie = (ae.arguments && ae.arguments.dim == 1)
+                        ? expressionSemantic((*ae.arguments)[0], sc).ctfeInterpret().isIntegerExp()
+                        : null;
+                    if (!ve && !ale)
+                    {
+                        OutBuffer buff;
+                        if (ae.arguments)
+                            argsToBuffer(ae.arguments, &buff, null);
+                        ds.error(", cannot index `%s` using `[%s]` because it is not a symbol",
+                            ae.e1.toChars(), buff.extractChars());
+                    }
+                    else if (!ie)
+                    {
+                        OutBuffer buff;
+                        if (ae.arguments)
+                            argsToBuffer(ae.arguments, &buff, null);
+                        ds.error(", symbol `%s` cannot be indexed using `[%s]`",
+                            ae.e1.toChars(), buff.extractChars());
+                    }
+                    else if ((ve || ale) && ie)
+                    {
+                        // create a special symbol that can be turn back to an exp in
+                        // dmd.expressionsem.symbolToExp()
+                        s = new OffsetVar(ae);
+                    }
+                }
+                if (!s)
+                {
+                    if (e.op != TOK.error)
+                        ds.error("cannot alias an expression `%s`", e.toChars());
+                    t = Type.terror;
+                }
             }
         }
-        ds.type = t;
+        if (!s)
+            ds.type = t;
     }
     if (s == ds)
     {
@@ -6647,7 +6685,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         ds.type = ds.type.typeSemantic(ds.loc, sc);
         ds.aliassym = null;
     }
-    else    // it's a symbolic alias
+    else   // it's a symbolic alias, with an optional constant offset
     {
         //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
         ds.type = null;

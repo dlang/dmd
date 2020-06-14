@@ -7987,6 +7987,14 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
         Expression ei = isExpression(oarg);
         Type vt;
 
+        // if arg is an OffsetVar then try to evaluate the associated exp
+        if (!ei)
+        {
+            Dsymbol si  = isDsymbol(oarg);
+            OffsetVar o = si ? si.isOffsetVar() : null;
+            ei          = o ? o.ae.expressionSemantic(sc) : null;
+        }
+
         if (!ei && oarg)
         {
             Dsymbol si = isDsymbol(oarg);

@@ -69,6 +69,7 @@ class SymbolDeclaration;
 class Expression;
 class ExpressionDsymbol;
 class OverloadSet;
+class OffsetVar;
 struct AA;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -277,6 +278,7 @@ public:
     virtual ProtDeclaration *isProtDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
     virtual CompileDeclaration *isCompileDeclaration() { return NULL; }
+    virtual OffsetVar *isOffsetVar() { return NULL; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -395,4 +397,19 @@ public:
 
     // Number of symbols in symbol table
     size_t length() const;
+};
+
+/**
+ * Wrapper used when a variable is aliased along with a constant index,
+ * e.g an array element given by an integer literal.
+ *
+ * This symbol is not an AST node (so no visited) and is anonymous,
+ * only using the identifier of the alias for which an `OffsetVar` is created
+ * can give back the expression.
+ */
+class OffsetVar : public Dsymbol
+{
+public:
+    ArrayExp *ae; /// gives a var and a constant offset
+    OffsetVar *isOffsetVar() { return this; }
 };
