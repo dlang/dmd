@@ -1401,7 +1401,7 @@ version (Solaris)
 
 
 version (Windows)
-private extern (C) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase _t) nothrow
+private extern (D) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase _t) nothrow
 {
     auto t = _t.toThread;
 

@@ -1106,7 +1106,13 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
     }
 }
 
-private extern (C) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase) nothrow;
+version (Windows)
+{
+    // Currently scanWindowsOnly can't be handled properly by externDFunc
+    // https://github.com/dlang/druntime/pull/3135#issuecomment-643673218
+    pragma(mangle, "_D4core6thread8osthread15scanWindowsOnlyFNbMDFNbEQBvQBt10threadbase8ScanTypePvQcZvCQDdQDbQBi10ThreadBaseZv")
+    private extern (D) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase) nothrow;
+}
 
 /**
  * The main entry point for garbage collection.  The supplied delegate
