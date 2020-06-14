@@ -403,7 +403,7 @@ __gshared
 {
 public seg_data **SegData;
 
-    int seg_count;
+    int seg_length;
     int seg_max;
 
     Objstate obj;
@@ -586,14 +586,14 @@ private int obj_namestring(char *p,const(char)* name)
 
 seg_data *getsegment()
 {
-    int seg = ++seg_count;
-    if (seg_count == seg_max)
+    int seg = seg_length++;
+    if (seg_length > seg_max)
     {
         seg_max += 10;
         SegData = cast(seg_data **)mem_realloc(SegData, seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg_count], 0, 10 * (seg_data *).sizeof);
+        memset(&SegData[seg], 0, 10 * (seg_data *).sizeof);
     }
-    assert(seg_count < seg_max);
+    assert(seg_length <= seg_max);
     if (SegData[seg])
         memset(SegData[seg], 0, seg_data.sizeof);
     else
@@ -775,7 +775,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         SegData[CDATA].segidx = CDATA;
         SegData[UDATA].segidx = UDATA;
 
-        seg_count = UDATA;
+        seg_length = UDATA + 1;
 
         if (config.fulltypes)
         {
@@ -785,7 +785,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             SegData[DEBSYM].segidx = DEBSYM;
             SegData[DEBTYP].segidx = DEBTYP;
 
-            seg_count = DEBTYP;
+            seg_length = DEBTYP + 1;
         }
 
         OmfObj_theadr(filename);
@@ -859,7 +859,7 @@ else
             {   // Fill in header
                 int headersize;
                 int rectyp;
-                assert(d.lseg > 0 && d.lseg <= seg_count);
+                assert(d.lseg > 0 && d.lseg < seg_length);
                 int lseg = SegData[d.lseg].segidx;
                 char[(d.header).sizeof] header = void;
 
@@ -928,7 +928,7 @@ static if (TERMCODE)
         OmfObj_segment_group(SegData[CODE].SDoffset, SegData[DATA].SDoffset, SegData[CDATA].SDoffset, SegData[UDATA].SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
-        for (size_t i = 0; i <= seg_count; i++)
+        for (size_t i = 0; i < seg_length; i++)
         {
             seg_data* f = SegData[i];
             if (f.isfarseg && f.origsize != f.SDoffset)
@@ -2125,13 +2125,13 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
             lr.alloctyp = 0x10 | 0x00; // pick any instance | explicit allocation
         if (is_readonly_comdat)
         {
-            assert(lr.lseg > 0 && lr.lseg <= seg_count);
+            assert(lr.lseg > 0 && lr.lseg < seg_length);
             lr.flags |= 0x08;      // data in code seg
         }
         else
         {
             cseg = lr.lseg;
-            assert(cseg > 0 && cseg <= seg_count);
+            assert(cseg > 0 && cseg < seg_length);
             obj.pubnamidx = obj.lnameidx - 1;
             Offset(cseg) = 0;
             if (tyfarfunc(ty) && strcmp(s.Sident.ptr,"main") == 0)
@@ -2191,7 +2191,7 @@ int OmfObj_jmpTableSegment(Symbol *s)
 
 void OmfObj_setcodeseg(int seg)
 {
-    assert(0 < seg && seg <= seg_count);
+    assert(0 < seg && seg < seg_length);
     cseg = seg;
 }
 
@@ -3230,7 +3230,7 @@ private Ledatarec *ledata_new(int seg,targ_size_t offset)
 {
 
     //printf("ledata_new(seg = %d, offset = x%lx)\n",seg,offset);
-    assert(seg > 0 && seg <= seg_count);
+    assert(seg > 0 && seg < seg_length);
 
     if (obj.ledatai == obj.ledatamax)
     {
