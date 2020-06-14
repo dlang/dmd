@@ -71,7 +71,7 @@ subPackage {
   name "frontend"
   targetType "library"
   sourcePaths "src/dmd"
-  stringImportPaths "res"
+  stringImportPaths "src/dmd/res"
 
   versions \
     "NoBackend" \
