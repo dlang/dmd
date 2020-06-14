@@ -287,14 +287,16 @@ struct MatchAccumulator
 extern (C++) abstract class Declaration : Dsymbol
 {
     Type type;
-    Type originalType;  // before semantic analysis
+    Type originalType;  /// before semantic analysis
     StorageClass storage_class = STC.undefined_;
     Prot protection;
     LINK linkage = LINK.default_;
-    int inuse;          // used to detect cycles
+    int inuse;          /// used to detect cycles
 
-    // overridden symbol with pragma(mangle, "...")
+    /// overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
+    /// is this symbol to be emitted into the referencing module (implies weak linkage)
+    bool linkedin;
 
     final extern (D) this(Identifier ident)
     {

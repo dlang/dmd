@@ -324,6 +324,7 @@ immutable Msgtable[] msgtable =
     { "startaddress" },
     { "crt_constructor" },
     { "crt_destructor" },
+    { "linkedin" },
 
     // For special functions
     { "tohash", "toHash" },

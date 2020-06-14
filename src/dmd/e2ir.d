@@ -175,6 +175,36 @@ private elem *callfunc(const ref Loc loc,
     elem *eside = null;
     elem *eresult = ehidden;
 
+    // TOOD this should really go into the frontend semantic
+
+    if (fd)
+    {
+        Module origin_module = fd._scope ? fd._scope._module : null;
+
+        if (fd.linkedin && origin_module != irs.m && !origin_module.isRoot())
+        {
+            // we are calling a linkedin function and it's not defined within us
+            // nor is the origin of the function a root module;
+            bool already_linkedin = false;
+
+            foreach(s;irs.m.linkedSymbols)
+            {
+                if (s == fd)
+                {
+                    already_linkedin = true;
+                    break;
+                }
+            }
+
+            if (!already_linkedin)
+            {
+                if (fd.semanticRun < PASS.semantic3done)
+                    fd.functionSemantic3();
+
+                irs.m.linkedSymbols.push(fd);
+            }
+        }
+    }
     version (none)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",

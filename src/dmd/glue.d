@@ -389,6 +389,12 @@ void genObjFile(Module m, bool multiobj)
         toObjFile(member, multiobj);
     }
 
+    for (int i = 0; i < m.linkedSymbols.dim; i++)
+    {
+        auto sym = m.linkedSymbols[i];
+        toObjFile(sym, multiobj);
+    }
+
     if (global.params.cov)
     {
         /* Generate
@@ -742,7 +748,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor)
+    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor && !fd.linkedin)
     {
         obj_append(fd);
         return;
@@ -762,7 +768,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     for (FuncDeclaration fd2 = fd; fd2; )
     {
-        if (fd2.inNonRoot())
+        if (fd2.inNonRoot() && !fd.linkedin)
             return;
         if (fd2.isNested())
             fd2 = fd2.toParent2().isFuncDeclaration();

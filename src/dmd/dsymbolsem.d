@@ -536,6 +536,25 @@ LcheckFields:
     return true;
 }
 
+private uint setLinkedin(Dsymbol s)
+{
+    if (s.isFuncDeclaration() || s.isVarDeclaration())
+    {
+        s.isDeclaration().linkedin = true;
+        return 1;
+    }
+
+    if (auto ad = s.isAttribDeclaration())
+    {
+        uint nestedCount = 0;
+
+        ad.include(null).foreachDsymbol( (s) { nestedCount += setLinkedin(s); } );
+
+        return nestedCount;
+    }
+    return 0;
+}
+
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 {
     if (s.isFuncDeclaration() || s.isVarDeclaration())
@@ -2009,6 +2028,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 pd.error("takes no argument");
             goto Ldecl;
         }
+        else if (pd.ident == Id.linkedin)
+        {
+            if (pd.args && pd.args.dim != 0)
+                pd.error("takes no argument");
+            goto Ldecl;
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)
@@ -2051,7 +2076,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 Dsymbol s = (*pd.decl)[i];
                 s.dsymbolSemantic(sc2);
-                if (pd.ident == Id.mangle)
+                if (pd.ident == Id.linkedin)
+                {
+                    setLinkedin(s);
+                }
+                else if (pd.ident == Id.mangle)
                 {
                     assert(pd.args && pd.args.dim == 1);
                     if (auto se = (*pd.args)[0].toStringExp())

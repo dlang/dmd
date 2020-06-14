@@ -392,6 +392,7 @@ extern (C++) final class Module : Package
     extern (C++) __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) __gshared uint dprogress;       // progress resolving the deferred list
+    extern (C++) __gshared Dsymbols linkedSymbols; // symbols to be emitted into here.
 
     static void _init()
     {
