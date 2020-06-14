@@ -4617,10 +4617,11 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expression[] args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MatchResult callMatch(Type tthis, Expression[] args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
-        MATCH match = MATCH.exact; // assume exact match
+        MatchResult result;
+
         ubyte wildmatch = 0;
 
         if (tthis)
@@ -4631,13 +4632,11 @@ extern (C++) final class TypeFunction : TypeNext
             if (t.mod != mod)
             {
                 if (MODimplicitConv(t.mod, mod))
-                    match = MATCH.constant;
+                    result.push(MATCH.constant);
                 else if ((mod & MODFlags.wild) && MODimplicitConv(t.mod, (mod & ~MODFlags.wild) | MODFlags.const_))
-                {
-                    match = MATCH.constant;
-                }
+                    result.push(MATCH.constant);
                 else
-                    return MATCH.nomatch;
+                    return result.push(MATCH.nomatch);
             }
             if (isWild())
             {
@@ -4664,7 +4663,7 @@ extern (C++) final class TypeFunction : TypeNext
                     goto Nomatch;
             }
             // too many args; no match
-            match = MATCH.convert; // match ... with a "conversion" match level
+            result.push(MATCH.convert); // match ... with a "conversion" match level
         }
 
         for (size_t u = 0; u < nargs; u++)
@@ -4929,8 +4928,7 @@ extern (C++) final class TypeFunction : TypeNext
                                     if (pMessage) *pMessage = getParamError(arg, p);
                                     goto Nomatch;
                                 }
-                                if (m < match)
-                                    match = m;
+                                result.push(m);
                             }
                             goto Ldone;
                         }
@@ -4950,23 +4948,22 @@ extern (C++) final class TypeFunction : TypeNext
                         u + 1, parameterToChars(p, this, false));
                 goto Nomatch;
             }
-            if (m < match)
-                match = m; // pick worst match
+            result.push(m);
         }
 
     Ldone:
-        if (pMessage && !parameterList.varargs && nargs > nparams)
+        if (!parameterList.varargs && nargs > nparams)
         {
             // all parameters had a match, but there are surplus args
-            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+            if (pMessage)
+                *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
             goto Nomatch;
         }
-        //printf("match = %d\n", match);
-        return match;
+        return result;
 
     Nomatch:
         //printf("no match\n");
-        return MATCH.nomatch;
+        return result.push(MATCH.nomatch);
     }
 
     extern (D) bool checkRetType(const ref Loc loc)
