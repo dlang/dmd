@@ -3358,15 +3358,13 @@ final class Parser(AST) : Lexer
         case TOK.class_:
             if (!id)
                 error(loc, "anonymous classes not allowed");
-            bool inObject = md && !md.packages && md.id == Id.object;
-            a = new AST.ClassDeclaration(loc, id, baseclasses, members, inObject);
+            a = new AST.ClassDeclaration(loc, id, baseclasses, members);
             break;
 
         case TOK.struct_:
             if (id)
             {
-                bool inObject = md && !md.packages && md.id == Id.object;
-                a = new AST.StructDeclaration(loc, id, inObject);
+                a = new AST.StructDeclaration(loc, id);
                 a.members = members;
             }
             else
@@ -9041,7 +9039,7 @@ final class Parser(AST) : Lexer
                 nextToken();
             }
 
-            auto cd = new AST.ClassDeclaration(loc, id, baseclasses, members, false);
+            auto cd = new AST.ClassDeclaration(loc, id, baseclasses, members);
             auto e = new AST.NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
             return e;
         }

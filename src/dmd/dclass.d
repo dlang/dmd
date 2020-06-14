@@ -205,7 +205,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
-    final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members)
     {
         objc = ObjcClassDeclaration(this);
 
@@ -216,7 +216,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         super(loc, id ? id : Identifier.generateId("__anonclass"));
 
-        __gshared const(char)* msg = "only object.d can define this reserved class name";
+        __gshared const(char)* msg = "only one module can define this reserved class name";
 
         if (baseclasses)
         {
@@ -244,103 +244,103 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             {
                 if (id == Id.TypeInfo)
                 {
-                    if (!inObject)
+                    if (Type.dtypeinfo && Type.dtypeinfo.getModule() != this.getModule())
                         error("%s", msg);
                     Type.dtypeinfo = this;
                 }
                 if (id == Id.TypeInfo_Class)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoclass && Type.typeinfoclass.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoclass = this;
                 }
                 if (id == Id.TypeInfo_Interface)
                 {
-                    if (!inObject)
+                    if (Type.typeinfointerface && Type.typeinfointerface.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfointerface = this;
                 }
                 if (id == Id.TypeInfo_Struct)
                 {
-                    if (!inObject)
+                    if (Type.typeinfostruct && Type.typeinfostruct.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfostruct = this;
                 }
                 if (id == Id.TypeInfo_Pointer)
                 {
-                    if (!inObject)
+                    if (Type.typeinfopointer && Type.typeinfopointer.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfopointer = this;
                 }
                 if (id == Id.TypeInfo_Array)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoarray && Type.typeinfoarray.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoarray = this;
                 }
                 if (id == Id.TypeInfo_StaticArray)
                 {
-                    //if (!inObject)
-                    //    Type.typeinfostaticarray.error("%s", msg);
+                    if (Type.typeinfostaticarray && Type.typeinfostaticarray.getModule() != this.getModule())
+                        error("%s", msg);
                     Type.typeinfostaticarray = this;
                 }
                 if (id == Id.TypeInfo_AssociativeArray)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoassociativearray && Type.typeinfoassociativearray.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoassociativearray = this;
                 }
                 if (id == Id.TypeInfo_Enum)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoenum && Type.typeinfoenum.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoenum = this;
                 }
                 if (id == Id.TypeInfo_Function)
                 {
-                    if (!inObject)
+                    if (Type.typeinfofunction && Type.typeinfofunction.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfofunction = this;
                 }
                 if (id == Id.TypeInfo_Delegate)
                 {
-                    if (!inObject)
+                    if (Type.typeinfodelegate && Type.typeinfodelegate.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfodelegate = this;
                 }
                 if (id == Id.TypeInfo_Tuple)
                 {
-                    if (!inObject)
+                    if (Type.typeinfotypelist && Type.typeinfotypelist.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfotypelist = this;
                 }
                 if (id == Id.TypeInfo_Const)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoconst && Type.typeinfoconst.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoconst = this;
                 }
                 if (id == Id.TypeInfo_Invariant)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoinvariant && Type.typeinfoinvariant.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoinvariant = this;
                 }
                 if (id == Id.TypeInfo_Shared)
                 {
-                    if (!inObject)
+                    if (Type.typeinfoshared && Type.typeinfoshared.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfoshared = this;
                 }
                 if (id == Id.TypeInfo_Wild)
                 {
-                    if (!inObject)
+                    if (Type.typeinfowild && Type.typeinfowild.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfowild = this;
                 }
                 if (id == Id.TypeInfo_Vector)
                 {
-                    if (!inObject)
+                    if (Type.typeinfovector && Type.typeinfovector.getModule() != this.getModule())
                         error("%s", msg);
                     Type.typeinfovector = this;
                 }
@@ -348,32 +348,32 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             if (id == Id.Object)
             {
-                if (!inObject)
+                if (object && object.getModule() != this.getModule())
                     error("%s", msg);
                 object = this;
             }
 
             if (id == Id.Throwable)
             {
-                if (!inObject)
+                if (throwable && throwable.getModule() != this.getModule())
                     error("%s", msg);
                 throwable = this;
             }
             if (id == Id.Exception)
             {
-                if (!inObject)
+                if (exception && exception.getModule() != this.getModule())
                     error("%s", msg);
                 exception = this;
             }
             if (id == Id.Error)
             {
-                if (!inObject)
+                if (errorException && errorException.getModule() != this.getModule())
                     error("%s", msg);
                 errorException = this;
             }
             if (id == Id.cpp_type_info_ptr)
             {
-                if (!inObject)
+                if (cpp_type_info_ptr && cpp_type_info_ptr.getModule() != this.getModule())
                     error("%s", msg);
                 cpp_type_info_ptr = this;
             }
@@ -381,9 +381,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         baseok = Baseok.none;
     }
 
-    static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members)
     {
-        return new ClassDeclaration(loc, id, baseclasses, members, inObject);
+        return new ClassDeclaration(loc, id, baseclasses, members);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -391,7 +391,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());
         ClassDeclaration cd =
             s ? cast(ClassDeclaration)s
-              : new ClassDeclaration(loc, ident, null, null, false);
+              : new ClassDeclaration(loc, ident, null, null);
 
         cd.storage_class |= storage_class;
 
@@ -1000,7 +1000,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
     extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
     {
-        super(loc, id, baseclasses, null, false);
+        super(loc, id, baseclasses, null);
         if (id == Id.IUnknown) // IUnknown is the root of all COM interfaces
         {
             com = true;
