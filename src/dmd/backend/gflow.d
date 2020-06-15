@@ -587,6 +587,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                     n.EV.E1.Eoper == OPvar &&
                     n.EV.E2.Eoper == OPvar &&
                     !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
+                    !((n.EV.E1.EV.Vsym.Sflags | n.EV.E2.EV.Vsym.Sflags) & SFLlivexit) &&
                     n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
                 {
                     n.Eexp = cast(uint)go.expnod.length;
