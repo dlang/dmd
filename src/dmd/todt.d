@@ -533,7 +533,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
     void visitClassReference(ClassReferenceExp e)
     {
-        InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
+        auto to = e.type.toBasetype().isTypeClass().sym.isInterfaceDeclaration();
 
         if (to) //Static typeof this literal is an interface. We must add offset to symbol
         {
