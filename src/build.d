@@ -916,7 +916,7 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    env.getDefault("RES", dmdRepo.buildPath("res"));
+    env.getDefault("RES", dmdRepo.buildPath("src/dmd/res"));
 
     version (Windows)
         enum installPref = "";
