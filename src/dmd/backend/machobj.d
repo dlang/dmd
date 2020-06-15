@@ -224,7 +224,7 @@ int seg_data_isCode(const ref seg_data sd)
 __gshared
 {
 seg_data **SegData;
-int seg_count;
+int seg_length;
 int seg_max;
 
 /**
@@ -526,7 +526,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     }
     section_cnt = 1;
 
-    seg_count = 0;
+    seg_length = 1;
     int align_ = I64 ? 4 : 2;            // align to 16 bytes for floating point
     Obj_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
     Obj_getsegment("__data",  "__DATA", align_, S_REGULAR);     // DATA
@@ -842,11 +842,11 @@ version (SCPP)
         segment_cmd.fileoff = foffset;
     uint vmaddr = 0;
 
-    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_count %d\n",foffset,section_cnt,seg_count);
+    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_length %d\n",foffset,section_cnt,seg_length);
     // Zero filled segments go at the end, so go through segments twice
     for (int i = 0; i < 2; i++)
     {
-        for (int seg = 1; seg <= seg_count; seg++)
+        for (int seg = 1; seg < seg_length; seg++)
         {
             seg_data *pseg = SegData[seg];
             if (I64)
@@ -951,7 +951,7 @@ version (SCPP)
 
     // Put out relocation data
     mach_numbersyms();
-    for (int seg = 1; seg <= seg_count; seg++)
+    for (int seg = 1; seg < seg_length; seg++)
     {
         seg_data *pseg = SegData[seg];
         section *psechdr = null;
@@ -1852,7 +1852,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
 {
     assert(strlen(sectname) <= 16);
     assert(strlen(segname)  <= 16);
-    for (int seg = 1; seg <= seg_count; seg++)
+    for (int seg = 1; seg < seg_length; seg++)
     {   seg_data *pseg = SegData[seg];
         if (I64)
         {
@@ -1868,14 +1868,14 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         }
     }
 
-    int seg = ++seg_count;
-    if (seg_count >= seg_max)
+    int seg = seg_length++;
+    if (seg_length > seg_max)
     {                           // need more room in segment table
         seg_max += 10;
         SegData = cast(seg_data **)mem_realloc(SegData,seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg_count], 0, (seg_max - seg_count) * (seg_data *).sizeof);
+        memset(&SegData[seg], 0, (seg_max - seg) * (seg_data *).sizeof);
     }
-    assert(seg_count < seg_max);
+    assert(seg_length <= seg_max);
     if (SegData[seg])
     {   seg_data *pseg = SegData[seg];
         Outbuffer *b1 = pseg.SDbuf;
@@ -1929,7 +1929,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
     pseg.SDaranges_offset = 0;
     pseg.SDlinnum_count = 0;
 
-    //printf("seg_count = %d\n", seg_count);
+    //printf("seg_length = %d\n", seg_length);
     return seg;
 }
 
@@ -2471,12 +2471,12 @@ uint Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)
 {
 static if (0)
 {
-    if (!(seg >= 0 && seg <= seg_count))
-    {   printf("Obj_bytes: seg = %d, seg_count = %d\n", seg, seg_count);
+    if (!(seg >= 0 && seg < seg_length))
+    {   printf("Obj_bytes: seg = %d, seg_length = %d\n", seg, seg_length);
         *cast(char*)0=0;
     }
 }
-    assert(seg >= 0 && seg <= seg_count);
+    assert(seg >= 0 && seg < seg_length);
     Outbuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
     {
