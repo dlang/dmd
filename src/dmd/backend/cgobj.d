@@ -24,6 +24,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -406,6 +407,8 @@ public seg_data **SegData;
     int seg_length;
     int seg_max;
 
+    Rarray!(seg_data*) SegDataR;
+
     Objstate obj;
 }
 
@@ -586,20 +589,21 @@ private int obj_namestring(char *p,const(char)* name)
 
 seg_data *getsegment()
 {
-    int seg = seg_length++;
-    if (seg_length > seg_max)
-    {
-        seg_max += 10;
-        SegData = cast(seg_data **)mem_realloc(SegData, seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg], 0, 10 * (seg_data *).sizeof);
-    }
-    assert(seg_length <= seg_max);
-    if (SegData[seg])
-        memset(SegData[seg], 0, seg_data.sizeof);
-    else
-        SegData[seg] = cast(seg_data *)mem_calloc(seg_data.sizeof);
+    const int seg = cast(int)SegDataR.length;
+    seg_data** ppseg = SegDataR.push();
+    SegData = SegDataR[].ptr;
+    seg_length = cast(int)SegDataR[].length;
 
-    seg_data *pseg = SegData[seg];
+    seg_data* pseg = *ppseg;
+    if (!pseg)
+    {
+        pseg = cast(seg_data *)mem_calloc(seg_data.sizeof);
+        //printf("test2: SegData[%d] = %p\n", seg, SegData[seg]);
+        SegData[seg] = pseg;
+    }
+    else
+        memset(pseg, 0, seg_data.sizeof);
+
     pseg.SDseg = seg;
     pseg.segidx = 0;
     return pseg;
@@ -752,40 +756,34 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             obj.csegattr  = I32 ? SEG_ATTR(SEG_ALIGN16, SEG_C_PUBLIC,0,USE32)
                                 : SEG_ATTR(SEG_ALIGN16, SEG_C_PUBLIC,0,USE16);
 
-        if (!SegData)
-        {   seg_max = UDATA + 10;
-            SegData = cast(seg_data **)mem_calloc(seg_max * (seg_data *).sizeof);
-        }
+        SegDataR.reset();       // recycle memory
+        getsegment();           // element 0 is reserved
 
-        for (int i = 0; i < seg_max; i++)
-        {
-            if (SegData[i])
-                memset(SegData[i], 0, seg_data.sizeof);
-            else
-                SegData[i] = cast(seg_data *)mem_calloc(seg_data.sizeof);
-        }
+        getsegment();
+        getsegment();
+        getsegment();
+        getsegment();
 
-        SegData[CODE].SDseg = CODE;
-        SegData[DATA].SDseg = DATA;
-        SegData[CDATA].SDseg = CDATA;
-        SegData[UDATA].SDseg = UDATA;
+        SegDataR[CODE].SDseg = CODE;
+        SegDataR[DATA].SDseg = DATA;
+        SegDataR[CDATA].SDseg = CDATA;
+        SegDataR[UDATA].SDseg = UDATA;
 
-        SegData[CODE].segidx = CODE;
-        SegData[DATA].segidx = DATA;
-        SegData[CDATA].segidx = CDATA;
-        SegData[UDATA].segidx = UDATA;
-
-        seg_length = UDATA + 1;
+        SegDataR[CODE].segidx = CODE;
+        SegDataR[DATA].segidx = DATA;
+        SegDataR[CDATA].segidx = CDATA;
+        SegDataR[UDATA].segidx = UDATA;
 
         if (config.fulltypes)
         {
-            SegData[DEBSYM].SDseg = DEBSYM;
-            SegData[DEBTYP].SDseg = DEBTYP;
+            getsegment();
+            getsegment();
 
-            SegData[DEBSYM].segidx = DEBSYM;
-            SegData[DEBTYP].segidx = DEBTYP;
+            SegDataR[DEBSYM].SDseg = DEBSYM;
+            SegDataR[DEBTYP].SDseg = DEBTYP;
 
-            seg_length = DEBTYP + 1;
+            SegDataR[DEBSYM].segidx = DEBSYM;
+            SegDataR[DEBTYP].segidx = DEBTYP;
         }
 
         OmfObj_theadr(filename);
