@@ -297,7 +297,7 @@ Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
 
 public seg_data **SegData;
-public int seg_count;
+public int seg_length;          // used length of SegData[]
 int seg_max;
 int seg_tlsseg = UNKNOWN;
 int seg_tlsseg_bss = UNKNOWN;
@@ -836,7 +836,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     // Initialize output buffers for CODE, DATA and COMMENTS
     //      (NOTE not supported, BSS not required)
 
-    seg_count = 0;
+    seg_length = 1;
 
     elf_addsegment2(SHN_TEXT, STI_TEXT, SHN_RELTEXT);
     assert(SegData[CODE].SDseg == CODE);
@@ -992,7 +992,7 @@ void *elf_renumbersyms()
     }
 
     // Renumber the relocations
-    for (int i = 1; i <= seg_count; i++)
+    for (int i = 1; i < seg_length; i++)
     {                           // Map indicies in the segment table
         seg_data *pseg = SegData[i];
         pseg.SDsymidx = sym_map[pseg.SDsymidx];
@@ -1128,8 +1128,8 @@ version (SCPP)
     // First output individual section data associate with program
     //  code and data
     //
-    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_count %d\n",foffset,section_cnt,seg_count);
-    for (int i=1; i<= seg_count; i++)
+    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_length %d\n",foffset,section_cnt,seg_length);
+    for (int i=1; i < seg_length; i++)
     {
         seg_data *pseg = SegData[i];
         Elf32_Shdr *sechdr2 = MAP_SEG2SEC(i);        // corresponding section
@@ -1235,7 +1235,7 @@ version (SCPP)
     //
     foffset = elf_align(4,foffset);
     //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names.length(),foffset);
-    for (int i=1; i<= seg_count; i++)
+    for (int i=1; i < seg_length; i++)
     {
         seg = SegData[i];
         if (!seg.SDbuf)
@@ -1884,14 +1884,14 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg)
 private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
 {
     //printf("SegData = %p\n", SegData);
-    int seg = ++seg_count;
-    if (seg_count >= seg_max)
+    int seg = seg_length++;
+    if (seg_length > seg_max)
     {                           // need more room in segment table
         seg_max += OB_SEG_INC;
         SegData = cast(seg_data **)mem_realloc(SegData,seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg_count], 0, (seg_max - seg_count) * (seg_data *).sizeof);
+        memset(&SegData[seg], 0, (seg_max - seg) * (seg_data *).sizeof);
     }
-    assert(seg_count < seg_max);
+    assert(seg_length <= seg_max);
     if (!SegData[seg])
     {
         SegData[seg] = cast(seg_data *)mem_calloc(seg_data.sizeof);
@@ -1961,7 +1961,7 @@ private int elf_addsegment(IDXSTR namidx, int type, int flags, int align_)
 private int elf_getsegment(IDXSTR namidx)
 {
     // find existing section
-    for (int seg = CODE; seg <= seg_count; seg++)
+    for (int seg = CODE; seg < seg_length; seg++)
     {                               // should be in segment table
         if (MAP_SEG2SEC(seg).sh_name == namidx)
         {
@@ -2630,12 +2630,12 @@ uint Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)
 {
 static if (0)
 {
-    if (!(seg >= 0 && seg <= seg_count))
-    {   printf("Obj_bytes: seg = %d, seg_count = %d\n", seg, seg_count);
+    if (!(seg >= 0 && seg < seg_length))
+    {   printf("Obj_bytes: seg = %d, seg_length = %d\n", seg, seg_length);
         *cast(char*)0=0;
     }
 }
-    assert(seg >= 0 && seg <= seg_count);
+    assert(seg >= 0 && seg < seg_length);
     Outbuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
     {
@@ -2683,7 +2683,7 @@ void Obj_addrel(int seg, targ_size_t offset, uint type,
     //dbg_printf("%d-Obj_addrel(seg %d,offset x%x,type x%x,symidx %d,val %d)\n",
             //relcnt,seg, offset, type, symidx,val);
 
-    assert(seg >= 0 && seg <= seg_count);
+    assert(seg >= 0 && seg < seg_length);
     segdata = SegData[seg];
     secidx = MAP_SEG2SECIDX(seg);
     assert(secidx != 0);
@@ -2887,7 +2887,7 @@ private size_t relsize32(uint type)
  */
 private size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t size)
 {
-    assert(targseg >= 0 && targseg <= seg_count);
+    assert(targseg >= 0 && targseg < seg_length);
 
     Outbuffer *buf = SegData[targseg].SDbuf;
     const save = buf.length();

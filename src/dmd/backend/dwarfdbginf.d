@@ -88,7 +88,7 @@ int REGSIZE();
 
 __gshared
 {
-extern int seg_count;
+extern int seg_length;
 
 static if (MACHOBJ)
 {
@@ -1322,7 +1322,7 @@ void dwarf_termfile()
     // file_names
     uint last_filenumber = 0;
     const(char)* last_filename = null;
-    for (uint seg = 1; seg <= seg_count; seg++)
+    for (uint seg = 1; seg < seg_length; seg++)
     {
         for (uint i = 0; i < SegData[seg].SDlinnum_count; i++)
         {
@@ -1357,7 +1357,7 @@ else
 
     debugline.prologue_length = cast(uint)debug_line.buf.length() - 10;
 
-    for (uint seg = 1; seg <= seg_count; seg++)
+    for (uint seg = 1; seg < seg_length; seg++)
     {
         seg_data *sd = SegData[seg];
         uint addressmax = 0;
