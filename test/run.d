@@ -163,8 +163,15 @@ Options:
     auto targets = args
         .predefinedTargets // preprocess
         .array
-        .filterTargets(env)
-        .schwartzSort!(sortKey, "a < b", SwapStrategy.stable);
+        .filterTargets(env);
+
+    // Do a manual schwartzSort until all host compilers have a fix
+    // for the invalid "lhs internal pointer" error (probably >= v2.093)
+    // See https://github.com/dlang/phobos/pull/7524
+    foreach (ref target; targets)
+        target.sortKey = sortKey(target);
+
+    targets.sort!("a.sortKey < b.sortKey", SwapStrategy.stable);
 
     if (targets.length > 0)
     {
@@ -309,6 +316,8 @@ struct Target
 
         return testPath(normalizedTestName).exists;
     }
+
+    size_t sortKey;
 }
 
 /**
