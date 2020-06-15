@@ -25,6 +25,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -132,6 +133,8 @@ public:
 // seg_data **SegData;
 extern int seg_length;
 extern int seg_max;
+
+extern Rarray!(seg_data*) SegDataR;
 segidx_t seg_tlsseg = UNKNOWN;
 segidx_t seg_tlsseg_bss = UNKNOWN;
 
@@ -342,7 +345,8 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
                           alignData |
                           IMAGE_SCN_MEM_READ);              // CONST
 
-    seg_length = 1;
+    SegDataR.reset();
+    SegDataR.push();
 
     enum
     {
@@ -1420,17 +1424,14 @@ segidx_t MsCoffObj_getsegment(const(char)* sectname, uint flags)
 
 segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
 {
-    segidx_t seg = seg_length++;
-    if (seg_length > seg_max)
-    {                           // need more room in segment table
-        seg_max += 10;
-        SegData = cast(seg_data **)mem_realloc(SegData,seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg], 0, (seg_max - seg) * (seg_data *).sizeof);
-    }
-    assert(seg_length <= seg_max);
-    if (SegData[seg])
+    const segidx_t seg = cast(segidx_t)SegDataR.length;
+    seg_data** ppseg = SegDataR.push();
+    SegData = SegDataR[].ptr;
+    seg_length = cast(int)SegDataR[].length;
+
+    seg_data* pseg = *ppseg;
+    if (pseg)
     {
-        seg_data *pseg = SegData[seg];
         Outbuffer *b1 = pseg.SDbuf;
         Outbuffer *b2 = pseg.SDrel;
         memset(pseg, 0, (seg_data).sizeof);
@@ -1449,7 +1450,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
     }
     else
     {
-        seg_data *pseg = cast(seg_data *)mem_calloc((seg_data).sizeof);
+        pseg = cast(seg_data *)mem_calloc((seg_data).sizeof);
         SegData[seg] = pseg;
         if (!(ScnhdrTab[shtidx].Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
 
@@ -1461,7 +1462,6 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
     }
 
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg].SDbuf);
-    seg_data *pseg = SegData[seg];
 
     pseg.SDseg = seg;
     pseg.SDoffset = 0;
