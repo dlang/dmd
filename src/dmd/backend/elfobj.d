@@ -28,6 +28,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -299,6 +300,9 @@ int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXE
 public seg_data **SegData;
 public int seg_length;          // used length of SegData[]
 int seg_max;
+
+Rarray!(seg_data*) SegDataR;
+
 int seg_tlsseg = UNKNOWN;
 int seg_tlsseg_bss = UNKNOWN;
 
@@ -836,7 +840,8 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     // Initialize output buffers for CODE, DATA and COMMENTS
     //      (NOTE not supported, BSS not required)
 
-    seg_length = 1;
+    SegDataR.reset();   // recycle memory
+    SegDataR.push();    // element 0 is reserved
 
     elf_addsegment2(SHN_TEXT, STI_TEXT, SHN_RELTEXT);
     assert(SegData[CODE].SDseg == CODE);
@@ -1884,23 +1889,21 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg)
 private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
 {
     //printf("SegData = %p\n", SegData);
-    int seg = seg_length++;
-    if (seg_length > seg_max)
-    {                           // need more room in segment table
-        seg_max += OB_SEG_INC;
-        SegData = cast(seg_data **)mem_realloc(SegData,seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg], 0, (seg_max - seg) * (seg_data *).sizeof);
-    }
-    assert(seg_length <= seg_max);
-    if (!SegData[seg])
+    const int seg = cast(int)SegDataR.length;
+    seg_data** ppseg = SegDataR.push();
+    SegData = SegDataR[].ptr;
+    seg_length = cast(int)SegDataR[].length;
+
+    seg_data* pseg = *ppseg;
+    if (!pseg)
     {
-        SegData[seg] = cast(seg_data *)mem_calloc(seg_data.sizeof);
+        pseg = cast(seg_data *)mem_calloc(seg_data.sizeof);
         //printf("test2: SegData[%d] = %p\n", seg, SegData[seg]);
+        SegData[seg] = pseg;
     }
     else
-        memset(SegData[seg], 0, seg_data.sizeof);
+        memset(pseg, 0, seg_data.sizeof);
 
-    seg_data *pseg = SegData[seg];
     pseg.SDseg = seg;
     pseg.SDshtidx = shtidx;
     pseg.SDoffset = 0;
