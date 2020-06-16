@@ -125,7 +125,12 @@ private Expression checkAssignmentAsCondition(Expression e)
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
     version (CallbackAPI)
+    {
         Compiler.onStatementSemanticStart(s, sc);
+
+        if (Compiler.alternativeStatementSemantic)
+            return Compiler.alternativeStatementSemantic(s, sc);
+    }
 
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);

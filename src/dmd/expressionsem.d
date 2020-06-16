@@ -75,6 +75,7 @@ import dmd.typinf;
 import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
+import dmd.compiler;
 
 enum LOGSEMANTIC = false;
 
@@ -11482,6 +11483,11 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 // entrypoint for semantic ExpressionSemanticVisitor
 extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
 {
+    version (CallbackAPI)
+        if (Compiler.alternativeExpressionSemantic)
+            return Compiler.alternativeExpressionSemantic(e, sc);
+
+
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;
