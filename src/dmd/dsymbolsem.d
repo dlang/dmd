@@ -558,12 +558,11 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
-__gshared extern(C++) void function(Dsymbol dsym, Scope* sc) dsymbolSemantic
-    = function void(Dsymbol dsym, Scope* sc)
-        {
-            scope v = new DsymbolSemanticVisitor(sc);
-            dsym.accept(v);
-        };
+extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
+{
+    scope v = new DsymbolSemanticVisitor(sc);
+    dsym.accept(v);
+}
 
 structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
 {
@@ -637,7 +636,15 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     return true;
 }
 
-extern(C++) class DsymbolSemanticVisitor : Visitor
+private extern (C++) final class DsymbolSemanticVisitor : DsymbolSemanticVisitorImpl
+{
+    this(Scope* sc)
+    {
+        super(sc);
+    }
+}
+
+extern (C++) abstract class DsymbolSemanticVisitorImpl : Visitor
 {
     alias visit = Visitor.visit;
 

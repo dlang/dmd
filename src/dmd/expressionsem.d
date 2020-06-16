@@ -2463,7 +2463,15 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-extern (C++) class ExpressionSemanticVisitor : Visitor
+private extern (C++) final class ExpressionSemanticVisitor : ExpressionSemanticVisitorImpl
+{
+    this(Scope* sc)
+    {
+        super(sc);
+    }
+}
+
+extern (C++) abstract class ExpressionSemanticVisitorImpl : Visitor
 {
     alias visit = Visitor.visit;
 
@@ -11471,16 +11479,13 @@ Expression binSemanticProp(BinExp e, Scope* sc)
     return null;
 }
 
-/**
- * Entrypoint for semantic ExpressionSemanticVisitor
- */
-__gshared extern (C++) Expression function(Expression e, Scope* sc) expressionSemantic
-    = function Expression(Expression e, Scope* sc)
-        {
-            scope v = new ExpressionSemanticVisitor(sc);
-            e.accept(v);
-            return v.result;
-        };
+// entrypoint for semantic ExpressionSemanticVisitor
+extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
+{
+    scope v = new ExpressionSemanticVisitor(sc);
+    e.accept(v);
+    return v.result;
+}
 
 Expression semanticX(DotIdExp exp, Scope* sc)
 {
