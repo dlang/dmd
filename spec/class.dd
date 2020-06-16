@@ -110,7 +110,7 @@ $(H2 $(LNAME2 access_control, Access Control))
 
 $(H2 $(LNAME2 fields, Fields))
 
-        $(P Class members are always accessed with the . operator.
+        $(P Class members are always accessed with the `.` operator.
         )
 
         $(P Members of a base class can be accessed by prepending the name of
@@ -206,29 +206,20 @@ void test(Foo foo)
 $(H2 $(LNAME2 super_class, Super Class))
 
         All classes inherit from a super class. If one is not specified,
-        it inherits from Object. Object forms the root of the D class
-        inheritance hierarchy.
+        it inherits from $(REF1 Object, object). `Object` forms the root
+        of the D class inheritance hierarchy.
 
-$(H2 $(LNAME2 member-functions, Member Functions))
+$(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
-        $(P Non-static member functions or static member functions with
-        `Objective-C` linkage have an extra hidden parameter called $(I this)
-        through which the class object's other members can be accessed.
-        )
-
-        $(P Member functions with the Objective-C linkage has an additional
-        hidden, anonymous, parameter which is the selector the function was
-        called with.
+        $(P Non-static member functions have an extra hidden parameter
+        called $(I this) through which the class object's other members
+        can be accessed.
         )
 
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
         $(D const), $(D immutable), $(D shared), or $(D inout).
         These attributes apply to the hidden $(I this) parameter.
-        )
-
-        $(P Static member functions with the Objective-C linkage are placed in
-        the hidden nested metaclass as non-static member functions.
         )
 ---
 class C
@@ -244,6 +235,22 @@ class C
     }
 }
 ---
+
+$(H3 $(LNAME2 objc-member-functions, Objective-C linkage))
+
+        $(P Static member functions with
+        `Objective-C` linkage also have an extra hidden parameter called $(I this)
+        through which the class object's other members can be accessed.
+        )
+
+        $(P Member functions with Objective-C linkage have an additional
+        hidden, anonymous, parameter which is the selector the function was
+        called with.
+        )
+
+        $(P Static member functions with Objective-C linkage are placed in
+        the hidden nested metaclass as non-static member functions.
+        )
 
 
 $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
@@ -335,7 +342,7 @@ $(GNAME Constructor):
         called.)
 
         $(P Constructors are defined with a function name of $(D this)
-        and having no return value:)
+        and have no return value:)
 
         ------
         class Foo
@@ -367,9 +374,11 @@ $(GNAME Constructor):
         }
         ------
 
-        $(P Constructors can call other constructors for the same class
-        in order to share common initializations
-        (this is called a $(LNAME2 delegating-constructors, delegating constructor)):
+$(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
+
+        $(P A constructor can call another constructor for the same class
+        in order to share common initializations.
+        This is called a $(I delegating constructor):
         )
 
         ------
@@ -388,19 +397,7 @@ $(GNAME Constructor):
         }
         ------
 
-        $(P If no call to constructors via $(D this) or $(D super) appear in a
-        constructor, and the base class has a constructor, a call to
-        `super()` is inserted at the beginning of the constructor.)
-
-        $(P If there is no constructor for a class, but there is a constructor
-        for the base class, a default constructor is implicitly generated with
-        the form:)
-
-        ------
-        this() { }
-        ------
-
-        $(P The following restrictions apply to class construction:)
+        $(P The following restrictions apply:)
 
     $(OL
         $(LI It is illegal for constructors to mutually call each other.
@@ -417,9 +414,9 @@ $(GNAME Constructor):
         calls.)
         )
 
-        $(LI If a constructor's code contains a delegate constructor call, all
+        $(LI If a constructor's code contains a delegating constructor call, all
         possible execution paths through the constructor must make exactly one
-        delegate constructor call:
+        delegating constructor call:
 
         ------
         this() { a || super(); }       // illegal
@@ -437,10 +434,28 @@ $(GNAME Constructor):
         )
 
         $(LI It is illegal to refer to $(D this) implicitly or explicitly
-        prior to making a delegate constructor call.)
+        prior to making a delegating constructor call.)
 
-        $(LI Delegate constructor calls cannot appear after labels.)
+        $(LI Delegating constructor calls cannot appear after labels.)
     )
+
+$(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
+
+        $(P If there is no constructor for a class, but there is a constructor
+        for the base class, a default constructor is implicitly generated with
+        the form:)
+
+        ------
+        this() { }
+        ------
+
+        $(P If no calls to a delegating constructor or $(D super) appear in a
+        constructor, and the base class has a nullary constructor, a call to
+        `super()` is inserted at the beginning of the constructor. If that
+        base class has a constructor that requires arguments and no
+        nullary constructor, a matching call to `super` is required.)
+
+$(H3 $(LNAME2 class-instantiation, Class Instantiation))
 
         $(P Instances of class objects are created with a $(GLINK2 expression, NewExpression):)
 
@@ -482,6 +497,8 @@ $(GNAME Constructor):
         )
     )
 
+$(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
+
         $(P Constructors can have one of these member function attributes:
         $(D const), $(D immutable), and $(D shared). Construction of qualified
         objects will then be restricted to the implemented qualified constructors.
@@ -495,7 +512,7 @@ $(GNAME Constructor):
         // create mutable object
         C m = new C();
 
-        // create const object using by mutable constructor
+        // create const object using mutable constructor
         const C c2 = new const C();
 
         // a mutable constructor cannot create an immutable object
@@ -519,6 +536,8 @@ $(GNAME Constructor):
         shared s = new shared C();
         immutable i = new immutable C();
         ------
+
+$(H4 $(LNAME2 pure-constructors, Pure Constructors))
 
         $(P If the constructor can create a unique object (e.g. if it is `pure`),
         the object can be implicitly convertible to any qualifiers.
@@ -544,7 +563,7 @@ $(GNAME Constructor):
         C m = new C([1,2,3]);       // this(int[]) immutable pure is called
         ------
 
-$(H2 $(LNAME2 field-init, Field initialization inside constructor))
+$(H3 $(LNAME2 field-init, Field initialization inside a constructor))
 
         $(P In a constructor body, the first instance of field assignment is
         its initialization.
@@ -997,7 +1016,7 @@ $(GNAME Allocator):
 $(P A class member function of the form:)
 
 ------
-new(uint size)
+new(size_t size)
 {
     ...
 }
@@ -1005,7 +1024,7 @@ new(uint size)
 
         is called a class allocator.
         The class allocator can have any number of parameters, provided
-        the first one is of type uint.
+        the first one is of type `size_t`.
         Any number can be defined for a class, the correct one is
         determined by the usual function overloading rules.
         When a new expression:
@@ -1031,7 +1050,7 @@ class Foo
 {
     this(string a) { ... }
 
-    new(uint size, int x, int y)
+    new(size_t size, int x, int y)
     {
         ...
     }
@@ -1339,9 +1358,11 @@ void func()
 }
 ------
 
+$(H3 $(LNAME2 static-nested, Static Nested Classes))
+
 $(P If a nested class has the $(D static) attribute, then it can not access
 variables of the enclosing scope that are local to the stack or need a
-`this`:)
+`this` reference:)
 
 ------
 class Outer
@@ -1375,9 +1396,11 @@ void func()
 }
 ------
 
+$(H3 $(LNAME2 nested-context, Context Pointer))
+
 $(P Non-static nested classes work by containing an extra hidden member (called
 the context pointer) that is the frame pointer of the enclosing function if it
-is nested inside a function, or the $(D this) of the enclosing class's instance
+is nested inside a function, or the $(D this) reference of the enclosing class's instance
 if it is nested inside a class.)
 
         $(P When a non-static nested class is instantiated, the context pointer
@@ -1406,9 +1429,9 @@ void func()
 }
 ------
 
+$(H3 $(LNAME2 nested-explicit, Explicit Instantiation))
 
-
-        $(P A $(I this) can be supplied to the creation of an
+        $(P A `this` reference can be supplied to the creation of an
         inner class instance by prefixing it to the $(I NewExpression):
         )
 
@@ -1435,14 +1458,16 @@ int bar()
 }
 ---------
 
-        $(P Here $(D o) supplies the $(I this) to the outer class
+        $(P Here $(D o) supplies the `this` reference to the inner class
         instance of $(D Outer).
         )
 
-        $(P The property $(D .outer) used in a nested class gives the
-        $(D this) pointer to its enclosing class. If there is no enclosing
-        class context, $(D .outer) would return a pointer to enclosing
-        function frame with $(D void*).
+$(H3 $(LNAME2 outer-property, `outer` Property))
+
+        $(P For a nested class instance, the $(D .outer) property is the
+        $(D this) reference for the enclosing class's instance. If there
+        is no enclosing class context, $(D .outer) would be a $(D void*)
+        to the enclosing function frame.
         )
 
 ----
@@ -1465,7 +1490,7 @@ class Outer
     void bar()
     {
         // x is referenced from nested scope, so
-        // bar makes a closure envronment.
+        // bar makes a closure environment.
         int x = 1;
 
         class Inner2
@@ -1473,8 +1498,8 @@ class Outer
             Outer getOuter()
             {
                 x = 2;
-                // The Inner2 instance owns function frame of bar
-                // as static frame pointer, but .outer yet returns
+                // The Inner2 instance has access to the function frame
+                // of bar as a static frame pointer, but .outer returns
                 // the enclosing Outer class instance property.
                 return this.$(CODE_HIGHLIGHT outer);
             }
@@ -1484,9 +1509,10 @@ class Outer
         assert(i.getOuter() is this);
     }
 
+    // baz cannot access an instance of Outer
     static void baz()
     {
-        // make a closure envronment
+        // make a closure environment
         int x = 1;
 
         class Inner3
@@ -1494,8 +1520,8 @@ class Outer
             void* getOuter()
             {
                 x = 2;
-                // There's no accessible enclosing class instance, so
-                // .outer property returns the function frame of bar.
+                // There's no accessible enclosing class instance, so the
+                // .outer property returns the function frame of baz.
                 return this.$(CODE_HIGHLIGHT outer);
             }
         }
@@ -1506,7 +1532,7 @@ class Outer
 }
 ----
 
-$(H2 $(LNAME2 anonymous, Anonymous Nested Classes))
+$(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
         $(P An anonymous nested class is both defined and instantiated with
         a $(I NewAnonClassExpression):
@@ -1514,9 +1540,9 @@ $(H2 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(I ClassArguments)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(I ConstructorArgs)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
 
-$(GNAME ClassArguments):
+$(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
 )
 
@@ -1524,10 +1550,29 @@ which is equivalent to:
 
 $(GRAMMAR
 $(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
-$(D new) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN)) $(GLINK_LEX Identifier) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN));
+// ...
+$(D new) $(I AllocatorArguments) $(I Identifier) $(I ConstructorArgs)
 )
 
 where $(I Identifier) is the name generated for the anonymous nested class.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+interface I
+{
+    void foo();
+}
+
+auto obj = new class I
+{
+    void foo()
+    {
+        writeln("foo");
+    }
+};
+obj.foo();
+---
+)
 
 $(SECTION2 $(LEGACY_LNAME2 ConstClass, const-class, $(ARGS Const, Immutable and Shared Classes)),
 

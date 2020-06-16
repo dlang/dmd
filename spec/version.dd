@@ -262,6 +262,11 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D CRuntime_Musl)) , $(ARGS musl C runtime))
         $(TROW $(ARGS $(D CRuntime_UClibc)) , $(ARGS uClibc C runtime))
         $(TROW $(ARGS $(D CRuntime_WASI)) , $(ARGS WASI C runtime))
+        $(TROW $(ARGS $(D CppRuntime_Clang)) , $(ARGS Clang Cpp runtime))
+        $(TROW $(ARGS $(D CppRuntime_DigitalMars)) , $(ARGS DigitalMars Cpp runtime))
+        $(TROW $(ARGS $(D CppRuntime_Gcc)) , $(ARGS Gcc Cpp runtime))
+        $(TROW $(ARGS $(D CppRuntime_Microsoft)) , $(ARGS Microsoft Cpp runtime))
+        $(TROW $(ARGS $(D CppRuntime_Sun)) , $(ARGS Sun Cpp runtime))
         $(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
         $(TROW $(ARGS $(D X86_64)) , $(ARGS Intel and AMD 64-bit processors))
         $(TROW $(ARGS $(D ARM)) , $(ARGS The ARM architecture (32-bit) (AArch32 et al)))
@@ -271,6 +276,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D ARM_HardFloat)) , $(ARGS The ARM $(D hardfp) floating point ABI))
         $(TROW $(ARGS $(D AArch64)) , $(ARGS The Advanced RISC Machine architecture (64-bit)))
         $(TROW $(ARGS $(D AsmJS)) , $(ARGS The asm.js intermediate programming language))
+        $(TROW $(ARGS $(D AVR)) , $(ARGS 8-bit Atmel AVR Microcontrollers))
         $(TROW $(ARGS $(D Epiphany)) , $(ARGS The Epiphany architecture))
         $(TROW $(ARGS $(D PPC)) , $(ARGS The PowerPC architecture, 32-bit))
         $(TROW $(ARGS $(D PPC_SoftFloat)) , $(ARGS The PowerPC soft float ABI))
@@ -286,6 +292,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D MIPS_EABI)) , $(ARGS The MIPS EABI))
         $(TROW $(ARGS $(D MIPS_SoftFloat)) , $(ARGS The MIPS $(D soft-float) ABI))
         $(TROW $(ARGS $(D MIPS_HardFloat)) , $(ARGS The MIPS $(D hard-float) ABI))
+        $(TROW $(ARGS $(D MSP430)) , $(ARGS The MSP430 architecture))
         $(TROW $(ARGS $(D NVPTX)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 32-bit))
         $(TROW $(ARGS $(D NVPTX64)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 64-bit))
         $(TROW $(ARGS $(D RISCV32)) , $(ARGS The RISC-V architecture, 32-bit))
@@ -538,23 +545,26 @@ class C
     $(CODE_HIGHLIGHT static if) (k == 5) // ok, k is in current scope
         int z;
 }
-
-template INT(int i)
+---
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+template Int(int i)
 {
     $(ARGS static if) (i == 32)
-        alias INT = int;
+        alias Int = int;
     $(ARGS else static if) (i == 16)
-        alias INT = short;
+        alias Int = short;
     $(ARGS else)
         static assert(0); // not supported
 }
 
-INT!(32) a;  // a is an int
-INT!(16) b;  // b is a short
-INT!(17) c;  // error, static assert trips
+Int!(32) a;  // a is an int
+Int!(16) b;  // b is a short
+Int!(17) c;  // error, static assert trips
 ------
+)
 
-        $(P A $(I StaticIfConditional) condition differs from an
+        $(P A $(I StaticIfCondition) differs from an
         $(I IfStatement) in the following ways:
         )
 
@@ -600,17 +610,19 @@ $(GNAME StaticForeachStatement):
         variables are never runtime variables.)
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 static foreach(i; [0, 1, 2, 3])
 {
     pragma(msg, i);
 }
 ------
+)
 
         $(P $(D static foreach) supports multiple variables in cases where the
         corresponding $(D foreach) statement supports them. (In this case,
         $(D static foreach) generates a compile-time sequence of tuples, and the
-        tuples are subsequently unpacked during iteration.)
+        tuples are subsequently unpacked during iteration).
         )
 
 ------
@@ -625,17 +637,35 @@ static foreach(i, v; ['a', 'b', 'c', 'd'])
         used to generate declarations:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import std.range : iota;
-import std.algorithm : map;
-import std.conv : text;
-static foreach(i; iota(0, 3).map!text)
+
+static foreach(i; iota(0, 3))
 {
-    mixin(`enum x` ~ i ~ ` = i;`);
+    mixin(`enum x`, i, ` = i;`);
 }
 
 pragma(msg, x0, " ", x1," ", x2); // 0 1 2
 ------
+)
+
+        $(P If a new scope is desired for each expansion, use another
+        set of braces:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static foreach(s; ["hi", "hey", "hello"])
+{{
+    enum len = s.length;    // local to each iteration
+    static assert(len <= 5);
+}}
+
+static assert(!is(typeof(len)));
+---
+)
+
+$(H3 $(LNAME2 break-continue, `break` and `continue`))
 
         $(P As $(D static foreach) is a code generation construct and not a
         loop, $(D break) and $(D continue) cannot be used to change control
@@ -663,7 +693,7 @@ int test(int x)
 
 static foreach(i; 0 .. 200)
 {
-    static assert(test(i) == (i<100 ? i : -1));
+    static assert(test(i) == (i < 100 ? i : -1));
 }
 -------
 
@@ -704,14 +734,14 @@ $(GNAME StaticAssert):
     $(D static assert $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN);)
 )
 
-        $(P $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
+        $(P The first $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
         to a boolean value. If the value is true, the static assert
         is ignored. If the value is false, an error diagnostic is issued
         and the compile fails.
         )
 
         $(P Unlike $(GLINK2 expression, AssertExpression)s, $(I StaticAssert)s are always
-        checked and evaluted by the compiler unless they appear in an
+        checked and evaluated by the compiler unless they appear in an
         unsatisfied conditional.
         )
 

@@ -416,7 +416,7 @@ $(P Note: Hex Strings are $(B deprecated). Please use $(REF hexString, std,conv)
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
         $(P Delimited strings use various forms of delimiters.
-        The delimiter, whether a character or identifer,
+        The delimiter, whether a character or identifier,
         must immediately follow the " without any intervening whitespace.
         The terminating delimiter must immediately precede the closing "
         without any intervening whitespace.

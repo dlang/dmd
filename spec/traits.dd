@@ -561,6 +561,9 @@ void test()
 class C { int x = -1; }
 
 static assert(__traits(isZeroInit, C));
+
+// For initializing arrays of element type `void`.
+static assert(__traits(isZeroInit, void));
 ---
 )
 
@@ -877,7 +880,7 @@ $(SECTION2 $(GNAME getFunctionAttributes),
 
         $(P
             A list of currently supported attributes are:)
-            $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), and $(D ref)))
+            $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), $(D ref) and $(D @live)))
             $(B Note:) $(D ref) is a function attribute even though it applies to the return type.
 
         $(P

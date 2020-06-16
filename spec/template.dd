@@ -1104,13 +1104,13 @@ $(H2 $(LNAME2 function-templates, Function Templates))
 
         short[] arr;
         bar(1, arr);
-        // arr is short[], and the interger literal 1 is
+        // arr is short[], and the integer literal 1 is
         // implicitly convertible to short.
         // then T will be deduced to short.
 
         bar(1, [2.0, 3.0]);
         // the array literal is analyzed as double[],
-        // and the interger literal 1 is implicitly convertible to double.
+        // and the integer literal 1 is implicitly convertible to double.
         // then T will be deduced to double.
         ------
 
@@ -1387,6 +1387,8 @@ $(H3 $(LNAME2 implicit-nesting, Implicit Nesting))
             assert(n.foo() == 20);
         }
         ----
+
+    $(P See also: $(DDSUBLINK spec/class, nested-explicit, Nested Class Instantiation).)
 
         ----
         void main()
