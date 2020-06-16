@@ -1265,13 +1265,13 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-void def(ref int x)
+void inc(ref int x)
 {
     x += 1;
 }
 
 int z = 3;
-def(z);
+inc(z);
 assert(z == 4);
 ------------
 )
@@ -1290,7 +1290,7 @@ void foo(out int x)
 
 int a = 3;
 foo(a);
-assert(x == 0);
+assert(a == 0);
 
 void abc(out int x)
 {
