@@ -20,4 +20,4 @@
 | [speller.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/speller.d)         | Try to detect typos in identifiers                                                         |
 | [string.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/string.d)           | Various string related functions                                                           |
 | [stringtable.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/stringtable.d) | Specialized associative array with string keys stored in a variable length structure       |
-| [strtold.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/strtold.d)         | D implementation of the standard C function `strold` (String to long double)               |
+| [strtold.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/strtold.d)         | D implementation of the standard C function `strtold` (String to long double)               |

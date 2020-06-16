@@ -120,7 +120,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         const ty = (ie && ie.type) ? ie.type.ty : Terror;
         if (ty.isSomeChar)
         {
-            auto tsa = new TypeSArray(ie.type, new IntegerExp(1));
+            auto tsa = new TypeSArray(ie.type, IntegerExp.literal!1);
             e4 = new ArrayLiteralExp(ex.loc, tsa, ie);
         }
 
@@ -2125,10 +2125,15 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
             }
 
-            // Do not allow types that need destructors
+            // Do not allow types that need destructors or copy constructors.
             if (arg.type.needsDestruction())
             {
                 arg.error("cannot pass types that need destruction as variadic arguments");
+                err = true;
+            }
+            if (arg.type.needsCopyOrPostblit())
+            {
+                arg.error("cannot pass types with postblits or copy constructors as variadic arguments");
                 err = true;
             }
 
@@ -3085,7 +3090,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         expandTuples(e.values);
         if (e.keys.dim != e.values.dim)
         {
-            e.error("number of keys is %u, must match number of values %u", e.keys.dim, e.values.dim);
+            e.error("number of keys is %llu, must match number of values %llu",
+                        cast(ulong) e.keys.dim, cast(ulong) e.values.dim);
             return setError();
         }
 
@@ -3164,7 +3170,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.type.ty == Terror)
             return setError();
 
-        //printf("TypeExp::semantic(%s)\n", type.toChars());
+        //printf("TypeExp::semantic(%s)\n", exp.type.toChars());
         Expression e;
         Type t;
         Dsymbol s;
@@ -5294,6 +5300,41 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * is(targ id :  tok2)
          * is(targ id == tok2)
          */
+        Type tded = null;
+
+        void yes()
+        {
+            //printf("yes\n");
+            if (!e.id)
+            {
+                result = IntegerExp.createBool(true);
+                return;
+            }
+
+            Dsymbol s;
+            Tuple tup = isTuple(tded);
+            if (tup)
+                s = new TupleDeclaration(e.loc, e.id, &tup.objects);
+            else
+                s = new AliasDeclaration(e.loc, e.id, tded);
+            s.dsymbolSemantic(sc);
+
+            /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
+             * More investigation is needed.
+             */
+            if (!tup && !sc.insert(s))
+                e.error("declaration `%s` is already defined", s.toChars());
+
+            unSpeculative(sc, s);
+
+            result = IntegerExp.createBool(true);
+        }
+        void no()
+        {
+            result = IntegerExp.createBool(false);
+            //printf("no\n");
+        }
+
         static if (LOGSEMANTIC)
         {
             printf("IsExp::semantic(%s)\n", e.toChars());
@@ -5304,7 +5345,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        Type tded = null;
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
             const oldErrors = global.startGagging();
@@ -5312,16 +5352,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             global.endGagging(oldErrors);
 
             if (sym is null)
-                goto Lno;
+                return no();
             Package p = resolveIsPackage(sym);
             if (p is null)
-                goto Lno;
+                return no();
             if (e.tok2 == TOK.package_ && p.isModule()) // Note that isModule() will return null for package modules because they're not actually instances of Module.
-                goto Lno;
+                return no();
             else if(e.tok2 == TOK.module_ && !(p.isModule() || p.isPackageMod()))
-                goto Lno;
+                return no();
             tded = e.targ;
-            goto Lyes;
+            return yes();
         }
 
         {
@@ -5332,7 +5372,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Type t = e.targ.trySemantic(e.loc, sc2);
             sc2.pop();
             if (!t) // errors, so condition is false
-                goto Lno;
+                return no();
             e.targ = t;
         }
 
@@ -5342,64 +5382,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
             case TOK.struct_:
                 if (e.targ.ty != Tstruct)
-                    goto Lno;
+                    return no();
                 if ((cast(TypeStruct)e.targ).sym.isUnionDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.union_:
                 if (e.targ.ty != Tstruct)
-                    goto Lno;
+                    return no();
                 if (!(cast(TypeStruct)e.targ).sym.isUnionDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.class_:
                 if (e.targ.ty != Tclass)
-                    goto Lno;
+                    return no();
                 if ((cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.interface_:
                 if (e.targ.ty != Tclass)
-                    goto Lno;
+                    return no();
                 if (!(cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.const_:
                 if (!e.targ.isConst())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.immutable_:
                 if (!e.targ.isImmutable())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.shared_:
                 if (!e.targ.isShared())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.inout_:
                 if (!e.targ.isWild())
-                    goto Lno;
+                    return no();
                 tded = e.targ;
                 break;
 
             case TOK.super_:
                 // If class or interface, get the base class and interfaces
                 if (e.targ.ty != Tclass)
-                    goto Lno;
+                    return no();
                 else
                 {
                     ClassDeclaration cd = (cast(TypeClass)e.targ).sym;
@@ -5418,7 +5458,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             case TOK.enum_:
                 if (e.targ.ty != Tenum)
-                    goto Lno;
+                    return no();
                 if (e.id)
                     tded = (cast(TypeEnum)e.targ).sym.getMemtype(e.loc);
                 else
@@ -5430,7 +5470,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             case TOK.delegate_:
                 if (e.targ.ty != Tdelegate)
-                    goto Lno;
+                    return no();
                 tded = (cast(TypeDelegate)e.targ).next; // the underlying function type
                 break;
 
@@ -5438,7 +5478,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             case TOK.parameters:
                 {
                     if (e.targ.ty != Tfunction)
-                        goto Lno;
+                        return no();
                     tded = e.targ;
 
                     /* Generate tuple from function parameter types.
@@ -5479,7 +5519,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tded = (cast(TypeFunction)tded).next;
                 }
                 else
-                    goto Lno;
+                    return no();
                 break;
 
             case TOK.argumentTypes:
@@ -5490,13 +5530,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 tded = target.toArgTypes(e.targ);
                 if (!tded)
-                    goto Lno;
+                    return no();
                 // not valid for a parameter
                 break;
 
             case TOK.vector:
                 if (e.targ.ty != Tvector)
-                    goto Lno;
+                    return no();
                 tded = (cast(TypeVector)e.targ).basetype;
                 break;
 
@@ -5506,8 +5546,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // https://issues.dlang.org/show_bug.cgi?id=18753
             if (tded)
-                goto Lyes;
-            goto Lno;
+                return yes();
+            return no();
         }
         else if (e.tspec && !e.id && !(e.parameters && e.parameters.dim))
         {
@@ -5516,22 +5556,41 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ : tspec)
              */
             e.tspec = e.tspec.typeSemantic(e.loc, sc);
-            //printf("targ  = %s, %s\n", targ.toChars(), targ.deco);
-            //printf("tspec = %s, %s\n", tspec.toChars(), tspec.deco);
+            //printf("targ  = %s, %s\n", e.targ.toChars(), e.targ.deco);
+            //printf("tspec = %s, %s\n", e.tspec.toChars(), e.tspec.deco);
 
             if (e.tok == TOK.colon)
             {
-                if (e.targ.implicitConvTo(e.tspec))
-                    goto Lyes;
+                // current scope is itself deprecated, or deprecations are not errors
+                const bool deprecationAllowed = sc.isDeprecated
+                    || global.params.useDeprecated != DiagnosticReporting.error;
+                const bool preventAliasThis = e.targ.hasDeprecatedAliasThis && !deprecationAllowed;
+
+                if (preventAliasThis && e.targ.ty == Tstruct)
+                {
+                    if ((cast(TypeStruct) e.targ).implicitConvToWithoutAliasThis(e.tspec))
+                        return yes();
+                    else
+                        return no();
+                }
+                else if (preventAliasThis && e.targ.ty == Tclass)
+                {
+                    if ((cast(TypeClass) e.targ).implicitConvToWithoutAliasThis(e.tspec))
+                        return yes();
+                    else
+                        return no();
+                }
+                else if (e.targ.implicitConvTo(e.tspec))
+                    return yes();
                 else
-                    goto Lno;
+                    return no();
             }
             else /* == */
             {
                 if (e.targ.equals(e.tspec))
-                    goto Lyes;
+                    return yes();
                 else
-                    goto Lno;
+                    return no();
             }
         }
         else if (e.tspec)
@@ -5556,7 +5615,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             //printf("tspec: %s\n", tspec.toChars());
             if (m <= MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
             {
-                goto Lno;
+                return no();
             }
             else
             {
@@ -5575,14 +5634,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, &dedtypes, &s);
                     if (m <= MATCH.nomatch)
-                        goto Lno;
+                        return no();
                     s.dsymbolSemantic(sc);
                     if (!sc.insert(s))
                         e.error("declaration `%s` is already defined", s.toChars());
 
                     unSpeculative(sc, s);
                 }
-                goto Lyes;
+                return yes();
             }
         }
         else if (e.id)
@@ -5591,35 +5650,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ id)
              */
             tded = e.targ;
-            goto Lyes;
         }
-
-    Lyes:
-        if (e.id)
-        {
-            Dsymbol s;
-            Tuple tup = isTuple(tded);
-            if (tup)
-                s = new TupleDeclaration(e.loc, e.id, &tup.objects);
-            else
-                s = new AliasDeclaration(e.loc, e.id, tded);
-            s.dsymbolSemantic(sc);
-
-            /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
-             * More investigation is needed.
-             */
-            if (!tup && !sc.insert(s))
-                e.error("declaration `%s` is already defined", s.toChars());
-
-            unSpeculative(sc, s);
-        }
-        //printf("Lyes\n");
-        result = IntegerExp.createBool(true);
-        return;
-
-    Lno:
-        //printf("Lno\n");
-        result = IntegerExp.createBool(false);
+        return yes();
     }
 
     override void visit(BinAssignExp exp)
@@ -5870,6 +5902,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (generateMsg)
         // no message - use assert expression as msg
         {
+            if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
+                return setError();
+
             /*
             {
               auto a = e1, b = e2;
@@ -5915,6 +5950,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = e1;
             }
 
+            Expressions* es;
+            Objects* tiargs;
+            Loc loc = exp.e1.loc;
+
             const tok = exp.e1.op;
             bool isEqualsCallExpression;
             if (tok == TOK.call)
@@ -5938,12 +5977,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
-                if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
-                    return setError();
-
-                auto es = new Expressions(2);
-                auto tiargs = new Objects(3);
-                Loc loc = exp.e1.loc;
+                es = new Expressions(2);
+                tiargs = new Objects(3);
 
                 if (isEqualsCallExpression)
                 {
@@ -5984,22 +6019,66 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 (*tiargs)[0] = comp;
                 (*tiargs)[1] = (*es)[0].type;
                 (*tiargs)[2] = (*es)[1].type;
+            }
 
-                Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
-                auto assertFail = new DotIdExp(loc, __assertFail, Id.object);
+            // Format exp.e1 before any additional boolean conversion
+            // Ignore &&/|| because "assert(...) failed" is more informative than "false != true"
+            else if (tok != TOK.andAnd && tok != TOK.orOr)
+            {
+                es = new Expressions(1);
+                tiargs = new Objects(2);
 
-                auto dt = new DotTemplateInstanceExp(loc, assertFail, Id._d_assert_fail, tiargs);
-                auto ec = CallExp.create(Loc.initial, dt, es);
-                exp.msg = ec;
+                if (auto ne = exp.e1.isNotExp())
+                {
+                    // Fetch the (potential non-bool) expression and fold
+                    // (n) negations into (n % 2) negations, e.g. !!a => a
+                    for (bool neg = true; ; neg = !neg)
+                    {
+                        if (auto ne2 = ne.e1.isNotExp())
+                            ne = ne2;
+                        else
+                        {
+                            (*es)[0] = maybePromoteToTmp(ne.e1);
+                            (*tiargs)[0] = new StringExp(loc, neg ? "!" : "");
+                            break;
+                        }
+                    }
+                }
+                else
+                {   // Simply format exp.e1
+                    (*es)[0] = maybePromoteToTmp(exp.e1);
+                    // No special treatment for other operators to avoid redundant template instantions
+                    (*tiargs)[0] = new StringExp(loc, "");
+                }
+
+                (*tiargs)[1] = (*es)[0].type;
+
+                // Passing __ctfe to auto ref infers ref and aborts compilation:
+                // "cannot modify compiler-generated variable __ctfe"
+                auto ve = (*es)[0].isVarExp();
+                if (ve && ve.var.ident == Id.ctfe)
+                {
+                    exp.msg = new StringExp(loc, "assert(__ctfe) failed!");
+                    goto LSkip;
+                }
             }
             else
             {
                 OutBuffer buf;
                 buf.printf("%s failed", exp.toChars());
                 exp.msg = new StringExp(Loc.initial, buf.extractSlice());
+                goto LSkip;
             }
+
+            Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
+            auto assertFail = new DotIdExp(loc, __assertFail, Id.object);
+
+            auto dt = new DotTemplateInstanceExp(loc, assertFail, Id._d_assert_fail, tiargs);
+            auto ec = CallExp.create(Loc.initial, dt, es);
+            exp.msg = ec;
         }
 
+        LSkip:
         if (Expression ex = unaSemantic(exp, sc))
         {
             result = ex;
@@ -6305,7 +6384,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (auto v = expToVariable(e.e1))
             {
-                if (!checkAddressVar(sc, e, v))
+                if (!checkAddressVar(sc, e.e1, v))
                     return setError();
             }
         }
@@ -6544,7 +6623,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (VarDeclaration v = expToVariable(dve.e1))
                 {
-                    if (!checkAddressVar(sc, exp, v))
+                    if (!checkAddressVar(sc, exp.e1, v))
                         return setError();
                 }
             }
@@ -6555,7 +6634,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v)
             {
-                if (!checkAddressVar(sc, exp, v))
+                if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
 
                 ve.checkPurity(sc, v);
@@ -6615,7 +6694,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                if (!checkAddressVar(sc, exp, v))
+                if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
             }
         }
@@ -6641,7 +6720,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                if (global.params.vsafe && !checkAddressVar(sc, exp, v))
+                if (global.params.vsafe && !checkAddressVar(sc, exp.e1, v))
                     return setError();
 
                 exp.e1.checkPurity(sc, v);
@@ -7373,7 +7452,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                     }
 
-                    if (v && !checkAddressVar(sc, exp, v))
+                    if (v && !checkAddressVar(sc, exp.e1, v))
                         return setError();
                 }
             }
@@ -8066,9 +8145,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // Rewrite as e1+=1 or e1-=1
         if (exp.op == TOK.prePlusPlus)
-            e = new AddAssignExp(exp.loc, exp.e1, new IntegerExp(exp.loc, 1, Type.tint32));
+            e = new AddAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
         else
-            e = new MinAssignExp(exp.loc, exp.e1, new IntegerExp(exp.loc, 1, Type.tint32));
+            e = new MinAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
         result = e.expressionSemantic(sc);
     }
 
@@ -8090,7 +8169,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // https://issues.dlang.org/show_bug.cgi?id=14606
             // Always use BlitExp for the special expression: (struct = 0)
-            return new IntegerExp(loc, 0, Type.tint32);
+            return IntegerExp.literal!0;
         }
 
         if (sd.isNested())
@@ -8366,7 +8445,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 if (dim == 0)
                 {
-                    e = new IntegerExp(exp.loc, 0, Type.tint32);
+                    e = IntegerExp.literal!0;
                     e = new CastExp(exp.loc, e, Type.tvoid); // avoid "has no effect" error
                     e = Expression.combine(tup1.e0, tup2.e0, e);
                 }
@@ -8435,7 +8514,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
-        exp.e1.checkSharedAccess(sc);
+        if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
+            exp.e1.checkSharedAccess(sc);
 
         /* Inside constructor, if this is the first assignment of object field,
          * rewrite this to initializing the field.
@@ -10722,7 +10802,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (e.op == TOK.call)
             {
-                e = new CmpExp(cmpop, exp.loc, e, new IntegerExp(exp.loc, 0, Type.tint32));
+                e = new CmpExp(cmpop, exp.loc, e, IntegerExp.literal!0);
                 e = e.expressionSemantic(sc);
             }
             result = e;
@@ -12046,22 +12126,22 @@ bool checkSharedAccess(Expression e, Scope* sc)
 
 
 /****************************************************
- * Determine if `exp`, which takes the address of `v`, can do so safely.
+ * Determine if `exp`, which gets its address taken, can do so safely.
  * Params:
  *      sc = context
- *      exp = expression that takes the address of `v`
+ *      exp = expression having its address taken
  *      v = the variable getting its address taken
  * Returns:
  *      `true` if ok, `false` for error
  */
-private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
+bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
 {
     //printf("checkAddressVar(exp: %s, v: %s)\n", exp.toChars(), v.toChars());
     if (v)
     {
         if (!v.canTakeAddressOf())
         {
-            exp.error("cannot take address of `%s`", exp.e1.toChars());
+            exp.error("cannot take address of `%s`", exp.toChars());
             return false;
         }
         if (sc.func && !sc.intypeof && !v.isDataseg())
@@ -12072,14 +12152,15 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
                 // Taking the address of v means it cannot be set to 'scope' later
                 v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
-                if (exp.e1.type.hasPointers() && v.storage_class & STC.scope_ &&
+                if (exp.type.hasPointers() && v.storage_class & STC.scope_ &&
                     !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                 {
                     exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                     return false;
                 }
             }
-            else if (!(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+            else if (!(sc.flags & SCOPE.debug_) &&
+                     sc.func.setUnsafe())
             {
                 exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                 return false;

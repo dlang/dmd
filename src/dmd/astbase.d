@@ -79,7 +79,7 @@ struct ASTBase
 
     alias MOD = ubyte;
 
-    enum STC : long
+    enum STC : ulong
     {
         undefined_          = 0L,
         static_             = (1L << 0),
@@ -306,7 +306,7 @@ struct ASTBase
         tracingDT    = 0x8,  // mark in progress of deduceType
     }
 
-    enum VarArg
+    enum VarArg : ubyte
     {
         none     = 0,  /// fixed number of arguments
         variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
@@ -904,14 +904,12 @@ struct ASTBase
 
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
-        Parameters* parameters;
-        VarArg varargs;
+        ParameterList parameterList;
 
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, ref ParameterList parameterList)
         {
             super(loc, endloc, Id.classNew, STC.static_ | stc, null);
-            this.parameters = fparams;
-            this.varargs = varargs;
+            this.parameterList = parameterList;
         }
 
         override void accept(Visitor v)
@@ -1770,7 +1768,15 @@ struct ASTBase
     extern (C++) struct ParameterList
     {
         Parameters* parameters;
+        StorageClass stc;                   // storage class of ...
         VarArg varargs = VarArg.none;
+
+        this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0)
+        {
+            this.parameters = parameters;
+            this.varargs = varargs;
+            this.stc = stc;
+        }
     }
 
     extern (C++) final class Parameter : ASTNode

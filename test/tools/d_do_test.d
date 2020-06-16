@@ -225,7 +225,12 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
         if (close >= 0)
         {
             string[] oss = split(result[1 .. close], " ");
-            if (oss.canFind(envData.os))
+
+            // Check if the current environment matches an entry in oss, which can either
+            // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
+            // The latter is important on windows because m32 might require other
+            // parameters than m32mscoff/m64.
+            if (oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                 result = result[close + 1 .. $];
             else
                 result = null;
@@ -830,6 +835,8 @@ $?:<choices>$ = environment dependent content supplied as a list
                 choices (either <condition>=<content> or <default>),
                 separated by a '|'. Currently supported conditions are
                 OS and model as supplied from the environment
+$r:<regex>$   = text matching <regex> (using $ inside of regex is not
+                supported, use multiple regexes instead)
 
 Params:
     output    = the real output
@@ -846,7 +853,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
     for ( ; ; )
     {
-        auto special = refoutput.find("$n$", "$p:", "$?:").rename!("remainder", "id");
+        auto special = refoutput.find("$n$", "$p:", "$r:", "$?:").rename!("remainder", "id");
 
         // Simple equality check if no special tokens remain
         if (special.id == 0)
@@ -887,6 +894,32 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 return false;
 
             output = parts[1];
+            continue;
+        }
+
+        else if (special.id == 3) // $r:<regex>$
+        {
+            // need some context behind this expression to stop the regex match
+            // e.g. "$r:.*$ failed with..." uses " failed"
+            auto context = refoutput[0 .. min(7, $)];
+
+            // Avoid collisions with other special sequences
+            if (auto parts = context.findSplitBefore("$"))
+            {
+                context = parts[0];
+                enforce(context.length, "Another sequence following $r:...$ is not supported!");
+            }
+
+            // Remove the context from the remaining expected output
+            refoutput = refoutput[context.length .. $];
+
+            // Use '^' to match <regex><context> at the beginning of output
+            auto re = regex('^' ~ refparts[0] ~ context, "s");
+            auto match = output.matchFirst(re);
+            if (!match)
+                return false;
+
+            output = output[match.front.length .. $];
             continue;
         }
 
@@ -957,6 +990,19 @@ unittest
     assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
     ed.model = "64";
     assert(compareOutput("yes", "$?:posix+64=yes|no$", ed));
+
+
+    assert(compareOutput("This number 12", `This $r:\w+ \d+$`, ed));
+    assert(compareOutput("This number 12", `This $r:\w+ (\d)+$`, ed));
+
+    assert(compareOutput("This number 12 is nice", `This $r:.*$ 12 is nice`, ed));
+    assert(compareOutput("This number 12", `This $r:.*$ 12`, ed));
+    assert(!compareOutput("This number 12 is 24", `This $r:\d*$ 12`, ed));
+
+    assert(compareOutput("This number 12 is 24", `This $r:.*$ 12 is $n$`, ed));
+
+    string msg = collectExceptionMsg(compareOutput("12345", `$r:\d*$$n$`, ed));
+    assert(msg == "Another sequence following $r:...$ is not supported!");
 }
 
 /++
@@ -1077,7 +1123,17 @@ int tryMain(string[] args)
                 return 0;
             }
         }
-
+        version (linux)
+        {
+            string gdbScript;
+            findTestParameter(envData, file, "GDB_SCRIPT", gdbScript);
+            if (gdbScript !is null)
+            {
+                return runGDBTestWithLock(envData, () {
+                    return runBashTest(input_dir, test_name, envData);
+                });
+            }
+        }
         return runBashTest(input_dir, test_name, envData);
     }
 
@@ -1300,25 +1356,23 @@ int tryMain(string[] args)
                 }
                 else version (linux)
                 {
-                    // Tests failed on SemaphoreCI when multiple GDB tests were run at once
-                    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
-                    lockfile.lock();
-                    scope (exit) lockfile.unlock();
-
-                    auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
-                    toCleanup ~= script;
-                    with (File(script, "w"))
-                    {
-                        writeln("set disable-randomization off");
-                        write(testArgs.gdbScript);
-                    }
-                    string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
-                    if (testArgs.gdbMatch !is null)
-                    {
-                        enforce(match(gdb_output, regex(testArgs.gdbMatch)),
-                                "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~gdb_output~"\n----\n");
-                    }
+                    runGDBTestWithLock(envData, () {
+                        auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
+                        toCleanup ~= script;
+                        with (File(script, "w"))
+                        {
+                            writeln("set disable-randomization off");
+                            write(testArgs.gdbScript);
+                        }
+                        string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
+                        auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
+                        if (testArgs.gdbMatch !is null)
+                        {
+                            enforce(match(gdb_output, regex(testArgs.gdbMatch)),
+                                    "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~gdb_output~"\n----\n");
+                        }
+                        return 0;
+                    });
                 }
             }
 
@@ -1400,7 +1454,7 @@ int tryMain(string[] args)
             if (e.msg.canFind("exited with rc == 139"))
             {
                 auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
-                spawnShell(gdbCommand).wait;
+                runGDBTestWithLock(envData, () => spawnShell(gdbCommand).wait);
             }
 
             return Result.return1;
@@ -1463,6 +1517,16 @@ int runBashTest(string input_dir, string test_name, const ref EnvData envData)
         auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
+}
+
+int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
+{
+    // Tests failed on SemaphoreCI when multiple GDB tests were run at once
+    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
+    lockfile.lock();
+    scope (exit) lockfile.unlock();
+
+    return fun();
 }
 
 /// Run a dshell test

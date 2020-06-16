@@ -61,11 +61,12 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
 
         UnitTestResult unitTestRunner()
         {
-            import std.algorithm : canFind, each, map;
+            import std.algorithm : any, canFind, each, map;
+            import std.array : array;
             import std.conv : text;
             import std.format : format;
             import std.meta : Alias;
-            import std.range : empty, front, enumerate;
+            import std.range : chain, empty, enumerate, only, repeat;
             import std.stdio : writeln, writefln, stderr, stdout;
             import std.string : join;
             import std.traits : hasUDA, isCallable;
@@ -77,11 +78,27 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
             struct Test
             {
                 Throwable throwable;
-                string name;
+                string[] descriptions;
 
-                string toString()
+                string toString(size_t i)
                 {
-                    return format!"%%s\n%%s"(name, throwable);
+                    const descs = descriptions;
+                    const index = text(i + 1) ~ ") ";
+
+                    enum fmt = "%%s%%s\n%%s";
+
+                    if (descs.length < 2)
+                        return format!fmt(index, descriptions.join(""), throwable);
+
+                    auto trailing = descs[1 .. $]
+                        .map!(e => ' '.repeat(index.length).array ~ e);
+
+                    const description = descriptions[0]
+                        .only
+                        .chain(trailing)
+                        .join("\n");
+
+                    return format!fmt(index, description, throwable);
                 }
 
                 string fileInfo()
@@ -98,8 +115,7 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
             {
                 if (!failedTests.empty)
                 {
-                    alias formatTest = t =>
-                        format!"%%s) %%s"(t.index + 1, t.value.toString);
+                    alias formatTest = t => t.value.toString(t.index);
 
                     const failedTestsMessage = failedTests
                         .enumerate
@@ -160,9 +176,9 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
                     {
                         static if (!attributes.empty)
                         {
-                            test.name = attributes.front;
+                            test.descriptions = attributes;
 
-                            if (attributes.front.canFind(filter))
+                            if (attributes.any!(a => a.canFind(filter)))
                             {
                                 testCount++;
                                 executeCallbacks(beforeEachCallbacks);
@@ -234,7 +250,7 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-version=MARS",
         "-unittest",
         "-J" ~ buildOutputPath,
-        "-J" ~ projectRootDir.buildPath("res"),
+        "-J" ~ projectRootDir.buildPath("src/dmd/res"),
         "-I" ~ projectRootDir.buildPath("src"),
         "-I" ~ unitTestDir,
         "-i",

@@ -69,6 +69,7 @@ rebuild() {
             $NM _${build_path}/host_dmd > a
             $NM $build_path/dmd > b
             diff -u a b
+            echo "Self-compilation failed: generated dmd created a different binary than host dmd!"
             exit 1
         fi
     fi
@@ -114,7 +115,7 @@ test_dub_package() {
         done
         popd
         # Test rdmd build
-        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jres -Isrc -i -run test/dub_package/frontend.d
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
     deactivate
 }

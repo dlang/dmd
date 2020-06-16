@@ -16,7 +16,8 @@ class Bar8318 : Foo8318
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(24): Error: function `diag8318.C10021.makeI` return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(25): Error: function `diag8318.C10021.makeI` return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(25): Error: class `diag8318.C10021` interface function `I10021 makeI()` is not implemented
 ---
 */
 interface I10021 { I10021 makeI(); }
@@ -26,7 +27,8 @@ class C10021 : I10021 { auto   makeI() { return this; } }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(38): Error: function `diag8318.Bar10195.baz` return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(40): Error: function `diag8318.Bar10195.baz` return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(38): Error: class `diag8318.Bar10195` interface function `int baz()` is not implemented
 ---
 */
 interface Foo10195
@@ -41,7 +43,7 @@ class Bar10195 : Foo10195
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(50): Error: function `diag8318.B14173.foo` does not override any function
+fail_compilation/diag8318.d(52): Error: function `diag8318.B14173.foo` does not override any function
 ---
 */
 class A14173 {}

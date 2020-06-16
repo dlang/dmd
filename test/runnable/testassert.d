@@ -1,5 +1,6 @@
 /*
 REQUIRED_ARGS: -checkaction=context -dip25 -dip1000
+PERMUTE_ARGS: -O -g -inline
 */
 
 void test8765()
@@ -15,7 +16,7 @@ void test8765()
         // no-message -> assert expression
         msg = e.msg;
     }
-    assert(msg && msg == "assert(a) failed");
+    assert(msg == "0 != true");
 }
 
  void test9255()
@@ -193,6 +194,33 @@ void testMixinExpression() @safe
     assert(msg == "S() == S()");
 }
 
+void testUnaryFormat()
+{
+    int zero = 0, one = 1;
+    assert(getMessage(assert(zero)) == "0 != true");
+    assert(getMessage(assert(!one)) == "1 == true");
+
+    assert(getMessage(assert(!cast(int) 1.5)) == "1 == true");
+
+    assert(getMessage(assert(!!__ctfe)) == "assert(__ctfe) failed!");
+
+    static struct S
+    {
+        int i;
+        bool opCast() const
+        {
+            return i < 2;
+        }
+    }
+
+    assert(getMessage(assert(S(4))) == "S(4) != true");
+
+    S s = S(4);
+    assert(getMessage(assert(*&s)) == "S(4) != true");
+
+    assert(getMessage(assert(--(++zero))) == "0 != true");
+}
+
 void main()
 {
     test8765();
@@ -200,4 +228,5 @@ void main()
     test20114();
     test20375();
     testMixinExpression();
+    testUnaryFormat();
 }

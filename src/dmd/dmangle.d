@@ -398,6 +398,9 @@ public:
         else if (ta.isscope && !ta.isscopeinferred)
             buf.writestring("Nl");
 
+        if (ta.islive)
+            buf.writestring("Nm");
+
         switch (ta.trust)
         {
             case TRUST.trusted:

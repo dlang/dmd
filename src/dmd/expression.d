@@ -5715,7 +5715,7 @@ extern (C++) final class PostExp : BinExp
 {
     extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
-        super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
+        super(loc, op, __traits(classInstanceSize, PostExp), e, IntegerExp.literal!1);
         assert(op == TOK.minusMinus || op == TOK.plusPlus);
     }
 

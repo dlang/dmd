@@ -698,7 +698,7 @@ tryagain:
 
     assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
-    global87.save.__dtor();       // clean up ndp save array
+    global87.save.dtor();       // clean up ndp save array
 }
 
 /*********************************************
@@ -3087,6 +3087,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                     case TYfgPtr:
                     case TYimmutPtr:
                     case TYsharePtr:
+                    case TYrestrictPtr:
                         *pretregs |= I16 ? IDXREGS : ALLREGS;
                         break;
 

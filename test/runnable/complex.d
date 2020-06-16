@@ -1,27 +1,4 @@
-// Ignore deprecations due to https://issues.dlang.org/show_bug.cgi?id=7619
-// TRANSFORM_OUTPUT: remove_lines("Use std.complex")
-
-import std.stdio;
-import std.math;
 import core.stdc.stdio;
-
-/***************************************/
-
-void test1()
-{
-    creal c = 3.0 + 4.0i;
-    c = sqrt(c);
-    printf("re = %Lg, im = %Lg\n", c.re, c.im);
-    assert(c.re == 2.0);
-    assert(c.im == 1.0);
-
-    float f = sqrt(25.0f);
-    assert(f == 5.0);
-    double d = sqrt(4.0);
-    assert(d == 2.0);
-    real r = sqrt(9.0L);
-    assert(r == 3.0);
-}
 
 /***************************************/
 
@@ -227,11 +204,11 @@ void test12()
 {
     real x = 3;
     creal a = (2 + 4i) % 3;
-    writeln(a);
+    printf("%Lg %Lgi\n", a.re, a.im);
     assert(a == 2 + 1i);
 
     creal b = (2 + 4i) % x;
-    writeln(b);
+    printf("%Lg %Lgi\n", b.re, b.im);
     assert(b == a);
 }
 
@@ -241,7 +218,7 @@ void test13()
 {
         ireal a = 5i;
         ireal b = a % 2;
-        writeln(b);
+        printf("%Lg %Lgi\n", b.re, b.im);
         assert(b == 1i);
 }
 
@@ -431,7 +408,6 @@ void test17677()
 int main(char[][] args)
 {
 
-    test1();
     test2();
     test3();
     test4();

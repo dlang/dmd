@@ -57,6 +57,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.compiler;
 
 /*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
@@ -123,8 +124,15 @@ private Expression checkAssignmentAsCondition(Expression e)
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
+    version (CallbackAPI)
+        Compiler.onStatementSemanticStart(s, sc);
+
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
+
+    version (CallbackAPI)
+        Compiler.onStatementSemanticDone(s, sc);
+
     return v.result;
 }
 
@@ -1138,8 +1146,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (foundMismatch && dim != foreachParamCount)
             {
                 const(char)* plural = foreachParamCount > 1 ? "s" : "";
-                fs.error("cannot infer argument types, expected %d argument%s, not %d",
-                    foreachParamCount, plural, dim);
+                fs.error("cannot infer argument types, expected %llu argument%s, not %llu",
+                    cast(ulong) foreachParamCount, plural, cast(ulong) dim);
             }
             else
                 fs.error("cannot uniquely infer `foreach` argument types");
@@ -1582,8 +1590,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (exps.dim != dim)
                     {
                         const(char)* plural = exps.dim > 1 ? "s" : "";
-                        fs.error("cannot infer argument types, expected %d argument%s, not %d",
-                            exps.dim, plural, dim);
+                        fs.error("cannot infer argument types, expected %llu argument%s, not %llu",
+                            cast(ulong) exps.dim, plural, cast(ulong) dim);
                         goto case Terror;
                     }
 
@@ -2636,7 +2644,7 @@ else
                     /* Rewrite as an assert(0) and let e2ir generate
                      * the call to the C assert failure function
                      */
-                    s = new ExpStatement(ss.loc, new AssertExp(ss.loc, new IntegerExp(ss.loc, 0, Type.tint32)));
+                    s = new ExpStatement(ss.loc, new AssertExp(ss.loc, IntegerExp.literal!0));
                 }
                 else
                 {
@@ -3455,7 +3463,7 @@ else
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
-                bs.error("`break` is not inside `%s` bodies", Token.toChars(sc.os.tok));
+                bs.error("`break` is not allowed inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
@@ -3542,7 +3550,7 @@ else
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
-                cs.error("`continue` is not inside `%s` bodies", Token.toChars(sc.os.tok));
+                cs.error("`continue` is not allowed inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {

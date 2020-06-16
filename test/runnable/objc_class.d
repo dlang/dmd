@@ -1,6 +1,8 @@
 // EXTRA_OBJC_SOURCES: objc_class.m
 // REQUIRED_ARGS: -L-framework -LFoundation
 
+import core.attribute : selector;
+
 // This function is implemented in `runnable/extra-files/objc_class.m` and will
 // create a new instance of `Foo` (defined below), call `callFooInstanceMethod`
 // and return the result of `callFooInstanceMethod`.

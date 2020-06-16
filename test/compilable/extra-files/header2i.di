@@ -87,7 +87,7 @@ template templateVariableBar(T) if (is(T == int))
 {
 	enum int templateVariableBar = T.stringof.length;
 }
-auto flit = 3 / 2.00000;
+auto flit = 3 / 2.0;
 void foo11217()(const int[] arr)
 {
 }

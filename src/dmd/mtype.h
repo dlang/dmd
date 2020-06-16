@@ -117,13 +117,14 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
-enum VarArg
+enum VarArgValues
 {
     VARARGnone     = 0,  /// fixed number of arguments
     VARARGvariadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
     VARARGtypesafe = 2   /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
                          ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 };
+typedef unsigned char VarArg;
 
 class Type : public ASTNode
 {
@@ -291,7 +292,7 @@ public:
     virtual Type *makeSharedWildConst();
     virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
-    virtual Type *toBasetype();
+    Type *toBasetype();
     virtual bool isBaseOf(Type *t, int *poffset);
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
@@ -313,6 +314,7 @@ public:
     Type *baseElemOf();
     uinteger_t sizemask();
     virtual bool needsDestruction();
+    virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
 
     // For eliminating dynamic_cast
@@ -336,6 +338,8 @@ public:
     TypeTuple *isTypeTuple();
     TypeSlice *isTypeSlice();
     TypeNull *isTypeNull();
+    TypeMixin *isTypeMixin();
+    TypeTraits *isTypeTraits();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -445,6 +449,7 @@ public:
     Expression *defaultInitLiteral(const Loc &loc);
     bool hasPointers();
     bool needsDestruction();
+    bool needsCopyOrPostblit();
     bool needsNested();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -568,6 +573,7 @@ public:
 struct ParameterList
 {
     Parameters* parameters;
+    StorageClass stc;
     VarArg varargs;
 
     size_t length();
@@ -643,6 +649,17 @@ class TypeTraits : public Type
 
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
+    Dsymbol *toDsymbol(Scope *sc);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeMixin : public Type
+{
+    Loc loc;
+    Expressions *exps;
+
+    const char *kind();
+    Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -742,6 +759,7 @@ public:
     bool isAssignable();
     bool isBoolean() /*const*/;
     bool needsDestruction() /*const*/;
+    bool needsCopyOrPostblit();
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
@@ -775,10 +793,10 @@ public:
     bool isString();
     bool isAssignable();
     bool needsDestruction();
+    bool needsCopyOrPostblit();
     bool needsNested();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    Type *toBasetype();
     bool isZeroInit(const Loc &loc);
     bool hasPointers();
     bool hasVoidInitPointers();

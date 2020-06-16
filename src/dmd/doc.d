@@ -94,10 +94,8 @@ struct Escape
  */
 private class Section
 {
-    const(char)* name;
-    size_t namelen;
-    const(char)* _body;
-    size_t bodylen;
+    const(char)[] name;
+    const(char)[] body_;
     int nooutput;
 
     override string toString() const
@@ -108,7 +106,7 @@ private class Section
     void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
-        if (namelen)
+        if (name.length)
         {
             static immutable table =
             [
@@ -128,7 +126,7 @@ private class Section
             ];
             foreach (entry; table)
             {
-                if (iequals(entry, name[0 .. namelen]))
+                if (iequals(entry, name))
                 {
                     buf.printf("$(DDOC_%s ", entry.ptr);
                     goto L1;
@@ -138,11 +136,8 @@ private class Section
             // Replace _ characters with spaces
             buf.writestring("$(DDOC_SECTION_H ");
             size_t o = buf.length;
-            for (size_t u = 0; u < namelen; u++)
-            {
-                char c = name[u];
+            foreach (char c; name)
                 buf.writeByte((c == '_') ? ' ' : c);
-            }
             escapeStrayParenthesis(loc, buf, o, false);
             buf.writestring(")");
         }
@@ -152,7 +147,7 @@ private class Section
         }
     L1:
         size_t o = buf.length;
-        buf.write(_body[0 .. bodylen]);
+        buf.write(body_);
         escapeStrayParenthesis(loc, buf, o, true);
         highlightText(sc, a, loc, *buf, o);
         buf.writestring(")");
@@ -167,8 +162,8 @@ private final class ParamSection : Section
     {
         assert(a.dim);
         Dsymbol s = (*a)[0]; // test
-        const(char)* p = _body;
-        size_t len = bodylen;
+        const(char)* p = body_.ptr;
+        size_t len = body_.length;
         const(char)* pend = p + len;
         const(char)* tempstart = null;
         size_t templen = 0;
@@ -306,7 +301,8 @@ private final class ParamSection : Section
                             cast(int)(tf.parameterList.varargs == VarArg.variadic);
             if (pcount != paramcount)
             {
-                warning(s.loc, "Ddoc: parameter count mismatch, expected %d, got %d", pcount, paramcount);
+                warning(s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
+                        cast(ulong) pcount, cast(ulong) paramcount);
                 if (paramcount == 0)
                 {
                     // Chances are someone messed up the format
@@ -324,7 +320,7 @@ private final class MacroSection : Section
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
-        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, _body, bodylen);
+        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, body_);
     }
 }
 
@@ -398,7 +394,7 @@ extern(C++) void gendocfile(Module m)
             mbuf.write(data);
         }
     }
-    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[].ptr, mbuf[].length);
+    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[]);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
@@ -426,7 +422,7 @@ extern(C++) void gendocfile(Module m)
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
-        m.macrotable.define("COPYRIGHT", dc.copyright._body[0 .. dc.copyright.bodylen]);
+        m.macrotable.define("COPYRIGHT", dc.copyright.body_);
     }
     if (m.isDocFile)
     {
@@ -441,7 +437,7 @@ extern(C++) void gendocfile(Module m)
         // Don't push m in a, to prevent emphasize ddoc file name.
         if (dc.macros)
         {
-            commentlen = dc.macros.name - m.comment;
+            commentlen = dc.macros.name.ptr - m.comment;
             dc.macros.write(loc, dc, sc, &a, &buf);
         }
         buf.write(m.comment[0 .. commentlen]);
@@ -1562,11 +1558,11 @@ struct DocComment
         for (size_t i = 0; i < dc.sections.dim; i++)
         {
             Section sec = dc.sections[i];
-            if (iequals("copyright", sec.name[0 .. sec.namelen]))
+            if (iequals("copyright", sec.name))
             {
                 dc.copyright = sec;
             }
-            if (iequals("macros", sec.name[0 .. sec.namelen]))
+            if (iequals("macros", sec.name))
             {
                 dc.macros = sec;
             }
@@ -1581,10 +1577,11 @@ struct DocComment
      *
      *      name2 = value2
      */
-    static void parseMacros(Escape* escapetable, ref MacroTable pmacrotable, const(char)* m, size_t mlen)
+    extern(D) static void parseMacros(
+        Escape* escapetable, ref MacroTable pmacrotable, const(char)[] m)
     {
-        const(char)* p = m;
-        size_t len = mlen;
+        const(char)* p = m.ptr;
+        size_t len = m.length;
         const(char)* pend = p + len;
         const(char)* tempstart = null;
         size_t templen = 0;
@@ -1651,7 +1648,7 @@ struct DocComment
             L1:
                 //printf("macro '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 if (iequals("ESCAPES", namestart[0 .. namelen]))
-                    parseEscapes(escapetable, textstart, textlen);
+                    parseEscapes(escapetable, textstart[0 .. textlen]);
                 else
                     pmacrotable.define(namestart[0 .. namelen], textstart[0 .. textlen]);
                 namelen = 0;
@@ -1688,16 +1685,16 @@ struct DocComment
      * Multiple escapes can be separated
      * by whitespace and/or commas.
      */
-    static void parseEscapes(Escape* escapetable, const(char)* textstart, size_t textlen)
+    static void parseEscapes(Escape* escapetable, const(char)[] text)
     {
         if (!escapetable)
         {
             escapetable = new Escape();
             memset(escapetable, 0, Escape.sizeof);
         }
-        //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)textlen, textstart, pescapetable);
-        const(char)* p = textstart;
-        const(char)* pend = p + textlen;
+        //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)text.length, text.ptr, escapetable);
+        const(char)* p = text.ptr;
+        const(char)* pend = p + text.length;
         while (1)
         {
             while (1)
@@ -1849,10 +1846,8 @@ struct DocComment
                     s = new MacroSection();
                 else
                     s = new Section();
-                s.name = name;
-                s.namelen = namelen;
-                s._body = pstart;
-                s.bodylen = pend - pstart;
+                s.name = name[0 .. namelen];
+                s.body_ = pstart[0 .. pend - pstart];
                 s.nooutput = 0;
                 //printf("Section: '%.*s' = '%.*s'\n", cast(int)s.namelen, s.name, cast(int)s.bodylen, s.body);
                 sections.push(s);
@@ -1893,11 +1888,11 @@ struct DocComment
             if (sec.nooutput)
                 continue;
             //printf("Section: '%.*s' = '%.*s'\n", cast(int)sec.namelen, sec.name, cast(int)sec.bodylen, sec.body);
-            if (!sec.namelen && i == 0)
+            if (!sec.name.length && i == 0)
             {
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.length;
-                buf.write(sec._body[0 .. sec.bodylen]);
+                buf.write(sec.body_);
                 escapeStrayParenthesis(loc, buf, o, true);
                 highlightText(sc, a, loc, *buf, o);
                 buf.writestring(")");

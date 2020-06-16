@@ -27,6 +27,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dmodule;
+import dmd.dversion;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbolsem;
@@ -1190,6 +1191,8 @@ extern (C++) class Dsymbol : ASTNode
     inout(UnitTestDeclaration)         isUnitTestDeclaration()         inout { return null; }
     inout(NewDeclaration)              isNewDeclaration()              inout { return null; }
     inout(VarDeclaration)              isVarDeclaration()              inout { return null; }
+    inout(VersionSymbol)               isVersionSymbol()               inout { return null; }
+    inout(DebugSymbol)                 isDebugSymbol()                 inout { return null; }
     inout(ClassDeclaration)            isClassDeclaration()            inout { return null; }
     inout(StructDeclaration)           isStructDeclaration()           inout { return null; }
     inout(UnionDeclaration)            isUnionDeclaration()            inout { return null; }

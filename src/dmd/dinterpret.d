@@ -7125,7 +7125,7 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const re
     size_t nargs = arguments ? arguments.dim : 0;
     if (!pthis)
     {
-        if (isBuiltin(fd) == BUILTIN.yes)
+        if (isBuiltin(fd) != BUILTIN.unimp)
         {
             Expressions args = Expressions(nargs);
             foreach (i, ref arg; args)

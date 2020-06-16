@@ -236,6 +236,7 @@ void test39()
     assert(result == 0);
 }
 
+extern(C++, "foo", "bar", "baz") int doStuff(int);
 
 void main()
 {
@@ -326,4 +327,6 @@ void main()
     assert(t38.test(1, 2, 3) == 1);
     Test38.dispose(t38);
     test39();
+
+    assert(doStuff(2) == 4);
 }

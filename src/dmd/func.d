@@ -47,6 +47,7 @@ import dmd.objc;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
+import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement_rewrite_walker;
@@ -66,10 +67,41 @@ enum ILS : int
 enum BUILTIN : int
 {
     unknown = -1,    /// not known if this is a builtin
-    no,              /// this is not a builtin
-    yes,             /// this is a builtin
+    unimp,           /// this is not a builtin
+    sin,
+    cos,
+    tan,
+    sqrt,
+    fabs,
+    ldexp,
+    log,
+    log2,
+    log10,
+    exp,
+    expm1,
+    exp2,
+    round,
+    floor,
+    ceil,
+    trunc,
+    copysign,
+    pow,
+    fmin,
+    fmax,
+    fma,
+    isnan,
+    isinfinity,
+    isfinite,
+    bsf,
+    bsr,
+    bswap,
+    popcnt,
+    yl2x,
+    yl2xp1,
+    toPrecFloat,
+    toPrecDouble,
+    toPrecReal
 }
-
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
  */
@@ -1442,6 +1474,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool isReturnIsolated()
     {
+        //printf("isReturnIsolated(this: %s)\n", this.toChars);
         TypeFunction tf = type.toTypeFunction();
         assert(tf.next);
 
@@ -1463,7 +1496,15 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool isTypeIsolated(Type t)
     {
-        //printf("isTypeIsolated(t: %s)\n", t.toChars());
+        StringTable!Type parentTypes;
+        parentTypes._init();
+        return isTypeIsolated(t, parentTypes);
+    }
+
+    ///ditto
+    extern (D) final bool isTypeIsolated(Type t, ref StringTable!Type parentTypes)
+    {
+        //printf("this: %s, isTypeIsolated(t: %s)\n", this.toChars(), t.toChars());
 
         t = t.baseElemOf();
         switch (t.ty)
@@ -1480,11 +1521,19 @@ extern (C++) class FuncDeclaration : Declaration
                 /* Drill down and check the struct's fields
                  */
                 auto sym = t.toDsymbol(null).isStructDeclaration();
+                const tName = t.toChars.toDString;
+                const entry = parentTypes.insert(tName, t);
+                if (entry == null)
+                {
+                    //we've already seen this type in a parent, not isolated
+                    return false;
+                }
                 foreach (v; sym.fields)
                 {
                     Type tmi = v.type.addMod(t.mod);
-                    //printf("\tt = %s, tmi = %s\n", t.toChars(), tmi.toChars());
-                    if (!isTypeIsolated(tmi))
+                    //printf("\tt = %s, v: %s, vtype: %s,  tmi = %s\n",
+                    //       t.toChars(), v.toChars(), v.type.toChars(), tmi.toChars());
+                    if (!isTypeIsolated(tmi, parentTypes))
                         return false;
                 }
                 return true;
@@ -3879,20 +3928,19 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
  */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
-    Parameters* parameters;
-    VarArg varargs;
+    ParameterList parameterList;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, ref ParameterList parameterList)
     {
         super(loc, endloc, Id.classNew, STC.static_ | stc, null);
-        this.parameters = fparams;
-        this.varargs = varargs;
+        this.parameterList = parameterList;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto f = new NewDeclaration(loc, endloc, storage_class, Parameter.arraySyntaxCopy(parameters), varargs);
+        auto parameterList = parameterList.syntaxCopy();
+        auto f = new NewDeclaration(loc, endloc, storage_class, parameterList);
         return FuncDeclaration.syntaxCopy(f);
     }
 

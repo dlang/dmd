@@ -111,6 +111,7 @@ fail_compilation/reserved_version.d(212): Error: version identifier `CppRuntime_
 fail_compilation/reserved_version.d(213): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
 fail_compilation/reserved_version.d(214): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
 fail_compilation/reserved_version.d(215): Error: version identifier `D_PIE` is reserved and cannot be set
+fail_compilation/reserved_version.d(216): Error: version identifier `AVR` is reserved and cannot be set
 ---
 */
 
@@ -228,6 +229,7 @@ version = CppRuntime_Gcc;
 version = CppRuntime_Microsoft;
 version = CppRuntime_Sun;
 version = D_PIE;
+version = AVR;
 
 // This should work though
 debug = DigitalMars;
@@ -334,3 +336,4 @@ debug = all;
 debug = none;
 debug = D_P16;
 debug = MSP430;
+debug = AVR;

@@ -90,7 +90,7 @@ struct Target
     FPTypeProperties<real_t> RealProperties;
 
 private:
-    Type *va_list;
+    Type *tvalist;
 
 public:
     void _init(const Param& params);

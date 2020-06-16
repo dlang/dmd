@@ -147,6 +147,7 @@ shared static this()
         "getLocation",
         "hasPostblit",
         "hasCopyConstructor",
+        "isCopyable",
     ];
 
     StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
@@ -651,6 +652,29 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                  : (sd.hasCopyCtor ? True() : False());
         }
         return False();
+    }
+    if (e.ident == Id.isCopyable)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+            return new ErrorExp();
+        }
+
+        t = t.toBasetype();     // get the base in case `t` is an `enum`
+
+        if (auto ts = t.isTypeStruct())
+        {
+            ts.sym.dsymbolSemantic(sc);
+        }
+
+        return isCopyable(t) ? True() : False();
     }
 
     if (e.ident == Id.isNested)
@@ -1429,7 +1453,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbol(o);
         if (!s)
         {
-            e.error("argument has no members");
+            e.error("In expression `%s` `%s` can't have members", e.toChars(), o.toChars());
+            e.errorSupplemental("`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
+
             return new ErrorExp();
         }
         if (auto imp = s.isImport())
@@ -1441,7 +1467,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto sds = s.isScopeDsymbol();
         if (!sds || sds.isTemplateDeclaration())
         {
-            e.error("%s `%s` has no members", s.kind(), s.toChars());
+            e.error("In expression `%s` %s `%s` has no members", e.toChars(), s.kind(), s.toChars());
+            e.errorSupplemental("`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
             return new ErrorExp();
         }
 
@@ -1460,6 +1487,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
                 }
             }
+
+            // https://issues.dlang.org/show_bug.cgi?id=20915
+            // skip version and debug identifiers
+            if (sm.isVersionSymbol() || sm.isDebugSymbol())
+                return 0;
 
             //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
@@ -1943,7 +1975,7 @@ Lnext:
     }
 
     if (auto sub = speller!trait_search_fp(e.ident.toString()))
-        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), sub.length, sub.ptr);
+        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), cast(int) sub.length, sub.ptr);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
     return new ErrorExp();

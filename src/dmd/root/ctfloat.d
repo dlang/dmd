@@ -192,26 +192,39 @@ extern (C++) struct CTFloat
     {
         version(CRuntime_Microsoft)
         {
-            return cast(int)ld_sprint(str, fmt, longdouble_soft(x));
+            auto len = cast(int) ld_sprint(str, fmt, longdouble_soft(x));
         }
         else
         {
-            if (real_t(cast(ulong)x) == x)
+            char[4] sfmt = "%Lg\0";
+            sfmt[2] = fmt;
+            auto len = sprintf(str, sfmt.ptr, x);
+        }
+
+        if (fmt != 'a' && fmt != 'A')
+        {
+            assert(fmt == 'g');
+
+            // 1 => 1.0 to distinguish from integers
+            bool needsFPSuffix = true;
+            foreach (char c; str[0 .. len])
             {
-                // ((1.5 -> 1 -> 1.0) == 1.5) is false
-                // ((1.0 -> 1 -> 1.0) == 1.0) is true
-                // see http://en.cppreference.com/w/cpp/io/c/fprintf
-                char[5] sfmt = "%#Lg\0";
-                sfmt[3] = fmt;
-                return sprintf(str, sfmt.ptr, x);
+                // str might be `nan` or `inf`...
+                if (c != '-' && !(c >= '0' && c <= '9'))
+                {
+                    needsFPSuffix = false;
+                    break;
+                }
             }
-            else
+
+            if (needsFPSuffix)
             {
-                char[4] sfmt = "%Lg\0";
-                sfmt[2] = fmt;
-                return sprintf(str, sfmt.ptr, x);
+                str[len .. len+3] = ".0\0";
+                len += 2;
             }
         }
+
+        return len;
     }
 
     // Constant real values 0, 1, -1 and 0.5.

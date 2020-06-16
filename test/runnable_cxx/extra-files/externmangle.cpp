@@ -411,3 +411,17 @@ int test39cpp(C2<char>* c2, S2<int>* s2)
         return 2;
     return 0;
 }
+
+namespace foo
+{
+    namespace bar
+    {
+        namespace baz
+        {
+            int doStuff(int i)
+            {
+                return i * 2;
+            }
+        }
+    }
+}

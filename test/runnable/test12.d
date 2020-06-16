@@ -950,31 +950,28 @@ struct Shell
 
     const int opCmp(ref const Shell s)
     {
-        import std.algorithm;
-        return std.algorithm.cmp(this.str, s.str);
+        // Obviously not Unicode-aware...
+        foreach (const i, const a; this.str)
+        {
+            const b = s.str[i];
+            if (a < b) return -1;
+            if (a > b) return 1;
+        }
+
+        if (this.str.length < s.str.length) return -1;
+        if (this.str.length > s.str.length) return  1;
+        return 0;
     }
 }
 
 void test45()
 {
-    import std.algorithm;
+    Shell a = Shell("hello");
+    Shell b = Shell("betty");
+    Shell c = Shell("fred");
 
-    Shell[3] a;
-
-    a[0].str = "hello";
-    a[1].str = "betty";
-    a[2].str = "fred";
-
-    a[].sort;
-
-    foreach (Shell s; a)
-    {
-        printf("%.*s\n", cast(int)s.str.length, s.str.ptr);
-    }
-
-    assert(a[0].str == "betty");
-    assert(a[1].str == "fred");
-    assert(a[2].str == "hello");
+    assert(a > b);
+    assert(b < c);
 }
 
 /**************************************/
