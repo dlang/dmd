@@ -5,7 +5,6 @@ $(TOC Table of Contents,
         For more information see $(AHTTP dlang.org, dlang.org).)
 
         $(NOT_EBOOK $(P This is also available as a
-        $(LINK2 $(ROOT_DIR)dlangspec.pdf, PDF document) or as a
         $(LINK2 $(ROOT_DIR)dlangspec.mobi, Mobi ebook).
         $(COMMENT uncomment this once the Kindle ebook has been updated
             or as a
