@@ -352,10 +352,6 @@ struct Objstate
     debug
     int fixup_count;
 
-    Ledatarec **ledatas;
-    size_t ledatamax;           // index of allocated size
-    size_t ledatai;             // max index used in ledatas[]
-
     // Line numbers
     list_t linnum_list;
     char *linrec;               // line number record
@@ -398,6 +394,10 @@ version (MARS)
 
     int fltused;
     int nullext;
+
+    // The rest don't get zero initialized
+
+    Rarray!(Ledatarec*) ledatas;
 }
 
 __gshared
@@ -708,7 +708,10 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             reset_symbuf.reserve(50 * (Symbol*).sizeof);
         }
 
-        memset(&obj,0,obj.sizeof);
+        // Zero obj up to ledatas
+        memset(&obj,0,obj.ledatas.offsetof);
+
+        obj.ledatas.reset();    // recycle the memory used by ledatas
 
         obj.buf = objbuf;
         obj.buf.reserve(40000);
@@ -850,7 +853,7 @@ else
         outpubdata();                   // finish writing PUBDEFs
 
         // Put out LEDATA records and associated fixups
-        for (size_t i = 0; i < obj.ledatai; i++)
+        for (size_t i = 0; i < obj.ledatas.length; i++)
         {   Ledatarec *d = obj.ledatas[i];
 
             if (d.i)                   // if any data in this record
@@ -936,7 +939,7 @@ static if (TERMCODE)
         }
         //mem_free(obj.farseg);
 
-        //printf("Ledata max = %d\n", obj.ledatai);
+        //printf("Ledata max = %d\n", obj.ledatas.length);
         //printf("Max # of fixups = %d\n",obj.fixup_count);
 
         obj.buf.setsize(size);
@@ -3230,21 +3233,14 @@ private Ledatarec *ledata_new(int seg,targ_size_t offset)
     //printf("ledata_new(seg = %d, offset = x%lx)\n",seg,offset);
     assert(seg > 0 && seg < seg_length);
 
-    if (obj.ledatai == obj.ledatamax)
-    {
-        size_t o = obj.ledatamax;
-        obj.ledatamax = o * 2 + 100;
-        obj.ledatas = cast(Ledatarec **)mem_realloc(obj.ledatas, obj.ledatamax * (Ledatarec *).sizeof);
-        memset(obj.ledatas + o, 0, (obj.ledatamax - o) * (Ledatarec *).sizeof);
-    }
-    Ledatarec *lr = obj.ledatas[obj.ledatai];
+    Ledatarec** p = obj.ledatas.push();
+    Ledatarec* lr = *p;
     if (!lr)
-    {   lr = cast(Ledatarec *) mem_malloc(Ledatarec.sizeof);
-        obj.ledatas[obj.ledatai] = lr;
+    {
+        lr = cast(Ledatarec *) mem_malloc(Ledatarec.sizeof);
+        *p = lr;
     }
     memset(lr, 0, Ledatarec.sizeof);
-    obj.ledatas[obj.ledatai] = lr;
-    obj.ledatai++;
 
     lr.lseg = seg;
     lr.offset = offset;
@@ -3295,7 +3291,7 @@ void OmfObj_byte(int seg,targ_size_t offset,uint _byte)
      )
     {
         // Try to find an existing ledata
-        for (size_t i = obj.ledatai; i; )
+        for (size_t i = obj.ledatas.length; i; )
         {   Ledatarec *d = obj.ledatas[--i];
             if (seg == d.lseg &&       // segments match
                 offset >= d.offset &&
@@ -3411,7 +3407,7 @@ void OmfObj_ledata(int seg,targ_size_t offset,targ_size_t data,
     {
         // Try to find an existing ledata
 //dbg_printf("seg = %d, offset = x%lx, size = %d\n",seg,offset,size);
-        for (size_t i = obj.ledatai; i; )
+        for (size_t i = obj.ledatas.length; i; )
         {   Ledatarec *d = obj.ledatas[--i];
 
 //dbg_printf("d: seg = %d, offset = x%lx, i = x%x\n",d.lseg,d.offset,d.i);
