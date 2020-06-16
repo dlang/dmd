@@ -14,11 +14,11 @@ import core.stdc.stdio;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.vararg;
-import core.internal.traits : externDFunc;
+import core.internal.traits : externDFunc, hasUDA;
 
 
 @nogc nothrow:
-extern extern(C) string[] rt_args();
+extern extern(C) string[] rt_args() @system;
 
 extern extern(C) __gshared bool rt_envvars_enabled;
 extern extern(C) __gshared bool rt_cmdline_enabled;
@@ -27,6 +27,9 @@ extern extern(C) __gshared string[] rt_options;
 alias rt_configCallBack = string delegate(string) @nogc nothrow;
 alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
 alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
+
+/// UDA for field treated as memory value
+struct MemVal {}
 
 /**
 * initialize members of struct CFG from rt_config options
@@ -87,19 +90,27 @@ bool parseOptions(CFG)(ref CFG cfg, string opt)
             return optError("Missing argument for", name, errName);
         tail = tail[1 .. $];
 
+        NAMES_SWITCH:
         switch (name)
         {
-            foreach (field; __traits(allMembers, CFG))
+            static foreach (field; __traits(allMembers, CFG))
             {
                 static if (!is(typeof(__traits(getMember, cfg, field)) == function))
                 {
                     case field:
-                        if (!parse(name, tail, __traits(getMember, cfg, field), errName))
+                        bool r;
+
+                        static if (hasUDA!(__traits(getMember, cfg, field), MemVal))
+                            r = parse(name, tail, __traits(getMember, cfg, field), errName, true);
+                        else
+                            r = parse(name, tail, __traits(getMember, cfg, field), errName);
+
+                        if (!r)
                             return false;
-                        break;
+
+                        break NAMES_SWITCH;
                 }
             }
-            break;
 
             default:
                 return optError("Unknown", name, errName);
@@ -156,16 +167,78 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
+bool parse(T : size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName, bool mayHaveSuffix = false)
 in { assert(str.length); }
 do
 {
     size_t i, v;
-    for (; i < str.length && isdigit(str[i]); ++i)
-        v = 10 * v + str[i] - '0';
+
+    auto tail = find!(c => c == ' ')(str);
+    size_t len = str.length - tail.length;
+
+    import core.checkedint : mulu;
+
+    bool overflowed;
+
+    for (; i < len; i++)
+    {
+        char c = str[i];
+
+        if (isdigit(c))
+            v = 10 * v + c - '0';
+        else // non-digit
+        {
+            if (mayHaveSuffix && i == len-1) // suffix
+            {
+                switch (c)
+                {
+
+                    case 'G':
+                        v = mulu(v, 1024 * 1024 * 1024, overflowed);
+                        break;
+
+                    case 'M':
+                        v = mulu(v, 1024 * 1024, overflowed);
+                        break;
+
+                    case 'K':
+                        v = mulu(v, 1024, overflowed);
+                        break;
+
+                    case 'B':
+                        break;
+
+                    default:
+                        return parseError("value with unit type M, K or B", optname, str, "with suffix");
+                }
+
+                if (overflowed)
+                    return overflowedError(optname, str);
+
+                i++;
+                break;
+            }
+            else // unexpected non-digit character
+            {
+                i = 0;
+                break;
+            }
+        }
+    }
 
     if (!i)
         return parseError("a number", optname, str, errName);
+
+    if (mayHaveSuffix && isdigit(str[len-1]))
+    {
+        // No suffix found, default to megabytes
+
+        v = mulu(v, 1024 * 1024, overflowed);
+
+        if (overflowed)
+            return overflowedError(optname, str);
+    }
+
     if (v > res.max)
         return parseError("a number " ~ T.max.stringof ~ " or below", optname, str[0 .. i], errName);
     str = str[i .. $];
@@ -252,6 +325,16 @@ bool parseError(const scope char[] exp, const scope char[] opt, const scope char
     return false;
 }
 
+bool overflowedError(const scope char[] opt, const scope char[] got)
+{
+    version (CoreUnittest) if (inUnittest) return false;
+
+    fprintf(stderr, "Argument for %.*s option '%.*s' is too big.\n",
+            cast(int)opt.length, opt.ptr,
+            cast(int)got.length, got.ptr);
+    return false;
+}
+
 size_t min(size_t a, size_t b) { return a <= b ? a : b; }
 
 version (CoreUnittest) __gshared bool inUnittest;
@@ -267,8 +350,8 @@ unittest
         ubyte profile;           // enable profiling with summary when terminating program
         string gc = "conservative"; // select gc implementation conservative|manual
 
-        size_t initReserve;      // initial reserve (MB)
-        size_t minPoolSize = 1;  // initial and minimum pool size (MB)
+        @MemVal size_t initReserve;      // initial reserve (bytes)
+        @MemVal size_t minPoolSize = 1 << 20;  // initial and minimum pool size (bytes)
         float heapSizeFactor = 2.0; // heap size to used memory ratio
 
         @nogc nothrow:
@@ -297,7 +380,21 @@ unittest
 
     assert(conf.parseOptions("disable:1 minPoolSize:16"));
     assert(conf.disable);
-    assert(conf.minPoolSize == 16);
+    assert(conf.minPoolSize == 1024 * 1024 * 16);
+
+    assert(conf.parseOptions("disable:1 minPoolSize:4096B"));
+    assert(conf.disable);
+    assert(conf.minPoolSize == 4096);
+
+    assert(conf.parseOptions("disable:1 minPoolSize:2K help"));
+    assert(conf.disable);
+    assert(conf.minPoolSize == 2048);
+
+    assert(conf.parseOptions("minPoolSize:3G help"));
+    assert(conf.disable);
+    assert(conf.minPoolSize == 1024UL * 1024 * 1024 * 3);
+
+    assert(!conf.parseOptions("minPoolSize:922337203685477G"), "size_t overflow");
 
     assert(conf.parseOptions("heapSizeFactor:3.1"));
     assert(conf.heapSizeFactor == 3.1f);

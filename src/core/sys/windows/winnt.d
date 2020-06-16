@@ -2247,8 +2247,8 @@ enum LEGACY_SAVE_AREA_LENGTH = XMM_SAVE_AREA32.sizeof;
                 M128A Xmm13;
                 M128A Xmm14;
                 M128A Xmm15;
-            };
-        };
+            }
+        }
         M128A[26] VectorRegister;
         DWORD64 VectorControl;
         DWORD64 DebugControl;

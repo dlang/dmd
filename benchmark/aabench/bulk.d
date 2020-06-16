@@ -5,11 +5,11 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Martin Nowak
  */
-import std.random, std.typetuple, std.conv;
+import std.conv, std.meta, std.random;
 
 version (VERBOSE) import std.datetime, std.stdio;
 
-alias ValueTuple = TypeTuple!(void[0], uint, void*, Object, ubyte[16], ubyte[64]);
+alias ValueTuple = AliasSeq!(void[0], uint, void*, Object, ubyte[16], ubyte[64]);
 
 size_t Size = 2 ^^ 16;
 size_t trot;

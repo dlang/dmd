@@ -25,7 +25,7 @@ pure:
  *      If it is null, return null.
  *      Else, undefined crash
  */
-Object _d_toObject(void* p)
+Object _d_toObject(return void* p)
 {
     if (!p)
         return null;

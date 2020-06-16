@@ -102,10 +102,9 @@ jobs:
     #    Setting up the host D compiler    #
     ########################################
     - name: Prepare compiler
-      uses: mihails-strasuns/setup-dlang@v0.5.0
+      uses: dlang-community/setup-dlang@v1
       with:
           compiler: dmd-2.091.0
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
     #########################################
     # Checking out up DMD, druntime, Phobos #

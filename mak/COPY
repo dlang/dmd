@@ -111,8 +111,10 @@ COPY=\
 	$(IMPDIR)\core\sys\darwin\mach\getsect.d \
 	$(IMPDIR)\core\sys\darwin\mach\kern_return.d \
 	$(IMPDIR)\core\sys\darwin\mach\loader.d \
+	$(IMPDIR)\core\sys\darwin\mach\nlist.d \
 	$(IMPDIR)\core\sys\darwin\mach\port.d \
 	$(IMPDIR)\core\sys\darwin\mach\semaphore.d \
+	$(IMPDIR)\core\sys\darwin\mach\stab.d \
 	$(IMPDIR)\core\sys\darwin\mach\thread_act.d \
 	\
 	$(IMPDIR)\core\sys\darwin\netinet\in_.d \
@@ -264,6 +266,8 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\posix\netinet\in_.d \
 	$(IMPDIR)\core\sys\posix\netinet\tcp.d \
+	\
+	$(IMPDIR)\core\sys\posix\stdc\time.d \
 	\
 	$(IMPDIR)\core\sys\posix\sys\filio.d \
 	$(IMPDIR)\core\sys\posix\sys\ioccom.d \
@@ -438,6 +442,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\sspi.d \
 	$(IMPDIR)\core\sys\windows\stacktrace.d \
 	$(IMPDIR)\core\sys\windows\stat.d \
+	$(IMPDIR)\core\sys\windows\stdc\time.d \
 	$(IMPDIR)\core\sys\windows\subauth.d \
 	$(IMPDIR)\core\sys\windows\threadaux.d \
 	$(IMPDIR)\core\sys\windows\tlhelp32.d \
@@ -471,6 +476,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\wtsapi32.d \
 	$(IMPDIR)\core\sys\windows\wtypes.d \
 	\
+	$(IMPDIR)\core\thread\context.d \
 	$(IMPDIR)\core\thread\fiber.d \
 	$(IMPDIR)\core\thread\osthread.d \
 	$(IMPDIR)\core\thread\package.d \

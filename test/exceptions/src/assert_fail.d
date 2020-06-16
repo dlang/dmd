@@ -49,6 +49,31 @@ void testFloatingPoint()()
     test(1.5, 2.5, "1.5 != 2.5");
     test(float.max, -float.max, "3.40282e+38 != -3.40282e+38");
     test(double.max, -double.max, "1.79769e+308 != -1.79769e+308");
+    test(real(1), real(-1), "1 != -1");
+
+    test(ifloat.max, -ifloat.max, "3.40282e+38i != -3.40282e+38i");
+    test(idouble.max, -idouble.max, "1.79769e+308i != -1.79769e+308i");
+    test(ireal(1i), ireal(-1i), "1i != -1i");
+
+    test(cfloat.max, -cfloat.max, "3.40282e+38 + 3.40282e+38i != -3.40282e+38 + -3.40282e+38i");
+    test(cdouble.max, -cdouble.max, "1.79769e+308 + 1.79769e+308i != -1.79769e+308 + -1.79769e+308i");
+    test(creal(1 + 2i), creal(-1 + 2i), "1 + 2i != -1 + 2i");
+}
+
+void testPointers()
+{
+    static struct S
+    {
+        string toString() const { return "S(...)"; }
+    }
+
+    static if ((void*).sizeof == 4)
+        enum ptr = "0x12345670";
+    else
+        enum ptr = "0x123456789ABCDEF0";
+
+    int* p = cast(int*) mixin(ptr);
+    test(cast(S*) p, p, ptr ~ " != " ~ ptr);
 }
 
 void testStrings()
@@ -168,6 +193,7 @@ void testAttributes() @safe pure @nogc nothrow
 {
     int a;
     string s = _d_assert_fail!"=="(a, 0);
+    string s2 = _d_assert_fail!"!"(a);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
@@ -208,11 +234,18 @@ void testEnum()
     test(_d_assert_fail!"=="(ctfe.data, data), "[1] != []");
 }
 
+void testUnary()
+{
+    test(_d_assert_fail!""(9), "9 != true");
+    test(_d_assert_fail!"!"([1, 2, 3]), "[1, 2, 3] == true");
+}
+
 void main()
 {
     testIntegers();
     testIntegerComparisons();
     testFloatingPoint();
+    testPointers();
     testStrings();
     testToString();
     testArray();
@@ -222,5 +255,6 @@ void main()
     testVoidArray();
     testTemporary();
     testEnum();
+    testUnary();
     fprintf(stderr, "success.\n");
 }

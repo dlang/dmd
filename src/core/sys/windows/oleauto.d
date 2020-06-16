@@ -216,10 +216,10 @@ struct NUMPARSE {
 
 deprecated {  // not actually deprecated, but they aren't converted yet.
               // (will need to reinstate CreateTypeLib as well)
-    interface ICreateTypeInfo {};
-    interface ICreateTypeInfo2 {};
-    interface ICreateTypeLib {};
-    interface ICreateTypeLib2 {};
+    interface ICreateTypeInfo {}
+    interface ICreateTypeInfo2 {}
+    interface ICreateTypeLib {}
+    interface ICreateTypeLib2 {}
 
     alias ICreateTypeInfo LPCREATETYPEINFO;
     alias ICreateTypeInfo2 LPCREATETYPEINFO2;

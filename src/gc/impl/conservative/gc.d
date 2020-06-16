@@ -173,7 +173,7 @@ class ConservativeGC : GC
         gcx.initialize();
 
         if (config.initReserve)
-            gcx.reserve(config.initReserve << 20);
+            gcx.reserve(config.initReserve);
         if (config.disable)
             gcx.disabled++;
     }
@@ -1124,7 +1124,6 @@ class ConservativeGC : GC
 
 enum
 {   PAGESIZE =    4096,
-    POOLSIZE =   (4096*256),
 }
 
 
@@ -1805,7 +1804,7 @@ struct Gcx
         //debug(PRINTF) printf("************Gcx::newPool(npages = %d)****************\n", npages);
 
         // Minimum of POOLSIZE
-        size_t minPages = (config.minPoolSize << 20) / PAGESIZE;
+        size_t minPages = config.minPoolSize / PAGESIZE;
         if (npages < minPages)
             npages = minPages;
         else if (npages > minPages)
@@ -1822,7 +1821,7 @@ struct Gcx
             n = config.minPoolSize + config.incPoolSize * npools;
             if (n > config.maxPoolSize)
                 n = config.maxPoolSize;                 // cap pool size
-            n *= (1 << 20) / PAGESIZE;                     // convert MB to pages
+            n /= PAGESIZE; // convert bytes to pages
             if (npages < n)
                 npages = n;
         }
@@ -3057,6 +3056,8 @@ struct Pool
 
     void initialize(size_t npages, bool isLargeObject) nothrow
     {
+        assert(npages >= 256);
+
         this.isLargeObject = isLargeObject;
         size_t poolsize;
 
@@ -3064,7 +3065,6 @@ struct Pool
 
         //debug(PRINTF) printf("Pool::Pool(%u)\n", npages);
         poolsize = npages * PAGESIZE;
-        assert(poolsize >= POOLSIZE);
         baseAddr = cast(byte *)os_mem_map(poolsize);
 
         // Some of the code depends on page alignment of memory pools
@@ -3449,7 +3449,6 @@ struct Pool
         }
     }
 
-    pragma(inline,true)
     void setPointerBitmapSmall(void* p, size_t s, size_t allocSize, uint attr, const TypeInfo ti) nothrow
     {
         if (!(attr & BlkAttr.NO_SCAN))

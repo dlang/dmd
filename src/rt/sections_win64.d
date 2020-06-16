@@ -41,6 +41,7 @@ struct SectionGroup
         return _moduleGroup;
     }
 
+    version (DigitalMars)
     version (Win64)
     @property immutable(FuncTable)[] ehTables() const nothrow @nogc
     {

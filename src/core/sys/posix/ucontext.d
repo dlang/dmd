@@ -647,7 +647,7 @@ version (CRuntime_Glibc)
             mcontext_t  uc_mcontext;
         }
     }
-    else version (SPARC64)
+    else version (SPARC_Any)
     {
         enum MC_NGREG = 19;
         alias mc_greg_t = c_ulong;
@@ -1277,7 +1277,7 @@ else version (OpenBSD)
             int     sc_trapno;
             int     sc_err;
             void*   sc_fpstate; // union savefpu*
-        };
+        }
     }
     else version (PPC)
     {
@@ -1364,7 +1364,7 @@ else version (DragonFlyBSD)
         uint            mc_reserved;
         uint[8]         mc_unused;
         int[256]        mc_fpregs;
-      };  // __attribute__((aligned(64)));
+      }  // __attribute__((aligned(64)));
     }
     else
     {
@@ -1478,7 +1478,7 @@ else version (Solaris)
             {
                 uint[32]   fpu_regs;
                 double[16] fpu_dregs;
-            };
+            }
             fq    *fpu_q;
             uint  fpu_fsr;
             ubyte fpu_qcnt;

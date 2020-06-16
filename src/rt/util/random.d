@@ -6,7 +6,7 @@
  */
 module rt.util.random;
 
-struct Rand48
+struct Rand
 {
     private ulong rng_state;
 
@@ -22,15 +22,14 @@ pure:
 
     @property uint front()
     {
-        return cast(uint)(rng_state >> 16);
+        return cast(uint)(rng_state >> 32);
     }
 
     void popFront()
     {
-        immutable ulong a = 25214903917;
-        immutable ulong c = 11;
-        immutable ulong m_mask = (1uL << 48uL) - 1;
-        rng_state = (a*rng_state+c) & m_mask;
+        immutable ulong a = 2862933555777941757;
+        immutable ulong c = 1;
+        rng_state = a * rng_state + c;
     }
 
     enum empty = false;

@@ -4,7 +4,15 @@ on assertion failures
 */
 module core.internal.dassert;
 
-/// Allows customized assert error messages
+/// Allows customized assert error messages for unary expressions
+string _d_assert_fail(string op, A)(auto ref const scope A a)
+{
+    string val = miniFormatFakeAttributes(a);
+    enum token = op == "!" ? "==" : "!=";
+    return combine(val, token, "true");
+}
+
+/// Allows customized assert error messages for binary expressions
 string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
 {
     /*
@@ -125,16 +133,29 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (__traits(isFloating, V))
     {
+        import core.stdc.config : LD = c_long_double;
+
         char[60] val;
         int len;
-        static if (is(V == cfloat) || is(V == cdouble))
+        static if (is(V == float) || is(V == double))
+            len = sprintf(&val[0], "%g", v);
+        else static if (is(V == real))
+            len = sprintf(&val[0], "%Lg", cast(LD) v);
+        else static if (is(V == cfloat) || is(V == cdouble))
             len = sprintf(&val[0], "%g + %gi", v.re, v.im);
         else static if (is(V == creal))
-            len = sprintf(&val[0], "%Lg + %Lgi", v.re, v.im);
-        else static if (is(V == real) || is(V == ireal))
-            len = sprintf(&val[0], "%Lg", v);
-        else
-            len = sprintf(&val[0], "%g", v);
+            len = sprintf(&val[0], "%Lg + %Lgi", cast(LD) v.re, cast(LD) v.im);
+        else static if (is(V == ifloat) || is(V == idouble))
+            len = sprintf(&val[0], "%gi", v);
+        else // ireal
+        {
+            static assert(is(V == ireal));
+            static if (is(LD == real))
+                alias R = ireal;
+            else
+                alias R = idouble;
+            len = sprintf(&val[0], "%Lgi", cast(R) v);
+        }
         return val.idup[0 .. len];
     }
     // special-handling for void-arrays
@@ -142,11 +163,19 @@ private string miniFormat(V)(const scope ref V v)
     {
         return "`null`";
     }
+    else static if (is(V == U*, U))
+    {
+        // Format as ulong because not all sprintf implementations
+        // prepend a 0x for pointers
+        char[20] val;
+        const len = sprintf(&val[0], "0x%llX", cast(ulong) v);
+        return val.idup[0 .. len];
+    }
     // toString() isn't always const, e.g. classes inheriting from Object
     else static if (__traits(compiles, { string s = V.init.toString(); }))
     {
         // Object references / struct pointers may be null
-        static if (is(V == class) || is(V == interface) || is(V == U*, U))
+        static if (is(V == class) || is(V == interface))
         {
             if (v is null)
                 return "`null`";

@@ -116,8 +116,10 @@ SRCS=\
 	src\core\sys\darwin\mach\getsect.d \
 	src\core\sys\darwin\mach\kern_return.d \
 	src\core\sys\darwin\mach\loader.d \
+	src\core\sys\darwin\mach\nlist.d \
 	src\core\sys\darwin\mach\port.d \
 	src\core\sys\darwin\mach\semaphore.d \
+	src\core\sys\darwin\mach\stab.d \
 	src\core\sys\darwin\mach\thread_act.d \
 	src\core\sys\darwin\netinet\in_.d \
 	\
@@ -264,6 +266,8 @@ SRCS=\
 	\
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\netinet\tcp.d \
+	\
+	src\core\sys\posix\stdc\time.d \
 	\
 	src\core\sys\posix\sys\filio.d \
 	src\core\sys\posix\sys\ioccom.d \
@@ -437,6 +441,7 @@ SRCS=\
 	src\core\sys\windows\sspi.d \
 	src\core\sys\windows\stacktrace.d \
 	src\core\sys\windows\stat.d \
+	src\core\sys\windows\stdc\time.d \
 	src\core\sys\windows\subauth.d \
 	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\tlhelp32.d \
@@ -472,6 +477,7 @@ SRCS=\
 	\
 	src\core\thread\fiber.d \
 	src\core\thread\osthread.d \
+	src\core\thread\context.d \
 	src\core\thread\package.d \
 	\
 	src\gc\bits.d \

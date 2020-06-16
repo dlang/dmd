@@ -61,7 +61,7 @@ import core.stdc.ctype : toupper;
 import core.stdc.stdlib : getenv;
 import core.stdc.string : strlen;
 
-extern extern(C) string[] rt_args() @nogc nothrow;
+extern extern(C) string[] rt_args() @nogc nothrow @system;
 
 alias rt_configCallBack = string delegate(string) @nogc nothrow;
 

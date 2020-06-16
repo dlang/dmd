@@ -44,6 +44,7 @@ struct SectionGroup
         return _moduleGroup;
     }
 
+    version (DigitalMars)
     @property immutable(FuncTable)[] ehTables() const nothrow @nogc
     {
         auto pbeg = cast(immutable(FuncTable)*)&__start_deh;
