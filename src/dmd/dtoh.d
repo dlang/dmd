@@ -1813,7 +1813,6 @@ public:
         }
         ident = p.ident;
         p.type.accept(this);
-        assert(!(p.storageClass & ~(AST.STC.ref_)));
         if (p.storageClass & AST.STC.ref_)
             buf.writeByte('&');
         buf.writeByte(' ');
