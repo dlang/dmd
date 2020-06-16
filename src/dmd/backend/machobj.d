@@ -24,6 +24,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -225,7 +226,8 @@ __gshared
 {
 seg_data **SegData;
 int seg_length;
-int seg_max;
+
+Rarray!(seg_data*) SegDataR;
 
 /**
  * Section index for the __thread_vars/__tls_data section.
@@ -526,7 +528,9 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     }
     section_cnt = 1;
 
-    seg_length = 1;
+    SegDataR.reset();   // recycle memory
+    SegDataR.push();    // element 0 is reserved
+
     int align_ = I64 ? 4 : 2;            // align to 16 bytes for floating point
     Obj_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
     Obj_getsegment("__data",  "__DATA", align_, S_REGULAR);     // DATA
@@ -1852,7 +1856,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
 {
     assert(strlen(sectname) <= 16);
     assert(strlen(segname)  <= 16);
-    for (int seg = 1; seg < seg_length; seg++)
+    for (int seg = 1; seg < cast(int)SegDataR.length; seg++)
     {   seg_data *pseg = SegData[seg];
         if (I64)
         {
@@ -1868,16 +1872,15 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         }
     }
 
-    int seg = seg_length++;
-    if (seg_length > seg_max)
-    {                           // need more room in segment table
-        seg_max += 10;
-        SegData = cast(seg_data **)mem_realloc(SegData,seg_max * (seg_data *).sizeof);
-        memset(&SegData[seg], 0, (seg_max - seg) * (seg_data *).sizeof);
-    }
-    assert(seg_length <= seg_max);
-    if (SegData[seg])
-    {   seg_data *pseg = SegData[seg];
+    const int seg = cast(int)SegDataR.length;
+    seg_data** ppseg = SegDataR.push();
+    SegData = SegDataR[].ptr;
+    seg_length = cast(int)SegDataR[].length;
+
+    seg_data* pseg = *ppseg;
+
+    if (pseg)
+    {
         Outbuffer *b1 = pseg.SDbuf;
         Outbuffer *b2 = pseg.SDrel;
         memset(pseg, 0, seg_data.sizeof);
@@ -1890,8 +1893,12 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
     }
     else
     {
-        seg_data *pseg = cast(seg_data *)mem_calloc(seg_data.sizeof);
+        pseg = cast(seg_data *)mem_calloc(seg_data.sizeof);
         SegData[seg] = pseg;
+    }
+
+    if (!pseg.SDbuf)
+    {
         if (flags != S_ZEROFILL)
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
@@ -1900,8 +1907,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         }
     }
 
-    //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg].SDbuf);
-    seg_data *pseg = SegData[seg];
+    //printf("\tNew segment - %d size %d\n", seg,SegData[seg].SDbuf);
 
     pseg.SDseg = seg;
     pseg.SDoffset = 0;
@@ -2245,7 +2251,6 @@ void Obj_func_start(Symbol *sfunc)
     assert(sfunc.Sseg);
     if (sfunc.Sseg == UNKNOWN)
         sfunc.Sseg = CODE;
-    //printf("sfunc.Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc.Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc.Sseg;
     assert(cseg == CODE || cseg > UDATA);
     Obj_pubdef(cseg, sfunc, Offset(cseg));
