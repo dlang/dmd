@@ -164,7 +164,7 @@ public:
     /*************************************
      */
 
-    void visit(OnScopeStatement *s)
+    void visit(ScopeGuardStatement *s)
     {
     }
 
