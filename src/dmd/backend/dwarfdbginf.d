@@ -1389,16 +1389,16 @@ static if (ELFOBJ)
             debug_line.buf.writeByte(DW_LNS_set_file);
             debug_line.buf.writeuLEB128(file);
 
-            for (int j = 0; j < ld.linoff_count; j++)
-            {   int lininc = ld.linoff[j][0] - line;
-                int addinc = ld.linoff[j][1] - address;
+            for (int j = 0; j < ld.linoff.length; j++)
+            {   int lininc = ld.linoff[j].lineNumber - line;
+                int addinc = ld.linoff[j].offset - address;
 
-                //printf("\tld[%d] line = %d offset = x%x lininc = %d addinc = %d\n", j, ld.linoff[j][0], ld.linoff[j][1], lininc, addinc);
+                //printf("\tld[%d] line = %d offset = x%x lininc = %d addinc = %d\n", j, ld.linoff[j].lineNumber, ld.linoff[j].offset, lininc, addinc);
 
                 //assert(addinc >= 0);
                 if (addinc < 0)
                     continue;
-                if (j && lininc == 0 && !(addinc && j + 1 == ld.linoff_count))
+                if (j && lininc == 0 && !(addinc && j + 1 == ld.linoff.length))
                     continue;
                 line += lininc;
                 if (line < linestart)
@@ -1440,7 +1440,7 @@ static if (ELFOBJ)
             debug_line.buf.writeByte(1);
 
             // reset linnum_data
-            ld.linoff_count = 0;
+            ld.linoff.reset();
         }
     }
 

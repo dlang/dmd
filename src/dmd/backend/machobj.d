@@ -1570,16 +1570,7 @@ version (SCPP)
 
     linnum_data *ld = &pseg.SDlinnum_data[i];
 //    printf("i = %d, ld = x%x\n", i, ld);
-    if (ld.linoff_count == ld.linoff_max)
-    {
-        if (!ld.linoff_max)
-            ld.linoff_max = 8;
-        ld.linoff_max *= 2;
-        ld.linoff = cast(uint[2]*)mem_realloc(ld.linoff, ld.linoff_max * uint.sizeof * 2);
-    }
-    ld.linoff[ld.linoff_count][0] = srcpos.Slinnum;
-    ld.linoff[ld.linoff_count][1] = cast(uint)offset;
-    ld.linoff_count++;
+    ld.linoff.push(LinOff(srcpos.Slinnum, cast(uint)offset));
 }
 
 

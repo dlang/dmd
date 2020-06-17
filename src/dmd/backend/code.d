@@ -13,6 +13,7 @@ module dmd.backend.code;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_code.html
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
@@ -280,9 +281,13 @@ struct linnum_data
     const(char) *filename;
     uint filenumber;        // corresponding file number for DW_LNS_set_file
 
-    uint linoff_count;
-    uint linoff_max;
-    uint[2]* linoff;        // [0] = line number, [1] = offset
+    Barray!(LinOff) linoff;    // line numbers and offsets
+}
+
+struct LinOff
+{
+    uint lineNumber;
+    uint offset;
 }
 
 extern __gshared seg_data **SegData;
