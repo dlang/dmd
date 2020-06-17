@@ -1238,10 +1238,10 @@ int foo(in int x, out int y, ref int z, int q);
     implemented so it's current implementation is equivalent to $(D const).  It is recommended
     to avoid using $(D in) until it is properly defined and implemented.  Use $(D scope const)
     or $(D const) explicitly instead.)
-    $(TROW $(D out), parameter is initialized upon function entry with the default value
+    $(TROW $(D ref), parameter is passed by reference)
+    $(TROW $(D out), parameter is passed by reference and initialized upon function entry with the default value
     for its type)
 
-    $(TROW $(D ref),   parameter is passed by reference)
     $(TROW $(D scope), references in the parameter
     cannot be escaped (e.g. assigned to a global variable).
     Ignored for parameters with no references)
@@ -1257,17 +1257,40 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D inout), argument is implicitly converted to an inout type)
     )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(H3 $(LNAME2 ref-params, Ref and Out Parameters))
+
+    $(P By default, parameters take rvalue arguments.
+    A ref parameter takes an lvalue argument, so changes to its value will operate
+    on the caller's argument.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+void inc(ref int x)
+{
+    x += 1;
+}
+
+int z = 3;
+inc(z);
+assert(z == 4);
+------------
+)
+    $(P A ref parameter can also be returned by reference - see:
+    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref) parameters.))
+
+    $(P An out parameter `x` is similar to a ref parameter, except it is initialized
+    with `x.init` upon function invocation.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 void foo(out int x)
 {
-    // x is set to int.init,
-    // which is 0, at start of foo()
+    assert(x == 0);
 }
 
 int a = 3;
 foo(a);
-// a is now 0
+assert(a == 0);
 
 void abc(out int x)
 {
@@ -1276,20 +1299,11 @@ void abc(out int x)
 
 int y = 3;
 abc(y);
-// y is now 2
-
-void def(ref int x)
-{
-    x += 1;
-}
-
-int z = 3;
-def(z);
-// z is now 4
-------------
+assert(y == 2);
+---
 )
 
-        $(P For dynamic array and object parameters, which are passed
+        $(P For dynamic array and object parameters, which are always passed
         by reference, in/out/ref
         apply only to the reference and not the contents.
         )
