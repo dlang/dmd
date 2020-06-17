@@ -13,6 +13,7 @@ module dmd.backend.code;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_code.html
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
@@ -285,7 +286,7 @@ struct linnum_data
     uint[2]* linoff;        // [0] = line number, [1] = offset
 }
 
-extern __gshared seg_data **SegData;
+extern __gshared Rarray!(seg_data*) SegData;
 
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 ref targ_size_t Doffset() { return Offset(DATA); }

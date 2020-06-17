@@ -224,10 +224,7 @@ int seg_data_isCode(const ref seg_data sd)
 
 __gshared
 {
-seg_data **SegData;
-int seg_length;
-
-Rarray!(seg_data*) SegDataR;
+Rarray!(seg_data*) SegData;
 
 /**
  * Section index for the __thread_vars/__tls_data section.
@@ -528,8 +525,8 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     }
     section_cnt = 1;
 
-    SegDataR.reset();   // recycle memory
-    SegDataR.push();    // element 0 is reserved
+    SegData.reset();   // recycle memory
+    SegData.push();    // element 0 is reserved
 
     int align_ = I64 ? 4 : 2;            // align to 16 bytes for floating point
     Obj_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
@@ -846,11 +843,11 @@ version (SCPP)
         segment_cmd.fileoff = foffset;
     uint vmaddr = 0;
 
-    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_length %d\n",foffset,section_cnt,seg_length);
+    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, SegData.length %d\n",foffset,section_cnt,SegData.length);
     // Zero filled segments go at the end, so go through segments twice
     for (int i = 0; i < 2; i++)
     {
-        for (int seg = 1; seg < seg_length; seg++)
+        for (int seg = 1; seg < SegData.length; seg++)
         {
             seg_data *pseg = SegData[seg];
             if (I64)
@@ -955,7 +952,7 @@ version (SCPP)
 
     // Put out relocation data
     mach_numbersyms();
-    for (int seg = 1; seg < seg_length; seg++)
+    for (int seg = 1; seg < SegData.length; seg++)
     {
         seg_data *pseg = SegData[seg];
         section *psechdr = null;
@@ -1856,7 +1853,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
 {
     assert(strlen(sectname) <= 16);
     assert(strlen(segname)  <= 16);
-    for (int seg = 1; seg < cast(int)SegDataR.length; seg++)
+    for (int seg = 1; seg < cast(int)SegData.length; seg++)
     {   seg_data *pseg = SegData[seg];
         if (I64)
         {
@@ -1872,10 +1869,8 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         }
     }
 
-    const int seg = cast(int)SegDataR.length;
-    seg_data** ppseg = SegDataR.push();
-    SegData = SegDataR[].ptr;
-    seg_length = cast(int)SegDataR[].length;
+    const int seg = cast(int)SegData.length;
+    seg_data** ppseg = SegData.push();
 
     seg_data* pseg = *ppseg;
 
@@ -1935,7 +1930,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
     pseg.SDaranges_offset = 0;
     pseg.SDlinnum_count = 0;
 
-    //printf("seg_length = %d\n", seg_length);
+    //printf("SegData.length = %d\n", SegData.length);
     return seg;
 }
 
@@ -2251,6 +2246,7 @@ void Obj_func_start(Symbol *sfunc)
     assert(sfunc.Sseg);
     if (sfunc.Sseg == UNKNOWN)
         sfunc.Sseg = CODE;
+    //printf("sfunc.Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc.Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc.Sseg;
     assert(cseg == CODE || cseg > UDATA);
     Obj_pubdef(cseg, sfunc, Offset(cseg));
@@ -2476,12 +2472,12 @@ uint Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)
 {
 static if (0)
 {
-    if (!(seg >= 0 && seg < seg_length))
-    {   printf("Obj_bytes: seg = %d, seg_length = %d\n", seg, seg_length);
+    if (!(seg >= 0 && seg < SegData.length))
+    {   printf("Obj_bytes: seg = %d, SegData.length = %d\n", seg, SegData.length);
         *cast(char*)0=0;
     }
 }
-    assert(seg >= 0 && seg < seg_length);
+    assert(seg >= 0 && seg < SegData.length);
     Outbuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
     {
