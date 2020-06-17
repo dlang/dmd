@@ -78,6 +78,7 @@ $(GRAMMAR
 $(GNAME LinkageAttribute):
     $(D extern) $(D $(LPAREN)) $(GLINK LinkageType) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK2 declaration, IdentifierList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK2 attribute, NamespaceList) $(D $(RPAREN))
 
 $(GNAME LinkageType):
     $(D C)
@@ -86,6 +87,11 @@ $(GNAME LinkageType):
     $(D Windows)
     $(D System)
     $(D Objective-C)
+
+$(GNAME NamespaceList):
+    $(GLINK2 expression, ConditionalExpression)
+    $(GLINK2 expression, ConditionalExpression)$(COMMA)
+    $(GLINK2 expression, ConditionalExpression)$(COMMA) $(I NamespaceList)
 )
 
         $(P D provides an easy way to call C functions and operating
