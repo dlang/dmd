@@ -1243,16 +1243,17 @@ int foo(in int x, out int y, ref int z, int q);
     for its type)
 
     $(TROW $(D scope), $(ARGS
-    The parameter does not escape the function call
+    The parameter must not escape the function call
     (e.g. by being assigned to a global variable).
     Ignored for any parameter that is not a reference type.
-    Escape analysis is only done for `@safe` functions, for other functions `scope` semantics must
-    be manually enforced.
-    As the parameter must not escape, the compiler can avoid heap-allocation of a unique argument
-    to a `scope` parameter. Due to this, passing e.g. a `new T` argument may not violate `@nogc`.
-    A typical example of this is passing a delegate literal to a `scope` parameter.
-    $(B Note): `scope` escape analysis is currently only done by `dmd`
-    when the `-dip1000` switch is passed.
+    `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
+    semantics must be manually enforced.)
+    $(P $(B Note): `scope` escape analysis is currently only done by `dmd`
+    when the `-dip1000` switch is passed.)
+    $(P As the parameter must not escape, the compiler can potentially avoid heap-allocation of a
+    unique argument to a `scope` parameter. Due to this, passing an array literal, delegate
+    literal or a $(GLINK2 expression, NewExpression) to a scope parameter may be used in a
+    `@nogc` context, depending on the compiler implementation.)
     ))
     $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
     but otherwise does not escape from the function.
