@@ -1439,8 +1439,9 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
                 e = ex;
             else
             {
-                (*exps)[j0] = condexp.e1;
-                e = condexp.e2;
+                // Convert to common type
+                (*exps)[j0] = condexp.e1.castTo(sc, condexp.type);
+                e = condexp.e2.castTo(sc, condexp.type);
             }
         }
         j0 = i;
