@@ -13,6 +13,7 @@ module dmd.backend.code;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_code.html
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
@@ -262,9 +263,7 @@ struct seg_data
 
     uint             SDaranges_offset;  // if !=0, offset in .debug_aranges
 
-    uint             SDlinnum_count;
-    uint             SDlinnum_max;
-    linnum_data     *SDlinnum_data;     // array of line number / offset data
+    Barray!(linnum_data) SDlinnum_data;     // array of line number / offset data
 
   nothrow:
     version (Windows)
