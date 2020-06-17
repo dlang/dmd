@@ -876,6 +876,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     continue;
                 // don't add it, if it has no name
                 auto v = new VarDeclaration(loc, fparam.type, fparam.ident, null);
+                fparam.storageClass |= STC.parameter;
                 v.storage_class = fparam.storageClass;
                 v.dsymbolSemantic(scx);
                 if (!ti.symtab)
@@ -6591,7 +6592,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         tiargs.reserve(dim);
                         foreach (i, arg; *tt.arguments)
                         {
-                            if (flags & 2 && (arg.ident || arg.userAttribDecl))
+                            if (flags & 2 && (arg.storageClass & STC.parameter))
                                 tiargs.insert(j + i, arg);
                             else
                                 tiargs.insert(j + i, arg.type);

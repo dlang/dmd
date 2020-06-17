@@ -1262,9 +1262,11 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter fparam = tf.parameterList[i];
+                fparam.storageClass |= STC.parameter;
                 mtype.inuse++;
                 fparam.type = fparam.type.typeSemantic(loc, argsc);
                 mtype.inuse--;
+
                 if (fparam.type.ty == Terror)
                 {
                     errors = true;
@@ -1473,7 +1475,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
-                    fparam.storageClass = 0;
+                    fparam.storageClass = STC.parameter;
 
                     /* Reset number of parameters, and back up one to do this fparam again,
                      * now that it is a tuple
