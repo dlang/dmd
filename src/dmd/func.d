@@ -371,6 +371,10 @@ extern (C++) class FuncDeclaration : Declaration
                 return false;
         }
 
+        // the code above can set _scope to null therefore check again.
+        if (!_scope)
+            return !errors;
+
         this.cppnamespace = _scope.namespace;
 
         // if inferring return type, sematic3 needs to be run
