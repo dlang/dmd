@@ -358,7 +358,7 @@ struct Objstate
     uint linreci;               // index of next avail in linrec[]
     uint linrecheader;          // size of line record header
     uint linrecnum;             // number of line record entries
-    list_t linreclist;          // list of line records
+    Barray!(char*) linreclist;  // array of line records
     int mlinnum;
     int recseg;
     int term;
@@ -1058,9 +1058,9 @@ static if (MULTISCOPE)
 }
             if (linos2)
             {
-                if (!obj.linreclist)        // if first line number record
+                if (obj.linreclist.length == 0)  // if first line number record
                     obj.linreci += 8;       // leave room for header
-                list_append(&obj.linreclist,obj.linrec);
+                obj.linreclist.push(obj.linrec);
             }
 
             // Select record type to use
@@ -1125,37 +1125,26 @@ static if (MULTISCOPE)
 
 private void linnum_flush()
 {
-    if (obj.linreclist)
+    if (obj.linreclist.length)
     {
-        list_t list;
-        size_t len;
-
-        obj.linrec = cast(char *) list_ptr(obj.linreclist);
+        obj.linrec = obj.linreclist[0];
         TOWORD(obj.linrec + 6,obj.linrecnum);
-        list = obj.linreclist;
-        while (1)
-        {
-            obj.linrec = cast(char *) list_ptr(list);
 
-            list = list_next(list);
-            if (list)
-            {
-                objrecord(obj.mlinnum,obj.linrec,LINRECMAX);
-                mem_free(obj.linrec);
-            }
-            else
-            {
-                objrecord(obj.mlinnum,obj.linrec,obj.linreci);
-                break;
-            }
+        foreach (i; 0 .. obj.linreclist.length - 1)
+        {
+            obj.linrec = obj.linreclist[i];
+            objrecord(obj.mlinnum, obj.linrec, LINRECMAX);
+            mem_free(obj.linrec);
         }
-        list_free(&obj.linreclist,FPNULL);
+        obj.linrec = obj.linreclist[obj.linreclist.length - 1];
+        objrecord(obj.mlinnum,obj.linrec,obj.linreci);
+        obj.linreclist.reset();
 
         // Put out File Names Table
         TOLONG(obj.linrec + 2,0);               // record no. of start of source (???)
         TOLONG(obj.linrec + 6,obj.linrecnum);   // number of primary source records
         TOLONG(obj.linrec + 10,1);              // number of source and listing files
-        len = obj_namestring(obj.linrec + 14,obj.modname);
+        const len = obj_namestring(obj.linrec + 14,obj.modname);
         assert(14 + len <= LINRECMAX);
         objrecord(obj.mlinnum,obj.linrec,cast(uint)(14 + len));
 
