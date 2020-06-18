@@ -353,12 +353,10 @@ struct Objstate
     int fixup_count;
 
     // Line numbers
-    list_t linnum_list;
     char *linrec;               // line number record
     uint linreci;               // index of next avail in linrec[]
     uint linrecheader;          // size of line record header
     uint linrecnum;             // number of line record entries
-    Barray!(char*) linreclist;  // array of line records
     int mlinnum;
     int recseg;
     int term;
@@ -395,9 +393,11 @@ version (MARS)
     int fltused;
     int nullext;
 
-    // The rest don't get zero initialized
+    // The rest don't get re-zeroed for each object file, they get reset
 
     Rarray!(Ledatarec*) ledatas;
+    Barray!(Linnum) linnum_list;
+    Barray!(char*) linreclist;  // array of line records
 }
 
 __gshared
@@ -986,41 +986,37 @@ else
         // It is done this way because presumably 99% of the lines
         // will be in the original source file, so we wish to minimize
         // memory consumption and maximize speed.
-        list_t ll;
-        Linnum *ln;
 
         if (linos2)
             return;             // BUG: not supported under OS/2
-        for (ll = obj.linnum_list; 1; ll = list_next(ll))
-        {
-            if (!ll)
-            {
-                ln = cast(Linnum *) mem_calloc(Linnum.sizeof);
-version (MARS)
-{
-                ln.filename = srcpos.Sfilename;
-}
-else
-{
-                ln.filptr = *srcpos.Sfilptr;
-}
-                ln.cseg = seg;
-                ln.seg = obj.pubnamidx;
-                list_prepend(&obj.linnum_list,ln);
-                break;
-            }
-            ln = cast(Linnum *)list_ptr(ll);
 
-version (MARS)
-            bool cond2 = ln.filename == srcpos.Sfilename;
-else version (SCPP)
-            bool cond2 = ln.filptr == *srcpos.Sfilptr;
+        Linnum* ln;
+        foreach (ref rln; obj.linnum_list)
+        {
+            version (MARS)
+                bool cond2 = rln.filename == srcpos.Sfilename;
+            else version (SCPP)
+                bool cond2 = rln.filptr == *srcpos.Sfilptr;
 
             if (cond2 &&
-                ln.cseg == seg &&
-                ln.i < LINNUMMAX - 6)
-                break;
+                rln.cseg == seg &&
+                rln.i < LINNUMMAX - 6)
+            {
+                ln = &rln;      // found existing entry with room
+                goto L1;
+            }
         }
+        // Create new entry
+        ln = obj.linnum_list.push();
+        version (MARS)
+            ln.filename = srcpos.Sfilename;
+        else
+            ln.filptr = *srcpos.Sfilptr;
+
+        ln.cseg = seg;
+        ln.seg = obj.pubnamidx;
+
+    L1:
         //printf("offset = x%x, line = %d\n", (int)offset, linnum);
         TOWORD(&ln.data[ln.i],linnum);
         TOOFFSET(&ln.data[ln.i + 2],offset);
@@ -1162,66 +1158,77 @@ static if (MULTISCOPE)
 
 private void linnum_term()
 {
-    list_t ll;
-
+int count = 0;
 version (SCPP)
     Sfile *lastfilptr = null;
 
 version (MARS)
     const(char)* lastfilename = null;
 
-    int csegsave = cseg;
+    const csegsave = cseg;
 
     linnum_flush();
     obj.term = 1;
-    while (obj.linnum_list)
-    {
-        Linnum *ln;
-        uint u;
-        Srcpos srcpos;
-        targ_size_t offset;
 
-        ll = obj.linnum_list;
-        ln = cast(Linnum *) list_ptr(ll);
-version (SCPP)
-{
-        Sfile *filptr = ln.filptr;
-        if (filptr != lastfilptr)
+    size_t li = obj.linnum_list.length;
+    while (li)
+    {
+        Linnum* ln = &obj.linnum_list[li - 1];
+        if (!ln.i)
         {
-            if (lastfilptr == null && strcmp(filptr.SFname,obj.modname))
+            --li;
+            continue;
+        }
+
+        size_t ll = li;
+
+        version (SCPP)
+        {
+            Sfile *filptr = ln.filptr;
+            if (filptr != lastfilptr)
             {
-                OmfObj_theadr(filptr.SFname);
+                if (lastfilptr == null && strcmp(filptr.SFname,obj.modname))
+                    OmfObj_theadr(filptr.SFname);
+                lastfilptr = filptr;
             }
-            lastfilptr = filptr;
         }
-}
-version (MARS)
-{
-        const(char)* filename = ln.filename;
-        if (filename != lastfilename)
+        version (MARS)
         {
-            if (filename)
-                objmod.theadr(filename);
-            lastfilename = filename;
+            const(char)* filename = ln.filename;
+            if (filename != lastfilename)
+            {
+                if (filename)
+                    objmod.theadr(filename);
+                lastfilename = filename;
+            }
         }
-}
+
+    SameFileLoop:
         while (1)
         {
+if (++count >= 10000)
+{
+fprintf(stderr, "infinite loop file %s %d %d %d\n",
+        lastfilename ? lastfilename : "null",
+        cast(int)obj.linnum_list.length,
+        cast(int)li, cast(int)ll);
+assert(0);
+}
             cseg = ln.cseg;
             assert(cseg > 0);
             obj.pubnamidx = ln.seg;
-version (MARS)
-{
-            srcpos.Sfilename = ln.filename;
-}
-else
-{
-            srcpos.Sfilptr = &ln.filptr;
-}
-            for (u = 0; u < ln.i; )
+
+            Srcpos srcpos;
+            version (MARS)
+                srcpos.Sfilename = ln.filename;
+            else
+                srcpos.Sfilptr = &ln.filptr;
+
+            for (uint u = 0; u < ln.i; )
             {
                 srcpos.Slinnum = *cast(ushort *)&ln.data[u];
                 u += 2;
+                targ_size_t offset;
                 if (I32)
                     offset = *cast(uint *)&ln.data[u];
                 else
@@ -1229,30 +1236,34 @@ else
                 OmfObj_linnum(srcpos,cseg,offset);
                 u += _tysize[TYint];
             }
+            ln.i = 0;
             linnum_flush();
-            ll = list_next(ll);
-            list_subtract(&obj.linnum_list,ln);
-            mem_free(ln);
-        L1:
-            if (!ll)
-                break;
-            ln = cast(Linnum *) list_ptr(ll);
-version (SCPP)
-{
-            if (filptr != ln.filptr)
-            {   ll = list_next(ll);
-                goto L1;
+            if (ll == li)       // if ll is at the end of the array
+                --li;           // shrink the end of the array
+
+            // Find next entry with a matching file name
+            version (SCPP)
+            {
+                while (--ll)
+                {
+                    ln = &obj.linnum_list[ll - 1];
+                    if (filptr == ln.filptr)
+                        continue SameFileLoop;
+                }
             }
-}
-else
-{
-            if (filename != ln.filename)
-            {   ll = list_next(ll);
-                goto L1;
+            else
+            {
+                while (--ll)
+                {
+                    ln = &obj.linnum_list[ll - 1];
+                    if (filename == ln.filename)
+                        continue SameFileLoop;
+                }
             }
-}
+            break;
         }
     }
+    obj.linnum_list.reset();
     cseg = csegsave;
     assert(cseg > 0);
 static if (MULTISCOPE)
