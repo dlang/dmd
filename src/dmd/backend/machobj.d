@@ -1533,27 +1533,12 @@ version (SCPP)
     // Find entry i in SDlinnum_data[] that corresponds to srcpos filename
     for (i = 0; 1; i++)
     {
-        if (i == pseg.SDlinnum_count)
+        if (i == pseg.SDlinnum_data.length)
         {   // Create new entry
-            if (pseg.SDlinnum_count == pseg.SDlinnum_max)
-            {   // Enlarge array
-                uint newmax = pseg.SDlinnum_max * 2 + 1;
-                //printf("realloc %d\n", newmax * linnum_data.sizeof);
-                pseg.SDlinnum_data = cast(linnum_data *)mem_realloc(
-                    pseg.SDlinnum_data, newmax * linnum_data.sizeof);
-                memset(pseg.SDlinnum_data + pseg.SDlinnum_max, 0,
-                    (newmax - pseg.SDlinnum_max) * linnum_data.sizeof);
-                pseg.SDlinnum_max = newmax;
-            }
-            pseg.SDlinnum_count++;
-version (MARS)
-{
-            pseg.SDlinnum_data[i].filename = srcpos.Sfilename;
-}
-version (SCPP)
-{
-            pseg.SDlinnum_data[i].filptr = sf;
-}
+            version (MARS)
+                pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
+            version (SCPP)
+                pseg.SDlinnum_data.push(linnum_data(sf));
             break;
         }
 version (MARS)
@@ -1933,7 +1918,7 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
 
     pseg.SDshtidx = section_cnt++;
     pseg.SDaranges_offset = 0;
-    pseg.SDlinnum_count = 0;
+    pseg.SDlinnum_data.reset();
 
     //printf("seg_length = %d\n", seg_length);
     return seg;

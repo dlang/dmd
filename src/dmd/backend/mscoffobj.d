@@ -1468,7 +1468,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
 
     pseg.SDshtidx = shtidx;
     pseg.SDaranges_offset = 0;
-    pseg.SDlinnum_count = 0;
+    pseg.SDlinnum_data.reset();
 
     //printf("seg_length = %d\n", seg_length);
     return seg;
