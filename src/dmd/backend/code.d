@@ -288,7 +288,7 @@ struct LinOff
     uint offset;
 }
 
-extern __gshared seg_data **SegData;
+extern __gshared Rarray!(seg_data*) SegData;
 
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 ref targ_size_t Doffset() { return Offset(DATA); }
