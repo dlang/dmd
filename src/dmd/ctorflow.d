@@ -190,29 +190,33 @@ bool mergeFieldInit(ref CSX a, const CSX b) pure nothrow
         return true;
     }
 
+    // The logic here is to prefer the branch that neither halts nor returns.
     bool ok;
     if (!bHalt && bRet)
     {
+        // Branch b returns, no merging required.
         ok = (b & CSX.this_ctor);
-        a = a;
     }
     else if (!aHalt && aRet)
     {
+        // Branch a returns, but b doesn't, b takes precedence.
         ok = (a & CSX.this_ctor);
         a = b;
     }
     else if (bHalt)
     {
+        // Branch b halts, no merging required.
         ok = (a & CSX.this_ctor);
-        a = a;
     }
     else if (aHalt)
     {
+        // Branch a halts, but b doesn't, b takes precedence.
         ok = (b & CSX.this_ctor);
         a = b;
     }
     else
     {
+        // Neither branch returns nor halts, merge flags.
         ok = !((a ^ b) & CSX.this_ctor);
         a |= b;
     }

@@ -3003,7 +3003,8 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
 
     // Treat array of 1 the same as its element type
     // (Don't put volatile parameters in registers)
-    if (tyb == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile))
+    if (tyb == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile)
+        && type_size(t.Tnext) > 1)
     {
         t = t.Tnext;
         tyb = tybasic(t.Tty);

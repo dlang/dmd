@@ -655,7 +655,7 @@ public:
                             result = doInlineAs!Expression(result, ids);
                         }
                         else
-                            result = new IntegerExp(vd._init.loc, 0, Type.tint32);
+                            result = IntegerExp.literal!0;
                         return;
                     }
                 }

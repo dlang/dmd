@@ -9,7 +9,7 @@ Quick guide
 
 ### Run all tests
 
-```sh
+```console
 ./run.d
 ```
 
@@ -20,20 +20,20 @@ Note:
 
 ### Run only a specific subset
 
-```sh
+```console
 ./run.d fail
 ./run.d compilable
 ```
 
 As linking is slow the `runnable` tests take a bit longer to run:
 
-```sh
+```console
 ./run.d runnable
 ```
 
 ### Run only an individual test
 
-```sh
+```console
 ./run.d fail_compilation/diag10089.d
 ```
 
@@ -41,7 +41,7 @@ Multiple arguments are supported too.
 You can use `./run.d` to quickly run a custom subset of tests.
 For example, all diagnostic tests in `fail_compilation`:
 
-```sh
+```console
 ./run.d fail_compilation/diag*.d
 ```
 
@@ -50,13 +50,13 @@ For example, all diagnostic tests in `fail_compilation`:
 Often, when you add a new error message, a few tests need to be updated as their
 `TEST_OUTPUT` has changed. This is tedious work and `AUTO_UPDATE` can be to automate it:
 
-```sh
+```console
 AUTO_UPDATE=1 ./run.d fail
 ```
 
 Updating the `TEST_OUTPUT` can also be done for a custom subset of tests:
 
-```sh
+```console
 ./run.d fail_compilation/diag*.d AUTO_UPDATE=1
 ```
 
@@ -74,19 +74,19 @@ be used:
 
 To run all unit tests:
 
-```sh
+```console
 ./run.d -u
 ```
 
 To only run the unit tests in one or more specific files:
 
-```sh
+```console
 ./run.d -u unit/deinitialization.d
 ```
 
 To only run a subset of the unit tests in a single file:
 
-```sh
+```console
 ./run.d -u unit/deinitialization.d --filter Expression
 ```
 
@@ -148,7 +148,7 @@ Test Configuration
 All tests defined within `.d` source files may use various settings to configure how they are to be run, i.e.
 
 `compilable/hellotest.d`:
-```D
+```d
 /*
 REQUIRED_ARGS: -version=Foo
 TEST_OUTPUT:
@@ -379,6 +379,9 @@ depend on the current platform and target:
                     - OS: posix, windows, ...
                     - Model: 64, 32mscoff and 32 (also matches 32mscoff)
 
+    $r:<regex>$     any text matching <regex> (using $ inside of <regex> is not
+                    supported, use multiple regexes instead)
+
 Both stderr and stdout of the DMD are captured for output comparison.
 
 ## Test Coding Practices
@@ -394,7 +397,7 @@ be aggregated into a single file, for example `test/runnable/test42.d`
 
 Each test should be in the following form:
 
-```
+```d
 /*******************************/
 // https://issues/dlang.org/show_bug.cgi?id=NNNN
 

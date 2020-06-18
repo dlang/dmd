@@ -151,7 +151,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
     const(uinteger_t) d = eindex.toUInteger();
     if (d >= tup.objects.dim)
     {
-        .error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
+        .error(loc, "tuple index `%llu` exceeds length %llu", d, cast(ulong) tup.objects.dim);
         *pt = Type.terror;
         return;
     }
@@ -1670,7 +1670,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
 
     Type visitTypeof(TypeTypeof mtype)
     {
-        //printf("TypeTypeof::semantic() %s\n", toChars());
+        //printf("TypeTypeof::semantic() %s\n", mtype.toChars());
         Expression e;
         Type t;
         Dsymbol s;
@@ -2622,7 +2622,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 const d = mt.dim.toUInteger();
                 if (d >= tup.objects.dim)
                 {
-                    error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
+                    error(loc, "tuple index `%llu` exceeds length %llu", d, cast(ulong) tup.objects.dim);
                     return returnError();
                 }
 
@@ -2896,7 +2896,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (auto f = mt.exp.op == TOK.variable    ? (cast(   VarExp)mt.exp).var.isFuncDeclaration()
                    : mt.exp.op == TOK.dotVariable ? (cast(DotVarExp)mt.exp).var.isFuncDeclaration() : null)
         {
-            if (f.checkForwardRef(loc))
+            // f might be a unittest declaration which is incomplete when compiled
+            // without -unittest. That causes a segfault in checkForwardRef, see
+            // https://issues.dlang.org/show_bug.cgi?id=20626
+            if ((!f.isUnitTestDeclaration() || global.params.useUnitTests) && f.checkForwardRef(loc))
                 goto Lerr;
         }
         if (auto f = isFuncAddress(mt.exp))
@@ -3008,7 +3011,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 const i2 = mt.upr.toUInteger();
                 if (!(i1 <= i2 && i2 <= td.objects.dim))
                 {
-                    error(loc, "slice `[%llu..%llu]` is out of range of [0..%u]", i1, i2, td.objects.dim);
+                    error(loc, "slice `[%llu..%llu]` is out of range of [0..%llu]", i1, i2, cast(ulong) td.objects.dim);
                     return returnError();
                 }
 

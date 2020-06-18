@@ -5,7 +5,7 @@ fail_compilation/diag8101b.d(28): Error: none of the overloads of `foo` are call
 fail_compilation/diag8101b.d(19):        `diag8101b.S.foo(int _param_0)`
 fail_compilation/diag8101b.d(20):        `diag8101b.S.foo(int _param_0, int _param_1)`
 fail_compilation/diag8101b.d(30): Error: function `diag8101b.S.bar(int _param_0)` is not callable using argument types `(double)`
-fail_compilation/diag8101b.d(30):        cannot pass argument `1.00000` of type `double` to parameter `int _param_0`
+fail_compilation/diag8101b.d(30):        cannot pass argument `1.0` of type `double` to parameter `int _param_0`
 fail_compilation/diag8101b.d(33): Error: none of the overloads of `foo` are callable using a `const` object, candidates are:
 fail_compilation/diag8101b.d(19):        `diag8101b.S.foo(int _param_0)`
 fail_compilation/diag8101b.d(20):        `diag8101b.S.foo(int _param_0, int _param_1)`

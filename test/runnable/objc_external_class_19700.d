@@ -1,6 +1,8 @@
 // EXTRA_OBJC_SOURCES: objc_instance_variable.m
 // REQUIRED_ARGS: -L-framework -LFoundation
 
+import core.attribute : selector;
+
 // Verify that a class with a method with D linkage is considered an externally
 // defined class. https://issues.dlang.org/show_bug.cgi?id=19700
 

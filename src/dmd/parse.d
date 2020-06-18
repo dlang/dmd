@@ -2252,6 +2252,9 @@ final class Parser(AST) : Lexer
                                 if (token.value != TOK.comma)
                                     break;
                                 nextToken();
+                                // Allow trailing commas as done for argument lists, arrays, ...
+                                if (token.value == TOK.rightParentheses)
+                                    break;
                             }
                         }
                     }
@@ -2469,11 +2472,10 @@ final class Parser(AST) : Lexer
 
         /* Just a regular constructor
          */
-        AST.VarArg varargs;
-        AST.Parameters* parameters = parseParameters(&varargs);
+        auto parameterList = parseParameterList(null);
         stc = parsePostfix(stc, &udas);
 
-        if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
+        if (parameterList.varargs != AST.VarArg.none || AST.Parameter.dim(parameterList.parameters) != 0)
         {
             if (stc & STC.static_)
                 error(loc, "constructor cannot be static");
@@ -2488,7 +2490,7 @@ final class Parser(AST) : Lexer
 
         AST.Expression constraint = tpl ? parseConstraint() : null;
 
-        AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), null, linkage, stc); // RetrunType -> auto
+        AST.Type tf = new AST.TypeFunction(parameterList, null, linkage, stc); // RetrunType -> auto
         tf = tf.addSTC(stc);
 
         auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
@@ -2793,9 +2795,8 @@ final class Parser(AST) : Lexer
 
         nextToken();
 
-        AST.VarArg varargs;
-        AST.Parameters* parameters = parseParameters(&varargs);
-        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameters, varargs);
+        auto parameterList = parseParameterList(null);
+        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameterList);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2803,11 +2804,15 @@ final class Parser(AST) : Lexer
     /**********************************************
      * Parse parameter list.
      */
-    private AST.Parameters* parseParameters(AST.VarArg* pvarargs, AST.TemplateParameters** tpl = null)
+    private AST.ParameterList parseParameterList(AST.TemplateParameters** tpl)
     {
         auto parameters = new AST.Parameters();
         AST.VarArg varargs = AST.VarArg.none;
         int hasdefault = 0;
+        StorageClass varargsStc;
+
+        // Attributes allowed for ...
+        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_;
 
         check(TOK.leftParentheses);
         while (1)
@@ -2830,6 +2835,14 @@ final class Parser(AST) : Lexer
 
                 case TOK.dotDotDot:
                     varargs = AST.VarArg.variadic;
+                    varargsStc = storageClass;
+                    if (varargsStc & ~VarArgsStc)
+                    {
+                        OutBuffer buf;
+                        AST.stcToBuffer(&buf, varargsStc & ~VarArgsStc);
+                        error("variadic parameter cannot have attributes `%s`", buf.peekChars());
+                        varargsStc &= VarArgsStc;
+                    }
                     nextToken();
                     break;
 
@@ -3048,8 +3061,7 @@ final class Parser(AST) : Lexer
         L1:
         }
         check(TOK.rightParentheses);
-        *pvarargs = varargs;
-        return parameters;
+        return AST.ParameterList(parameters, varargs, varargsStc);
     }
 
     /*************************************
@@ -3716,8 +3728,8 @@ final class Parser(AST) : Lexer
 
         case TOK.mixin_:
             // https://dlang.org/spec/expression.html#mixin_types
-            nextToken();
             loc = token.loc;
+            nextToken();
             if (token.value != TOK.leftParentheses)
                 error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
             auto exps = parseArguments();
@@ -3993,11 +4005,10 @@ final class Parser(AST) : Lexer
                     TOK save = token.value;
                     nextToken();
 
-                    AST.VarArg varargs;
-                    AST.Parameters* parameters = parseParameters(&varargs);
+                    auto parameterList = parseParameterList(null);
 
                     StorageClass stc = parsePostfix(STC.undefined_, null);
-                    auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
+                    auto tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
                         if (save == TOK.function_)
@@ -4151,15 +4162,14 @@ final class Parser(AST) : Lexer
                         }
                     }
 
-                    AST.VarArg varargs;
-                    AST.Parameters* parameters = parseParameters(&varargs);
+                    auto parameterList = parseParameterList(null);
 
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                      */
                     // merge prefix storage classes
                     StorageClass stc = parsePostfix(storageClass, pudas);
 
-                    AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
+                    AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
                         *pdisable = stc & STC.disable ? 1 : 0;
@@ -4443,10 +4453,8 @@ final class Parser(AST) : Lexer
                         isBasicType(&tlu) && tlu &&
                         tlu.value == TOK.leftParentheses)
                     {
-                        AST.VarArg vargs;
                         AST.Type tret = parseBasicType();
-                        AST.Parameters* prms = parseParameters(&vargs);
-                        AST.ParameterList pl = AST.ParameterList(prms, vargs);
+                        auto parameterList = parseParameterList(null);
 
                         parseAttributes();
                         if (udas)
@@ -4454,7 +4462,7 @@ final class Parser(AST) : Lexer
 
                         attributesAppended = true;
                         storage_class = appendStorageClass(storage_class, funcStc);
-                        AST.Type tf = new AST.TypeFunction(pl, tret, link, storage_class);
+                        AST.Type tf = new AST.TypeFunction(parameterList, tret, link, storage_class);
                         v = new AST.AliasDeclaration(loc, ident, tf);
                     }
                     else if (token.value == TOK.function_ ||
@@ -4878,8 +4886,7 @@ final class Parser(AST) : Lexer
     {
         const loc = token.loc;
         AST.TemplateParameters* tpl = null;
-        AST.Parameters* parameters = null;
-        AST.VarArg varargs = AST.VarArg.none;
+        AST.ParameterList parameterList;
         AST.Type tret = null;
         StorageClass stc = 0;
         TOK save = TOK.reserved;
@@ -4930,7 +4937,7 @@ final class Parser(AST) : Lexer
             {
                 // (parameters) => expression
                 // (parameters) { statements... }
-                parameters = parseParameters(&varargs, &tpl);
+                parameterList = parseParameterList(&tpl);
                 stc = parsePostfix(stc, null);
                 if (StorageClass modStc = stc & STC.TYPECTOR)
                 {
@@ -4952,10 +4959,10 @@ final class Parser(AST) : Lexer
         case TOK.identifier:
             {
                 // identifier => expression
-                parameters = new AST.Parameters();
+                parameterList.parameters = new AST.Parameters();
                 Identifier id = Identifier.generateId("__T");
                 AST.Type t = new AST.TypeIdentifier(loc, id);
-                parameters.push(new AST.Parameter(0, t, token.ident, null, null));
+                parameterList.parameters.push(new AST.Parameter(0, t, token.ident, null, null));
 
                 tpl = new AST.TemplateParameters();
                 AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
@@ -4968,7 +4975,7 @@ final class Parser(AST) : Lexer
             assert(0);
         }
 
-        auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), tret, linkage, stc);
+        auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
         auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null);
 
@@ -5868,12 +5875,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
                 auto n = peek(&token);
-                if (storageClass != 0 && token.value == TOK.identifier &&
-                    n.value != TOK.assign && n.value != TOK.identifier)
-                {
-                    error("found `%s` while expecting `=` or identifier", n.toChars());
-                }
-                else if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
+                if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
                 {
                     Identifier ai = token.ident;
                     AST.Type at = null; // infer parameter type
@@ -5888,6 +5890,8 @@ final class Parser(AST) : Lexer
                     check(TOK.assign);
                     param = new AST.Parameter(storageClass, at, ai, null, null);
                 }
+                else if (storageClass != 0)
+                    error("found `%s` while expecting `=` or identifier", n.toChars());
 
                 condition = parseExpression();
                 check(TOK.rightParentheses);
@@ -7255,7 +7259,7 @@ final class Parser(AST) : Lexer
 
     private bool isParameters(Token** pt)
     {
-        // This code parallels parseParameters()
+        // This code parallels parseParameterList()
         Token* t = *pt;
 
         //printf("isParameters()\n");
@@ -7269,6 +7273,15 @@ final class Parser(AST) : Lexer
             switch (t.value)
             {
             case TOK.rightParentheses:
+                break;
+
+            case TOK.at:
+                Token* pastAttr;
+                if (skipAttributes(t, &pastAttr))
+                {
+                    t = pastAttr;
+                    goto default;
+                }
                 break;
 
             case TOK.dotDotDot:

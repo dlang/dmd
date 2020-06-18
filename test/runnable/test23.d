@@ -1,18 +1,8 @@
-// REQUIRED_ARGS:
-/*
-TEST_OUTPUT:
----
----
-*/
-
 module test;
 
 import core.vararg;
 import core.stdc.stdlib;
-import std.stdio;
-import std.string;
-import core.stdc.stdlib;
-
+import core.stdc.stdio;
 
 /*******************************************/
 
@@ -69,13 +59,6 @@ void test3()
             assert(0);
         }
     }
-}
-
-/*******************************************/
-
-void test4()
-{
-    writeln("",true);
 }
 
 /*******************************************/
@@ -232,9 +215,9 @@ void test11()
 {
     Foo11 fooIt = new Foo11();
     if (fooIt !is null)
-        writefln("fooIt should be valid");
+        printf("fooIt should be valid\n");
     fooIt.f.foo();
-    writefln("it worked");
+    printf("it worked\n");
 }
 
 /*******************************************/
@@ -276,7 +259,7 @@ interface Father {}
 
 class Mother {
      Father test() {
-         writefln("Called Mother.test!");
+         printf("Called Mother.test!\n");
          return new Child(42);
      }
 }
@@ -287,7 +270,7 @@ class Child : Mother, Father {
      this(int d) { data = d; }
 
      override Child test() {
-         writefln("Called Child.test!");
+         printf("Called Child.test!\n");
          return new Child(69);
      }
 }
@@ -298,7 +281,7 @@ void test14()
      Mother childsMum = aChild;
      Child childsChild = aChild.test();
      Child mumsChild = cast(Child) childsMum.test();
-     writefln("Success2");
+     printf("Success2\n");
 }
 
 
@@ -561,15 +544,12 @@ void test25()
     char[6] cstr = "123456"c;
     auto str1 = cast(wchar[3])(cstr);
 
-    writefln("str1: ", (cast(char[])str1).length , " : ", (cast(char[])str1));
     assert(cast(char[])str1 == "123456"c);
 
     auto str2 = cast(wchar[3])("789abc"c);
-    writefln("str2: ", (cast(char[])str2).length , " : ", (cast(char[])str2));
     assert(cast(char[])str2 == "789abc"c);
 
     auto str3 = cast(wchar[3])("defghi");
-    writefln("str3: ", (cast(char[])str3).length , " : ", (cast(char[])str3));
     version (LittleEndian)
         assert(cast(char[])str3 == "d\000e\000f\000"c);
     version (BigEndian)
@@ -635,26 +615,20 @@ uint intRes()
 
 void test28()
 {
-        auto s = std.string.format("%s", "abc123"[intRes() % $] );
-        writefln( "%s", s );
-        assert(s == "2");
+        auto s = "abc123"[intRes() % $];
+        assert(s == '2');
 
         static const char[] foo = "abc123";
-        s = std.string.format("%s", foo[intRes() % $] );
-        assert(s == "2");
-
+        assert(foo[intRes() % $] == '2');
 
         static string bar = "abc123";
-        s = std.string.format("%s", bar[intRes() % $] );
-        assert(s == "2");
+        assert(bar[intRes() % $] == '2');
 
         const char[] abc = "abc123";
-        s = std.string.format("%s", abc[intRes() % $] );
-        assert(s == "2");
+        assert(abc[intRes() % $] == '2');
 
         string def = "abc123";
-        s = std.string.format("%s", def[intRes() % $] );
-        assert(s == "2");
+        assert(def[intRes() % $] == '2');
 }
 
 /*******************************************/
@@ -743,12 +717,6 @@ class Foo37
 void test37()
 {
     Foo37 f = new Foo37();
-
-    writefln("Foo.array[0] = %s", f.array[0] );
-    writefln("Foo.array[1] = %s", f.array[1] );
-    writefln("Foo.array[2] = %s", f.array[2] );
-    writefln("Foo.array[3] = %s", f.array[3] );
-    writefln("Foo.count = %s", f.count );
 
     assert(f.array[0] == 1.0);
     assert(f.array[1] == 1.0);
@@ -957,7 +925,8 @@ void test45()
            buffer[i] -= cast(char)'a' - 'A'; // segfault here
        }
    }
-   writeln(buffer);
+
+   assert(buffer == "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 }
 
 /*******************************************/
@@ -1170,10 +1139,9 @@ struct S59
 
 void test59()
 {   S59 s;
-    writefln("s = %s", s);
 
     string p;
-    p = std.string.format("s = %s", s);
+    p = "s = " ~ s.toString();
     assert(p == "s = foo");
 }
 
@@ -1201,11 +1169,13 @@ void test60()
 void test61()
 {
     int[][] f = [[1,2],[3,4]];
+    assert(f.length == 2);
+    assert(f[0].length == 2);
+    assert(f[1].length == 2);
     assert(f[0][0] == 1);
     assert(f[0][1] == 2);
     assert(f[1][0] == 3);
     assert(f[1][1] == 4);
-    writeln(f);
 }
 
 /*******************************************/
@@ -1271,7 +1241,6 @@ void test64()
 
     foreach_reverse(v; x)
     {
-        writeln(v);
         assert(j == v);
         j--;
     }
@@ -1280,7 +1249,6 @@ void test64()
     j = 4;
     foreach_reverse(i, v; x)
     {
-        writefln("[%s] = %s", i, v);
         assert(i + 1 == j);
         assert(j == v);
         j--;
@@ -1366,8 +1334,6 @@ void test70()
     }
 
     static const char[0] altsep;
-    string s = std.string.format("test%spath", altsep);
-    assert(s == "testpath");
     foo(altsep);
 }
 
@@ -1440,7 +1406,6 @@ void main()
     test1();
     test2();
     test3();
-    test4();
     test5();
     test6();
     test7();

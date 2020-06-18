@@ -10,11 +10,6 @@ detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe
 
 zip target - requires Info-ZIP or equivalent (zip32.exe)
   http://www.info-zip.org/Zip.html#Downloads
-
-TODO:
-- add all posix.mak Makefile targets
-- support 32-bit builds
-- test the script with LDC or GDC as host compiler
 */
 
 version(CoreDdoc) {} else:
@@ -63,7 +58,9 @@ int main(string[] args)
     }
     catch (BuildException e)
     {
-        writeln(e.msg);
+        // Ensure paths are relative to the root directory
+        // s.t. error messages are clickable in most IDE's
+        writeln(e.msg.replace(buildPath("dmd", ""), buildPath("src", "dmd", "")));
         return 1;
     }
 }
@@ -339,8 +336,10 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
-        "-betterC"]
-        .chain(flags["DFLAGS"], extraFlags, rule.sources).array)
+        ]
+        .chain(
+            extraFlags.canFind("-unittest") ? [] : ["-betterC"],
+            flags["DFLAGS"], extraFlags, rule.sources).array)
 );
 
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
@@ -446,7 +445,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
-        .command([ env["CXX"], env["CXX_KIND"] == "g++" ? "-std=gnu++98" : "-xc++",
+        .command([ env["CXX"], env["CXX_KIND"] == "g++" ? "-std=c++11" : "-xc++",
                    "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
 
@@ -520,7 +519,7 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
 
 alias style = makeRule!((builder, rule)
 {
-    const dscannerDir = env["G"].buildPath("dscanner");
+    const dscannerDir = env["GENERATED"].buildPath("dscanner");
     alias dscannerRepo = methodInit!(BuildRule, (repoBuilder, repoRule) => repoBuilder
         .msg("(GIT) DScanner")
         .target(dscannerDir)
@@ -529,7 +528,7 @@ alias style = makeRule!((builder, rule)
             // FIXME: Omitted --shallow-submodules because it requires a more recent
             //        git version which is not available on buildkite
             env["GIT"], "clone", "--depth=1", "--recurse-submodules",
-            "--branch=v0.9.0-beta.1",
+            "--branch=v0.9.0",
             "https://github.com/dlang-community/Dscanner", dscannerDir
         ])
     );
@@ -917,7 +916,7 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    env.getDefault("RES", dmdRepo.buildPath("res"));
+    env.getDefault("RES", dmdRepo.buildPath("src/dmd/res"));
 
     version (Windows)
         enum installPref = "";
@@ -1802,7 +1801,7 @@ Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
 */
 BuildException abortBuild(string msg = "Build failed!")
 {
-    throw new BuildException("ERROR: " ~ msg);
+    throw new BuildException(msg);
 }
 
 class BuildException : Exception

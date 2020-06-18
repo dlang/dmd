@@ -456,7 +456,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
                 }
-                .error(loc, "more initializers than fields (%d) of `%s`", nfields, toChars());
+                .error(loc, "more initializers than fields (%llu) of `%s`", cast(ulong) nfields, toChars());
                 return false;
             }
             VarDeclaration v = fields[i];
@@ -557,7 +557,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         ispod = StructPOD.yes;
 
         if (enclosing || postblit || dtor || hasCopyCtor)
+        {
             ispod = StructPOD.no;
+            return false;
+        }
 
         // Recursively check all fields are POD.
         for (size_t i = 0; i < fields.dim; i++)
@@ -566,7 +569,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (v.storage_class & STC.ref_)
             {
                 ispod = StructPOD.no;
-                break;
+                return false;
             }
 
             Type tv = v.type.baseElemOf();
@@ -577,7 +580,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 if (!sd.isPOD())
                 {
                     ispod = StructPOD.no;
-                    break;
+                    return false;
                 }
             }
         }
@@ -603,6 +606,41 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final Type argType(uint index)
     {
         return index < numArgTypes() ? (*argTypes.arguments)[index].type : null;
+    }
+
+    final bool hasNonDisabledCtor()
+    {
+        static extern (C++) class HasNonDisabledCtorVisitor : Visitor
+        {
+            bool result;
+
+            this() {}
+
+            alias visit = Visitor.visit;
+
+            override void visit(CtorDeclaration cd)
+            {
+                if (!(cd.storage_class & STC.disable))
+                    result = true;
+            }
+
+            override void visit(TemplateDeclaration td)
+            {
+                result = true;
+            }
+
+            override void visit(OverloadSet os)
+            {
+                for (size_t i = 0; i < os.a.dim; i++)
+                    os.a[i].accept(this);
+            }
+        }
+
+        if (!ctor)
+            return false;
+        scope v = new HasNonDisabledCtorVisitor();
+        ctor.accept(v);
+        return v.result;
     }
 }
 

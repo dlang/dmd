@@ -34,6 +34,7 @@
 // REQUIRED_ARGS: -version=ARM_SoftFP
 // REQUIRED_ARGS: -version=ARM_HardFloat
 // REQUIRED_ARGS: -version=AArch64
+// REQUIRED_ARGS: -version=AVR
 // REQUIRED_ARGS: -version=Epiphany
 // REQUIRED_ARGS: -version=PPC
 // REQUIRED_ARGS: -version=PPC_SoftFloat
@@ -237,6 +238,7 @@ Error: version identifier `ARM_SoftFloat` is reserved and cannot be set
 Error: version identifier `ARM_SoftFP` is reserved and cannot be set
 Error: version identifier `ARM_HardFloat` is reserved and cannot be set
 Error: version identifier `AArch64` is reserved and cannot be set
+Error: version identifier `AVR` is reserved and cannot be set
 Error: version identifier `Epiphany` is reserved and cannot be set
 Error: version identifier `PPC` is reserved and cannot be set
 Error: version identifier `PPC_SoftFloat` is reserved and cannot be set

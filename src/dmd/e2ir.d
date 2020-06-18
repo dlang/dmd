@@ -3117,6 +3117,36 @@ elem *toElem(Expression e, IRState *irs)
                         el_free(e1);
                         return setResult2(e);
                     }
+
+                    static bool allZeroBits(ref Expressions exps)
+                    {
+                        foreach (e; exps[])
+                        {
+                            /* The expression types checked can be expanded to include
+                             * floating point, struct literals, and array literals.
+                             * Just be careful to return false for -0.0
+                             */
+                            if (!e ||
+                                e.op == TOK.int64 && e.isIntegerExp().toInteger() == 0 ||
+                                e.op == TOK.null_)
+                                continue;
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    /* Use a memset to 0
+                     */
+                    if ((sle.useStaticInit ||
+                         sle.elements && allZeroBits(*sle.elements) && !sle.sd.isNested()) &&
+                        ae.e2.type.isZeroInit(ae.e2.loc))
+                    {
+                        elem* enbytes = el_long(TYsize_t, ae.e1.type.size());
+                        elem* evalue = el_long(TYsize_t, 0);
+                        elem* el = el_una(OPaddr, TYnptr, e1);
+                        elem* e = el_bin(OPmemset,TYnptr, el, el_param(enbytes, evalue));
+                        return setResult2(e);
+                    }
                 }
 
                 /* Implement:

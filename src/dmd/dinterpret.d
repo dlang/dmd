@@ -6130,11 +6130,14 @@ public:
             return;
         }
 
+        // https://issues.dlang.org/show_bug.cgi?id=19897
+        // https://issues.dlang.org/show_bug.cgi?id=20710
+        // Zero-elements fields don't have an initializer. See: scrubArray function
+        if ((*se.elements)[i] is null)
+            (*se.elements)[i] = voidInitLiteral(e.type, v).copy();
+
         if (goal == ctfeNeedLvalue)
         {
-            Expression ev = (*se.elements)[i];
-            if (!ev || ev.op == TOK.void_)
-                (*se.elements)[i] = voidInitLiteral(e.type, v).copy();
             // just return the (simplified) dotvar expression as a CTFE reference
             if (e.e1 == ex)
                 result = e;
@@ -6150,16 +6153,9 @@ public:
         result = (*se.elements)[i];
         if (!result)
         {
-            // https://issues.dlang.org/show_bug.cgi?id=19897
-            // Zero-length fields don't have an initializer.
-            if (v.type.size() == 0)
-                result = voidInitLiteral(e.type, v).copy();
-            else
-            {
-                e.error("Internal Compiler Error: null field `%s`", v.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
+            e.error("Internal Compiler Error: null field `%s`", v.toChars());
+            result = CTFEExp.cantexp;
+            return;
         }
         if (auto vie = result.isVoidInitExp())
         {
@@ -7129,7 +7125,7 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const re
     size_t nargs = arguments ? arguments.dim : 0;
     if (!pthis)
     {
-        if (isBuiltin(fd) == BUILTIN.yes)
+        if (isBuiltin(fd) != BUILTIN.unimp)
         {
             Expressions args = Expressions(nargs);
             foreach (i, ref arg; args)

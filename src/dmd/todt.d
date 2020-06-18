@@ -165,7 +165,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 }
                 else if (ai.dim > tadim)
                 {
-                    error(ai.loc, "too many initializers, %d, for array[%d]", ai.dim, tadim);
+                    error(ai.loc, "too many initializers, %u, for array[%llu]", ai.dim, cast(ulong) tadim);
                 }
                 dtb.cat(dtbarray);
                 break;
@@ -533,7 +533,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
     void visitClassReference(ClassReferenceExp e)
     {
-        InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
+        auto to = e.type.toBasetype().isTypeClass().sym.isInterfaceDeclaration();
 
         if (to) //Static typeof this literal is an interface. We must add offset to symbol
         {

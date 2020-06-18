@@ -2254,6 +2254,11 @@ nothrow:
         fpustackused = fpustackinit;
     }
 
+    void dtor()
+    {
+        stagelist.dtor();
+    }
+
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
     code *c;
@@ -2843,6 +2848,7 @@ private code *schedule(code *c,regm_t scratch)
         //printf("assem %d\n",sch.tblmax);
         pctail = sch.assemble(pctail);  // reassemble instruction stream
     }
+    sch.dtor();
 
     return cresult;
 }

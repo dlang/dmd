@@ -408,7 +408,7 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
 void flowae()
 {
     flowxx = AE;
-    flowaecp();
+    flowaecp(AE);
 }
 
 /**************************** COPY PROPAGATION ************************/
@@ -425,7 +425,7 @@ void flowae()
 void flowcp()
 {
     flowxx = CP;
-    flowaecp();
+    flowaecp(CP);
 }
 
 /*****************************************
@@ -435,9 +435,9 @@ void flowcp()
  *      flowxx
  */
 
-private void flowaecp()
+private void flowaecp(int flowxx)
 {
-    aecpgenkill();          /* Compute Bgen and Bkill for AEs or CPs */
+    aecpgenkill(go, flowxx);   // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
         return;
 
@@ -545,59 +545,141 @@ private void flowaecp()
     vec_free(tmp);
 }
 
-/******************************
- * A variable to avoid parameter overhead to asgexpelems().
- */
-
-private __gshared block *this_block;
 
 /***********************************
  * Compute Bgen and Bkill for AEs, CPs, and VBEs.
  */
 
-private void aecpgenkill()
+private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
 {
-    go.expnod.setLength(0);             // dump any existing one
+    block* this_block;
 
-    /* Compute number of expressions */
-    go.exptop = 1;                     /* start at 1                   */
+    /********************************
+     * Assign cp elems to go.expnod[] (in order of evaluation).
+     */
+    void asgcpelems(elem *n)
+    {
+        while (1)
+        {
+            const op = n.Eoper;
+            if (OTunary(op))
+            {
+                n.Eexp = 0;
+                n = n.EV.E1;
+                continue;
+            }
+            else if (OTbinary(op))
+            {
+                if (ERTOL(n))
+                {
+                    asgcpelems(n.EV.E2);
+                    asgcpelems(n.EV.E1);
+                }
+                else
+                {
+                    asgcpelems(n.EV.E1);
+                    asgcpelems(n.EV.E2);
+                }
+
+                /* look for elem of the form OPvar=OPvar, where they aren't the */
+                /* same variable.                                               */
+                if ((op == OPeq || op == OPstreq) &&
+                    n.EV.E1.Eoper == OPvar &&
+                    n.EV.E2.Eoper == OPvar &&
+                    !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
+                    !((n.EV.E1.EV.Vsym.Sflags | n.EV.E2.EV.Vsym.Sflags) & SFLlivexit) &&
+                    n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
+                {
+                    n.Eexp = cast(uint)go.expnod.length;
+                    go.expnod.push(n);
+                }
+                else
+                    n.Eexp = 0;
+            }
+            else
+                n.Eexp = 0;
+            return;
+        }
+    }
+
+    /********************************
+     * Assign ae and vbe elems to go.expnod[] (in order of evaluation).
+     */
+    bool asgaeelems(elem *n)
+    {
+        bool ae;
+
+        assert(n);
+        const op = n.Eoper;
+        if (OTunary(op))
+        {
+            ae = asgaeelems(n.EV.E1);
+            // Disallow starred references to avoid problems with VBE's
+            // being hoisted before tests of an invalid pointer.
+            if (flowxx == VBE && op == OPind)
+            {
+                n.Eexp = 0;
+                return false;
+            }
+        }
+        else if (OTbinary(op))
+        {
+            if (ERTOL(n))
+                ae = asgaeelems(n.EV.E2) & asgaeelems(n.EV.E1);
+            else
+                ae = asgaeelems(n.EV.E1) & asgaeelems(n.EV.E2);
+        }
+        else
+            ae = true;
+
+        if (ae && OTae(op) && !(n.Ety & (mTYvolatile | mTYshared)) &&
+            // Disallow struct AEs, because we can't handle CSEs that are structs
+            tybasic(n.Ety) != TYstruct &&
+            tybasic(n.Ety) != TYarray)
+        {
+            n.Eexp = cast(uint)go.expnod.length;       // remember index into go.expnod[]
+            go.expnod.push(n);
+            if (flowxx == VBE)
+                go.expblk.push(this_block);
+            return true;
+        }
+        else
+        {
+            n.Eexp = 0;
+            return false;
+        }
+    }
+
+    go.expnod.setLength(0);             // dump any existing one
+    go.expnod.push(null);
+
+    go.expblk.setLength(0);             // dump any existing one
+    go.expblk.push(null);
+
     foreach (b; dfo[])
+    {
         if (b.Belem)
         {
             if (flowxx == CP)
-                go.exptop += numcpelems(b.Belem);
-            else // AE || VBE
-                numaeelems(b.Belem);
+                asgcpelems(b.Belem);
+            else
+            {
+                this_block = b;    // so asgaeelems knows about this
+                asgaeelems(b.Belem);
+            }
         }
-    if (go.exptop <= 1)                /* if no expressions            */
-        return;
-
-    /* Allocate array of pointers to all expression elems.          */
-    /* (The elems are in order. Also, these expressions must not    */
-    /* have any side effects, and possibly should not be machine    */
-    /* dependent primitive addressing modes.)                       */
-    go.expnod.setLength(go.exptop);
-    go.expnod[0] = null;
-
-    go.expblk.setLength(flowxx == VBE ? go.exptop : 0);
-
-    const uint exptopsave = go.exptop;
-    go.exptop = 1;
-    foreach (b; dfo[])
-    {
-        this_block = b;    /* so asgexpelems knows about this */
-        if (b.Belem)
-            asgexpelems(b.Belem);
     }
-    assert(go.exptop == exptopsave);
+    go.exptop = cast(uint)go.expnod.length;
+    if (go.exptop <= 1)
+        return;
 
     defstarkill();                  /* compute go.defkill and go.starkill */
 
     static if (0)
     {
-        assert(vec_numbits(go.defkill) == go.exptop);
-        assert(vec_numbits(go.starkill) == go.exptop);
-        assert(vec_numbits(go.vptrkill) == go.exptop);
+        assert(vec_numbits(go.defkill) == go.expnod.length);
+        assert(vec_numbits(go.starkill) == go.expnod.length);
+        assert(vec_numbits(go.vptrkill) == go.expnod.length);
         dbg_printf("defkill  "); vec_println(go.defkill);
         if (go.starkill)
         {   dbg_printf("starkill "); vec_println(go.starkill);}
@@ -612,8 +694,8 @@ private void aecpgenkill()
         vec_free(b.Bout);
         vec_free(b.Bgen);
         vec_free(b.Bkill);
-        b.Bgen = vec_calloc(go.exptop);
-        b.Bkill = vec_calloc(go.exptop);
+        b.Bgen = vec_calloc(go.expnod.length);
+        b.Bkill = vec_calloc(go.expnod.length);
         switch (b.BC)
         {
             case BCiftrue:
@@ -622,12 +704,12 @@ private void aecpgenkill()
                 vec_free(b.Bkill2);
                 elem* e;
                 for (e = b.Belem; e.Eoper == OPcomma; e = e.EV.E2)
-                    accumaecp(b.Bgen,b.Bkill,e);
+                    accumaecp(b.Bgen,b.Bkill,e.EV.E1);
                 if (e.Eoper == OPandand || e.Eoper == OPoror)
                 {
                     accumaecp(b.Bgen,b.Bkill,e.EV.E1);
-                    vec_t Kr = vec_calloc(go.exptop);
-                    vec_t Gr = vec_calloc(go.exptop);
+                    vec_t Kr = vec_calloc(go.expnod.length);
+                    vec_t Gr = vec_calloc(go.expnod.length);
                     accumaecp(Gr,Kr,e.EV.E2);
 
                     // We might or might not have executed E2
@@ -675,7 +757,7 @@ private void aecpgenkill()
                     b.Bgen2 = vec_clone(b.Bgen);
                     b.Bkill2 = vec_clone(b.Bkill);
                 }
-                b.Bout2 = vec_calloc(go.exptop);
+                b.Bout2 = vec_calloc(go.expnod.length);
                 break;
 
             case BCasm:
@@ -694,132 +776,9 @@ private void aecpgenkill()
             printf("block %d Bgen ",i); vec_println(b.Bgen);
             printf("       Bkill "); vec_println(b.Bkill);
         }
-        b.Bin = vec_calloc(go.exptop);
-        b.Bout = vec_calloc(go.exptop);
+        b.Bin = vec_calloc(go.expnod.length);
+        b.Bout = vec_calloc(go.expnod.length);
     }
-}
-
-/*****************************
- * Accumulate number of expressions in go.exptop.
- * Set NFLaecp as a flag indicating an AE elem.
- * Returns:
- *      true if this elem is a possible AE elem.
- */
-
-private int numaeelems(elem *n)
-{
-    uint ae;
-
-    assert(n);
-    const op = n.Eoper;
-    if (OTunary(op))
-    {
-        ae = numaeelems(n.EV.E1);
-        // Disallow starred references to avoid problems with VBE's
-        // being hoisted before tests of an invalid pointer.
-        if (flowxx == VBE && op == OPind)
-            goto L1;
-    }
-    else if (OTbinary(op))
-        ae = numaeelems(n.EV.E1) & numaeelems(n.EV.E2);
-    else
-        ae = true;
-
-    if (ae && OTae(op) && !(n.Ety & (mTYvolatile | mTYshared)) &&
-        // Disallow struct AEs, because we can't handle CSEs that are structs
-        tybasic(n.Ety) != TYstruct &&
-        tybasic(n.Ety) != TYarray)
-    {
-        n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
-        go.exptop++;
-    }
-    else
-    L1:
-        n.Nflags &= ~NFLaecp;
-    return n.Nflags & NFLaecp;
-}
-
-
-/****************************
- * Compute number of cp (copy propagation) elems.
- * Mark cp elems by setting NFLaecp flag.
- * Returns:
- *      number of cp elems
- */
-
-private int numcpelems(elem *n)
-{
-    while (1)
-    {
-        const op = n.Eoper;
-        if (OTunary(op))
-        {
-            n.Nflags &= ~NFLaecp;
-            n = n.EV.E1;
-            continue;
-        }
-        else if (OTbinary(op))
-        {
-            /* look for elem of the form OPvar=OPvar, where they aren't the */
-            /* same variable.                                               */
-            if ((op == OPeq || op == OPstreq) &&
-                n.EV.E1.Eoper == OPvar &&
-                n.EV.E2.Eoper == OPvar &&
-                !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
-                n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
-            {
-                n.Nflags |= NFLaecp;
-                return numcpelems(n.EV.E1) +
-                       numcpelems(n.EV.E2) +
-                       1;
-
-            }
-            n.Nflags &= ~NFLaecp;
-            int num = numcpelems(n.EV.E2);
-            if (num)
-                return num + numcpelems(n.EV.E1);
-            n = n.EV.E1;
-            continue;
-        }
-        else
-        {
-            n.Nflags &= ~NFLaecp;
-            return 0;
-        }
-    }
-}
-
-
-/********************************
- * Assign ae (or cp) elems to go.expnod[] (in order of evaluation).
- */
-
-private void asgexpelems(elem *n)
-{
-    assert(n);
-    if (OTunary(n.Eoper))
-        asgexpelems(n.EV.E1);
-    else if (ERTOL(n))
-    {
-        asgexpelems(n.EV.E2);
-        asgexpelems(n.EV.E1);
-    }
-    else if (OTbinary(n.Eoper))
-    {
-        asgexpelems(n.EV.E1);
-        asgexpelems(n.EV.E2);
-    }
-
-    if (n.Nflags & NFLaecp)              /* if an ae, cp or vbe elem     */
-    {
-        n.Eexp = go.exptop;              /* remember index into go.expnod[] */
-        go.expnod[go.exptop] = n;
-        if (go.expblk.length)
-            go.expblk[go.exptop] = this_block;
-        go.exptop++;
-    }
-    else
-        n.Eexp = 0;
 }
 
 /********************************
@@ -835,29 +794,28 @@ private void asgexpelems(elem *n)
 
 private void defstarkill()
 {
-    vec_free(go.vptrkill);
-    vec_free(go.defkill);
-    vec_free(go.starkill);             /* dump any existing ones       */
-    go.defkill = vec_calloc(go.exptop);
-    if (flowxx != CP)
+    const exptop = go.exptop;
+    vec_recycle(go.defkill, exptop);
+    if (flowxx == CP)
     {
-        go.starkill = vec_calloc(go.exptop);      /* and create new ones  */
-        go.vptrkill = vec_calloc(go.exptop);      /* and create new ones  */
+        vec_recycle(go.starkill, 0);
+        vec_recycle(go.vptrkill, 0);
     }
-    else /* CP */
+    else
     {
-        go.starkill = null;
-        go.vptrkill = null;
+        vec_recycle(go.starkill, exptop);      // and create new ones
+        vec_recycle(go.vptrkill, exptop);      // and create new ones
     }
 
-    if (!go.exptop)
+    if (!exptop)
         return;
+
+    auto defkill = go.defkill;
 
     if (flowxx == CP)
     {
-        foreach (uint i; 1 .. go.exptop)
+        foreach (i, n; go.expnod[1 .. exptop])
         {
-            elem *n = go.expnod[i];
             const op = n.Eoper;
             assert(op == OPeq || op == OPstreq);
             assert(n.EV.E1.Eoper==OPvar && n.EV.E2.Eoper==OPvar);
@@ -868,21 +826,24 @@ private void defstarkill()
             if (Symbol_isAffected(*n.EV.E1.EV.Vsym) ||
                 Symbol_isAffected(*n.EV.E2.EV.Vsym))
             {
-                vec_setbit(i,go.defkill);
+                vec_setbit(i + 1,defkill);
             }
         }
     }
     else
     {
-        foreach (uint i; 1 .. go.exptop)
+        auto starkill = go.starkill;
+        auto vptrkill = go.vptrkill;
+
+        foreach (j, n; go.expnod[1 .. exptop])
         {
-            elem *n = go.expnod[i];
+            const i = j + 1;
             const op = n.Eoper;
             switch (op)
             {
                 case OPvar:
                     if (Symbol_isAffected(*n.EV.Vsym))
-                        vec_setbit(i,go.defkill);
+                        vec_setbit(i,defkill);
                     break;
 
                 case OPind:         // if a 'starred' ref
@@ -894,32 +855,32 @@ private void defstarkill()
                 case OPstrcmp:
                 case OPmemcmp:
                 case OPbt:          // OPbt is like OPind
-                    vec_setbit(i,go.defkill);
-                    vec_setbit(i,go.starkill);
+                    vec_setbit(i,defkill);
+                    vec_setbit(i,starkill);
                     break;
 
                 case OPvp_fp:
                 case OPcvp_fp:
-                    vec_setbit(i,go.vptrkill);
+                    vec_setbit(i,vptrkill);
                     goto Lunary;
 
                 default:
                     if (OTunary(op))
                     {
                     Lunary:
-                        if (vec_testbit(n.EV.E1.Eexp,go.defkill))
-                                vec_setbit(i,go.defkill);
-                        if (vec_testbit(n.EV.E1.Eexp,go.starkill))
-                                vec_setbit(i,go.starkill);
+                        if (vec_testbit(n.EV.E1.Eexp,defkill))
+                            vec_setbit(i,defkill);
+                        if (vec_testbit(n.EV.E1.Eexp,starkill))
+                            vec_setbit(i,starkill);
                     }
                     else if (OTbinary(op))
                     {
-                        if (vec_testbit(n.EV.E1.Eexp,go.defkill) ||
-                            vec_testbit(n.EV.E2.Eexp,go.defkill))
-                                vec_setbit(i,go.defkill);
-                        if (vec_testbit(n.EV.E1.Eexp,go.starkill) ||
-                            vec_testbit(n.EV.E2.Eexp,go.starkill))
-                                vec_setbit(i,go.starkill);
+                        if (vec_testbit(n.EV.E1.Eexp,defkill) ||
+                            vec_testbit(n.EV.E2.Eexp,defkill))
+                                vec_setbit(i,defkill);
+                        if (vec_testbit(n.EV.E1.Eexp,starkill) ||
+                            vec_testbit(n.EV.E2.Eexp,starkill))
+                                vec_setbit(i,starkill);
                     }
                     break;
             }
@@ -1557,7 +1518,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
 void flowvbe()
 {
     flowxx = VBE;
-    aecpgenkill();          /* compute Bgen and Bkill for VBEs      */
+    aecpgenkill(go, VBE);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
         return;
 

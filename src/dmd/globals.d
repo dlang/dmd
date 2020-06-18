@@ -125,6 +125,7 @@ extern (C++) struct Param
     bool vcg_ast;           // write-out codegen-ast
     bool showColumns;       // print character (column) numbers in diagnostics
     bool vtls;              // identify thread local variables
+    bool vtemplates;        // collect and list statistics on template instantiations
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
     bool vcomplex;          // identify complex/imaginary type usage

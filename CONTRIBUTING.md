@@ -55,9 +55,9 @@ Before submitting a PR there are some things you can check which will hopefully 
   a pull request to [the website](https://github.com/dlang/dlang.org) should be submitted in parallel.
 
 - Follow the usual git good practice:
+  - [Provide descriptive commit messages](https://chris.beams.io/posts/git-commit/)
   - Avoid changes not relevant to the issue (i.e. style issues)
   - Separate commit for separate concerns
-  - Descriptive commit messages ease review and catching bugs
   - Keep pull requests focused on one single topic or bug.  For example, if your fix requires a refactoring, then the refactoring should be submitted as a separate pull request.
 
 ### Find bugs to work on
