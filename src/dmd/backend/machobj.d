@@ -1682,7 +1682,7 @@ void Obj_staticdtor(Symbol *s)
 
 void Obj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    const(char)* secname = isCtor ? "__mod_init_func" : "__mod_term_func";
+    const(char)[] secname = isCtor ? "__mod_init_func" : "__mod_term_func";
     const int align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
     const int flags = isCtor ? S_MOD_INIT_FUNC_POINTERS : S_MOD_TERM_FUNC_POINTERS;
     IDXSEC seg = Obj_getsegment(secname, "__DATA", align_, flags);
@@ -1753,8 +1753,6 @@ int Obj_comdatsize(Symbol *s, targ_size_t symsize)
 
 int Obj_comdat(Symbol *s)
 {
-    const(char)* sectname;
-    const(char)* segname;
     int align_;
     int flags;
 
@@ -1764,8 +1762,8 @@ int Obj_comdat(Symbol *s)
 
     if (tyfunc(s.ty()))
     {
-        sectname = "__textcoal_nt";
-        segname = "__TEXT";
+        const(char)[] sectname = "__textcoal_nt";
+        const(char)[] segname = "__TEXT";
         align_ = 2;              // 4 byte alignment
         flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
         s.Sseg = Obj_getsegment(sectname, segname, align_, flags);
@@ -1783,8 +1781,8 @@ int Obj_comdat(Symbol *s)
     else
     {
         s.Sfl = FLdata;
-        sectname = "__datacoal_nt";
-        segname = "__DATA";
+        const(char)[] sectname = "__datacoal_nt";
+        const(char)[] segname = "__DATA";
         align_ = 4;              // 16 byte alignment
         s.Sseg = Obj_getsegment(sectname, segname, align_, S_COALESCED);
         Obj_data_start(s, 1 << align_, s.Sseg);
@@ -1818,29 +1816,33 @@ int Obj_jmpTableSegment(Symbol *s)
 
 /**********************************
  * Get segment.
- * Input:
- *      align_   segment alignment as power of 2
+ * Params:
+ *      sectname = section name
+ *      segname = segment name
+ *      align_ = segment alignment as power of 2
+ *      flags = S_????
  * Returns:
  *      segment index of found or newly created segment
  */
 
-int Obj_getsegment(const(char)* sectname, const(char)* segname,
+extern (C)
+int Obj_getsegment(const(char)[] sectname, const(char)[] segname,
         int align_, int flags)
 {
-    assert(strlen(sectname) <= 16);
-    assert(strlen(segname)  <= 16);
+    assert(sectname.length <= 16);
+    assert(segname.length  <= 16);
     for (int seg = 1; seg < cast(int)SegData.length; seg++)
     {   seg_data *pseg = SegData[seg];
         if (I64)
         {
-            if (strncmp(SecHdrTab64[pseg.SDshtidx].sectname.ptr, sectname, 16) == 0 &&
-                strncmp(SecHdrTab64[pseg.SDshtidx].segname.ptr, segname, 16) == 0)
+            if (strncmp(SecHdrTab64[pseg.SDshtidx].sectname.ptr, sectname.ptr, 16) == 0 &&
+                strncmp(SecHdrTab64[pseg.SDshtidx].segname.ptr, segname.ptr, 16) == 0)
                 return seg;         // return existing segment
         }
         else
         {
-            if (strncmp(SecHdrTab[pseg.SDshtidx].sectname.ptr, sectname, 16) == 0 &&
-                strncmp(SecHdrTab[pseg.SDshtidx].segname.ptr, segname, 16) == 0)
+            if (strncmp(SecHdrTab[pseg.SDshtidx].sectname.ptr, sectname.ptr, 16) == 0 &&
+                strncmp(SecHdrTab[pseg.SDshtidx].segname.ptr, segname.ptr, 16) == 0)
                 return seg;         // return existing segment
         }
     }
@@ -1887,8 +1889,8 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
     {
         section_64 *sec = cast(section_64 *)
             SECbuf.writezeros(section_64.sizeof);
-        strncpy(sec.sectname.ptr, sectname, 16);
-        strncpy(sec.segname.ptr, segname, 16);
+        strncpy(sec.sectname.ptr, sectname.ptr, 16);
+        strncpy(sec.segname.ptr, segname.ptr, 16);
         sec._align = align_;
         sec.flags = flags;
     }
@@ -1896,8 +1898,8 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
     {
         section *sec = cast(section *)
             SECbuf.writezeros(section.sizeof);
-        strncpy(sec.sectname.ptr, sectname, 16);
-        strncpy(sec.segname.ptr, segname, 16);
+        strncpy(sec.sectname.ptr, sectname.ptr, 16);
+        strncpy(sec.segname.ptr, segname.ptr, 16);
         sec._align = align_;
         sec.flags = flags;
     }
@@ -1938,7 +1940,7 @@ int Obj_codeseg(const char *name,int suffix)
     //dbg_printf("Obj_codeseg(%s,%x)\n",name,suffix);
 static if (0)
 {
-    const(char)* sfx = (suffix) ? "_TEXT" : null;
+    const(char)[] sfx = (suffix) ? "_TEXT" : null;
 
     if (!name)                          // returning to default code segment
     {
@@ -1951,7 +1953,7 @@ static if (0)
         return cseg;
     }
 
-    int seg = ElfObj_getsegment(name, sfx, SHT_PROGDEF, SHF_ALLOC|SHF_EXECINSTR, 4);
+    int seg = ElfObj_getsegment(name[0 .. strlen(name)], sfx, SHT_PROGDEF, SHF_ALLOC|SHF_EXECINSTR, 4);
                                     // find or create code segment
 
     cseg = seg;                         // new code segment index

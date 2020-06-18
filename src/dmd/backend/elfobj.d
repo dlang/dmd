@@ -652,7 +652,7 @@ int Obj_string_literal_segment(uint sz)
     static immutable char[4][3] name = [ "1.1", "2.2", "4.4" ];
     const int i = (sz == 4) ? 2 : sz - 1;
     const IDXSEC seg =
-        Obj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
+        Obj_getsegment(".rodata.str", name[i][0 .. 3], SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
     return seg;
 }
 
@@ -1757,7 +1757,8 @@ else
         flags = SHF_ALLOC|SHF_WRITE;
     }
 
-    s.Sseg = Obj_getsegment(prefix, cpp_mangle2(s), type, flags, align_);
+    const(char)* m = cpp_mangle2(s);
+    s.Sseg = Obj_getsegment(prefix[0 .. strlen(prefix)], m[0 .. strlen(m)], type, flags, align_);
                                 // find or create new segment
     if (s.Salignment > align_)
         SegData[s.Sseg].SDalignment = s.Salignment;
@@ -1808,7 +1809,7 @@ int Obj_jmpTableSegment(Symbol *s)
             /* `s` is in a COMDAT, so the jmp table segment must also
              * go into its own segment in the same group.
              */
-            seg = Obj_getsegment(".rodata.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, _tysize[TYnptr]);
+            seg = Obj_getsegment(".rodata.", s.Sident.ptr[0 .. strlen(s.Sident.ptr)], SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, _tysize[TYnptr]);
             addSegmentToComdat(seg, s.Sseg);
         }
         else
@@ -1957,12 +1958,13 @@ private int elf_getsegment(IDXSTR namidx)
  * Returns:
  *      SegData index of found or newly created section.
  */
-int Obj_getsegment(const(char)* name, const(char)* suffix, int type, int flags,
+extern (C)
+int Obj_getsegment(const(char)[] name, const(char)[] suffix, int type, int flags,
         int align_)
 {
-    //printf("Obj_getsegment(%s,%s,flags %x, align_ %d)\n",name,suffix,flags,align_);
+    //printf("Obj_getsegment(%s,%s,flags %x, align_ %d)\n",name.ptr,suffix.ptr,flags,align_);
     bool added = false;
-    const namidx = elf_addsectionname(name, suffix, &added);
+    const namidx = elf_addsectionname(name.ptr, suffix.ptr, &added);
     if (!added)
     {
         const seg = elf_getsegment(namidx);
@@ -1998,11 +2000,10 @@ void Obj_setcodeseg(int seg)
 int Obj_codeseg(const char *name,int suffix)
 {
     int seg;
-    const(char)* sfx;
 
     //dbg_printf("Obj_codeseg(%s,%x)\n",name,suffix);
 
-    sfx = (suffix) ? "_TEXT".ptr : null;
+    const(char)[] sfx = (suffix) ? "_TEXT" : null;
 
     if (!name)                          // returning to default code segment
     {
@@ -2015,7 +2016,7 @@ int Obj_codeseg(const char *name,int suffix)
         return cseg;
     }
 
-    seg = Obj_getsegment(name, sfx, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR, 4);
+    seg = Obj_getsegment(name[0 .. strlen(name)], sfx, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR, 4);
                                     // find or create code segment
 
     cseg = seg;                         // new code segment index
@@ -2064,12 +2065,11 @@ seg_data *Obj_tlsseg()
      */
     Obj_getsegment(".tdata", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
 
-    static immutable char[8] tlssegname = ".tdata.";
     //dbg_printf("Obj_tlsseg(\n");
 
     if (seg_tlsseg == UNKNOWN)
     {
-        seg_tlsseg = Obj_getsegment(tlssegname.ptr, null, SHT_PROGBITS,
+        seg_tlsseg = Obj_getsegment(".tdata.", null, SHT_PROGBITS,
             SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg];
@@ -2086,12 +2086,11 @@ seg_data *Obj_tlsseg()
 
 seg_data *Obj_tlsseg_bss()
 {
-    static immutable char[6] tlssegname = ".tbss";
     //dbg_printf("Obj_tlsseg_bss(\n");
 
     if (seg_tlsseg_bss == UNKNOWN)
     {
-        seg_tlsseg_bss = Obj_getsegment(tlssegname.ptr, null, SHT_NOBITS,
+        seg_tlsseg_bss = Obj_getsegment(".tbss", null, SHT_NOBITS,
             SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg_bss];
@@ -2278,8 +2277,9 @@ void Obj_func_start(Symbol *sfunc)
 
     if ((tybasic(sfunc.ty()) == TYmfunc) && (sfunc.Sclass == SCextern))
     {                                   // create a new code segment
+        const(char)* m = cpp_mangle2(sfunc);
         sfunc.Sseg =
-            Obj_getsegment(".gnu.linkonce.t.", cpp_mangle2(sfunc), SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
+            Obj_getsegment(".gnu.linkonce.t.", m[0 .. strlen(m)], SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
 
     }
     else if (sfunc.Sseg == UNKNOWN)
@@ -2482,9 +2482,11 @@ int Obj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     symbol_debug(s);
 
     int align_ = I64 ? 16 : 4;
+    const(char)* m = cpp_mangle2(s);
+    const(char)[] ms = m[0 .. strlen(m)];
     if (s.ty() & mTYthread)
     {
-        s.Sseg = Obj_getsegment(".tbss.", cpp_mangle2(s),
+        s.Sseg = Obj_getsegment(".tbss.", ms,
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
         s.Sfl = FLtlsdata;
         SegData[s.Sseg].SDsym = s;
@@ -2495,7 +2497,7 @@ int Obj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     }
     else
     {
-        s.Sseg = Obj_getsegment(".bss.", cpp_mangle2(s),
+        s.Sseg = Obj_getsegment(".bss.", ms,
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE, align_);
         s.Sfl = FLudata;
         SegData[s.Sseg].SDsym = s;
@@ -3700,7 +3702,7 @@ else
         {
             enum fini_name = USE_INIT_ARRAY ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
             enum fini_type = USE_INIT_ARRAY ? SHT_FINI_ARRAY : SHT_PROGBITS;
-            const cdseg = Obj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
+            const cdseg = Obj_getsegment(fini_name, null, fini_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.length());
             // add to section group
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
@@ -3711,7 +3713,7 @@ else
         {
             enum init_name = USE_INIT_ARRAY ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
             enum init_type = USE_INIT_ARRAY ? SHT_INIT_ARRAY : SHT_PROGBITS;
-            const cdseg = Obj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
+            const cdseg = Obj_getsegment(init_name, null, init_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.length());
             // add to section group
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
@@ -3789,7 +3791,8 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
          */
         if (!s.Sdw_ref_idx)
         {
-            const dataDWref_seg = Obj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
+            const dataDWref_seg = Obj_getsegment(".data.DW.ref.", s.Sident.ptr[0 .. strlen(s.Sident.ptr)],
+                SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
             Outbuffer *buf = SegData[dataDWref_seg].SDbuf;
             assert(buf.length() == 0);
             Obj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);

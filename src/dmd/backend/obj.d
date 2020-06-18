@@ -16,6 +16,8 @@ module dmd.backend.obj;
 /* Interface to object file format
  */
 
+import core.stdc.string;
+
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
@@ -271,14 +273,16 @@ version (Posix)
 
     version (OSX)
     {
-        int Obj_getsegment(const(char)* sectname, const(char)* segname,
+        extern (C)
+        int Obj_getsegment(const(char)[] sectname, const(char)[] segname,
                               int  _align, int flags);
         void Obj_addrel(int seg, targ_size_t offset, Symbol *targsym,
                            uint targseg, int rtype, int val = 0);
     }
     else
     {
-        int Obj_getsegment(const(char)* name, const(char)* suffix,
+        extern (C)
+        int Obj_getsegment(const(char)[] name, const(char)[] suffix,
                               int type, int flags, int  _align);
         void Obj_addrel(int seg, targ_size_t offset, uint type,
                            uint symidx, targ_size_t val);
@@ -1197,7 +1201,7 @@ else version (ELFandMACH)
             int getsegment(const(char)* sectname, const(char)* segname,
                                   int align_, int flags)
             {
-                return Obj_getsegment(sectname, segname, align_, flags);
+                return Obj_getsegment(sectname[0 .. strlen(sectname)], segname[0 .. strlen(segname)], align_, flags);
             }
 
             void addrel(int seg, targ_size_t offset, Symbol *targsym,
@@ -1212,7 +1216,8 @@ else version (ELFandMACH)
             int getsegment(const(char)* name, const(char)* suffix,
                                   int type, int flags, int  align_)
             {
-                return Obj_getsegment(name, suffix, type, flags, align_);
+                return Obj_getsegment(name[0 .. strlen(name)], suffix ? suffix[0 .. strlen(suffix)] : null,
+                    type, flags, align_);
             }
 
             void addrel(int seg, targ_size_t offset, uint type,
