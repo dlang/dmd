@@ -1040,6 +1040,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     f = td.funcroot;
                 ex = null;
             }
+            else if (ex.op == TOK.dotTemplateDeclaration)
+            {
+                DotTemplateExp dte = cast(DotTemplateExp)ex;
+                auto td = dte.td;
+                f = td;
+                if (td && td.funcroot)
+                    f = td.funcroot;
+                ex = null;
+            }
 
             bool[string] funcTypeHash;
 
