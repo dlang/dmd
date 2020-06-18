@@ -279,9 +279,13 @@ struct linnum_data
     const(char) *filename;
     uint filenumber;        // corresponding file number for DW_LNS_set_file
 
-    uint linoff_count;
-    uint linoff_max;
-    uint[2]* linoff;        // [0] = line number, [1] = offset
+    Barray!(LinOff) linoff;    // line numbers and offsets
+}
+
+struct LinOff
+{
+    uint lineNumber;
+    uint offset;
 }
 
 extern __gshared seg_data **SegData;
