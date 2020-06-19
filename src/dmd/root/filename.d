@@ -930,7 +930,7 @@ nothrow:
     }
 
     /******************************************
-     * Return canonical version of name in a malloc'd buffer.
+     * Return canonical version of name.
      * This code is high risk.
      */
     extern (C++) static const(char)* canonicalName(const(char)* name)
@@ -975,14 +975,16 @@ nothrow:
                 char[PATH_MAX] buf = void;
                 auto path = name.toCStringThen!((n) => realpath(n.ptr, buf.ptr));
                 if (path !is null)
-                    return mem.xstrdup(path).toDString;
+                    return xarraydup(path.toDString);
             }
             else static if (__traits(compiles, canonicalize_file_name))
             {
                 // Have canonicalize_file_name, which malloc's memory.
+                // We need a dmd.root.rmem allocation though.
                 auto path = name.toCStringThen!((n) => canonicalize_file_name(n.ptr));
+                scope(exit) .free(path.ptr);
                 if (path !is null)
-                    return path.toDString;
+                    return xarraydup(path.toDString);
             }
             else static if (__traits(compiles, _PC_PATH_MAX))
             {
@@ -994,14 +996,14 @@ nothrow:
                     scope(exit) mem.xfree(buf);
                     auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
                     if (path !is null)
-                        return mem.xstrdup(path).toDString;
+                        return xarraydup(path.toDString);
                 }
             }
             // Give up trying to support this platform, just duplicate the filename
             // unless there is nothing to copy from.
             if (!name.length)
                 return null;
-            return mem.xstrdup(name.ptr)[0 .. name.length];
+            return xarraydup(name);
         }
         else version (Windows)
         {
@@ -1011,24 +1013,33 @@ nothrow:
                 /* Apparently, there is no good way to do this on Windows.
                  * GetFullPathName isn't it, but use it anyway.
                  */
-                // First find out how long the buffer has to be.
-                const fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
-                if (!fullPathLength) return null;
-                auto fullPath = (cast(wchar*) mem.xmalloc_noscan((fullPathLength + 1) * wchar.sizeof))[0 .. fullPathLength + 1];
-                scope(exit) mem.xfree(fullPath.ptr);
+                // First find out how long the buffer has to be, incl. terminating null.
+                const capacity = GetFullPathNameW(&wname[0], 0, null, null);
+                if (!capacity) return null;
+                auto buffer = cast(wchar*) mem.xmalloc_noscan(capacity * wchar.sizeof);
+                scope(exit) mem.xfree(buffer);
 
-                // Actually get the full path name
-                const length = GetFullPathNameW(
-                    &wname[0], cast(DWORD) fullPath.length, &fullPath[0], null /*filePart*/);
-                assert(length == fullPathLength);
+                // Actually get the full path name. If the buffer is large enough,
+                // the returned length does NOT include the terminating null...
+                const length = GetFullPathNameW(&wname[0], capacity, buffer, null /*filePart*/);
+                assert(length == capacity - 1);
 
-                return toNarrowStringz(fullPath[0 .. length]);
+                return toNarrowStringz(buffer[0 .. length]);
             });
         }
         else
         {
             assert(0);
         }
+    }
+
+    unittest
+    {
+        string filename = "foo.bar";
+        const path = canonicalName(filename);
+        scope(exit) free(path.ptr);
+        assert(path.length >= filename.length);
+        assert(path[$ - filename.length .. $] == filename);
     }
 
     /********************************
