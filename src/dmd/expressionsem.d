@@ -5567,7 +5567,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e.error("can only declare type aliases within `static if` conditionals or `static assert`s");
             return setError();
         }
-        Type tded = null;
 
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
