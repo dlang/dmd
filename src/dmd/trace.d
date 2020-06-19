@@ -127,7 +127,7 @@ string traceString(string vname, string fn = null)
     {
         QueryPerformanceCounter(&end_sema_ticks);
         if (v_ !is null)
-        { 
+        {
             static if (is(v_type : Dsymbol))
             {
                 dsymbol_profile_array[insert_pos] =
@@ -136,7 +136,7 @@ string traceString(string vname, string fn = null)
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
                         ? `"` ~ fn ~ `"` : `__FUNCTION__`) ~ `);
-                dsymbol_profile_array[insert_pos].sym = v_; 
+                dsymbol_profile_array[insert_pos].sym = v_;
             } else static if (is(v_type : Expression))
             {
                 dsymbol_profile_array[insert_pos] =
@@ -145,7 +145,7 @@ string traceString(string vname, string fn = null)
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
                         ? `"` ~ fn ~ `"` : `__FUNCTION__`) ~ `);
-                dsymbol_profile_array[insert_pos].exp = v_; 
+                dsymbol_profile_array[insert_pos].exp = v_;
             } else static if (is(v_type : Statement))
             {
                 dsymbol_profile_array[insert_pos] =
@@ -154,7 +154,7 @@ string traceString(string vname, string fn = null)
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
                         ? `"` ~ fn ~ `"` : `__FUNCTION__`) ~ `);
-                dsymbol_profile_array[insert_pos].stmt = v_; 
+                dsymbol_profile_array[insert_pos].stmt = v_;
             } else static if (is(v_type : Type))
             {
                 dsymbol_profile_array[insert_pos] =
@@ -163,7 +163,7 @@ string traceString(string vname, string fn = null)
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
                         ? `"` ~ fn ~ `"` : `__FUNCTION__`) ~ `);
-                dsymbol_profile_array[insert_pos].type = v_; 
+                dsymbol_profile_array[insert_pos].type = v_;
             }
             else
                 static assert(0, "we dont know how to deal with: " ~ v_type.stringof);
@@ -191,7 +191,7 @@ static if (COMPRESSED_TRACE)
         void* sym;
         uint id;
         uint pad;
-        
+
         const (char)* name;
         const (char)* loc;
         const (char)* typename;
@@ -201,10 +201,10 @@ static if (COMPRESSED_TRACE)
     string[] phases;
     string[] kinds;
 
-	ushort[string] kindArray;
-	ushort kindArrayNextId = 1;
-	ushort[string] phaseArray;
-	ushort phaseArrayNextId = 1;
+    ushort[string] kindArray;
+    ushort kindArrayNextId = 1;
+    ushort[string] phaseArray;
+    ushort phaseArrayNextId = 1;
 
     SymInfo*[void*/*Expression*/] expMap;
     SymInfo*[void*/*Dsymbol*/] symMap;
@@ -226,48 +226,48 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
 
     static if (COMPRESSED_TRACE)
     {
-		ushort getKindId(string kind, bool justLookup = true)
-		{
+        ushort getKindId(string kind, bool justLookup = true)
+        {
             ushort result;
             //TODO: don't use AA's here
-			if (auto id = kind in kindArray)
-			{
-				result = *id;
-			}
-			else
-			{
-				assert(!justLookup);
-				auto id = kindArrayNextId++;
+            if (auto id = kind in kindArray)
+            {
+                result = *id;
+            }
+            else
+            {
+                assert(!justLookup);
+                auto id = kindArrayNextId++;
                 kinds ~= kind;
-				kindArray[kind] = id;
-				result = id;
-			}
+                kindArray[kind] = id;
+                result = id;
+            }
 
-			return result;
-		}
+            return result;
+        }
 
-		ushort getPhaseId(string phase, bool justLookup = true)
-		{
-			ushort result;
+        ushort getPhaseId(string phase, bool justLookup = true)
+        {
+            ushort result;
             //TODO: don't use AAs here
-			if (auto id = phase in phaseArray)
-			{
-				result = *id;
-			}
-			else
-			{
-				assert(!justLookup);
-				auto id = phaseArrayNextId++;
+            if (auto id = phase in phaseArray)
+            {
+                result = *id;
+            }
+            else
+            {
+                assert(!justLookup);
+                auto id = phaseArrayNextId++;
                 phases ~= phase;
-				phaseArray[phase] = id;
-				result = id;
-			}
+                phaseArray[phase] = id;
+                result = id;
+            }
 
-			return result;
-		}
+            return result;
+        }
 
-		ushort kindId = getKindId(dp.kind, false);
-		ushort phaseId = getPhaseId(dp.fn, false);
+        ushort kindId = getKindId(dp.kind, false);
+        ushort phaseId = getPhaseId(dp.fn, false);
 
         if (kindId > 500)
             assert(0);
@@ -296,19 +296,19 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
                 {
                     id = (**symInfo).id;
                 }
-                break;             
+                break;
             case ProfileNodeType.Statement :
                 if (auto symInfo = (cast(void*)dp.stmt) in stmtMap)
                 {
                     id = (**symInfo).id;
                 }
-                break;             
+                break;
             case ProfileNodeType.Type :
                 if (auto symInfo = (cast(void*)dp.type) in typeMap)
                 {
                     id = (**symInfo).id;
                 }
-                break;             
+                break;
                 // we should probably assert here.
             case ProfileNodeType.Invalid:
                 numInvalidProfileNodes++;
@@ -332,18 +332,18 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
                 case ProfileNodeType.Dsymbol :
                     symInfo.name = dp.sym.toChars();
                     symInfo.loc = dp.sym.loc.toChars();
-                    
+
                     symMap[cast(void*)dp.sym] = symInfo;
                 break;
                 case ProfileNodeType.Expression :
                     symInfo.name = dp.exp.toChars();
                     symInfo.loc = dp.exp.loc.toChars();
-                    
+
                     expMap[cast(void*)dp.exp] = symInfo;
                 break;
                 case ProfileNodeType.Statement:
                     /* don't set name for statement because doesn't really have a name
-                     * symInfo.name = ((dp.stmt.isForwardingStatement() || dp.stmt.isPeelStatement()) ? 
+                     * symInfo.name = ((dp.stmt.isForwardingStatement() || dp.stmt.isPeelStatement()) ?
                         "toChars() for statement not implemented" :
                         dp.stmt.toChars());
                     */
@@ -376,15 +376,15 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
             case ProfileNodeType.Expression :
                 loc = dp.exp.loc;
                 name = dp.exp.toChars();
-            break;             
+            break;
             case ProfileNodeType.Statement :
                 loc = dp.stmt.loc;
                 /* don't set name for statement because doesn't really have a name
-                     * symInfo.name = ((dp.stmt.isForwardingStatement() || dp.stmt.isPeelStatement()) ? 
+                     * symInfo.name = ((dp.stmt.isForwardingStatement() || dp.stmt.isPeelStatement()) ?
                         "toChars() for statement not implemented" :
-                        dp.stmt.toChars());        
-				);
-            */            
+                        dp.stmt.toChars());
+                                );
+            */
             break;
             case ProfileNodeType.Type :
                 name = dp.type.toChars();
@@ -394,7 +394,7 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
             case ProfileNodeType.Invalid:
                 return ;
             case ProfileNodeType.NullSymbol: break;
-    
+
         }
     }
     // Identifier ident = dp.sym.ident ? dp.sym.ident : dp.sym.getIdent();
@@ -436,7 +436,7 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
                 symbol_id : id,
                 kind_id : kindId,
                 phase_id : phaseId
-		    };
+                    };
             (*rp) = r;
         }
     }
@@ -529,7 +529,7 @@ struct TraceFileTail
     string[] symbol_names;
     string[] symbol_locations;
 }
- 
+
 
 pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFileName = null, uint fVersion = 3)
 {
@@ -667,7 +667,7 @@ pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFi
                 bufferPos = fileBuffer;
                 auto symHeader = cast(TraceFileHeader*)bufferPos;
                 bufferPos += TraceFileHeader.sizeof;
-                
+
                 copyAndPointPastEnd(cast(char*)&symHeader.magic_number, "DMDTRACE".ptr);
                 symHeader.FileVersion = fVersion;
 
@@ -700,12 +700,12 @@ pragma(inline, false) void writeTrace(Strings* arguments, const (char)[] traceFi
             auto fileNameLength =
                 sprintf(&fileNameBuffer[0], "symbol-%s.1.csv".ptr, traceFileName ? traceFileName : timeString);
 
-			bufferPos += sprintf(cast(char*) bufferPos, "//");
-			foreach(arg;arguments)
-			{
-				bufferPos += sprintf(bufferPos, "%s ", arg);
-			}
-			bufferPos += sprintf(cast(char*) bufferPos, "\n");
+                        bufferPos += sprintf(cast(char*) bufferPos, "//");
+                        foreach(arg;arguments)
+                        {
+                                bufferPos += sprintf(bufferPos, "%s ", arg);
+                        }
+                        bufferPos += sprintf(cast(char*) bufferPos, "\n");
 
             bufferPos += sprintf(cast(char*) bufferPos,
                 "%s|%s|%s|%s|%s|%s|%s|%s|%s|\n",
