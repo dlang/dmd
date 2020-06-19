@@ -35,6 +35,8 @@ enum DYNCAST
 class RootObject
 {
 public:
+    size_t serial;
+
     RootObject() { }
 
     virtual bool equals(const RootObject *o) const;
