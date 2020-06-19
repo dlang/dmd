@@ -248,6 +248,14 @@ int seg_tlsseg_bss = UNKNOWN;
  * with an initializer.
  */
 int seg_tlsseg_data = UNKNOWN;
+
+int seg_cstring = UNKNOWN;        // __cstring section
+int seg_mod_init_func = UNKNOWN;  // __mod_init_func section
+int seg_mod_term_func = UNKNOWN;  // __mod_term_func section
+int seg_deh_eh = UNKNOWN;         // __deh_eh section
+int seg_textcoal_nt = UNKNOWN;
+int seg_tlscoal_nt = UNKNOWN;
+int seg_datacoal_nt = UNKNOWN;
 }
 
 /*******************************************************
@@ -424,9 +432,8 @@ int Obj_data_readonly(char *p, int len)
 int Obj_string_literal_segment(uint sz)
 {
     if (sz == 1)
-    {
-        return Obj_getsegment("__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
-    }
+        return getsegment2(seg_cstring, "__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
+
     return CDATA;  // no special handling for other wstring, dstring; use __const
 }
 
@@ -446,6 +453,13 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
     seg_tlsseg_data = UNKNOWN;
+    seg_cstring = UNKNOWN;
+    seg_mod_init_func = UNKNOWN;
+    seg_mod_term_func = UNKNOWN;
+    seg_deh_eh = UNKNOWN;
+    seg_textcoal_nt = UNKNOWN;
+    seg_tlscoal_nt = UNKNOWN;
+    seg_datacoal_nt = UNKNOWN;
 
     // Initialize buffers
 
@@ -1682,10 +1696,11 @@ void Obj_staticdtor(Symbol *s)
 
 void Obj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    const(char)* secname = isCtor ? "__mod_init_func" : "__mod_term_func";
-    const int align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
-    const int flags = isCtor ? S_MOD_INIT_FUNC_POINTERS : S_MOD_TERM_FUNC_POINTERS;
-    IDXSEC seg = Obj_getsegment(secname, "__DATA", align_, flags);
+    const align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
+
+    IDXSEC seg = isCtor
+                ? getsegment2(seg_mod_init_func, "__mod_init_func", "__DATA", align_, S_MOD_INIT_FUNC_POINTERS)
+                : getsegment2(seg_mod_term_func, "__mod_term_func", "__DATA", align_, S_MOD_TERM_FUNC_POINTERS);
 
     const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
     const int sz = Obj_reftoident(seg, SegData[seg].SDoffset, sfunc, 0, relflags);
@@ -1710,7 +1725,7 @@ void Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 
     int align_ = I64 ? 3 : 2;            // align to _tysize[TYnptr]
     // The size is (FuncTable).sizeof in deh2.d
-    int seg = Obj_getsegment("__deh_eh", "__DATA", align_, S_REGULAR);
+    int seg = getsegment2(seg_deh_eh, "__deh_eh", "__DATA", align_, S_REGULAR);
 
     Outbuffer *buf = SegData[seg].SDbuf;
     if (I64)
@@ -1768,7 +1783,7 @@ int Obj_comdat(Symbol *s)
         segname = "__TEXT";
         align_ = 2;              // 4 byte alignment
         flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
-        s.Sseg = Obj_getsegment(sectname, segname, align_, flags);
+        s.Sseg = getsegment2(seg_textcoal_nt, sectname, segname, align_, flags);
     }
     else if ((s.ty() & mTYLINK) == mTYthread)
     {
@@ -1777,7 +1792,7 @@ int Obj_comdat(Symbol *s)
         if (I64)
             s.Sseg = objmod.tlsseg().SDseg;
         else
-            s.Sseg = Obj_getsegment("__tlscoal_nt", "__DATA", align_, S_COALESCED);
+            s.Sseg = getsegment2(seg_tlscoal_nt, "__tlscoal_nt", "__DATA", align_, S_COALESCED);
         Obj_data_start(s, 1 << align_, s.Sseg);
     }
     else
@@ -1786,7 +1801,7 @@ int Obj_comdat(Symbol *s)
         sectname = "__datacoal_nt";
         segname = "__DATA";
         align_ = 4;              // 16 byte alignment
-        s.Sseg = Obj_getsegment(sectname, segname, align_, S_COALESCED);
+        s.Sseg = getsegment2(seg_datacoal_nt, sectname, segname, align_, S_COALESCED);
         Obj_data_start(s, 1 << align_, s.Sseg);
     }
                                 // find or create new segment
@@ -1910,6 +1925,26 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
     return seg;
 }
 
+/********************************
+ * Memoize seg index.
+ * Params:
+ *      seg = value to memoize if it is not already set
+ *      sectname = section name
+ *      segname = segment name
+ *      align_ = section alignment
+ *      flags = S_????
+ * Returns:
+ *      seg index
+ */
+private extern (D)
+int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
+        int align_, int flags)
+{
+    if (seg == UNKNOWN)
+        seg = Obj_getsegment(sectname, segname, align_, flags);
+    return seg;
+}
+
 /**********************************
  * Reset code seg to existing seg.
  * Used after a COMDAT for a function is done.
@@ -1975,18 +2010,9 @@ else
 seg_data *Obj_tlsseg()
 {
     //printf("Obj_tlsseg(\n");
-    if (I32)
-    {
-        if (seg_tlsseg == UNKNOWN)
-            seg_tlsseg = Obj_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
-        return SegData[seg_tlsseg];
-    }
-    else
-    {
-        if (seg_tlsseg == UNKNOWN)
-            seg_tlsseg = Obj_getsegment("__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
-        return SegData[seg_tlsseg];
-    }
+    int seg = I32 ? getsegment2(seg_tlsseg, "__tls_data", "__DATA", 2, S_REGULAR)
+                  : getsegment2(seg_tlsseg, "__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
+    return SegData[seg];
 }
 
 
@@ -2012,9 +2038,8 @@ seg_data *Obj_tlsseg_bss()
     {
         // The alignment should actually be alignment of the largest variable in
         // the section, but this seems to work anyway.
-        if (seg_tlsseg_bss == UNKNOWN)
-            seg_tlsseg_bss = Obj_getsegment("__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
-        return SegData[seg_tlsseg_bss];
+        int seg = getsegment2(seg_tlsseg_bss, "__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
+        return SegData[seg];
     }
 }
 
@@ -2033,9 +2058,8 @@ seg_data *Obj_tlsseg_data()
 
     // The alignment should actually be alignment of the largest variable in
     // the section, but this seems to work anyway.
-    if (seg_tlsseg_data == UNKNOWN)
-        seg_tlsseg_data = Obj_getsegment("__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
-    return SegData[seg_tlsseg_data];
+    int seg = getsegment2(seg_tlsseg_data, "__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
+    return SegData[seg];
 }
 
 /*******************************
