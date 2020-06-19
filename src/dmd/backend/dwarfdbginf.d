@@ -90,9 +90,9 @@ __gshared
 {
 static if (MACHOBJ)
 {
-int except_table_seg = 0;       // __gcc_except_tab segment
+int except_table_seg = UNKNOWN; // __gcc_except_tab segment
 int except_table_num = 0;       // sequence number for GCC_except_table%d symbols
-int eh_frame_seg = 0;           // __eh_frame segment
+int eh_frame_seg = UNKNOWN;     // __eh_frame segment
 Symbol *eh_frame_sym = null;            // past end of __eh_frame
 }
 
@@ -105,6 +105,12 @@ IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         uint typ, uint bind, IDXSEC sec,
         ubyte visibility = STV_DEFAULT);
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
+}
+
+static if (MACHOBJ)
+{
+    int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
+        int align_, int flags);
 }
 
 Symbol* getRtlsymPersonality();
@@ -183,9 +189,7 @@ static if (ELFOBJ)
 }
 else static if (MACHOBJ)
 {
-    int seg = Obj.getsegment("__gcc_except_tab", "__TEXT", 2, S_REGULAR);
-    except_table_seg = seg;
-    return seg;
+    return getsegment2(except_table_seg, "__gcc_except_tab", "__TEXT", 2, S_REGULAR);
 }
 else
     assert(0);
@@ -197,7 +201,7 @@ static if (ELFOBJ)
     return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
 else static if (MACHOBJ)
 {
-    int seg = Obj.getsegment("__eh_frame", "__TEXT", I64 ? 3 : 2,
+    int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2,
         S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
     /* Generate symbol for it to use for fixups
      */
@@ -209,7 +213,6 @@ else static if (MACHOBJ)
         eh_frame_sym = symbol_name("EH_frame0", SCstatic, t);
         Obj.pubdef(seg, eh_frame_sym, 0);
         symbol_keep(eh_frame_sym);
-        eh_frame_seg = seg;
     }
     return seg;
 }
@@ -998,9 +1001,9 @@ extern(D) void dwarf_initfile(const(char)[] filename)
     {
 static if (MACHOBJ)
 {
-        except_table_seg = 0;
+        except_table_seg = UNKNOWN;
         except_table_num = 0;
-        eh_frame_seg = 0;
+        eh_frame_seg = UNKNOWN;
         eh_frame_sym = null;
 }
         CIE_offset_unwind = ~0;

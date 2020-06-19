@@ -1936,7 +1936,6 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
  * Returns:
  *      seg index
  */
-private extern (D)
 int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
         int align_, int flags)
 {
