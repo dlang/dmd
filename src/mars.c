@@ -1562,11 +1562,11 @@ Language changes listed by -transition=id:\n\
         if (global.params.moduleDepsFile.length)
         {
             File deps(global.params.moduleDepsFile.ptr);
-            deps.setbuffer((void*)ob->data, ob->offset);
+            deps.setbuffer((void*)ob->slice().ptr, ob->length());
             writeFile(Loc(), &deps);
         }
         else
-            printf("%.*s", (int)ob->offset, ob->data);
+            printf("%.*s", (int)ob->length(), ob->slice().ptr);
     }
 
     printCtfePerformanceStats();
@@ -1597,8 +1597,8 @@ Language changes listed by -transition=id:\n\
 
         if (name && name[0] == '-' && name[1] == 0)
         {   // Write to stdout; assume it succeeds
-            size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-            assert(n == buf.offset);        // keep gcc happy about return values
+            size_t n = fwrite(buf.slice().ptr, 1, buf.length(), stdout);
+            assert(n == buf.length());        // keep gcc happy about return values
         }
         else
         {
@@ -1627,7 +1627,7 @@ Language changes listed by -transition=id:\n\
 
             File *jsonfile = new File(jsonfilename);
 
-            jsonfile->setbuffer(buf.data, buf.offset);
+            jsonfile->setbuffer(buf.slice().ptr, buf.length());
             jsonfile->ref = 1;
             writeFile(Loc(), jsonfile);
         }

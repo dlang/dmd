@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 
 #include "root/rmem.h"
-#include "root/root.h"
+#include "root/port.h"
 #include "root/stringtable.h"
 
 #include "mars.h"
@@ -146,7 +146,7 @@ void LibMSCoff::write()
     WriteLibToBuffer(&libbuf);
 
     // Transfer image to file
-    libfile->setbuffer(libbuf.data, libbuf.offset);
+    libfile->setbuffer(libbuf.slice().ptr, libbuf.length());
     libbuf.extractData();
 
 
@@ -700,7 +700,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     /*** Write out First Linker Member ***/
 
-    assert(libbuf->offset == firstLinkerMemberOffset);
+    assert(libbuf->length() == firstLinkerMemberOffset);
 
     Header h;
     OmToHeader(&h, &om);
@@ -735,10 +735,10 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     /*** Write out Second Linker Member ***/
 
-    if (libbuf->offset & 1)
+    if (libbuf->length() & 1)
         libbuf->writeByte('\n');
 
-    assert(libbuf->offset == secondLinkerMemberOffset);
+    assert(libbuf->length() == secondLinkerMemberOffset);
 
     om.length = 4 + objmodules.length * 4 + 4 + objsymbols.length * 2 + slength;
     OmToHeader(&h, &om);
@@ -777,11 +777,11 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     /*** Write out longnames Member ***/
 
-    if (libbuf->offset & 1)
+    if (libbuf->length() & 1)
         libbuf->writeByte('\n');
 
-    //printf("libbuf %x longnames %x\n", (int)libbuf->offset, (int)LongnamesMemberOffset);
-    assert(libbuf->offset == LongnamesMemberOffset);
+    //printf("libbuf %x longnames %x\n", (int)libbuf->length(), (int)LongnamesMemberOffset);
+    assert(libbuf->length() == LongnamesMemberOffset);
 
     // header
     memset(&h, ' ', sizeof(Header));
@@ -807,11 +807,11 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
-        if (libbuf->offset & 1)
+        if (libbuf->length() & 1)
             libbuf->writeByte('\n');    // module alignment
 
-        //printf("libbuf %x om %x\n", (int)libbuf->offset, (int)om->offset);
-        assert(libbuf->offset == om->offset);
+        //printf("libbuf %x om %x\n", (int)libbuf->length(), (int)om->offset);
+        assert(libbuf->length() == om->offset);
 
         if (om->scan)
         {
@@ -827,7 +827,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     }
 
 #if LOG
-    printf("moffset = x%x, libbuf->offset = x%x\n", (unsigned)moffset, (unsigned)libbuf->offset);
+    printf("moffset = x%x, libbuf->offset = x%x\n", (unsigned)moffset, (unsigned)libbuf->length());
 #endif
-    assert(libbuf->offset == moffset);
+    assert(libbuf->length() == moffset);
 }
