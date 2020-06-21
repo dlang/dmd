@@ -3612,11 +3612,11 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cs.Irm |= modregrm(0,mode,0);
         cs.Iflags |= CFpsw | word;
         cs.IFL2 = FLconst;
-        if (_tysize[ty1] == SHORTSIZE)
+        if (sz <= SHORTSIZE)
         {
             cs.IEV2.Vint = e2.EV.Vint & 15;
         }
-        else if (_tysize[ty1] == 4)
+        else if (sz == 4)
         {
             cs.IEV2.Vint = e2.EV.Vint & 31;
         }
