@@ -17,7 +17,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "root.h"
+#include "port.h"
 #include "stringtable.h"
 
 #include "mars.h"
@@ -120,7 +120,7 @@ void LibElf::write()
     WriteLibToBuffer(&libbuf);
 
     // Transfer image to file
-    libfile->setbuffer(libbuf.data, libbuf.offset);
+    libfile->setbuffer(libbuf.slice().ptr, libbuf.length());
     libbuf.extractData();
 
 
@@ -617,14 +617,14 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     }
 
 #if LOG
-    printf("\tlibbuf->moffset = x%x\n", libbuf->offset);
+    printf("\tlibbuf->moffset = x%x\n", libbuf->length());
 #endif
 
     /* Write out the string section
      */
     if (noffset)
     {
-        if (libbuf->offset & 1)
+        if (libbuf->length() & 1)
             libbuf->writeByte('\n');
 
         // header
@@ -653,10 +653,10 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
-        if (libbuf->offset & 1)
+        if (libbuf->length() & 1)
             libbuf->writeByte('\n');    // module alignment
 
-        assert(libbuf->offset == om->offset);
+        assert(libbuf->length() == om->offset);
 
         OmToHeader(&h, om);
         libbuf->write(&h, sizeof(h));   // module header
@@ -665,7 +665,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     }
 
 #if LOG
-    printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf->offset);
+    printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf->length());
 #endif
-    assert(libbuf->offset == moffset);
+    assert(libbuf->length() == moffset);
 }

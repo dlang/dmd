@@ -18,7 +18,7 @@
 #include <string.h>                     // str{len|dup}(),memcpy()
 
 #include "root/rmem.h"
-#include "root/root.h"
+#include "root/port.h"
 #include "root/stringtable.h"
 
 #include "mars.h"
@@ -126,7 +126,7 @@ void LibOMF::write()
     WriteLibToBuffer(&libbuf);
 
     // Transfer image to file
-    libfile->setbuffer(libbuf.data, libbuf.offset);
+    libfile->setbuffer(libbuf.slice().ptr, libbuf.length());
     libbuf.extractData();
 
 
@@ -678,7 +678,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
     for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
-        unsigned page = libbuf->offset / g_page_size;
+        unsigned page = libbuf->length() / g_page_size;
         assert(page <= 0xFFFF);
         om->page = page;
 
@@ -687,13 +687,13 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
 
         // Round the size of the file up to the next page size
         // by filling with 0s
-        unsigned n = (g_page_size - 1) & libbuf->offset;
+        unsigned n = (g_page_size - 1) & libbuf->length();
         if (n)
             libbuf->fill0(g_page_size - n);
     }
 
     // File offset of start of dictionary
-    unsigned offset = libbuf->offset;
+    unsigned offset = libbuf->length();
 
     // Write dictionary header, then round it to a BUCKETPAGE boundary
     unsigned short size = (BUCKETPAGE - ((short)offset + 3)) & (BUCKETPAGE - 1);
@@ -758,5 +758,5 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
     libHeader.flags = 1;                // always case sensitive
 
     // Write library header at start of buffer
-    memcpy(libbuf->data, &libHeader, sizeof(libHeader));
+    memcpy(libbuf->slice().ptr, &libHeader, sizeof(libHeader));
 }

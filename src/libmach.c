@@ -27,7 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "root.h"
+#include "port.h"
 #include "stringtable.h"
 
 #include "mars.h"
@@ -130,7 +130,7 @@ void LibMach::write()
     WriteLibToBuffer(&libbuf);
 
     // Transfer image to file
-    libfile->setbuffer(libbuf.data, libbuf.offset);
+    libfile->setbuffer(libbuf.slice().ptr, libbuf.length());
     libbuf.extractData();
 
 
@@ -597,26 +597,26 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
         libbuf->writestring(os->name);
         libbuf->writeByte(0);
     }
-    while (libbuf->offset & 3)
+    while (libbuf->length() & 3)
         libbuf->writeByte(0);
 
-//    if (libbuf->offset & 4)
+//    if (libbuf->length() & 4)
 //      libbuf->write(pad, 4);
 
 #if LOG
-    printf("\tlibbuf->moffset = x%x\n", libbuf->offset);
+    printf("\tlibbuf->moffset = x%x\n", libbuf->length());
 #endif
-    assert(libbuf->offset == hoffset);
+    assert(libbuf->length() == hoffset);
 
     /* Write out each of the object modules
      */
     for (size_t i = 0; i < objmodules.length; i++)
     {   ObjModule *om = objmodules[i];
 
-        if (libbuf->offset & 1)
+        if (libbuf->length() & 1)
             libbuf->writeByte('\n');    // module alignment
 
-        assert(libbuf->offset == om->offset);
+        assert(libbuf->length() == om->offset);
 
         if (om->scan)
         {
@@ -647,7 +647,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
     }
 
 #if LOG
-    printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf->offset);
+    printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf->length());
 #endif
-    assert(libbuf->offset == moffset);
+    assert(libbuf->length() == moffset);
 }

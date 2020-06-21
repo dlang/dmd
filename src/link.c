@@ -38,7 +38,8 @@
     #define HAS_POSIX_SPAWN 0
 #endif
 
-#include        "root/root.h"
+#include        "root/file.h"
+#include        "root/port.h"
 
 #include        "mars.h"
 
@@ -382,10 +383,10 @@ int runLINK()
 
         /* Eliminate unnecessary trailing commas    */
         while (1)
-        {   size_t i = cmdbuf.offset;
-            if (!i || cmdbuf.data[i - 1] != ',')
+        {   size_t i = cmdbuf.length();
+            if (!i || cmdbuf.slice().ptr[i - 1] != ',')
                 break;
-            cmdbuf.offset--;
+            cmdbuf.setsize(cmdbuf.length() - 1);
         }
 
         if (global.params.resfile.length)
