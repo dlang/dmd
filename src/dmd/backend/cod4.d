@@ -3602,6 +3602,7 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     tym_t ty1 = tybasic(e1.Ety);
+    const sz = tysize(e1.Ety);
     ubyte word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
 
 //    if (e2.Eoper == OPconst && e2.EV.Vuns < 0x100)  // should do this instead?
@@ -3630,6 +3631,18 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     else
     {
         retregs = ALLREGS & ~idxregs;
+
+        /* A register variable may not have its upper 32
+         * bits 0, so pick a different register to force
+         * a MOV which will clear it
+         */
+        if (I64 && sz == 8 && tysize(e2.Ety) == 4)
+        {
+            regm_t rregm;
+            if (isregvar(e2, &rregm, null))
+                retregs &= ~rregm;
+        }
+
         scodelem(cdb,e2,&retregs,idxregs,true);
         reg = findreg(retregs);
 

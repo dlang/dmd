@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -O
+/* PERMUTE_ARGS: -O
  * https://issues.dlang.org/show_bug.cgi?id=19813
  */
 
@@ -82,7 +82,7 @@ struct BitArray
     }
 }
 
-int main()
+void test1()
 {
     bool[] ba = [1,0,1,0,1];
     bool[] bd = [1,0,1,1,1];
@@ -91,5 +91,37 @@ int main()
     auto d = BitArray(bd);
 
     assert(a <  d);
+}
+
+/***************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=18749
+
+ulong f(ulong* p, uint shift)
+{
+    return (*p >> shift) & 1;
+}
+
+ulong g(ulong* p, ulong shift)
+{
+    return f(p, cast(uint) shift);
+}
+
+void test18749()
+{
+    enum shift = uint.max + 1L;
+    assert(cast(uint) shift == 0);
+    ulong s = 1;
+    assert(g(&s, shift));
+}
+
+
+/***************************************/
+
+int main()
+{
+    test1();
+    test18749();
+
     return 0;
 }
