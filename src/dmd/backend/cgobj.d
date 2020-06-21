@@ -318,6 +318,15 @@ else
         }
 }
 
+/*****************************
+ */
+struct PtrRef
+{
+  align(4):
+    Symbol* sym;
+    uint offset;
+}
+
 enum LINRECMAX = 2 + 255 * 2;   // room for 255 line numbers
 
 /************************************
@@ -374,8 +383,6 @@ version (MARS)
     int fmsegi;                 // SegData[] of FM segment
     int datrefsegi;             // SegData[] of DATA pointer ref segment
     int tlsrefsegi;             // SegData[] of TLS pointer ref segment
-
-    Outbuffer *ptrref_buf;      // buffer for pointer references
 }
 
     int tlssegi;                // SegData[] of tls segment
@@ -400,6 +407,10 @@ version (MARS)
     Barray!(Symbol*) resetSymbols;  // reset symbols
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
+version (MARS)
+{
+    Barray!PtrRef ptrrefs;      // buffer for pointer references
+}
 }
 
 __gshared
@@ -3936,15 +3947,8 @@ void OmfObj_write_pointerRef(Symbol* s, uint soff)
 {
 version (MARS)
 {
-    if (!obj.ptrref_buf)
-    {
-        obj.ptrref_buf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-        assert(obj.ptrref_buf);
-    }
-
     // defer writing pointer references until the symbols are written out
-    obj.ptrref_buf.write(&s, s.sizeof);
-    obj.ptrref_buf.write32(soff);
+    obj.ptrrefs.push(PtrRef(s, soff));
 }
 }
 
@@ -4007,20 +4011,9 @@ private void objflush_pointerRefs()
 {
 version (MARS)
 {
-    if (!obj.ptrref_buf)
-        return;
-
-    ubyte *p = obj.ptrref_buf.buf;
-    ubyte *end = obj.ptrref_buf.buf + obj.ptrref_buf.length();
-    while (p < end)
-    {
-        Symbol* s = *cast(Symbol**)p;
-        p += s.sizeof;
-        uint soff = *cast(uint*)p;
-        p += soff.sizeof;
-        objflush_pointerRef(s, soff);
-    }
-    obj.ptrref_buf.reset();
+    foreach (ref pr; obj.ptrrefs)
+        objflush_pointerRef(pr.sym, pr.offset);
+    obj.ptrrefs.reset();
 }
 }
 
