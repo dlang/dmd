@@ -347,7 +347,6 @@ struct Objstate
     int segidx;                 // index of next SEGDEF record
     int extidx;                 // index of next EXTDEF record
     int pubnamidx;              // index of COMDAT public name index
-    Outbuffer *reset_symbuf;    // Keep pointers to reset symbols
 
     Symbol *startaddress;       // if !null, then Symbol is start address
 
@@ -398,6 +397,7 @@ version (MARS)
     // The rest don't get re-zeroed for each object file, they get reset
 
     Rarray!(Ledatarec*) ledatas;
+    Barray!(Symbol*) resetSymbols;  // reset symbols
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
 }
@@ -686,31 +686,17 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         //printf("OmfObj_init()\n");
         Obj mobj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
-        Outbuffer *reset_symbuf = obj.reset_symbuf;
-        if (reset_symbuf)
-        {
-            Symbol **p = cast(Symbol **)reset_symbuf.buf;
-            const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
-            for (size_t i = 0; i < n; ++i)
-                symbol_reset(p[i]);
-            reset_symbuf.reset();
-        }
-        else
-        {
-            reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-            assert(reset_symbuf);
-            reset_symbuf.reserve(50 * (Symbol*).sizeof);
-        }
-
         // Zero obj up to ledatas
         memset(&obj,0,obj.ledatas.offsetof);
 
         obj.ledatas.reset();    // recycle the memory used by ledatas
 
+        foreach (s; obj.resetSymbols)
+            symbol_reset(s);
+        obj.resetSymbols.reset();
+
         obj.buf = objbuf;
         obj.buf.reserve(40000);
-
-        obj.reset_symbuf = reset_symbuf; // reuse buffer
 
         obj.lastfardatasegi = -1;
 
@@ -2051,7 +2037,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     tym_t ty;
 
     symbol_debug(s);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     ty = s.ty();
     isfunc = tyfunc(ty) != 0 || is_readonly_comdat;
 
@@ -2674,7 +2660,7 @@ void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
     uint ti;
 
     assert(offset < 100000000);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
 
     int idx = SegData[seg].segidx;
     if (obj.pubdatai + 1 + (IDMAX + IDOHD) + 4 + 2 > obj.pubdata.sizeof ||
@@ -2749,7 +2735,7 @@ int OmfObj_external(Symbol *s)
 {
     //printf("OmfObj_external('%s', %d)\n",s.Sident.ptr, obj.extidx + 1);
     symbol_debug(s);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     if (obj.extdatai + (IDMAX + IDOHD) + 3 > obj.extdata.sizeof)
         outextdata();
 
@@ -2816,7 +2802,7 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   uint ti;
 
     //printf("OmfObj_common_block('%s',%d,%d,%d, %d)\n",s.Sident.ptr,flag,size,count, obj.extidx + 1);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     outextdata();               // borrow the extdata[] storage
     i = cast(uint)OmfObj_mangle(s,obj.extdata.ptr);
 
@@ -2952,7 +2938,7 @@ private void obj_modend()
         // Turn startaddress into a fixup.
         // Borrow heavilly from OmfObj_reftoident()
 
-        obj.reset_symbuf.write((&s)[0 .. 1]);
+        obj.resetSymbols.push(s);
         symbol_debug(s);
         offset = 0;
         ty = s.ty();

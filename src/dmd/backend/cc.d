@@ -820,8 +820,12 @@ struct func_t
 
     char *Fredirect;            // redirect function name to this name in object
 
-    // Array of catch types for EH_DWARF Types Table generation
-    Barray!(Symbol*) typesTable;
+version (SPP) { } else
+{
+    version (MARS)
+        // Array of catch types for EH_DWARF Types Table generation
+        Barray!(Symbol*) typesTable;
+}
 
     union
     {
