@@ -53,7 +53,7 @@ enum
     CHECKACTION_context   // call D assert with the error context on failure
 };
 
-enum CPU
+enum class CPU
 {
     x87,
     mmx,

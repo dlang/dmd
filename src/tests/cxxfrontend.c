@@ -70,6 +70,7 @@ static void frontend_init()
     global.params.isLinux = true;
     global.vendor = "Front-End Tester";
     global.params.objname = NULL;
+    global.params.cpu = CPU::native;
 
     Type::_init();
     Id::initialize();
