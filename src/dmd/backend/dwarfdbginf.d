@@ -51,6 +51,7 @@ else
     import core.sys.posix.unistd : getcwd;
 }
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -115,7 +116,7 @@ static if (MACHOBJ)
 
 Symbol* getRtlsymPersonality();
 
-private Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
+private Barray!(Symbol*) resetSyms;        // Keep pointers to reset symbols
 }
 
 /***********************************
@@ -1029,20 +1030,9 @@ else static if (ELFOBJ)
 
     /* ======================================== */
 
-    if (reset_symbuf)
-    {
-        Symbol **p = cast(Symbol **)reset_symbuf.buf;
-        const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
-        for (size_t i = 0; i < n; ++i)
-            symbol_reset(p[i]);
-        reset_symbuf.reset();
-    }
-    else
-    {
-        reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-        assert(reset_symbuf);
-        reset_symbuf.reserve(50 * (Symbol *).sizeof);
-    }
+    foreach (s; resetSyms)
+        symbol_reset(s);
+    resetSyms.reset();
 
     /* ======================================== */
 
@@ -2718,7 +2708,7 @@ uint dwarf_typidx(type *t)
                 debug_info.buf.writeByte(0);          // no more children
             }
             s.Stypidx = idx;
-            reset_symbuf.write(&s, (s).sizeof);
+            resetSyms.push(s);
             return idx;                 // no need to cache it
         }
 
@@ -2807,7 +2797,7 @@ uint dwarf_typidx(type *t)
             debug_info.buf.writeByte(0);              // no more children
 
             s.Stypidx = idx;
-            reset_symbuf.write(&s, s.sizeof);
+            resetSyms.push(s);
             return idx;                 // no need to cache it
         }
 
