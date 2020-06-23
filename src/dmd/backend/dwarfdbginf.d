@@ -906,6 +906,7 @@ static if (MACHOBJ)
         fdesym = symbol_name(name, SCglobal, tspvoid);
         Obj.pubdef(dfseg, fdesym, startsize);
         symbol_keep(fdesym);
+        free(name);
     }
 }
 
@@ -1181,7 +1182,7 @@ else
         }
         if (errno == ERANGE)
         {
-            sz += 80;
+            sz *= 2;
             free(cwd);
             continue;
         }
