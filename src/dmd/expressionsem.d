@@ -937,9 +937,16 @@ Lagain:
         //printf("'%s' is an overload set\n", o.toChars());
         return new OverExp(loc, o);
     }
-    if (OffsetVar ov = s.isOffsetVar())
+    if (MemberAlias ma = s.isMemberAlias())
     {
-        return ov.ae.expressionSemantic(sc);
+        Expression result = ma.e;
+        if (ma.isScopeSensitive)
+        {
+            result = result.syntaxCopy();
+            result = result.expressionSemantic(sc);
+            result = resolveProperties(sc, result);
+        }
+        return result;
     }
 
     if (Import imp = s.isImport())

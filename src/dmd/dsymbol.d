@@ -1212,7 +1212,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
-    inout(OffsetVar)                   isOffsetVar()                   inout { return null; }
+    inout(MemberAlias)                 isMemberAlias()                 inout { return null; }
 }
 
 /***********************************************************
@@ -2140,23 +2140,30 @@ extern (C++) final class DsymbolTable : RootObject
 }
 
 /**
- * Wrapper used when a variable is aliased along with a constant index,
- * e.g an array element given by an integer literal.
+ * Wrapper used when a member is aliased.
+ *
+ * The member can be either a variable, a function of an array element.
+ * It is stored as an expression be cause it's necessary to keep track
+ * of the `this` for aggregates members and for arrays to tie the symbol
+ * representing the array to an index.
  *
  * This symbol is not an AST node (so no visited) and is anonymous,
- * only using the identifier of the alias for which an `OffsetVar` is created
+ * only using the identifier of the alias for which an `MemberAlias` is created
  * can give back the expression.
  */
-extern (C++) final class OffsetVar : Dsymbol
+extern (C++) final class MemberAlias : Dsymbol
 {
-    ArrayExp ae; /// gives a var and a constant offset
-
+    /// The expression giving the member
+    Expression e;
+    /// Indicates if the expression must be copied and analyzed for each new use
+    const bool isScopeSensitive;
     /// Only called in `aliasSemantic()`
-    package this(ArrayExp ae)
+    package this(Expression e, bool isScopeSensitive)
     {
-        super(ae.loc, Identifier.anonymous());
-        this.ae     = ae;
+        super(e.loc, Identifier.anonymous());
+        this.e = e;
+        this.isScopeSensitive = isScopeSensitive;
     }
 
-    override inout(OffsetVar) isOffsetVar() inout { return this; }
+    override inout(MemberAlias) isMemberAlias() inout { return this; }
 }

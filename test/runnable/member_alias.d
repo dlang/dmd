@@ -1,4 +1,4 @@
-module indexed_alias;
+module member_alias;
 
 // set, get, identity, address of alias to local static array elem
 void test1()
@@ -189,6 +189,117 @@ void test15()
     assert(a[0] == 42);
 }
 
+// member VarDeclaration alias
+void test16()
+{
+    static struct S { int i; }
+    S s1 = S(1);
+    S s2 = S(2);
+    alias s1i = s1.i;
+    alias s2i = s2.i;
+    assert(s1i == 1);
+    assert(s2i == 2);
+    s1i = 42;
+    s2i = 1337;
+    assert(s1.i == 42);
+    assert(s2.i == 1337);
+}
+
+// member FuncDeclaration alias
+void test17()
+{
+    static struct S { int i;  ref int get() return {return i;} }
+    S s1 = S(1);
+    S s2 = S(2);
+    alias s1i = s1.get;
+    alias s2i = s2.get;
+    assert(s1i == 1);
+    assert(s2i == 2);
+    s1i = 42;
+    s2i = 1337;
+    assert(s1.i == 42);
+    assert(s2.i == 1337);
+}
+
+// used to break the test suite in bigger test file, so extracted here
+void funcBreakers1()
+{
+    static class A
+    {
+        void foo(){}
+    }
+    static class B : A
+    {
+        alias foo = A.foo;
+    }
+    static class C
+    {
+        void foo(){}
+        void foo(uint){}
+    }
+    static class D : C
+    {
+        alias foo = C.foo;
+    }
+}
+
+// used to break the test suite in bigger test file, so extracted here
+mixin template M1()
+{
+    auto get()
+    {
+        return this;
+    }
+}
+void funcBreakers2()
+{
+    static struct S
+    {
+        mixin M1 m;
+        alias get = m.get;
+    }
+
+    S s;
+    assert(s.get is s);
+}
+
+// used to break the test suite in bigger test file, so extracted here
+void funcBreakers3()
+{
+    template T()
+    {
+        static int get()
+        {
+            return 0;
+        }
+    }
+
+    static struct S(alias tp)
+    {
+        alias get = tp.get;
+    }
+
+    S!(T!()) s;
+    assert(s.get() == 0);
+}
+
+void test14128()
+{
+    static struct Foo
+    {
+        int v;
+        void test(Foo that) const
+        {
+            alias a = this.v;
+            alias b = that.v;
+            assert (&a !is &b);
+        }
+    }
+    Foo a = Foo(1);
+    Foo b = Foo(2);
+    a.test(b);
+}
+
 void main()
 {
     test1();
@@ -203,4 +314,9 @@ void main()
     test10();
     test12();
     test15();
+    test16();
+    test17();
+    test14128();
+    funcBreakers2();
+    funcBreakers3();
 }

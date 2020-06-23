@@ -7987,12 +7987,12 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
         Expression ei = isExpression(oarg);
         Type vt;
 
-        // if arg is an OffsetVar then try to evaluate the associated exp
+        // if arg is an MemberAlias then try to evaluate the associated exp
         if (!ei)
         {
-            Dsymbol si  = isDsymbol(oarg);
-            OffsetVar o = si ? si.isOffsetVar() : null;
-            ei          = o ? o.ae.expressionSemantic(sc) : null;
+            Dsymbol si      = isDsymbol(oarg);
+            MemberAlias ma  = si ? si.isMemberAlias() : null;
+            ei              = ma ? ma.e.syntaxCopy().expressionSemantic(sc) : null;
         }
 
         if (!ei && oarg)
@@ -8115,6 +8115,16 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             sa = (cast(ThisExp)ea).var;
         else if (ea && ea.op == TOK.scope_)
             sa = (cast(ScopeExp)ea).sds;
+
+        // if arg is an MemberAlias then try to evaluate the associated exp
+        if (sa && (cast(Dsymbol)sa).isMemberAlias)
+        {
+            Dsymbol si      = isDsymbol(oarg);
+            MemberAlias ma  = si ? si.isMemberAlias() : null;
+            ea              = ma ? ma.e.syntaxCopy().expressionSemantic(sc) : null;
+            sa              = null;
+        }
+
         if (sa)
         {
             if ((cast(Dsymbol)sa).isAggregateDeclaration())
