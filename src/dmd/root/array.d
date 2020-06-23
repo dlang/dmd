@@ -248,7 +248,11 @@ public:
 
     ref inout(T) opIndex(size_t i) inout nothrow pure
     {
-        return data[i];
+        debug
+            // This is called so often the array bounds become expensive
+            return data[i];
+        else
+            return data.ptr[i];
     }
 
     inout(T)* tdata() inout pure nothrow @nogc @trusted
