@@ -3123,7 +3123,7 @@ static if (1)   // store in one record
         }
         //printf("[%d]: %02x %02x %02x\n", k, data[k + 0] & 0xFF, data[k + 1] & 0xFF, data[k + 2] & 0xFF);
         fn = f.FUnext;
-        mem_ffree(f);
+        free(f);
   }
   assert(i <= data.sizeof);
   if (i)
@@ -3163,7 +3163,7 @@ debug
     assert(targetdatum <= 0x7FFF);
     assert(framedatum <= 0x7FFF);
 }
-    f = cast(FIXUP *) mem_fmalloc(FIXUP.sizeof);
+    f = cast(FIXUP *) malloc(FIXUP.sizeof);
     //printf("f = %p, offset = x%x\n",f,offset);
     f.FUoffset = offset;
     f.FUlcfd = cast(ushort)lcfd;
