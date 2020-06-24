@@ -114,11 +114,20 @@ cd "${DMD_DIR}/../druntime"
 ################################################################################
 cd "${DMD_DIR}/test"
 
-# WORKAROUND: Copy the built Phobos library in the path
-# REASON: LIB argument doesn't seem to work
-cp "${DMD_DIR}/../phobos/$LIBNAME" .
-
-"${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL"  MODEL_FLAG="$MODEL_FLAG" N="$N"
+if [ "$MODEL" == "32" ] ; then
+    # Prebuild some tools (run & d_do_test, built by Makefile) with host compiler.
+    "${GNU_MAKE}" -j1 test_results/run.exe MODEL="$MODEL" MODEL_FLAG="$MODEL_FLAG" N="$N"
+    # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
+    # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and `-conf=` for
+    # DMD apparently doesn't prevent that).
+    #rm "$LIB/../bin/sc.ini"
+    cp "${DMD_DIR}/../phobos/$LIBNAME" .
+    # This also requires to build the remaining tools (sanitize_json & unit_test_runner,
+    # built by run.d, not the Makefile...) with the tested compiler, not the host compiler.
+    "${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL" MODEL_FLAG="$MODEL_FLAG" N="$N" HOST_DMD="$DMD_BIN_PATH"
+else
+    "${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL" MODEL_FLAG="$MODEL_FLAG" N="$N"
+fi
 
 ################################################################################
 # Prepare artifacts
