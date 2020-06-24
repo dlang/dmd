@@ -1702,8 +1702,38 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // don't list pseudo modules __entrypoint.d, __main.d
         // https://issues.dlang.org/show_bug.cgi?id=11117
         // https://issues.dlang.org/show_bug.cgi?id=11164
-        if (global.params.moduleDeps !is null && !(imp.id == Id.object && sc._module.ident == Id.object) &&
-            strcmp(sc._module.ident.toChars(), "__main") != 0)
+        const shouldListDep = !(imp.id == Id.object && sc._module.ident == Id.object) &&
+            strcmp(sc._module.ident.toChars(), "__main") != 0;
+
+        // If requested, write out a Makefile-compatible dependencies file
+        if(global.params.makefileDeps !is null && shouldListDep)
+        {
+            auto ob = global.params.makefileDeps;
+
+            // we only want to write the root modules once
+            if (ob.length == 0)
+            {
+                foreach (i, mod; Module.amodules)
+                {
+                    if(mod.isRoot)
+                    {
+                        if(i != 0) ob.writestring(" ");
+                        ob.writestring(mod.toChars());
+                        version(Windows)
+                            ob.writestring(".obj");
+                        else
+                            ob.writestring(".o");
+                    }
+                }
+                ob.writestringln(`: \`);
+            }
+
+            // once the root modules are written, write the next dependency
+            escapePath(ob, sc.instantiatingModule().srcfile.toChars());
+            ob.writestringln(` \`);
+        }
+
+        if (global.params.moduleDeps !is null && shouldListDep)
         {
             /* The grammar of the file is:
              *      ImportDeclaration

@@ -643,6 +643,22 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             printf("%.*s", cast(int)data.length, data.ptr);
     }
 
+    if (OutBuffer* ob = params.makefileDeps)
+    {
+        foreach (i; 1 .. modules[0].aimports.dim)
+            semantic3OnDependencies(modules[0].aimports[i]);
+        Module.runDeferredSemantic3();
+
+        ob.writestring("\n\n");
+        const data = (*ob)[];
+        assert(params.makefileDepsFile);
+
+        if (params.makefileDepsFile)
+            writeFile(Loc.initial, params.makefileDepsFile, data);
+        else
+            printf("%.*s", cast(int)data.length, data.ptr);
+    }
+
     printCtfePerformanceStats();
     printTemplateStats();
 
