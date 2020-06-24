@@ -310,6 +310,9 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
+        Option("makefiledeps=<filename>",
+               "Write module dependencies in makefile format to filename (only imports)",
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:

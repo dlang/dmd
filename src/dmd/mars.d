@@ -2420,6 +2420,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             params.moduleDeps = new OutBuffer();
         }
+        else if (startsWith(p + 1, "makefiledeps="))
+        {
+            if (params.makefileDeps)
+            {
+                error("-makefiledeps[=file] can only be provided once!");
+                break;
+            }
+            if (p[13] != '=' || p[14] == '\0')
+            {
+                goto Lerror;
+            }
+            params.makefileDepsFile = (p + 1 + 13).toDString;
+            if (!params.makefileDepsFile[0])
+                goto Lnoarg;
+
+            params.makefileDeps = new OutBuffer();
+        }
         else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
         {
             params.addMain = true;
