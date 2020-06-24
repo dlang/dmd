@@ -991,7 +991,7 @@ $(GNAME UnionTemplateDeclaration):
 
     $(P If a template declares exactly one member, and that member is a class
         with the same name as the template (see
-        $(RELATIVE_LINK2 implicit_template_properties, Eponymous Templates):)
+        $(RELATIVE_LINK2 implicit_template_properties, Eponymous Templates):))
 
         ------
         template $(CODE_HIGHLIGHT Bar)(T)
