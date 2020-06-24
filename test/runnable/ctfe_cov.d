@@ -1,4 +1,4 @@
-//REQUIRED_ARGS: -cov=100
+//REQUIRED_ARGS: -cov=100 -ctfe-cov
 int f(int n) { int acc;
     foreach(i;0 .. n)
     {
