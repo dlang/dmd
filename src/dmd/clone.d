@@ -809,7 +809,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
      * hash value will also contain the result of parent class's toHash().
      */
     const(char)[] code =
-        "size_t h = 0;" ~
+        ".object.size_t h = 0;" ~
         "foreach (i, T; typeof(p.tupleof))" ~
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
         "    static if(is(T* : const(.object.Object)*)) " ~

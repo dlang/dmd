@@ -22,6 +22,7 @@ public:
     const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
+    DebugSymbol *isDebugSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -35,5 +36,6 @@ public:
     const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
+    VersionSymbol *isVersionSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
