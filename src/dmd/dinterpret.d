@@ -698,6 +698,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     return e;
 }
 
+/// used to collect coverage information in ctfe
 void incUsageCtfe(InterState* istate, const ref Loc loc)
 {
     if (global.params.cov && istate)
