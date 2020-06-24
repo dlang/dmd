@@ -1152,7 +1152,7 @@ $(H3 $(LNAME2 return-deduction, Return Type Deduction))
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        auto $(CODE_HIGHLIGHT square)(T)(T t)
+        auto square(T)(T t)
         {
             return t * t;
         }
