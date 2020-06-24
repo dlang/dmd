@@ -701,7 +701,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
 /// used to collect coverage information in ctfe
 void incUsageCtfe(InterState* istate, const ref Loc loc)
 {
-    if (global.params.cov && istate)
+    if (global.params.ctfe_cov && istate)
     {
         auto line = loc.linnum;
         auto mod = istate.fd.getModule();

@@ -241,6 +241,7 @@ struct Usage
         Option("cov",
             "do code coverage analysis"
         ),
+        Option("ctfe-cov", "Include code executed during CTFE in coverage report"),
         Option("cov=<nnn>",
             "require at least nnn% code coverage",
             `Perform $(LINK2 $(ROOT_DIR)code_coverage.html, code coverage analysis) and generate

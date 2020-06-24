@@ -1697,6 +1697,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[4])
                 goto Lerror;
         }
+        else if (arg == "-ctfe-cov")
+        {
+            params.ctfe_cov = true;
+        }
         else if (arg == "-shared")
             params.dll = true;
         else if (arg == "-fPIC")
