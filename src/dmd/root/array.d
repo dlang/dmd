@@ -138,8 +138,11 @@ public:
     void reserve(size_t nentries) pure nothrow
     {
         //printf("Array::reserve: length = %d, data.length = %d, nentries = %d\n", (int)length, (int)data.length, (int)nentries);
-        if (data.length - length < nentries)
+
+        // Cold path
+        void enlarge(size_t nentries)
         {
+            pragma(inline, false);      // never inline cold path
             if (data.length == 0)
             {
                 // Not properly initialized, someone memset it to zero
@@ -193,6 +196,9 @@ public:
                         memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
             }
         }
+
+        if (data.length - length < nentries)  // false means hot path
+            enlarge(nentries);
     }
 
     void remove(size_t i) pure nothrow @nogc
