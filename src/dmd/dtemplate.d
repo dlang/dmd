@@ -8083,7 +8083,8 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             {
                 // Don't lose type qualifiers
                 // https://issues.dlang.org/show_bug.cgi?id=20863
-                sa = oarg;
+                if (ta && ta.mod)
+                    sa = oarg;
                 m = MATCH.convert;
             }
             /* specType means the alias must be a declaration with a type
