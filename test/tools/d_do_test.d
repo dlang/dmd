@@ -25,6 +25,20 @@ version(Win32)
     extern(C) int putenv(const char*);
 }
 
+struct FailedTest
+{
+    string testLogName;
+    string outputText;
+}
+
+shared struct Global
+{
+    size_t locked;
+    FailedTest[] failedTests;
+}
+
+shared Global global;
+
 void usage()
 {
     write("d_do_test <test_file>\n"
@@ -1070,6 +1084,19 @@ int main(string[] args)
 {
     try { return tryMain(args); }
     catch(SilentQuit) { return 1; }
+    scope(exit)
+    {
+        foreach(ft;(cast()global).failedTests)
+        {
+            writeln("==============================");
+            writefln("Test '%s' failed. The logged output:", ft.testLogName);
+            const output = ft.outputText;
+            write(output);
+            if (!output.endsWith("\n"))
+                writeln();
+            writeln("==============================");
+        }
+    }
 }
 
 int tryMain(string[] args)
@@ -1199,7 +1226,7 @@ int tryMain(string[] args)
             return 0;
 
         f.close();
-        printTestFailure(input_file, output_file);
+        enqueTestFailiure(input_file, output_file);
         return 1;
     }
 
@@ -1584,7 +1611,7 @@ static this()
         const exitCode = wait(compileProc);
         if (exitCode != 0)
         {
-            printTestFailure(testLogName, output_file_temp);
+            enqueTestFailiure(testLogName, output_file_temp);
             return exitCode;
         }
     }
@@ -1606,7 +1633,7 @@ static this()
         }
         else if (exitCode != 0)
         {
-            printTestFailure(testLogName, output_file_temp);
+            enqueTestFailiure(testLogName, output_file_temp);
             return exitCode;
         }
     }
@@ -1616,16 +1643,18 @@ static this()
     return 0;
 }
 
-void printTestFailure(string testLogName, string output_file_temp)
+void enqueTestFailiure(string testLogName, string output_file_temp)
 {
-    writeln("==============================");
-    writefln("Test '%s' failed. The logged output:", testLogName);
-    const output = readText(output_file_temp);
-    write(output);
-    if (!output.endsWith("\n"))
-          writeln();
-    writeln("==============================");
-    remove(output_file_temp);
+    // this is thread-UNSAFE!
+    // doesn't matter though as long as we don't multi-thread the test runner
+    assert(!(cast()global).locked);
+    (cast()global).locked = true;
+    scope(exit)
+    {
+        assert((cast()global).locked);
+        (cast()global).locked = false;
+    }
+    (cast()global).failedTests ~= FailedTest(testLogName, readText(output_file_temp));
 }
 
 /**
