@@ -72,8 +72,6 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
     if (sc)
     {
-        if (!sc.func)
-            return;
         if (sc.intypeof)
             return;
         if (sc.flags & (SCOPE.ctfe | SCOPE.compile))

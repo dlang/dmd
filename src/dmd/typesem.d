@@ -2869,7 +2869,14 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
          * }
          */
         Scope* sc2 = sc.push();
-        sc2.intypeof = 1;
+
+        if (!mt.exp.isTypeidExp())
+            /* Treat typeof(typeid(exp)) as needing
+             * the full semantic analysis of the typeid.
+             * https://issues.dlang.org/show_bug.cgi?id=20958
+             */
+            sc2.intypeof = 1;
+
         auto exp2 = mt.exp.expressionSemantic(sc2);
         exp2 = resolvePropertiesOnly(sc2, exp2);
         sc2.pop();
