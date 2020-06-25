@@ -350,7 +350,7 @@ void test15()
 
 /************************************************/
 
-struct Basic16(T, U) {}
+struct Basic16(T, X) {}
 
 struct Iterator16(T : Basic16!(T, U), U)
 {

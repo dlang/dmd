@@ -11,6 +11,6 @@ class Foo {
 
 
 void main() {
-        Bar.foobar();
+        Bar.foobar_();
 }
 

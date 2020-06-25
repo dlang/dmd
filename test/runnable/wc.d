@@ -8,7 +8,7 @@ extern(C) int printf(const char*, ...);
 int main (string[] args)
 {
     int w_total;
-    int l_total;
+    int l_total_;
     int c_total;
 
     printf ("   lines   words   bytes file\n");
