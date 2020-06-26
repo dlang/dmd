@@ -53,6 +53,7 @@ import dmd.ob;
 import dmd.objc;
 import dmd.opover;
 import dmd.parse;
+import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
@@ -79,6 +80,11 @@ extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
 {
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
+}
+
+private auto orEmpty(T)(inout Array!(T)* pArr)
+{
+    return pArr? pArr.opSlice() : [];
 }
 
 private extern(C++) final class Semantic3Visitor : Visitor
@@ -414,8 +420,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Declare all the function parameters as variables
              * and install them in parameters[]
              */
-            size_t nparams = f.parameterList.length;
-            if (nparams)
+            if (size_t nparams = f.parameterList.length)
             {
                 /* parameters[] has all the tuples removed, as the back end
                  * doesn't know about tuples
@@ -637,11 +642,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                      * ctor consts were initialized.
                      */
                     ScopeDsymbol pd = funcdecl.toParent().isScopeDsymbol();
-                    for (size_t i = 0; i < pd.members.dim; i++)
-                    {
-                        Dsymbol s = (*pd.members)[i];
+                    foreach (s; (*pd.members)[])
                         s.checkCtorConstInit();
-                    }
                 }
                 else if (ad2 && funcdecl.isCtorDeclaration())
                 {
@@ -1007,30 +1009,26 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 auto a = new Statements();
                 // Merge in initialization of 'out' parameters
-                if (funcdecl.parameters)
+                foreach (v; funcdecl.parameters.orEmpty)
                 {
-                    for (size_t i = 0; i < funcdecl.parameters.dim; i++)
+                    if (!(v.storage_class & STC.out_))
+                        continue;
+
+                    if (!v._init)
                     {
-                        VarDeclaration v = (*funcdecl.parameters)[i];
-                        if (v.storage_class & STC.out_)
-                        {
-                            if (!v._init)
-                            {
-                                v.error("Zero-length `out` parameters are not allowed.");
-                                return;
-                            }
-                            ExpInitializer ie = v._init.isExpInitializer();
-                            assert(ie);
-                            if (auto iec = ie.exp.isConstructExp())
-                            {
-                                // construction occurred in parameter processing
-                                auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
-                                ec.type = iec.type;
-                                ie.exp = ec;
-                            }
-                            a.push(new ExpStatement(Loc.initial, ie.exp));
-                        }
+                        v.error("Zero-length `out` parameters are not allowed.");
+                        return;
                     }
+                    ExpInitializer ie = v._init.isExpInitializer();
+                    assert(ie);
+                    if (auto iec = ie.exp.isConstructExp())
+                    {
+                        // construction occurred in parameter processing
+                        auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
+                        ec.type = iec.type;
+                        ie.exp = ec;
+                    }
+                    a.push(new ExpStatement(Loc.initial, ie.exp));
                 }
 
                 if (_arguments)
@@ -1098,35 +1096,32 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 /* Append destructor calls for parameters as finally blocks.
                  */
-                if (funcdecl.parameters)
+                foreach (v; funcdecl.parameters.orEmpty)
                 {
-                    foreach (v; *funcdecl.parameters)
-                    {
-                        if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
-                            continue;
-                        if (v.needsScopeDtor())
-                        {
-                            // same with ExpStatement.scopeCode()
-                            Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
-                            v.storage_class |= STC.nodtor;
+                    if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
+                        continue;
+                    if (!v.needsScopeDtor())
+                        continue;
 
-                            s = s.statementSemantic(sc2);
+                    // same with ExpStatement.scopeCode()
+                    Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
+                    v.storage_class |= STC.nodtor;
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
-                            const blockexit = s.blockExit(funcdecl, isnothrow);
-                            if (blockexit & BE.throw_)
-                                funcdecl.eh_none = false;
-                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
-                                error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
-                                f.isnothrow = false;
+                    s = s.statementSemantic(sc2);
 
-                            if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
-                                sbody = new CompoundStatement(Loc.initial, sbody, s);
-                            else
-                                sbody = new TryFinallyStatement(Loc.initial, sbody, s);
-                        }
-                    }
+                    bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
+                    const blockexit = s.blockExit(funcdecl, isnothrow);
+                    if (blockexit & BE.throw_)
+                        funcdecl.eh_none = false;
+                    if (f.isnothrow && isnothrow && blockexit & BE.throw_)
+                        error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                    if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
+                        f.isnothrow = false;
+
+                    if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
+                        sbody = new CompoundStatement(Loc.initial, sbody, s);
+                    else
+                        sbody = new TryFinallyStatement(Loc.initial, sbody, s);
                 }
                 // from this point on all possible 'throwers' are checked
                 funcdecl.flags &= ~FUNCFLAG.nothrowInprocess;
@@ -1287,19 +1282,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
-            size_t nfparams = f.parameterList.length;
-            assert(nfparams == funcdecl.parameters.dim);
+            assert(f.parameterList.length == funcdecl.parameters.dim);
             foreach (u, v; *funcdecl.parameters)
             {
-                if (v.storage_class & STC.maybescope)
-                {
-                    //printf("Inferring scope for %s\n", v.toChars());
-                    Parameter p = f.parameterList[u];
-                    notMaybeScope(v);
-                    v.storage_class |= STC.scope_ | STC.scopeinferred;
-                    p.storageClass |= STC.scope_ | STC.scopeinferred;
-                    assert(!(p.storageClass & STC.maybescope));
-                }
+                if (!(v.storage_class & STC.maybescope))
+                    continue;
+                //printf("Inferring scope for %s\n", v.toChars());
+                Parameter p = f.parameterList[u];
+                notMaybeScope(v);
+                v.storage_class |= STC.scope_ | STC.scopeinferred;
+                p.storageClass |= STC.scope_ | STC.scopeinferred;
+                assert(!(p.storageClass & STC.maybescope));
             }
         }
 
@@ -1360,49 +1353,49 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (ad && ad.fieldDtor && global.params.dtorFields)
+        if (!ad || !ad.fieldDtor || !global.params.dtorFields)
+            return visit(cast(FuncDeclaration)ctor);
+        
+        /* Generate:
+         *   this.fieldDtor()
+         */
+        Expression e = new ThisExp(ctor.loc);
+        e.type = ad.type.mutableOf();
+        e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
+        e = new CallExp(ctor.loc, e);
+        auto sexp = new ExpStatement(ctor.loc, e);
+        auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+
+        version (all)
         {
             /* Generate:
-             *   this.fieldDtor()
+             *   try { ctor.fbody; }
+             *   catch (Exception __o)
+             *   { this.fieldDtor(); throw __o; }
+             * This differs from the alternate scope(failure) version in that an Exception
+             * is caught rather than a Throwable. This enables the optimization whereby
+             * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
+             * applies to Exception.)
              */
-            Expression e = new ThisExp(ctor.loc);
-            e.type = ad.type.mutableOf();
-            e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
-            e = new CallExp(ctor.loc, e);
-            auto sexp = new ExpStatement(ctor.loc, e);
-            auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+            Identifier id = Identifier.generateId("__o");
+            auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
+            auto handler = new CompoundStatement(ctor.loc, ss, ts);
 
-            version (all)
-            {
-                /* Generate:
-                 *   try { ctor.fbody; }
-                 *   catch (Exception __o)
-                 *   { this.fieldDtor(); throw __o; }
-                 * This differs from the alternate scope(failure) version in that an Exception
-                 * is caught rather than a Throwable. This enables the optimization whereby
-                 * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
-                 * applies to Exception.)
-                 */
-                Identifier id = Identifier.generateId("__o");
-                auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
-                auto handler = new CompoundStatement(ctor.loc, ss, ts);
+            auto catches = new Catches();
+            auto ctch = new Catch(ctor.loc, getException(), id, handler);
+            catches.push(ctch);
 
-                auto catches = new Catches();
-                auto ctch = new Catch(ctor.loc, getException(), id, handler);
-                catches.push(ctch);
-
-                ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
-            }
-            else
-            {
-                /* Generate:
-                 *   scope (failure) { this.fieldDtor(); }
-                 * Hopefully we can use this version someday when scope(failure) catches
-                 * Exception instead of Throwable.
-                 */
-                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
-                ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
-            }
+            ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
+        }
+        else
+        {
+            /* Generate:
+             *   scope (failure) { this.fieldDtor(); }
+             * Hopefully we can use this version someday when scope(failure) catches
+             * Exception instead of Throwable.
+             */
+            auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
+            ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
         }
         visit(cast(FuncDeclaration)ctor);
     }
@@ -1432,17 +1425,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
     override void visit(AttribDeclaration ad)
     {
         Dsymbols* d = ad.include(sc);
-        if (d)
-        {
-            Scope* sc2 = ad.newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic3(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
+        if (!d)
+            return;
+
+        Scope* sc2 = ad.newScope(sc);
+        foreach (s; (*d)[])
+            s.semantic3(sc2);
+        if (sc2 != sc)
+            sc2.pop();
     }
 
     override void visit(AggregateDeclaration ad)
