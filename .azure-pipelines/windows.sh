@@ -61,15 +61,12 @@ clone_repos
 ################################################################################
 
 if [ "$MODEL" == "64" ] ; then
-    export MODEL_FLAG="-m64"
     MAKE_FILE="win64.mak"
     LIBNAME=phobos64.lib
 elif [ "$MODEL" == "32mscoff" ] ; then
-    export MODEL_FLAG="-m32mscoff"
     MAKE_FILE="win64.mak"
     LIBNAME=phobos32mscoff.lib
 else
-    export MODEL_FLAG="-m32"
     export LIB="$PWD/dmd2/windows/lib"
     MAKE_FILE="win32.mak"
     LIBNAME=phobos.lib
@@ -115,19 +112,21 @@ cd "${DMD_DIR}/../druntime"
 cd "${DMD_DIR}/test"
 
 if [ "$MODEL" == "32" ] ; then
-    # Prebuild some tools (run & d_do_test, built by Makefile) with host compiler.
-    "${GNU_MAKE}" -j1 test_results/run.exe MODEL="$MODEL" MODEL_FLAG="$MODEL_FLAG" N="$N"
     # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
-    # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and `-conf=` for
-    # DMD apparently doesn't prevent that).
-    #rm "$LIB/../bin/sc.ini"
-    cp "${DMD_DIR}/../phobos/$LIBNAME" .
-    # This also requires to build the remaining tools (sanitize_json & unit_test_runner,
-    # built by run.d, not the Makefile...) with the tested compiler, not the host compiler.
-    "${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL" MODEL_FLAG="$MODEL_FLAG" N="$N" HOST_DMD="$DMD_BIN_PATH"
-else
-    "${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL" MODEL_FLAG="$MODEL_FLAG" N="$N"
+    # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and
+    # `-conf=` for DMD apparently doesn't prevent that).
+    # There's apparently no sane way to specify a libdir for Optlink in the DMD
+    # cmdline, so remove the sc.ini file and set the DFLAGS and LIB env variables
+    # manually for the host compiler. These 2 variables are adapted for the
+    # actual tests with the tested compiler (by run.d).
+    HOST_DMD_DIR="$(cygpath -w "$DMD_DIR/tools/dmd2")"
+    rm "$HOST_DMD_DIR/windows/bin/sc.ini"
+    export DFLAGS="-I$HOST_DMD_DIR/src/phobos -I$HOST_DMD_DIR/src/druntime/import"
+    export LIB="$HOST_DMD_DIR/windows/lib"
 fi
+
+"$HOST_DC" -m$MODEL -g -i run.d
+./run --environment --jobs=$N all ARGS="-O -inline -g" MODEL="$MODEL"
 
 ################################################################################
 # Prepare artifacts
