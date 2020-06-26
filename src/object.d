@@ -44,7 +44,11 @@ version (D_ObjectiveC)
 version (Posix) public import core.attribute : gnuAbiTag;
 
 // Some ABIs use a complex varargs implementation requiring TypeInfo.argTypes().
-version (X86_64)
+version (GNU)
+{
+    // No TypeInfo-based core.vararg.va_arg().
+}
+else version (X86_64)
 {
     version (DigitalMars) version = WithArgTypes;
     else version (Windows) { /* no need for Win64 ABI */ }
