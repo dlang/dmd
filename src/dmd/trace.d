@@ -218,7 +218,9 @@ const(size_t) align4(const size_t val) @safe pure @nogc
 {
     return ((val + 3) & ~3);
 }
+
 ulong timeBase = 0;
+
 void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 1)
 {
     import core.stdc.stdio;
@@ -324,6 +326,12 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
 
             SymInfo *symInfo = &symInfos[n_symInfos++];
 
+            if (isStackAddress(dp.vp))
+            {
+                //running_id--;
+                goto Lend;
+            }
+
             final switch(dp.nodeType)
             {
                 case ProfileNodeType.NullSymbol :
@@ -360,6 +368,7 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
                  case ProfileNodeType.Invalid:
                      assert(0); // this cannot happen
             }
+        Lend:
         }
     }
     else
@@ -528,6 +537,31 @@ struct TraceFileTail
     string[] kinds;
     string[] symbol_names;
     string[] symbol_locations;
+}
+
+
+private bool isStackAddress(void* v)
+{
+    bool result = true;
+
+    size_t vs = cast(size_t) v;
+    size_t sp;
+    version(D_InlineAsm_X86_64)
+    {
+        asm { mov sp, RSP; }
+    }
+    else version (D_InlineAsm_X86)
+    {
+        asm { mov sp, ESP; }
+    }
+    else
+    {
+        static assert(0, "inline asm not supported");
+    }
+
+    // ignoring the first 24 bits of the adress
+    // are they the same?
+    return (sp & ~0x7FFFFF) == (vs & ~0x7FFFFF);
 }
 
 
