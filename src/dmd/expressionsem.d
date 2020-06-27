@@ -4117,14 +4117,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             for (size_t i = 0; i < exp.td.parameters.dim; i++)
             {
                 TemplateParameter tp = (*exp.td.parameters)[i];
-                for (size_t u = 0; u < dim; u++)
+                assert(dim <= tfl.parameterList.length);
+                foreach (u, p; tfl.parameterList)
                 {
-                    Parameter p = tfl.parameterList[u];
+                    if (u == dim)
+                        break;
+
                     if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                     {
                         Expression e = (*arguments)[u];
                         tiargs.push(e.type);
-                        u = dim; // break inner loop
+                        break;
                     }
                 }
             }
@@ -5486,12 +5489,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      */
                     assert(tded.ty == Tfunction);
                     auto tdedf = tded.isTypeFunction();
-                    size_t dim = tdedf.parameterList.length;
                     auto args = new Parameters();
-                    args.reserve(dim);
-                    for (size_t i = 0; i < dim; i++)
+                    foreach (i, arg; tdedf.parameterList)
                     {
-                        Parameter arg = tdedf.parameterList[i];
                         assert(arg && arg.type);
                         /* If one of the default arguments was an error,
                            don't return an invalid tuple

@@ -998,7 +998,6 @@ extern (C++) class FuncDeclaration : Declaration
 
         TypeFunction tf = type.toTypeFunction();
         TypeFunction tg = g.type.toTypeFunction();
-        size_t nfparams = tf.parameterList.length;
 
         /* If both functions have a 'this' pointer, and the mods are not
          * the same and g's is not const, then this is less specialized.
@@ -1019,10 +1018,9 @@ extern (C++) class FuncDeclaration : Declaration
 
         /* Create a dummy array of arguments out of the parameters to f()
          */
-        Expressions args = Expressions(nfparams);
-        for (size_t u = 0; u < nfparams; u++)
+        Expressions args;
+        foreach (u, p; tf.parameterList)
         {
-            Parameter p = tf.parameterList[u];
             Expression e;
             if (p.storageClass & (STC.ref_ | STC.out_))
             {
@@ -1031,7 +1029,7 @@ extern (C++) class FuncDeclaration : Declaration
             }
             else
                 e = p.type.defaultInitLiteral(Loc.initial);
-            args[u] = e;
+            args.push(e);
         }
 
         MATCH m = tg.callMatch(null, args[], 1);
@@ -1567,10 +1565,8 @@ extern (C++) class FuncDeclaration : Declaration
 
         //printf("isTypeIsolatedIndirect(%s) t = %s\n", tf.toChars(), t.toChars());
 
-        size_t dim = tf.parameterList.length;
-        for (size_t i = 0; i < dim; i++)
+        foreach (i, fparam; tf.parameterList)
         {
-            Parameter fparam = tf.parameterList[i];
             Type tp = fparam.type;
             if (!tp)
                 continue;
@@ -2256,21 +2252,19 @@ extern (C++) class FuncDeclaration : Declaration
         TypeFunction f = cast(TypeFunction) type;
 
         /* Make a copy of the parameters and make them all ref */
-        static Parameters* toRefCopy(Parameters* params)
+        static Parameters* toRefCopy(ParameterList parameterList)
         {
             auto result = new Parameters();
 
-            int toRefDg(size_t n, Parameter p)
+            foreach (n, p; parameterList)
             {
                 p = p.syntaxCopy();
                 if (!(p.storageClass & STC.lazy_))
                     p.storageClass = (p.storageClass | STC.ref_) & ~STC.out_;
                 p.defaultArg = null; // won't be the same with ref
                 result.push(p);
-                return 0;
             }
 
-            Parameter._foreach(params, &toRefDg);
             return result;
         }
 
@@ -2289,7 +2283,7 @@ extern (C++) class FuncDeclaration : Declaration
                     fdrequireParams.push(new VarExp(loc, vd));
             }
             auto fo = cast(TypeFunction)(originalType ? originalType : f);
-            auto fparams = toRefCopy(fo.parameterList.parameters);
+            auto fparams = toRefCopy(fo.parameterList);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
@@ -2332,7 +2326,7 @@ extern (C++) class FuncDeclaration : Declaration
                 fparams.push(p);
             }
             auto fo = cast(TypeFunction)(originalType ? originalType : f);
-            fparams.pushSlice((*toRefCopy(fo.parameterList.parameters))[]);
+            fparams.pushSlice((*toRefCopy(fo.parameterList))[]);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;

@@ -3773,7 +3773,7 @@ extern (C++) final class FuncExp : Expression
             TypeFunction tf = fd.type.isTypeFunction();
             //printf("\ttof = %s\n", tof.toChars());
             //printf("\ttf  = %s\n", tf.toChars());
-            size_t dim = tf.parameterList.length;
+            const dim = tf.parameterList.length;
 
             if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
                 return cannotInfer(this, to, flag);
@@ -3784,14 +3784,13 @@ extern (C++) final class FuncExp : Expression
             foreach (tp; *td.parameters)
             {
                 size_t u = 0;
-                for (; u < dim; u++)
+                foreach (i, p; tf.parameterList)
                 {
-                    Parameter p = tf.parameterList[u];
                     if (auto ti = p.type.isTypeIdentifier())
                         if (ti && ti.ident == tp.ident)
-                        {
                             break;
-                        }
+
+                    ++u;
                 }
                 assert(u < dim);
                 Parameter pto = tof.parameterList[u];

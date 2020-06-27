@@ -89,11 +89,11 @@ struct ObjcSelector
     extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
     {
         OutBuffer buf;
-        size_t pcount = 0;
         TypeFunction ftype = cast(TypeFunction)fdecl.type;
         const id = fdecl.ident.toString();
+        const nparams = ftype.parameterList.length;
         // Special case: property setter
-        if (ftype.isproperty && ftype.parameterList.parameters && ftype.parameterList.parameters.dim == 1)
+        if (ftype.isproperty && nparams == 1)
         {
             // rewrite "identifier" as "setIdentifier"
             char firstChar = id[0];
@@ -108,23 +108,19 @@ struct ObjcSelector
         // write identifier in selector
         buf.write(id[]);
         // add mangled type and colon for each parameter
-        if (ftype.parameterList.parameters && ftype.parameterList.parameters.dim)
+        if (nparams)
         {
             buf.writeByte('_');
-            Parameters* arguments = ftype.parameterList.parameters;
-            size_t dim = Parameter.dim(arguments);
-            for (size_t i = 0; i < dim; i++)
+            foreach (i, fparam; ftype.parameterList)
             {
-                Parameter arg = Parameter.getNth(arguments, i);
-                mangleToBuffer(arg.type, &buf);
+                mangleToBuffer(fparam.type, &buf);
                 buf.writeByte(':');
             }
-            pcount = dim;
         }
     Lcomplete:
         buf.writeByte('\0');
         // the slice is not expected to include a terminating 0
-        return lookup(cast(const(char)*)buf[].ptr, buf.length - 1, pcount);
+        return lookup(cast(const(char)*)buf[].ptr, buf.length - 1, nparams);
     }
 
     extern (D) const(char)[] toString() const pure

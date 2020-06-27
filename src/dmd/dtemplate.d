@@ -856,10 +856,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             scx.parent = fd;
 
             Parameters* fparameters = tf.parameterList.parameters;
-            size_t nfparams = tf.parameterList.length;
-            for (size_t i = 0; i < nfparams; i++)
+            const nfparams = tf.parameterList.length;
+            foreach (i, fparam; tf.parameterList)
             {
-                Parameter fparam = tf.parameterList[i];
                 fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nfparams)
@@ -3989,10 +3988,13 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     return;
                 }
             L2:
-                for (size_t i = 0; i < nfparams; i++)
+                assert(nfparams <= tp.parameterList.length);
+                foreach (i, ap; tp.parameterList)
                 {
-                    Parameter a  = t .parameterList[i];
-                    Parameter ap = tp.parameterList[i];
+                    if (i == nfparams)
+                        break;
+
+                    Parameter a = t.parameterList[i];
 
                     if (!a.isCovariant(t.isref, ap) ||
                         !deduceType(a.type, sc, ap.type, parameters, dedtypes))
@@ -4800,7 +4802,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 TypeFunction tf = cast(TypeFunction)e.fd.type;
                 //printf("\ttof = %s\n", tof.toChars());
                 //printf("\ttf  = %s\n", tf.toChars());
-                size_t dim = tf.parameterList.length;
+                const dim = tf.parameterList.length;
 
                 if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
                     return;
@@ -4811,13 +4813,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 foreach (tp; *e.td.parameters)
                 {
                     size_t u = 0;
-                    for (; u < dim; u++)
+                    foreach (i, p; tf.parameterList)
                     {
-                        Parameter p = tf.parameterList[u];
                         if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
-                        {
                             break;
-                        }
+                        ++u;
                     }
                     assert(u < dim);
                     Parameter pto = tof.parameterList[u];
@@ -4933,9 +4933,8 @@ private bool reliesOnTemplateParameters(Type t, TemplateParameter[] tparams)
 
     bool visitFunction(TypeFunction t)
     {
-        foreach (i;  0 .. t.parameterList.length)
+        foreach (i, fparam; t.parameterList)
         {
-            Parameter fparam = t.parameterList[i];
             if (fparam.type.reliesOnTemplateParameters(tparams))
                 return true;
         }
@@ -7085,7 +7084,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                  */
                 //printf("tp = %p, td.parameters.dim = %d, tiargs.dim = %d\n", tp, td.parameters.dim, tiargs.dim);
                 auto tf = cast(TypeFunction)fd.type;
-                if (size_t dim = tf.parameterList.length)
+                if (tf.parameterList.length)
                 {
                     auto tp = td.isVariadic();
                     if (tp && td.parameters.dim > 1)
@@ -7101,10 +7100,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         }
                     }
 
-                    foreach (size_t i; 0 .. dim)
+                    foreach (i, fparam; tf.parameterList)
                     {
                         // 'auto ref' needs inference.
-                        if (tf.parameterList[i].storageClass & STC.auto_)
+                        if (fparam.storageClass & STC.auto_)
                             return 1;
                     }
                 }

@@ -452,9 +452,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         UserAttributeDeclaration.checkGNUABITag(fd, fd.linkage);
         //semantic for parameters' UDAs
-        foreach (i; 0 .. f.parameterList.length)
+        foreach (i, param; f.parameterList)
         {
-            Parameter param = f.parameterList[i];
             if (param && param.userAttribDecl)
                 param.userAttribDecl.semantic2(sc);
         }

@@ -1480,11 +1480,10 @@ public:
         ident = null;
         buf.writeByte(')');
         buf.writeByte('(');
-        foreach (i; 0 .. AST.Parameter.dim(tf.parameterList.parameters))
+        foreach (i, fparam; tf.parameterList)
         {
             if (i)
                 buf.writestring(", ");
-            auto fparam = AST.Parameter.getNth(tf.parameterList.parameters, i);
             fparam.accept(this);
         }
         if (tf.parameterList.varargs)
@@ -1783,17 +1782,15 @@ public:
         }
 
         buf.writeByte('(');
-        foreach (i; 0 .. AST.Parameter.dim(tf.parameterList.parameters))
+        foreach (i, fparam; tf.parameterList)
         {
             if (i)
                 buf.writestring(", ");
-            auto fparam = AST.Parameter.getNth(tf.parameterList.parameters, i);
             if (fparam.type == AST.Type.tsize_t && originalType)
             {
-                fparam = AST.Parameter.getNth(originalType.parameterList.parameters, i);
+                fparam = originalType.parameterList[i];
             }
             fparam.accept(this);
-
         }
         if (tf.parameterList.varargs)
         {

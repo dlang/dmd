@@ -1425,10 +1425,8 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
         // Perform 'return' inference on parameter
         if (tf.ty == Tfunction)
         {
-            const dim = tf.parameterList.length;
-            foreach (const i; 0 .. dim)
+            foreach (i, p; tf.parameterList)
             {
-                Parameter p = tf.parameterList[i];
                 if (p.ident == v.ident)
                 {
                     p.storageClass |= STC.return_ | STC.returninferred;

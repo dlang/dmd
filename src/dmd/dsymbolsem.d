@@ -454,10 +454,10 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         }
 
         auto tf = ctorDecl.type.toTypeFunction();
-        auto dim = Parameter.dim(tf.parameterList);
+        const dim = tf.parameterList.length;
         if (dim == 1)
         {
-            auto param = Parameter.getNth(tf.parameterList, 0);
+            auto param = tf.parameterList[0];
             if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
             {
                 rvalueCtor = ctorDecl;
@@ -4101,9 +4101,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 
         // semantic for parameters' UDAs
-        foreach (i; 0 .. f.parameterList.length)
+        foreach (i, param; f.parameterList)
         {
-            Parameter param = f.parameterList[i];
             if (param && param.userAttribDecl)
                 param.userAttribDecl.dsymbolSemantic(sc);
         }
@@ -4198,7 +4197,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
                 {
                     //printf("tf: %s\n", tf.toChars());
-                    auto param = Parameter.getNth(tf.parameterList, 0);
+                    auto param = tf.parameterList[0];
                     if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("copy constructor\n");

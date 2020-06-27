@@ -590,13 +590,11 @@ extern (C++) abstract class Type : ASTNode
 
         if (t1.parameterList.parameters && t2.parameterList.parameters)
         {
-            size_t dim = t1.parameterList.length;
-            if (dim != t2.parameterList.length)
+            if (t1.parameterList.length != t2.parameterList.length)
                 goto Ldistinct;
 
-            for (size_t i = 0; i < dim; i++)
+            foreach (i, fparam1; t1.parameterList)
             {
-                Parameter fparam1 = t1.parameterList[i];
                 Parameter fparam2 = t2.parameterList[i];
 
                 if (!fparam1.type.equals(fparam2.type))
@@ -4294,10 +4292,8 @@ extern (C++) final class TypeFunction : TypeNext
 
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-        const dim = tf.parameterList.length;
-    Lloop: foreach (i; 0 .. dim)
+    Lloop: foreach (i, fparam; tf.parameterList)
         {
-            Parameter fparam = tf.parameterList[i];
             Type t = fparam.type;
             if (!t)
                 continue;
@@ -4342,10 +4338,8 @@ extern (C++) final class TypeFunction : TypeNext
      */
     bool hasLazyParameters()
     {
-        size_t dim = parameterList.length;
-        for (size_t i = 0; i < dim; i++)
+        foreach (i, fparam; parameterList)
         {
-            Parameter fparam = parameterList[i];
             if (fparam.storageClass & STC.lazy_)
                 return true;
         }
@@ -4418,10 +4412,8 @@ extern (C++) final class TypeFunction : TypeNext
         if (purity == PURE.weak)
         {
             // Check escaping through parameters
-            const dim = parameterList.length;
-            foreach (const i; 0 .. dim)
+            foreach (i, fparam; parameterList)
             {
-                Parameter fparam = parameterList[i];
                 if (fparam == p)
                     continue;
                 Type t = fparam.type;
@@ -4652,8 +4644,8 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        size_t nparams = parameterList.length;
-        size_t nargs = args.length;
+        const nparams = parameterList.length;
+        const nargs = args.length;
         if (nargs > nparams)
         {
             if (parameterList.varargs == VarArg.none)
@@ -4667,11 +4659,11 @@ extern (C++) final class TypeFunction : TypeNext
             match = MATCH.convert; // match ... with a "conversion" match level
         }
 
-        for (size_t u = 0; u < nargs; u++)
+        foreach (u, p; parameterList)
         {
-            if (u >= nparams)
+            if (u == nargs)
                 break;
-            Parameter p = parameterList[u];
+
             Expression arg = args[u];
             assert(arg);
             Type tprm = p.type;
@@ -4700,11 +4692,10 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        for (size_t u = 0; u < nparams; u++)
+        foreach (u, p; parameterList)
         {
             MATCH m;
 
-            Parameter p = parameterList[u];
             assert(p);
             if (u >= nargs)
             {
@@ -6411,11 +6402,13 @@ extern (C++) final class TypeNull : Type
 }
 
 /***********************************************************
- * Encapsulate Parameters* so .length and [i] can be used on it.
+ * Represents a function's formal parameters + variadics info.
+ * Length, indexing and iteration are based on a depth-first tuple expansion.
  * https://dlang.org/spec/function.html#ParameterList
  */
 extern (C++) struct ParameterList
 {
+    /// The raw (unexpanded) formal parameters, possibly containing tuples.
     Parameters* parameters;
     StorageClass stc;                   // storage class of ...
     VarArg varargs = VarArg.none;
@@ -6427,22 +6420,31 @@ extern (C++) struct ParameterList
         this.stc = stc;
     }
 
+    /// Returns the number of expanded parameters. Complexity: O(N).
     size_t length()
     {
         return Parameter.dim(parameters);
     }
 
+    /// Returns the expanded parameter at the given index, or null if out of
+    /// bounds. Complexity: O(i).
     Parameter opIndex(size_t i)
     {
         return Parameter.getNth(parameters, i);
+    }
+
+    /// Iterates over the expanded parameters. Complexity: O(N).
+    /// Prefer this to avoid the O(N + N^2/2) complexity of calculating length
+    /// and calling N times opIndex.
+    extern (D) int opApply(scope Parameter.ForeachDg dg)
+    {
+        return Parameter._foreach(parameters, dg);
     }
 
     extern (D) ParameterList syntaxCopy()
     {
         return ParameterList(Parameter.arraySyntaxCopy(parameters), varargs);
     }
-
-    alias parameters this;
 }
 
 
