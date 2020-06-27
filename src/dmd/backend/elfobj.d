@@ -216,8 +216,6 @@ enum
 __gshared IDXSYM *mapsec2sym;
 enum S2S_INC = 20;
 
-Elf32_Sym* SymbolTable()   { return cast(Elf32_Sym *)SYMbuf.buf; }
-Elf64_Sym* SymbolTable64() { return cast(Elf64_Sym *)SYMbuf.buf; }
 private __gshared int symbol_idx;          // Number of symbols in symbol table
 private __gshared int local_cnt;           // Number of symbols with STB_LOCAL
 
@@ -242,7 +240,8 @@ __gshared
 {
 
 // Symbol Table
-Outbuffer  *SYMbuf;             // Buffer to build symbol table in
+Barray!Elf32_Sym SymbolTable;
+Barray!Elf64_Sym SymbolTable64;
 
 // This should be renamed, even though it is private it conflicts with other reset_symbuf's
 extern (D) private Outbuffer *reset_symbuf; // Keep pointers to reset symbols
@@ -432,12 +431,8 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
 
     if (I64)
     {
-        if (!SYMbuf)
-        {
-            SYMbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-            assert(SYMbuf);
-            SYMbuf.reserve(100 * Elf64_Sym.sizeof);
-        }
+        if (SymbolTable64.length == 0)
+            SymbolTable64.reserve(100);
         Elf64_Sym sym;
         sym.st_name = nam;
         sym.st_value = val;
@@ -445,16 +440,12 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         sym.st_info = cast(ubyte)ELF64_ST_INFO(cast(ubyte)bind,cast(ubyte)typ);
         sym.st_other = visibility;
         sym.st_shndx = cast(ushort)sec;
-        SYMbuf.write((&sym)[0 .. 1]);
+        SymbolTable64.push(sym);
     }
     else
     {
-        if (!SYMbuf)
-        {
-            SYMbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-            assert(SYMbuf);
-            SYMbuf.reserve(100 * Elf32_Sym.sizeof);
-        }
+        if (SymbolTable.length == 0)
+            SymbolTable.reserve(100);
         Elf32_Sym sym;
         sym.st_name = nam;
         sym.st_value = cast(uint)val;
@@ -462,7 +453,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         sym.st_info = ELF32_ST_INFO(cast(ubyte)bind,cast(ubyte)typ);
         sym.st_other = visibility;
         sym.st_shndx = cast(ushort)sec;
-        SYMbuf.write((&sym)[0 .. 1]);
+        SymbolTable.push(sym);
     }
     if (bind == STB_LOCAL)
         local_cnt++;
@@ -790,8 +781,9 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         }
     }
 
-    if (SYMbuf)
-        SYMbuf.reset();
+    SymbolTable.reset();
+    SymbolTable64.reset();
+
     if (reset_symbuf)
     {
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
@@ -905,7 +897,7 @@ void *elf_renumbersyms()
 
     if (I64)
     {
-        Elf64_Sym *oldsymtab = cast(Elf64_Sym *)SYMbuf.buf;
+        Elf64_Sym *oldsymtab = &SymbolTable64[0];
         Elf64_Sym *symtabend = oldsymtab+symbol_idx;
 
         symtab = util_malloc(Elf64_Sym.sizeof,symbol_idx);
@@ -932,7 +924,7 @@ void *elf_renumbersyms()
     }
     else
     {
-        Elf32_Sym *oldsymtab = cast(Elf32_Sym *)SYMbuf.buf;
+        Elf32_Sym *oldsymtab = &SymbolTable[0];
         Elf32_Sym *symtabend = oldsymtab+symbol_idx;
 
         symtab = util_malloc(Elf32_Sym.sizeof,symbol_idx);
@@ -1188,7 +1180,8 @@ version (SCPP)
     //
     //dbg_printf("output symbol table size %d\n",SYMbuf.length());
     sechdr = &SecHdrTab[SHN_SYMTAB];    // Symbol Table
-    sechdr.sh_size = cast(uint)SYMbuf.length();
+    sechdr.sh_size = I64 ? cast(uint)SymbolTable64().length() * SymbolTable64[0].sizeof
+                         : cast(uint)SymbolTable().length() * SymbolTable[0].sizeof;
     sechdr.sh_entsize = I64 ? (Elf64_Sym).sizeof : (Elf32_Sym).sizeof;
     sechdr.sh_link = SHN_STRINGS;
     sechdr.sh_info = local_cnt;
