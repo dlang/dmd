@@ -318,6 +318,8 @@ public:
     virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
 
+    TypeFunction *toTypeFunction();
+
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
     TypeError *isTypeError();
