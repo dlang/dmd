@@ -112,6 +112,11 @@ version (Solaris)
     import core.sys.posix.sys.wait : idtype_t;
 }
 
+version (GNU)
+{
+    import gcc.builtins;
+}
+
 /**
  * Hook for whatever EH implementation is used to save/restore some data
  * per stack.
