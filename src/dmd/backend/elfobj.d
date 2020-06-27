@@ -239,9 +239,14 @@ enum
 __gshared
 {
 
-// Symbol Table
-Barray!Elf32_Sym SymbolTable;
-Barray!Elf64_Sym SymbolTable64;
+struct ElfObj
+{
+    // Symbol Table
+    Barray!Elf32_Sym SymbolTable;
+    Barray!Elf64_Sym SymbolTable64;
+}
+
+ElfObj elfobj;
 
 // This should be renamed, even though it is private it conflicts with other reset_symbuf's
 extern (D) private Outbuffer *reset_symbuf; // Keep pointers to reset symbols
@@ -431,30 +436,25 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
 
     if (I64)
     {
-        if (SymbolTable64.length == 0)
-            SymbolTable64.reserve(100);
-        Elf64_Sym sym;
+        Elf64_Sym* sym = elfobj.SymbolTable64.push();
         sym.st_name = nam;
         sym.st_value = val;
         sym.st_size = sz;
         sym.st_info = cast(ubyte)ELF64_ST_INFO(cast(ubyte)bind,cast(ubyte)typ);
         sym.st_other = visibility;
         sym.st_shndx = cast(ushort)sec;
-        SymbolTable64.push(sym);
     }
     else
     {
-        if (SymbolTable.length == 0)
-            SymbolTable.reserve(100);
-        Elf32_Sym sym;
+        Elf32_Sym* sym = elfobj.SymbolTable.push();
         sym.st_name = nam;
         sym.st_value = cast(uint)val;
         sym.st_size = sz;
         sym.st_info = ELF32_ST_INFO(cast(ubyte)bind,cast(ubyte)typ);
         sym.st_other = visibility;
         sym.st_shndx = cast(ushort)sec;
-        SymbolTable.push(sym);
     }
+
     if (bind == STB_LOCAL)
         local_cnt++;
     //dbg_printf("\treturning symbol table index %d\n",symbol_idx);
@@ -781,8 +781,8 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         }
     }
 
-    SymbolTable.reset();
-    SymbolTable64.reset();
+    elfobj.SymbolTable.reset();
+    elfobj.SymbolTable64.reset();
 
     if (reset_symbuf)
     {
@@ -856,17 +856,17 @@ void Obj_initfile(const(char)* filename, const(char)* csegname, const(char)* mod
 
     IDXSTR name = Obj_addstr(symtab_strings, filename);
     if (I64)
-        SymbolTable64[STI_FILE].st_name = name;
+        elfobj.SymbolTable64[STI_FILE].st_name = name;
     else
-        SymbolTable[STI_FILE].st_name = name;
+        elfobj.SymbolTable[STI_FILE].st_name = name;
 
 static if (0)
 {
     // compiler flag for linker
     if (I64)
-        SymbolTable64[STI_GCC].st_name = Obj_addstr(symtab_strings,"gcc2_compiled.");
+        elfobj.SymbolTable64[STI_GCC].st_name = Obj_addstr(symtab_strings,"gcc2_compiled.");
     else
-        SymbolTable[STI_GCC].st_name = Obj_addstr(symtab_strings,"gcc2_compiled.");
+        elfobj.SymbolTable[STI_GCC].st_name = Obj_addstr(symtab_strings,"gcc2_compiled.");
 }
 
     if (csegname && *csegname && strcmp(csegname,".text"))
@@ -897,7 +897,7 @@ void *elf_renumbersyms()
 
     if (I64)
     {
-        Elf64_Sym *oldsymtab = &SymbolTable64[0];
+        Elf64_Sym *oldsymtab = &elfobj.SymbolTable64[0];
         Elf64_Sym *symtabend = oldsymtab+symbol_idx;
 
         symtab = util_malloc(Elf64_Sym.sizeof,symbol_idx);
@@ -924,7 +924,7 @@ void *elf_renumbersyms()
     }
     else
     {
-        Elf32_Sym *oldsymtab = &SymbolTable[0];
+        Elf32_Sym *oldsymtab = &elfobj.SymbolTable[0];
         Elf32_Sym *symtabend = oldsymtab+symbol_idx;
 
         symtab = util_malloc(Elf32_Sym.sizeof,symbol_idx);
@@ -1180,8 +1180,8 @@ version (SCPP)
     //
     //dbg_printf("output symbol table size %d\n",SYMbuf.length());
     sechdr = &SecHdrTab[SHN_SYMTAB];    // Symbol Table
-    sechdr.sh_size = I64 ? cast(uint)SymbolTable64().length() * SymbolTable64[0].sizeof
-                         : cast(uint)SymbolTable().length() * SymbolTable[0].sizeof;
+    sechdr.sh_size = I64 ? cast(uint)(elfobj.SymbolTable64.length * Elf64_Sym.sizeof)
+                         : cast(uint)(elfobj.SymbolTable.length   * Elf32_Sym.sizeof);
     sechdr.sh_entsize = I64 ? (Elf64_Sym).sizeof : (Elf32_Sym).sizeof;
     sechdr.sh_link = SHN_STRINGS;
     sechdr.sh_info = local_cnt;
@@ -2291,9 +2291,9 @@ void Obj_func_term(Symbol *sfunc)
 
     // fill in the function size
     if (I64)
-        SymbolTable64[sfunc.Sxtrnnum].st_size = Offset(cseg) - sfunc.Soffset;
+        elfobj.SymbolTable64[sfunc.Sxtrnnum].st_size = Offset(cseg) - sfunc.Soffset;
     else
-        SymbolTable[sfunc.Sxtrnnum].st_size = cast(uint)(Offset(cseg) - sfunc.Soffset);
+        elfobj.SymbolTable[sfunc.Sxtrnnum].st_size = cast(uint)(Offset(cseg) - sfunc.Soffset);
     dwarf_func_term(sfunc);
 }
 
@@ -3032,12 +3032,12 @@ static if (0)
     {                           // identifier is defined somewhere else
         if (I64)
         {
-            if (SymbolTable64[s.Sxtrnnum].st_shndx != SHN_UNDEF)
+            if (elfobj.SymbolTable64[s.Sxtrnnum].st_shndx != SHN_UNDEF)
                 external = false;
         }
         else
         {
-            if (SymbolTable[s.Sxtrnnum].st_shndx != SHN_UNDEF)
+            if (elfobj.SymbolTable[s.Sxtrnnum].st_shndx != SHN_UNDEF)
                 external = false;
         }
     }
