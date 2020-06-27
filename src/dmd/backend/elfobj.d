@@ -184,10 +184,9 @@ private __gshared Outbuffer *symtab_strings;
 
 
 // Section Headers
-__gshared Outbuffer  *SECbuf;             // Buffer to build section table in
+__gshared Barray!(Elf32_Shdr) SecHdrTab;        // section header table
 
-Elf32_Shdr* SecHdrTab() { return cast(Elf32_Shdr *)SECbuf.buf; }
-Elf32_Shdr* GET_SECTION(int secidx) { return SecHdrTab() + secidx; }
+Elf32_Shdr* GET_SECTION(int secidx) { return &SecHdrTab[secidx]; }
 
 const(char)* GET_SECTION_NAME(int secidx)
 {
@@ -512,21 +511,16 @@ private IDXSEC elf_newsection2(
     sec.sh_addralign = addralign;
     sec.sh_entsize = entsize;
 
-    if (!SECbuf)
-    {
-        SECbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-        assert(SECbuf);
-        SECbuf.reserve(50 * Elf32_Shdr.sizeof);
-    }
     if (section_cnt == SHN_LORESERVE)
     {   // insert dummy null sections to skip reserved section indices
+        foreach (i; SHN_LORESERVE .. SHN_HIRESERVE + 1)
+            SecHdrTab.push();
         section_cnt = SHN_HIRESERVE + 1;
-        SECbuf.writezeros((SHN_HIRESERVE + 1 - SHN_LORESERVE) * sec.sizeof);
         // shndx itself becomes the first section with an extended index
         IDXSTR namidx = Obj_addstr(section_names, ".symtab_shndx");
         elf_newsection2(namidx,SHT_SYMTAB_SHNDX,0,0,0,0,SHN_SYMTAB,0,4,4);
     }
-    SECbuf.write(cast(void *)&sec, sec.sizeof);
+    *SecHdrTab.push() = sec;
     return section_cnt++;
 }
 
@@ -689,8 +683,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         symtab_strings.writeByte(0);
     }
 
-    if (SECbuf)
-        SECbuf.reset();
+    SecHdrTab.reset();
     section_cnt = 0;
 
     enum NAMIDX : IDXSTR
@@ -1284,7 +1277,7 @@ debug
         fobjbuf.reserve(sz);
         for (int i = 0; i < section_cnt; i++)
         {
-            Elf32_Shdr *p = SecHdrTab + i;
+            Elf32_Shdr *p = &SecHdrTab[i];
             Elf64_Shdr s;
             s.sh_name      = p.sh_name;
             s.sh_type      = p.sh_type;
@@ -1302,7 +1295,7 @@ debug
     }
     else
     {
-        fobjbuf.write(SecHdrTab, cast(uint)(section_cnt * Elf32_Shdr.sizeof));
+        fobjbuf.write(&SecHdrTab[0], cast(uint)(section_cnt * Elf32_Shdr.sizeof));
         foffset += section_cnt * Elf32_Shdr.sizeof;
     }
 
