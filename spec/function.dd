@@ -33,7 +33,7 @@ $(GNAME Parameters):
 $(GNAME ParameterList):
     $(GLINK Parameter)
     $(GLINK Parameter) $(D ,) $(I ParameterList)
-    $(D ...)
+    $(I VariadicArgumentsAttributes) $(D ...)
 
 $(GNAME Parameter):
     $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
@@ -59,6 +59,17 @@ $(GNAME InOut):
     $(D ref)
     $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
     $(D scope)
+
+$(GNAME VariadicArgumentsAttributes):
+    $(GLINK VariadicArgumentsAttribute)
+    $(GLINK VariadicArgumentsAttribute) $(GLINK VariadicArgumentsAttributes)
+
+$(GNAME VariadicArgumentsAttribute):
+    $(D const)
+    $(D immutable)
+    $(D return)
+    $(D scope)
+    $(D shared)
 )
 
 $(H3 Function attributes)
