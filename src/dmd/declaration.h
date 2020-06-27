@@ -439,43 +439,43 @@ enum ILS
 
 /**************************************************************/
 
-enum BUILTIN
+enum class BUILTIN : char
 {
-    BUILTINunknown = -1,    /// not known if this is a builtin
-    BUILTINunimp,           /// this is not a builtin
-    BUILTINsin,
-    BUILTINcos,
-    BUILTINtan,
-    BUILTINsqrt,
-    BUILTINfabs,
-    BUILTINldexp,
-    BUILTINlog,
-    BUILTINlog2,
-    BUILTINlog10,
-    BUILTINexp,
-    BUILTINexpm1,
-    BUILTINexp2,
-    BUILTINround,
-    BUILTINfloor,
-    BUILTINceil,
-    BUILTINtrunc,
-    BUILTINcopysign,
-    BUILTINpow,
-    BUILTINfmin,
-    BUILTINfmax,
-    BUILTINfma,
-    BUILTINisnan,
-    BUILTINisinfinity,
-    BUILTINisfinite,
-    BUILTINbsf,
-    BUILTINbsr,
-    BUILTINbswap,
-    BUILTINpopcnt,
-    BUILTINyl2x,
-    BUILTINyl2xp1,
-    BUILTINtoPrecFloat,
-    BUILTINtoPrecDouble,
-    BUILTINtoPrecReal
+    unknown = -1,    /// not known if this is a builtin
+    unimp,           /// this is not a builtin
+    sin,
+    cos,
+    tan,
+    sqrt,
+    fabs,
+    ldexp,
+    log,
+    log2,
+    log10,
+    exp,
+    expm1,
+    exp2,
+    round,
+    floor,
+    ceil,
+    trunc,
+    copysign,
+    pow,
+    fmin,
+    fmax,
+    fma,
+    isnan,
+    isinfinity,
+    isfinite,
+    bsf,
+    bsr,
+    bswap,
+    popcnt,
+    yl2x,
+    yl2xp1,
+    toPrecFloat,
+    toPrecDouble,
+    toPrecReal
 };
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
