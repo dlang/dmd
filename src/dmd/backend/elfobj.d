@@ -186,8 +186,6 @@ private __gshared Outbuffer *symtab_strings;
 // Section Headers
 __gshared Barray!(Elf32_Shdr) SecHdrTab;        // section header table
 
-Elf32_Shdr* GET_SECTION(int secidx) { return &SecHdrTab[secidx]; }
-
 const(char)* GET_SECTION_NAME(int secidx)
 {
     return cast(const(char)*)section_names.buf + SecHdrTab[secidx].sh_name;
@@ -197,7 +195,6 @@ const(char)* GET_SECTION_NAME(int secidx)
 // Try matching the order gcc output them
 // This means defining the sections and then removing them if they are
 // not used.
-private __gshared int section_cnt; // Number of sections in table
 
 enum
 {
@@ -482,8 +479,8 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
  *      type    =       type of data in section sh_type
  *      flags   =       attribute flags sh_flags
  * Output:
- *      section_cnt = assigned number for this section
- *              Note: Sections will be reordered on output
+ *      assigned number for this section
+ *      Note: Sections will be reordered on output
  */
 
 private IDXSEC elf_newsection2(
@@ -511,17 +508,17 @@ private IDXSEC elf_newsection2(
     sec.sh_addralign = addralign;
     sec.sh_entsize = entsize;
 
-    if (section_cnt == SHN_LORESERVE)
+    if (SecHdrTab.length == SHN_LORESERVE)
     {   // insert dummy null sections to skip reserved section indices
         foreach (i; SHN_LORESERVE .. SHN_HIRESERVE + 1)
             SecHdrTab.push();
-        section_cnt = SHN_HIRESERVE + 1;
         // shndx itself becomes the first section with an extended index
         IDXSTR namidx = Obj_addstr(section_names, ".symtab_shndx");
         elf_newsection2(namidx,SHT_SYMTAB_SHNDX,0,0,0,0,SHN_SYMTAB,0,4,4);
     }
+    const si = SecHdrTab.length;
     *SecHdrTab.push() = sec;
-    return section_cnt++;
+    return cast(IDXSEC)si;
 }
 
 /**
@@ -684,7 +681,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     }
 
     SecHdrTab.reset();
-    section_cnt = 0;
 
     enum NAMIDX : IDXSTR
     {
@@ -884,15 +880,10 @@ static if (0)
     if (csegname && *csegname && strcmp(csegname,".text"))
     {   // Define new section and make it the default for cseg segment
         // NOTE: cseg is initialized to CODE
-        IDXSEC newsecidx;
-        Elf32_Shdr *newtextsec;
-        IDXSYM newsymidx;
-        SegData[cseg].SDshtidx = newsecidx =
-            elf_newsection(csegname,null,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR);
-        newtextsec = &SecHdrTab[newsecidx];
-        newtextsec.sh_addralign = 4;
-        SegData[cseg].SDsymidx =
-            elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
+        const newsecidx = elf_newsection(csegname,null,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR);
+        SecHdrTab[newsecidx].sh_addralign = 4;
+        SegData[cseg].SDshtidx = newsecidx;
+        SegData[cseg].SDsymidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
     }
     if (config.fulltypes)
         dwarf_initmodule(filename, modname);
@@ -1092,12 +1083,12 @@ version (SCPP)
     int hdrsize = (I64 ? Elf64_Ehdr.sizeof : Elf32_Ehdr.sizeof);
 
     ushort e_shnum;
-    if (section_cnt < SHN_LORESERVE)
-        e_shnum = cast(ushort)section_cnt;
+    if (SecHdrTab.length < SHN_LORESERVE)
+        e_shnum = cast(ushort)SecHdrTab.length;
     else
     {
         e_shnum = SHN_UNDEF;
-        SecHdrTab[0].sh_size = section_cnt;
+        SecHdrTab[0].sh_size = cast(uint)SecHdrTab.length;
     }
     // uint16_t e_shstrndx = SHN_SECNAMES;
     fobjbuf.writezeros(hdrsize);
@@ -1122,8 +1113,8 @@ version (SCPP)
     // First output individual section data associate with program
     //  code and data
     //
-    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, SegData.length %d\n",foffset,section_cnt,SegData.length);
-    for (int i=1; i < SegData.length; i++)
+    //printf("Setup offsets and sizes foffset %d\n\tSecHdrTab.length %d, SegData.length %d\n",foffset,cast(int)SecHdrTab.length,SegData.length);
+    foreach (int i; 1 .. cast(int)SegData.length)
     {
         seg_data *pseg = SegData[i];
         Elf32_Shdr *sechdr2 = MAP_SEG2SEC(i);        // corresponding section
@@ -1209,7 +1200,7 @@ version (SCPP)
 
     if (shndx_data && shndx_data.length())
     {
-        assert(section_cnt >= secidx_shndx);
+        assert(SecHdrTab.length >= secidx_shndx);
         sechdr = &SecHdrTab[secidx_shndx];
         sechdr.sh_size = cast(uint)shndx_data.length();
         sechdr.sh_offset = foffset;
@@ -1273,30 +1264,29 @@ debug
     // Output the completed Section Header Table
     if (I64)
     {   // Translate section headers to 64 bits
-        int sz = cast(int)(section_cnt * Elf64_Shdr.sizeof);
+        int sz = cast(int)(SecHdrTab.length * Elf64_Shdr.sizeof);
         fobjbuf.reserve(sz);
-        for (int i = 0; i < section_cnt; i++)
+        foreach (ref sh; SecHdrTab)
         {
-            Elf32_Shdr *p = &SecHdrTab[i];
             Elf64_Shdr s;
-            s.sh_name      = p.sh_name;
-            s.sh_type      = p.sh_type;
-            s.sh_flags     = p.sh_flags;
-            s.sh_addr      = p.sh_addr;
-            s.sh_offset    = p.sh_offset;
-            s.sh_size      = p.sh_size;
-            s.sh_link      = p.sh_link;
-            s.sh_info      = p.sh_info;
-            s.sh_addralign = p.sh_addralign;
-            s.sh_entsize   = p.sh_entsize;
+            s.sh_name      = sh.sh_name;
+            s.sh_type      = sh.sh_type;
+            s.sh_flags     = sh.sh_flags;
+            s.sh_addr      = sh.sh_addr;
+            s.sh_offset    = sh.sh_offset;
+            s.sh_size      = sh.sh_size;
+            s.sh_link      = sh.sh_link;
+            s.sh_info      = sh.sh_info;
+            s.sh_addralign = sh.sh_addralign;
+            s.sh_entsize   = sh.sh_entsize;
             fobjbuf.write((&s)[0 .. 1]);
         }
         foffset += sz;
     }
     else
     {
-        fobjbuf.write(&SecHdrTab[0], cast(uint)(section_cnt * Elf32_Shdr.sizeof));
-        foffset += section_cnt * Elf32_Shdr.sizeof;
+        fobjbuf.write(&SecHdrTab[0], cast(uint)(SecHdrTab.length * Elf32_Shdr.sizeof));
+        foffset += SecHdrTab.length * Elf32_Shdr.sizeof;
     }
 
     //
