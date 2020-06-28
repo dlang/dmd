@@ -173,7 +173,7 @@ enum SEC_NAMES_INIT = 800;
 enum SEC_NAMES_INC  = 400;
 
 // Hash table for section_names
-__gshared AApair *section_names_hashtable;
+__gshared AApair2 *section_names_hashtable;
 
 __gshared int jmpseg;
 
@@ -520,9 +520,10 @@ Params:
     suffix = append to name
     padded = set to true when entry was newly added
 Returns:
-    String index of new or existing section name.
+    pointer to Pair, where the first field is the string index of the new or existing section name,
+    and the second field is its segment index
  */
-private IDXSTR elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
+private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
 {
     IDXSTR namidx = cast(IDXSTR)section_names.length();
     section_names.writeString(name);
@@ -531,17 +532,17 @@ private IDXSTR elf_addsectionname(const(char)* name, const(char)* suffix = null,
         section_names.setsize(cast(uint)section_names.length() - 1);  // back up over terminating 0
         section_names.writeString(suffix);
     }
-    IDXSTR *pidx = section_names_hashtable.get(namidx, cast(uint)section_names.length() - 1);
-    //IDXSTR *pidx = cast(IDXSTR *)section_names_hashtable.get(&namidx);
-    if (*pidx)
+    Pair* pidx = section_names_hashtable.get(namidx, cast(uint)section_names.length() - 1);
+    if (pidx.start)
     {
         // this section name already exists, remove addition
         section_names.setsize(namidx);
-        return *pidx;
+        return pidx;
     }
     if (padded)
         *padded = true;
-    return *pidx = namidx;
+    pidx.start = namidx;
+    return pidx;
 }
 
 private IDXSEC elf_newsection(const(char)* name, const(char)* suffix,
@@ -550,10 +551,10 @@ private IDXSEC elf_newsection(const(char)* name, const(char)* suffix,
     // dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
     //        name?name:"",suffix?suffix:"",type,flags);
     bool added = false;
-    IDXSTR namidx = elf_addsectionname(name, suffix, &added);
+    Pair* pidx = elf_addsectionname(name, suffix, &added);
     assert(added);
 
-    return elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
+    return elf_newsection2(pidx.start,type,flags,0,0,0,0,0,0,0);
 }
 
 /**************************
@@ -709,10 +710,8 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         }
 
         if (section_names_hashtable)
-            AApair.destroy(section_names_hashtable);
-            //delete section_names_hashtable;
-        section_names_hashtable = AApair.create(&section_names.buf);
-        //section_names_hashtable = new AArray(&ti_idxstr, IDXSTR.sizeof);
+            AApair2.destroy(section_names_hashtable);
+        section_names_hashtable = AApair2.create(&section_names.buf);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -733,7 +732,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            *section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof) = idx;
+            section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof).start = idx;
         }
     }
     else
@@ -753,10 +752,8 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         }
 
         if (section_names_hashtable)
-            AApair.destroy(section_names_hashtable);
-            //delete section_names_hashtable;
-        section_names_hashtable = AApair.create(&section_names.buf);
-        //section_names_hashtable = new AArray(&ti_idxstr, (IDXSTR).sizeof);
+            AApair2.destroy(section_names_hashtable);
+        section_names_hashtable = AApair2.create(&section_names.buf);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -777,7 +774,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            *section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof) = idx;
+            section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof).start = idx;
         }
     }
 
@@ -1653,17 +1650,17 @@ else
         const(char)* p = cpp_mangle2(s);
 
         bool added = false;
-        const namidx = elf_addsectionname(".text.", p, &added);
+        Pair* pidx = elf_addsectionname(".text.", p, &added);
         int groupseg;
         if (added)
         {
             // Create a new COMDAT section group
-            const IDXSTR grpnamidx = elf_addsectionname(".group");
-            groupseg = elf_addsegment(grpnamidx, SHT_GROUP, 0, (IDXSYM).sizeof);
+            Pair* pidx2 = elf_addsectionname(".group");
+            groupseg = elf_addsegment(pidx2.start, SHT_GROUP, 0, (IDXSYM).sizeof);
             MAP_SEG2SEC(groupseg).sh_link = SHN_SYMTAB;
             MAP_SEG2SEC(groupseg).sh_entsize = (IDXSYM).sizeof;
             // Create a new TEXT section for the comdat symbol with the SHF_GROUP bit set
-            s.Sseg = elf_addsegment(namidx, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align_);
+            s.Sseg = elf_addsegment(pidx.start, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align_);
             // add TEXT section to COMDAT section group
             SegData[groupseg].SDbuf.write32(GRP_COMDAT);
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(s.Sseg));
@@ -1678,7 +1675,9 @@ else
              * https://issues.dlang.org/show_bug.cgi?id=14831, and
              * https://issues.dlang.org/show_bug.cgi?id=17339.
              */
-            s.Sseg = elf_getsegment(namidx);
+            if (!pidx.end)
+                pidx.end = elf_getsegment(pidx.start);
+            s.Sseg = pidx.end;
             groupseg = SegData[s.Sseg].SDassocseg;
             assert(groupseg);
         }
@@ -1835,10 +1834,10 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg)
     addSectionToComdat(SegData[seg].SDshtidx, comdatseg);
 }
 
-private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
+private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
 {
     //printf("SegData = %p\n", SegData);
-    const int seg = cast(int)SegData.length;
+    const segidx_t seg = cast(segidx_t)SegData.length;
     seg_data** ppseg = SegData.push();
 
     seg_data* pseg = *ppseg;
@@ -1889,13 +1888,13 @@ private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
  * Returns:
  *      SegData index of newly created section.
  */
-private int elf_addsegment(IDXSTR namidx, int type, int flags, int align_)
+private segidx_t elf_addsegment(IDXSTR namidx, int type, int flags, int align_)
 {
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg].SDbuf);
     IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
     SecHdrTab[shtidx].sh_addralign = align_;
     IDXSYM symidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, shtidx);
-    int seg = elf_addsegment2(shtidx, symidx, 0);
+    segidx_t seg = elf_addsegment2(shtidx, symidx, 0);
     //printf("-Obj_getsegment() = %d\n", seg);
     return seg;
 }
@@ -1933,19 +1932,23 @@ private int elf_getsegment(IDXSTR namidx)
  * Returns:
  *      SegData index of found or newly created section.
  */
-int Obj_getsegment(const(char)* name, const(char)* suffix, int type, int flags,
+segidx_t Obj_getsegment(const(char)* name, const(char)* suffix, int type, int flags,
         int align_)
 {
     //printf("Obj_getsegment(%s,%s,flags %x, align_ %d)\n",name,suffix,flags,align_);
     bool added = false;
-    const namidx = elf_addsectionname(name, suffix, &added);
+    Pair* pidx = elf_addsectionname(name, suffix, &added);
     if (!added)
     {
-        const seg = elf_getsegment(namidx);
-        assert(seg);
-        return seg;
+        // Existing segment
+        if (!pidx.end)
+            pidx.end = elf_getsegment(pidx.start);
+        return pidx.end;
     }
-    return elf_addsegment(namidx, type, flags, align_);
+    else
+        // New segment, cache the segment index in the hash table
+        pidx.end = elf_addsegment(pidx.start, type, flags, align_);
+    return pidx.end;
 }
 
 /**********************************
