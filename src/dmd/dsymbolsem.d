@@ -3526,13 +3526,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 const p = (pors == SCOPE.printf ? Id.printf : Id.scanf).toChars();
                 if (f.parameterList.varargs == VarArg.variadic)
                 {
-                    funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)"
+                    funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)`"
                                    ~ " not `%s`",
                         p, f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
                 }
                 else
                 {
-                    funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, va_list)",
+                    funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, va_list)`",
                         p, f.next.toChars(), funcdecl.toChars());
                 }
             }
