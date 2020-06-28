@@ -381,7 +381,7 @@ static if (0)
         name = s.Sfunc.Fredirect;
         len = strlen(name);
     }
-    symtab_strings.writeString(name);
+    symtab_strings.write(name, len + 1);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
@@ -2601,7 +2601,7 @@ static if (0)
             //seg,offset,nbytes,p);
     buf.position(cast(size_t)offset, nbytes);
     if (p)
-        buf.write(p, nbytes);
+        buf.writen(p, nbytes);
     else // Zero out the bytes
         buf.writezeros(nbytes);
 
