@@ -1,5 +1,5 @@
 // REQUIRED_ARGS:
-// PERMUTE_ARGS: -mcpu=native
+// PERMUTE_ARGS: -mcpu=native -inline
 
 version (D_SIMD)
 {
@@ -2000,6 +2000,20 @@ auto test20052()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20981
+
+void test20981()
+{
+    void16 a;
+    simd_stox!(XMM.STOUPS)(a, a);
+}
+
+void16 simd_stox(XMM opcode)(void16 op1, void16 op2)
+{
+    return cast(void16) __simd_sto(opcode, op1, op2);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -2044,6 +2058,7 @@ int main()
 
     test6();
     test7();
+    test20981();
 
     return 0;
 }
