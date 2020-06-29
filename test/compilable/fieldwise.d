@@ -1,5 +1,5 @@
-/* REQUIRED_ARGS: -preview=dip1000 -preview=fieldwise
- */
+// REQUIRED_ARGS: -preview=dip1000 -preview=fieldwise
+// EXTRA_FILES: imports/impfieldwise.d
 
 import imports.impfieldwise;
 

@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -de
+// EXTRA_FILES: imports/protectionimp.d
 import imports.protectionimp;
 
 alias TypeTuple(T...) = T;

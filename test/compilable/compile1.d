@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// EXTRA_FILES: imports/a12506.d
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=1748

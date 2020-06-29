@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -de
+// EXTRA_FILES: imports/test15785.d
 // PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
