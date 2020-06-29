@@ -1,5 +1,4 @@
 /*
-REQUIRED_ARGS:
 PERMUTE_ARGS:
 */
 

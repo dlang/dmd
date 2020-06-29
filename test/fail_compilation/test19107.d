@@ -1,9 +1,8 @@
-// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test19107.d(24): Error: template `test19107.all` cannot deduce function from argument types `!((c) => c)(string[])`, candidates are:
-fail_compilation/test19107.d(18):        `all(alias pred, T)(T t)`
+fail_compilation/test19107.d(23): Error: template `test19107.all` cannot deduce function from argument types `!((c) => c)(string[])`, candidates are:
+fail_compilation/test19107.d(17):        `all(alias pred, T)(T t)`
   with `pred = __lambda2,
        T = string[]`
   must satisfy the following constraint:

@@ -1,8 +1,7 @@
-// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18979.d(13): Error: no property `__ctor` for type `imports.imp18979.Foo`
+fail_compilation/fail18979.d(12): Error: no property `__ctor` for type `imports.imp18979.Foo`
 ----
 */
 

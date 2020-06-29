@@ -1,11 +1,10 @@
-// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test12558.d(18): Error: `catch` statement without an exception specification is deprecated
-fail_compilation/test12558.d(18):        use `catch(Throwable)` for old behavior
-fail_compilation/test12558.d(23): Error: `catch` statement without an exception specification is deprecated
-fail_compilation/test12558.d(23):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(17): Error: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(17):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(22): Error: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(22):        use `catch(Throwable)` for old behavior
 ---
 */
 
