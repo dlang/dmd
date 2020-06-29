@@ -1,4 +1,5 @@
 /**
+EXTRA_FILES: cppmangle2.d
 TEST_OUTPUT:
 ---
 ---

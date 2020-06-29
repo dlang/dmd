@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -o-
+// EXTRA_FILES: imports/imp12242a1.d imports/imp12242a2.d
 // PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
