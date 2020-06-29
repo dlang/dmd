@@ -1,4 +1,5 @@
 // EXTRA_SOURCES: imports/a13131parameters.d imports/a13131elec.d
+// EXTRA_FILES: imports/a13131checkpoint.d
 /*
 TEST_OUTPUT:
 ---

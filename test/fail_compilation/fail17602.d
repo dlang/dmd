@@ -1,7 +1,8 @@
 /*
+EXTRA_FILES: imports/imp17602.d
 TEST_OUTPUT:
 ---
-fail_compilation/fail17602.d(16): Error: cannot implicitly convert expression `cast(Status)0` of type `imports.imp17602.Status` to `fail17602.Status`
+fail_compilation/fail17602.d(17): Error: cannot implicitly convert expression `cast(Status)0` of type `imports.imp17602.Status` to `fail17602.Status`
 ---
 */
 
