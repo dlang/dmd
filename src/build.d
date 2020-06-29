@@ -1542,7 +1542,8 @@ class BuildRule
         if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
-                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
+                log("Skipping build of %-('%s' %)' because %s is newer than each of %-('%s' %)'",
+                    targets, targets.length > 1 ? "each of them" : "it", this.sources);
             return false;
         }
 
