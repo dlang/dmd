@@ -1,4 +1,4 @@
-/* PERMUTE_ARGS:
+/*
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---

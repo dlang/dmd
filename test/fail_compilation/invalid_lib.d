@@ -2,7 +2,6 @@
 REQUIRED_ARGS: -lib
 REQUIRED_ARGS(linux freebsd osx) fail_compilation/extra-files/fake.a
 REQUIRED_ARGS(windows) -m32 fail_compilation/extra-files/fake.lib
-PERMUTE_ARGS:
 
 Use a regex because the path is really strange on Azure (OMF_32, 64):
 

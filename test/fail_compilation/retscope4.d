@@ -1,6 +1,5 @@
 /*
 REQUIRED_ARGS: -de
-PERMUTE_ARGS:
 */
 
 /*

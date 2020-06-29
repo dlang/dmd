@@ -1,4 +1,4 @@
-/* PERMUTE_ARGS:
+/*
 TEST_OUTPUT:
 ---
 fail_compilation/imphint.d(53): Error: `printf` is not defined, perhaps `import core.stdc.stdio;` is needed?
