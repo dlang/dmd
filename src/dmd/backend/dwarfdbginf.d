@@ -78,7 +78,6 @@ static if (MACHOBJ)
     import dmd.backend.mach;
 
 import dmd.backend.dwarf;
-import dmd.backend.dwarf2;
 
 
 extern (C++):
