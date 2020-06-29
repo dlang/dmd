@@ -1,35 +1,34 @@
-// REQUIRED_ARGS:
 // PERMUTE_ARGS:
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/fail9665a.d(45): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(44):        Previous initialization is here.
-fail_compilation/fail9665a.d(55): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(54):        Previous initialization is here.
-fail_compilation/fail9665a.d(60): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(59):        Previous initialization is here.
-fail_compilation/fail9665a.d(65): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(64):        Previous initialization is here.
-fail_compilation/fail9665a.d(75): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(74):        Previous initialization is here.
-fail_compilation/fail9665a.d(80): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(79):        Previous initialization is here.
-fail_compilation/fail9665a.d(85): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(84):        Previous initialization is here.
-fail_compilation/fail9665a.d(98): Error: immutable field `v` initialization is not allowed in loops or after labels
-fail_compilation/fail9665a.d(103): Error: immutable field `v` initialization is not allowed in loops or after labels
-fail_compilation/fail9665a.d(108): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(107):        Previous initialization is here.
-fail_compilation/fail9665a.d(113): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(112):        Previous initialization is here.
-fail_compilation/fail9665a.d(118): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(117):        Previous initialization is here.
-fail_compilation/fail9665a.d(132): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(131):        Previous initialization is here.
-fail_compilation/fail9665a.d(136): Error: immutable field `w` initialized multiple times
-fail_compilation/fail9665a.d(135):        Previous initialization is here.
-fail_compilation/fail9665a.d(150): Error: static assert:  `__traits(compiles, this.v = 1)` is false
+fail_compilation/fail9665a.d(44): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(43):        Previous initialization is here.
+fail_compilation/fail9665a.d(54): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(53):        Previous initialization is here.
+fail_compilation/fail9665a.d(59): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(58):        Previous initialization is here.
+fail_compilation/fail9665a.d(64): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(63):        Previous initialization is here.
+fail_compilation/fail9665a.d(74): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(73):        Previous initialization is here.
+fail_compilation/fail9665a.d(79): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(78):        Previous initialization is here.
+fail_compilation/fail9665a.d(84): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(83):        Previous initialization is here.
+fail_compilation/fail9665a.d(97): Error: immutable field `v` initialization is not allowed in loops or after labels
+fail_compilation/fail9665a.d(102): Error: immutable field `v` initialization is not allowed in loops or after labels
+fail_compilation/fail9665a.d(107): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(106):        Previous initialization is here.
+fail_compilation/fail9665a.d(112): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(111):        Previous initialization is here.
+fail_compilation/fail9665a.d(117): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(116):        Previous initialization is here.
+fail_compilation/fail9665a.d(131): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(130):        Previous initialization is here.
+fail_compilation/fail9665a.d(135): Error: immutable field `w` initialized multiple times
+fail_compilation/fail9665a.d(134):        Previous initialization is here.
+fail_compilation/fail9665a.d(149): Error: static assert:  `__traits(compiles, this.v = 1)` is false
 ---
 +/
 

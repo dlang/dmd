@@ -1,11 +1,10 @@
 /*
-REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/test314.d(19): Error: undefined identifier `renamed`
-fail_compilation/test314.d(20): Error: undefined identifier `bug`
-fail_compilation/test314.d(22): Error: undefined identifier `renamedpkg`
-fail_compilation/test314.d(23): Error: undefined identifier `bugpkg`
+fail_compilation/test314.d(18): Error: undefined identifier `renamed`
+fail_compilation/test314.d(19): Error: undefined identifier `bug`
+fail_compilation/test314.d(21): Error: undefined identifier `renamedpkg`
+fail_compilation/test314.d(22): Error: undefined identifier `bugpkg`
 ---
 */
 
