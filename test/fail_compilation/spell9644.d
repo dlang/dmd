@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
-
+// EXTRA_FILES: imports/spell9644a.d imports/spell9644b.d
 /*
 TEST_OUTPUT:
 ---
