@@ -2,6 +2,9 @@ INSTALL_DIR=$(PWD)/../install
 ECTAGS_LANGS = Make,C,C++,D,Sh
 ECTAGS_FILES = src/dmd/*.[chd] src/dmd/backend/*.[chd] src/dmd/root/*.[chd]
 
+# Default is quiet mode, override with QUIET= in the command line
+QUIET=@
+
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
 all:

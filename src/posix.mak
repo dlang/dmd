@@ -46,6 +46,10 @@ ifeq (,$(BUILD))
 BUILD=release
 endif
 
+ifeq (,$(QUIET))
+VERBOSE=--verbose
+endif
+
 ifneq ($(BUILD),release)
     ifneq ($(BUILD),debug)
         $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
@@ -107,7 +111,7 @@ all: dmd
 .PHONY: all
 
 dmd: $(GENERATED)/build
-	$(RUN_BUILD) $@
+	$(RUN_BUILD) $@ $(VERBOSE)
 .PHONY: dmd
 
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
