@@ -1,9 +1,8 @@
 /*
 REQUIRED_ARGS: -o-
-PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/fail20730a.d(12): Error: undefined identifier `undef20730`
+fail_compilation/fail20730a.d(11): Error: undefined identifier `undef20730`
 ---
 */
 void test20730()

@@ -1,9 +1,8 @@
-// PERMUTE_ARGS:
 // REQUIRED_ARGS: -d
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9368.d(20): Error: `enum` member `b` not represented in `final switch`
+fail_compilation/fail9368.d(19): Error: `enum` member `b` not represented in `final switch`
 ---
 */
 
@@ -26,7 +25,7 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9368.d(41): Error: `enum` member `B` not represented in `final switch`
+fail_compilation/fail9368.d(40): Error: `enum` member `B` not represented in `final switch`
 ---
 */
 

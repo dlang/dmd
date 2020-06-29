@@ -1,5 +1,4 @@
 // REQUIRED_ARGS: -o-
-// PERMUTE_ARGS:
 
 /***************** NewExp *******************/
 
@@ -10,13 +9,13 @@ struct S3 { this(int) @nogc; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(24): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(23): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(25): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
 fail_compilation/nogc1.d(26): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(27): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(29): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(30): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(31): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(33): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(28): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(29): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
+fail_compilation/nogc1.d(30): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(32): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
 ---
 */
 @nogc void testNew()
@@ -36,12 +35,12 @@ fail_compilation/nogc1.d(33): Error: cannot use `new` in `@nogc` function `nogc1
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(49): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(48): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(50): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
 fail_compilation/nogc1.d(51): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(52): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(54): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(55): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(56): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(53): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(54): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
+fail_compilation/nogc1.d(55): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
 ---
 */
 @nogc void testNewScope()
@@ -64,12 +63,12 @@ fail_compilation/nogc1.d(56): Error: cannot use `new` in `@nogc` function `nogc1
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/nogc1.d(76): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/nogc1.d(76): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
 fail_compilation/nogc1.d(77): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/nogc1.d(77): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
 fail_compilation/nogc1.d(78): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/nogc1.d(78): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
-fail_compilation/nogc1.d(79): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-fail_compilation/nogc1.d(79): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
 ---
 */
 @nogc void testDelete(int* p, Object o, S1* s)

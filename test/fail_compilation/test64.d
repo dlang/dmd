@@ -6,7 +6,6 @@ fail_compilation/imports/test64a.d(1): Error: module `imports` from file fail_co
 ---
 */
 
-// PERMUTE_ARGS:
 
 //import std.stdio;
 

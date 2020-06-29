@@ -1,5 +1,4 @@
 /*
-PERMUTE_ARGS:
 REQUIRED_ARGS: -Xi=,!
 TEST_OUTPUT:
 ---

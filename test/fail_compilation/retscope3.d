@@ -1,6 +1,5 @@
 /*
 REQUIRED_ARGS: -preview=dip1000
-PERMUTE_ARGS:
 */
 
 /*
