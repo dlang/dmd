@@ -115,6 +115,7 @@ bug17688
 T
 foo2
 T2
+TestStaticForeach2
 1 2 '3'
 2 3 '4'
 0 1
@@ -840,3 +841,31 @@ struct T2{
         struct S{}
 }
 static assert(is(__traits(parent,T2.S)==T2));
+
+struct TestStaticForeach2
+{
+static:
+    // StringExp
+    char[] test(string str)()
+    {
+        char[] s;
+        static foreach (c; str)
+        {
+            s ~= c;
+        }
+        return s;
+    }
+    static assert(test!"tёstñ" == ['t', '\xd1', '\x91', 's', 't', '\xc3', '\xb1']);
+
+    static foreach (c; "")
+    {
+        static assert(0);
+    }
+
+    // NullExp
+    enum int[] a = null;
+    static foreach (c; a)
+    {
+        static assert(0);
+    }
+}
