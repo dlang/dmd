@@ -9,6 +9,7 @@ import std.datetime.systime;
 import std.exception;
 import std.file;
 import std.format;
+import std.meta : AliasSeq;
 import std.process;
 import std.random;
 import std.range : chain;
@@ -825,6 +826,9 @@ unittest
     assertThrown(test("", "unknown", ""));
 }
 
+/// List of supported special sequences used in compareOutput
+alias specialSequences = AliasSeq!("$n$", "$p:", "$r:", "$?:");
+
 /++
 Compares the output string to the reference string by character
 except parts marked with one of the following special sequences:
@@ -853,7 +857,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
     for ( ; ; )
     {
-        auto special = refoutput.find("$n$", "$p:", "$r:", "$?:").rename!("remainder", "id");
+        auto special = refoutput.find(specialSequences).rename!("remainder", "id");
 
         // Simple equality check if no special tokens remain
         if (special.id == 0)
@@ -1405,6 +1409,14 @@ int tryMain(string[] args)
                 // (might fail for runnable tests on Windows)
                 if (output_file.remove().collectException())
                     writef("\nWARNING: Failed to remove `%s`!", output_file);
+
+                // Don't overwrite TEST_OUTPUT sections which contain special
+                // sequences because they must be manually adapted
+                if (testArgs.compileOutput.canFind(specialSequences))
+                {
+                    writefln("\nWARNING: %s uses special sequences in `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                    return Result.return0;
+                }
 
                 if (testArgs.compileOutputFile && !ce.fromRun)
                 {
