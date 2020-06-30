@@ -369,6 +369,8 @@ void test_types()
 void test_location()
 {
     Loc loc1 = Loc("test.d", 24, 42);
+    assert(loc1.linnum() == 24);
+    assert(loc1.charnum() == 42);
     assert(loc1.equals(Loc("test.d", 24, 42)));
     assert(strcmp(loc1.toChars(true, MESSAGESTYLEdigitalmars), "test.d(24,42)") == 0);
     assert(strcmp(loc1.toChars(true, MESSAGESTYLEgnu), "test.d:24:42") == 0);
