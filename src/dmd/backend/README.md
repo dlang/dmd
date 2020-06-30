@@ -32,8 +32,7 @@ Debug Information
 * **cv4.d**           CodeView 4 symbolic debug info declarations
 * **cv8.d**           CodeView 8 symbolic debug info generation
 * **dcgcv.d**         CodeView 4 symbolic debug info generation
-* **dwarf.d**         interface to Dwarf generation
-* **dwarf2.d**        Dwarf 3 spec declarations
+* **dwarf.d**         interface to DWARF generation and DWARF spec declarations
 * **dwarfdbginf.d**   generate Dwarf debug info
 * **dwarfeh.d**       Dwarf Exception handling tables
 * **ee.d**            DMC++ IDDE debugger expression evaluation
