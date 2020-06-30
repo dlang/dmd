@@ -1530,7 +1530,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
                     buf ~= `params.`~t.paramName~` = true;`;
                 }
-                buf ~= "break;\n";
+                buf ~= "return true;\n";
 
                 foreach (t; features)
                 {
