@@ -79,16 +79,25 @@ version (MARS)
     extern(C) char* itoa(int,char*,int);
     extern(C) char* getcwd(char*,size_t);
 
+// Keep this in sync with struct Loc in globals.d?
 struct Loc
 {
     char *filename;
-    uint linnum;
-    uint charnum;
+    private uint _linnum;
+    private uint _charnum;
+
+    @safe @nogc pure @property
+    {
+        const uint linnum() { return _linnum; }
+        const uint charnum() { return _charnum; }
+        void linnum(uint rhs) { _linnum = rhs; }
+        void charnum(uint rhs) { _charnum = rhs; }
+    }
 
     this(int y, int x)
     {
-        linnum = y;
-        charnum = x;
+        _linnum = y;
+        _charnum = x;
         filename = null;
     }
 }

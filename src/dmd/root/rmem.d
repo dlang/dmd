@@ -167,21 +167,21 @@ extern (C++) const __gshared Mem mem;
 
 enum CHUNK_SIZE = (256 * 4096 - 64);
 
-__gshared size_t heapleft = 0;
+__gshared void* heapend;
 __gshared void* heapp;
 
 extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
 {
     // 16 byte alignment is better (and sometimes needed) for doubles
-    m_size = (m_size + 15) & ~15;
+    m_size = (m_size + 8) & ~8;
 
     // The layout of the code is selected so the most common case is straight through
-    if (m_size <= heapleft)
+    const size_t avail = heapend - heapp;
+    if (m_size <= avail)
     {
     L1:
-        heapleft -= m_size;
         auto p = heapp;
-        heapp = cast(void*)(cast(char*)heapp + m_size);
+        heapp = cast(char*)heapp + m_size;
         return p;
     }
 
@@ -190,8 +190,8 @@ extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
         return Mem.check(malloc(m_size));
     }
 
-    heapleft = CHUNK_SIZE;
     heapp = Mem.check(malloc(CHUNK_SIZE));
+    heapend = cast(char*) heapp + CHUNK_SIZE;
     goto L1;
 }
 

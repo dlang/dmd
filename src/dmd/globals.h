@@ -353,7 +353,7 @@ typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
-// file location
+// File location. Keep layout in sync with struct Loc in globals.d.
 struct Loc
 {
     const char *filename; // either absolute or relative to cwd
