@@ -78,31 +78,6 @@ version (MARS)
     extern(C) char* strupr(char*);
     extern(C) char* itoa(int,char*,int);
     extern(C) char* getcwd(char*,size_t);
-
-// Keep this in sync with struct Loc in globals.d?
-struct Loc
-{
-    char *filename;
-    private uint _linnum;
-    private uint _charnum;
-
-    @safe @nogc pure @property
-    {
-        const uint linnum() { return _linnum; }
-        const uint charnum() { return _charnum; }
-        void linnum(uint rhs) { _linnum = rhs; }
-        void charnum(uint rhs) { _charnum = rhs; }
-    }
-
-    this(int y, int x)
-    {
-        _linnum = y;
-        _charnum = x;
-        filename = null;
-    }
-}
-
-void error(Loc loc, const(char)* format, ...);
 }
 
 version (MARS)
@@ -2493,7 +2468,6 @@ version (SCPP)
             synerr(EM_identifier_too_long, name, len - IDMAX, IDMAX);
 else version (MARS)
 {
-//          error(Loc(), "identifier %s is too long by %d characters", name, len - IDMAX);
 }
 else
             assert(0);
