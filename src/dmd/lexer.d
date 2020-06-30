@@ -2620,7 +2620,7 @@ class Lexer
 private:
     void endOfLine() pure @nogc @safe
     {
-        scanloc.linnum++;
+        scanloc.linnum = scanloc.linnum + 1;
         line = p;
     }
 }

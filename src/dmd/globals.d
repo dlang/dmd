@@ -529,17 +529,25 @@ alias d_uns64 = uint64_t;
 // file location
 struct Loc
 {
+nothrow:
     const(char)* filename; // either absolute or relative to cwd
-    uint linnum;
-    uint charnum;
+    private uint _linnum;
+    private uint _charnum;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
-nothrow:
+    @safe @nogc pure @property
+    {
+        const uint linnum() { return _linnum; }
+        const uint charnum() { return _charnum; }
+        void linnum(uint rhs) { _linnum = rhs; }
+        void charnum(uint rhs) { _charnum = rhs; }
+    }
+
     extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
     {
-        this.linnum = linnum;
-        this.charnum = charnum;
+        this._linnum = linnum;
+        this._charnum = charnum;
         this.filename = filename;
     }
 

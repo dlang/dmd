@@ -392,18 +392,18 @@ extern (C++) abstract class Type : ASTNode
      * Note that there is no "shared immutable", because that is just immutable
      * Naked == no MOD bits
      */
-    Type cto;       // MODFlags.const_                 ? naked version of this type : const version
-    Type ito;       // MODFlags.immutable_             ? naked version of this type : immutable version
-    Type sto;       // MODFlags.shared_                ? naked version of this type : shared mutable version
-    Type scto;      // MODFlags.shared_ | MODFlags.const_     ? naked version of this type : shared const version
-    Type wto;       // MODFlags.wild                  ? naked version of this type : wild version
-    Type wcto;      // MODFlags.wildconst             ? naked version of this type : wild const version
-    Type swto;      // MODFlags.shared_ | MODFlags.wild      ? naked version of this type : shared wild version
-    Type swcto;     // MODFlags.shared_ | MODFlags.wildconst ? naked version of this type : shared wild const version
+    private Type cto;       // MODFlags.const_                 ? naked version of this type : const version
+    private Type ito;       // MODFlags.immutable_             ? naked version of this type : immutable version
+    private Type sto;       // MODFlags.shared_                ? naked version of this type : shared mutable version
+    private Type scto;      // MODFlags.shared_ | MODFlags.const_     ? naked version of this type : shared const version
+    private Type wto;       // MODFlags.wild                  ? naked version of this type : wild version
+    private Type wcto;      // MODFlags.wildconst             ? naked version of this type : wild const version
+    private Type swto;      // MODFlags.shared_ | MODFlags.wild      ? naked version of this type : shared wild version
+    private Type swcto;     // MODFlags.shared_ | MODFlags.wildconst ? naked version of this type : shared wild const version
 
-    Type pto;       // merged pointer to this type
-    Type rto;       // reference to this type
-    Type arrayof;   // array of this type
+    private Type pto;       // merged pointer to this type
+    private Type rto;       // reference to this type
+    private Type arrayof;   // array of this type
 
     TypeInfoDeclaration vtinfo;     // TypeInfo object for this Type
 
@@ -3038,7 +3038,7 @@ extern (C++) abstract class TypeNext : Type
 extern (C++) final class TypeBasic : Type
 {
     const(char)* dstring;
-    uint flags;
+    private uint flags;
 
     extern (D) this(TY ty)
     {
