@@ -8553,13 +8553,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (exp.op == TOK.construct && exp.e1.op == TOK.variable &&
                  (cast(VarExp)exp.e1).var.storage_class & (STC.out_ | STC.ref_))
         {
-            exp.memset |= MemorySet.referenceInit;
+            exp.memset = MemorySet.referenceInit;
         }
 
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
          */
-        if (exp.memset & MemorySet.referenceInit)
+        if (exp.memset == MemorySet.referenceInit)
         {
             // If this is an initialization of a reference,
             // do nothing
@@ -9160,7 +9160,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // Check for block assignment. If it is of type void[], void[][], etc,
             // '= null' is the only allowable block assignment (Bug 7493)
-            exp.memset |= MemorySet.blockAssign;    // make it easy for back end to tell what this is
+            exp.memset = MemorySet.blockAssign;    // make it easy for back end to tell what this is
             e2x = e2x.implicitCastTo(sc, t1.nextOf());
             if (exp.op != TOK.blit && e2x.isLvalue() && exp.e1.checkPostblit(sc, t1.nextOf()))
                 return setError();
@@ -9320,7 +9320,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if ((t2.ty == Tarray || t2.ty == Tsarray) && isArrayOpValid(exp.e2))
         {
             // Look for valid array operations
-            if (!(exp.memset & MemorySet.blockAssign) &&
+            if (exp.memset != MemorySet.blockAssign &&
                 exp.e1.op == TOK.slice &&
                 (isUnaArrayOp(exp.e2.op) || isBinArrayOp(exp.e2.op)))
             {
@@ -9334,7 +9334,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Drop invalid array operations in e2
             //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-            if (checkNonAssignmentArrayOp(exp.e2, !(exp.memset & MemorySet.blockAssign) && exp.op == TOK.assign))
+            if (checkNonAssignmentArrayOp(exp.e2, exp.memset != MemorySet.blockAssign && exp.op == TOK.assign))
                 return setError();
 
             // Remains valid array assignments

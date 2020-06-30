@@ -5742,6 +5742,7 @@ extern (C++) final class PreExp : UnaExp
 
 enum MemorySet
 {
+    none            = 0,    // simple assignment
     blockAssign     = 1,    // setting the contents of an array
     referenceInit   = 2,    // setting the reference of STC.ref_ variable
 }
@@ -5750,7 +5751,7 @@ enum MemorySet
  */
 extern (C++) class AssignExp : BinExp
 {
-    int memset;         // combination of MemorySet flags
+    MemorySet memset;
 
     /************************************************************/
     /* op can be TOK.assign, TOK.construct, or TOK.blit */
@@ -5824,7 +5825,7 @@ extern (C++) final class ConstructExp : AssignExp
         super(loc, TOK.construct, ve, e2);
 
         if (v.storage_class & (STC.ref_ | STC.out_))
-            memset |= MemorySet.referenceInit;
+            memset = MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)
@@ -5852,7 +5853,7 @@ extern (C++) final class BlitExp : AssignExp
         super(loc, TOK.blit, ve, e2);
 
         if (v.storage_class & (STC.ref_ | STC.out_))
-            memset |= MemorySet.referenceInit;
+            memset = MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)

@@ -3219,7 +3219,7 @@ public:
         // ---------------------------------------
         // If it is a construction of a ref variable, it is a ref assignment
         if ((e.op == TOK.construct || e.op == TOK.blit) &&
-            ((cast(AssignExp)e).memset & MemorySet.referenceInit))
+            ((cast(AssignExp)e).memset == MemorySet.referenceInit))
         {
             assert(!fp);
 
