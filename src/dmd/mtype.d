@@ -2707,6 +2707,11 @@ extern (C++) final class TypeError : Type
         super(Terror);
     }
 
+    override const(char)* kind() const
+    {
+        return "error";
+    }
+
     override Type syntaxCopy()
     {
         // No semantic analysis done, no need to copy
@@ -5136,6 +5141,11 @@ extern (C++) final class TypeTraits : Type
         super(Ttraits);
         this.loc = loc;
         this.exp = exp;
+    }
+
+    override const(char)* kind() const
+    {
+        return "traits";
     }
 
     override Type syntaxCopy()

@@ -350,6 +350,7 @@ public:
 class TypeError : public Type
 {
 public:
+    const char *kind();
     Type *syntaxCopy();
 
     d_uns64 size(const Loc &loc);
@@ -650,6 +651,7 @@ class TypeTraits : public Type
     /// The symbol when exp doesn't represent a type.
     Dsymbol *sym;
 
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
     Dsymbol *toDsymbol(Scope *sc);
