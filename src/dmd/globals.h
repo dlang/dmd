@@ -357,27 +357,33 @@ typedef uint64_t                d_uns64;
 struct Loc
 {
     const char *filename; // either absolute or relative to cwd
-    unsigned linnum;
-    unsigned charnum;
+private:
+    unsigned _linnum;
+    unsigned _charnum;
 
+public:
     Loc()
     {
-        linnum = 0;
-        charnum = 0;
+        _linnum = 0;
+        _charnum = 0;
         filename = NULL;
     }
 
     Loc(const char *filename, unsigned linnum, unsigned charnum)
     {
-        this->linnum = linnum;
-        this->charnum = charnum;
+        this->_linnum = linnum;
+        this->_charnum = charnum;
         this->filename = filename;
     }
 
+    uint linnum() const;
+    void linnum(uint rhs);
+    uint charnum() const;
+    void charnum(uint rhs);
+    bool equals(const Loc& loc) const;
     const char *toChars(
         bool showColumns = global.params.showColumns,
         MessageStyle messageStyle = global.params.messageStyle) const;
-    bool equals(const Loc& loc) const;
 };
 
 enum LINK

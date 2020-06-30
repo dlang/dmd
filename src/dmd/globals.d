@@ -536,7 +536,7 @@ nothrow:
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
-    @safe @nogc pure @property
+    @safe @nogc pure @property extern(C++)
     {
         const uint linnum() { return _linnum; }
         const uint charnum() { return _charnum; }
