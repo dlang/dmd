@@ -400,6 +400,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
     auto lexer = lexer(targetSuffix, depFlags);
     auto backend = backend(targetSuffix, depFlags);
     builder
+        .name("dmd")
         // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
@@ -1580,7 +1581,13 @@ class BuildRule
             }
             else if (command.length)
             {
-                command.run;
+                import std.ascii : newline;
+                const output = command.run.strip;
+                if (output.length > 0) {
+                    auto ruleName = name.length ? name : "log";
+                    // add [<name>] prefix to all log messages
+                    output.splitter(newline).map!(e => "[" ~ ruleName ~ "] " ~ e).joiner(newline).writeln;
+                }
             }
         }
 
