@@ -43,6 +43,19 @@ extern (D):
 
 enum
 {
+    DW_UT_compile                   = 0x01,
+    DW_UT_type                      = 0x02,
+    DW_UT_partial                   = 0x03,
+    DW_UT_skeleton                  = 0x04,
+    DW_UT_split_compile             = 0x05,
+    DW_UT_split_type                = 0x06,
+
+    DW_UT_lo_user                   = 0x80,
+    DW_UT_hi_user                   = 0xff,
+}
+
+enum
+{
     DW_TAG_array_type               = 0x01,
     DW_TAG_class_type               = 0x02,
     DW_TAG_entry_point              = 0x03,
@@ -406,6 +419,8 @@ enum
     DW_OP_xderef_type               = 0xa7,
     DW_OP_convert                   = 0xa8,
     DW_OP_reinterpret               = 0xa9,
+
+    DW_OP_GNU_push_tls_address      = 0xe0,
 
     DW_OP_lo_user                   = 0xe0,
     DW_OP_hi_user                   = 0xff,
