@@ -703,12 +703,11 @@ extern (C++) final class TupleDeclaration : Declaration
 
 /***********************************************************
  */
-extern (C++) final class AliasDeclaration : Declaration
+extern (C++) class AliasDeclaration : Declaration
 {
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
-    bool wasTemplateParameter; /// indicates wether the alias was created to make a template parameter visible in the scope, i.e as a member.
 
     extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
@@ -960,6 +959,18 @@ extern (C++) final class AliasDeclaration : Declaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/// AliasDeclaration, carrying the information that it is created for a template parameter.
+extern (C++) final class TemplateParameterAlias : AliasDeclaration
+{
+    ///
+    extern(D) this(A...)(A args) { super(args); }
+
+    override inout(TemplateParameterAlias) isTemplateParameterAlias() inout
+    {
+        return this;
     }
 }
 

@@ -25,6 +25,7 @@ class ThisDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
 class AliasDeclaration;
+class TemplateParameterAlias;
 class AggregateDeclaration;
 class EnumDeclaration;
 class ClassDeclaration;
@@ -231,6 +232,7 @@ public:
     virtual Module *isModule() { return NULL; }
     virtual EnumMember *isEnumMember() { return NULL; }
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
+    virtual TemplateParameterAlias *isTemplateParameterAlias() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual ForwardingAttribDeclaration *isForwardingAttribDeclaration() { return NULL; }

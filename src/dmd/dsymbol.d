@@ -1164,6 +1164,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(Module)                      isModule()                      inout { return null; }
     inout(EnumMember)                  isEnumMember()                  inout { return null; }
     inout(TemplateDeclaration)         isTemplateDeclaration()         inout { return null; }
+    inout(TemplateParameterAlias)      isTemplateParameterAlias()      inout { return null; }
     inout(TemplateInstance)            isTemplateInstance()            inout { return null; }
     inout(TemplateMixin)               isTemplateMixin()               inout { return null; }
     inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout { return null; }

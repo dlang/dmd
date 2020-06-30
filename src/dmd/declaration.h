@@ -185,6 +185,13 @@ public:
 
 /**************************************************************/
 
+class TemplateParameterAlias : public AliasDeclaration
+{
+    TemplateParameterAlias *isTemplateParameterAlias() { return this; }
+};
+
+/**************************************************************/
+
 class OverDeclaration : public Declaration
 {
 public:
