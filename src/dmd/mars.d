@@ -1685,8 +1685,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.cov = true;
             // Parse:
             //      -cov
+            //      -cov=ctfe
             //      -cov=nnn
-            if (p[4] == '=')
+            if (arg == "-cov=ctfe")
+            {
+                params.ctfe_cov = true;
+            }
+            else if (p[4] == '=')
             {
                 if (!params.covPercent.parseDigits(p.toDString()[5 .. $], 100))
                 {
@@ -1696,10 +1701,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             else if (p[4])
                 goto Lerror;
-        }
-        else if (arg == "-ctfe-cov")
-        {
-            params.ctfe_cov = true;
         }
         else if (arg == "-shared")
             params.dll = true;
