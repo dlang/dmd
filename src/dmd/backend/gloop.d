@@ -3704,6 +3704,7 @@ bool loopunroll(ref loop l)
     if (l.Lhead.Bflags & BFLnounroll)
         return false;
     l.Lhead.Bflags |= BFLnounroll;
+    //WRfunc();
 
     /* For simplification, only unroll loops that consist only
      * of a head and tail, and the tail is the exit block.
@@ -3714,7 +3715,7 @@ bool loopunroll(ref loop l)
         ++numblocks;
     if (numblocks != 2)
     {
-        if (log) printf("\tnot 2 blocks\n");
+        if (log) printf("\tnot 2 blocks, but %d\n", numblocks);
         return false;
     }
     assert(l.Lhead != l.Ltail);
@@ -3734,13 +3735,13 @@ bool loopunroll(ref loop l)
     if (log)
     {
         printf("Unroll candidate:\n");
-        printf("  head:\t"); WReqn(l.Lhead.Belem); printf("\n");
-        printf("  tail:\t"); WReqn(l.Ltail.Belem); printf("\n");
+        printf("  head B%d:\t", l.Lhead.Bdfoidx); WReqn(l.Lhead.Belem); printf("\n");
+        printf("  tail B%d:\t", l.Ltail.Bdfoidx); WReqn(l.Ltail.Belem); printf("\n");
     }
 
-    /* Tail must be of the form: (v < c) where v is an unsigned integer
+    /* Tail must be of the form: (v < c) or (v <-= c) where v is an unsigned integer
      */
-    if (etail.Eoper != OPlt ||
+    if ((etail.Eoper != OPlt && etail.Eoper != OPle) ||
         etail.EV.E1.Eoper != OPvar ||
         etail.EV.E2.Eoper != OPconst)
     {
@@ -3795,6 +3796,9 @@ bool loopunroll(ref loop l)
     targ_llong final_ = el_tolong(e2);
 
     if (log) printf("initial = %lld, increment = %lld, final = %lld\n",cast(long)initial,cast(long)increment,cast(long)final_);
+
+    if (etail.Eoper == OPle)
+        ++final_;
 
     if (initial < 0 ||
         final_ < initial ||

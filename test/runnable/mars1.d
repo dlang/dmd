@@ -1977,6 +1977,24 @@ void testCpStatic()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=20991
+
+int x7;
+
+void bar7(int i)
+{
+    assert(i == x7);
+    ++x7;
+}
+
+void test7()
+{
+    for (int i = 0; i <= 1; ++i)
+        bar7(i);
+    assert(x7 == 2);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2049,6 +2067,7 @@ int main()
     testNegConst();
     test20050();
     testCpStatic();
+    test7();
 
     printf("Success\n");
     return 0;
