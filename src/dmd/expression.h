@@ -1018,7 +1018,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-enum MemorySet
+enum class MemorySet
 {
     blockAssign     = 1,    // setting the contents of an array
     referenceInit   = 2     // setting the reference of STCref variable
