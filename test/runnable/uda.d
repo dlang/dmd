@@ -1,4 +1,5 @@
 /*
+EXTRA_FILES: imports/a9741.d
 TEST_OUTPUT:
 ---
 tuple(3, 4, 7, (SSS))
