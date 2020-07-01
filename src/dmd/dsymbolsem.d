@@ -6498,6 +6498,12 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
 
+    // as DsymbolSemanticVisitor::visit(AliasDeclaration), in case we're called first.
+    // see https://issues.dlang.org/show_bug.cgi?id=21001
+    ds.storage_class |= sc.stc & STC.deprecated_;
+    ds.protection = sc.protection;
+    ds.userAttribDecl = sc.userAttribDecl;
+
     // TypeTraits needs to know if it's located in an AliasDeclaration
     const oldflags = sc.flags;
     sc.flags |= SCOPE.alias_;
