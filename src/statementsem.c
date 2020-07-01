@@ -1070,6 +1070,8 @@ public:
                             {
                                 TypeSArray *ta =  (TypeSArray *)tab;
                                 IntRange dimrange = getIntRange(ta->dim);
+                                // https://issues.dlang.org/show_bug.cgi?id=12504
+                                dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
                                 if (!IntRange::fromType(var->type).contains(dimrange))
                                 {
                                     fs->error("index type `%s` cannot cover index range 0..%llu", p->type->toChars(), ta->dim->toInteger());
