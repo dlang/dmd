@@ -1,5 +1,5 @@
 // EXTRA_SOURCES: imports/test17181a.d
-
+// EXTRA_FILES: imports/test17181c.d
 module test17181b;
 
 import imports.test17181c; // only imported, not compiled

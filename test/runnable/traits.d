@@ -1,5 +1,6 @@
 /*
 PERMUTE_ARGS:
+EXTRA_FILES: imports/a9546.d
 
 Windows linker may write something like:
 ---

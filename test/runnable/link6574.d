@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// EXTRA_FILES: imports/testmangle.d
 /*
 TEST_OUTPUT:
 ---
