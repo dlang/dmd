@@ -2299,14 +2299,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             //printf("type %s\n", ta.toChars());
             auto ad = new AliasDeclaration(Loc.initial, tp.ident, ta);
-            ad.wasTemplateParameter = true;
+            ad.storage_class |= STC.templateparameter;
             d = ad;
         }
         else if (sa)
         {
             //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
             auto ad = new AliasDeclaration(Loc.initial, tp.ident, sa);
-            ad.wasTemplateParameter = true;
+            ad.storage_class |= STC.templateparameter;
             d = ad;
         }
         else if (ea)
@@ -6509,10 +6509,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             const AliasDeclaration ad = s.isAliasDeclaration();
             version (none)
             {
-                if (ad && ad.wasTemplateParameter)
+                if (ad && ad.isAliasedTemplateParameter())
                     printf("`%s` is an alias created from a template parameter\n", s.toChars());
             }
-            if (!ad || !ad.wasTemplateParameter)
+            if (!ad || !ad.isAliasedTemplateParameter())
                 s = s2;
         }
 
