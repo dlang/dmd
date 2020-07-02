@@ -708,7 +708,6 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
-    bool wasTemplateParameter; /// indicates wether the alias was created to make a template parameter visible in the scope, i.e as a member.
 
     extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
@@ -955,6 +954,13 @@ extern (C++) final class AliasDeclaration : Declaration
     override inout(AliasDeclaration) isAliasDeclaration() inout
     {
         return this;
+    }
+
+    /** Returns: `true` if this instance was created to make a template parameter
+    visible in the scope of a template body, `false` otherwise */
+    extern (D) bool isAliasedTemplateParameter() const
+    {
+        return !!(storage_class & STC.templateparameter);
     }
 
     override void accept(Visitor v)
