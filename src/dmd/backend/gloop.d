@@ -3739,7 +3739,7 @@ bool loopunroll(ref loop l)
         printf("  tail B%d:\t", l.Ltail.Bdfoidx); WReqn(l.Ltail.Belem); printf("\n");
     }
 
-    /* Tail must be of the form: (v < c) or (v <-= c) where v is an unsigned integer
+    /* Tail must be of the form: (v < c) or (v <= c) where v is an unsigned integer
      */
     if ((etail.Eoper != OPlt && etail.Eoper != OPle) ||
         etail.EV.E1.Eoper != OPvar ||
