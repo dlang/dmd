@@ -6,8 +6,6 @@ foo()
 foo() 2
 foo() 3
 foo() 4
-c["foo"] = 3
-c["bar"] = 4
 Success
 ---
 */
@@ -62,10 +60,9 @@ void foo2()
     value = c.values;
     assert(value.length == 2);
 
-    for (i = 0; i < key.length; i++)
-    {
-        printf("c[\"%.*s\"] = %d\n", cast(int)key[i].length, key[i].ptr, value[i]);
-    }
+    const fooIndex = key[1] == "foo";
+    assert(key[fooIndex] == "foo" && value[fooIndex] == 3);
+    assert(key[1 - fooIndex] == "bar" && value[1 - fooIndex] == 4);
 
     assert("foo" in c);
     c.remove("foo");
