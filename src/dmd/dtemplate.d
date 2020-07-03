@@ -5790,11 +5790,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     Dsymbol aliasdecl;          // !=null if instance is an alias for its sole member
     TemplateInstance inst;      // refer to existing instance
     ScopeDsymbol argsym;        // argument symbol table
-    int inuse;                  // for recursive expansion detection
-    int nest;                   // for recursive pretty printing detection
-    bool semantictiargsdone;    // has semanticTiargs() been done?
-    bool havetempdecl;          // if used second constructor
-    bool gagged;                // if the instantiation is done with error gagging
     size_t hash;                // cached result of toHash()
     Expressions* fargs;         // for function template, these are the function arguments
 
@@ -5807,6 +5802,36 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tinst;     // enclosing template instance
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
+
+    uint inuse;                  // for recursive expansion detection
+    ushort nest;                 // for recursive pretty printing detection
+
+    private ubyte flags;
+    private enum Flag : uint { semantictiargsdone = 1, havetempdecl = 2, gagged = 4 }
+    @property pure nothrow @nogc
+    {
+        // has semanticTiargs() been done?
+        bool semantictiargsdone() const { return (flags & Flag.semantictiargsdone) != 0; }
+        void semantictiargsdone(bool x)
+        {
+            if (x) flags |= Flag.semantictiargsdone;
+            else flags &= ~Flag.semantictiargsdone;
+        }
+        // if used second constructor
+        bool havetempdecl() const { return (flags & Flag.havetempdecl) != 0; }
+        void havetempdecl(bool x)
+        {
+            if (x) flags |= Flag.havetempdecl;
+            else flags &= ~Flag.havetempdecl;
+        }
+        // if the instantiation is done with error gagging
+        bool gagged() const { return (flags & Flag.gagged) != 0; }
+        void gagged(bool x)
+        {
+            if (x) flags |= Flag.gagged;
+            else flags &= ~Flag.gagged;
+        }
+    }
 
     extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
     {
