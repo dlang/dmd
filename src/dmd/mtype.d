@@ -386,20 +386,27 @@ extern (C++) abstract class Type : ASTNode
     MOD mod; // modifiers MODxxxx
     char* deco;
 
-    /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
-     * They should not be referenced by anybody but mtype.c.
-     * They can be NULL if not lazily evaluated yet.
-     * Note that there is no "shared immutable", because that is just immutable
-     * Naked == no MOD bits
-     */
-    Type cto;       // MODFlags.const_                 ? naked version of this type : const version
-    Type ito;       // MODFlags.immutable_             ? naked version of this type : immutable version
-    Type sto;       // MODFlags.shared_                ? naked version of this type : shared mutable version
-    Type scto;      // MODFlags.shared_ | MODFlags.const_     ? naked version of this type : shared const version
-    Type wto;       // MODFlags.wild                  ? naked version of this type : wild version
-    Type wcto;      // MODFlags.wildconst             ? naked version of this type : wild const version
-    Type swto;      // MODFlags.shared_ | MODFlags.wild      ? naked version of this type : shared wild version
-    Type swcto;     // MODFlags.shared_ | MODFlags.wildconst ? naked version of this type : shared wild const version
+    static struct Mcache
+    {
+        /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
+         * They should not be referenced by anybody but mtype.d.
+         * They can be null if not lazily evaluated yet.
+         * Note that there is no "shared immutable", because that is just immutable
+         * The point of this is to reduce the size of each Type instance as
+         * we bank on the idea that usually only one of variants exist.
+         * It will also speed up code because these are rarely referenced and
+         * so need not be in the cache.
+         */
+        Type cto;       // MODFlags.const_
+        Type ito;       // MODFlags.immutable_
+        Type sto;       // MODFlags.shared_
+        Type scto;      // MODFlags.shared_ | MODFlags.const_
+        Type wto;       // MODFlags.wild
+        Type wcto;      // MODFlags.wildconst
+        Type swto;      // MODFlags.shared_ | MODFlags.wild
+        Type swcto;     // MODFlags.shared_ | MODFlags.wildconst
+    }
+    private Mcache* mcache;
 
     Type pto;       // merged pointer to this type
     Type rto;       // reference to this type
@@ -544,6 +551,14 @@ extern (C++) abstract class Type : ASTNode
     override final DYNCAST dyncast() const
     {
         return DYNCAST.type;
+    }
+
+    extern (D)
+    final Mcache* getMcache()
+    {
+        if (!mcache)
+            mcache = cast(Mcache*) mem.xcalloc(Mcache.sizeof, 1);
+        return mcache;
     }
 
     /*******************************
@@ -1131,16 +1146,9 @@ extern (C++) abstract class Type : ASTNode
         t.arrayof = null;
         t.pto = null;
         t.rto = null;
-        t.cto = null;
-        t.ito = null;
-        t.sto = null;
-        t.scto = null;
-        t.wto = null;
-        t.wcto = null;
-        t.swto = null;
-        t.swcto = null;
         t.vtinfo = null;
         t.ctype = null;
+        t.mcache = null;
         if (t.ty == Tstruct)
             (cast(TypeStruct)t).att = AliasThisRec.fwdref;
         if (t.ty == Tclass)
@@ -1156,10 +1164,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::constOf() %p %s\n", this, toChars());
         if (mod == MODFlags.const_)
             return this;
-        if (cto)
+        if (mcache && mcache.cto)
         {
-            assert(cto.mod == MODFlags.const_);
-            return cto;
+            assert(mcache.cto.mod == MODFlags.const_);
+            return mcache.cto;
         }
         Type t = makeConst();
         t = t.merge();
@@ -1176,10 +1184,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::immutableOf() %p %s\n", this, toChars());
         if (isImmutable())
             return this;
-        if (ito)
+        if (mcache && mcache.ito)
         {
-            assert(ito.isImmutable());
-            return ito;
+            assert(mcache.ito.isImmutable());
+            return mcache.ito;
         }
         Type t = makeImmutable();
         t = t.merge();
@@ -1197,33 +1205,36 @@ extern (C++) abstract class Type : ASTNode
         Type t = this;
         if (isImmutable())
         {
-            t = ito; // immutable => naked
+            getMcache();
+            t = mcache.ito; // immutable => naked
             assert(!t || (t.isMutable() && !t.isShared()));
         }
         else if (isConst())
         {
+            getMcache();
             if (isShared())
             {
                 if (isWild())
-                    t = swcto; // shared wild const -> shared
+                    t = mcache.swcto; // shared wild const -> shared
                 else
-                    t = sto; // shared const => shared
+                    t = mcache.sto; // shared const => shared
             }
             else
             {
                 if (isWild())
-                    t = wcto; // wild const -> naked
+                    t = mcache.wcto; // wild const -> naked
                 else
-                    t = cto; // const => naked
+                    t = mcache.cto; // const => naked
             }
             assert(!t || t.isMutable());
         }
         else if (isWild())
         {
+            getMcache();
             if (isShared())
-                t = sto; // shared wild => shared
+                t = mcache.sto; // shared wild => shared
             else
-                t = wto; // wild => naked
+                t = mcache.wto; // wild => naked
             assert(!t || t.isMutable());
         }
         if (!t)
@@ -1243,10 +1254,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::sharedOf() %p, %s\n", this, toChars());
         if (mod == MODFlags.shared_)
             return this;
-        if (sto)
+        if (mcache && mcache.sto)
         {
-            assert(sto.mod == MODFlags.shared_);
-            return sto;
+            assert(mcache.sto.mod == MODFlags.shared_);
+            return mcache.sto;
         }
         Type t = makeShared();
         t = t.merge();
@@ -1260,10 +1271,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::sharedConstOf() %p, %s\n", this, toChars());
         if (mod == (MODFlags.shared_ | MODFlags.const_))
             return this;
-        if (scto)
+        if (mcache && mcache.scto)
         {
-            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
-            return scto;
+            assert(mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
+            return mcache.scto;
         }
         Type t = makeSharedConst();
         t = t.merge();
@@ -1291,19 +1302,20 @@ extern (C++) abstract class Type : ASTNode
 
         if (isShared())
         {
+            getMcache();
             if (isWild())
             {
                 if (isConst())
-                    t = wcto; // shared wild const => wild const
+                    t = mcache.wcto; // shared wild const => wild const
                 else
-                    t = wto; // shared wild => wild
+                    t = mcache.wto; // shared wild => wild
             }
             else
             {
                 if (isConst())
-                    t = cto; // shared const => const
+                    t = mcache.cto; // shared const => const
                 else
-                    t = sto; // shared => naked
+                    t = mcache.sto; // shared => naked
             }
             assert(!t || !t.isShared());
         }
@@ -1330,10 +1342,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::wildOf() %p %s\n", this, toChars());
         if (mod == MODFlags.wild)
             return this;
-        if (wto)
+        if (mcache && mcache.wto)
         {
-            assert(wto.mod == MODFlags.wild);
-            return wto;
+            assert(mcache.wto.mod == MODFlags.wild);
+            return mcache.wto;
         }
         Type t = makeWild();
         t = t.merge();
@@ -1347,10 +1359,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::wildConstOf() %p %s\n", this, toChars());
         if (mod == MODFlags.wildconst)
             return this;
-        if (wcto)
+        if (mcache && mcache.wcto)
         {
-            assert(wcto.mod == MODFlags.wildconst);
-            return wcto;
+            assert(mcache.wcto.mod == MODFlags.wildconst);
+            return mcache.wcto;
         }
         Type t = makeWildConst();
         t = t.merge();
@@ -1364,10 +1376,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::sharedWildOf() %p, %s\n", this, toChars());
         if (mod == (MODFlags.shared_ | MODFlags.wild))
             return this;
-        if (swto)
+        if (mcache && mcache.swto)
         {
-            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
-            return swto;
+            assert(mcache.swto.mod == (MODFlags.shared_ | MODFlags.wild));
+            return mcache.swto;
         }
         Type t = makeSharedWild();
         t = t.merge();
@@ -1381,10 +1393,10 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::sharedWildConstOf() %p, %s\n", this, toChars());
         if (mod == (MODFlags.shared_ | MODFlags.wildconst))
             return this;
-        if (swcto)
+        if (mcache && mcache.swcto)
         {
-            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
-            return swcto;
+            assert(mcache.swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            return mcache.swcto;
         }
         Type t = makeSharedWildConst();
         t = t.merge();
@@ -1412,35 +1424,43 @@ extern (C++) abstract class Type : ASTNode
                 break;
 
             case MODFlags.const_:
-                cto = t;
+                getMcache();
+                mcache.cto = t;
                 break;
 
             case MODFlags.wild:
-                wto = t;
+                getMcache();
+                mcache.wto = t;
                 break;
 
             case MODFlags.wildconst:
-                wcto = t;
+                getMcache();
+                mcache.wcto = t;
                 break;
 
             case MODFlags.shared_:
-                sto = t;
+                getMcache();
+                mcache.sto = t;
                 break;
 
             case MODFlags.shared_ | MODFlags.const_:
-                scto = t;
+                getMcache();
+                mcache.scto = t;
                 break;
 
             case MODFlags.shared_ | MODFlags.wild:
-                swto = t;
+                getMcache();
+                mcache.swto = t;
                 break;
 
             case MODFlags.shared_ | MODFlags.wildconst:
-                swcto = t;
+                getMcache();
+                mcache.swcto = t;
                 break;
 
             case MODFlags.immutable_:
-                ito = t;
+                getMcache();
+                mcache.ito = t;
                 break;
 
             default:
@@ -1449,67 +1469,67 @@ extern (C++) abstract class Type : ASTNode
         }
         assert(mod != t.mod);
 
-        auto X(T, U)(T m, U n)
+        if (mod)
         {
-            return ((m << 4) | n);
+            getMcache();
+            t.getMcache();
         }
-
         switch (mod)
         {
         case 0:
             break;
 
         case MODFlags.const_:
-            cto = mto;
-            t.cto = this;
+            mcache.cto = mto;
+            t.mcache.cto = this;
             break;
 
         case MODFlags.wild:
-            wto = mto;
-            t.wto = this;
+            mcache.wto = mto;
+            t.mcache.wto = this;
             break;
 
         case MODFlags.wildconst:
-            wcto = mto;
-            t.wcto = this;
+            mcache.wcto = mto;
+            t.mcache.wcto = this;
             break;
 
         case MODFlags.shared_:
-            sto = mto;
-            t.sto = this;
+            mcache.sto = mto;
+            t.mcache.sto = this;
             break;
 
         case MODFlags.shared_ | MODFlags.const_:
-            scto = mto;
-            t.scto = this;
+            mcache.scto = mto;
+            t.mcache.scto = this;
             break;
 
         case MODFlags.shared_ | MODFlags.wild:
-            swto = mto;
-            t.swto = this;
+            mcache.swto = mto;
+            t.mcache.swto = this;
             break;
 
         case MODFlags.shared_ | MODFlags.wildconst:
-            swcto = mto;
-            t.swcto = this;
+            mcache.swcto = mto;
+            t.mcache.swcto = this;
             break;
 
         case MODFlags.immutable_:
-            t.ito = this;
-            if (t.cto)
-                t.cto.ito = this;
-            if (t.sto)
-                t.sto.ito = this;
-            if (t.scto)
-                t.scto.ito = this;
-            if (t.wto)
-                t.wto.ito = this;
-            if (t.wcto)
-                t.wcto.ito = this;
-            if (t.swto)
-                t.swto.ito = this;
-            if (t.swcto)
-                t.swcto.ito = this;
+            t.mcache.ito = this;
+            if (t.mcache.cto)
+                t.mcache.cto.getMcache().ito = this;
+            if (t.mcache.sto)
+                t.mcache.sto.getMcache().ito = this;
+            if (t.mcache.scto)
+                t.mcache.scto.getMcache().ito = this;
+            if (t.mcache.wto)
+                t.mcache.wto.getMcache().ito = this;
+            if (t.mcache.wcto)
+                t.mcache.wcto.getMcache().ito = this;
+            if (t.mcache.swto)
+                t.mcache.swto.getMcache().ito = this;
+            if (t.mcache.swcto)
+                t.mcache.swcto.getMcache().ito = this;
             break;
 
         default:
@@ -1526,6 +1546,8 @@ extern (C++) abstract class Type : ASTNode
      */
     final void check()
     {
+        if (mcache)
+        with (mcache)
         switch (mod)
         {
         case 0:
@@ -2102,8 +2124,8 @@ extern (C++) abstract class Type : ASTNode
     Type makeConst()
     {
         //printf("Type::makeConst() %p, %s\n", this, toChars());
-        if (cto)
-            return cto;
+        if (mcache && mcache.cto)
+            return mcache.cto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.const_;
         //printf("-Type::makeConst() %p, %s\n", t, toChars());
@@ -2112,8 +2134,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeImmutable()
     {
-        if (ito)
-            return ito;
+        if (mcache && mcache.ito)
+            return mcache.ito;
         Type t = this.nullAttributes();
         t.mod = MODFlags.immutable_;
         return t;
@@ -2121,8 +2143,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeShared()
     {
-        if (sto)
-            return sto;
+        if (mcache && mcache.sto)
+            return mcache.sto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_;
         return t;
@@ -2130,8 +2152,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeSharedConst()
     {
-        if (scto)
-            return scto;
+        if (mcache && mcache.scto)
+            return mcache.scto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.const_;
         return t;
@@ -2139,8 +2161,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeWild()
     {
-        if (wto)
-            return wto;
+        if (mcache && mcache.wto)
+            return mcache.wto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.wild;
         return t;
@@ -2148,8 +2170,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeWildConst()
     {
-        if (wcto)
-            return wcto;
+        if (mcache && mcache.wcto)
+            return mcache.wcto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.wildconst;
         return t;
@@ -2157,8 +2179,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeSharedWild()
     {
-        if (swto)
-            return swto;
+        if (mcache && mcache.swto)
+            return mcache.swto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.wild;
         return t;
@@ -2166,8 +2188,8 @@ extern (C++) abstract class Type : ASTNode
 
     Type makeSharedWildConst()
     {
-        if (swcto)
-            return swcto;
+        if (mcache && mcache.swcto)
+            return mcache.swcto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.wildconst;
         return t;
@@ -2775,10 +2797,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeConst()
     {
         //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
-        if (cto)
+        if (mcache && mcache.cto)
         {
-            assert(cto.mod == MODFlags.const_);
-            return cto;
+            assert(mcache.cto.mod == MODFlags.const_);
+            return mcache.cto;
         }
         TypeNext t = cast(TypeNext)Type.makeConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2805,10 +2827,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeImmutable()
     {
         //printf("TypeNext::makeImmutable() %s\n", toChars());
-        if (ito)
+        if (mcache && mcache.ito)
         {
-            assert(ito.isImmutable());
-            return ito;
+            assert(mcache.ito.isImmutable());
+            return mcache.ito;
         }
         TypeNext t = cast(TypeNext)Type.makeImmutable();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2821,10 +2843,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeShared()
     {
         //printf("TypeNext::makeShared() %s\n", toChars());
-        if (sto)
+        if (mcache && mcache.sto)
         {
-            assert(sto.mod == MODFlags.shared_);
-            return sto;
+            assert(mcache.sto.mod == MODFlags.shared_);
+            return mcache.sto;
         }
         TypeNext t = cast(TypeNext)Type.makeShared();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2851,10 +2873,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeSharedConst()
     {
         //printf("TypeNext::makeSharedConst() %s\n", toChars());
-        if (scto)
+        if (mcache && mcache.scto)
         {
-            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
-            return scto;
+            assert(mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
+            return mcache.scto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2871,10 +2893,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeWild()
     {
         //printf("TypeNext::makeWild() %s\n", toChars());
-        if (wto)
+        if (mcache && mcache.wto)
         {
-            assert(wto.mod == MODFlags.wild);
-            return wto;
+            assert(mcache.wto.mod == MODFlags.wild);
+            return mcache.wto;
         }
         TypeNext t = cast(TypeNext)Type.makeWild();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2901,10 +2923,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeWildConst()
     {
         //printf("TypeNext::makeWildConst() %s\n", toChars());
-        if (wcto)
+        if (mcache && mcache.wcto)
         {
-            assert(wcto.mod == MODFlags.wildconst);
-            return wcto;
+            assert(mcache.wcto.mod == MODFlags.wildconst);
+            return mcache.wcto;
         }
         TypeNext t = cast(TypeNext)Type.makeWildConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2921,10 +2943,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeSharedWild()
     {
         //printf("TypeNext::makeSharedWild() %s\n", toChars());
-        if (swto)
+        if (mcache && mcache.swto)
         {
-            assert(swto.isSharedWild());
-            return swto;
+            assert(mcache.swto.isSharedWild());
+            return mcache.swto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedWild();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
@@ -2941,10 +2963,10 @@ extern (C++) abstract class TypeNext : Type
     override final Type makeSharedWildConst()
     {
         //printf("TypeNext::makeSharedWildConst() %s\n", toChars());
-        if (swcto)
+        if (mcache && mcache.swcto)
         {
-            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
-            return swcto;
+            assert(mcache.swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            return mcache.swcto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedWildConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())

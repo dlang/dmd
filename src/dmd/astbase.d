@@ -2745,14 +2745,18 @@ struct ASTBase
                 return sizeTy;
             }();
 
-        Type cto;
-        Type ito;
-        Type sto;
-        Type scto;
-        Type wto;
-        Type wcto;
-        Type swto;
-        Type swcto;
+        static struct Mcache
+        {
+            Type cto;       // MODFlags.const_
+            Type ito;       // MODFlags.immutable_
+            Type sto;       // MODFlags.shared_
+            Type scto;      // MODFlags.shared_ | MODFlags.const_
+            Type wto;       // MODFlags.wild
+            Type wcto;      // MODFlags.wildconst
+            Type swto;      // MODFlags.shared_ | MODFlags.wild
+            Type swcto;     // MODFlags.shared_ | MODFlags.wildconst
+        }
+        private Mcache* mcache;
 
         Type pto;
         Type rto;
@@ -2860,6 +2864,14 @@ struct ASTBase
             thash_t = tsize_t;
         }
 
+        extern (D)
+        final Mcache* getMcache()
+        {
+            if (!mcache)
+                mcache = cast(Mcache*) mem.xcalloc(Mcache.sizeof, 1);
+            return mcache;
+        }
+
         final Type pointerTo()
         {
             if (ty == Terror)
@@ -2905,14 +2917,7 @@ struct ASTBase
             t.arrayof = null;
             t.pto = null;
             t.rto = null;
-            t.cto = null;
-            t.ito = null;
-            t.sto = null;
-            t.scto = null;
-            t.wto = null;
-            t.wcto = null;
-            t.swto = null;
-            t.swcto = null;
+            t.mcache = null;
             //t.vtinfo = null; these aren't used in parsing
             //t.ctype = null;
             if (t.ty == Tstruct)
@@ -2924,8 +2929,8 @@ struct ASTBase
 
         Type makeConst()
         {
-            if (cto)
-                return cto;
+            if (mcache && mcache.cto)
+                return mcache.cto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.const_;
             return t;
@@ -2933,8 +2938,8 @@ struct ASTBase
 
         Type makeWildConst()
         {
-            if (wcto)
-                return wcto;
+            if (mcache && mcache.wcto)
+                return mcache.wcto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.wildconst;
             return t;
@@ -2942,8 +2947,8 @@ struct ASTBase
 
         Type makeShared()
         {
-            if (sto)
-                return sto;
+            if (mcache && mcache.sto)
+                return mcache.sto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_;
             return t;
@@ -2951,8 +2956,8 @@ struct ASTBase
 
         Type makeSharedConst()
         {
-            if (scto)
-                return scto;
+            if (mcache && mcache.scto)
+                return mcache.scto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.const_;
             return t;
@@ -2960,8 +2965,8 @@ struct ASTBase
 
         Type makeImmutable()
         {
-            if (ito)
-                return ito;
+            if (mcache && mcache.ito)
+                return mcache.ito;
             Type t = this.nullAttributes();
             t.mod = MODFlags.immutable_;
             return t;
@@ -2969,8 +2974,8 @@ struct ASTBase
 
         Type makeWild()
         {
-            if (wto)
-                return wto;
+            if (mcache && mcache.wto)
+                return mcache.wto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.wild;
             return t;
@@ -2978,8 +2983,8 @@ struct ASTBase
 
         Type makeSharedWildConst()
         {
-            if (swcto)
-                return swcto;
+            if (mcache && mcache.swcto)
+                return mcache.swcto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.wildconst;
             return t;
@@ -2987,8 +2992,8 @@ struct ASTBase
 
         Type makeSharedWild()
         {
-            if (swto)
-                return swto;
+            if (mcache && mcache.swto)
+                return mcache.swto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.wild;
             return t;
@@ -3098,10 +3103,10 @@ struct ASTBase
         {
             if (mod == (MODFlags.shared_ | MODFlags.wildconst))
                 return this;
-            if (swcto)
+            if (mcache.swcto)
             {
-                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
-                return swcto;
+                assert(mcache.swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+                return mcache.swcto;
             }
             Type t = makeSharedWildConst();
             t = t.merge();
@@ -3113,10 +3118,10 @@ struct ASTBase
         {
             if (mod == (MODFlags.shared_ | MODFlags.const_))
                 return this;
-            if (scto)
+            if (mcache.scto)
             {
-                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
-                return scto;
+                assert(mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
+                return mcache.scto;
             }
             Type t = makeSharedConst();
             t = t.merge();
@@ -3128,10 +3133,10 @@ struct ASTBase
         {
             if (mod == MODFlags.wildconst)
                 return this;
-            if (wcto)
+            if (mcache && mcache.wcto)
             {
-                assert(wcto.mod == MODFlags.wildconst);
-                return wcto;
+                assert(mcache.wcto.mod == MODFlags.wildconst);
+                return mcache.wcto;
             }
             Type t = makeWildConst();
             t = t.merge();
@@ -3143,10 +3148,10 @@ struct ASTBase
         {
             if (mod == MODFlags.const_)
                 return this;
-            if (cto)
+            if (mcache && mcache.cto)
             {
-                assert(cto.mod == MODFlags.const_);
-                return cto;
+                assert(mcache.cto.mod == MODFlags.const_);
+                return mcache.cto;
             }
             Type t = makeConst();
             t = t.merge();
@@ -3158,10 +3163,10 @@ struct ASTBase
         {
             if (mod == (MODFlags.shared_ | MODFlags.wild))
                 return this;
-            if (swto)
+            if (mcache && mcache.swto)
             {
-                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
-                return swto;
+                assert(mcache.swto.mod == (MODFlags.shared_ | MODFlags.wild));
+                return mcache.swto;
             }
             Type t = makeSharedWild();
             t = t.merge();
@@ -3173,10 +3178,10 @@ struct ASTBase
         {
             if (mod == MODFlags.wild)
                 return this;
-            if (wto)
+            if (mcache && mcache.wto)
             {
-                assert(wto.mod == MODFlags.wild);
-                return wto;
+                assert(mcache.wto.mod == MODFlags.wild);
+                return mcache.wto;
             }
             Type t = makeWild();
             t = t.merge();
@@ -3188,10 +3193,10 @@ struct ASTBase
         {
             if (mod == MODFlags.shared_)
                 return this;
-            if (sto)
+            if (mcache && mcache.sto)
             {
-                assert(sto.mod == MODFlags.shared_);
-                return sto;
+                assert(mcache.sto.mod == MODFlags.shared_);
+                return mcache.sto;
             }
             Type t = makeShared();
             t = t.merge();
@@ -3203,10 +3208,10 @@ struct ASTBase
         {
             if (isImmutable())
                 return this;
-            if (ito)
+            if (mcache && mcache.ito)
             {
-                assert(ito.isImmutable());
-                return ito;
+                assert(mcache.ito.isImmutable());
+                return mcache.ito;
             }
             Type t = makeImmutable();
             t = t.merge();
@@ -3227,35 +3232,43 @@ struct ASTBase
                     break;
 
                 case MODFlags.const_:
-                    cto = t;
+                    getMcache();
+                    mcache.cto = t;
                     break;
 
                 case MODFlags.wild:
-                    wto = t;
+                    getMcache();
+                    mcache.wto = t;
                     break;
 
                 case MODFlags.wildconst:
-                    wcto = t;
+                    getMcache();
+                    mcache.wcto = t;
                     break;
 
                 case MODFlags.shared_:
-                    sto = t;
+                    getMcache();
+                    mcache.sto = t;
                     break;
 
                 case MODFlags.shared_ | MODFlags.const_:
-                    scto = t;
+                    getMcache();
+                    mcache.scto = t;
                     break;
 
                 case MODFlags.shared_ | MODFlags.wild:
-                    swto = t;
+                    getMcache();
+                    mcache.swto = t;
                     break;
 
                 case MODFlags.shared_ | MODFlags.wildconst:
-                    swcto = t;
+                    getMcache();
+                    mcache.swcto = t;
                     break;
 
                 case MODFlags.immutable_:
-                    ito = t;
+                    getMcache();
+                    mcache.ito = t;
                     break;
 
                 default:
@@ -3264,67 +3277,67 @@ struct ASTBase
             }
             assert(mod != t.mod);
 
-            auto X(T, U)(T m, U n)
+            if (mod)
             {
-                return ((m << 4) | n);
+                getMcache();
+                t.getMcache();
             }
-
             switch (mod)
             {
             case 0:
                 break;
 
             case MODFlags.const_:
-                cto = mto;
-                t.cto = this;
+                mcache.cto = mto;
+                t.mcache.cto = this;
                 break;
 
             case MODFlags.wild:
-                wto = mto;
-                t.wto = this;
+                mcache.wto = mto;
+                t.mcache.wto = this;
                 break;
 
             case MODFlags.wildconst:
-                wcto = mto;
-                t.wcto = this;
+                mcache.wcto = mto;
+                t.mcache.wcto = this;
                 break;
 
             case MODFlags.shared_:
-                sto = mto;
-                t.sto = this;
+                mcache.sto = mto;
+                t.mcache.sto = this;
                 break;
 
             case MODFlags.shared_ | MODFlags.const_:
-                scto = mto;
-                t.scto = this;
+                mcache.scto = mto;
+                t.mcache.scto = this;
                 break;
 
             case MODFlags.shared_ | MODFlags.wild:
-                swto = mto;
-                t.swto = this;
+                mcache.swto = mto;
+                t.mcache.swto = this;
                 break;
 
             case MODFlags.shared_ | MODFlags.wildconst:
-                swcto = mto;
-                t.swcto = this;
+                mcache.swcto = mto;
+                t.mcache.swcto = this;
                 break;
 
             case MODFlags.immutable_:
-                t.ito = this;
-                if (t.cto)
-                    t.cto.ito = this;
-                if (t.sto)
-                    t.sto.ito = this;
-                if (t.scto)
-                    t.scto.ito = this;
-                if (t.wto)
-                    t.wto.ito = this;
-                if (t.wcto)
-                    t.wcto.ito = this;
-                if (t.swto)
-                    t.swto.ito = this;
-                if (t.swcto)
-                    t.swcto.ito = this;
+                t.mcache.ito = this;
+                if (t.mcache.cto)
+                    t.mcache.cto.getMcache().ito = this;
+                if (t.mcache.sto)
+                    t.mcache.sto.getMcache().ito = this;
+                if (t.mcache.scto)
+                    t.mcache.scto.getMcache().ito = this;
+                if (t.mcache.wto)
+                    t.mcache.wto.getMcache().ito = this;
+                if (t.mcache.wcto)
+                    t.mcache.wcto.getMcache().ito = this;
+                if (t.mcache.swto)
+                    t.mcache.swto.getMcache().ito = this;
+                if (t.mcache.swcto)
+                    t.mcache.swcto.getMcache().ito = this;
                 break;
 
             default:
