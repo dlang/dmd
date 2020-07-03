@@ -133,22 +133,10 @@ public:
     MOD mod;  // modifiers MODxxxx
     char *deco;
 
-    /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
-     * They should not be referenced by anybody but mtype.c.
-     * They can be NULL if not lazily evaluated yet.
-     * Note that there is no "shared immutable", because that is just immutable
-     * Naked == no MOD bits
-     */
+private:
+    void* mcache;
 
-    Type *cto;          // MODconst                 ? naked version of this type : const version
-    Type *ito;          // MODimmutable             ? naked version of this type : immutable version
-    Type *sto;          // MODshared                ? naked version of this type : shared mutable version
-    Type *scto;         // MODshared | MODconst     ? naked version of this type : shared const version
-    Type *wto;          // MODwild                  ? naked version of this type : wild version
-    Type *wcto;         // MODwildconst             ? naked version of this type : wild const version
-    Type *swto;         // MODshared | MODwild      ? naked version of this type : shared wild version
-    Type *swcto;        // MODshared | MODwildconst ? naked version of this type : shared wild const version
-
+public:
     Type *pto;          // merged pointer to this type
     Type *rto;          // reference to this type
     Type *arrayof;      // array of this type
