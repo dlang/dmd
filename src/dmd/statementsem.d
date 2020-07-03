@@ -3160,7 +3160,13 @@ else
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
-            rs.exp.checkSharedAccess(sc);
+            // if we are returning to a ref which does not come from auto ref
+            // it's okay to return shared, because it's returing a pointer without
+            // reading the memory itself
+            if(inferRef || !tf.isref)
+            {
+                rs.exp.checkSharedAccess(sc);
+            }
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOK.type)
