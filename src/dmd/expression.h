@@ -337,8 +337,6 @@ public:
 class NullExp : public Expression
 {
 public:
-    unsigned char committed;    // !=0 if type is committed
-
     bool equals(const RootObject *o) const;
     bool isBool(bool result);
     StringExp *toStringExp();

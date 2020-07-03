@@ -2237,8 +2237,6 @@ extern (C++) final class SuperExp : ThisExp
  */
 extern (C++) final class NullExp : Expression
 {
-    ubyte committed;    // !=0 if type is committed
-
     extern (D) this(const ref Loc loc, Type type = null)
     {
         super(loc, TOK.null_, __traits(classInstanceSize, NullExp));

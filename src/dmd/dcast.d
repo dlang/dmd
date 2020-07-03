@@ -1750,18 +1750,6 @@ Expression castTo(Expression e, Scope* sc, Type t)
             result = e;
         }
 
-        override void visit(NullExp e)
-        {
-            //printf("NullExp::castTo(t = %s) %s\n", t.toChars(), toChars());
-            visit(cast(Expression)e);
-            if (result.op == TOK.null_)
-            {
-                NullExp ex = cast(NullExp)result;
-                ex.committed = 1;
-                return;
-            }
-        }
-
         override void visit(StructLiteralExp e)
         {
             visit(cast(Expression)e);
