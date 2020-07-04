@@ -5803,33 +5803,32 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    uint inuse;                  // for recursive expansion detection
-    ushort nest;                 // for recursive pretty printing detection
+    uint inuse;                 // for recursive expansion detection
+    uint nest;                  // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    private enum Flag : uint { semantictiargsdone = 1u << 31, havetempdecl = 1u << 30, gagged = 1u << 29 }
 
-    private ubyte flags;
-    private enum Flag : uint { semantictiargsdone = 1, havetempdecl = 2, gagged = 4 }
     final @safe @property pure nothrow @nogc
     {
         /// has semanticTiargs() been done?
-        bool semantictiargsdone() const { return (flags & Flag.semantictiargsdone) != 0; }
+        bool semantictiargsdone() const { return (nest & Flag.semantictiargsdone) != 0; }
         void semantictiargsdone(bool x)
         {
-            if (x) flags |= Flag.semantictiargsdone;
-            else flags &= ~Flag.semantictiargsdone;
+            if (x) nest |= Flag.semantictiargsdone;
+            else nest &= ~Flag.semantictiargsdone;
         }
         /// if used second constructor
-        bool havetempdecl() const { return (flags & Flag.havetempdecl) != 0; }
+        bool havetempdecl() const { return (nest & Flag.havetempdecl) != 0; }
         void havetempdecl(bool x)
         {
-            if (x) flags |= Flag.havetempdecl;
-            else flags &= ~Flag.havetempdecl;
+            if (x) nest |= Flag.havetempdecl;
+            else nest &= ~Flag.havetempdecl;
         }
         /// if the instantiation is done with error gagging
-        bool gagged() const { return (flags & Flag.gagged) != 0; }
+        bool gagged() const { return (nest & Flag.gagged) != 0; }
         void gagged(bool x)
         {
-            if (x) flags |= Flag.gagged;
-            else flags &= ~Flag.gagged;
+            if (x) nest |= Flag.gagged;
+            else nest &= ~Flag.gagged;
         }
     }
 
