@@ -5803,38 +5803,42 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    ushort nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    private ushort _nest;       // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
     ubyte inuse;                // for recursive expansion detection
 
     private enum Flag : uint
     {
-        semantictiargsdone = 1u << (nest.sizeof * 8 - 1),
+        semantictiargsdone = 1u << (_nest.sizeof * 8 - 1), // MSB of _nest
         havetempdecl = semantictiargsdone >> 1,
-        gagged = semantictiargsdone >> 2
+        gagged = semantictiargsdone >> 2,
+        available = gagged - 1 // always last flag minus one, 1s for all available bits
     }
 
     final @safe @property pure nothrow @nogc
     {
+        ushort nest() const { return _nest & Flag.available; }
+        void nestUp() { assert(_nest < Flag.available); ++_nest; }
+        void nestDown() { assert(nest() > 0); --_nest; }
         /// has semanticTiargs() been done?
-        bool semantictiargsdone() const { return (nest & Flag.semantictiargsdone) != 0; }
+        bool semantictiargsdone() const { return (_nest & Flag.semantictiargsdone) != 0; }
         void semantictiargsdone(bool x)
         {
-            if (x) nest |= Flag.semantictiargsdone;
-            else nest &= ~Flag.semantictiargsdone;
+            if (x) _nest |= Flag.semantictiargsdone;
+            else _nest &= ~Flag.semantictiargsdone;
         }
         /// if used second constructor
-        bool havetempdecl() const { return (nest & Flag.havetempdecl) != 0; }
+        bool havetempdecl() const { return (_nest & Flag.havetempdecl) != 0; }
         void havetempdecl(bool x)
         {
-            if (x) nest |= Flag.havetempdecl;
-            else nest &= ~Flag.havetempdecl;
+            if (x) _nest |= Flag.havetempdecl;
+            else _nest &= ~Flag.havetempdecl;
         }
         /// if the instantiation is done with error gagging
-        bool gagged() const { return (nest & Flag.gagged) != 0; }
+        bool gagged() const { return (_nest & Flag.gagged) != 0; }
         void gagged(bool x)
         {
-            if (x) nest |= Flag.gagged;
-            else nest &= ~Flag.gagged;
+            if (x) _nest |= Flag.gagged;
+            else _nest &= ~Flag.gagged;
         }
     }
 
