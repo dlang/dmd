@@ -5805,7 +5805,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     ushort nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
     ubyte inuse;                // for recursive expansion detection
-    private enum Flag : uint { semantictiargsdone = 1u << 31, havetempdecl = 1u << 30, gagged = 1u << 29 }
+
+    private enum Flag : uint
+    {
+        semantictiargsdone = 1u << (nest.sizeof * 8 - 1),
+        havetempdecl = semantictiargsdone >> 1,
+        gagged = semantictiargsdone >> 2
+    }
 
     final @safe @property pure nothrow @nogc
     {
