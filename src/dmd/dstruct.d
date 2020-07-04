@@ -204,10 +204,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     bool hasBlitAssign;         // true if opAssign is a blit
     bool hasIdentityEquals;     // true if has identity opEquals
     bool hasNoFields;           // has no fields
+    bool hasCopyCtor;           // copy constructor
+    // Even if struct is defined as non-root symbol, some built-in operations
+    // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
+    // For those, today TypeInfo_Struct is generated in COMDAT.
+    bool requestTypeInfo;
+
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration postblit;   // aggregate postblit
-
-    bool hasCopyCtor;       // copy constructor
 
     FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
     FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
@@ -220,11 +224,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple argTypes;
-
-    // Even if struct is defined as non-root symbol, some built-in operations
-    // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
-    // For those, today TypeInfo_Struct is generated in COMDAT.
-    bool requestTypeInfo;
 
     extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
