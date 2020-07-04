@@ -1967,7 +1967,12 @@ extern(C++):
 
     override void visit(Type t)
     {
-        error(t);
+        auto typeForMangling = t.typeForMangling(LINK.cpp);
+
+        if (typeForMangling is t)
+            error(t);
+        else
+            typeForMangling.accept(this);
     }
 
     void visit(Tuple t)

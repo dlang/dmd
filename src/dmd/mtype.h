@@ -224,6 +224,7 @@ public:
     virtual Type *syntaxCopy();
     bool equals(const RootObject *o) const;
     bool equivalent(Type *t);
+    virtual Type* typeForMangling(LINK linkage);
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL, bool fix17349 = true);
@@ -462,9 +463,14 @@ public:
 // Dynamic array, no dimension
 class TypeDArray : public TypeArray
 {
+private:
+    Type* typeForCppMangling;
+
 public:
+
     const char *kind();
     Type *syntaxCopy();
+    Type* typeForMangling(LINK linkage);
     d_uns64 size(const Loc &loc) /*const*/;
     unsigned alignsize() /*const*/;
     bool isString();
