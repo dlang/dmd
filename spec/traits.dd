@@ -1515,6 +1515,29 @@ void main()
 ---
 )
 
+        $(P If the two arguments are tuples then `isSame` returns `true` if the
+        two tuples, after expansion, have the same length and if each pair
+        of nth argument respects the constraints previously specified.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+import std.meta;
+
+struct S { }
+
+void main()
+{
+    // true, like __traits(isSame(0,0)) && __traits(isSame(1,1))
+    writeln(__traits(isSame, AliasSeq!(0,1), AliasSeq!(0,1)));
+    // false, like __traits(isSame(S,std.meta)) && __traits(isSame(1,1))
+    writeln(__traits(isSame, AliasSeq!(S,1), AliasSeq!(std.meta,1)));
+    // false, the length of the sequences is different
+    writeln(__traits(isSame, AliasSeq!(1), AliasSeq!(1,2)));
+}
+---
+)
+
 $(H2 $(GNAME compiles))
 
         $(P Returns a bool $(D true) if all of the arguments
