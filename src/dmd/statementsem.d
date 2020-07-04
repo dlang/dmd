@@ -433,7 +433,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             ScopeDsymbol sym = new ScopeDsymbol();
             sym.parent = sc.scopesym;
-            sym.endlinnum = ss.endloc.linnum;
             sc = sc.push(sym);
 
             Statements* a = ss.statement.flatten(sc);
@@ -574,7 +573,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = fs.endloc.linnum;
         sc = sc.push(sym);
         sc.inLoop = true;
 
@@ -1168,7 +1166,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = fs.endloc.linnum;
         auto sc2 = sc.push(sym);
         sc2.inLoop = true;
 
@@ -2206,7 +2203,6 @@ else
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = ifs.endloc.linnum;
         Scope* scd = sc.push(sym);
         if (ifs.prm)
         {
@@ -3721,7 +3717,6 @@ else
         {
             sym = new WithScopeSymbol(ws);
             sym.parent = sc.scopesym;
-            sym.endlinnum = ws.endloc.linnum;
         }
         else if (ws.exp.op == TOK.type)
         {
@@ -3733,7 +3728,6 @@ else
             }
             sym = new WithScopeSymbol(ws);
             sym.parent = sc.scopesym;
-            sym.endlinnum = ws.endloc.linnum;
         }
         else
         {
@@ -3757,7 +3751,6 @@ else
 
                 sym = new WithScopeSymbol(ws);
                 sym.parent = sc.scopesym;
-                sym.endlinnum = ws.endloc.linnum;
             }
             else if (t.ty == Tstruct)
             {
@@ -3788,7 +3781,6 @@ else
                 // Need to set the scope to make use of resolveAliasThis
                 sym.setScope(sc);
                 sym.parent = sc.scopesym;
-                sym.endlinnum = ws.endloc.linnum;
             }
             else
             {

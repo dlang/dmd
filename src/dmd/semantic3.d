@@ -303,7 +303,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     break;
                 }
             }
-            ss.endlinnum = funcdecl.endloc.linnum;
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
             sc2.parent = funcdecl;
@@ -543,7 +542,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // scope of out contract (need for vresult.semantic)
                 auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.endlinnum = fensure_endlin;
                 scout = sc2.push(sym);
             }
 
@@ -551,7 +549,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
 
                 auto ad2 = funcdecl.isMemberLocal();
@@ -947,7 +944,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  */
                 auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
 

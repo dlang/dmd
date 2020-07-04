@@ -1551,13 +1551,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.type.toBasetype().ty == Terror)
             dsym.errors = true;
-
-        if(sc.scopesym && !sc.scopesym.isAggregateDeclaration())
-        {
-            for (ScopeDsymbol sym = sc.scopesym; sym && dsym.endlinnum == 0;
-                 sym = sym.parent ? sym.parent.isScopeDsymbol() : null)
-                dsym.endlinnum = sym.endlinnum;
-        }
     }
 
     override void visit(TypeInfoDeclaration dsym)
