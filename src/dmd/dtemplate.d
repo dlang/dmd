@@ -5803,8 +5803,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    uint inuse;                 // for recursive expansion detection
-    uint nest;                  // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    ushort nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    ubyte inuse;                // for recursive expansion detection
     private enum Flag : uint { semantictiargsdone = 1u << 31, havetempdecl = 1u << 30, gagged = 1u << 29 }
 
     final @safe @property pure nothrow @nogc
