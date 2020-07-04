@@ -961,3 +961,16 @@ interface I15799
         assert(n);
     }; // Semicolon is not a part of function declaration. It's an empty declaration.
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11624
+
+interface I11624
+{
+    void foo();
+}
+
+static assert(!__traits(compiles,
+{
+    static class C11624 : I11624 { }
+}));
