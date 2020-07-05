@@ -3610,21 +3610,21 @@ private void elimspecwalk(elem **pn)
   }
 }
 
-/*********************************
- * Unroll loop if possible.
+/********
+ * Walk e in execution order.
+ * When eincrement is found, remove it.
+ * Continue, replacing instances of `v` with `v+increment`
+ * When second eincrement is found, stop.
  * Params:
- *      l = loop to unroll
- * Returns:
- *      true if loop was unrolled
+ *      e = expression to walk
+ *      defnum = index of eincrement
+ *      v = increment variable
+ *      increment = amount to increment v
  */
 
-struct UnrollWalker
+private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment) nothrow
 {
-nothrow:
-    uint defnum;
-    int state;
-    Symbol *v;
-    targ_llong increment;
+    int state = 0;
 
     /***********************************
      * Walk e in execution order, fixing it according to state.
@@ -3690,9 +3690,19 @@ nothrow:
             ++state;
         }
     }
+
+    walker(e);
+    assert(state == 2);
 }
 
 
+/*********************************
+ * Unroll loop if possible.
+ * Params:
+ *      l = loop to unroll
+ * Returns:
+ *      true if loop was unrolled
+ */
 bool loopunroll(ref loop l)
 {
     const bool log = false;
@@ -3842,13 +3852,7 @@ bool loopunroll(ref loop l)
      * Continue, replacing instances of `v` with `v+increment`
      * When second eincrement is found, stop.
      */
-    UnrollWalker uw;
-    uw.defnum = eincrement.Edef;
-    uw.state = 0;
-    uw.v = v;
-    uw.increment = increment;
-    uw.walker(e);
-    assert(uw.state == 2);
+    unrollWalker(e, eincrement.Edef, v, increment);
 
     l.Lhead.Belem = e;
 
