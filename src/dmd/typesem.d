@@ -884,7 +884,6 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
         }
 
         mtype.loc = loc;
-        mtype.sc = sc;
         if (sc)
             sc.setNoFree();
 

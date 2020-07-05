@@ -469,7 +469,6 @@ class TypeAArray : public TypeArray
 public:
     Type *index;                // key type
     Loc loc;
-    Scope *sc;
 
     static TypeAArray *create(Type *t, Type *index);
     const char *kind();
