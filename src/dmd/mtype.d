@@ -2299,7 +2299,6 @@ extern (C++) abstract class Type : ASTNode
                 else if (ty == Taarray)
                 {
                     t = new TypeAArray(t, (cast(TypeAArray)this).index.syntaxCopy());
-                    (cast(TypeAArray)t).sc = (cast(TypeAArray)this).sc; // duplicate scope
                 }
                 else if (ty == Tdelegate)
                 {
@@ -2372,7 +2371,6 @@ extern (C++) abstract class Type : ASTNode
                 else if (ty == Taarray)
                 {
                     t = new TypeAArray(utn, (cast(TypeAArray)this).index);
-                    (cast(TypeAArray)t).sc = (cast(TypeAArray)this).sc; // duplicate scope
                 }
                 else
                     assert(0);
@@ -3838,7 +3836,6 @@ extern (C++) final class TypeAArray : TypeArray
 {
     Type index;     // key type
     Loc loc;
-    Scope* sc;
 
     extern (D) this(Type t, Type index)
     {
