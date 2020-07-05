@@ -1483,7 +1483,13 @@ unittest
         set(p, memsize);
         verify(p, memsize);
 
-        int* q = cast(int*) GC.realloc(p + 16, 2 * memsize * int.sizeof);
+        int* q = cast(int*) GC.realloc(p + 4, 2 * memsize * int.sizeof);
+        assert(q == null);
+
+        q = cast(int*) GC.realloc(p + memsize / 2, 2 * memsize * int.sizeof);
+        assert(q == null);
+
+        q = cast(int*) GC.realloc(p + memsize - 1, 2 * memsize * int.sizeof);
         assert(q == null);
 
         int* r = cast(int*) GC.realloc(p, 5 * memsize * int.sizeof);
