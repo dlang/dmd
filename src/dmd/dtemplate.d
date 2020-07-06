@@ -5814,10 +5814,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         available = gagged - 1 // always last flag minus one, 1s for all available bits
     }
 
-    final @safe @property pure nothrow @nogc
+    extern(D) final @safe @property pure nothrow @nogc
     {
         ushort nest() const { return _nest & Flag.available; }
-        void nestUp() { assert(_nest < Flag.available); ++_nest; }
+        void nestUp() { assert(nest() < Flag.available); ++_nest; }
         void nestDown() { assert(nest() > 0); --_nest; }
         /// has semanticTiargs() been done?
         bool semantictiargsdone() const { return (_nest & Flag.semantictiargsdone) != 0; }

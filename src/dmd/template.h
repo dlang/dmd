@@ -255,9 +255,6 @@ public:
     Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     TemplateInstance *inst;             // refer to existing instance
     ScopeDsymbol *argsym;               // argument symbol table
-    bool semantictiargsdone;            // has semanticTiargs() been done?
-    bool havetempdecl;                  // if used second constructor
-    bool gagged;                        // if the instantiation is done with error gagging
     hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
 
@@ -287,7 +284,7 @@ private:
 
 public:
     unsigned short nest() const { return _nest & flag_available; }
-    void nestUp() { assert(_nest < flag_available); ++_nest; }
+    void nestUp() { assert(nest() < flag_available); ++_nest; }
     void nestDown() { assert(nest() > 0); --_nest; }
     /// has semanticTiargs() been done?
     bool semantictiargsdone() const { return (_nest & flag_semantictiargsdone) != 0; }
