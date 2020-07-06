@@ -463,7 +463,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     if (ue.op == TOK.dotTemplateInstance)
     {
         DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)ue;
-        auto ti = new TemplateInstance(loc, s.ident, dti.ti.tiargs);
+        auto ti = Pool!TemplateInstance.make(loc, s.ident, dti.ti.tiargs);
         if (!ti.updateTempDecl(sc, s))
             return new ErrorExp();
         return new ScopeExp(loc, ti);
@@ -4152,7 +4152,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
+            auto ti = Pool!TemplateInstance.make(exp.loc, exp.td, tiargs);
             return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
         }
         return exp.expressionSemantic(sc);
