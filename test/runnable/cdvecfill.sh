@@ -12,15 +12,15 @@ if [ $OS == "linux" ] && [ $MODEL == "64" ]; then
   $DMD -betterC -c -O -m64 ${src_file} -of${obj_file}
   objdump --disassemble --disassembler-options=intel-mnemonic ${obj_file} | tail -n+3 > ${tmp_file}
   diff ${expect_file} ${tmp_file}
-  rm ${obj_file} ${tmp_file}
+  rm_retry ${obj_file} ${tmp_file}
 
   $DMD -betterC -c -O -m64 -mcpu=avx ${src_file} -of${obj_file}
   objdump --disassemble --disassembler-options=intel-mnemonic ${obj_file} | tail -n+3 > ${tmp_file}
   diff ${expect_file_avx} ${tmp_file}
-  rm ${obj_file} ${tmp_file}
+  rm_retry ${obj_file} ${tmp_file}
 
   $DMD -betterC -c -O -m64 -mcpu=avx2 ${src_file} -of${obj_file}
   objdump --disassemble --disassembler-options=intel-mnemonic ${obj_file} | tail -n+3 > ${tmp_file}
   diff ${expect_file_avx2} ${tmp_file}
-  rm ${obj_file} ${tmp_file}
+  rm_retry ${obj_file} ${tmp_file}
 fi

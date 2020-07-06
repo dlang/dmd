@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source tools/common_funcs.sh
+
 # strip out Dmain since it's symbol differs between windows and non-windows
 grep -v Dmain ${OUTPUT_BASE}.d.trace.def > ${OUTPUT_BASE}.d.trace.def2
 
@@ -11,4 +13,4 @@ if [ ! -f ${tracelog} ]; then
     exit 1
 fi
 
-rm ${OUTPUT_BASE}.d.trace.{def,def2,log}
+rm_retry ${OUTPUT_BASE}.d.trace.{def,def2,log}
