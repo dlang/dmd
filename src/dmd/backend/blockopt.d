@@ -645,6 +645,7 @@ void blockopt(int iter)
             bltailmerge();              // do tail merging
             brtailrecursion();          // do tail recursion
             brcombine();                // convert graph to expressions
+            blexit();
             if (iter >= 2)
                 brmin();                // minimize branching
             do
@@ -2362,6 +2363,82 @@ private void blassertsplit()
         b.Belem = bl_delist2(earray);
     }
     elems.dtor();
+}
+
+/*************************************************
+ * Detect exit blocks and move them to the end.
+ */
+private void blexit()
+{
+    debug if (debugc) printf("blexit()\n");
+
+    Barray!(block*) bexits;
+    for (block *b = startblock; b; b = b.Bnext)
+    {
+        /* Not sure of effect of jumping out of a try block
+         */
+        if (b.Btry)
+            continue;
+
+        if (b.BC == BCexit)
+            continue;
+
+        if (!b.Belem || el_returns(b.Belem))
+            continue;
+
+        b.BC = BCexit;
+
+        foreach (bsl; ListRange(b.Bsucc))
+        {
+            block *bs = list_block(bsl);
+            list_subtract(&bs.Bpred, b);
+        }
+        list_free(&b.Bsucc, FPNULL);
+
+        if (b != startblock && b.Bnext)
+            bexits.push(b);
+
+        debug if (debugc)
+            printf(" to exit block\n");
+        go.changes++;
+    }
+
+    /* Move all the newly detected Bexit blocks in bexits[] to the end
+     */
+
+    /* First remove them from the list of blocks
+     */
+    size_t i = 0;
+    block** pb = &startblock.Bnext;
+    while (1)
+    {
+        if (i == bexits.length)
+            break;
+
+        if (*pb == bexits[i])
+        {
+            *pb = (*pb).Bnext;
+            ++i;
+        }
+        else
+            pb = &(*pb).Bnext;
+    }
+
+    /* Advance pb to point to the last Bnext
+     */
+    while (*pb)
+        pb = &(*pb).Bnext;
+
+    /* Append the bexits[] to the end
+     */
+    foreach (b; bexits[])
+    {
+        *pb = b;
+        pb = &b.Bnext;
+    }
+    *pb = null;
+
+    bexits.dtor();
 }
 
 } //!SPP
