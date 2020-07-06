@@ -7750,7 +7750,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         e.type = e.e2.type;
-        if (e.type !is Type.tvoid && !e.allowCommaExp && !e.isGenerated)
+        if (e.type is Type.tvoid)
+            discardValue(e.e1);
+        else if (!e.allowCommaExp && !e.isGenerated)
             e.error("Using the result of a comma expression is not allowed");
         result = e;
     }
