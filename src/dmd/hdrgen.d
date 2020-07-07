@@ -3328,14 +3328,14 @@ private void tiargsToBuffer(TemplateInstance ti, OutBuffer* buf, HdrGenState* hg
         }
     }
     buf.writeByte('(');
-    ti.nest++;
+    ti.nestUp();
     foreach (i, arg; *ti.tiargs)
     {
         if (i)
             buf.writestring(", ");
         objectToBuffer(arg, buf, hgs);
     }
-    ti.nest--;
+    ti.nestDown();
     buf.writeByte(')');
 }
 

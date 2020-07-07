@@ -255,11 +255,6 @@ public:
     Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     TemplateInstance *inst;             // refer to existing instance
     ScopeDsymbol *argsym;               // argument symbol table
-    int inuse;                          // for recursive expansion detection
-    int nest;                           // for recursive pretty printing detection
-    bool semantictiargsdone;            // has semanticTiargs() been done?
-    bool havetempdecl;                  // if used second constructor
-    bool gagged;                        // if the instantiation is done with error gagging
     hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
 
@@ -272,6 +267,11 @@ public:
     TemplateInstance *tinst;            // enclosing template instance
     TemplateInstance *tnext;            // non-first instantiated instances
     Module *minst;                      // the top module that instantiated this instance
+
+private:
+    unsigned short _nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags
+public:
+    unsigned char inuse;                 // for recursive expansion detection
 
     Dsymbol *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol
