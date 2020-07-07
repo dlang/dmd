@@ -461,6 +461,7 @@ extern (C++) class Dsymbol : ASTNode
      * if a template declaration is non-local i.e. global or static.
      *
      * Examples:
+     * ---
      *  module mod;
      *  template Foo(alias a) { mixin Bar!(); }
      *  mixin template Bar() {
@@ -481,6 +482,7 @@ extern (C++) class Dsymbol : ASTNode
      *  // s.toParent2() == FuncDeclaration('mod.test')
      *  // s.toParentDecl() == Module('mod')
      *  // s.toParentLocal() == FuncDeclaration('mod.test')
+     * ---
      */
     final inout(Dsymbol) toParent() inout
     {
