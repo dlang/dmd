@@ -70,52 +70,6 @@ extern (C++) struct Port
         return t;
     }
 
-    static bool isFloat32LiteralOutOfRange(scope const(char)* s)
-    {
-        errno = 0;
-        version (CRuntime_DigitalMars)
-        {
-            auto save = __locale_decpoint;
-            __locale_decpoint = ".";
-        }
-        version (CRuntime_Microsoft)
-        {
-            float r;
-            int res = _atoflt(&r, s);
-            if (res == _UNDERFLOW || res == _OVERFLOW)
-                errno = ERANGE;
-        }
-        else
-        {
-            strtof(s, null);
-        }
-        version (CRuntime_DigitalMars) __locale_decpoint = save;
-        return errno == ERANGE;
-    }
-
-    static bool isFloat64LiteralOutOfRange(scope const(char)* s)
-    {
-        errno = 0;
-        version (CRuntime_DigitalMars)
-        {
-            auto save = __locale_decpoint;
-            __locale_decpoint = ".";
-        }
-        version (CRuntime_Microsoft)
-        {
-            double r;
-            int res = _atodbl(&r, s);
-            if (res == _UNDERFLOW || res == _OVERFLOW)
-                errno = ERANGE;
-        }
-        else
-        {
-            strtod(s, null);
-        }
-        version (CRuntime_DigitalMars) __locale_decpoint = save;
-        return errno == ERANGE;
-    }
-
     // Little endian
     static void writelongLE(uint value, scope void* buffer) pure
     {

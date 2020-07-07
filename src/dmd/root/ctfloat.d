@@ -167,24 +167,41 @@ extern (C++) struct CTFloat
     }
 
     @system
-    static real_t parse(const(char)* literal, bool* isOutOfRange = null)
+    extern (D) private static real_t parse(alias parseFn)(const(char)* literal, bool* isOutOfRange) nothrow
     {
         errno = 0;
         version(CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
+            scope(exit) __locale_decpoint = save;
         }
-        version(CRuntime_Microsoft)
-        {
-            auto r = cast(real_t) strtold_dm(literal, null);
-        }
-        else
-            auto r = strtold(literal, null);
-        version(CRuntime_DigitalMars) __locale_decpoint = save;
+        auto r = cast(real_t) parseFn(literal, null);
         if (isOutOfRange)
             *isOutOfRange = (errno == ERANGE);
         return r;
+    }
+
+    @system
+    static real_t parseFloat(const(char)* literal, bool* isOutOfRange = null)
+    {
+        return parse!strtof(literal, isOutOfRange);
+    }
+
+    @system
+    static real_t parseDouble(const(char)* literal, bool* isOutOfRange = null)
+    {
+        return parse!strtod(literal, isOutOfRange);
+    }
+
+    @system
+    static real_t parseReal(const(char)* literal, bool* isOutOfRange = null)
+    {
+        version(CRuntime_Microsoft) // Microsoft's strtold is for 64-bit `long double`
+            alias parseFn = strtold_dm;
+        else
+            alias parseFn = strtold;
+        return parse!parseFn(literal, isOutOfRange);
     }
 
     @system

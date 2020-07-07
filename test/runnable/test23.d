@@ -121,13 +121,11 @@ void test6()
 
 void test7()
 {
-    real a = 3.40483; // this is treated as 3.40483L
+    real a = 3.40483L;
     real b;
-    b = 3.40483;
-    assert(a==b);
-    assert(a==3.40483);
-    assert(a==3.40483L);
-    assert(a==3.40483F);
+    b = 3.40483L;
+    assert(a == b);
+    assert(a == 3.40483L);
 }
 
 /*******************************************/

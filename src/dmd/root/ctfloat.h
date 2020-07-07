@@ -50,7 +50,10 @@ struct CTFloat
     static bool isSNaN(real_t r);
     static bool isInfinity(real_t r);
 
-    static real_t parse(const char *literal, bool *isOutOfRange = NULL);
+    static real_t parseFloat(const char *literal, bool *isOutOfRange = nullptr);
+    static real_t parseDouble(const char* literal, bool* isOutOfRange = nullptr);
+    static real_t parseReal(const char* literal, bool* isOutOfRange = nullptr);
+
     static int sprint(char *str, char fmt, real_t x);
 
     static size_t hash(real_t a);
