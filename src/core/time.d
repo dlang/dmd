@@ -1789,8 +1789,9 @@ unittest
     long tl = to!("seconds",long)(t);
     assert(tl == 1000);
 
+    import core.stdc.math : fabs;
     double td = to!("seconds",double)(t);
-    assert(_abs(td - 1000) < 0.001);
+    assert(fabs(td - 1000) < 0.001);
 }
 
 unittest
@@ -3703,7 +3704,6 @@ long splitUnitsFromHNSecs(string units)(ref long hnsecs) @safe pure nothrow @nog
     return value;
 }
 
-///
 unittest
 {
     auto hnsecs = 2595000000007L;
@@ -3744,7 +3744,6 @@ long getUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
     return convert!("hnsecs", units)(hnsecs);
 }
 
-///
 unittest
 {
     auto hnsecs = 2595000000007L;
@@ -3783,7 +3782,6 @@ long removeUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
     return hnsecs - convert!(units, "hnsecs")(value);
 }
 
-///
 unittest
 {
     auto hnsecs = 2595000000007L;
@@ -3913,7 +3911,6 @@ template nextLargerTimeUnits(string units)
         static assert(0, "Broken template constraint");
 }
 
-///
 unittest
 {
     assert(nextLargerTimeUnits!"minutes" == "hours");

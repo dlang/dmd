@@ -446,6 +446,24 @@ style_lint:
 	@echo "Enforce no whitespace after opening parenthesis"
 	$(GREP) -nrE "\<(version) \( " $$(find src -name '*.d') ; test $$? -eq 1
 
+################################################################################
+# Check for missing imports in public unittest examples.
+################################################################################
+
+PUBLICTESTS_DIR=$(ROOT)/publictests
+publictests: $(addsuffix .publictests, $(basename $(SRCS)))
+
+################################################################################
+# Extract public tests of a module and test them in an separate file (i.e. without its module)
+# This is done to check for potentially missing imports in the examples, e.g.
+# make -f posix.mak src/core/time.publictests
+################################################################################
+%.publictests: %.d $(TESTS_EXTRACTOR) $(DRUNTIME) | $(PUBLICTESTS_DIR)/.directory
+	@$(TESTS_EXTRACTOR) --inputdir  $< --outputdir $(PUBLICTESTS_DIR)
+	@$(DMD) -main $(UDFLAGS) $(UTFLAGS) -defaultlib= -debuglib= -od$(PUBLICTESTS_DIR) $(DRUNTIME) -run $(PUBLICTESTS_DIR)/$(subst /,_,$<)
+
+################################################################################
+
 .PHONY : auto-tester-build
 ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-build:
