@@ -5790,11 +5790,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     Dsymbol aliasdecl;          // !=null if instance is an alias for its sole member
     TemplateInstance inst;      // refer to existing instance
     ScopeDsymbol argsym;        // argument symbol table
-    int inuse;                  // for recursive expansion detection
-    int nest;                   // for recursive pretty printing detection
-    bool semantictiargsdone;    // has semanticTiargs() been done?
-    bool havetempdecl;          // if used second constructor
-    bool gagged;                // if the instantiation is done with error gagging
     size_t hash;                // cached result of toHash()
     Expressions* fargs;         // for function template, these are the function arguments
 
@@ -5807,6 +5802,45 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tinst;     // enclosing template instance
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
+
+    private ushort _nest;       // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    ubyte inuse;                // for recursive expansion detection
+
+    private enum Flag : uint
+    {
+        semantictiargsdone = 1u << (_nest.sizeof * 8 - 1), // MSB of _nest
+        havetempdecl = semantictiargsdone >> 1,
+        gagged = semantictiargsdone >> 2,
+        available = gagged - 1 // always last flag minus one, 1s for all available bits
+    }
+
+    extern(D) final @safe @property pure nothrow @nogc
+    {
+        ushort nest() const { return _nest & Flag.available; }
+        void nestUp() { assert(nest() < Flag.available); ++_nest; }
+        void nestDown() { assert(nest() > 0); --_nest; }
+        /// has semanticTiargs() been done?
+        bool semantictiargsdone() const { return (_nest & Flag.semantictiargsdone) != 0; }
+        void semantictiargsdone(bool x)
+        {
+            if (x) _nest |= Flag.semantictiargsdone;
+            else _nest &= ~Flag.semantictiargsdone;
+        }
+        /// if used second constructor
+        bool havetempdecl() const { return (_nest & Flag.havetempdecl) != 0; }
+        void havetempdecl(bool x)
+        {
+            if (x) _nest |= Flag.havetempdecl;
+            else _nest &= ~Flag.havetempdecl;
+        }
+        /// if the instantiation is done with error gagging
+        bool gagged() const { return (_nest & Flag.gagged) != 0; }
+        void gagged(bool x)
+        {
+            if (x) _nest |= Flag.gagged;
+            else _nest &= ~Flag.gagged;
+        }
+    }
 
     extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
     {
