@@ -495,6 +495,33 @@ struct BitRange
 }
 
 /**
+ * Swaps bytes in a 2 byte ushort.
+ * Params:
+ *      x = value
+ * Returns:
+ *      `x` with bytes swapped
+ */
+pragma(inline, false)
+ushort byteswap(ushort x) pure
+{
+    /* Calling it bswap(ushort) would break existing code that calls bswap(uint).
+     *
+     * This pattern is meant to be recognized by the dmd code generator.
+     * Don't change it without checking that an XCH instruction is still
+     * used to implement it.
+     * Inlining may also throw it off.
+     */
+    return cast(ushort) (((x >> 8) & 0xFF) | ((x << 8) & 0xFF00u));
+}
+
+unittest
+{
+    assert(byteswap(cast(ushort)0xF234) == 0x34F2);
+    static ushort xx = 0xF234;
+    assert(byteswap(xx) == 0x34F2);
+}
+
+/**
  * Swaps bytes in a 4 byte uint end-to-end, i.e. byte 0 becomes
  * byte 3, byte 1 becomes byte 2, byte 2 becomes byte 1, byte 3
  * becomes byte 0.
