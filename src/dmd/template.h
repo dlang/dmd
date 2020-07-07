@@ -269,44 +269,9 @@ public:
     Module *minst;                      // the top module that instantiated this instance
 
 private:
-    unsigned short _nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    unsigned short _nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags
 public:
     unsigned char inuse;                 // for recursive expansion detection
-
-private:
-    enum Flag
-    {
-        flag_semantictiargsdone = 1u << (sizeof(_nest) * 8 - 1), // MSB of _nest
-        flag_havetempdecl = semantictiargsdone >> 1,
-        flag_gagged = semantictiargsdone >> 2,
-        flag_available = gagged - 1 // always last flag minus one, 1s for all available bits
-    }
-
-public:
-    unsigned short nest() const { return _nest & flag_available; }
-    void nestUp() { assert(nest() < flag_available); ++_nest; }
-    void nestDown() { assert(nest() > 0); --_nest; }
-    /// has semanticTiargs() been done?
-    bool semantictiargsdone() const { return (_nest & flag_semantictiargsdone) != 0; }
-    void semantictiargsdone(bool x)
-    {
-        if (x) _nest |= flag_semantictiargsdone;
-        else _nest &= ~flag_semantictiargsdone;
-    }
-    /// if used second constructor
-    bool havetempdecl() const { return (_nest & flag_havetempdecl) != 0; }
-    void havetempdecl(bool x)
-    {
-        if (x) _nest |= flag_havetempdecl;
-        else _nest &= ~flag_havetempdecl;
-    }
-    /// if the instantiation is done with error gagging
-    bool gagged() const { return (_nest & flag_gagged) != 0; }
-    void gagged(bool x)
-    {
-        if (x) _nest |= flag_gagged;
-        else _nest &= ~flag_gagged;
-    }
 
     Dsymbol *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol
