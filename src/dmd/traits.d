@@ -1694,16 +1694,26 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 2)
             return dimError(2);
 
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 0))
+        // https://issues.dlang.org/show_bug.cgi?id=20761
+        // tiarg semantic may expand in place the list of arguments, for example:
+        //
+        //     before tiarg sema:  __traits(isSame, seq!(0,0), seq!(1,1))
+        //     after            :  __traits(isSame, 0, 0, 1, 1)
+        //
+        // so we split in two lists
+        Objects ob1;
+        ob1.push((*e.args)[0]);
+        Objects ob2;
+        ob2.push((*e.args)[1]);
+        if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob1, 0))
             return new ErrorExp();
-
-
-        auto o1 = (*e.args)[0];
-        auto o2 = (*e.args)[1];
-
-
-        if (!o1.isSame(o2, sc))
+        if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob2, 0))
+            return new ErrorExp();
+        if (ob1.dim != ob2.dim)
             return False();
+        foreach (immutable i; 0 .. ob1.dim)
+            if (!ob1[i].isSame(ob2[i], sc))
+                return False();
         return True();
     }
     if (e.ident == Id.getUnitTests)
