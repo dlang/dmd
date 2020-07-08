@@ -1694,133 +1694,26 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 2)
             return dimError(2);
 
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 0))
+        // https://issues.dlang.org/show_bug.cgi?id=20761
+        // tiarg semantic may expand in place the list of arguments, for example:
+        //
+        //     before tiarg sema:  __traits(isSame, seq!(0,0), seq!(1,1))
+        //     after            :  __traits(isSame, 0, 0, 1, 1)
+        //
+        // so we split in two lists
+        Objects ob1;
+        ob1.push((*e.args)[0]);
+        Objects ob2;
+        ob2.push((*e.args)[1]);
+        if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob1, 0))
             return new ErrorExp();
-
-
-        auto o1 = (*e.args)[0];
-        auto o2 = (*e.args)[1];
-
-        static FuncLiteralDeclaration isLambda(RootObject oarg)
-        {
-            if (auto t = isDsymbol(oarg))
-            {
-                if (auto td = t.isTemplateDeclaration())
-                {
-                    if (td.members && td.members.dim == 1)
-                    {
-                        if (auto fd = (*td.members)[0].isFuncLiteralDeclaration())
-                            return fd;
-                    }
-                }
-            }
-            else if (auto ea = isExpression(oarg))
-            {
-                if (ea.op == TOK.function_)
-                {
-                    if (auto fe = cast(FuncExp)ea)
-                        return fe.fd;
-                }
-            }
-
-            return null;
-        }
-
-        auto l1 = isLambda(o1);
-        auto l2 = isLambda(o2);
-
-        if (l1 && l2)
-        {
-            import dmd.lambdacomp : isSameFuncLiteral;
-            if (isSameFuncLiteral(l1, l2, sc))
-                return True();
-        }
-
-        // issue 12001, allow isSame, <BasicType>, <BasicType>
-        Type t1 = isType(o1);
-        Type t2 = isType(o2);
-        if (t1 && t2 && t1.equals(t2))
-            return True();
-
-        auto s1 = getDsymbol(o1);
-        auto s2 = getDsymbol(o2);
-        //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
-        version (none)
-        {
-            printf("o1: %p\n", o1);
-            printf("o2: %p\n", o2);
-            if (!s1)
-            {
-                if (auto ea = isExpression(o1))
-                    printf("%s\n", ea.toChars());
-                if (auto ta = isType(o1))
-                    printf("%s\n", ta.toChars());
+        if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob2, 0))
+            return new ErrorExp();
+        if (ob1.dim != ob2.dim)
+            return False();
+        foreach (immutable i; 0 .. ob1.dim)
+            if (!ob1[i].isSame(ob2[i], sc))
                 return False();
-            }
-            else
-                printf("%s %s\n", s1.kind(), s1.toChars());
-        }
-        if (!s1 && !s2)
-        {
-            auto ea1 = isExpression(o1);
-            auto ea2 = isExpression(o2);
-            if (ea1 && ea2)
-            {
-                if (ea1.equals(ea2))
-                    return True();
-            }
-        }
-        if (!s1 || !s2)
-            return False();
-
-        s1 = s1.toAlias();
-        s2 = s2.toAlias();
-
-        if (auto fa1 = s1.isFuncAliasDeclaration())
-            s1 = fa1.toAliasFunc();
-        if (auto fa2 = s2.isFuncAliasDeclaration())
-            s2 = fa2.toAliasFunc();
-
-        // https://issues.dlang.org/show_bug.cgi?id=11259
-        // compare import symbol to a package symbol
-        static bool cmp(Dsymbol s1, Dsymbol s2)
-        {
-            auto imp = s1.isImport();
-            return imp && imp.pkg && imp.pkg == s2.isPackage();
-        }
-
-        if (cmp(s1,s2) || cmp(s2,s1))
-            return True();
-
-        if (s1 == s2)
-            return True();
-
-        // https://issues.dlang.org/show_bug.cgi?id=18771
-        // OverloadSets are equal if they contain the same functions
-        auto overSet1 = s1.isOverloadSet();
-        if (!overSet1)
-            return False();
-
-        auto overSet2 = s2.isOverloadSet();
-        if (!overSet2)
-            return False();
-
-        if (overSet1.a.dim != overSet2.a.dim)
-            return False();
-
-        // OverloadSets contain array of Dsymbols => O(n*n)
-        // to compare for equality as the order of overloads
-        // might not be the same
-Lnext:
-        foreach(overload1; overSet1.a)
-        {
-            foreach(overload2; overSet2.a)
-            {
-                if (overload1 == overload2)
-                    continue Lnext;
-            }
-            return False();
-        }
         return True();
     }
     if (e.ident == Id.getUnitTests)
@@ -1988,4 +1881,129 @@ Lnext:
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
     return new ErrorExp();
+}
+
+/// compare arguments of __traits(isSame)
+private bool isSame(RootObject o1, RootObject o2, Scope* sc)
+{
+    static FuncLiteralDeclaration isLambda(RootObject oarg)
+    {
+        if (auto t = isDsymbol(oarg))
+        {
+            if (auto td = t.isTemplateDeclaration())
+            {
+                if (td.members && td.members.dim == 1)
+                {
+                    if (auto fd = (*td.members)[0].isFuncLiteralDeclaration())
+                        return fd;
+                }
+            }
+        }
+        else if (auto ea = isExpression(oarg))
+        {
+            if (ea.op == TOK.function_)
+            {
+                if (auto fe = cast(FuncExp)ea)
+                    return fe.fd;
+            }
+        }
+        return null;
+    }
+
+    auto l1 = isLambda(o1);
+    auto l2 = isLambda(o2);
+
+    if (l1 && l2)
+    {
+        import dmd.lambdacomp : isSameFuncLiteral;
+        if (isSameFuncLiteral(l1, l2, sc))
+            return true;
+    }
+
+    // issue 12001, allow isSame, <BasicType>, <BasicType>
+    Type t1 = isType(o1);
+    Type t2 = isType(o2);
+    if (t1 && t2 && t1.equals(t2))
+        return true;
+
+    auto s1 = getDsymbol(o1);
+    auto s2 = getDsymbol(o2);
+    //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
+    version (none)
+    {
+        printf("o1: %p\n", o1);
+        printf("o2: %p\n", o2);
+        if (!s1)
+        {
+            if (auto ea = isExpression(o1))
+                printf("%s\n", ea.toChars());
+            if (auto ta = isType(o1))
+                printf("%s\n", ta.toChars());
+            return false;
+        }
+        else
+            printf("%s %s\n", s1.kind(), s1.toChars());
+    }
+    if (!s1 && !s2)
+    {
+        auto ea1 = isExpression(o1);
+        auto ea2 = isExpression(o2);
+        if (ea1 && ea2)
+        {
+            if (ea1.equals(ea2))
+                return true;
+        }
+    }
+    if (!s1 || !s2)
+        return false;
+
+    s1 = s1.toAlias();
+    s2 = s2.toAlias();
+
+    if (auto fa1 = s1.isFuncAliasDeclaration())
+        s1 = fa1.toAliasFunc();
+    if (auto fa2 = s2.isFuncAliasDeclaration())
+        s2 = fa2.toAliasFunc();
+
+    // https://issues.dlang.org/show_bug.cgi?id=11259
+    // compare import symbol to a package symbol
+    static bool cmp(Dsymbol s1, Dsymbol s2)
+    {
+        auto imp = s1.isImport();
+        return imp && imp.pkg && imp.pkg == s2.isPackage();
+    }
+
+    if (cmp(s1,s2) || cmp(s2,s1))
+        return true;
+
+    if (s1 == s2)
+        return true;
+
+    // https://issues.dlang.org/show_bug.cgi?id=18771
+    // OverloadSets are equal if they contain the same functions
+    auto overSet1 = s1.isOverloadSet();
+    if (!overSet1)
+        return false;
+
+    auto overSet2 = s2.isOverloadSet();
+    if (!overSet2)
+        return false;
+
+    if (overSet1.a.dim != overSet2.a.dim)
+        return false;
+
+    // OverloadSets contain array of Dsymbols => O(n*n)
+    // to compare for equality as the order of overloads
+    // might not be the same
+Lnext:
+    foreach(overload1; overSet1.a)
+    {
+        foreach(overload2; overSet2.a)
+        {
+            if (overload1 == overload2)
+                continue Lnext;
+        }
+        return false;
+    }
+    return true;
 }
