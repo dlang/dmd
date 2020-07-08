@@ -1765,7 +1765,20 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 
         VarDeclaration* pvar;
         Expression ce;
-    L1:
+
+        static Dsymbol dollarFromTypeTuple(const ref Loc loc, TypeTuple tt, Scope* sc)
+        {
+
+            /* $ gives the number of type entries in the type tuple
+             */
+            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
+            Expression e = new IntegerExp(Loc.initial, tt.arguments.dim, Type.tsize_t);
+            v._init = new ExpInitializer(Loc.initial, e);
+            v.storage_class |= STC.temp | STC.static_ | STC.const_;
+            v.dsymbolSemantic(sc);
+            return v;
+        }
+
         const DYNCAST kind = arrayContent.dyncast();
         if (kind == DYNCAST.dsymbol)
         {
@@ -1781,15 +1794,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         }
         if (kind == DYNCAST.type)
         {
-            TypeTuple type = cast(TypeTuple) arrayContent;
-            /* $ gives the number of type entries in the type tuple
-             */
-            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
-            v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(sc);
-            return v;
+            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
         }
         Expression exp = cast(Expression) arrayContent;
         if (auto ie = exp.isIndexExp())
@@ -1828,10 +1833,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         if (auto te = ce.isTypeExp())
         {
             if (auto ttp = te.type.isTypeTuple())
-            {
-                arrayContent = ttp;
-                goto L1;
-            }
+                return dollarFromTypeTuple(loc, ttp, sc);
         }
         /* *pvar is lazily initialized, so if we refer to $
          * multiple times, it gets set only once.
