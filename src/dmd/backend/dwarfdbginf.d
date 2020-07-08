@@ -40,6 +40,9 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.errno;
 
+import dmd.backend.cc;
+import dmd.backend.cdef;
+
 version(Windows)
 {
     extern (C) char* getcwd(char* buffer, size_t maxlen);
@@ -50,33 +53,30 @@ else
     import core.sys.posix.unistd : getcwd;
 }
 
-import dmd.backend.barray;
-import dmd.backend.cc;
-import dmd.backend.cdef;
-import dmd.backend.code;
-import dmd.backend.code_x86;
-import dmd.backend.mem;
-import dmd.backend.dlist;
-import dmd.backend.el;
-import dmd.backend.global;
-import dmd.backend.obj;
-import dmd.backend.oper;
-import dmd.backend.outbuf;
-import dmd.backend.ty;
-import dmd.backend.type;
-
 static if (ELFOBJ || MACHOBJ)
 {
     import dmd.backend.aarray;
+    import dmd.backend.barray;
+    import dmd.backend.cdef;
+    import dmd.backend.code;
+    import dmd.backend.code_x86;
+    import dmd.backend.dwarf;
+    import dmd.backend.dwarf2;
+    import dmd.backend.mem;
+    import dmd.backend.dlist;
+    import dmd.backend.el;
+    import dmd.backend.global;
+    import dmd.backend.obj;
+    import dmd.backend.oper;
+    import dmd.backend.outbuf;
+    import dmd.backend.ty;
+    import dmd.backend.type;
 
     static if (ELFOBJ)
         import dmd.backend.melf;
 
     static if (MACHOBJ)
         import dmd.backend.mach;
-
-    import dmd.backend.dwarf;
-    import dmd.backend.dwarf2;
 
     extern (C++):
 
@@ -562,10 +562,9 @@ static if (ELFOBJ || MACHOBJ)
             uint abbrev_offset;
             ubyte address_size;
         }
-        // Workaround https://issues.dlang.org/show_bug.cgi?id=16563
-        // Struct alignment is ignored due to 2.072 regression.
-        static assert((DebugInfoHeader.alignof == 1 && DebugInfoHeader.sizeof == 11) ||
-                      (DebugInfoHeader.alignof == 4 && DebugInfoHeader.sizeof == 12));
+
+        // https://issues.dlang.org/show_bug.cgi?id=16563
+        static assert(DebugInfoHeader.alignof == 1 && DebugInfoHeader.sizeof == 11);
 
         DebugInfoHeader debuginfo_init =
         {       0,      // total_length
@@ -890,24 +889,24 @@ static if (ELFOBJ || MACHOBJ)
         Outbuffer *buf = SegData[dfseg].SDbuf;
         const uint startsize = cast(uint)buf.length();
 
-    static if (MACHOBJ)
-    {
-        /* Create symbol named "funcname.eh" for the start of the FDE
-         */
-        Symbol *fdesym;
+        static if (MACHOBJ)
         {
-            const size_t len = strlen(sfunc.Sident.ptr);
-            char *name = cast(char *)malloc(len + 3 + 1);
-            if (!name)
-                err_nomem();
-            memcpy(name, sfunc.Sident.ptr, len);
-            memcpy(name + len, ".eh".ptr, 3 + 1);
-            fdesym = symbol_name(name, SCglobal, tspvoid);
-            Obj.pubdef(dfseg, fdesym, startsize);
-            symbol_keep(fdesym);
-            free(name);
+            /* Create symbol named "funcname.eh" for the start of the FDE
+             */
+            Symbol *fdesym;
+            {
+                const size_t len = strlen(sfunc.Sident.ptr);
+                char *name = cast(char *)malloc(len + 3 + 1);
+                if (!name)
+                    err_nomem();
+                memcpy(name, sfunc.Sident.ptr, len);
+                memcpy(name + len, ".eh".ptr, 3 + 1);
+                fdesym = symbol_name(name, SCglobal, tspvoid);
+                Obj.pubdef(dfseg, fdesym, startsize);
+                symbol_keep(fdesym);
+                free(name);
+            }
         }
-    }
 
         if (sfunc.ty() & mTYnaked)
         {
@@ -1115,17 +1114,9 @@ static if (ELFOBJ || MACHOBJ)
         if (I64)
             debuginfo.address_size = 8;
 
-        // Workaround https://issues.dlang.org/show_bug.cgi?id=16563
-        // Struct alignment is ignored due to 2.072 regression.
-        static if (debuginfo.alignof == 1)
-            debug_info.buf.write(&debuginfo, debuginfo.sizeof);
-        else
-        {
-            debug_info.buf.write(&debuginfo.total_length, 4);
-            debug_info.buf.write(&debuginfo.version_, 2);
-            debug_info.buf.write(&debuginfo.abbrev_offset, 4);
-            debug_info.buf.write(&debuginfo.address_size, 1);
-        }
+        // https://issues.dlang.org/show_bug.cgi?id=16563
+        assert(debuginfo.alignof == 1);
+        debug_info.buf.write(&debuginfo, debuginfo.sizeof);
 
         static if (ELFOBJ)
             dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
@@ -1457,17 +1448,10 @@ static if (ELFOBJ || MACHOBJ)
         debug_info.buf.writeByte(0);      // ending abbreviation code
 
         debuginfo.total_length = cast(uint)debug_info.buf.length() - 4;
-        // Workaround https://issues.dlang.org/show_bug.cgi?id=16563
-        // Struct alignment is ignored due to 2.072 regression.
-        static if (debuginfo.alignof == 1)
-            memcpy(debug_info.buf.buf, &debuginfo, debuginfo.sizeof);
-        else
-        {
-            memcpy(debug_info.buf.buf, &debuginfo.total_length, 4);
-            memcpy(debug_info.buf.buf+4, &debuginfo.version_, 2);
-            memcpy(debug_info.buf.buf+6, &debuginfo.abbrev_offset, 4);
-            memcpy(debug_info.buf.buf+10, &debuginfo.address_size, 1);
-        }
+
+        // https://issues.dlang.org/show_bug.cgi?id=16563
+        assert(debuginfo.alignof == 1);
+        memcpy(debug_info.buf.buf, &debuginfo, debuginfo.sizeof);
 
         /* ================================================= */
 
@@ -1647,15 +1631,10 @@ static if (ELFOBJ || MACHOBJ)
         abuf.writeByte(DW_AT_name);      abuf.writeByte(DW_FORM_string);
 
         static if (DWARF_VERSION >= 4)
-        {
             abuf.writeuLEB128(DW_AT_linkage_name);
-            abuf.writeByte(DW_FORM_string);
-        }
         else
-        {
             abuf.writeuLEB128(DW_AT_MIPS_linkage_name);
-            abuf.writeByte(DW_FORM_string);
-        }
+        abuf.writeByte(DW_FORM_string);
 
         abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
         abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
