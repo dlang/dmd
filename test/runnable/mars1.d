@@ -2012,6 +2012,23 @@ void test7()
 
 ////////////////////////////////////////////////////////////////////////
 
+// http://github.com/dlang/dmd/pull/11388
+
+ushort byteswap(ushort x) pure
+{
+    // Should be detected and XCHG instruction generated
+    return cast(ushort) (((x >> 8) & 0xFF) | ((x << 8) & 0xFF00u));
+}
+
+void testbyteswap()
+{
+    assert(byteswap(0xF234) == 0x34F2);
+    static ushort xx = 0xF234;
+    assert(byteswap(xx) == 0x34F2);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -2085,6 +2102,7 @@ int main()
     test20050();
     testCpStatic();
     test7();
+    testbyteswap();
 
     printf("Success\n");
     return 0;

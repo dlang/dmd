@@ -1736,7 +1736,13 @@ else
         e.EV.Vlong = i1 & 1;
         break;
     case OPbswap:
-        e.EV.Vint = core.bitop.bswap(cast(uint) i1);
+        if (tysize(tym) == 2)
+        {
+            e.EV.Vint = ((i1 >> 8) & 0x00FF) |
+                        ((i1 << 8) & 0xFF00);
+        }
+        else
+            e.EV.Vint = core.bitop.bswap(cast(uint) i1);
         break;
 
     case OPpopcnt:
