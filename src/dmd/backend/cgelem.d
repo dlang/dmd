@@ -1680,6 +1680,82 @@ private elem *elor(elem *e, goal_t goal)
         }
     }
 
+    /* Recognize the following function and replace it with OPbswap:
+        ushort byteswap(ushort x) { return cast(ushort)(((x >> 8) & 0xFF) | ((x << 8) & 0xFF00)); }
+
+         |  TYunsigned short
+          &  TYshort
+           32_16  TYshort
+            >>  TYint
+             u16_32  TYint
+              var  TYunsigned short  x
+             const  TYint 8L
+           const  TYshort 255
+          &  TYshort
+           <<  TYshort
+            var  TYshort  x
+            const  TYshort 8
+           const  TYshort 0xFF00
+     */
+    if (sz == 2 && OPTIMIZER)
+    {
+        if (e.Eoper == OPor &&
+            e1.Eoper == OPand &&
+            e2.Eoper == OPand)
+        {
+            elem* evar;
+            elem* evar2;
+            auto e11 = e1.EV.E1;
+            auto e12 = e1.EV.E2;
+            if (e11.Eoper == OP32_16 &&
+                e12.Eoper == OPconst && el_tolong(e12) == 0xFF)
+            {
+                auto e111 = e11.EV.E1;
+                if (e111.Eoper == OPshr || e111.Eoper == OPashr)
+                {
+                    auto e1111 = e111.EV.E1;
+                    auto e1112 = e111.EV.E2;
+                    if (e1112.Eoper == OPconst && el_tolong(e1112) == 8 &&
+                        e1111.Eoper == OPu16_32)
+                        evar = e1111.EV.E1;
+                }
+            }
+
+            if (evar)
+            {
+                auto e22 = e2.EV.E2;
+                if (e22.Eoper == OPconst && el_tolong(e22) == 0xFF00)
+                {
+                    auto e21 = e2.EV.E1;
+                    if (e21.Eoper == OPshl)
+                    {
+                        auto e211 = e21.EV.E1;
+                        auto e212 = e21.EV.E2;
+                        if (e212.Eoper == OPconst && el_tolong(e212) == 8)
+                        {
+                            if (el_match5(evar, e211) && !el_sideeffect(e211))
+                            {
+                                evar2 = e211;
+                                e21.EV.E1 = null;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (evar2)
+            {
+                el_free(e1);
+                el_free(e2);
+                e.Eoper = OPbswap;
+                e.EV.E1 = evar2;
+                e.EV.E2 = null;
+                //printf("Matched byteswap(ushort)\n");
+                return e;
+            }
+        }
+    }
+
     /* BSWAP: (data[0]<< 24) | (data[1]<< 16) | (data[2]<< 8) | (data[3]<< 0)
      */
     if (sz == 4 && OPTIMIZER)

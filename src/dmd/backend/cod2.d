@@ -1953,17 +1953,26 @@ void cdbswap(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    tym_t tym = tybasic(e.Ety);
-    assert(_tysize[tym] == 4);
-    regm_t retregs = *pretregs & allregs;
+    const tym = tybasic(e.Ety);
+    const sz = _tysize[tym];
+    const posregs = (sz == 2) ? BYTEREGS : allregs;
+    regm_t retregs = *pretregs & posregs;
     if (retregs == 0)
-        retregs = allregs;
+        retregs = posregs;
     codelem(cdb,e.EV.E1,&retregs,false);
     getregs(cdb,retregs);        // retregs will be destroyed
     const reg = findreg(retregs);
-    cdb.gen2(0x0FC8 + (reg & 7),0);      // BSWAP reg
-    if (reg & 8)
-        code_orrex(cdb.last(), REX_B);
+    if (sz == 2)
+    {
+        genregs(cdb,0x86,reg+4,reg);    // XCHG regL,regH
+    }
+    else
+    {
+        assert(sz == 4);
+        cdb.gen2(0x0FC8 + (reg & 7),0);      // BSWAP reg
+        if (reg & 8)
+            code_orrex(cdb.last(), REX_B);
+    }
     fixresult(cdb,e,retregs,pretregs);
 }
 
