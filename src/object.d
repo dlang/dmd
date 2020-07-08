@@ -4003,7 +4003,6 @@ public import core.internal.array.appending : _d_arrayappendTImpl;
 public import core.internal.array.appending : _d_arrayappendcTXImpl;
 public import core.internal.array.comparison : __cmp;
 public import core.internal.array.equality : __equals;
-public import core.internal.array.equality : __ArrayEq;
 public import core.internal.array.casting: __ArrayCast;
 public import core.internal.array.concatenation : _d_arraycatnTXImpl;
 public import core.internal.array.construction : _d_arrayctor;

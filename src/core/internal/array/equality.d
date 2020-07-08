@@ -10,19 +10,6 @@
 
 module core.internal.array.equality;
 
-// compiler frontend lowers dynamic array comparison to this
-bool __ArrayEq(T1, T2)(T1[] a, T2[] b)
-{
-    if (a.length != b.length)
-        return false;
-    foreach (size_t i; 0 .. a.length)
-    {
-        if (a[i] != b[i])
-            return false;
-    }
-    return true;
-}
-
  // `lhs == rhs` lowers to `__equals(lhs, rhs)` for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
@@ -53,10 +40,6 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
     }
     else static if (!is(U1 == U2))
     {
-        // This should replace src/object.d _ArrayEq which
-        // compares arrays of different types such as long & int,
-        // char & wchar.
-        // Compiler lowers to __ArrayEq in dmd/src/opover.d
         foreach (const u; 0 .. lhs.length)
         {
             if (at(lhs, u) != at(rhs, u))
