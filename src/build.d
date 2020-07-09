@@ -1154,8 +1154,8 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            toctype.d glue.d todt.d tocsym.d toir.d dmsc.d
-            tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
+            dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
+            s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
