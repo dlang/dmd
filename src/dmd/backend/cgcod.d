@@ -2829,6 +2829,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPneg:     &cdneg,
     OPuadd:    &cderr,
     OPabs:     &cdabs,
+    OPtoprec:  &cdtoprec,
     OPsqrt:    &cdneg,
     OPsin:     &cdneg,
     OPcos:     &cdneg,

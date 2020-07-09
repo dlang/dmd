@@ -1108,6 +1108,7 @@ private void markinvar(elem *n,vec_t rd)
         case OPu64_128:
 
         case OPabs:
+        case OPtoprec:
         case OPrndtol:
         case OPrint:
         case OPsetjmp:

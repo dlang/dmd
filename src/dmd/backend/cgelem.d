@@ -345,6 +345,7 @@ private int fcost(const elem *e)
 
         case OPneg:
         case OPabs:
+        case OPtoprec:
             return fcost(e.EV.E1);
 
         case OPvar:
@@ -4861,17 +4862,42 @@ private elem * el32_64(elem *e, goal_t goal)
 }
 
 /****************************
- * Handle OPu64_d
+ * Handle OPu64_d,
+ *      OPd_ld OPu64_d,
+ *      OPd_f OPu64_d
  */
 
 private elem *elu64_d(elem *e, goal_t goal)
 {
-    if (e.EV.E1.Eoper != OPconst && (I64 || (I32 && config.inline8087)))
+    tym_t ty;
+    elem** pu;
+    if (e.Eoper == OPu64_d)
     {
-        /* Rewrite as:
-         *    u >= 0 ? OPi64_d(u) : OPi64_d(u & 0x7FFF_FFFF_FFFF_FFFF) + 0x8000_0000_0000_0000
+        pu = &e.EV.E1;
+        ty = TYdouble;
+    }
+    else if (e.Eoper == OPd_ld && e.EV.E1.Eoper == OPu64_d)
+    {
+        pu = &e.EV.E1.EV.E1;
+        *pu = optelem(*pu, GOALvalue);
+        ty = TYldouble;
+    }
+    else if (e.Eoper == OPd_f && e.EV.E1.Eoper == OPu64_d)
+    {
+        pu = &e.EV.E1.EV.E1;
+        *pu = optelem(*pu, GOALvalue);
+        ty = TYfloat;
+    }
+
+    if (!pu || (*pu).Eoper == OPconst)
+        return evalu8(e, goal);
+
+    elem* u = *pu;
+    if (config.fpxmmregs && I64 && (ty == TYfloat || ty == TYdouble))
+    {
+        /* Rewrite for SIMD as:
+         *    u >= 0 ? OPs64_d(u) : OPs64_d((u >> 1) | (u & 1)) * 2
          */
-        elem *u = e.EV.E1;
         u.Ety = TYllong;
         elem *u1 = el_copytree(u);
         if (!OTleaf(u.Eoper))
@@ -4880,20 +4906,64 @@ private elem *elu64_d(elem *e, goal_t goal)
 
         u = el_bin(OPge, TYint, u, el_long(TYllong, 0));
 
-        u1 = el_una(OPs64_d, e.Ety, u1);
+        u1 = el_una(OPs64_d, TYdouble, u1);
+        if (ty == TYfloat)
+            u1 = el_una(OPd_f, TYfloat, u1);
 
-        u2 = el_bin(OPand, TYllong, u2, el_long(TYllong, 0x7FFFFFFFFFFFFFFFL));
-        u2 = el_una(OPs64_d, e.Ety, u2);
-        elem *eadjust = el_una(OPu64_d, e.Ety, el_long(TYullong, 0x8000000000000000L));
-        u2 = el_bin(OPadd, e.Ety, u2, eadjust);
+        elem* u3 = el_copytree(u2);
+        u2 = el_bin(OPshr, TYullong, u2, el_long(TYullong, 1));
+        u3 = el_bin(OPand, TYullong, u3, el_long(TYullong, 1));
+        u2 = el_bin(OPor, TYllong, u2, u3);
 
-        e.Eoper = OPcond;
-        e.EV.E1 = u;
-        e.EV.E2 = el_bin(OPcolon, e.Ety, u1, u2);
-        return optelem(e, GOALvalue);
+        u2 = el_una(OPs64_d, TYdouble, u2);
+        if (ty == TYfloat)
+            u2 = el_una(OPd_f, TYfloat, u2);
+
+        u2 = el_bin(OPmul, ty, u2, el_long(ty, 2));
+
+        elem* r = el_bin(OPcond, e.Ety, u, el_bin(OPcolon, e.Ety, u1, u2));
+        *pu = null;
+        el_free(e);
+        return optelem(r, GOALvalue);
     }
-    else
-        return evalu8(e, goal);
+    if (config.inline8087)
+    {
+        /* Rewrite for x87 as:
+         *  u < 0 ? OPs64_d(u) : OPs64_d(u) + 0x1p+64
+         */
+        u.Ety = TYllong;
+        elem *u1 = el_copytree(u);
+        if (!OTleaf(u.Eoper))
+            fixside(&u, &u1);
+
+        elem* eop1 = el_una(OPs64_d, TYdouble, u1);
+        eop1 = el_una(OPd_ld, TYldouble, eop1);
+
+        elem* eoff = el_calloc();
+        eoff.Eoper = OPconst;
+        eoff.Ety = TYldouble;
+        eoff.EV.Vldouble = 0x1p+64;
+
+        elem* u2 = el_copytree(u1);
+        u2 = el_una(OPs64_d, TYdouble, u2);
+        u2 = el_una(OPd_ld, TYldouble, u2);
+
+        elem* eop2 = el_bin(OPadd, TYldouble, u2, eoff);
+
+        elem* r = el_bin(OPcond, TYldouble,
+                        el_bin(OPge, OPbool, u, el_long(TYllong, 0)),
+                        el_bin(OPcolon, TYldouble, eop1, eop2));
+
+        if (ty != TYldouble)
+            r = el_una(OPtoprec, e.Ety, r);
+
+        *pu = null;
+        el_free(e);
+
+        return optelem(r, GOALvalue);
+    }
+
+    return evalu8(e, goal);
 }
 
 
@@ -5746,6 +5816,11 @@ beg:
             return optelem(e,GOALnone);
         }
 
+        if ((op == OPd_f || op == OPd_ld) && e.EV.E1.Eoper == OPu64_d)
+        {
+            return elu64_d(e, goal);
+        }
+
         elem *e1 = e.EV.E1 = optelem(e.EV.E1, (op == OPddtor)
                                                  ? GOALnone
                                                  : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
@@ -6036,6 +6111,7 @@ private extern (D) immutable elfp_t[OPMAX] elxxx =
     OPyl2x:    &elzot,
     OPyl2xp1:  &elzot,
     OPcmpxchg:     &elzot,
+    OPtoprec:  &elzot,
     OPrint:    &evalu8,
     OPrndtol:  &evalu8,
     OPstrlen:  &elzot,
