@@ -410,3 +410,41 @@ pure nothrow unittest
     string sEmpty;
     assert(sEmpty.arraydup is null);
 }
+
+/**
+Defines a pool for class objects. Objects can be fetched from the pool with make() and returned to the pool with
+dispose(). Using a reference that has been dispose()d has undefined behavior. make() may return memory that has been
+previously dispose()d.
+
+Internally the implementation uses a singly-linked freelist with a global root. The "next" pointer is stored in the
+first word of each disposed object.
+*/
+struct Pool(T)
+if (is(T == class))
+{
+    /// The freelist's root
+    private static T root;
+
+    /**
+    Returns a reference to a new object in the same state as if created with new T(args).
+    */
+    static T make(A...)(auto ref A args)
+    {
+        if (!root)
+            return new T(args);
+        auto result = root;
+        root = *(cast(T*) root);
+        memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
+        result.__ctor(args);
+        return result;
+    }
+
+    /**
+    Signals to the pool that this object is no longer used, so it can recycle its memory.
+    */
+    static void dispose(T goner)
+    {
+        *(cast(T*) goner) = root;
+        root = goner;
+    }
+}

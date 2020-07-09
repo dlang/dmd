@@ -67,6 +67,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.root.array;
 import dmd.root.outbuffer;
+import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -8319,28 +8320,5 @@ void printTemplateStats()
     foreach (td, ref ts; TemplateStats.stats)
     {
         printf("%8u %8u   %s\n", ts.numInstantiations, ts.uniqueInstantiations, (cast(const TemplateDeclaration) td).toChars());
-    }
-}
-
-struct Pool(T)
-if (is(T == class))
-{
-    private static T root;
-
-    static T make(A...)(auto ref A args)
-    {
-        if (!root)
-            return new T(args);
-        auto result = root;
-        root = *(cast(T*) root);
-        memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
-        result.__ctor(args);
-        return result;
-    }
-
-    static void dispose(T goner)
-    {
-        *(cast(T*) goner) = root;
-        root = goner;
     }
 }
