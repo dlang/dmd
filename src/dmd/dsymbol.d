@@ -1733,31 +1733,32 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
  */
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
-    Expression exp;         // IndexExp or SliceExp
-    TypeTuple type;         // for tuple[length]
-    TupleDeclaration td;    // for tuples of objects
+    // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
+    // Discriminated using DYNCAST and, for expressions, also TOK
+    private RootObject arrayContent;
     Scope* sc;
 
     extern (D) this(Scope* sc, Expression exp)
     {
         super(exp.loc, null);
         assert(exp.op == TOK.index || exp.op == TOK.slice || exp.op == TOK.array);
-        this.exp = exp;
         this.sc = sc;
+        this.arrayContent = exp;
     }
 
     extern (D) this(Scope* sc, TypeTuple type)
     {
-        this.type = type;
         this.sc = sc;
+        this.arrayContent = type;
     }
 
     extern (D) this(Scope* sc, TupleDeclaration td)
     {
-        this.td = td;
         this.sc = sc;
+        this.arrayContent = td;
     }
 
+    /// This override is used to solve `$`
     override Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident.toChars(), flags);
@@ -1766,9 +1767,24 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 
         VarDeclaration* pvar;
         Expression ce;
-    L1:
-        if (td)
+
+        static Dsymbol dollarFromTypeTuple(const ref Loc loc, TypeTuple tt, Scope* sc)
         {
+
+            /* $ gives the number of type entries in the type tuple
+             */
+            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
+            Expression e = new IntegerExp(Loc.initial, tt.arguments.dim, Type.tsize_t);
+            v._init = new ExpInitializer(Loc.initial, e);
+            v.storage_class |= STC.temp | STC.static_ | STC.const_;
+            v.dsymbolSemantic(sc);
+            return v;
+        }
+
+        const DYNCAST kind = arrayContent.dyncast();
+        if (kind == DYNCAST.dsymbol)
+        {
+            TupleDeclaration td = cast(TupleDeclaration) arrayContent;
             /* $ gives the number of elements in the tuple
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
@@ -1778,17 +1794,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             v.dsymbolSemantic(sc);
             return v;
         }
-        if (type)
+        if (kind == DYNCAST.type)
         {
-            /* $ gives the number of type entries in the type tuple
-             */
-            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
-            v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(sc);
-            return v;
+            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
         }
+        Expression exp = cast(Expression) arrayContent;
         if (auto ie = exp.isIndexExp())
         {
             /* array[index] where index is some function of $
@@ -1825,10 +1835,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         if (auto te = ce.isTypeExp())
         {
             if (auto ttp = te.type.isTypeTuple())
-            {
-                type = ttp;
-                goto L1;
-            }
+                return dollarFromTypeTuple(loc, ttp, sc);
         }
         /* *pvar is lazily initialized, so if we refer to $
          * multiple times, it gets set only once.
