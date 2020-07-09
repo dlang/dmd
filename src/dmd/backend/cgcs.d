@@ -395,7 +395,7 @@ void ecom(elem **pe)
         case OPld_u64:
         case OPsqrt: case OPsin: case OPcos:
         case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
-        case OPvecfill:
+        case OPvecfill: case OPtoprec:
             ecom(&e.EV.E1);
             break;
 
