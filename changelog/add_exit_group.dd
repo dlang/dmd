@@ -1,3 +1,0 @@
-add `exit_group` to `core.sys.linux.unistd`
-
-add `exit_group` to `core.sys.linux.unistd`, exits all threads in a process, present since linux 2.5.35
