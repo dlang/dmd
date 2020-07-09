@@ -2742,7 +2742,7 @@ elem *toElem(Expression e, IRState *irs)
                 Type ta = are.e1.type.toBasetype();
 
                 // which we do if the 'next' types match
-                if (ae.memset & MemorySet.blockAssign)
+                if (ae.memset == MemorySet.blockAssign)
                 {
                     // Do a memset for array[]=v
                     //printf("Lpair %s\n", ae.toChars());
@@ -2978,7 +2978,7 @@ elem *toElem(Expression e, IRState *irs)
 
             /* Look for initialization of an `out` or `ref` variable
              */
-            if (ae.memset & MemorySet.referenceInit)
+            if (ae.memset == MemorySet.referenceInit)
             {
                 assert(ae.op == TOK.construct || ae.op == TOK.blit);
                 auto ve = ae.e1.isVarExp();

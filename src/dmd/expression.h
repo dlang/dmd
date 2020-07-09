@@ -1018,8 +1018,9 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-enum MemorySet
+enum class MemorySet
 {
+    none            = 0,    // simple assignment
     blockAssign     = 1,    // setting the contents of an array
     referenceInit   = 2     // setting the reference of STCref variable
 };
@@ -1027,7 +1028,7 @@ enum MemorySet
 class AssignExp : public BinExp
 {
 public:
-    int memset;         // combination of MemorySet flags
+    MemorySet memset;
 
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
