@@ -1,5 +1,0 @@
-Add new builtin `__traits(isCopyable, T)` for some type `T`
-
-Changing Phobos' `std.traits.isCopyable` to make use of this new builtin trait
-will reduce memory usage and, in turn, improve the performance of the compiler
-checking whether a type is copyable or not.
