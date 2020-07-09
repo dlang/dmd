@@ -1526,8 +1526,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 {
                     hasttp = true;
 
-                    Type t = new TypeIdentifier(Loc.initial, ttp.ident);
+                    auto t = Pool!TypeIdentifier.make(Loc.initial, ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
+                    Pool!TypeIdentifier.dispose(t);
                     if (m <= MATCH.nomatch)
                         goto Lnomatch;
                     if (m < match)
@@ -4074,11 +4075,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                          * it up and seeing if is an alias.
                          * https://issues.dlang.org/show_bug.cgi?id=1454
                          */
-                        auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
+                        auto tid = Pool!TypeIdentifier.make(tp.loc, tp.tempinst.name);
                         Type tx;
                         Expression e;
                         Dsymbol s;
                         tid.resolve(tp.loc, sc, &e, &tx, &s);
+                        Pool!TypeIdentifier.dispose(tid);
                         if (tx)
                         {
                             s = tx.toDsymbol(sc);
@@ -5418,9 +5420,12 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     override final bool declareParameter(Scope* sc)
     {
         //printf("TemplateTypeParameter.declareParameter('%s')\n", ident.toChars());
-        auto ti = new TypeIdentifier(loc, ident);
+        auto ti = Pool!TypeIdentifier.make(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
+        if (sc.insert(ad) !is null)
+            return true;
+        Pool!TypeIdentifier.dispose(ti);
+        return false;
     }
 
     override final void print(RootObject oarg, RootObject oded)
@@ -5467,7 +5472,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         {
             // Use this for alias-parameter's too (?)
             if (!tdummy)
-                tdummy = new TypeIdentifier(loc, ident);
+                tdummy = Pool!TypeIdentifier.make(loc, ident);
             t = tdummy;
         }
         return t;
@@ -5644,9 +5649,12 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
     override bool declareParameter(Scope* sc)
     {
-        auto ti = new TypeIdentifier(loc, ident);
+        auto ti = Pool!TypeIdentifier.make(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
+        if (sc.insert(ad) !is null)
+            return true;
+        Pool!TypeIdentifier.dispose(ti);
+        return false;
     }
 
     override void print(RootObject oarg, RootObject oded)
@@ -5726,9 +5734,12 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
 
     override bool declareParameter(Scope* sc)
     {
-        auto ti = new TypeIdentifier(loc, ident);
+        auto ti = Pool!TypeIdentifier.make(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
+        if (sc.insert(ad) !is null)
+            return true;
+        Pool!TypeIdentifier.dispose(ti);
+        return false;
     }
 
     override void print(RootObject oarg, RootObject oded)
