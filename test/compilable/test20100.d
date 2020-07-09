@@ -36,3 +36,12 @@ void main() {
     testClass();
     testAnonymousFunction();
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=20989
+ void test20989() @safe
+{
+    uint[] arr = [1, 2, 3];
+    assert(arr.ptr);
+    assert(!arr.ptr);
+    assert(arr.ptr is arr.ptr);
+}

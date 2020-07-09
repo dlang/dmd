@@ -5927,6 +5927,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             */
             Expression maybePromoteToTmp(ref Expression op)
             {
+                // https://issues.dlang.org/show_bug.cgi?id=20989
+                // Flag that _d_assert_fail will never dereference `array.ptr` to avoid safety
+                // errors for `assert(!array.ptr)` => `_d_assert_fail!"!"(array.ptr)`
+                {
+                    auto die = op.isDotIdExp();
+                    if (die && die.ident == Id.ptr)
+                        die.noderef = true;
+                }
+
                 op = op.expressionSemantic(sc);
                 op = resolveProperties(sc, op);
                 if (op.hasSideEffect)

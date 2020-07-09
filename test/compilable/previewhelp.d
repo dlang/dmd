@@ -4,7 +4,7 @@ ARG_SETS: -preview=h
 TEST_OUTPUT:
 ----
 Upcoming language changes listed by -preview=name:
-  =all              list information on all upcoming language changes
+  =all              Enables all available upcoming language changes
   =dip25            implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)
   =dip1000          implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)
   =dip1008          implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md (@nogc Throwable)
