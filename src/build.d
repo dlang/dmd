@@ -442,7 +442,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.all ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
         .command([ env["CXX"], "-xc++", "-std=c++11",
@@ -1133,6 +1133,7 @@ alias allBuildSources = memoize!(() => buildFiles
     ~ sources.backend
     ~ sources.root
     ~ sources.frontendHeaders
+    ~ sources.rootHeaders
 );
 
 /// Returns: all source files for the compiler
@@ -1145,7 +1146,7 @@ auto sourceFiles()
     static struct Sources
     {
         DmdSources dmd;
-        string[] lexer, root, backend, frontendHeaders;
+        string[] lexer, root, backend, frontendHeaders, rootHeaders;
     }
     static string[] fileArray(string dir, string files)
     {
@@ -1197,6 +1198,10 @@ auto sourceFiles()
         "),
         root: fileArray(env["ROOT"], "
             aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+        "),
+        rootHeaders: fileArray(env["ROOT"], "
+            array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
+            object.h outbuffer.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
