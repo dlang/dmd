@@ -1525,10 +1525,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (auto ttp = param.isTemplateThisParameter())
                 {
                     hasttp = true;
-
-                    auto t = Pool!TypeIdentifier.make(Loc.initial, ttp.ident);
+                    scope t = new TypeIdentifier(Loc.initial, ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
-                    Pool!TypeIdentifier.dispose(t);
                     if (m <= MATCH.nomatch)
                         goto Lnomatch;
                     if (m < match)
@@ -2950,6 +2948,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             return 0;
 
         Ltd_best2:
+            Pool!TemplateInstance.dispose(ti);
             return 0;
 
         Ltd2:
