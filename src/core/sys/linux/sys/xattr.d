@@ -13,6 +13,7 @@ version (linux):
 extern (C):
 @system:
 nothrow:
+@nogc:
 
 enum {
     XATTR_CREATE = 1, /* set value, fail if attr already exists.  */
