@@ -442,7 +442,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.all ~ .sources.root)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.frontend ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
         .command([ env["CXX"], "-xc++", "-std=c++11",
@@ -453,11 +453,11 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
-        .deps([lexer(null, null), backend(null, null), cxxFrontend])
-        .sources(sources.dmd.all ~ sources.root)
+        .deps([lexer(null, null), cxxFrontend])
+        .sources(sources.dmd.frontend ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
-                    "-L-lstdc++", "-version=NoMain"
+                    "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
             ].chain(
                 flags["DFLAGS"], exeRule.sources, exeRule.deps.map!(d => d.target)
             ).array)
