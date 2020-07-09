@@ -731,6 +731,7 @@ dmd -cov -unittest myprog.d
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("aliasaggquals", "noAliasAggQuals", "drop qualifiers when passing an aggregate type as a template alias parameter"),
     ];
 
     /// Returns all available previews

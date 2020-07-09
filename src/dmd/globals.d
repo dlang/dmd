@@ -152,6 +152,7 @@ extern (C++) struct Param
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool noDIP25;           // revert to pre-DIP25 behavior
     bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
+    bool noAliasAggQuals;   // drop qualifiers when passing an aggregate type as a template alias parameter
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled

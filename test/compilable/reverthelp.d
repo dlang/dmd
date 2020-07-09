@@ -6,5 +6,6 @@ TEST_OUTPUT:
 Revertable language changes listed by -revert=name:
   =all              list information on all revertable language changes
   =dip25            revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md
+  =aliasaggquals    drop qualifiers when passing an aggregate type as a template alias parameter
 ----
 */
