@@ -129,7 +129,7 @@ void test1()
 
 void test2()
 {
-    byte16 v1,v2,v3;
+    byte16 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -189,7 +189,7 @@ void test2()
 
 void test2b()
 {
-    ubyte16 v1,v2,v3;
+    ubyte16 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -249,7 +249,7 @@ void test2b()
 
 void test2c()
 {
-    short8 v1,v2,v3;
+    short8 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -310,7 +310,7 @@ void test2c()
 
 void test2d()
 {
-    ushort8 v1,v2,v3;
+    ushort8 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -370,7 +370,7 @@ void test2d()
 
 void test2e()
 {
-    int4 v1,v2,v3;
+    int4 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -436,7 +436,7 @@ void test2e()
 
 void test2f()
 {
-    uint4 v1,v2,v3;
+    uint4 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -502,7 +502,7 @@ void test2f()
 
 void test2g()
 {
-    long2 v1,v2,v3;
+    long2 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -562,7 +562,7 @@ void test2g()
 
 void test2h()
 {
-    ulong2 v1,v2,v3;
+    ulong2 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -622,7 +622,7 @@ void test2h()
 
 void test2i()
 {
-    float4 v1,v2,v3;
+    float4 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -682,7 +682,7 @@ void test2i()
 
 void test2j()
 {
-    double2 v1,v2,v3;
+    double2 v1, v2 = 1, v3 = 1;
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
@@ -1347,7 +1347,6 @@ float4 foo9304(float4 a)
 void test9304()
 {
     auto a = foo9304([0, 1, 2, 3]);
-    //writeln(a.array);
     assert(a.array == [0,-1,-2,-3]);
 }
 
