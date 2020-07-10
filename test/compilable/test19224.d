@@ -1,5 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=19224
-version (D_SIMD)
+static if (__traits(compiles, __vector(float[4])))
 {
     float sum(const float[4] val)
     {
@@ -8,7 +8,7 @@ version (D_SIMD)
         return sum;
     }
 
-    import core.simd : float4;
+    alias float4 = __vector(float[4]);
 
     enum x = sum(float4.init.array);
     static assert(x is float.nan);
