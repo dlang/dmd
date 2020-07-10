@@ -323,8 +323,40 @@ extern (C++) struct Target
         default:
             return 2; // wrong base type
         }
-        if (sz != 16 && !(global.params.cpu >= CPU.avx && sz == 32))
+
+        // Whether a vector is really supported depends on the CPU being targeted.
+        if (sz == 16)
+        {
+            final switch (type.ty)
+            {
+            case Tint32:
+            case Tuns32:
+            case Tfloat32:
+                if (global.params.cpu < CPU.sse)
+                    return 3; // no SSE vector support
+                break;
+
+            case Tvoid:
+            case Tint8:
+            case Tuns8:
+            case Tint16:
+            case Tuns16:
+            case Tint64:
+            case Tuns64:
+            case Tfloat64:
+                if (global.params.cpu < CPU.sse2)
+                    return 3; // no SSE2 vector support
+                break;
+            }
+        }
+        else if (sz == 32)
+        {
+            if (global.params.cpu < CPU.avx)
+                return 3; // no AVX vector support
+        }
+        else
             return 3; // wrong size
+
         return 0;
     }
 
