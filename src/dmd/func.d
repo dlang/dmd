@@ -64,10 +64,12 @@ enum ILS : int
     yes,                 /// can inline
 }
 
-enum BUILTIN : int
+enum BUILTIN : byte
 {
     unknown = -1,    /// not known if this is a builtin
     unimp,           /// this is not a builtin
+    gcc,             /// this is a GCC builtin
+    llvm,            /// this is an LLVM builtin
     sin,
     cos,
     tan,
