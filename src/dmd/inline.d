@@ -1728,7 +1728,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
          */
         if (tf.next && tf.next.ty != Tvoid &&
             (!(fd.hasReturnExp & 1) ||
-             statementsToo && (fd.isArrayOp || hasDtor(tf.next))) &&
+             statementsToo && hasDtor(tf.next)) &&
             !hdrscan)
         {
             static if (CANINLINE_LOG)

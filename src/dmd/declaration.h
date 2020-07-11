@@ -530,7 +530,6 @@ public:
     PINLINE inlining;
 
     int inlineNest;                     // !=0 if nested inline
-    bool isArrayOp;                     // true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed
 
     // true if errors in semantic3 this function's frame ptr

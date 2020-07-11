@@ -2205,7 +2205,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     {
         /* TODO: tackle problem 1)
          */
-        const bool leftToRight = true; // TODO: something like !fd.isArrayOp
+        const bool leftToRight = true; // TODO: Any cases that need rightToLeft?
         if (!leftToRight)
             assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
 
