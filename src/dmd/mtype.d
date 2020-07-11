@@ -3518,9 +3518,22 @@ extern (C++) final class TypeVector : Type
         //printf("TypeVector::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCH.exact;
-        if (ty == to.ty)
+        if (to.ty != Tvector)
+            return MATCH.nomatch;
+
+        TypeVector tv = cast(TypeVector)to;
+        assert(basetype.ty == Tsarray && tv.basetype.ty == Tsarray);
+
+        // Can't convert to a vector which has different size.
+        if (basetype.size() != tv.basetype.size())
+            return MATCH.nomatch;
+
+        // Allow conversion to void[]
+        if (tv.basetype.nextOf().ty == Tvoid)
             return MATCH.convert;
-        return MATCH.nomatch;
+
+        // Otherwise implicitly convertible only if basetypes are.
+        return basetype.implicitConvTo(tv.basetype);
     }
 
     override Expression defaultInitLiteral(const ref Loc loc)
