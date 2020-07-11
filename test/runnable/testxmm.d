@@ -788,7 +788,7 @@ void test2j()
 float4 test3()
 {
     float4 a;
-    a = __simd(XMM.PXOR, a, a);
+    a = cast(float4)__simd(XMM.PXOR, a, a);
     return a;
 }
 
@@ -1102,7 +1102,7 @@ float bug8060(float x) {
 
 /*****************************************/
 
-float4 test5(float4 a, float4 b)
+float4 test5(void16 a, void16 b)
 {
     a = __simd(XMM.ADDPD, a, b);
     a = __simd(XMM.ADDSS, a, b);
@@ -1350,7 +1350,7 @@ float4 test5(float4 a, float4 b)
     a = __simd(XMM.ROUNDSD, a, b, 0x7A);
     a = __simd(XMM.ROUNDSS, a, b, 0x7A);
 
-    return a;
+    return cast(float4)a;
 }
 
 /*****************************************/
@@ -1567,7 +1567,7 @@ ubyte16 test11585(ubyte16* d)
     ubyte16 a;
     if (d is null) return a;
 
-    return __simd(XMM.PCMPEQB, *d, *d);
+    return cast(ubyte16)__simd(XMM.PCMPEQB, *d, *d);
 }
 
 /*****************************************/
@@ -1976,6 +1976,77 @@ void refIntrinsics()
     a = __simd_ib(XMM.PSLLW, a, cast(ubyte)0x7A);
 
     prefetch!(false, 0)(&a);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17720
+
+void test17720()
+{
+    alias Vector16s = TypeTuple!(
+        void16,  byte16,  short8,  int4,  long2,
+                ubyte16, ushort8, uint4, ulong2, float4, double2);
+
+    // OK: __vector(T) -> __vector(void[]) of same size.
+    // NG: __vector(T) -> __vector(void[]) of different size.
+    // NG: explicit cast __vector(T) -> __vector(void[]) of different size.
+    foreach (V; Vector16s)
+    {
+        static assert( __traits(compiles, { void16 v = V.init; }));
+        static assert(!__traits(compiles, { void32 v = V.init; }));
+        static assert(!__traits(compiles, { void32 v = cast(void32)V.init; }));
+    }
+
+    // NG: __vector(T) -> __vector(T) of same size.
+    // OK: explicit cast __vector(T) -> __vector(T) of same size.
+    // NG: __vector(T) -> __vector(T) of different size.
+    // NG: explicit cast __vector(T) -> __vector(T) of different size.
+    foreach (V; Vector16s)
+    {
+        static if (is(V == double2))
+        {
+            static assert(!__traits(compiles, { long2 v = V.init; }));
+            static assert( __traits(compiles, { long2 v = cast(long2)V.init; }));
+        }
+        else
+        {
+            static assert(!__traits(compiles, { double2 v = V.init; }));
+            static assert( __traits(compiles, { double2 v = cast(double2)V.init; }));
+        }
+        static assert(!__traits(compiles, { double4 v = V.init; }));
+        static assert(!__traits(compiles, { double4 v = cast(double4)V.init; }));
+    }
+
+    // 32-byte __vector(T) tests.
+    static if (__traits(compiles, void32))
+    {
+        alias Vector32s = TypeTuple!(
+            void32,  byte32,  short16,  int8,  long4,
+                    ubyte32, ushort16, uint8, ulong4, float8, double4);
+
+        foreach (V; Vector32s)
+        {
+            static assert( __traits(compiles, { void32 v = V.init; }));
+            static assert(!__traits(compiles, { void16 v = V.init; }));
+            static assert(!__traits(compiles, { void16 v = cast(void16)V.init; }));
+        }
+
+        foreach (V; Vector32s)
+        {
+            static if (is(V == double4))
+            {
+                static assert(!__traits(compiles, { long4 v = V.init; }));
+                static assert( __traits(compiles, { long4 v = cast(long4)V.init; }));
+            }
+            else
+            {
+                static assert(!__traits(compiles, { double4 v = V.init; }));
+                static assert( __traits(compiles, { double4 v = cast(double4)V.init; }));
+            }
+            static assert(!__traits(compiles, { double2 v = V.init; }));
+            static assert(!__traits(compiles, { double2 v = cast(double2)V.init; }));
+        }
+    }
 }
 
 /*****************************************/
