@@ -274,8 +274,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     if (!(regvar && reg == XMM0 + ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0))))
     {
         cdb.gen(&cs);         // MOV EA+offset,reg
-        if (op == OPeq)
-            checkSetVex(cdb.last(), tyml);
+        checkSetVex(cdb.last(), tyml);
     }
 
     if (e1.Ecount ||                     // if lvalue is a CSE or
