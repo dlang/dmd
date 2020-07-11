@@ -272,11 +272,7 @@ private elem *callfunc(const ref Loc loc,
         }
         if (!left_to_right)
         {
-            /* Avoid 'fixing' side effects of _array... functions as
-             * they were already working right from the olden days before this fix
-             */
-            if (!(ec.Eoper == OPvar && fd.isArrayOp))
-                eside = fixArgumentEvaluationOrder(elems);
+            eside = fixArgumentEvaluationOrder(elems);
         }
 
         foreach (ref e; elems)
