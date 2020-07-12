@@ -37,6 +37,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
@@ -46,6 +47,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.statement;
+import dmd.statementsem;
 import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
@@ -1055,7 +1057,7 @@ struct TargetPragma
             if (ident == Id.linkerDirective)
                 return true;
         }
-        if (ident == Id.lib)
+        if (ident == Id.lib || ident == Id.startaddress)
             return true;
         return false;
     }
@@ -1126,6 +1128,26 @@ struct TargetPragma
             }
             goto Lnodecl;
         }
+        else if (pd.ident == Id.startaddress)
+        {
+            if (!pd.args || pd.args.dim != 1)
+                pd.error("function name expected for start address");
+            else
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=11980
+                 * resolveProperties and ctfeInterpret call are not necessary.
+                 */
+                Expression e = (*pd.args)[0];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                sc = sc.endCTFE();
+                (*pd.args)[0] = e;
+                Dsymbol sa = getDsymbol(e);
+                if (!sa || !sa.isFuncDeclaration())
+                    pd.error("function name expected for start address, not `%s`", e.toChars());
+            }
+            goto Lnodecl;
+        }
         return;
     Lnodecl:
         if (pd.decl)
@@ -1142,12 +1164,42 @@ struct TargetPragma
      */
     Statement statementSemantic(PragmaStatement ps, Scope* sc)
     {
-        if (ps.ident == Id.linkerDirective || ps.ident == Id.lib)
+        if (ps.ident == Id.startaddress)
+        {
+            if (!ps.args || ps.args.dim != 1)
+                ps.error("function name expected for start address");
+            else
+            {
+                Expression e = (*ps.args)[0];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+
+                e = e.ctfeInterpret();
+                (*ps.args)[0] = e;
+                Dsymbol sa = getDsymbol(e);
+                if (!sa || !sa.isFuncDeclaration())
+                {
+                    ps.error("function name expected for start address, not `%s`", e.toChars());
+                    return new ErrorStatement();
+                }
+            }
+            if (ps._body)
+            {
+                ps._body = ps._body.statementSemantic(sc);
+                if (ps._body.isErrorStatement())
+                {
+                    return ps._body;
+                }
+            }
+            return ps;
+        }
+        else
         {
             ps.error("`pragma(%s)` not allowed as statement", ps.ident.toChars());
             return new ErrorStatement();
         }
-        return ps;
     }
 }
 

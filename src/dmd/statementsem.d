@@ -2354,39 +2354,6 @@ else
                 fprintf(stderr, "\n");
             }
         }
-        else if (ps.ident == Id.startaddress)
-        {
-            if (!ps.args || ps.args.dim != 1)
-                ps.error("function name expected for start address");
-            else
-            {
-                Expression e = (*ps.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                e = e.ctfeInterpret();
-                (*ps.args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                {
-                    ps.error("function name expected for start address, not `%s`", e.toChars());
-                    return setError();
-                }
-                if (ps._body)
-                {
-                    ps._body = ps._body.statementSemantic(sc);
-                    if (ps._body.isErrorStatement())
-                    {
-                        result = ps._body;
-                        return;
-                    }
-                }
-                result = ps;
-                return;
-            }
-        }
         else if (ps.ident == Id.Pinline)
         {
             PINLINE inlining = PINLINE.default_;
