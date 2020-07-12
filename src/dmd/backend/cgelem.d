@@ -4132,7 +4132,7 @@ private elem * elcmp(elem *e, goal_t goal)
     elem *e2 = e.EV.E2;
     elem *e1 = e.EV.E1;
 
-  //printf("elcmp(%p)\n",e); elem_print(e);
+    //printf("elcmp(%p)\n",e); elem_print(e);
 
     if (OPTIMIZER)
     {
@@ -4325,6 +4325,19 @@ private elem * elcmp(elem *e, goal_t goal)
                         e2.Ety = TYint;
                         e.Eoper = OPcomma;
                         e = optelem(e,GOALvalue);
+                    }
+                    else
+                    {
+                        if (tyintegral(e1.Ety) && sz == 2 * REGSIZE)
+                        {
+                            // Only need to examine MSW
+                            tym_t ty = sz == 4 ? TYint :
+                                       sz == 8 ? TYint :
+                                                 TYlong;        // for TYcent's
+                            e.EV.E1 = el_una(OPmsw, ty, e1);
+                            e2.Ety = ty;
+                            return optelem(e, GOALvalue);
+                        }
                     }
                     break;
 
