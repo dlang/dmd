@@ -82,9 +82,8 @@ static if (TARGET_WINDOS)
         config.avx = avx;
         config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
 
-        // Not sure we really need these two lines, try removing them later
-        config.flags |= CFGnoebp;
-        config.flags |= CFGalwaysframe;
+        config.flags |= CFGnoebp;       // test suite fails without this
+        //config.flags |= CFGalwaysframe;
         config.flags |= CFGromable; // put switch tables in code segment
         config.objfmt = OBJ_MSCOFF;
     }
@@ -154,7 +153,8 @@ static if (TARGET_OSX)
     {
         config.flags3 |= CFG3pic;
         if (model == 64)
-            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+            config.flags |= CFGalwaysframe; // autotester fails without this
+                                            // https://issues.dlang.org/show_bug.cgi?id=21042
     }
     if (symdebug)
         config.flags |= CFGalwaysframe;
