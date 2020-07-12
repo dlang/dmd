@@ -13,16 +13,22 @@
 // This file contains a data structure that describes a back-end target.
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
+#include "arraytypes.h"
 #include "globals.h"
 #include "tokens.h"
 
 class ClassDeclaration;
 class Dsymbol;
 class Expression;
+class Identifier;
 class Parameter;
+class PragmaDeclaration;
+class PragmaStatement;
+class Statement;
 class Type;
 class TypeTuple;
 class TypeFunction;
+struct Scope;
 
 struct TargetC
 {
@@ -47,6 +53,14 @@ struct TargetCPP
 struct TargetObjC
 {
     bool supported;     // set if compiler can interface with Objective-C
+};
+
+struct TargetPragma
+{
+    bool isSupported(const Identifier *id, Expressions *args, bool statement);
+    Scope *newScope(PragmaDeclaration *pd, Scope *sc);
+    void dsymbolSemantic(PragmaDeclaration *pd, Scope *sc);
+    Statement *statementSemantic(PragmaStatement *ps, Scope *sc);
 };
 
 struct Target

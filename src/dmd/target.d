@@ -26,6 +26,8 @@
 module dmd.target;
 
 import dmd.argtypes;
+import dmd.arraytypes;
+import dmd.attrib;
 import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
@@ -40,6 +42,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.statement;
 import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
@@ -74,6 +77,9 @@ extern (C++) struct Target
 
     /// Objective-C ABI
     TargetObjC objc;
+
+    /// Pragmas
+    TargetPragma pragmas;
 
     /**
      * Values representing all properties for floating point types
@@ -1021,6 +1027,61 @@ struct TargetObjC
     {
         if (params.isOSX && params.is64bit)
             supported = true;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * Functions and variables specific to implementing target-specific pragmas.
+ */
+struct TargetPragma
+{
+    /**
+     * Checks whether the target/compiler supports the given pragma.
+     * Params:
+     *      ident     = name of the pragma
+     *      args      = arguments to pass to pragma
+     *      statement = true if analysing a PragmaStatement
+     */
+    bool isSupported(const Identifier ident, Expressions* args, bool statement)
+    {
+        return false;
+    }
+
+    /**
+     * A hook to supply a new scope for pragma members, if one is required.
+     * Params:
+     *      pd = pragma statement to supply scope for
+     *      sc = current scope in effect
+     * Returns:
+     *      scope to use for pragma declaration
+     */
+    Scope* newScope(PragmaDeclaration pd, Scope* sc)
+    {
+        return sc;
+    }
+
+    /**
+     * Performs semantic analysis on target-specific pragma declaration.
+     * Params:
+     *      pd = pragma declaration to run semantic on
+     *      sc = current scope in effect
+     */
+    void dsymbolSemantic(PragmaDeclaration pd, Scope* sc)
+    {
+    }
+
+    /**
+     * Performs semantic analysis on target-specific pragma statement.
+     * Params:
+     *      ps = pragma statement to run semantic on
+     *      sc = current scope in effect
+     * Returns:
+     *      the finished Statement on success, or ErrorStatement on failure
+     */
+    Statement statementSemantic(PragmaStatement ps, Scope* sc)
+    {
+        return ps;
     }
 }
 
