@@ -6150,8 +6150,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Note: minst does not stabilize until semantic analysis is completed,
      * so don't call this function during semantic analysis to return precise result.
      */
-    final bool needsCodegen()
+    final bool needsCodegen(uint line = __LINE__)
     {
+        bool result;
+
         // Now -allInst is just for the backward compatibility.
         if (global.params.allInst)
         {
@@ -6167,7 +6169,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                  * even for non-root instances.
                  */
                 if (!enclosing.isFuncDeclaration())
-                    return true;
+                {
+                    result = true;
+                    goto Lret;
+                }
 
                 /* https://issues.dlang.org/show_bug.cgi?id=14834
                  * If the captured context is a function,
@@ -6179,22 +6184,27 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                  * we have to rely on the ancestor's needsCodegen() result.
                  */
                 if (TemplateInstance ti = enclosing.isInstantiated())
-                    return ti.needsCodegen();
+                {
+                    result = ti.needsCodegen();
+                    goto Lret;
+                }
 
                 /* https://issues.dlang.org/show_bug.cgi?id=13415
                  * If and only if the enclosing scope needs codegen,
                  * this nested templates would also need code generation.
                  */
-                return !enclosing.inNonRoot();
+                result = !enclosing.inNonRoot();
+                goto Lret;
             }
-            return true;
+            result = true;
+            goto Lret;
         }
-
+/+
         if (isDiscardable())
         {
             return false;
         }
-
++/
         if (!minst)
         {
             // If this is a speculative instantiation,
@@ -6213,17 +6223,21 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 minst = tinst.minst; // cache result
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
-                return true;
+                result = true;
+                goto Lret;
             }
+
             if (tnext && (tnext.needsCodegen() || tnext.minst))
             {
                 minst = tnext.minst; // cache result
                 assert(minst);
-                return minst.isRoot() || minst.rootImports();
+                result = minst.isRoot() || minst.rootImports();
+                goto Lret;
             }
 
             // Elide codegen because this is really speculative.
-            return false;
+            result = false;
+            goto Lret;
         }
 
         /* Even when this is reached to the codegen pass,
@@ -6234,24 +6248,28 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (tinst)
             {
-                auto r = tinst.needsCodegen();
+                result = tinst.needsCodegen();
                 minst = tinst.minst; // cache result
-                return r;
+                goto Lret;
             }
             if (tnext)
             {
-                auto r = tnext.needsCodegen();
+                result = tnext.needsCodegen();
                 minst = tnext.minst; // cache result
-                return r;
+                goto Lret;
             }
-            return false;
+            result = false;
+            goto Lret;
         }
 
         if (global.params.useUnitTests)
         {
             // Prefer instantiations from root modules, to maximize link-ability.
             if (minst.isRoot())
-                return true;
+            {
+                result = true;
+                goto Lret;
+            }
 
             TemplateInstance tnext = this.tnext;
             TemplateInstance tinst = this.tinst;
@@ -6263,22 +6281,28 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 minst = tinst.minst; // cache result
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
-                return true;
+                result = true;
+                goto Lret;
             }
             if (tnext && tnext.needsCodegen())
             {
                 minst = tnext.minst; // cache result
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
-                return true;
+                result = true;
+                goto Lret;
             }
 
             // https://issues.dlang.org/show_bug.cgi?id=2500 case
             if (minst.rootImports())
-                return true;
+            {
+                result = true;
+                goto Lret;
+            }
 
             // Elide codegen because this is not included in root instances.
-            return false;
+            result = false;
+            goto Lret;
         }
         else
         {
@@ -6297,7 +6321,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * See https://issues.dlang.org/show_bug.cgi?id=2500.
              */
             if (!minst.isRoot() && !minst.rootImports())
-                return false;
+            {
+                result = false;
+                goto Lret;
+            }
 
             TemplateInstance tnext = this.tnext;
             this.tnext = null;
@@ -6306,12 +6333,21 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 minst = tnext.minst; // cache result
                 assert(!minst.isRoot());
-                return false;
+                result = false;
+                goto Lret;
             }
 
             // Do codegen because this is not included in non-root instances.
-            return true;
+            result = true;
+            goto Lret;
         }
+
+    Lret:
+        if (!result)
+        {
+            printf("%s not emitted\n", this.toPrettyChars());
+        }
+        return result;
     }
 
     /**********************************************

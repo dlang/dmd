@@ -6015,8 +6015,16 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
             tempinst.inst.gagged = tempinst.gagged;
         }
 
-        tempinst.tnext = tempinst.inst.tnext;
-        tempinst.inst.tnext = tempinst;
+        // before we link ourselves in let's make sure we are not the same as our sibiling
+        if (tempinst.hash != tempinst.inst.hash)
+        {
+            tempinst.tnext = tempinst.inst.tnext;
+            tempinst.inst.tnext = tempinst;
+        }
+        else
+        {
+            //printf("not linking in '%s'\n", tempinst.toChars());
+        }
 
         /* A module can have explicit template instance and its alias
          * in module scope (e,g, `alias Base64 = Base64Impl!('+', '/');`).
