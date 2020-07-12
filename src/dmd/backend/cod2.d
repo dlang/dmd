@@ -1961,17 +1961,34 @@ void cdbswap(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = posregs;
     codelem(cdb,e.EV.E1,&retregs,false);
     getregs(cdb,retregs);        // retregs will be destroyed
-    const reg = findreg(retregs);
-    if (sz == 2)
+    if (sz == 2 * REGSIZE)
     {
-        genregs(cdb,0x86,reg+4,reg);    // XCHG regL,regH
+        assert(sz != 16);                       // no cent support yet
+        const msreg = findregmsw(retregs);
+        cdb.gen1(0x0FC8 + (msreg & 7));         // BSWAP msreg
+        const lsreg = findreglsw(retregs);
+        cdb.gen1(0x0FC8 + (lsreg & 7));         // BSWAP lsreg
+        cdb.gen2(0x87,modregrm(3,msreg,lsreg)); // XCHG msreg,lsreg
     }
     else
     {
-        assert(sz == 4);
-        cdb.gen2(0x0FC8 + (reg & 7),0);      // BSWAP reg
-        if (reg & 8)
-            code_orrex(cdb.last(), REX_B);
+        const reg = findreg(retregs);
+        if (sz == 2)
+        {
+            genregs(cdb,0x86,reg+4,reg);    // XCHG regL,regH
+        }
+        else
+        {
+            assert(sz == 4 || sz == 8);
+            cdb.gen1(0x0FC8 + (reg & 7));      // BSWAP reg
+            ubyte rex = 0;
+            if (sz == 8)
+                rex |= REX_W;
+            if (reg & 8)
+                rex |= REX_B;
+            if (rex)
+                code_orrex(cdb.last(), rex);
+        }
     }
     fixresult(cdb,e,retregs,pretregs);
 }
