@@ -323,8 +323,40 @@ extern (C++) struct Target
         default:
             return 2; // wrong base type
         }
-        if (sz != 16 && !(global.params.cpu >= CPU.avx && sz == 32))
+
+        // Whether a vector is really supported depends on the CPU being targeted.
+        if (sz == 16)
+        {
+            final switch (type.ty)
+            {
+            case Tint32:
+            case Tuns32:
+            case Tfloat32:
+                if (global.params.cpu < CPU.sse)
+                    return 3; // no SSE vector support
+                break;
+
+            case Tvoid:
+            case Tint8:
+            case Tuns8:
+            case Tint16:
+            case Tuns16:
+            case Tint64:
+            case Tuns64:
+            case Tfloat64:
+                if (global.params.cpu < CPU.sse2)
+                    return 3; // no SSE2 vector support
+                break;
+            }
+        }
+        else if (sz == 32)
+        {
+            if (global.params.cpu < CPU.avx)
+                return 3; // no AVX vector support
+        }
+        else
             return 3; // wrong size
+
         return 0;
     }
 
@@ -344,12 +376,43 @@ extern (C++) struct Target
         if (type.ty != Tvector)
             return true; // not a vector op
         auto tvec = cast(TypeVector) type;
+        const vecsize = cast(int)tvec.basetype.size();
+        const elemty = cast(int)tvec.elementType().ty;
 
-        bool supported;
+        // Only operations on these sizes are supported (see isVectorTypeSupported)
+        if (vecsize != 16 && vecsize != 32)
+            return false;
+
+        bool supported = false;
         switch (op)
         {
-        case TOK.negate, TOK.uadd:
+        case TOK.uadd:
+            // Expression is a no-op, supported everywhere.
             supported = tvec.isscalar();
+            break;
+
+        case TOK.negate:
+            if (vecsize == 16)
+            {
+                // float[4] negate needs SSE support ({V}SUBPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] negate needs SSE2 support ({V}SUBPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)byte[16]/short[8]/int[4]/long[2] negate needs SSE2 support ({V}PSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] negate needs AVX support (VSUBP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+                // (u)byte[32]/short[16]/int[8]/long[4] negate needs AVX2 support (VPSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case TOK.lessThan, TOK.greaterThan, TOK.lessOrEqual, TOK.greaterOrEqual, TOK.equal, TOK.notEqual, TOK.identity, TOK.notIdentity:
@@ -361,21 +424,75 @@ extern (C++) struct Target
             break;
 
         case TOK.add, TOK.addAssign, TOK.min, TOK.minAssign:
-            supported = tvec.isscalar();
+            if (vecsize == 16)
+            {
+                // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] add/sub needs SSE2 support ({V}ADDPD, {V}SUBPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)byte[16]/short[8]/int[4]/long[2] add/sub needs SSE2 support ({V}PADD[BWDQ], {V}PSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] add/sub needs AVX support (VADDP[SD], VSUBP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+                // (u)byte[32]/short[16]/int[8]/long[4] add/sub needs AVX2 support (VPADD[BWDQ], VPSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case TOK.mul, TOK.mulAssign:
-            // only floats and short[8]/ushort[8] (PMULLW)
-            if (tvec.isfloating() || tvec.elementType().size(Loc.initial) == 2 ||
-                // int[4]/uint[4] with SSE4.1 (PMULLD)
-                global.params.cpu >= CPU.sse4_1 && tvec.elementType().size(Loc.initial) == 4)
-                supported = true;
-            else
-                supported = false;
+            if (vecsize == 16)
+            {
+                // float[4] multiply needs SSE support ({V}MULPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] multiply needs SSE2 support ({V}MULPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)short[8] multiply needs SSE2 support ({V}PMULLW)
+                else if ((elemty == Tint16 || elemty == Tuns16) && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)int[4] multiply needs SSE4.1 support ({V}PMULLD)
+                else if ((elemty == Tint32 || elemty == Tuns32) && global.params.cpu >= CPU.sse4_1)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] multiply needs AVX support (VMULP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+                // (u)short[16] multiply needs AVX2 support (VPMULLW)
+                else if ((elemty == Tint16 || elemty == Tuns16) && global.params.cpu >= CPU.avx2)
+                    supported = true;
+                // (u)int[8] multiply needs AVX2 support (VPMULLD)
+                else if ((elemty == Tint32 || elemty == Tuns32) && global.params.cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case TOK.div, TOK.divAssign:
-            supported = tvec.isfloating();
+            if (vecsize == 16)
+            {
+                // float[4] divide needs SSE support ({V}DIVPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] divide needs SSE2 support ({V}DIVPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] multiply needs AVX support (VDIVP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+            }
             break;
 
         case TOK.mod, TOK.modAssign:
@@ -383,7 +500,12 @@ extern (C++) struct Target
             break;
 
         case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
-            supported = tvec.isintegral();
+            // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
+            if (vecsize == 16 && tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                supported = true;
+            // (u)byte[32]/short[16]/int[8]/long[4] bitwise ops needs AVX2 support (VPAND, VPOR, VPXOR)
+            else if (vecsize == 32 && tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                supported = true;
             break;
 
         case TOK.not:
@@ -391,7 +513,12 @@ extern (C++) struct Target
             break;
 
         case TOK.tilde:
-            supported = tvec.isintegral();
+            // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
+            if (vecsize == 16 && tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                supported = true;
+            // (u)byte[32]/short[16]/int[8]/long[4] logical exclusive needs AVX2 support (VPXOR)
+            else if (vecsize == 32 && tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                supported = true;
             break;
 
         case TOK.pow, TOK.powAssign:
