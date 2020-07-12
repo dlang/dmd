@@ -585,9 +585,6 @@ int intrinsic_op(FuncDeclaration fd)
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
             return NotIntrinsic;
     }
-    // No 64-bit bswap
-    if (op == OPbswap && argtype1 is Type.tuns64)
-        return NotIntrinsic;
     return op;
 
 Lva_start:
