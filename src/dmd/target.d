@@ -36,7 +36,9 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
@@ -1045,6 +1047,11 @@ struct TargetPragma
      */
     bool isSupported(const Identifier ident, Expressions* args, bool statement)
     {
+        if (global.params.mscoff)
+        {
+            if (ident == Id.linkerDirective)
+                return true;
+        }
         return false;
     }
 
@@ -1069,6 +1076,24 @@ struct TargetPragma
      */
     void dsymbolSemantic(PragmaDeclaration pd, Scope* sc)
     {
+        if (pd.ident == Id.linkerDirective)
+        {
+            assert (global.params.mscoff);
+            if (!pd.args || pd.args.dim != 1)
+                pd.error("one string argument expected for pragma(linkerDirective)");
+            else
+            {
+                auto se = semanticString(sc, (*pd.args)[0], "linker directive");
+                if (!se)
+                    goto Lnodecl;
+                (*pd.args)[0] = se;
+                if (global.params.verbose)
+                    message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
+            }
+        Lnodecl:
+            if (pd.decl)
+                pd.error("is missing a terminating `;`");
+        }
     }
 
     /**
@@ -1081,6 +1106,11 @@ struct TargetPragma
      */
     Statement statementSemantic(PragmaStatement ps, Scope* sc)
     {
+        if (ps.ident == Id.linkerDirective)
+        {
+            ps.error("`pragma(linkerDirective)` not allowed as statement");
+            return new ErrorStatement();
+        }
         return ps;
     }
 }
