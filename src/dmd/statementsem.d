@@ -2354,35 +2354,6 @@ else
                 fprintf(stderr, "\n");
             }
         }
-        else if (ps.ident == Id.lib)
-        {
-            version (all)
-            {
-                /* Should this be allowed?
-                 */
-                ps.error("`pragma(lib)` not allowed as statement");
-                return setError();
-            }
-            else
-            {
-                if (!ps.args || ps.args.dim != 1)
-                {
-                    ps.error("`string` expected for library name");
-                    return setError();
-                }
-                else
-                {
-                    auto se = semanticString(sc, (*ps.args)[0], "library name");
-                    if (!se)
-                        return setError();
-
-                    if (global.params.verbose)
-                    {
-                        message("library   %.*s", cast(int)se.len, se.string);
-                    }
-                }
-            }
-        }
         else if (ps.ident == Id.startaddress)
         {
             if (!ps.args || ps.args.dim != 1)

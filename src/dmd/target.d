@@ -33,6 +33,7 @@ import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -49,7 +50,9 @@ import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
+import dmd.root.rmem;
 import dmd.root.string : toDString;
+import dmd.utils : escapePath;
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -1052,6 +1055,8 @@ struct TargetPragma
             if (ident == Id.linkerDirective)
                 return true;
         }
+        if (ident == Id.lib)
+            return true;
         return false;
     }
 
@@ -1090,10 +1095,41 @@ struct TargetPragma
                 if (global.params.verbose)
                     message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
             }
-        Lnodecl:
-            if (pd.decl)
-                pd.error("is missing a terminating `;`");
         }
+        else if (pd.ident == Id.lib)
+        {
+            if (!pd.args || pd.args.dim != 1)
+                pd.error("string expected for library name");
+            else
+            {
+                auto se = semanticString(sc, (*pd.args)[0], "library name");
+                if (!se)
+                    goto Lnodecl;
+                (*pd.args)[0] = se;
+
+                auto name = se.peekString().xarraydup;
+                if (global.params.verbose)
+                    message("library   %s", name.ptr);
+                if (global.params.moduleDeps && !global.params.moduleDepsFile)
+                {
+                    OutBuffer* ob = global.params.moduleDeps;
+                    Module imod = sc.instantiatingModule();
+                    ob.writestring("depsLib ");
+                    ob.writestring(imod.toPrettyChars());
+                    ob.writestring(" (");
+                    escapePath(ob, imod.srcfile.toChars());
+                    ob.writestring(") : ");
+                    ob.writestring(name);
+                    ob.writenl();
+                }
+                mem.xfree(name.ptr);
+            }
+            goto Lnodecl;
+        }
+        return;
+    Lnodecl:
+        if (pd.decl)
+            pd.error("is missing a terminating `;`");
     }
 
     /**
@@ -1106,9 +1142,9 @@ struct TargetPragma
      */
     Statement statementSemantic(PragmaStatement ps, Scope* sc)
     {
-        if (ps.ident == Id.linkerDirective)
+        if (ps.ident == Id.linkerDirective || ps.ident == Id.lib)
         {
-            ps.error("`pragma(linkerDirective)` not allowed as statement");
+            ps.error("`pragma(%s)` not allowed as statement", ps.ident.toChars());
             return new ErrorStatement();
         }
         return ps;

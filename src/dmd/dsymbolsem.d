@@ -1869,36 +1869,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             goto Lnodecl;
         }
-        else if (pd.ident == Id.lib)
-        {
-            if (!pd.args || pd.args.dim != 1)
-                pd.error("string expected for library name");
-            else
-            {
-                auto se = semanticString(sc, (*pd.args)[0], "library name");
-                if (!se)
-                    goto Lnodecl;
-                (*pd.args)[0] = se;
-
-                auto name = se.peekString().xarraydup;
-                if (global.params.verbose)
-                    message("library   %s", name.ptr);
-                if (global.params.moduleDeps && !global.params.moduleDepsFile)
-                {
-                    OutBuffer* ob = global.params.moduleDeps;
-                    Module imod = sc.instantiatingModule();
-                    ob.writestring("depsLib ");
-                    ob.writestring(imod.toPrettyChars());
-                    ob.writestring(" (");
-                    escapePath(ob, imod.srcfile.toChars());
-                    ob.writestring(") : ");
-                    ob.writestring(name);
-                    ob.writenl();
-                }
-                mem.xfree(name.ptr);
-            }
-            goto Lnodecl;
-        }
         else if (pd.ident == Id.startaddress)
         {
             if (!pd.args || pd.args.dim != 1)
