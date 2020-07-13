@@ -514,6 +514,7 @@ ushort byteswap(ushort x) pure
     return cast(ushort) (((x >> 8) & 0xFF) | ((x << 8) & 0xFF00u));
 }
 
+///
 unittest
 {
     assert(byteswap(cast(ushort)0xF234) == 0x34F2);
@@ -528,42 +529,27 @@ unittest
  */
 uint bswap(uint v) pure;
 
-version (CoreDdoc) {}
-else version (LDC) { /+ LDC treats bswap(ulong) as an intrinsic so don't change the mangling. +/ }
-else version (GNU) { /+ GDC treats bswap(ulong) as an intrinsic so don't change the mangling. +/ }
-else version (D_BetterC) version = BSwap64Template; // Make it a template so it works in betterC.
-
-private enum bswap64 =
-q{
-    Split64 sv = void;
-    if (!__ctfe)
-    {
-        sv.u64 = v;
-    }
-    else
-    {
-        sv.lo = cast(uint) v;
-        sv.hi = cast(uint) (v >>> 32);
-    }
-
-    const temp = sv.lo;
-    sv.lo = bswap(sv.hi);
-    sv.hi = bswap(temp);
-
-    return (cast(ulong) sv.hi << 32) | sv.lo;
-};
-
-version (BSwap64Template)
+///
+unittest
 {
-    ulong bswap()(ulong v) pure { mixin(bswap64); }
+    assert(bswap(0x01020304u) == 0x04030201u);
+    static uint xx = 0x10203040u;
+    assert(bswap(xx) == 0x40302010u);
 }
-else
+
+/**
+ * Swaps bytes in an 8 byte ulong end-to-end, i.e. byte 0 becomes
+ * byte 7, byte 1 becomes byte 6, etc.
+ * This is meant to be recognized by the compiler as an intrinsic.
+ */
+ulong bswap(ulong v) pure;
+
+///
+unittest
 {
-    /**
-     * Swaps bytes in an 8 byte ulong end-to-end, i.e. byte 0 becomes
-     * byte 7, byte 1 becomes byte 6, etc.
-     */
-    ulong bswap(ulong v) pure { mixin(bswap64); }
+    assert(bswap(0x01020304_05060708uL) == 0x08070605_04030201uL);
+    static ulong xx = 0x10203040_50607080uL;
+    assert(bswap(xx) == 0x80706050_40302010uL);
 }
 
 version (DigitalMars) version (AnyX86) @system // not pure
