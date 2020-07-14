@@ -440,8 +440,8 @@ class TypeInfo_Enum : TypeInfo
     }
 
     override size_t getHash(scope const void* p) const { return base.getHash(p); }
-    override bool equals(scope const void* p1, scope const void* p2) const { return base.equals(p1, p2); }
-    override int compare(scope const void* p1, scope const void* p2) const { return base.compare(p1, p2); }
+    override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
+    override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
     override void swap(void* p1, void* p2) const { return base.swap(p1, p2); }
 
