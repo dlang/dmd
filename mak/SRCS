@@ -215,6 +215,7 @@ SRCS=\
 	src\core\sys\linux\ifaddrs.d \
 	src\core\sys\linux\io_uring.d \
 	src\core\sys\linux\link.d \
+	src\core\sys\linux\perf_event.d \
 	src\core\sys\linux\sched.d \
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\string.d \
