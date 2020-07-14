@@ -1,8 +1,8 @@
 // REQUIRED_ARGS: -O
-version (D_SIMD)
-{
-    import core.simd;
+import core.simd;
 
+static if (__traits(compiles, { void16 a; ushort8 b; }))
+{
     void check(void16 a) 
     {
         foreach (x; (cast(ushort8)a).array) 
