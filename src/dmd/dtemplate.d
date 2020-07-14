@@ -6199,12 +6199,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             result = true;
             goto Lret;
         }
-/+
+
         if (isDiscardable())
         {
-            return false;
+            result = false;
+            goto Lret;
         }
-+/
+
         if (!minst)
         {
             // If this is a speculative instantiation,
@@ -6345,7 +6346,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     Lret:
         if (!result)
         {
-            printf("%s not emitted\n", this.toPrettyChars());
+            //printf("%s not emitted\n", this.toPrettyChars());
         }
         return result;
     }
