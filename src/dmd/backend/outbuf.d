@@ -54,7 +54,7 @@ struct Outbuffer
         @trusted pure nothrow @nogc
     {
         assert(this.buf, "Attempt to dereference a null pointer");
-        assert(from < to, "First index must be <= to second one");
+        assert(from < to, "First index must be smaller than the second one");
         assert(this.length() <= (to - from), "Out of bound access");
         return this.buf[from .. to];
     }
