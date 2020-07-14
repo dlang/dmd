@@ -1741,8 +1741,10 @@ else
             e.EV.Vint = ((i1 >> 8) & 0x00FF) |
                         ((i1 << 8) & 0xFF00);
         }
-        else
+        else if (tysize(tym) == 4)
             e.EV.Vint = core.bitop.bswap(cast(uint) i1);
+        else
+            e.EV.Vllong = core.bitop.bswap(cast(ulong) l1);
         break;
 
     case OPpopcnt:
