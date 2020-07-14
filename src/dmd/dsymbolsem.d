@@ -6017,7 +6017,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
         // before we link ourselves in let's make sure we are not the same as our sibiling
         if ((tempinst.hash && (tempinst.hash != tempinst.inst.hash)) ||
-            tempinst.minst != tempinst.inst.minst)
+            tempinst.minst != tempinst.inst.minst ||
+            tempinst.memberOf != tempinst.inst.memberOf ||
+            tempinst.enclosing != tempinst.inst.enclosing ||
+            tempinst.inst.tnext !is null)
         {
             tempinst.tnext = tempinst.inst.tnext;
             tempinst.inst.tnext = tempinst;
