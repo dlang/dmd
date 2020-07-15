@@ -2029,6 +2029,40 @@ void testbyteswap()
 
 ////////////////////////////////////////////////////////////////////////
 
+// These should all be recognized by the compiler and generate ROL or ROR
+// instructions.
+
+uint rol32(uint x, uint n)
+{
+    return (x << n) | (x >> (32 - n));
+}
+
+uint ror32(uint x, uint n)
+{
+    return (x >> n) | (x << (32 - n));
+}
+
+ulong rol64(ulong x, uint n)
+{
+    return (x << n) | (x >> (64 - n));
+}
+
+ulong ror64(ulong x, uint n)
+{
+    return (x >> n) | (x << (64 - n));
+}
+
+void testrolror()
+{
+    assert(ror32(0x0123_4567u, 4) == 0x7012_3456);
+    assert(rol32(0x7012_3456u, 4) == 0x0123_4567);
+
+    assert(ror64(0x0123_4567_89AB_CDEFuL, 4) == 0xF012_3456_789A_BCDE);
+    assert(rol64(0xF012_3456_789A_BCDEuL, 4) == 0x0123_4567_89AB_CDEF);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -2103,6 +2137,7 @@ int main()
     testCpStatic();
     test7();
     testbyteswap();
+    testrolror();
 
     printf("Success\n");
     return 0;

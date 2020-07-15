@@ -1627,7 +1627,7 @@ private elem *elor(elem *e, goal_t goal)
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
     uint sz = tysize(e.Ety);
-    if (sz <= _tysize[TYint])
+    if (sz <= REGSIZE)
     {
         if (e1.Eoper == OPshl && e2.Eoper == OPshr &&
             tyuns(e2.EV.E1.Ety) && e2.EV.E2.Eoper == OPmin &&
