@@ -244,7 +244,7 @@ private elem *callfunc(const ref Loc loc,
 
             if (i - j < tf.parameterList.length &&
                 i >= j &&
-                tf.parameterList[i - j].storageClass & (STC.out_ | STC.ref_))
+                tf.parameterList[i - j].isReference())
             {
                 /* `ref` and `out` parameters mean convert
                  * corresponding argument to a pointer

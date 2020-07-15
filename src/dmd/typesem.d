@@ -1287,7 +1287,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
                     .error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
                     errors = true;
                 }
-                else if (!(fparam.storageClass & (STC.ref_ | STC.out_)) &&
+                else if (!fparam.isReference() &&
                          (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
                 {
                     Type tb2 = t.baseElemOf();
@@ -1312,7 +1312,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
 
                 if (fparam.storageClass & STC.return_)
                 {
-                    if (fparam.storageClass & (STC.ref_ | STC.out_))
+                    if (fparam.isReference())
                     {
                         // Disabled for the moment awaiting improvement to allow return by ref
                         // to be transformed into return by scope.
@@ -1385,7 +1385,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
                 if (fparam.defaultArg)
                 {
                     Expression e = fparam.defaultArg;
-                    const isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
+                    const isRefOrOut = fparam.isReference();
                     const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
                     if (isRefOrOut && !isAuto)
                     {

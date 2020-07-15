@@ -1730,7 +1730,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
 
             Parameter p = tf.parameterList[i];
-            const bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+            const bool isRef = p.isReference();
 
             if (!arg)
             {
@@ -1958,7 +1958,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
-                    arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
+                    arg = arg.optimize(WANTvalue, p.isReference());
                 }
             }
             if (p.storageClass & STC.ref_)
@@ -2069,15 +2069,15 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     }
                 }
             }
-            if (!(p.storageClass & (STC.ref_ | STC.out_)))
+            if (!p.isReference())
                 err |= arg.checkSharedAccess(sc);
 
-            arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
+            arg = arg.optimize(WANTvalue, p.isReference());
 
             /* Determine if this parameter is the "first reference" parameter through which
              * later "return" arguments can be stored.
              */
-            if (i == 0 && !tthis && p.storageClass & (STC.ref_ | STC.out_) && p.type &&
+            if (i == 0 && !tthis && p.isReference() && p.type &&
                 (tf.next && tf.next.ty == Tvoid || isCtorCall))
             {
                 Type tb = p.type.baseElemOf();
@@ -2257,7 +2257,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             Expression arg = (*arguments)[i];
 
             Parameter parameter = (i >= nparams ? null : tf.parameterList[i]);
-            const bool isRef = (parameter && (parameter.storageClass & (STC.ref_ | STC.out_)));
+            const bool isRef = parameter && parameter.isReference();
             const bool isLazy = (parameter && (parameter.storageClass & STC.lazy_));
 
             /* Skip lazy parameters

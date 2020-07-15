@@ -1023,7 +1023,7 @@ extern (C++) class FuncDeclaration : Declaration
         foreach (u, p; tf.parameterList)
         {
             Expression e;
-            if (p.storageClass & (STC.ref_ | STC.out_))
+            if (p.isReference())
             {
                 e = new IdentifierExp(Loc.initial, p.ident);
                 e.type = p.type;

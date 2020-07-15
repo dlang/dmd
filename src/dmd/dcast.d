@@ -934,7 +934,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     Type tparam = fparam.type;
                     if (!tparam)
                         continue;
-                    if (fparam.storageClass & (STC.out_ | STC.ref_))
+                    if (fparam.isReference())
                     {
                         if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                             return;
@@ -1241,7 +1241,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         Type tparam = fparam.type;
                         if (!tparam)
                             continue;
-                        if (fparam.storageClass & (STC.out_ | STC.ref_))
+                        if (fparam.isReference())
                         {
                             if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                                 return;

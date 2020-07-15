@@ -983,7 +983,7 @@ struct TargetCPP
     extern (C++) Type parameterType(Parameter p)
     {
         Type t = p.type.merge2();
-        if (p.storageClass & (STC.out_ | STC.ref_))
+        if (p.isReference())
             t = t.referenceTo();
         else if (p.storageClass & STC.lazy_)
         {

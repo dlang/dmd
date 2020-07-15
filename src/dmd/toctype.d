@@ -134,7 +134,7 @@ public:
         {
             Parameter p = t.parameterList[i];
             type* tp = Type_toCtype(p.type);
-            if (p.storageClass & (STC.out_ | STC.ref_))
+            if (p.isReference())
                 tp = type_allocn(TYnref, tp);
             else if (p.storageClass & STC.lazy_)
             {

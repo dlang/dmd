@@ -462,7 +462,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         Expression earg = (*arguments)[i];
         Parameter fparam = tf.parameterList[i];
 
-        if (fparam.storageClass & (STC.out_ | STC.ref_))
+        if (fparam.isReference())
         {
             if (!istate && (fparam.storageClass & STC.out_))
             {
@@ -555,7 +555,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         ctfeGlobals.stack.push(v);
 
-        if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOK.variable &&
+        if (fparam.isReference() && earg.op == TOK.variable &&
             (cast(VarExp)earg).var.toParent2() == fd)
         {
             VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
@@ -6862,7 +6862,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
     assert(numParams == 1 || numParams == 2);
 
     Parameter fparam = fd.type.isTypeFunction().parameterList[numParams - 1];
-    bool wantRefValue = 0 != (fparam.storageClass & (STC.out_ | STC.ref_));
+    const wantRefValue = fparam.isReference();
 
     Expressions args = Expressions(numParams);
 
