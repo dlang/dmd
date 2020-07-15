@@ -687,53 +687,54 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  */
 void setClosureVarOffset(FuncDeclaration fd)
 {
-    if (fd.needsClosure())
+    // Nothing to do
+    if (!fd.needsClosure())
+        return;
+
+    uint offset = target.ptrsize;      // leave room for previous sthis
+
+    foreach (v; fd.closureVars)
     {
-        uint offset = target.ptrsize;      // leave room for previous sthis
-
-        foreach (v; fd.closureVars)
+        /* Align and allocate space for v in the closure
+         * just like AggregateDeclaration.addField() does.
+         */
+        uint memsize;
+        uint memalignsize;
+        structalign_t xalign;
+        if (v.storage_class & STC.lazy_)
         {
-            /* Align and allocate space for v in the closure
-             * just like AggregateDeclaration.addField() does.
+            /* Lazy variables are really delegates,
+             * so give same answers that TypeDelegate would
              */
-            uint memsize;
-            uint memalignsize;
-            structalign_t xalign;
-            if (v.storage_class & STC.lazy_)
-            {
-                /* Lazy variables are really delegates,
-                 * so give same answers that TypeDelegate would
-                 */
-                memsize = target.ptrsize * 2;
-                memalignsize = memsize;
-                xalign = STRUCTALIGN_DEFAULT;
-            }
-            else if (v.storage_class & (STC.out_ | STC.ref_))
-            {
-                // reference parameters are just pointers
-                memsize = target.ptrsize;
-                memalignsize = memsize;
-                xalign = STRUCTALIGN_DEFAULT;
-            }
-            else
-            {
-                memsize = cast(uint)v.type.size();
-                memalignsize = v.type.alignsize();
-                xalign = v.alignment;
-            }
-            AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
-            v.offset = offset;
-            //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
+            memsize = target.ptrsize * 2;
+            memalignsize = memsize;
+            xalign = STRUCTALIGN_DEFAULT;
+        }
+        else if (v.storage_class & (STC.out_ | STC.ref_))
+        {
+            // reference parameters are just pointers
+            memsize = target.ptrsize;
+            memalignsize = memsize;
+            xalign = STRUCTALIGN_DEFAULT;
+        }
+        else
+        {
+            memsize = cast(uint)v.type.size();
+            memalignsize = v.type.alignsize();
+            xalign = v.alignment;
+        }
+        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        v.offset = offset;
+        //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
 
-            offset += memsize;
+        offset += memsize;
 
-            /* Can't do nrvo if the variable is put in a closure, since
-             * what the shidden points to may no longer exist.
-             */
-            if (fd.nrvo_can && fd.nrvo_var == v)
-            {
-                fd.nrvo_can = false;
-            }
+        /* Can't do nrvo if the variable is put in a closure, since
+         * what the shidden points to may no longer exist.
+         */
+        if (fd.nrvo_can && fd.nrvo_var == v)
+        {
+            fd.nrvo_can = false;
         }
     }
 }
