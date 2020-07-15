@@ -152,6 +152,8 @@ public:
 
     Symbol *sfilename;          // symbol for filename
 
+    void *ctfe_cov;             // stores coverage information from ctfe
+
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

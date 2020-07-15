@@ -1451,6 +1451,8 @@ extern (C++) final class Module : Package
     Symbol* stest; // module unit test
     Symbol* sfilename; // symbol for filename
 
+    uint[uint] ctfe_cov; /// coverage information from ctfe execution_count[line]
+
     override inout(Module) isModule() inout
     {
         return this;

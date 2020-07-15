@@ -698,6 +698,18 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     return e;
 }
 
+/// used to collect coverage information in ctfe
+void incUsageCtfe(InterState* istate, const ref Loc loc)
+{
+    if (global.params.ctfe_cov && istate)
+    {
+        auto line = loc.linnum;
+        auto mod = istate.fd.getModule();
+
+        ++mod.ctfe_cov[line];
+    }
+}
+
 private extern (C++) final class Interpreter : Visitor
 {
     alias visit = Visitor.visit;
@@ -771,6 +783,8 @@ public:
                 return;
             istate.start = null;
         }
+        if (s.exp && s.exp.hasCode)
+            incUsageCtfe(istate, s.loc);
 
         Expression e = interpret(pue, s.exp, istate, ctfeNeedNothing);
         if (exceptionOrCant(e))
@@ -852,6 +866,7 @@ public:
         {
             printf("%s IfStatement::interpret(%s)\n", s.loc.toChars(), s.condition.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
         if (istate.start)
@@ -980,6 +995,7 @@ public:
             return;
         }
 
+        incUsageCtfe(istate, s.loc);
         assert(istate && istate.fd && istate.fd.type && istate.fd.type.ty == Tfunction);
         TypeFunction tf = cast(TypeFunction)istate.fd.type;
 
@@ -1042,6 +1058,7 @@ public:
         {
             printf("%s BreakStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start)
         {
             if (istate.start != s)
@@ -1059,6 +1076,7 @@ public:
         {
             printf("%s ContinueStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start)
         {
             if (istate.start != s)
@@ -1124,6 +1142,7 @@ public:
             }
 
             UnionExp ue = void;
+            incUsageCtfe(istate, s.condition.loc);
             e = interpret(&ue, s.condition, istate);
             if (exceptionOrCant(e))
                 return;
@@ -1159,6 +1178,7 @@ public:
             if (s.condition && !istate.start)
             {
                 UnionExp ue = void;
+                incUsageCtfe(istate, s.condition.loc);
                 Expression e = interpret(&ue, s.condition, istate);
                 if (exceptionOrCant(e))
                     return;
@@ -1201,6 +1221,8 @@ public:
             }
 
             UnionExp uei = void;
+            if (s.increment)
+                incUsageCtfe(istate, s.increment.loc);
             e = interpret(&uei, s.increment, istate, ctfeNeedNothing);
             if (exceptionOrCant(e))
                 return;
@@ -1224,6 +1246,7 @@ public:
         {
             printf("%s SwitchStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
         if (istate.start)
@@ -1299,6 +1322,7 @@ public:
         {
             printf("%s CaseStatement::interpret(%s) this = %p\n", s.loc.toChars(), s.exp.toChars(), s);
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
 
@@ -1311,6 +1335,7 @@ public:
         {
             printf("%s DefaultStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
 
@@ -1329,6 +1354,7 @@ public:
                 return;
             istate.start = null;
         }
+        incUsageCtfe(istate, s.loc);
 
         assert(s.label && s.label.statement);
         istate.gotoTarget = s.label.statement;
@@ -1347,6 +1373,7 @@ public:
                 return;
             istate.start = null;
         }
+        incUsageCtfe(istate, s.loc);
 
         assert(s.cs);
         istate.gotoTarget = s.cs;
@@ -1365,6 +1392,7 @@ public:
                 return;
             istate.start = null;
         }
+        incUsageCtfe(istate, s.loc);
 
         assert(s.sw && s.sw.sdefault);
         istate.gotoTarget = s.sw.sdefault;
@@ -1565,6 +1593,8 @@ public:
             istate.start = null;
         }
 
+        incUsageCtfe(istate, s.loc);
+
         Expression e = interpretRegion(s.exp, istate);
         if (exceptionOrCant(e))
             return;
@@ -1598,6 +1628,8 @@ public:
             result = interpret(pue, s._body, istate);
             return;
         }
+
+        incUsageCtfe(istate, s.loc);
 
         Expression e = interpret(s.exp, istate);
         if (exceptionOrCant(e))
@@ -4557,6 +4589,8 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
+        incUsageCtfe(istate, e.e2.loc);
+
         if (goal != ctfeNeedNothing)
         {
             if (e.type.equals(Type.tbool))
@@ -4905,9 +4939,15 @@ public:
         }
 
         if (isTrueBool(econd))
+        {
             result = interpret(pue, e.e1, istate, goal);
+            incUsageCtfe(istate, e.e1.loc);
+        }
         else if (econd.isBool(false))
+        {
             result = interpret(pue, e.e2, istate, goal);
+            incUsageCtfe(istate, e.e2.loc);
+        }
         else
         {
             e.error("`%s` does not evaluate to boolean result at compile time", e.econd.toChars());
