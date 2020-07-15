@@ -741,7 +741,7 @@ void prolog(ref CodeBuilder cdb)
 {
     bool enter;
 
-    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident, needframe, Auto.alignment);
+    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, Auto.alignment);
     debug debugw && printf("funcstart()\n");
     regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
@@ -942,7 +942,17 @@ else
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    cgstate.funcarg.alignment = cgstate.funcarg.size ? STACKALIGN : REGSIZE;
+    cgstate.funcarg.alignment = STACKALIGN;
+    /* If the function doesn't need the extra alignment, don't do it.
+     * Can expand on this by allowing for locals that don't need extra alignment
+     * and calling functions that don't need it.
+     */
+    if (pushoff == 0 && !calledafunc && config.fpxmmregs && (I32 || I64))
+    {
+        cgstate.funcarg.alignment = I64 ? 8 : 4;
+    }
+
+    //printf("pushoff = %d, size = %d, alignment = %d, bias = %d\n", cast(int)pushoff, cast(int)cgstate.funcarg.size, cast(int)cgstate.funcarg.alignment, cast(int)bias);
     cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
 
     localsize = -cgstate.funcarg.offset;
