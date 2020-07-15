@@ -105,7 +105,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             if (i < paramLength)
             {
                 eb.param = tf.parameterList[i];
-                refs = (eb.param.storageClass & (STC.out_ | STC.ref_)) != 0;
+                refs = eb.param.isReference();
                 eb.isMutable = eb.param.isReferenceToMutable(arg.type);
             }
             else
@@ -2234,7 +2234,7 @@ bool isReferenceToMutable(Type t)
  */
 bool isReferenceToMutable(Parameter p, Type t)
 {
-    if (p.storageClass & (STC.ref_ | STC.out_))
+    if (p.isReference())
     {
         if (p.type.isConst() || p.type.isImmutable())
             return false;

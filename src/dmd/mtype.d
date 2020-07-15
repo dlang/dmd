@@ -4446,7 +4446,7 @@ extern (C++) final class TypeFunction : TypeNext
                 t = t.baseElemOf();
                 if (t.isMutable() && t.hasPointers())
                 {
-                    if (fparam.storageClass & (STC.ref_ | STC.out_))
+                    if (fparam.isReference())
                     {
                     }
                     else if (t.ty == Tarray || t.ty == Tpointer)
@@ -4605,7 +4605,7 @@ extern (C++) final class TypeFunction : TypeNext
             at = arg.type.toPrettyChars(true);
         OutBuffer buf;
         // only mention rvalue if it's relevant
-        const rv = !arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_);
+        const rv = !arg.isLvalue() && par.isReference();
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
             rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
             parameterToChars(par, this, qual));
@@ -4695,7 +4695,7 @@ extern (C++) final class TypeFunction : TypeNext
 
             if (!(p.storageClass & STC.lazy_ && tprm.ty == Tvoid && targ.ty != Tvoid))
             {
-                bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+                const isRef = p.isReference();
                 wildmatch |= targ.deduceWild(tprm, isRef);
             }
         }
@@ -4748,7 +4748,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                     else
                     {
-                        const isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+                        const isRef = p.isReference();
 
                         StructDeclaration argStruct, prmStruct;
 
@@ -4797,7 +4797,7 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // Non-lvalues do not match ref or out parameters
-                if (p.storageClass & (STC.ref_ | STC.out_))
+                if (p.isReference())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=13783
                     // Don't use toBasetype() to handle enum types.
@@ -6533,6 +6533,12 @@ extern (C++) final class Parameter : ASTNode
             }
         }
         return null;
+    }
+
+    /// Returns: Whether the function parameter is a reference (out / ref)
+    bool isReference() const @safe pure nothrow @nogc
+    {
+        return (this.storageClass & (STC.ref_ | STC.out_)) != 0;
     }
 
     // kludge for template.isType()

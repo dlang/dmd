@@ -1230,7 +1230,7 @@ private:
             foreach (n, p; type.parameterList)
             {
                 Type t = p.type;
-                if (p.storageClass & (STC.out_ | STC.ref_))
+                if (p.isReference())
                 {
                     t = t.referenceTo();
                 }
