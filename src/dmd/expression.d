@@ -1383,9 +1383,10 @@ extern (C++) abstract class Expression : ASTNode
             break;
         }
 
-        error("read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead.", Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
-
-         return true;
+        error("read-modify-write operations are not allowed for `shared` variables");
+        errorSupplemental("Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
+                          Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
+        return true;
     }
 
     /***************************************
