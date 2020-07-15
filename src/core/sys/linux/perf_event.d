@@ -213,7 +213,7 @@ enum perf_branch_sample_type
         PERF_SAMPLE_BRANCH_HV = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_HV_SHIFT,
         PERF_SAMPLE_BRANCH_ANY = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_ANY_SHIFT,
         PERF_SAMPLE_BRANCH_ANY_CALL = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_ANY_CALL_SHIFT,
-        PERF_SAMPLE_BRANCH_ANY_RETURN = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_ANY_RETURN_SHIFT, 
+        PERF_SAMPLE_BRANCH_ANY_RETURN = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_ANY_RETURN_SHIFT,
         PERF_SAMPLE_BRANCH_IND_CALL = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_IND_CALL_SHIFT,
         PERF_SAMPLE_BRANCH_ABORT_TX = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_ABORT_TX_SHIFT,
         PERF_SAMPLE_BRANCH_IN_TX = 1U << perf_branch_sample_type_shift.PERF_SAMPLE_BRANCH_IN_TX_SHIFT,
