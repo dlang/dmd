@@ -1543,6 +1543,8 @@ public:
         {
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
+        if (!(global.params.useInline || fd.hasAlwaysInlines))
+            return;
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
             fd.flags & FUNCFLAG.inlineScanned)
             return;
@@ -1683,6 +1685,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     final switch (fd.inlining)
     {
     case PINLINE.default_:
+        if (!global.params.useInline)
+            return false;
         break;
     case PINLINE.always:
         break;
@@ -1832,8 +1836,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     return true;
 
 Lno:
-    if (fd.inlining == PINLINE.always)
-        fd.error("cannot inline function");
+    if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
+        warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan
     {

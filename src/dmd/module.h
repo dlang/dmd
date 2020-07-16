@@ -76,6 +76,7 @@ public:
     unsigned numlines;  // number of lines in source file
     bool isHdrFile;     // if it is a header (.di) file
     bool isDocFile;     // if it is a documentation input file, not D source
+    bool hasAlwaysInlines; // contains references to functions that must be inlined
     bool isPackageFile; // if it is a package.d
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported

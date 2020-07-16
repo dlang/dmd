@@ -1,10 +1,10 @@
 /*
-REQUIRED_ARGS: -inline
+REQUIRED_ARGS: -inline -wi
 
 TEST_OUTPUT:
 ---
-fail_compilation/b16360.d(12): Error: function `b16360.foo` cannot inline function
-fail_compilation/b16360.d(25): Error: function `b16360.bar` cannot inline function
+compilable/b16360.d(12): Warning: cannot inline function `b16360.foo`
+compilable/b16360.d(25): Warning: cannot inline function `b16360.bar`
 ---
 */
 

@@ -1705,6 +1705,18 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             fd.functionSemantic3();
         }
     }
+
+    /* If calling a pragma(inline, true) function,
+     * set flag to later scan for inlines.
+     */
+    if (fd && fd.inlining == PINLINE.always)
+    {
+        if (sc._module)
+            sc._module.hasAlwaysInlines = true;
+        if (sc.func)
+            sc.func.hasAlwaysInlines = true;
+    }
+
     const isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
 
     const size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)

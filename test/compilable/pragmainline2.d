@@ -1,10 +1,10 @@
 /*
-REQUIRED_ARGS: -inline
+REQUIRED_ARGS: -inline -wi
 TEST_OUTPUT:
 ---
-fail_compilation/pragmainline2.d(14): Error: function `pragmainline2.foo` cannot inline function
-fail_compilation/pragmainline2.d(22): Error: function `pragmainline2.f1t` cannot inline function
-fail_compilation/pragmainline2.d(25): Error: function `pragmainline2.f2t` cannot inline function
+compilable/pragmainline2.d(14): Warning: cannot inline function `pragmainline2.foo`
+compilable/pragmainline2.d(22): Warning: cannot inline function `pragmainline2.f1t`
+compilable/pragmainline2.d(25): Warning: cannot inline function `pragmainline2.f2t`
 ---
 */
 

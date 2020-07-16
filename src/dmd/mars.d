@@ -615,15 +615,16 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
-    if (params.useInline)
+    foreach (m; modules)
     {
-        foreach (m; modules)
+        if (params.useInline || m.hasAlwaysInlines)
         {
             if (params.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
     }
+
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
