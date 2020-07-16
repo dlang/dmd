@@ -707,7 +707,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         obj.resetSymbols.reset();
 
         obj.buf = objbuf;
-        obj.buf.reserve(40000);
+        obj.buf.reserve(40_000);
 
         obj.lastfardatasegi = -1;
 
@@ -2670,7 +2670,7 @@ void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
     char* p;
     uint ti;
 
-    assert(offset < 100000000);
+    assert(offset < 100_000_000);
     obj.resetSymbols.push(s);
 
     int idx = SegData[seg].segidx;

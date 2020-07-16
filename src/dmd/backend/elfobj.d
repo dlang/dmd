@@ -276,19 +276,19 @@ enum COMD = CDATAREL+1;
 
 enum
 {
-    OB_SEG_SIZ      = 10,          // initial number of segments supported
-    OB_SEG_INC      = 10,          // increment for additional segments
+    OB_SEG_SIZ      = 10,           // initial number of segments supported
+    OB_SEG_INC      = 10,           // increment for additional segments
 
-    OB_CODE_STR     = 100000,      // initial size for code
-    OB_CODE_INC     = 100000,      // increment for additional code
-    OB_DATA_STR     = 100000,      // initial size for data
-    OB_DATA_INC     = 100000,      // increment for additional data
-    OB_CDATA_STR    =   1024,      // initial size for data
-    OB_CDATA_INC    =   1024,      // increment for additional data
-    OB_COMD_STR     =    256,      // initial size for comments
-                                   // increment as needed
-    OB_XTRA_STR     =    250,      // initial size for extra segments
-    OB_XTRA_INC     =  10000,      // increment size
+    OB_CODE_STR     = 100_000,      // initial size for code
+    OB_CODE_INC     = 100_000,      // increment for additional code
+    OB_DATA_STR     = 100_000,      // initial size for data
+    OB_DATA_INC     = 100_000,      // increment for additional data
+    OB_CDATA_STR    =    1024,      // initial size for data
+    OB_CDATA_INC    =    1024,      // increment for additional data
+    OB_COMD_STR     =     256,      // initial size for comments
+                                    // increment as needed
+    OB_XTRA_STR     =     250,      // initial size for extra segments
+    OB_XTRA_INC     =  10_000,      // increment size
 }
 
 IDXSEC      MAP_SEG2SECIDX(int seg) { return SegData[seg].SDshtidx; }

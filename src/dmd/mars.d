@@ -1982,13 +1982,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 3449:
                             params.vfield = true;
                             break;
-                        case 14246:
+                        case 14_246:
                             params.dtorFields = true;
                             break;
-                        case 14488:
+                        case 14_488:
                             params.vcomplex = true;
                             break;
-                        case 16997:
+                        case 16_997:
                             params.fix16997 = true;
                             break;
                         default:

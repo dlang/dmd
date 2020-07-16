@@ -104,10 +104,10 @@ enum JsonFieldFlags : uint
 
 enum CppStdRevision : uint
 {
-    cpp98 = 199711,
-    cpp11 = 201103,
-    cpp14 = 201402,
-    cpp17 = 201703
+    cpp98 = 1997_11,
+    cpp11 = 2011_03,
+    cpp14 = 2014_02,
+    cpp17 = 2017_03
 }
 
 // Put command line switches in here

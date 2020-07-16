@@ -3889,7 +3889,7 @@ int el_length(elem *e)
         if (!OTleaf(e.Eoper))
         {
             if (e.Eoper == OPctor || e.Eoper == OPdtor)
-                return 10000;
+                return 10_000;
             n += el_length(e.EV.E2);
             e = e.EV.E1;
         }

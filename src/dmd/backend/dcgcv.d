@@ -86,7 +86,7 @@ __gshared
 private Barray!(debtyp_t*) debtyp;
 
 private vec_t debtypvec;     // vector of used entries
-enum DEBTYPVECDIM = 16001;   //8009 //3001     // dimension of debtypvec (should be prime)
+enum DEBTYPVECDIM = 16_001;   //8009 //3001     // dimension of debtypvec (should be prime)
 
 enum DEBTYPHASHDIM = 1009;
 private uint[DEBTYPHASHDIM] debtyphash;

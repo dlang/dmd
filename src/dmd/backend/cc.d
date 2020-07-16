@@ -146,8 +146,8 @@ else version (SCPP)
 
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
-enum STRMAX = 65000;           // max length of string (determined by
-                               // max ph size)
+enum STRMAX = 65_000;           // max length of string (determined by
+                                // max ph size)
 
 //enum SC;
 struct Thunk
