@@ -1621,6 +1621,7 @@ bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
 
 private elem *elor(elem *e, goal_t goal)
 {
+    //printf("elor()\n");
     /* ROL:     (a << shift) | (a >> (sizeof(a) * 8 - shift))
      * ROR:     (a >> shift) | (a << (sizeof(a) * 8 - shift))
      */
@@ -4794,6 +4795,23 @@ private elem * el64_32(elem *e, goal_t goal)
             e.Eoper = OPmsw;
             e.EV.E1 = el_selecte1(e.EV.E1);
         }
+        break;
+
+    case OPmul:
+        static if (TARGET_OSX) // https://issues.dlang.org/show_bug.cgi?id=21047
+            break;
+        else
+            goto case;
+
+    case OPadd:
+    case OPmin:
+    case OPor:
+    case OPand:
+    case OPxor:
+        // OP64_32(a op b) => (OP64_32(a) op OP64_32(b))
+        e1.EV.E1 = el_una(e.Eoper, ty, e1.EV.E1);
+        e1.EV.E2 = el_una(e.Eoper, ty, e1.EV.E2);
+        e = el_selecte1(e);
         break;
 
     default:
