@@ -2889,14 +2889,7 @@ final class Parser(AST) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    if (global.params.inMeansScopeConst)
-                    {
-                        // `in` now means `const scope` as originally intented
-                        stc = STC.const_ | STC.scope_;
-                    }
-                    else
-                        stc = STC.in_;
-
+                    stc = STC.in_;
                     goto L2;
 
                 case TOK.out_:

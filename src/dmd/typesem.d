@@ -1261,6 +1261,9 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter fparam = tf.parameterList[i];
+                // If `-preview=in` is on, set `scope` as well
+                if ((fparam.storageClass & STC.in_) && global.params.inMeansScopeConst)
+                    fparam.storageClass |= STC.scope_;
                 fparam.storageClass |= STC.parameter;
                 mtype.inuse++;
                 fparam.type = fparam.type.typeSemantic(loc, argsc);
