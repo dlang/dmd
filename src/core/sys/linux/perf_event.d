@@ -26,7 +26,7 @@ else version (ARM)
 {
         enum __NR_perf_event_open = 364;
 }
-else version (ARM64)
+else version (AArch64)
 {
         enum __NR_perf_event_open = 241;
 }
