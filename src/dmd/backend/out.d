@@ -1400,7 +1400,7 @@ version (SCPP)
     }
 }
     assert(funcsym_p == sfunc);
-    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
+    const int CSEGSAVE_DEFAULT = -10_000;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {

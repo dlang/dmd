@@ -822,7 +822,7 @@ extern (C++) abstract class Type : ASTNode
 
     static void _init()
     {
-        stringtable._init(14000);
+        stringtable._init(14_000);
 
         // Set basic types
         __gshared TY* basetab =

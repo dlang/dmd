@@ -652,7 +652,7 @@ version (SCPP)
     // switch to new object file format (similar to C++ with /bigobj)
     // only when exceeding the limit for 16-bit section count according to
     // https://msdn.microsoft.com/en-us/library/8578y171%28v=vs.71%29.aspx
-    bool bigobj = scnhdr_cnt > 65279;
+    bool bigobj = scnhdr_cnt > 65_279;
     build_syment_table(bigobj);
 
     /* Write out the object file in the following order:
