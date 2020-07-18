@@ -3775,8 +3775,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             exp.type = exp.type.pointerTo();
         }
-        else if (tb.ty == Tarray && nargs)
+        else if (tb.ty == Tarray)
         {
+            if (!nargs)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=20422
+                // Without this check the compiler would give a misleading error
+                exp.error("missing length argument for array");
+                return setError();
+            }
+
             Type tn = tb.nextOf().baseElemOf();
             Dsymbol s = tn.toDsymbol(sc);
             AggregateDeclaration ad = s ? s.isAggregateDeclaration() : null;
