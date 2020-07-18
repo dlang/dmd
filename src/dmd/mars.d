@@ -1,5 +1,6 @@
 /**
  * Entry point for DMD.
+ * Master test.
  *
  * This modules defines the entry point (main) for DMD, as well as related
  * utilities needed for arguments parsing, path manipulation, etc...
