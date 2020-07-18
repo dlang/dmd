@@ -2242,6 +2242,43 @@ void testrolror()
 
 ////////////////////////////////////////////////////////////////////////
 
+// Some tests for OPmemcpy
+
+enum N = 128;
+
+ubyte[N] def()
+{
+    ubyte[N] array;
+    foreach (i, ref a; array)
+        a = cast(ubyte)(i + 1);
+    return array;
+}
+
+
+void ghi(ubyte* p)
+{
+    foreach (i; 0 .. N)
+        assert(p[i] == i + 1);
+}
+
+void testmemcpy()
+{
+    ubyte[N] bits;
+    ubyte[N] bits2;
+    bits2[0..N] = bits[0..N] = def();
+    ghi(bits.ptr);
+    ghi(bits2.ptr);
+
+    __gshared size_t n = N;
+    ubyte[N] bits3;
+    ubyte[N] bits4;
+    bits4[0..n] = bits3[0..n] = def();
+    ghi(bits3.ptr);
+    ghi(bits4.ptr);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -2321,6 +2358,7 @@ int main()
     test7();
     testbyteswap();
     testrolror();
+    testmemcpy();
 
     printf("Success\n");
     return 0;
