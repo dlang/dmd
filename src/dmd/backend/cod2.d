@@ -4105,6 +4105,11 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         //if (numbytes)
         //    printf("cdstreq numbytes %d\n",numbytes);
+        if (I64 && numbytes >= 4)
+        {
+            cdb.gen1(0xA5);         // MOVSD
+            numbytes -= 4;
+        }
         while (numbytes--)
             cdb.gen1(0xA4);         // MOVSB
     }
@@ -4121,6 +4126,11 @@ static if (1)
             cdb.gen1(REX | REX_W);
         cdb.gen1(0xA5);                 // REP MOVSD
         regimmed_set(CX,0);             // note that CX == 0
+        if (I64 && remainder >= 4)
+        {
+            cdb.gen1(0xA5);         // MOVSD
+            remainder -= 4;
+        }
         for (; remainder; remainder--)
         {
             cdb.gen1(0xA4);             // MOVSB
