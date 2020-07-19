@@ -1902,6 +1902,39 @@ void test18794()
 
 ////////////////////////////////////////////////////////////////////////
 
+/* Test the optimization
+ *  (e1+c)-e2 => (e1-e2)+c
+ */
+
+void testelmin()
+{
+    static void foo(int i)
+    {
+        static ubyte[4] bar()
+        {
+            ubyte[4] array;
+            foreach (i, ref a; array)
+                a = cast(ubyte)(i + 1);
+            return array;
+        }
+
+        static void test(int i, ubyte* p)
+        {
+            foreach (j; 0 .. 4)
+                assert(p[i * 4 + j] == j + 1);
+        }
+
+        ubyte[32] data;
+        data[i*4..(i+1)*4] = bar(); // optimize to single MOV
+
+        test(i, data.ptr);
+    }
+
+    foo(4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 const(char)* fastpar(string s)
 {
     return s.ptr + s.length;
@@ -2130,6 +2163,7 @@ int main()
     test18730();
     test19497();
     test18794();
+    testelmin();
     testfastpar();
     test20363();
     testNegConst();
