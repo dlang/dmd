@@ -887,8 +887,10 @@ extern (C++) class FuncDeclaration : Declaration
             if (match == MATCH.nomatch)
                 return 0;
 
-            if (match > m.last) goto LcurrIsBetter;
-            if (match < m.last) goto LlastIsBetter;
+            const matchResult = MatchResult().push(match);
+
+            if (matchResult > m.last) goto LcurrIsBetter;
+            if (matchResult < m.last) goto LlastIsBetter;
 
             // See if one of the matches overrides the other.
             if (m.lastf.overrides(f)) goto LlastIsBetter;
@@ -906,13 +908,13 @@ extern (C++) class FuncDeclaration : Declaration
 
         LcurrIsBetter:
             //printf("\tisbetter\n");
-            if (m.last <= MATCH.convert)
+            if (!m.last.isMatch || (m.last.counters[MATCH.convert] && !matchResult.counters[MATCH.convert]))
             {
                 // clear last secondary matching
                 m.nextf = null;
                 m.count = 0;
             }
-            m.last = match;
+            m.last = matchResult;
             m.lastf = f;
             m.count++; // count up
             return 0;
@@ -984,7 +986,7 @@ extern (C++) class FuncDeclaration : Declaration
      *      match   'this' is at least as specialized as g
      *      0       g is more specialized than 'this'
      */
-    final MATCH leastAsSpecialized(FuncDeclaration g)
+    final MatchResult leastAsSpecialized(FuncDeclaration g)
     {
         enum LOG_LEASTAS = 0;
         static if (LOG_LEASTAS)
@@ -1009,12 +1011,12 @@ extern (C++) class FuncDeclaration : Declaration
             if (isCtorDeclaration())
             {
                 if (!MODimplicitConv(tg.mod, tf.mod))
-                    return MATCH.nomatch;
+                    return MatchResult.noMatch;
             }
             else
             {
                 if (!MODimplicitConv(tf.mod, tg.mod))
-                    return MATCH.nomatch;
+                    return MatchResult.noMatch;
             }
         }
 
@@ -1034,8 +1036,8 @@ extern (C++) class FuncDeclaration : Declaration
             args.push(e);
         }
 
-        MATCH m = tg.callMatch(null, args[], 1);
-        if (m > MATCH.nomatch)
+        const m = tg.callMatch(null, args[], 1);
+        if (m.isMatch)
         {
             /* A variadic parameter list is less specialized than a
              * non-variadic one.
@@ -1054,7 +1056,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             printf("  doesn't match, so is not as specialized\n");
         }
-        return MATCH.nomatch;
+        return MatchResult.noMatch;
     }
 
     /********************************
@@ -2858,7 +2860,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     functionResolve(m, s, loc, sc, tiargs, tthis, fargs, null);
     auto orig_s = s;
 
-    if (m.last > MATCH.nomatch && m.lastf)
+    if (m.last.isMatch && m.lastf)
     {
         if (m.count == 1) // exactly one match
         {
@@ -2875,7 +2877,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCH.nomatch)
+    if (!m.last.isMatch)
     {
         // error was caused on matched function, not on the matching itself,
         // so return the function to produce a better diagnostic

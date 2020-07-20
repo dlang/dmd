@@ -278,12 +278,50 @@ enum STCFlowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ 
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
                          STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system); /// for a FuncDeclaration
 
+/* Result of matching arguments to function parameters.
+ */
+struct MatchResult
+{
+    static immutable noMatch = MatchResult([1, 0, 0]);
+
+    int[MATCH.max] counters; // exclude MATCH.exact
+
+    ref MatchResult push(MATCH match) return
+    {
+        if (match != MATCH.exact)
+            counters[match]++;
+        return this;
+    }
+
+    bool isMatch() const { return !counters[MATCH.nomatch]; }
+
+    // less means worse
+    int opCmp(const scope ref MatchResult rhs) const
+    {
+        if (!isMatch)
+            return !rhs.isMatch ? 0 : -1;
+        if (!rhs.isMatch)
+            return 1;
+
+        // prefer the one with less implicit conversions, then less const conversions
+        foreach (i; 1 .. counters.length)
+        {
+            const lhsConversions = counters[1] + counters[2];
+            const rhsConversions = rhs.counters[1] + rhs.counters[2];
+            if (const delta = rhs.counters[i] - counters[i])
+                return delta > 0 ? 1 : -1;
+        }
+
+        return 0;
+    }
+}
+
 /* Accumulator for successive matches.
  */
 struct MatchAccumulator
 {
     int count;              // number of matches found so far
-    MATCH last = MATCH.nomatch; // match level of lastf
+    MatchResult last = MatchResult.noMatch; // for lastf
     FuncDeclaration lastf;  // last matching function we found
     FuncDeclaration nextf;  // if ambiguous match, this is the "other" function
 }
