@@ -3773,8 +3773,8 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 
 /*********************************
- * Generate code for memset(s,val,n) intrinsic.
- *      (s OPmemset (n OPparam val))
+ * Generate code for memset(s,value,numbytes) intrinsic.
+ *      (s OPmemset (numbytes OPparam value))
  */
 
 void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -3795,12 +3795,15 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     elem *e2 = e.EV.E2;
     assert(e2.Eoper == OPparam);
 
+    elem* evalue = e2.EV.E2;
+    elem* enumbytes = e2.EV.E1;
+
     ubyte rex = I64 ? REX_W : 0;
 
     bool e2E2isConst = false;
-    if (e2.EV.E2.Eoper == OPconst)
+    if (evalue.Eoper == OPconst)
     {
-        value = cast(targ_size_t)el_tolong(e2.EV.E2);
+        value = cast(targ_size_t)el_tolong(evalue);
         value &= 0xFF;
         value |= value << 8;
         value |= value << 16;
@@ -3808,7 +3811,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             value |= value << 32;
         e2E2isConst = true;
     }
-    else if (e2.EV.E2.Eoper == OPstrpar)  // happens if e2.EV.E2 is a struct of 0 size
+    else if (evalue.Eoper == OPstrpar)  // happens if evalue is a struct of 0 size
     {
         value = 0;
         e2E2isConst = true;
@@ -3816,10 +3819,10 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
         value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
 
-    if (e2.EV.E1.Eoper == OPconst)
+    if (enumbytes.Eoper == OPconst)
     {
         static uint REP_THRESHOLD() { return REGSIZE * (6 + (REGSIZE == 4)); }
-        numbytes = cast(uint)cast(targ_size_t)el_tolong(e2.EV.E1);
+        numbytes = cast(uint)cast(targ_size_t)el_tolong(enumbytes);
         if (numbytes <= REP_THRESHOLD &&
             !I16 &&                     // doesn't work for 16 bits
             e2E2isConst)
@@ -3830,7 +3833,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs1 = ALLREGS;
             codelem(cdb,e.EV.E1,&retregs1,false);
             reg = findreg(retregs1);
-            if (e2.EV.E2.Eoper == OPconst)
+            if (evalue.Eoper == OPconst)
             {
                 const uint mrm = buildModregrm(0,0,reg);
                 switch (numbytes)
@@ -3852,7 +3855,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
 
             regwithvalue(cdb, BYTEREGS & ~retregs1, value, &vreg, I64 ? 64 : 0);
-            freenode(e2.EV.E2);
+            freenode(evalue);
             freenode(e2);
 
             m = (rex << 16) | buildModregrm(2,vreg,reg);
@@ -3897,19 +3900,22 @@ fixres:
     opcode_t op;
     // Get nbytes into CX
     retregs2 = mCX;
-    if (!I16 && e2.EV.E1.Eoper == OPconst && e2E2isConst)
+    if (!I16 && enumbytes.Eoper == OPconst && e2E2isConst)
     {
-        remainder = numbytes & (4 - 1);
-        numwords  = numbytes / 4;               // number of words
-        op = 0xAB;                              // moving by words
+        remainder = numbytes & (REGSIZE - 1);
+        numwords  = numbytes / REGSIZE;         // number of words
+        op = STOS;                              // moving by words
         getregs(cdb,mCX);
         movregconst(cdb,CX,numwords,I64?64:0);     // # of bytes/words
     }
     else
     {
+        /* Can do better by filling the register with copies
+         * of AL
+         */
         remainder = 0;
-        op = 0xAA;                              // must move by bytes
-        codelem(cdb,e2.EV.E1,&retregs2,false);
+        op = STOSB;                              // must move by bytes
+        codelem(cdb,enumbytes,&retregs2,false);
     }
 
     // Get val into AX
@@ -3918,11 +3924,11 @@ fixres:
     if (!I16 && e2E2isConst)
     {
         regwithvalue(cdb, mAX, value, null, I64?64:0);
-        freenode(e2.EV.E2);
+        freenode(evalue);
     }
     else
     {
-        scodelem(cdb,e2.EV.E2,&retregs3,retregs2,false);
+        scodelem(cdb,evalue,&retregs3,retregs2,false);
 
         if (0 && I32)
         {
@@ -3959,33 +3965,25 @@ fixres:
         cdb.gen2(0x8A,modregrm(3,AH,AL));   // MOV AH,AL
         cdb.gen2(0xD1,modregrm(3,5,CX));    // SHR CX,1
         cdb.gen1(0xF3);                     // REP
-        cdb.gen1(0xAB);                     // STOSW
+        cdb.gen1(STOS);                     // STOSW
         cdb.gen2(0x11,modregrm(3,CX,CX));   // ADC CX,CX
-        op = 0xAA;
+        op = STOSB;
     }
 
     cdb.gen1(0xF3);                         // REP
     cdb.gen1(op);                           // STOSD
-    m = buildModregrm(2,AX,reg);
-    if (remainder & 4)
+    if (I64 && op == STOS)
+        code_orrex(cdb.last(), REX_W);
+    regimmed_set(CX, 0);                    // CX is now 0
+    if (I64 && remainder >= 4)
     {
-        cdb.gen2(0x89,m);
-        cdb.last().IFL1 = FLconst;
+        cdb.gen1(STOS);                     // STOSD
+        remainder -= 4;
     }
-    if (remainder & 2)
+    for (; remainder; remainder--)
     {
-        cdb.gen2(0x89,m);
-        cdb.last().Iflags = CFopsize;
-        cdb.last().IEV1.Voffset = remainder & 4;
-        cdb.last().IFL1 = FLconst;
+        cdb.gen1(STOSB);                    // STOSB
     }
-    if (remainder & 1)
-    {
-        cdb.gen2(0x88,m);
-        cdb.last().IEV1.Voffset = remainder & ~1;
-        cdb.last().IFL1 = FLconst;
-    }
-    regimmed_set(CX,0);
     fixresult(cdb,e,mES|mBX,pretregs);
 }
 
