@@ -6787,6 +6787,7 @@ struct Param
     bool allInst;
     bool fix16997;
     bool fixAliasThis;
+    bool inclusiveInContracts;
     bool vsafe;
     bool ehnogc;
     bool dtorFields;
@@ -6931,6 +6932,7 @@ struct Param
         allInst(),
         fix16997(),
         fixAliasThis(),
+        inclusiveInContracts(),
         vsafe(),
         ehnogc(),
         dtorFields(),

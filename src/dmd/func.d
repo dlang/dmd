@@ -2154,22 +2154,89 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             sf = fdv.mergeFrequire(sf, params);
+            if (!sf || !fdv.fdrequire)
+                return null;
+            //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
+            /* Make the call:
+                *   try { __require(params); }
+                *   catch (Throwable) { frequire; }
+                */
+            params = Expression.arraySyntaxCopy(params);
+            Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
+            Statement s2 = new ExpStatement(loc, e);
+
+            auto c = new Catch(loc, getThrowable(), null, sf);
+            c.internalCatch = true;
+            auto catches = new Catches();
+            catches.push(c);
+            sf = new TryCatchStatement(loc, s2, catches);
+        }
+        return sf;
+    }
+
+    /****************************************************
+     * Merge into this function the 'in' contracts of all it overrides.
+     */
+    extern (D) final Statement mergeFrequireInclusivePreview(Statement sf, Expressions* params)
+    {
+        /* If a base function and its override both have an IN contract, then
+         * the override in contract must widen the guarantee of the base contract.
+         * This is checked by generating:
+         *
+         * void derived.in() {
+         *  try {
+         *    ... body of derived.in() ...
+         *  }
+         *  catch () {
+         *    // derived in rejected this argument. so parent must also reject it, or we've tightened the contract.
+         *    base.in();
+         *    assert(false, "Logic error: " ~ thr.msg);
+         *  }
+         */
+
+        foreach (fdv; foverrides)
+        {
+            /* The semantic pass on the contracts of the overridden functions must
+             * be completed before code generation occurs.
+             * https://issues.dlang.org/show_bug.cgi?id=3602
+             */
+            if (fdv.frequires && fdv.semanticRun != PASS.semantic3done)
+            {
+                assert(fdv._scope);
+                Scope* sc = fdv._scope.push();
+                sc.stc &= ~STC.override_;
+                fdv.semantic3(sc);
+                sc.pop();
+            }
+
+            sf = fdv.mergeFrequireInclusivePreview(sf, params);
             if (sf && fdv.fdrequire)
             {
+                const loc = this.fdrequire.loc;
+
                 //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
                 /* Make the call:
-                 *   try { __require(params); }
-                 *   catch (Throwable) { frequire; }
+                 *   try { frequire; }
+                 *   catch (Throwable thr) { __require(params); assert(false, "Logic error: " ~ thr.msg); }
                  */
+                Identifier id = Identifier.generateId("thr");
                 params = Expression.arraySyntaxCopy(params);
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
                 Statement s2 = new ExpStatement(loc, e);
+                // assert(false, ...)
+                // TODO make this a runtime helper to allow:
+                // - chaining the original expression
+                // - nogc concatenation
+                Expression msg = new StringExp(loc, "Logic error: in-contract was tighter than parent in-contract");
+                Statement fail = new ExpStatement(loc, new AssertExp(loc, IntegerExp.literal!0, msg));
 
-                auto c = new Catch(loc, getThrowable(), null, sf);
+                Statement s3 = new CompoundStatement(loc, s2, fail);
+
+                auto c = new Catch(loc, getThrowable(), id, s3);
                 c.internalCatch = true;
                 auto catches = new Catches();
                 catches.push(c);
-                sf = new TryCatchStatement(loc, s2, catches);
+                sf = new TryCatchStatement(loc, sf, catches);
             }
             else
                 return null;
