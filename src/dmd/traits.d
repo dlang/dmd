@@ -1433,19 +1433,34 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
                 return new ErrorExp();
             }
+
             if (d !is null)
                 link = d.linkage;
-            else final switch (agg.classKind)
+            else
             {
-                case ClassKind.d:
-                    link = LINK.d;
-                    break;
-                case ClassKind.cpp:
-                    link = LINK.cpp;
-                    break;
-                case ClassKind.objc:
-                    link = LINK.objc;
-                    break;
+                // Resolves forward references
+                if (agg.sizeok != Sizeok.done)
+                {
+                    agg.size(e.loc);
+                    if (agg.sizeok != Sizeok.done)
+                    {
+                        e.error("%s `%s` is forward referenced", agg.kind(), agg.toChars());
+                        return new ErrorExp();
+                    }
+                }
+
+                final switch (agg.classKind)
+                {
+                    case ClassKind.d:
+                        link = LINK.d;
+                        break;
+                    case ClassKind.cpp:
+                        link = LINK.cpp;
+                        break;
+                    case ClassKind.objc:
+                        link = LINK.objc;
+                        break;
+                }
             }
         }
         auto linkage = linkageToChars(link);
