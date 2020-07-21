@@ -6187,16 +6187,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
-        if (global.params.allInst)
-        {
-            return true;
-        }
-
-        if (isDiscardable())
-        {
-            return false;
-        }
-
         if (!minst)
         {
             // If this is a speculative instantiation,
@@ -6213,6 +6203,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             if (tinst && tinst.needsCodegen())
             {
                 minst = tinst.minst; // cache result
+                if (global.params.allInst && minst)
+                {
+                    return true;
+                }
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
                 return true;
@@ -6220,11 +6214,25 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             if (tnext && (tnext.needsCodegen() || tnext.minst))
             {
                 minst = tnext.minst; // cache result
+                if (global.params.allInst && minst)
+                {
+                    return true;
+                }
                 assert(minst);
                 return minst.isRoot() || minst.rootImports();
             }
 
             // Elide codegen because this is really speculative.
+            return false;
+        }
+
+        if (global.params.allInst)
+        {
+            return true;
+        }
+
+        if (isDiscardable())
+        {
             return false;
         }
 
