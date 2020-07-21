@@ -921,15 +921,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto op = (*e.args)[0];
         if (auto symp = getDsymbol(op))
             ex = new DsymbolExp(e.loc, symp);
+        else if (auto exp = op.isExpression())
+            ex = exp;
         else
         {
-            ex = op.isExpression();
-            if (!ex)
-            {
-                e.error("symbol or expression expected as first argument of __traits `%s` instead of `%s`",
-                        e.ident.toChars(), op.toChars());
-                return new ErrorExp();
-            }
+            e.error("symbol or expression expected as first argument of __traits `%s` instead of `%s`", e.ident.toChars(), op.toChars());
+            return new ErrorExp();
         }
 
         ex = ex.expressionSemantic(sc);
