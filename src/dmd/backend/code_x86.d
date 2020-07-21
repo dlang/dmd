@@ -433,6 +433,9 @@ enum
     INT3    = 0xCC,
     HLT     = 0xF4,
 
+    STOSB   = 0xAA,
+    STOS    = 0xAB,
+
     STO     = 0x89,
     LOD     = 0x8B,
 
