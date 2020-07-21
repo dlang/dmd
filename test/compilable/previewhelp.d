@@ -16,5 +16,6 @@ Upcoming language changes listed by -preview=name:
   =rvaluerefparam   enable rvalue arguments to ref parameters
   =nosharedaccess   disable access to shared memory objects
   =in               `in` on parameters means `scope const [ref]` and accepts rvalues
+  =inclusiveincontracts 'in' contracts of overridden methods must be a superset of parent contract
 ----
 */

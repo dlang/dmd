@@ -935,7 +935,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sc2 = sc2.pop();
             }
 
-            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire, funcdecl.fdrequireParams);
+            if (global.params.inclusiveInContracts)
+            {
+                funcdecl.frequire = funcdecl.mergeFrequireInclusivePreview(
+                    funcdecl.frequire, funcdecl.fdrequireParams);
+            }
+            else
+            {
+                funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire, funcdecl.fdrequireParams);
+            }
             funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result, funcdecl.fdensureParams);
 
             Statement freq = funcdecl.frequire;

@@ -771,6 +771,8 @@ dmd -cov -unittest myprog.d
             "disable access to shared memory objects"),
         Feature("in", "previewIn",
             "`in` on parameters means `scope const [ref]` and accepts rvalues"),
+        Feature("inclusiveincontracts", "inclusiveInContracts",
+            "'in' contracts of overridden methods must be a superset of parent contract"),
         // DEPRECATED previews
         // trigger deprecation message once D repositories don't use this flag anymore
         Feature("markdown", "markdown", "enable Markdown replacements in Ddoc", false, false),
@@ -844,7 +846,8 @@ struct CLIUsage
                 continue;
             buf ~= "  =";
             buf ~= t.name;
-            auto lineLength = 3 + t.name.length;
+            buf ~= " "; // at least one separating space
+            auto lineLength = "  =".length + t.name.length + " ".length;
             foreach (i; lineLength .. maxFlagLength)
                 buf ~= " ";
             buf ~= t.helpText;
