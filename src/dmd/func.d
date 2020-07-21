@@ -2109,24 +2109,22 @@ extern (C++) class FuncDeclaration : Declaration
 
     /****************************************************
      * Merge into this function the 'in' contracts of all it overrides.
-     * 'in's are OR'd together, i.e. only one of them needs to pass.
      */
     extern (D) final Statement mergeFrequire(Statement sf, Expressions* params)
     {
         /* If a base function and its override both have an IN contract, then
-         * only one of them needs to succeed. This is done by generating:
+         * the override in contract must widen the guarantee of the base contract.
+         * This is checked by generating:
          *
          * void derived.in() {
          *  try {
-         *    base.in();
-         *  }
-         *  catch () {
          *    ... body of derived.in() ...
          *  }
-         * }
-         *
-         * So if base.in() doesn't throw, derived.in() need not be executed, and the contract is valid.
-         * If base.in() throws, then derived.in()'s body is executed.
+         *  catch () {
+         *    // derived in rejected this argument. so parent must also reject it, or we've tightened the condition.
+         *    base.in();
+         *    throw new InConditionLogicError;
+         *  }
          */
 
         foreach (fdv; foverrides)
@@ -2149,18 +2147,21 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
                 /* Make the call:
-                 *   try { __require(params); }
-                 *   catch (Throwable) { frequire; }
+                 *   try { frequire; }
+                 *   catch (Throwable) { __require(params); throw new InConditionLogicError; }
                  */
                 params = Expression.arraySyntaxCopy(params);
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
                 Statement s2 = new ExpStatement(loc, e);
+                Statement fail = new ExpStatement(loc, new AssertExp(loc, IntegerExp.literal!0,
+                    new StringExp(loc, "In condition logic error")));
+                Statement s3 = new CompoundStatement(loc, s2, fail);
 
-                auto c = new Catch(loc, getThrowable(), null, sf);
+                auto c = new Catch(loc, getThrowable(), null, s3);
                 c.internalCatch = true;
                 auto catches = new Catches();
                 catches.push(c);
-                sf = new TryCatchStatement(loc, s2, catches);
+                sf = new TryCatchStatement(loc, sf, catches);
             }
             else
                 return null;
