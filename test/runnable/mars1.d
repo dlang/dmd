@@ -67,6 +67,28 @@ void testbreak()
 
 ///////////////////////
 
+// https://github.com/dlang/dmd/pull/11441
+
+long sdiv1(long l)
+{
+  return l / 2;
+}
+
+int sdiv2(int i)
+{
+  return i / 2;
+}
+
+void testsdiv2()
+{
+    assert(sdiv1(10) == 5);
+    assert(sdiv1(-10) == -5);
+    assert(sdiv2(10) == 5);
+    assert(sdiv2(-10) == -5);
+}
+
+///////////////////////
+
 int foo(string s)
 {
     int i;
@@ -2069,6 +2091,7 @@ int main()
     testswitch();
     testdo();
     testbreak();
+    testsdiv2();
     teststringswitch();
     teststrarg();
     test12164();

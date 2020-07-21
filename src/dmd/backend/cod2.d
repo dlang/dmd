@@ -906,6 +906,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    //printf("cdmul()\n");
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
     if (*pretregs == 0)                         // if don't want result
@@ -1520,29 +1521,24 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 if (pow2 == 1 && oper == OPdiv && config.target_cpu > TARGET_80386)
                 {
-                    //     test    eax,eax
-                    //     jns     L1
-                    //     add     eax,1
-                    // L1: sar     eax,1
-
+                    /* MOV r,reg
+                       SHR r,31
+                       ADD reg,r
+                       SAR reg,1
+                     */
                     retregs = allregs;
                     codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
                     const reg = findreg(retregs);
                     freenode(e2);
                     getregs(cdb,retregs);
-                    gentstreg(cdb,reg);            // TEST reg,reg
-                    code_orrex(cdb.last(), rex);
-                    code *cnop = gennop(null);
-                    genjmp(cdb,JNS,FLcode,cast(block *)cnop);   // JNS cnop
-                    if (I64)
-                    {
-                        cdb.gen2(0xFF,modregrmx(3,0,reg));      // INC reg
-                        code_orrex(cdb.last(),rex);
-                    }
-                    else
-                        cdb.gen1(0x40 + reg);                   // INC reg
-                    cdb.append(cnop);
-                    cdb.gen2(0xD1,grex | modregrmx(3,7,reg));   // SAR reg,1
+
+                    regm_t scratchm = allregs & ~retregs;
+                    reg_t r;
+                    allocreg(cdb,&scratchm,&r,TYint);
+                    genmovreg(cdb,r,reg);                        // MOV r,reg
+                    cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
+                    cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
+                    cdb.gen2(0xD1,grex | modregrmx(3,7,reg));    // SAR reg,1
                     resreg = retregs;
                     fixresult(cdb,e,resreg,pretregs);
                     return;
