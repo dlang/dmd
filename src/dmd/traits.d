@@ -1080,8 +1080,34 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 auto fd = s.isFuncDeclaration();
                 if (!fd)
                 {
-                    if(includeTemplates)
-                        exps.push(new DsymbolExp(Loc.initial, s, false));
+                    if (includeTemplates)
+                    {
+                        if (auto td = s.isTemplateDeclaration())
+                        {
+                            // if td is part of an overload set we must take a copy
+                            // which shares the same `instances` cache but without
+                            // `overroot` and `overnext` set to avoid overload
+                            // behaviour in the result.
+                            if (td.overnext !is null)
+                            {
+                                if (td.instances is null)
+                                {
+                                    // create an empty AA just to copy it
+                                    scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
+                                    auto tib = TemplateInstanceBox(ti);
+                                    td.instances[tib] = null;
+                                    td.instances.clear();
+                                }
+                                td = cast(TemplateDeclaration) td.syntaxCopy(null);
+                                import core.stdc.string : memcpy;
+                                memcpy(cast(void*) td, cast(void*) s,
+                                        __traits(classInstanceSize, TemplateDeclaration));
+                                td.overroot = null;
+                                td.overnext = null;
+                            }
+                            exps.push(new DsymbolExp(Loc.initial, td, false));
+                        }
+                    }
                     return 0;
                 }
                 if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
