@@ -6187,6 +6187,41 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        if(minst) return true;
+
+        if (!minst)
+        {
+            // If this is a speculative instantiation,
+            // 1. do codegen if ancestors really needs codegen.
+            // 2. become non-speculative if siblings are not speculative
+
+            TemplateInstance tnext = this.tnext;
+            TemplateInstance tinst = this.tinst;
+            // At first, disconnect chain first to prevent infinite recursion.
+            this.tnext = null;
+            this.tinst = null;
+
+            // Determine necessity of tinst before tnext.
+            if (tinst && tinst.needsCodegen())
+            {
+                minst = tinst.minst; // cache result
+                assert(minst);
+                //assert(minst.isRoot() || minst.rootImports());
+                return true;
+            }
+            if (tnext && (tnext.needsCodegen() || tnext.minst))
+            {
+                minst = tnext.minst; // cache result
+                assert(minst);
+                //return minst.isRoot() || minst.rootImports();
+                return true;
+            }
+
+            // Elide codegen because this is really speculative.
+            return false;
+        }
+
+
         if (global.params.allInst)
         {
             return true;
@@ -6249,7 +6284,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
-        if (global.params.useUnitTests)
+        if (global.params.useUnitTests && false)
         {
             // Prefer instantiations from root modules, to maximize link-ability.
             if (minst.isRoot())
