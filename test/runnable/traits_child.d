@@ -63,8 +63,21 @@ alias ctset = C.t.set;
 alias cm = C.m;
 alias cmset = C.m.set;
 
+
+// adapted from http://thecybershadow.net/d/dconf2017/#/21
+struct S { string a, b, c; }
+
+static string printField(alias field)()
+{
+    S s = { a: "aa", b: "bb", c: "cc" };
+    return __traits(child, s, field);
+}
+
 void main()
 {
+    auto f = printField!(S.b)();
+    assert(f == "bb");
+
     A a;
     __traits(child, a, ai) = 3;
     assert(a.i == 3);
