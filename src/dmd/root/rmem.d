@@ -440,9 +440,9 @@ if (is(T == class))
                     // Plant summary printer
                     static extern(C) void summarize()
                     {
-                        fprintf(stderr, "%.*s(%u): Pool!(%.*s)."~fun~"() calls=%lu bytes=%lu\n",
-                            cast(int) f.length, f.ptr, l, cast(int) T.stringof.length, T.stringof.ptr,
-                            calls, T.classinfo.initializer.length * calls);
+                        fprintf(stderr, "%.*s(%u): bytes: %lu calls: %lu Pool!(%.*s)."~fun~"()\n",
+                            cast(int) f.length, f.ptr, l, ((T.classinfo.initializer.length + 15) & ~15) * calls,
+                            calls, cast(int) T.stringof.length, T.stringof.ptr);
                     }
                     atexit(&summarize);
                 }
@@ -450,9 +450,9 @@ if (is(T == class))
             }
             else
             {
-                fprintf(stderr, "%.*s(%u): Pool!(%.*s)."~fun~"() bytes=%zu\n",
-                    cast(int) f.length, f.ptr, l, cast(int) T.stringof.length, T.stringof.ptr,
-                    T.classinfo.initializer.length);
+                fprintf(stderr, "%.*s(%u): bytes: %lu Pool!(%.*s)."~fun~"()\n",
+                    cast(int) f.length, f.ptr, l, T.classinfo.initializer.length,
+                    cast(int) T.stringof.length, T.stringof.ptr);
             }
         }
     }
