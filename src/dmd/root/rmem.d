@@ -411,8 +411,8 @@ pure nothrow unittest
     assert(sEmpty.arraydup is null);
 }
 
-//debug = Pool;
-//debug = PoolSummary;
+debug = Pool;
+debug = PoolSummary;
 
 /**
 Defines a pool for class objects. Objects can be fetched from the pool with make() and returned to the pool with
@@ -427,10 +427,6 @@ if (is(T == class))
 {
     /// The freelist's root
     private static T root;
-
-    // This enum is used below to cut down on template instantiations when not debugging the Pool.
-    debug(Pool) private enum bool debugPool = true;
-    else private enum bool debugPool = false;
 
     private static void trackCalls(string fun, string f, uint l)()
     {
@@ -464,11 +460,14 @@ if (is(T == class))
     /**
     Returns a reference to a new object in the same state as if created with new T(args).
     */
-    static T make(string f = debugPool ? __FILE__ : null, uint l = debugPool ? __LINE__ : 0, A...)(auto ref A args)
+    static T make(string f = __FILE__, uint l = __LINE__, A...)(auto ref A args)
     {
         if (!root)
+        {
+            trackCalls!("makeNew", f, l)();
             return new T(args);
-        trackCalls!("make", f, l)();
+        }
+        trackCalls!("makeReuse", f, l)();
         auto result = root;
         root = *(cast(T*) root);
         memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
@@ -479,7 +478,7 @@ if (is(T == class))
     /**
     Signals to the pool that this object is no longer used, so it can recycle its memory.
     */
-    static void dispose(string f = debugPool ? __FILE__ : null, uint l = debugPool ? __LINE__ : 0, A...)(T goner)
+    static void dispose(string f = __FILE__, uint l = __LINE__, A...)(T goner)
     {
         trackCalls!("dispose", f, l)();
         *(cast(T*) goner) = root;
