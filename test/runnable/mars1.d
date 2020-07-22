@@ -448,6 +448,73 @@ void testfastudiv()
 
 ////////////////////////////////////////////////////////////////////////
 
+
+long sldiv1 (long x) { return x / (1L << 1); }
+long sldiv2 (long x) { return x / (1L << 2); }
+long sldiv3 (long x) { return x / (1L << 3); }
+long sldiv7 (long x) { return x / (1L << 7); }
+long sldiv8 (long x) { return x / (1L << 8); }
+long sldiv9 (long x) { return x / (1L << 9); }
+long sldiv30(long x) { return x / (1L << 30); }
+long sldiv31(long x) { return x / (1L << 31); }
+long sldiv32(long x) { return x / (1L << 32); }
+long sldiv33(long x) { return x / (1L << 33); }
+long sldiv34(long x) { return x / (1L << 34); }
+long sldiv62(long x) { return x / (1L << 62); }
+long sldiv63(long x) { return x / (1L << 63); }
+
+template tuple(A...) { enum tuple = A; }
+
+void testsldiv()
+{
+    /* Test special div code for signed long divide
+     * by power of 2 for 32 bit targets.
+     */
+
+/+
+    import core.stdc.stdio;
+    printf("63 = %llx\n", sldiv63(-0x7FFF_F8FF_FF3F_2FFFL));
++/
+
+    static foreach (C; tuple!(
+                1,2,3,10,300,1000,
+                4_1001_2030_0030,
+                0x7FFF_F8FF_FF3F_2FFFL))
+    {
+        /* Check if runtime computation matches compile time
+         */
+        assert(sldiv1 ( C) ==  C / (1L << 1));
+        assert(sldiv1 (-C) == -C / (1L << 1));
+        assert(sldiv2 ( C) ==  C / (1L << 2));
+        assert(sldiv2 (-C) == -C / (1L << 2));
+        assert(sldiv3 ( C) ==  C / (1L << 3));
+        assert(sldiv3 (-C) == -C / (1L << 3));
+        assert(sldiv7 ( C) ==  C / (1L << 7));
+        assert(sldiv7 (-C) == -C / (1L << 7));
+        assert(sldiv8 ( C) ==  C / (1L << 8));
+        assert(sldiv8 (-C) == -C / (1L << 8));
+        assert(sldiv9 ( C) ==  C / (1L << 9));
+        assert(sldiv9 (-C) == -C / (1L << 9));
+
+        assert(sldiv30( C) ==  C / (1L << 30));
+        assert(sldiv30(-C) == -C / (1L << 30));
+        assert(sldiv31( C) ==  C / (1L << 31));
+        assert(sldiv31(-C) == -C / (1L << 31));
+        assert(sldiv32( C) ==  C / (1L << 32));
+        assert(sldiv32(-C) == -C / (1L << 32));
+        assert(sldiv33( C) ==  C / (1L << 33));
+        assert(sldiv33(-C) == -C / (1L << 33));
+        assert(sldiv34( C) ==  C / (1L << 34));
+        assert(sldiv34(-C) == -C / (1L << 34));
+        assert(sldiv62( C) ==  C / (1L << 62));
+        assert(sldiv62(-C) == -C / (1L << 62));
+        assert(sldiv63( C) ==  C / (1L << 63));
+        assert(sldiv63(-C) == -C / (1L << 63));
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void vfunc() {}
 
 void test12095(int k)
@@ -2135,6 +2202,7 @@ int main()
     testbittest();
     test8658();
     testfastudiv();
+    testsldiv();
     testfastdiv();
     test3918();
     test12051();

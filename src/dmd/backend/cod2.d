@@ -1361,8 +1361,99 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 return;
             }
 
+            // Register pair signed divide by power of 2
+            if (sz == REGSIZE * 2 &&
+                (oper == OPdiv) && !uns &&
+                (pow2 = ispow2(e2factor)) != -1 &&
+                I32 // not set up for I64 cent yet
+               )
+            {
+                codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
+                const rhi = findregmsw(retregs);
+                const rlo = findreglsw(retregs);
+                freenode(e2);
+                getregs(cdb,retregs);
+
+                if (pow2 < 32)
+                {
+                    regm_t scratchm = allregs & ~retregs;
+                    reg_t r1;
+                    allocreg(cdb,&scratchm,&r1,TYint);
+
+                    genmovreg(cdb,r1,rhi);                                        // MOV  r1,rhi
+                    if (pow2 == 1)
+                        cdb.genc2(0xC1,grex | modregrmx(3,5,r1),REGSIZE * 8 - 1); // SHR  r1,31
+                    else
+                    {
+                        cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1); // SAR  r1,31
+                        cdb.genc2(0x81,grex | modregrmx(3,4,r1),(1 << pow2) - 1); // AND  r1,mask
+                    }
+                    cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                   // ADD  rlo,r1
+                    cdb.genc2(0x81,grex | modregxrmx(3,2,rhi),0);                 // ADC  rhi,0
+                    cdb.genc2(0x0FAC,grex | modregrm(3,rhi,rlo),pow2);            // SHRD rlo,rhi,pow2
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,rhi),pow2);               // SAR  rhi,pow2
+                }
+                else if (pow2 == 32)
+                {
+                    regm_t scratchm = allregs & ~retregs;
+                    reg_t r1;
+                    allocreg(cdb,&scratchm,&r1,TYint);
+
+                    genmovreg(cdb,r1,rhi);                                        // MOV r1,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);     // SAR r1,31
+                    cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                   // ADD rlo,r1
+                    cdb.genc2(0x81,grex | modregxrmx(3,2,rhi),0);                 // ADC rhi,0
+                    cdb.genmovreg(rlo,rhi);                                       // MOV rlo,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,rhi),REGSIZE * 8 - 1);    // SAR rhi,31
+                }
+                else if (pow2 < 63)
+                {
+                    regm_t scratchm = allregs & ~retregs;
+                    reg_t r1;
+                    allocreg(cdb,&scratchm,&r1,TYint);
+
+                    scratchm = allregs & ~(retregs | scratchm);
+                    reg_t r2;
+                    allocreg(cdb,&scratchm,&r2,TYint);
+
+                    genmovreg(cdb,r1,rhi);                                        // MOV r1,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);     // SAR r1,31
+                    cdb.genmovreg(r2,r1);                                         // MOV r2,r1
+
+                    if (pow2 == 33)
+                    {
+                        cdb.gen2(0xF7,modregrmx(3,3,r1));                         // NEG r1
+                        cdb.gen2(0x03,grex | modregxrmx(3,rlo,r2));               // ADD rlo,r2
+                        cdb.gen2(0x13,grex | modregxrmx(3,rhi,r1));               // ADC rhi,r1
+                    }
+                    else
+                    {
+                        cdb.genc2(0x81,grex | modregrmx(3,4,r2),(1 << (pow2-32)) - 1); // AND r2,mask
+                        cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                    // ADD rlo,r1
+                        cdb.gen2(0x13,grex | modregxrmx(3,rhi,r2));                    // ADC rhi,r2
+                    }
+
+                    cdb.genmovreg(rlo,rhi);                                       // MOV rlo,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,rlo),pow2 - 32);          // SAR rlo,pow2-32
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,rhi),REGSIZE * 8 - 1);    // SAR rhi,31
+                }
+                else
+                {
+                    // This may be better done by cgelem.d
+                    assert(pow2 == 63);
+                    cdb.genc2(0x81,grex | modregrmx(3,4,rhi),0x8000_0000); // ADD rhi,0x8000_000
+                    cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
+                    cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
+                    cdb.genregs(0x0FB6,rlo,rlo);                           // MOVZX rlo,rloL
+                    movregconst(cdb,rhi,0,0);                              // MOV rhi,0
+                }
+
+                fixresult(cdb,e,retregs,pretregs);
+                return;
+            }
+
             if (sz > REGSIZE || !el_signx32(e2))
-                goto L2;
+                goto default;
 
             if (oper == OPmul && config.target_cpu >= TARGET_80286)
             {   reg_t reg;
