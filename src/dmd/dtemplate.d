@@ -3119,7 +3119,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             m.count = 1;
             assert(m.lastf);
             m.last = MATCH.nomatch;
-            Pool!TemplateInstance.dispose(ti);
             return;
         }
 

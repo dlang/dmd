@@ -411,6 +411,9 @@ pure nothrow unittest
     assert(sEmpty.arraydup is null);
 }
 
+//debug = Pool;
+//debug = PoolSummary;
+
 /**
 Defines a pool for class objects. Objects can be fetched from the pool with make() and returned to the pool with
 dispose(). Using a reference that has been dispose()d has undefined behavior. make() may return memory that has been
@@ -425,13 +428,47 @@ if (is(T == class))
     /// The freelist's root
     private static T root;
 
+    // This enum is used below to cut down on template instantiations when not debugging the Pool.
+    debug(Pool) private enum bool debugPool = true;
+    else private enum bool debugPool = false;
+
+    private static void trackCalls(string fun, string f, uint l)()
+    {
+        debug(Pool)
+        {
+            debug(PoolSummary)
+            {
+                static ulong calls;
+                if (calls == 0)
+                {
+                    // Plant summary printer
+                    static extern(C) void summarize()
+                    {
+                        fprintf(stderr, "%.*s(%u): Pool!(%.*s)."~fun~"() calls=%lu bytes=%lu\n",
+                            cast(int) f.length, f.ptr, l, cast(int) T.stringof.length, T.stringof.ptr,
+                            calls, T.classinfo.initializer.length * calls);
+                    }
+                    atexit(&summarize);
+                }
+                ++calls;
+            }
+            else
+            {
+                fprintf(stderr, "%.*s(%u): Pool!(%.*s)."~fun~"() bytes=%zu\n",
+                    cast(int) f.length, f.ptr, l, cast(int) T.stringof.length, T.stringof.ptr,
+                    T.classinfo.initializer.length);
+            }
+        }
+    }
+
     /**
     Returns a reference to a new object in the same state as if created with new T(args).
     */
-    static T make(A...)(auto ref A args)
+    static T make(string f = debugPool ? __FILE__ : null, uint l = debugPool ? __LINE__ : 0, A...)(auto ref A args)
     {
         if (!root)
             return new T(args);
+        trackCalls!("make", f, l)();
         auto result = root;
         root = *(cast(T*) root);
         memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
@@ -442,8 +479,9 @@ if (is(T == class))
     /**
     Signals to the pool that this object is no longer used, so it can recycle its memory.
     */
-    static void dispose(T goner)
+    static void dispose(string f = debugPool ? __FILE__ : null, uint l = debugPool ? __LINE__ : 0, A...)(T goner)
     {
+        trackCalls!("dispose", f, l)();
         *(cast(T*) goner) = root;
         root = goner;
     }
