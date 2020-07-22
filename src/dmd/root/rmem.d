@@ -411,8 +411,8 @@ pure nothrow unittest
     assert(sEmpty.arraydup is null);
 }
 
-debug = Pool;
-debug = PoolSummary;
+//debug = Pool;
+//debug = PoolSummary;
 
 /**
 Defines a pool for class objects. Objects can be fetched from the pool with make() and returned to the pool with
