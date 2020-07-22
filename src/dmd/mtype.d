@@ -567,7 +567,6 @@ extern (C++) abstract class Type : ASTNode
      * Params:
      *      t = type 'this' is covariant with
      *      pstc = if not null, store STCxxxx which would make it covariant
-     *      fix17349 = enable fix https://issues.dlang.org/show_bug.cgi?id=17349
      * Returns:
      *      0       types are distinct
      *      1       this is covariant with t
@@ -576,7 +575,7 @@ extern (C++) abstract class Type : ASTNode
      *      3       cannot determine covariance because of forward references
      *      *pstc   STCxxxx which would make it covariant
      */
-    final int covariant(Type t, StorageClass* pstc = null, bool fix17349 = true)
+    final int covariant(Type t, StorageClass* pstc = null)
     {
         version (none)
         {
@@ -614,8 +613,6 @@ extern (C++) abstract class Type : ASTNode
 
                 if (!fparam1.type.equals(fparam2.type))
                 {
-                    if (!fix17349)
-                        goto Ldistinct;
                     Type tp1 = fparam1.type;
                     Type tp2 = fparam2.type;
                     if (tp1.ty == tp2.ty)

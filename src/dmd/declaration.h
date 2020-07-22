@@ -592,7 +592,7 @@ public:
     bool equals(const RootObject *o) const;
 
     int overrides(FuncDeclaration *fd);
-    int findVtblIndex(Dsymbols *vtbl, int dim, bool fix17349 = true);
+    int findVtblIndex(Dsymbols *vtbl, int dim);
     BaseClass *overrideInterface();
     bool overloadInsert(Dsymbol *s);
     bool inUnittest();
