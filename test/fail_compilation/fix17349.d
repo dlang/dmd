@@ -1,8 +1,6 @@
-/* REQUIRED_ARGS: -dw
- * PERMUTE_ARGS:
- * TEST_OUTPUT:
+/* TEST_OUTPUT:
 ---
-compilable/fix17349.d(37): Deprecation: cannot implicitly override base class method `fix17349.E.foo` with `fix17349.F.foo`; add `override` attribute
+fail_compilation/fix17349.d(35): Error: cannot implicitly override base class method `fix17349.E.foo` with `fix17349.F.foo`; add `override` attribute
 ---
  */
 
@@ -36,5 +34,3 @@ class E {
 class F : E {
     void foo(const void*);
 }
-
-
