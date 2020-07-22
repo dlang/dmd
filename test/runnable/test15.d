@@ -1,13 +1,10 @@
 /*
-REQUIRED_ARGS:
+REQUIRED_ARGS: -Jrunnable/extra-files
 EXTRA_FILES: extra-files/test15.txt
 */
 
-import std.array;
 import core.math;
 import core.vararg;
-import std.string;
-import std.stdio : File;
 
 extern (C)
 {
@@ -280,10 +277,47 @@ void test20()
 
 void test21()
 {
-    int[string] esdom;
-    auto f = File("runnable/extra-files/test15.txt", "r");
+    // Minimalistic byLine implementation
+    static struct Lines
+    {
+        private string text, line;
+        this(string text)
+        {
+            this.text = text;
+            popFront();
+        }
 
-    foreach(it; f.byLine())
+        bool empty() const { return text == ""; }
+
+        string front() const
+        {
+            assert(!empty);
+            return line;
+        }
+
+        void popFront()
+        {
+            assert(!empty);
+            foreach (const idx; 0 .. text.length)
+            {
+                if (text[idx] == '\n')
+                {
+                    line = text[0..idx];
+                    text = text[idx + 1..$];
+                    return;
+                }
+            }
+
+            line = text;
+            text = null;
+        }
+    }
+
+    static immutable string file = import(`test15.txt`);
+
+    int[string] esdom;
+
+    foreach(it; Lines(file))
         esdom[it.idup] = 0;
 
     esdom.rehash;
@@ -362,11 +396,11 @@ void test25()
 
 void test26()
 {
-    string[] instructions = std.array.split("a;b;c", ";");
+    string[] instructions =[ "a", "b", "c" ];
 
     foreach(ref string instr; instructions)
     {
-        std.string.strip(instr);
+        instr = instr[];
     }
 
     foreach(string instr; instructions)
@@ -1116,16 +1150,13 @@ void test60()
 
 class StdString
 {
-     alias std.string.format toString;
+     alias nearest =  core.math.rint;
 }
 
 void test61()
 {
-    int i = 123;
     StdString g = new StdString();
-    string s = g.toString("%s", i);
-    printf("%.*s\n", cast(int)s.length, s.ptr);
-    assert(s == "123");
+    assert(g.nearest(123.1) == 123);
 }
 
 
