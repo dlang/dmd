@@ -7852,8 +7852,10 @@ final class Parser(AST) : Lexer
                             postfix = token.postfix;
                         }
 
-                        error("Implicit string concatenation is deprecated, use %s ~ %s instead",
-                                    prev.toChars(), token.toChars());
+                        error("Implicit string concatenation is error-prone and disallowed in D");
+                        errorSupplemental(token.loc, "Use the explicit syntax instead " ~
+                             "(concatenating literals is `@nogc`): %s ~ %s",
+                             prev.toChars(), token.toChars());
 
                         const len1 = len;
                         const len2 = token.len;
