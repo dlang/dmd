@@ -1171,6 +1171,27 @@ private elem * elmin(elem *e, goal_t goal)
             return e;
         }
 
+        // Replace ((e1 + c) - e2) with ((e1 - e2) + c), but not
+        // for floating or far or huge pointers!
+        if (e1.Eoper == OPadd &&
+            cnst(e1.EV.E2) &&
+            (tyintegral(tym) ||
+             tybasic(tym) == TYnptr ||
+             tybasic(tym) == TYsptr ||
+             tybasic(tym) == TYfgPtr ||
+             tybasic(tym) == TYimmutPtr ||
+             tybasic(tym) == TYrestrictPtr ||
+             tybasic(tym) == TYsharePtr)
+           )
+        {
+            e.Eoper = OPadd;
+            e1.Eoper = OPmin;
+            elem* c = e1.EV.E2;
+            e1.EV.E2 = e2;
+            e.EV.E2 = c;
+            return optelem(e,GOALvalue);
+        }
+
         // Replace (e1 + c1) - (e2 + c2) with (e1 - e2) + (c1 - c2), but not
         // for floating or far or huge pointers!
         if (e1.Eoper == OPadd && e2.Eoper == OPadd &&
