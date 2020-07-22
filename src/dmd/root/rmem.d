@@ -428,7 +428,7 @@ if (is(T == class))
     /// The freelist's root
     private static T root;
 
-    private static void trackCalls(string fun, string f, uint l)()
+    private static void trace(string fun, string f, uint l)()
     {
         debug(Pool)
         {
@@ -464,10 +464,10 @@ if (is(T == class))
     {
         if (!root)
         {
-            trackCalls!("makeNew", f, l)();
+            trace!("makeNew", f, l)();
             return new T(args);
         }
-        trackCalls!("makeReuse", f, l)();
+        trace!("makeReuse", f, l)();
         auto result = root;
         root = *(cast(T*) root);
         memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
@@ -480,7 +480,7 @@ if (is(T == class))
     */
     static void dispose(string f = __FILE__, uint l = __LINE__, A...)(T goner)
     {
-        trackCalls!("dispose", f, l)();
+        trace!("dispose", f, l)();
         *(cast(T*) goner) = root;
         root = goner;
     }
