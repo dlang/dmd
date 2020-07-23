@@ -5,6 +5,10 @@ PERMUTE_ARGS: -O -inline -release
 
 import core.stdc.stdio;
 
+template tuple(A...) { enum tuple = A; }
+
+/////////////////////////////////////////////////////
+
 void testgoto()
 {
     int i;
@@ -448,6 +452,7 @@ void testfastudiv()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=14936
 
 long sldiv1 (long x) { return x / (1L << 1); }
 long sldiv2 (long x) { return x / (1L << 2); }
@@ -463,18 +468,13 @@ long sldiv34(long x) { return x / (1L << 34); }
 long sldiv62(long x) { return x / (1L << 62); }
 long sldiv63(long x) { return x / (1L << 63); }
 
-template tuple(A...) { enum tuple = A; }
-
 void testsldiv()
 {
     /* Test special div code for signed long divide
      * by power of 2 for 32 bit targets.
      */
 
-/+
-    import core.stdc.stdio;
-    printf("63 = %llx\n", sldiv63(-0x7FFF_F8FF_FF3F_2FFFL));
-+/
+    // printf("63 = %llx\n", sldiv63(-0x7FFF_F8FF_FF3F_2FFFL));
 
     static foreach (C; tuple!(
                 1,2,3,10,300,1000,
@@ -510,6 +510,63 @@ void testsldiv()
         assert(sldiv62(-C) == -C / (1L << 62));
         assert(sldiv63( C) ==  C / (1L << 63));
         assert(sldiv63(-C) == -C / (1L << 63));
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=14936
+
+long slmod1 (long x) { return x % (1L << 1); }
+long slmod2 (long x) { return x % (1L << 2); }
+long slmod3 (long x) { return x % (1L << 3); }
+long slmod7 (long x) { return x % (1L << 7); }
+long slmod8 (long x) { return x % (1L << 8); }
+long slmod9 (long x) { return x % (1L << 9); }
+long slmod30(long x) { return x % (1L << 30); }
+long slmod31(long x) { return x % (1L << 31); }
+long slmod32(long x) { return x % (1L << 32); }
+long slmod33(long x) { return x % (1L << 33); }
+long slmod34(long x) { return x % (1L << 34); }
+long slmod62(long x) { return x % (1L << 62); }
+long slmod63(long x) { return x % (1L << 63); }
+
+void testslmod()
+{
+    static foreach (C; tuple!(
+                1,2,3,10,300,1000,
+                4_1001_2030_0030,
+                0x7FFF_F8FF_FF3F_2FFFL))
+    {
+        /* Check if runtime computation matches compile time
+         */
+        assert(slmod1 ( C) ==  C % (1L << 1));
+        assert(slmod1 (-C) == -C % (1L << 1));
+        assert(slmod2 ( C) ==  C % (1L << 2));
+        assert(slmod2 (-C) == -C % (1L << 2));
+        assert(slmod3 ( C) ==  C % (1L << 3));
+        assert(slmod3 (-C) == -C % (1L << 3));
+        assert(slmod7 ( C) ==  C % (1L << 7));
+        assert(slmod7 (-C) == -C % (1L << 7));
+        assert(slmod8 ( C) ==  C % (1L << 8));
+        assert(slmod8 (-C) == -C % (1L << 8));
+        assert(slmod9 ( C) ==  C % (1L << 9));
+        assert(slmod9 (-C) == -C % (1L << 9));
+
+        assert(slmod30( C) ==  C % (1L << 30));
+        assert(slmod30(-C) == -C % (1L << 30));
+        assert(slmod31( C) ==  C % (1L << 31));
+        assert(slmod31(-C) == -C % (1L << 31));
+        assert(slmod32( C) ==  C % (1L << 32));
+        assert(slmod32(-C) == -C % (1L << 32));
+        assert(slmod33( C) ==  C % (1L << 33));
+        assert(slmod33(-C) == -C % (1L << 33));
+        assert(slmod34( C) ==  C % (1L << 34));
+        assert(slmod34(-C) == -C % (1L << 34));
+        assert(slmod62( C) ==  C % (1L << 62));
+        assert(slmod62(-C) == -C % (1L << 62));
+        assert(slmod63( C) ==  C % (1L << 63));
+        assert(slmod63(-C) == -C % (1L << 63));
     }
 }
 
@@ -2203,6 +2260,7 @@ int main()
     test8658();
     testfastudiv();
     testsldiv();
+    testslmod();
     testfastdiv();
     test3918();
     test12051();
