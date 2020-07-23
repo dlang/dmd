@@ -378,7 +378,7 @@ void genObjFile(Module m, bool multiobj)
         if (m.ctfe_cov)
         {
             // initalize the uint[] __coverage symbol with data from ctfe.
-            static extern (C) int comp_uints (const void* a, const void* b)
+            static extern (C) int comp_uints (const scope void* a, const scope void* b)
                 { return (*cast(uint*) a) - (*cast(uint*) b); }
 
             uint[] sorted_lines = m.ctfe_cov.keys;
