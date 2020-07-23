@@ -419,6 +419,9 @@ Defines a pool for class objects. Objects can be fetched from the pool with make
 dispose(). Using a reference that has been dispose()d has undefined behavior. make() may return memory that has been
 previously dispose()d.
 
+Currently the pool has effect only if the GC is NOT used (i.e. either `version(GC)` or `mem.isGCEnabled` is false).
+Otherwise `make` just forwards to `new` and `dispose` does nothing.
+
 Internally the implementation uses a singly-linked freelist with a global root. The "next" pointer is stored in the
 first word of each disposed object.
 */
@@ -467,12 +470,15 @@ if (is(T == class))
             trace!("makeNew", f, l)();
             return new T(args);
         }
-        trace!("makeReuse", f, l)();
-        auto result = root;
-        root = *(cast(T*) root);
-        memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
-        result.__ctor(args);
-        return result;
+        else
+        {
+            trace!("makeReuse", f, l)();
+            auto result = root;
+            root = *(cast(T*) root);
+            memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
+            result.__ctor(args);
+            return result;
+        }
     }
 
     /**
@@ -480,7 +486,17 @@ if (is(T == class))
     */
     static void dispose(string f = __FILE__, uint l = __LINE__, A...)(T goner)
     {
+        version(GC)
+        {
+            if (mem.isGCEnabled) return;
+        }
         trace!("dispose", f, l)();
+        debug
+        {
+            // Stomp the memory so as to maximize the chance of quick failure if used after dispose().
+            auto p = cast(ulong*) goner;
+            p[0 .. T.classinfo.initializer.length / ulong.sizeof] = 0xdeadbeef;
+        }
         *(cast(T*) goner) = root;
         root = goner;
     }
