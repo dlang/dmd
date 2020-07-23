@@ -1009,7 +1009,6 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     reg_t rreg;
-    int pow2;
 
     const ubyte rex = (I64 && sz == 8) ? REX_W : 0;
     const uint grex = rex << 16;
@@ -1028,7 +1027,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             if (sz != 2 * REGSIZE || oper != OPmul || e1.Eoper != e2.Eoper ||
                 e1.Ecount || e2.Ecount)
-                goto L2;
+                goto default;
             const ubyte opx = (e2.Eoper == opunslng) ? 4 : 5;
             regm_t retregsx = mAX;
             codelem(cdb,e1.EV.E1,&retregsx,false);    // eval left leaf
@@ -1361,13 +1360,18 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 return;
             }
 
+            const int pow2 = ispow2(e2factor);
+
             // Register pair signed divide by power of 2
             if (sz == REGSIZE * 2 &&
                 (oper == OPdiv) && !uns &&
-                (pow2 = ispow2(e2factor)) != -1 &&
+                pow2 != -1 &&
                 I32 // not set up for I64 cent yet
                )
             {
+                if (pow2 == 63 && !(retregs & BYTEREGS & mLSW))
+                    retregs = (retregs & mMSW) | (BYTEREGS & mLSW);  // because of SETZ
+
                 codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
                 const rhi = findregmsw(retregs);
                 const rlo = findreglsw(retregs);
@@ -1446,6 +1450,77 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
                     cdb.genregs(0x0FB6,rlo,rlo);                           // MOVZX rlo,rloL
                     movregconst(cdb,rhi,0,0);                              // MOV rhi,0
+                }
+
+                fixresult(cdb,e,retregs,pretregs);
+                return;
+            }
+
+            // Register pair signed modulo by power of 2
+            if (sz == REGSIZE * 2 &&
+                (oper == OPmod) && !uns &&
+                pow2 != -1 &&
+                I32 // not set up for I64 cent yet
+               )
+            {
+                codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
+                const rhi = findregmsw(retregs);
+                const rlo = findreglsw(retregs);
+                freenode(e2);
+                getregs(cdb,retregs);
+
+                regm_t scratchm = allregs & ~retregs;
+                if (pow2 == 63)
+                    scratchm &= BYTEREGS;               // because of SETZ
+                reg_t r1;
+                allocreg(cdb,&scratchm,&r1,TYint);
+
+                if (pow2 < 32)
+                {
+                    cdb.genmovreg(r1,rhi);                                    // MOV r1,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1); // SAR r1,31
+                    cdb.gen2(0x33,grex | modregxrmx(3,rlo,r1));               // XOR rlo,r1
+                    cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));               // SUB rlo,r1
+                    cdb.genc2(0x81,grex | modregrmx(3,4,rlo),(1<<pow2)-1);    // AND rlo,(1<<pow2)-1
+                    cdb.gen2(0x33,grex | modregxrmx(3,rlo,r1));               // XOR rlo,r1
+                    cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));               // SUB rlo,r1
+                    cdb.gen2(0x1B,grex | modregxrmx(3,rhi,rhi));              // SBB rhi,rhi
+                }
+                else if (pow2 == 32)
+                {
+                    cdb.genmovreg(r1,rhi);                                      // MOV r1,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);   // SAR r1,31
+                    cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                 // ADD rlo,r1
+                    cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));                 // SUB rlo,r1
+                    cdb.gen2(0x1B,grex | modregxrmx(3,rhi,rhi));                // SBB rhi,rhi
+                }
+                else if (pow2 < 63)
+                {
+                    scratchm = allregs & ~(retregs | scratchm);
+                    reg_t r2;
+                    allocreg(cdb,&scratchm,&r2,TYint);
+
+                    cdb.genmovreg(r1,rhi);                                      // MOV  r1,rhi
+                    cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);   // SAR  r1,31
+                    cdb.genmovreg(r2,r1);                                       // MOV  r2,r1
+                    cdb.genc2(0x0FAC,grex | modregrm(3,r2,r1),64-pow2);         // SHRD r1,r2,64-pow2
+                    cdb.genc2(0xC1,grex | modregrmx(3,5,r2),64-pow2);           // SHR  r2,64-pow2
+                    cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                 // ADD  rlo,r1
+                    cdb.gen2(0x13,grex | modregxrmx(3,rhi,r2));                 // ADC  rhi,r2
+                    cdb.genc2(0x81,grex | modregrmx(3,4,rhi),(1<<(pow2-32))-1); // AND  rhi,(1<<(pow2-32))-1
+                    cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));                 // SUB  rlo,r1
+                    cdb.gen2(0x1B,grex | modregxrmx(3,rhi,r2));                 // SBB  rhi,r2
+                }
+                else
+                {
+                    // This may be better done by cgelem.d
+                    assert(pow2 == 63);
+
+                    cdb.genc1(LEA,grex | modregxrmx(2,r1,rhi), FLconst, 0x8000_0000); // LEA r1,0x8000_0000[rhi]
+                    cdb.gen2(0x0B,grex | modregxrmx(3,r1,rlo));               // OR   r1,rlo
+                    cdb.gen2(0x0F94,modregrmx(3,0,r1));                       // SETZ r1
+                    cdb.genc2(0xC1,grex | modregrmx(3,4,r1),REGSIZE * 8 - 1); // SHL  r1,31
+                    cdb.gen2(0x2B,grex | modregxrmx(3,rhi,r1));               // SUB  rhi,r1
                 }
 
                 fixresult(cdb,e,retregs,pretregs);
@@ -1606,7 +1681,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             // Special code for signed divide or modulo by power of 2
             if ((sz == REGSIZE || (I64 && sz == 4)) &&
                 (oper == OPdiv || oper == OPmod) && !uns &&
-                (pow2 = ispow2(e2factor)) != -1 &&
+                pow2 != -1 &&
                 !(config.target_cpu < TARGET_80286 && pow2 != 1 && oper == OPdiv)
                )
             {
@@ -1678,15 +1753,14 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 fixresult(cdb,e,resreg,pretregs);
                 return;
             }
-            goto L2;
+            goto default;
 
         case OPind:
             if (!e2.Ecount)                        // if not CSE
-                    goto L1;                        // try OP reg,EA
-            goto L2;
+                    goto case OPvar;                        // try OP reg,EA
+            goto default;
 
         default:                                    // OPconst and operators
-        L2:
             //printf("test2 %p, retregs = %s rretregs = %s resreg = %s\n", e, regm_str(retregs), regm_str(rretregs), regm_str(resreg));
             codelem(cdb,e1,&retregs,false);           // eval left leaf
             scodelem(cdb,e2,&rretregs,retregs,true);  // get rvalue
@@ -1735,7 +1809,6 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             return;
 
         case OPvar:
-        L1:
             if (!I16 && sz <= REGSIZE)
             {
                 if (oper == OPmul && sz > 1)        // no byte version
@@ -1758,7 +1831,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {
                     if (oper != OPmul || e.EV.E1.Eoper != opunslng ||
                         e1.Ecount)
-                        goto L2;            // have to handle it with codelem()
+                        goto default;            // have to handle it with codelem()
 
                     retregs = ALLREGS & ~(mAX | mDX);
                     codelem(cdb,e1.EV.E1,&retregs,false);    // eval left leaf
