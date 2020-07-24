@@ -44,6 +44,7 @@ import dmd.dinterpret;
 import dmd.mtype;
 import dmd.parse;
 import dmd.root.outbuffer;
+import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.sapply;
 import dmd.sideeffect;
@@ -57,7 +58,7 @@ import dmd.visitor;
  */
 TypeIdentifier getThrowable()
 {
-    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
+    auto tid = Pool!TypeIdentifier.make(Loc.initial, Id.empty);
     tid.addIdent(Id.object);
     tid.addIdent(Id.Throwable);
     return tid;
@@ -69,7 +70,7 @@ TypeIdentifier getThrowable()
  */
 TypeIdentifier getException()
 {
-    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
+    auto tid = Pool!TypeIdentifier.make(Loc.initial, Id.empty);
     tid.addIdent(Id.object);
     tid.addIdent(Id.Exception);
     return tid;
