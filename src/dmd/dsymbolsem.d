@@ -1833,24 +1833,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
-        if (global.params.mscoff)
-        {
-            if (pd.ident == Id.linkerDirective)
-            {
-                if (!pd.args || pd.args.dim != 1)
-                    pd.error("one string argument expected for pragma(linkerDirective)");
-                else
-                {
-                    auto se = semanticString(sc, (*pd.args)[0], "linker directive");
-                    if (!se)
-                        goto Lnodecl;
-                    (*pd.args)[0] = se;
-                    if (global.params.verbose)
-                        message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
-                }
-                goto Lnodecl;
-            }
-        }
         if (pd.ident == Id.msg)
         {
             if (pd.args)
@@ -1884,56 +1866,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         fprintf(stderr, "%s", e.toChars());
                 }
                 fprintf(stderr, "\n");
-            }
-            goto Lnodecl;
-        }
-        else if (pd.ident == Id.lib)
-        {
-            if (!pd.args || pd.args.dim != 1)
-                pd.error("string expected for library name");
-            else
-            {
-                auto se = semanticString(sc, (*pd.args)[0], "library name");
-                if (!se)
-                    goto Lnodecl;
-                (*pd.args)[0] = se;
-
-                auto name = se.peekString().xarraydup;
-                if (global.params.verbose)
-                    message("library   %s", name.ptr);
-                if (global.params.moduleDeps && !global.params.moduleDepsFile)
-                {
-                    OutBuffer* ob = global.params.moduleDeps;
-                    Module imod = sc.instantiatingModule();
-                    ob.writestring("depsLib ");
-                    ob.writestring(imod.toPrettyChars());
-                    ob.writestring(" (");
-                    escapePath(ob, imod.srcfile.toChars());
-                    ob.writestring(") : ");
-                    ob.writestring(name);
-                    ob.writenl();
-                }
-                mem.xfree(name.ptr);
-            }
-            goto Lnodecl;
-        }
-        else if (pd.ident == Id.startaddress)
-        {
-            if (!pd.args || pd.args.dim != 1)
-                pd.error("function name expected for start address");
-            else
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=11980
-                 * resolveProperties and ctfeInterpret call are not necessary.
-                 */
-                Expression e = (*pd.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                sc = sc.endCTFE();
-                (*pd.args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                    pd.error("function name expected for start address, not `%s`", e.toChars());
             }
             goto Lnodecl;
         }
@@ -2016,6 +1948,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
             goto Ldecl;
+        }
+        else if (target.pragmas.isSupported(pd.ident, pd.args, false))
+        {
+            target.pragmas.dsymbolSemantic(pd, sc);
         }
         else if (global.params.ignoreUnsupportedPragmas)
         {

@@ -2350,75 +2350,6 @@ else
                 fprintf(stderr, "\n");
             }
         }
-        else if (ps.ident == Id.lib)
-        {
-            version (all)
-            {
-                /* Should this be allowed?
-                 */
-                ps.error("`pragma(lib)` not allowed as statement");
-                return setError();
-            }
-            else
-            {
-                if (!ps.args || ps.args.dim != 1)
-                {
-                    ps.error("`string` expected for library name");
-                    return setError();
-                }
-                else
-                {
-                    auto se = semanticString(sc, (*ps.args)[0], "library name");
-                    if (!se)
-                        return setError();
-
-                    if (global.params.verbose)
-                    {
-                        message("library   %.*s", cast(int)se.len, se.string);
-                    }
-                }
-            }
-        }
-        else if (ps.ident == Id.linkerDirective)
-        {
-            /* Should this be allowed?
-             */
-            ps.error("`pragma(linkerDirective)` not allowed as statement");
-            return setError();
-        }
-        else if (ps.ident == Id.startaddress)
-        {
-            if (!ps.args || ps.args.dim != 1)
-                ps.error("function name expected for start address");
-            else
-            {
-                Expression e = (*ps.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                e = e.ctfeInterpret();
-                (*ps.args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                {
-                    ps.error("function name expected for start address, not `%s`", e.toChars());
-                    return setError();
-                }
-                if (ps._body)
-                {
-                    ps._body = ps._body.statementSemantic(sc);
-                    if (ps._body.isErrorStatement())
-                    {
-                        result = ps._body;
-                        return;
-                    }
-                }
-                result = ps;
-                return;
-            }
-        }
         else if (ps.ident == Id.Pinline)
         {
             PINLINE inlining = PINLINE.default_;
@@ -2451,6 +2382,11 @@ else
                 }
                 fd.inlining = inlining;
             }
+        }
+        else if (target.pragmas.isSupported(ps.ident, ps.args, true))
+        {
+            result = target.pragmas.statementSemantic(ps, sc);
+            return;
         }
         else if (!global.params.ignoreUnsupportedPragmas)
         {

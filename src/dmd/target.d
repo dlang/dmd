@@ -26,25 +26,35 @@
 module dmd.target;
 
 import dmd.argtypes;
+import dmd.arraytypes;
+import dmd.attrib;
 import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dtemplate;
+import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.statement;
+import dmd.statementsem;
 import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
+import dmd.root.rmem;
 import dmd.root.string : toDString;
+import dmd.utils : escapePath;
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -74,6 +84,9 @@ extern (C++) struct Target
 
     /// Objective-C ABI
     TargetObjC objc;
+
+    /// Pragmas
+    TargetPragma pragmas;
 
     /**
      * Values representing all properties for floating point types
@@ -1021,6 +1034,172 @@ struct TargetObjC
     {
         if (params.isOSX && params.is64bit)
             supported = true;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * Functions and variables specific to implementing target-specific pragmas.
+ */
+struct TargetPragma
+{
+    /**
+     * Checks whether the target/compiler supports the given pragma.
+     * Params:
+     *      ident     = name of the pragma
+     *      args      = arguments to pass to pragma
+     *      statement = true if analysing a PragmaStatement
+     */
+    bool isSupported(const Identifier ident, Expressions* args, bool statement)
+    {
+        if (global.params.mscoff)
+        {
+            if (ident == Id.linkerDirective)
+                return true;
+        }
+        if (ident == Id.lib || ident == Id.startaddress)
+            return true;
+        return false;
+    }
+
+    /**
+     * A hook to supply a new scope for pragma members, if one is required.
+     * Params:
+     *      pd = pragma statement to supply scope for
+     *      sc = current scope in effect
+     * Returns:
+     *      scope to use for pragma declaration
+     */
+    Scope* newScope(PragmaDeclaration pd, Scope* sc)
+    {
+        return sc;
+    }
+
+    /**
+     * Performs semantic analysis on target-specific pragma declaration.
+     * Params:
+     *      pd = pragma declaration to run semantic on
+     *      sc = current scope in effect
+     */
+    void dsymbolSemantic(PragmaDeclaration pd, Scope* sc)
+    {
+        if (pd.ident == Id.linkerDirective)
+        {
+            assert (global.params.mscoff);
+            if (!pd.args || pd.args.dim != 1)
+                pd.error("one string argument expected for pragma(linkerDirective)");
+            else
+            {
+                auto se = semanticString(sc, (*pd.args)[0], "linker directive");
+                if (!se)
+                    goto Lnodecl;
+                (*pd.args)[0] = se;
+                if (global.params.verbose)
+                    message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
+            }
+        }
+        else if (pd.ident == Id.lib)
+        {
+            if (!pd.args || pd.args.dim != 1)
+                pd.error("string expected for library name");
+            else
+            {
+                auto se = semanticString(sc, (*pd.args)[0], "library name");
+                if (!se)
+                    goto Lnodecl;
+                (*pd.args)[0] = se;
+
+                auto name = se.peekString().xarraydup;
+                if (global.params.verbose)
+                    message("library   %s", name.ptr);
+                if (global.params.moduleDeps && !global.params.moduleDepsFile)
+                {
+                    OutBuffer* ob = global.params.moduleDeps;
+                    Module imod = sc.instantiatingModule();
+                    ob.writestring("depsLib ");
+                    ob.writestring(imod.toPrettyChars());
+                    ob.writestring(" (");
+                    escapePath(ob, imod.srcfile.toChars());
+                    ob.writestring(") : ");
+                    ob.writestring(name);
+                    ob.writenl();
+                }
+                mem.xfree(name.ptr);
+            }
+            goto Lnodecl;
+        }
+        else if (pd.ident == Id.startaddress)
+        {
+            if (!pd.args || pd.args.dim != 1)
+                pd.error("function name expected for start address");
+            else
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=11980
+                 * resolveProperties and ctfeInterpret call are not necessary.
+                 */
+                Expression e = (*pd.args)[0];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                sc = sc.endCTFE();
+                (*pd.args)[0] = e;
+                Dsymbol sa = getDsymbol(e);
+                if (!sa || !sa.isFuncDeclaration())
+                    pd.error("function name expected for start address, not `%s`", e.toChars());
+            }
+            goto Lnodecl;
+        }
+        return;
+    Lnodecl:
+        if (pd.decl)
+            pd.error("is missing a terminating `;`");
+    }
+
+    /**
+     * Performs semantic analysis on target-specific pragma statement.
+     * Params:
+     *      ps = pragma statement to run semantic on
+     *      sc = current scope in effect
+     * Returns:
+     *      the finished Statement on success, or ErrorStatement on failure
+     */
+    Statement statementSemantic(PragmaStatement ps, Scope* sc)
+    {
+        if (ps.ident == Id.startaddress)
+        {
+            if (!ps.args || ps.args.dim != 1)
+                ps.error("function name expected for start address");
+            else
+            {
+                Expression e = (*ps.args)[0];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+
+                e = e.ctfeInterpret();
+                (*ps.args)[0] = e;
+                Dsymbol sa = getDsymbol(e);
+                if (!sa || !sa.isFuncDeclaration())
+                {
+                    ps.error("function name expected for start address, not `%s`", e.toChars());
+                    return new ErrorStatement();
+                }
+            }
+            if (ps._body)
+            {
+                ps._body = ps._body.statementSemantic(sc);
+                if (ps._body.isErrorStatement())
+                {
+                    return ps._body;
+                }
+            }
+            return ps;
+        }
+        else
+        {
+            ps.error("`pragma(%s)` not allowed as statement", ps.ident.toChars());
+            return new ErrorStatement();
+        }
     }
 }
 
