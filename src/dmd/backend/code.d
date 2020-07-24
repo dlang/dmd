@@ -440,6 +440,7 @@ void cdmemcpy(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdmemset(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdmsw(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdmul(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
+void cddiv(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdmulass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdneg(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdnot(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
