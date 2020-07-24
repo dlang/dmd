@@ -4859,6 +4859,11 @@ void cdabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
     const rex = (I64 && sz == 8) ? REX_W : 0;
     if (tyfloating(tyml))
     {
+        if (tyxmmreg(tyml) && *pretregs & XMMREGS)
+        {
+            xmmabs(cdb,e,pretregs);
+            return;
+        }
         if (config.inline8087 && ((*pretregs & (ALLREGS | mBP)) == 0 || I64))
         {
             neg87(cdb,e,pretregs);
