@@ -3823,6 +3823,9 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs2 |= mDX;
     codelem(cdb,e2.EV.E1,&retregs2,false);
 
+    // Need to check if nbytes is 0 (OPconst of 0 would have been removed by elmemcpy())
+    const zeroCheck = e2.EV.E2.Eoper != OPconst;
+
     // Get nbytes into CX
     regm_t retregs3 = mCX;
     scodelem(cdb,e2.EV.E2,&retregs3,retregs2,false);
@@ -3916,15 +3919,29 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     else
     {
+        code* cnop;
+        if (zeroCheck)
+        {
+            cnop = gennop(null);
+            gentstreg(cdb,CX);                           // TEST ECX,ECX
+            if (I64)
+                code_orrex(cdb.last, REX_W);
+            genjmp(cdb, JE, FLcode, cast(block *)cnop);  // JZ cnop
+        }
+
         getregs(cdb,mSI | mDI | mCX);
-        if (!I32 && config.flags4 & CFG4speed)          // if speed optimization
-        {   cdb.gen2(0xD1,(rex << 16) | modregrm(3,5,CX));        // SHR CX,1
+        if (I16 && config.flags4 & CFG4speed)          // if speed optimization
+        {
+            // Note this doesn't work if CX is 0
+            cdb.gen2(0xD1,(rex << 16) | modregrm(3,5,CX));        // SHR CX,1
             cdb.gen1(0xF3);                              // REPE
             cdb.gen1(0xA5);                              // MOVSW
             cdb.gen2(0x11,(rex << 16) | modregrm(3,CX,CX));            // ADC CX,CX
         }
         cdb.gen1(0xF3);                             // REPE
         cdb.gen1(0xA4);                             // MOVSB
+        if (zeroCheck)
+            cdb.append(cnop);
         if (need_DS)
             cdb.gen1(0x1F);                         // POP DS
     }

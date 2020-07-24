@@ -30,6 +30,7 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -799,6 +800,11 @@ private elem * elmemset(elem *e, goal_t goal)
 
 /****************************
  * For OPmemcpy
+ *  OPmemcpy
+ *   /   \
+ * s1   OPparam
+ *       /   \
+ *      s2    n
  */
 
 private elem * elmemcpy(elem *e, goal_t goal)
@@ -841,6 +847,18 @@ private elem * elmemcpy(elem *e, goal_t goal)
                 fixside(&e.EV.E1.EV.E1.EV.E1,&e.EV.E2);
             return optelem(e,GOALvalue);
         }
+
+        /+ The following fails the autotester for Linux32 and FreeBSD32
+         + for unknown reasons I cannot reproduce
+        // Convert to memcpy(s1, s2, n)
+        elem* ep = el_params(e.EV.E2.EV.E2, e.EV.E2.EV.E1, e.EV.E1, null);
+        const ty = e.Ety;
+        e.EV.E1 = null;
+        e.EV.E2.EV.E1 = null;
+        e.EV.E2.EV.E2 = null;
+        el_free(e);
+        e = el_bin(OPcall, ty, el_var(getRtlsym(RTLSYM_MEMCPY)), ep);
+         +/
     }
     return e;
 }

@@ -2926,8 +2926,9 @@ elem *toElem(Expression e, IRState *irs)
                         /* Construct:
                          *   memcpy(ex.ptr, ey.ptr, nbytes)[0..elen]
                          */
-                        elem* e = el_params(nbytes, epfr, epto, null);
-                        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
+                        elem* e = el_bin(OPmemcpy, TYnptr, epto, el_param(epfr, nbytes));
+                        //elem* e = el_params(nbytes, epfr, epto, null);
+                        //e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
                         e = el_pair(eto.Ety, el_copytree(elen), e);
 
                         /* Combine: eto, efrom, echeck, e
