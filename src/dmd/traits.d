@@ -925,7 +925,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = exp;
         else
         {
-            e.error("symbol or expression expected as first argument of __traits `%s` instead of `%s`", e.ident.toChars(), op.toChars());
+            e.error("symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toChars());
             return new ErrorExp();
         }
 
@@ -934,8 +934,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto symc = getDsymbol(oc);
         if (!symc)
         {
-            e.error("symbol expected as second argument of __traits `%s` instead of `%s`",
-                    e.ident.toChars(), oc.toChars());
+            e.error("symbol expected as second argument of __traits `child` instead of `%s`", oc.toChars());
             return new ErrorExp();
         }
 
@@ -947,7 +946,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = new DotExp(e.loc, ex, new ScopeExp(e.loc, ti));
         else
         {
-            e.error("invalid second argument of __traits `%s`", e.ident.toChars());
+            e.error("invalid second argument of __traits `child`");
             return new ErrorExp();
         }
 
