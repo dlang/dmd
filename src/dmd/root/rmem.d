@@ -411,8 +411,10 @@ pure nothrow unittest
     assert(sEmpty.arraydup is null);
 }
 
+// Define this to have Pool emit traces of objects allocated and disposed
 //debug = Pool;
-//debug = PoolSummary;
+// Define this in addition to Pool to emit per-call traces (otherwise summaries are printed at the end).
+//debug = PoolVerbose;
 
 /**
 Defines a pool for class objects. Objects can be fetched from the pool with make() and returned to the pool with
@@ -435,7 +437,13 @@ if (is(T == class))
     {
         debug(Pool)
         {
-            debug(PoolSummary)
+            debug(PoolVerbose)
+            {
+                fprintf(stderr, "%.*s(%u): bytes: %lu Pool!(%.*s)."~fun~"()\n",
+                    cast(int) f.length, f.ptr, l, T.classinfo.initializer.length,
+                    cast(int) T.stringof.length, T.stringof.ptr);
+            }
+            else
             {
                 static ulong calls;
                 if (calls == 0)
@@ -450,12 +458,6 @@ if (is(T == class))
                     atexit(&summarize);
                 }
                 ++calls;
-            }
-            else
-            {
-                fprintf(stderr, "%.*s(%u): bytes: %lu Pool!(%.*s)."~fun~"()\n",
-                    cast(int) f.length, f.ptr, l, T.classinfo.initializer.length,
-                    cast(int) T.stringof.length, T.stringof.ptr);
             }
         }
     }
