@@ -3322,7 +3322,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (tf.isref)
                 sc.stc |= STC.ref_;
-            if (tf.isscope)
+            if (tf.isScopeQual)
                 sc.stc |= STC.scope_;
             if (tf.isnothrow)
                 sc.stc |= STC.nothrow_;
@@ -3361,7 +3361,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.stc & STC.scope_ && ad && ad.isStructDeclaration() && !ad.type.hasPointers())
             {
                 sc.stc &= ~STC.scope_;
-                tf.isscope = false;
+                tf.isScopeQual = false;
             }
 
             sc.linkage = funcdecl.linkage;
@@ -3408,7 +3408,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             TypeFunction tfo = funcdecl.originalType.toTypeFunction();
             TypeFunction tfx = funcdecl.type.toTypeFunction();
             tfo.mod = tfx.mod;
-            tfo.isscope = tfx.isscope;
+            tfo.isScopeQual = tfx.isScopeQual;
             tfo.isreturninferred = tfx.isreturninferred;
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
@@ -3428,7 +3428,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         /* Functions can only be 'scope' if they have a 'this'
          */
-        if (f.isscope && !funcdecl.isNested() && !ad)
+        if (f.isScopeQual && !funcdecl.isNested() && !ad)
         {
             funcdecl.error("functions cannot be `scope`");
         }

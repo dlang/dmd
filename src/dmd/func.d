@@ -535,7 +535,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 vthis.storage_class |= STC.ref_;
                 // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
+                if (type.ty == Tfunction && (cast(TypeFunction)type).isInOutQual())
                     vthis.storage_class |= STC.return_;
             }
         }
@@ -545,7 +545,7 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tf = cast(TypeFunction)type;
             if (tf.isreturn)
                 vthis.storage_class |= STC.return_;
-            if (tf.isscope)
+            if (tf.isScopeQual)
                 vthis.storage_class |= STC.scope_;
         }
         if (flags & FUNCFLAG.inferScope && !(vthis.storage_class & STC.scope_))

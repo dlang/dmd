@@ -1731,7 +1731,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 AggregateDeclaration ad;
                 if (global.params.vsafe && tf.isreturn && fd && (ad = fd.isThis()) !is null)
                 {
-                    if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
+                    if (ad.isClassDeclaration() || tf.isScopeQual)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
                     {
@@ -1758,7 +1758,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 // If it's also a nested function that is 'return scope'
                 if (fd && fd.isNested())
                 {
-                    if (tf.isreturn && tf.isscope)
+                    if (tf.isreturn && tf.isScopeQual)
                         er.byexp.push(e);
                 }
             }
@@ -1780,7 +1780,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 FuncDeclaration fd = ve.var.isFuncDeclaration();
                 if (fd && fd.isNested())
                 {
-                    if (tf.isreturn && tf.isscope)
+                    if (tf.isreturn && tf.isScopeQual)
                         er.byexp.push(e);
                 }
             }
@@ -1996,7 +1996,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                     {
                         if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
-                        else if (dve.var.storage_class & STC.scope_ || tf.isscope)
+                        else if (dve.var.storage_class & STC.scope_ || tf.isScopeQual)
                             escapeByValue(dve.e1, er, live);
                     }
                     // If it's also a nested function that is 'return ref'

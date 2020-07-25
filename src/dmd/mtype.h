@@ -576,25 +576,13 @@ class TypeFunction : public TypeNext
 public:
     // .next is the return type
 
-    ParameterList parameterList;     // function parameters
-
-    bool isnothrow;     // true: nothrow
-    bool isnogc;        // true: is @nogc
-    bool isproperty;    // can be called without parentheses
-    bool isref;         // true: returns a reference
-    bool isreturn;      // true: 'this' is returned by ref
-    bool isscope;       // true: 'this' is scope
-    bool isreturninferred;      // true: 'this' is return from inference
-    bool isscopeinferred; // true: 'this' is scope from inference
-    bool islive;        // is @live
-    LINK linkage;  // calling convention
-    TRUST trust;   // level of trust
-    PURE purity;   // PURExxxx
-    unsigned char iswild;   // bit0: inout on params, bit1: inout on qualifier
-    Expressions *fargs; // function arguments
-
-    int inuse;
-    bool incomplete;
+    ParameterList parameterList; // function parameters
+    LINK linkage;                // calling convention
+    TRUST trust;                 // level of trust
+    Expressions *fargs;          // function arguments
+    PURE purity;                 // PURExxxx
+    char inuse;
+    unsigned short funcFlags;
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
@@ -607,6 +595,32 @@ public:
     Type *addStorageClass(StorageClass stc);
 
     Type *substWildTo(unsigned mod);
+
+    bool isnothrow() const;
+    void isnothrow(bool v);
+    bool isnogc() const;
+    void isnogc(bool v);
+    bool isproperty() const;
+    void isproperty(bool v);
+    bool isref() const;
+    void isref(bool v);
+    bool isreturn() const;
+    void isreturn(bool v);
+    bool isScopeQual() const;
+    void isScopeQual(bool v);
+    bool isreturninferred() const;
+    void isreturninferred(bool v);
+    bool isscopeinferred() const;
+    void isscopeinferred(bool v);
+    bool islive() const;
+    void islive(bool v);
+    bool incomplete() const;
+    void incomplete(bool v);
+    bool isInOutParam() const;
+    void isInOutParam(bool v);
+    bool isInOutQual() const;
+    void isInOutQual(bool v);
+    bool iswild() const;
 
     void accept(Visitor *v) { v->visit(this); }
 };

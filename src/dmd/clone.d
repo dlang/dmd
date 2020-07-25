@@ -315,7 +315,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         auto idswap = Identifier.generateId("__swap");
         auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
         swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
-        if (tdtor.isscope)
+        if (tdtor.isScopeQual)
             swap.storage_class |= STC.scope_;
         auto e1 = new DeclarationExp(loc, swap);
 
