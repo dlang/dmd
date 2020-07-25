@@ -2831,6 +2831,7 @@ struct S17457 {
     this(int seconds) {
         dg17457 = &mfunc;
     }
+    @disable this(this);
     void mfunc() {}
 }
 
