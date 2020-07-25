@@ -1806,7 +1806,7 @@ unittest
         auto _str(F)(F val)
         {
             static if (is(F == int) || is(F == long))
-                return signedToTempString(val, 10);
+                return signedToTempString(val);
             else
                 return unsignedToTempString(val);
         }
@@ -2407,8 +2407,8 @@ assert(before + timeElapsed == after);
         static if (clockType == ClockType.normal)
             return "MonoTime(" ~ signedToTempString(_ticks) ~ " ticks, " ~ signedToTempString(ticksPerSecond) ~ " ticks per second)";
         else
-            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~
-                   signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
+            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ signedToTempString(_ticks) ~ " ticks, " ~
+                   signedToTempString(ticksPerSecond) ~ " ticks per second)";
     }
 
     version (CoreUnittest) unittest
@@ -2428,9 +2428,9 @@ assert(before + timeElapsed == after);
         else
             eat(str, "MonoTimeImpl!(ClockType."~_clockName~")(");
 
-        eat(str, signedToTempString(mt._ticks, 10));
+        eat(str, signedToTempString(mt._ticks));
         eat(str, " ticks, ");
-        eat(str, signedToTempString(ticksPerSecond, 10));
+        eat(str, signedToTempString(ticksPerSecond));
         eat(str, " ticks per second)");
     }
 
@@ -3970,7 +3970,7 @@ string doubleToString(double value) @safe pure nothrow
     if (value < 0 && cast(long)value == 0)
         result = "-0";
     else
-        result = signedToTempString(cast(long)value, 10).idup;
+        result = signedToTempString(cast(long)value).idup;
     result ~= '.';
     result ~= unsignedToTempString(cast(ulong)(_abs((value - cast(long)value) * 1_000_000) + .5));
 
@@ -3996,7 +3996,7 @@ unittest
 
 version (CoreUnittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 {
-    return (signedToTempString(value, 10) ~ "\0").ptr;
+    return (signedToTempString(value) ~ "\0").ptr;
 }
 
 
@@ -4121,9 +4121,9 @@ version (CoreUnittest) void assertApprox(D, E)(D actual,
 {
     if (actual.length < lower.length || actual.length > upper.length)
     {
-        throw new AssertError(msg ~ (": [" ~ signedToTempString(lower.length, 10) ~ "] [" ~
-                              signedToTempString(actual.length, 10) ~ "] [" ~
-                              signedToTempString(upper.length, 10) ~ "]").idup,
+        throw new AssertError(msg ~ (": [" ~ signedToTempString(lower.length) ~ "] [" ~
+                              signedToTempString(actual.length) ~ "] [" ~
+                              signedToTempString(upper.length) ~ "]").idup,
                               __FILE__, line);
     }
 }
@@ -4145,7 +4145,7 @@ version (CoreUnittest) void assertApprox()(long actual,
                                       size_t line = __LINE__)
 {
     if (actual < lower)
-        throw new AssertError(msg ~ ": lower: " ~ signedToTempString(actual, 10).idup, __FILE__, line);
+        throw new AssertError(msg ~ ": lower: " ~ signedToTempString(actual).idup, __FILE__, line);
     if (actual > upper)
-        throw new AssertError(msg ~ ": upper: " ~ signedToTempString(actual, 10).idup, __FILE__, line);
+        throw new AssertError(msg ~ ": upper: " ~ signedToTempString(actual).idup, __FILE__, line);
 }
