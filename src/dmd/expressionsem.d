@@ -4623,7 +4623,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 ethis = ue.e1;
                 tthis = ue.e1.type;
-                if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isscope))
+                if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
                     if (global.params.vsafe && checkParamArgumentEscape(sc, exp.f, null, ethis, false, false))
                         return setError();

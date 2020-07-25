@@ -395,7 +395,7 @@ public:
 
         if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
-        else if (ta.isscope && !ta.isscopeinferred)
+        else if (ta.isScopeQual && !ta.isscopeinferred)
             buf.writestring("Nl");
 
         if (ta.islive)

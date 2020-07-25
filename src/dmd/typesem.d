@@ -1182,12 +1182,12 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
         if (sc.stc & STC.returninferred)
             tf.isreturninferred = true;
         if (sc.stc & STC.scope_)
-            tf.isscope = true;
+            tf.isScopeQual = true;
         if (sc.stc & STC.scopeinferred)
             tf.isscopeinferred = true;
 
 //        if (tf.isreturn && !tf.isref)
-//            tf.isscope = true;                                  // return by itself means 'return scope'
+//            tf.isScopeQual = true;                                  // return by itself means 'return scope'
 
         if (tf.trust == TRUST.default_)
         {
@@ -1532,7 +1532,8 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
             .error(loc, "`inout` on `return` means `inout` must be on a parameter as well for `%s`", mtype.toChars());
             errors = true;
         }
-        tf.iswild = wildparams;
+        tf.isInOutParam = (wildparams & 1) != 0;
+        tf.isInOutQual  = (wildparams & 2) != 0;
 
         if (tf.isproperty && (tf.parameterList.varargs != VarArg.none || tf.parameterList.length > 2))
         {

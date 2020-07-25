@@ -713,20 +713,20 @@ extern (C++) abstract class Type : ASTNode
         if (t1.isref != t2.isref)
             goto Lnotcovariant;
 
-        if (!t1.isref && (t1.isscope || t2.isscope))
+        if (!t1.isref && (t1.isScopeQual || t2.isScopeQual))
         {
-            StorageClass stc1 = t1.isscope ? STC.scope_ : 0;
-            StorageClass stc2 = t2.isscope ? STC.scope_ : 0;
+            StorageClass stc1 = t1.isScopeQual ? STC.scope_ : 0;
+            StorageClass stc2 = t2.isScopeQual ? STC.scope_ : 0;
             if (t1.isreturn)
             {
                 stc1 |= STC.return_;
-                if (!t1.isscope)
+                if (!t1.isScopeQual)
                     stc1 |= STC.ref_;
             }
             if (t2.isreturn)
             {
                 stc2 |= STC.return_;
-                if (!t2.isscope)
+                if (!t2.isScopeQual)
                     stc2 |= STC.ref_;
             }
             if (!Parameter.isCovariantScope(t1.isref, stc1, stc2))
@@ -4169,22 +4169,29 @@ extern (C++) final class TypeFunction : TypeNext
 
     ParameterList parameterList;   // function parameters
 
-    bool isnothrow;             // true: nothrow
-    bool isnogc;                // true: is @nogc
-    bool isproperty;            // can be called without parentheses
-    bool isref;                 // true: returns a reference
-    bool isreturn;              // true: 'this' is returned by ref
-    bool isscope;               // true: 'this' is scope
-    bool isreturninferred;      // true: 'this' is return from inference
-    bool isscopeinferred;       // true: 'this' is scope from inference
-    bool islive;                // is @live
+    private enum FunctionFlag
+    {
+        isnothrow       = 0x0001, // nothrow
+        isnogc          = 0x0002, // is @nogc
+        isproperty      = 0x0004, // can be called without parentheses
+        isref           = 0x0008, // returns a reference
+        isreturn        = 0x0010, // 'this' is returned by ref
+        isscope         = 0x0020, // 'this' is scope
+        isreturninferred= 0x0040, // 'this' is return from inference
+        isscopeinferred = 0x0080, // 'this' is scope from inference
+        islive          = 0x0100, // is @live
+        incomplete      = 0x0200, // return type or default arguments removed
+        inoutParam      = 0x0400, // inout on the parameters
+        inoutQual       = 0x0800, // inout on the qualifier
+    }
+    static assert (FunctionFlag.max <= ushort.max, "flags are stored in a ushort");
+
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
-    PURE purity = PURE.impure;
-    ubyte iswild;               // bit0: inout on params, bit1: inout on qualifier
     Expressions* fargs;         // function arguments
-    int inuse;
-    bool incomplete;            // return type or default arguments removed
+    PURE purity = PURE.impure;
+    byte inuse;
+    ushort funcFlags;
 
     extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
     {
@@ -4213,7 +4220,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (stc & STC.returninferred)
             this.isreturninferred = true;
         if (stc & STC.scope_)
-            this.isscope = true;
+            this.isScopeQual = true;
         if (stc & STC.scopeinferred)
             this.isscopeinferred = true;
 
@@ -4247,10 +4254,11 @@ extern (C++) final class TypeFunction : TypeNext
         t.isproperty = isproperty;
         t.isref = isref;
         t.isreturn = isreturn;
-        t.isscope = isscope;
+        t.isScopeQual = isScopeQual;
         t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
-        t.iswild = iswild;
+        t.isInOutParam = isInOutParam;
+        t.isInOutQual = isInOutQual;
         t.trust = trust;
         t.fargs = fargs;
         return t;
@@ -4504,7 +4512,7 @@ extern (C++) final class TypeFunction : TypeNext
         if ((stc & STC.pure_ && !t.purity) ||
             (stc & STC.nothrow_ && !t.isnothrow) ||
             (stc & STC.nogc && !t.isnogc) ||
-            (stc & STC.scope_ && !t.isscope) ||
+            (stc & STC.scope_ && !t.isScopeQual) ||
             (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
@@ -4517,11 +4525,12 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isproperty = t.isproperty;
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
-            tf.isscope = t.isscope;
+            tf.isScopeQual = t.isScopeQual;
             tf.isreturninferred = t.isreturninferred;
             tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
-            tf.iswild = t.iswild;
+            tf.isInOutParam = t.isInOutParam;
+            tf.isInOutQual = t.isInOutQual;
 
             if (stc & STC.pure_)
                 tf.purity = PURE.fwdref;
@@ -4533,7 +4542,7 @@ extern (C++) final class TypeFunction : TypeNext
                 tf.trust = TRUST.safe;
             if (stc & STC.scope_)
             {
-                tf.isscope = true;
+                tf.isScopeQual = true;
                 if (stc & STC.scopeinferred)
                     tf.isscopeinferred = true;
             }
@@ -4581,10 +4590,11 @@ extern (C++) final class TypeFunction : TypeNext
         t.isproperty = isproperty;
         t.isref = isref;
         t.isreturn = isreturn;
-        t.isscope = isscope;
+        t.isScopeQual = isScopeQual;
         t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
-        t.iswild = 0;
+        t.isInOutParam = false;
+        t.isInOutQual = false;
         t.trust = trust;
         t.fargs = fargs;
         return t.merge();
@@ -5008,6 +5018,155 @@ extern (C++) final class TypeFunction : TypeNext
         if (tb.ty == Terror)
             return true;
         return false;
+    }
+
+    /// set or get if the function has the `nothrow` attribute
+    bool isnothrow() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isnothrow) != 0;
+    }
+    /// ditto
+    void isnothrow(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isnothrow;
+        else funcFlags &= ~FunctionFlag.isnothrow;
+    }
+
+    /// set or get if the function has the `@nogc` attribute
+    bool isnogc() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isnogc) != 0;
+    }
+    /// ditto
+    void isnogc(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isnogc;
+        else funcFlags &= ~FunctionFlag.isnogc;
+    }
+
+    /// set or get if the function has the `@property` attribute
+    bool isproperty() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isproperty) != 0;
+    }
+    /// ditto
+    void isproperty(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isproperty;
+        else funcFlags &= ~FunctionFlag.isproperty;
+    }
+
+    /// set or get if the function has the `ref` attribute
+    bool isref() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isref) != 0;
+    }
+    /// ditto
+    void isref(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isref;
+        else funcFlags &= ~FunctionFlag.isref;
+    }
+
+    /// set or get if the function has the `return` attribute
+    bool isreturn() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isreturn) != 0;
+    }
+    /// ditto
+    void isreturn(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isreturn;
+        else funcFlags &= ~FunctionFlag.isreturn;
+    }
+
+    /// set or get if the function has the `scope` attribute
+    bool isScopeQual() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isscope) != 0;
+    }
+    /// ditto
+    void isScopeQual(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isscope;
+        else funcFlags &= ~FunctionFlag.isscope;
+    }
+
+    /// set or get if the function has the `return` attribute inferred
+    bool isreturninferred() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isreturninferred) != 0;
+    }
+    /// ditto
+    void isreturninferred(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isreturninferred;
+        else funcFlags &= ~FunctionFlag.isreturninferred;
+    }
+
+    /// set or get if the function has the `scope` attribute inferred
+    bool isscopeinferred() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isscopeinferred) != 0;
+    }
+    /// ditoo
+    void isscopeinferred(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isscopeinferred;
+        else funcFlags &= ~FunctionFlag.isscopeinferred;
+    }
+
+    /// set or get if the function has the `@live` attribute
+    bool islive() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.islive) != 0;
+    }
+    /// ditto
+    void islive(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.islive;
+        else funcFlags &= ~FunctionFlag.islive;
+    }
+
+    /// set or get if the return type or the default arguments are removed
+    bool incomplete() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.incomplete) != 0;
+    }
+    /// ditto
+    void incomplete(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.incomplete;
+        else funcFlags &= ~FunctionFlag.incomplete;
+    }
+
+    /// set or get if the function has the `inout` on the parameters
+    bool isInOutParam() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.inoutParam) != 0;
+    }
+    /// ditto
+    void isInOutParam(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.inoutParam;
+        else funcFlags &= ~FunctionFlag.inoutParam;
+    }
+
+    /// set or get if the function has the `inout` on the parameters
+    bool isInOutQual() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.inoutQual) != 0;
+    }
+    /// ditto
+    void isInOutQual(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.inoutQual;
+        else funcFlags &= ~FunctionFlag.inoutQual;
+    }
+    /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
+    bool iswild() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & (FunctionFlag.inoutParam | FunctionFlag.inoutQual)) != 0;
     }
 
     override void accept(Visitor v)
@@ -6819,7 +6978,7 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("ref");
     if (tf.isreturn && !tf.isreturninferred)
         dg("return");
-    if (tf.isscope && !tf.isscopeinferred)
+    if (tf.isScopeQual && !tf.isscopeinferred)
         dg("scope");
     if (tf.islive)
         dg("@live");
