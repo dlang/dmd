@@ -34,18 +34,18 @@ if (radix >= 2 && radix <= 16)
     size_t i = buf.length;
     do
     {
+        uint x = void;
         if (value < radix)
         {
-            ubyte x = cast(ubyte)value;
-            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
-            break;
+            x = cast(uint)value;
+            value = 0;
         }
         else
         {
-            ubyte x = cast(ubyte)(value % radix);
-            value = value / radix;
-            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
+            x = cast(uint)(value % radix);
+            value /= radix;
         }
+        buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + 'a');
     } while (value);
     return buf[i .. $];
 }
