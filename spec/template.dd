@@ -356,7 +356,9 @@ $(GNAME TemplateThisParameter):
 )
 
     $(P $(I TemplateThisParameter)s are used in member function templates
-        to pick up the type of the $(I this) reference.)
+        to pick up the type of the $(I this) reference. It also will
+        infer the mutability of the `this` reference. For example, if
+        `this` is `const`, then the function is marked `const`.)
 
         ---
         import std.stdio;
