@@ -523,6 +523,11 @@ int intrinsic_op(FuncDeclaration fd)
     Lstdmath:
         if (argtype1 is Type.tfloat80 || id3 == Id._sqrt)
             goto Lmath;
+        if (id3 == Id.fabs &&
+            (argtype1 is Type.tfloat32 || argtype1 is Type.tfloat64))
+        {
+            op = OPabs;
+        }
     }
     else if (id1 == Id.core)
     {
