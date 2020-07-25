@@ -1375,7 +1375,7 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 }
 
 /********************************
- * Generate code for *= /= %=
+ * Generate code for *=
  */
 
 void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -1387,6 +1387,264 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     uint opr,lib,isbyte;
 
     //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
+    elem *e1 = e.EV.E1;
+    elem *e2 = e.EV.E2;
+    OPER op = e.Eoper;                     // OPxxxx
+
+    tym_t tyml = tybasic(e1.Ety);              // type of lvalue
+    char uns = tyuns(tyml) || tyuns(e2.Ety);
+    uint sz = _tysize[tyml];
+
+    uint rex = (I64 && sz == 8) ? REX_W : 0;
+    uint grex = rex << 16;          // 64 bit operands
+
+    // See if evaluate in XMM registers
+    if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
+    {
+        xmmopass(cdb,e,pretregs);
+        return;
+    }
+
+    if (tyfloating(tyml))
+    {
+        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        {
+            opass87(cdb,e,pretregs);
+        }
+        else
+        {
+            opassdbl(cdb,e,pretregs,op);
+        }
+        return;
+    }
+
+    if (sz <= REGSIZE)                  // if word or byte
+    {
+        isbyte = (sz == 1);               // 1 for byte operation
+        resreg = AX;                    // result register for * or /
+        if (uns)                        // if uint operation
+            opr = 4;                    // MUL
+        else                            // else signed
+            opr = 5;                    // IMUL
+        if (op != OPmulass)             // if /= or %=
+        {
+            opr += 2;                   // MUL => DIV, IMUL => IDIV
+            if (op == OPmodass)
+                resreg = DX;            // remainder is in DX
+        }
+        if (op == OPmulass)             // if multiply
+        {
+            if (config.target_cpu >= TARGET_80286 &&
+                e2.Eoper == OPconst && !isbyte)
+            {
+                targ_size_t e2factor = cast(targ_size_t)el_tolong(e2);
+                if (I64 && sz == 8 && e2factor != cast(int)e2factor)
+                    goto L1;
+                freenode(e2);
+                getlvalue(cdb,&cs,e1,0);     // get EA
+                regm_t idxregs = idxregm(&cs);
+                retregs = *pretregs & (ALLREGS | mBP) & ~idxregs;
+                if (!retregs)
+                    retregs = ALLREGS & ~idxregs;
+                allocreg(cdb,&retregs,&resreg,tyml);
+                cs.Iop = 0x69;                  // IMUL reg,EA,e2value
+                cs.IFL2 = FLconst;
+                cs.IEV2.Vint = cast(int)e2factor;
+                opr = resreg;
+            }
+            else if (!I16 && !isbyte)
+            {
+             L1:
+                retregs = *pretregs & (ALLREGS | mBP);
+                if (!retregs)
+                    retregs = ALLREGS;
+                codelem(cdb,e2,&retregs,false); // load rvalue in reg
+                getlvalue(cdb,&cs,e1,retregs);  // get EA
+                getregs(cdb,retregs);           // destroy these regs
+                cs.Iop = 0x0FAF;                        // IMUL resreg,EA
+                resreg = findreg(retregs);
+                opr = resreg;
+            }
+            else
+            {
+                retregs = mAX;
+                codelem(cdb,e2,&retregs,false);      // load rvalue in AX
+                getlvalue(cdb,&cs,e1,mAX);           // get EA
+                getregs(cdb,isbyte ? mAX : mAX | mDX); // destroy these regs
+                cs.Iop = 0xF7 ^ isbyte;                        // [I]MUL EA
+            }
+            code_newreg(&cs,opr);
+            cdb.gen(&cs);
+        }
+        else // /= or %=
+        {
+            targ_size_t e2factor;
+            int pow2;
+
+            assert(!isbyte);                      // should never happen
+            assert(I16 || sz != SHORTSIZE);
+            if (config.flags4 & CFG4speed &&
+                e2.Eoper == OPconst && !uns &&
+                (sz == REGSIZE || (I64 && sz == 4)) &&
+                (pow2 = ispow2(e2factor = cast(targ_size_t)el_tolong(e2))) != -1 &&
+                e2factor == cast(int)e2factor &&
+                !(config.target_cpu < TARGET_80286 && pow2 != 1 && op == OPdivass)
+               )
+            {
+                // Signed divide or modulo by power of 2
+                getlvalue(cdb,&cs,e1,mAX | mDX);
+                cs.Iop = 0x8B;
+                code_newreg(&cs, AX);
+                cdb.gen(&cs);                       // MOV AX,EA
+                freenode(e2);
+                getregs(cdb,mAX | mDX);     // trash these regs
+                cdb.gen1(0x99);                     // CWD
+                code_orrex(cdb.last(), rex);
+                if (pow2 == 1)
+                {
+                    if (op == OPdivass)
+                    {
+                        cdb.gen2(0x2B,grex | modregrm(3,AX,DX));       // SUB AX,DX
+                        cdb.gen2(0xD1,grex | modregrm(3,7,AX));        // SAR AX,1
+                        resreg = AX;
+                    }
+                    else // OPmod
+                    {
+                        cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
+                        cdb.genc2(0x81,grex | modregrm(3,4,AX),1);     // AND AX,1
+                        cdb.gen2(0x03,grex | modregrm(3,DX,AX));       // ADD DX,AX
+                        resreg = DX;
+                    }
+                }
+                else
+                {
+                    assert(pow2 < 32);
+                    targ_ulong m = (1 << pow2) - 1;
+                    if (op == OPdivass)
+                    {
+                        cdb.genc2(0x81,grex | modregrm(3,4,DX),m);     // AND DX,m
+                        cdb.gen2(0x03,grex | modregrm(3,AX,DX));       // ADD AX,DX
+                        // Be careful not to generate this for 8088
+                        assert(config.target_cpu >= TARGET_80286);
+                        cdb.genc2(0xC1,grex | modregrm(3,7,AX),pow2);  // SAR AX,pow2
+                        resreg = AX;
+                    }
+                    else // OPmodass
+                    {
+                        cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
+                        cdb.gen2(0x2B,grex | modregrm(3,AX,DX));       // SUB AX,DX
+                        cdb.genc2(0x81,grex | modregrm(3,4,AX),m);     // AND AX,m
+                        cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
+                        cdb.gen2(0x2B,grex | modregrm(3,AX,DX));       // SUB AX,DX
+                        resreg = AX;
+                    }
+                }
+            }
+            else
+            {
+                retregs = ALLREGS & ~(mAX|mDX);         // DX gets sign extension
+                codelem(cdb,e2,&retregs,false); // load rvalue in retregs
+                reg = findreg(retregs);
+                getlvalue(cdb,&cs,e1,mAX | mDX | retregs);     // get EA
+                getregs(cdb,mAX | mDX);         // destroy these regs
+                cs.Irm |= modregrm(0,AX,0);
+                cs.Iop = 0x8B;
+                cdb.gen(&cs);                   // MOV AX,EA
+                if (uns)                        // if uint
+                    movregconst(cdb,DX,0,0);      // CLR DX
+                else                            // else signed
+                {   cdb.gen1(0x99);             // CWD
+                    code_orrex(cdb.last(),rex);
+                }
+                getregs(cdb,mDX | mAX); // DX and AX will be destroyed
+                genregs(cdb,0xF7,opr,reg);   // OPR reg
+                code_orrex(cdb.last(),rex);
+            }
+        }
+        cs.Iop = 0x89 ^ isbyte;
+        code_newreg(&cs,resreg);
+        cdb.gen(&cs);                           // MOV EA,resreg
+        if (e1.Ecount)                         // if we gen a CSE
+                cssave(e1,mask(resreg),!OTleaf(e1.Eoper));
+        freenode(e1);
+        fixresult(cdb,e,mask(resreg),pretregs);
+        return;
+    }
+    else if (sz == 2 * REGSIZE)
+    {
+        lib = CLIB.lmul;
+        if (op == OPdivass || op == OPmodass)
+        {
+            lib = (uns) ? CLIB.uldiv : CLIB.ldiv;
+            if (op == OPmodass)
+                lib++;
+        }
+        retregs = mCX | mBX;
+        codelem(cdb,e2,&retregs,false);
+        getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
+        getregs(cdb,mDX | mAX);
+        cs.Iop = 0x8B;
+        cdb.gen(&cs);                   // MOV AX,EA
+        getlvalue_msw(&cs);
+        cs.Irm |= modregrm(0,DX,0);
+        cdb.gen(&cs);                   // MOV DX,EA+2
+        getlvalue_lsw(&cs);
+        retregs = mDX | mAX;
+        if (config.target_cpu >= TARGET_PentiumPro && op == OPmulass)
+        {
+            /*  IMUL    ECX,EAX
+                IMUL    EDX,EBX
+                ADD     ECX,EDX
+                MUL     EBX
+                ADD     EDX,ECX
+             */
+             getregs(cdb,mAX|mDX|mCX);
+             cdb.gen2(0x0FAF,modregrm(3,CX,AX));
+             cdb.gen2(0x0FAF,modregrm(3,DX,BX));
+             cdb.gen2(0x03,modregrm(3,CX,DX));
+             cdb.gen2(0xF7,modregrm(3,4,BX));
+             cdb.gen2(0x03,modregrm(3,DX,CX));
+        }
+        else
+        {
+            if (op == OPmodass)
+                retregs = mBX | mCX;
+            callclib(cdb,e,lib,&retregs,idxregm(&cs));
+        }
+        reg = findreglsw(retregs);
+        cs.Iop = 0x89;
+        NEWREG(cs.Irm,reg);
+        cdb.gen(&cs);                   // MOV EA,lsreg
+        reg = findregmsw(retregs);
+        NEWREG(cs.Irm,reg);
+        getlvalue_msw(&cs);
+        cdb.gen(&cs);                   // MOV EA+2,msreg
+        if (e1.Ecount)                 // if we gen a CSE
+            cssave(e1,retregs,!OTleaf(e1.Eoper));
+        freenode(e1);
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
+
+/********************************
+ * Generate code for /= %=
+ */
+
+void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+{
+    code cs;
+    regm_t retregs;
+    reg_t resreg;
+    reg_t reg;
+    uint opr,lib,isbyte;
+
+    //printf("cddivass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
     OPER op = e.Eoper;                     // OPxxxx
