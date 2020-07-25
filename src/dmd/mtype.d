@@ -5267,23 +5267,31 @@ extern (C++) abstract class TypeQualified : Type
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject id = t.idents[i];
-            if (id.dyncast() == DYNCAST.dsymbol)
+            with (DYNCAST) final switch (id.dyncast())
             {
-                TemplateInstance ti = cast(TemplateInstance)id;
-                ti = cast(TemplateInstance)ti.syntaxCopy(null);
-                id = ti;
-            }
-            else if (id.dyncast() == DYNCAST.expression)
-            {
+            case object:
+                break;
+            case expression:
                 Expression e = cast(Expression)id;
                 e = e.syntaxCopy();
                 id = e;
-            }
-            else if (id.dyncast() == DYNCAST.type)
-            {
+                break;
+            case dsymbol:
+                TemplateInstance ti = cast(TemplateInstance)id;
+                ti = cast(TemplateInstance)ti.syntaxCopy(null);
+                id = ti;
+                break;
+            case type:
                 Type tx = cast(Type)id;
                 tx = tx.syntaxCopy();
                 id = tx;
+                break;
+            case identifier:
+            case tuple:
+            case parameter:
+            case statement:
+            case condition:
+            case templateparameter:
             }
             idents[i] = id;
         }
