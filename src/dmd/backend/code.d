@@ -442,6 +442,7 @@ void cdmsw(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdmul(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cddiv(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdmulass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
+void cddivass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdneg(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdnot(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdorth(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
