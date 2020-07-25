@@ -1584,7 +1584,7 @@ public:
                 unit = "μs";
             else
                 unit = plural ? units : units[0 .. $-1];
-            res ~= signedToTempString(val, 10);
+            res ~= signedToTempString(val);
             res ~= " ";
             res ~= unit;
         }
@@ -1808,7 +1808,7 @@ unittest
             static if (is(F == int) || is(F == long))
                 return signedToTempString(val, 10);
             else
-                return unsignedToTempString(val, 10);
+                return unsignedToTempString(val);
         }
 
         foreach (F; AliasSeq!(int,uint,long,ulong,float,double,real))
@@ -2405,7 +2405,7 @@ assert(before + timeElapsed == after);
     string toString() const pure nothrow
     {
         static if (clockType == ClockType.normal)
-            return "MonoTime(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~ signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
+            return "MonoTime(" ~ signedToTempString(_ticks) ~ " ticks, " ~ signedToTempString(ticksPerSecond) ~ " ticks per second)";
         else
             return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~
                    signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
@@ -3972,7 +3972,7 @@ string doubleToString(double value) @safe pure nothrow
     else
         result = signedToTempString(cast(long)value, 10).idup;
     result ~= '.';
-    result ~= unsignedToTempString(cast(ulong)(_abs((value - cast(long)value) * 1_000_000) + .5), 10);
+    result ~= unsignedToTempString(cast(ulong)(_abs((value - cast(long)value) * 1_000_000) + .5));
 
     while (result[$-1] == '0')
         result = result[0 .. $-1];
