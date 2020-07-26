@@ -628,7 +628,7 @@ class TypeInfo_StaticArray : TypeInfo
         import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ unsignedToTempString(len, tmpBuff, 10) ~ "]";
+        return value.toString() ~ "[" ~ unsignedToTempString(len, tmpBuff) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -2006,7 +2006,7 @@ class Throwable : Object
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(unsignedToTempString(line, tmpBuff, 10)); sink(")");
+        sink("("); sink(unsignedToTempString(line, tmpBuff)); sink(")");
 
         if (msg.length)
         {

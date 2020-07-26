@@ -48,6 +48,6 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
     UnsignedStringBuf strbuff = void;
 
     // write an appropriate message, then abort the program
-    writeStr("Aborting from ", filename, "(", line.unsignedToTempString(strbuff, 10), ") ", msg);
+    writeStr("Aborting from ", filename, "(", line.unsignedToTempString(strbuff), ") ", msg);
     c_abort();
 }
