@@ -12,17 +12,23 @@
 module dmd.typinf;
 
 import dmd.astenums;
+import dmd.arraytypes;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dclass;
 import dmd.dstruct;
+import dmd.dsymbolsem;
+import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.globals;
 import dmd.gluelayer;
 import dmd.location;
 import dmd.mtype;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.visitor;
 import core.stdc.stdio;
 
@@ -64,16 +70,47 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
     Type t = torig.merge2(); // do this since not all Type's are merge'd
     if (!t.vtinfo)
     {
-        if (t.isShared()) // does both 'shared' and 'shared const'
-            t.vtinfo = TypeInfoSharedDeclaration.create(t);
-        else if (t.isConst())
-            t.vtinfo = TypeInfoConstDeclaration.create(t);
-        else if (t.isImmutable())
-            t.vtinfo = TypeInfoInvariantDeclaration.create(t);
-        else if (t.isWild())
-            t.vtinfo = TypeInfoWildDeclaration.create(t);
-        else
-            t.vtinfo = getTypeInfoDeclaration(t);
+        if (Type.rttypeid)
+        {
+            // Evaluate: RTTypeid!t
+            auto tiargs = new Objects();
+            tiargs.push(t);
+            auto ti = new TemplateInstance(loc, Type.rttypeid, tiargs);
+
+            Scope* sc3 = ti.tempdecl._scope.startCTFE();
+            sc3.tinst = sc.tinst;
+            sc3.minst = sc.minst;
+            ti.dsymbolSemantic(sc3);
+            ti.semantic2(sc3);
+            ti.semantic3(sc3);
+            auto ex = symbolToExp(ti.toAlias(), Loc.initial, sc3, false);
+
+            sc3.endCTFE();
+
+            ex = ex.ctfeInterpret();
+            t.vtinfo = cast(TypeInfoDeclaration) ex.isVarExp();
+            /* Save this for when RTTypeid is fully operational
+            if (!t.vtinfo)
+            {
+                .error(loc, "`object.RTTypeid!T` did not return a TypeInfo variable");
+                fatal();
+            }
+            */
+        }
+
+        if (!t.vtinfo)
+        {
+            if (t.isShared()) // does both 'shared' and 'shared const'
+                t.vtinfo = TypeInfoSharedDeclaration.create(t);
+            else if (t.isConst())
+                t.vtinfo = TypeInfoConstDeclaration.create(t);
+            else if (t.isImmutable())
+                t.vtinfo = TypeInfoInvariantDeclaration.create(t);
+            else if (t.isWild())
+                t.vtinfo = TypeInfoWildDeclaration.create(t);
+            else
+                t.vtinfo = getTypeInfoDeclaration(t);
+        }
         assert(t.vtinfo);
 
         // ClassInfos are generated as part of ClassDeclaration codegen

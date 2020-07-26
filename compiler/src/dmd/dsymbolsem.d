@@ -2578,6 +2578,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (tempdecl.ident == Id.RTInfo)
                 Type.rtinfo = tempdecl;
+
+            if (tempdecl.ident == Id.RTTypeid)
+                Type.rttypeid = tempdecl;
         }
 
         /* Remember Scope for later instantiations, but make

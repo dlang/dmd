@@ -107,6 +107,7 @@ immutable Msgtable[] msgtable =
     { "outer" },
     { "Exception" },
     { "RTInfo" },
+    { "RTTypeid" },
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },
