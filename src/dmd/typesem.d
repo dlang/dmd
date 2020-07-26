@@ -531,7 +531,7 @@ private Type stripDefaultArgs(Type t)
 
 /******************************************
  * We've mistakenly parsed `t` as a type.
- * Redo `t` as an Expression.
+ * Redo `t` as an Expression only if there are no type modifiers.
  * Params:
  *      t = mistaken type
  * Returns:
@@ -572,6 +572,8 @@ Expression typeToExpression(Type t)
         return new TypeExp(t.loc, t);
     }
 
+    if (t.mod)
+        return null;
     switch (t.ty)
     {
         case Tsarray:   return visitSArray(cast(TypeSArray) t);
@@ -1912,13 +1914,13 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
         auto o = mtype.compileTypeMixin(loc, sc);
         if (auto t = o.isType())
         {
-            return t.typeSemantic(loc, sc);
+            return t.typeSemantic(loc, sc).addMod(mtype.mod);
         }
         else if (auto e = o.isExpression())
         {
             e = e.expressionSemantic(sc);
             if (auto et = e.isTypeExp())
-                return et.type;
+                return et.type.addMod(mtype.mod);
             else
             {
                 if (!global.errors)
@@ -3054,7 +3056,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         {
             e = e.expressionSemantic(sc);
             if (auto et = e.isTypeExp())
-                return returnType(et.type);
+                return returnType(et.type.addMod(mt.mod));
             else
                 returnExp(e);
         }
