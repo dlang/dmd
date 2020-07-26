@@ -279,7 +279,7 @@ pure @safe:
 
         UnsignedStringBuf buf = void;
 
-        auto s = unsignedToTempString!16(val, buf);
+        auto s = unsignedToTempString(val, buf, 16);
         int slen = cast(int)s.length;
         if (slen < width)
         {
