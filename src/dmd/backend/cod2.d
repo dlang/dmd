@@ -1230,10 +1230,10 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         default:                                    // OPconst and operators
             //printf("test2 %p, retregs = %s rretregs = %s resreg = %s\n", e, regm_str(retregs), regm_str(rretregs), regm_str(resreg));
-            codelem(cdb,e1,&retregs,false);           // eval left leaf
-            scodelem(cdb,e2,&rretregs,retregs,true);  // get rvalue
             if (sz <= REGSIZE)
             {
+                codelem(cdb,e1,&retregs,false);           // eval left leaf
+                scodelem(cdb,e2,&rretregs,retregs,true);  // get rvalue
                 getregs(cdb,mAX | mDX);     // trash these regs
                 rreg = findreg(rretregs);
                 cdb.gen2(0xF7 ^ isbyte,grex | modregrmx(3,op,rreg)); // OP AX,rreg
@@ -1243,24 +1243,34 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
             else if (sz == 2 * REGSIZE)
             {
+                retregs = mDX | mAX;
+                codelem(cdb,e1,&retregs,false);           // eval left leaf
                 if (config.target_cpu >= TARGET_PentiumPro)
                 {
-                    /*  IMUL    ECX,EAX
-                        IMUL    EDX,EBX
-                        ADD     ECX,EDX
-                        MUL     EBX
-                        ADD     EDX,ECX
+                    rretregs = allregs & ~retregs;           // second arg
+                    scodelem(cdb,e2,&rretregs,retregs,true); // get rvalue
+                    regm_t rlo = findreglsw(rretregs);
+                    regm_t rhi = findregmsw(rretregs);
+                    /*  IMUL    rhi,EAX
+                        IMUL    EDX,rlo
+                        ADD     rhi,EDX
+                        MUL     rlo
+                        ADD     EDX,rhi
                      */
-                     getregs(cdb,mAX|mDX|mCX);
-                     cdb.gen2(0x0FAF,modregrm(3,CX,AX));
-                     cdb.gen2(0x0FAF,modregrm(3,DX,BX));
-                     cdb.gen2(0x03,modregrm(3,CX,DX));
-                     cdb.gen2(0xF7,modregrm(3,4,BX));
-                     cdb.gen2(0x03,modregrm(3,DX,CX));
-                     fixresult(cdb,e,mDX|mAX,pretregs);
+                    getregs(cdb,mAX|mDX|mask(rhi));
+                    cdb.gen2(0x0FAF,modregrm(3,rhi,AX));
+                    cdb.gen2(0x0FAF,modregrm(3,DX,rlo));
+                    cdb.gen2(0x03,modregrm(3,rhi,DX));
+                    cdb.gen2(0xF7,modregrm(3,4,rlo));
+                    cdb.gen2(0x03,modregrm(3,DX,rhi));
+                    fixresult(cdb,e,mDX|mAX,pretregs);
                 }
                 else
+                {
+                    rretregs = mCX | mBX;           // second arg
+                    scodelem(cdb,e2,&rretregs,retregs,true);  // get rvalue
                     callclib(cdb,e,lib,pretregs,keepregs);
+                }
             }
             else
                     assert(0);
