@@ -870,14 +870,14 @@ class TypeInfo_Vector : TypeInfo
 
 class TypeInfo_Function : TypeInfo
 {
-    override string toString() const
+    override string toString() const @trusted
     {
         import core.demangle : demangleType;
 
         alias SafeDemangleFunctionType = char[] function (const(char)[] buf, char[] dst = null) @safe nothrow pure;
-        SafeDemangleFunctionType demangle = ( () @trusted => cast(SafeDemangleFunctionType)(&demangleType) ) ();
+        SafeDemangleFunctionType demangle = cast(SafeDemangleFunctionType) &demangleType;
 
-        return (() @trusted => cast(string)(demangle(deco))) ();
+        return cast(string) demangle(deco);
     }
 
     override bool opEquals(Object o)
@@ -927,14 +927,14 @@ class TypeInfo_Function : TypeInfo
 
 class TypeInfo_Delegate : TypeInfo
 {
-    override string toString() const
+    override string toString() const @trusted
     {
         import core.demangle : demangleType;
 
         alias SafeDemangleFunctionType = char[] function (const(char)[] buf, char[] dst = null) @safe nothrow pure;
-        SafeDemangleFunctionType demangle = ( () @trusted => cast(SafeDemangleFunctionType)(&demangleType) ) ();
+        SafeDemangleFunctionType demangle = cast(SafeDemangleFunctionType) &demangleType;
 
-        return (() @trusted => cast(string)(demangle(deco))) ();
+        return cast(string) demangle(deco);
     }
 
     unittest
@@ -2439,10 +2439,9 @@ auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 
     pure nothrow @nogc:
         @property bool empty()  @safe { return _aaRangeEmpty(r); }
-        @property ref front()
+        @property ref front() @trusted
         {
-            auto p = (() @trusted => cast(substInout!K*) _aaRangeFrontKey(r)) ();
-            return *p;
+            return *cast(substInout!K*) _aaRangeFrontKey(r);
         }
         void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
@@ -2485,10 +2484,9 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 
     pure nothrow @nogc:
         @property bool empty() @safe { return _aaRangeEmpty(r); }
-        @property ref front()
+        @property ref front() @trusted
         {
-            auto p = (() @trusted => cast(substInout!V*) _aaRangeFrontValue(r)) ();
-            return *p;
+            return *cast(substInout!V*) _aaRangeFrontValue(r);
         }
         void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
@@ -2540,15 +2538,13 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
                 private void* keyp;
                 private void* valp;
 
-                @property ref key() inout
+                @property ref key() inout @trusted
                 {
-                    auto p = (() @trusted => cast(substInout!K*) keyp) ();
-                    return *p;
+                    return *cast(substInout!K*) keyp;
                 }
-                @property ref value() inout
+                @property ref value() inout @trusted
                 {
-                    auto p = (() @trusted => cast(substInout!V*) valp) ();
-                    return *p;
+                    return *cast(substInout!V*) valp;
                 }
             }
             return Pair(_aaRangeFrontKey(r),
