@@ -253,6 +253,11 @@ extern (C)
         return instance.inFinalizer();
     }
 
+    ulong gc_allocatedInCurrentThread() nothrow
+    {
+        return instance.allocatedInCurrentThread();
+    }
+
     GC gc_getProxy() nothrow
     {
         return instance;
