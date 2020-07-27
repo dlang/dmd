@@ -682,8 +682,13 @@ dmd -cov -unittest myprog.d
         Option("vtls",
             "list all variables going into thread local storage"
         ),
-        Option("vtemplates",
-            "list statistics on template instantiations"
+        Option("vtemplates=[list-instances]",
+            "list statistics on template instantiations",
+            `An optional argument determines extra diagnostics,
+            where:
+            $(DL
+            $(DT list-instances)$(DD Also shows all instantiation contexts for each template.)
+            )`,
         ),
         Option("w",
             "warnings as errors (compilation will halt)",

@@ -723,6 +723,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override const(char)* toChars() const
     {
+        return toCharsMaybeConstraints(true);
+    }
+
+    /****************************
+     * Similar to `toChars`, but does not print the template constraints
+     */
+    const(char)* toCharsNoConstraints() const
+    {
+        return toCharsMaybeConstraints(false);
+    }
+
+    const(char)* toCharsMaybeConstraints(bool includeConstraints) const
+    {
         if (literal)
             return Dsymbol.toChars();
 
@@ -749,45 +762,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (constraint)
+        if (includeConstraints &&
+            constraint)
         {
             buf.writestring(" if (");
             .toCBuffer(constraint, &buf, &hgs);
             buf.writeByte(')');
         }
-        return buf.extractChars();
-    }
 
-    /****************************
-     * Similar to `toChars`, but does not print the template constraints
-     */
-    const(char)* toCharsNoConstraints()
-    {
-        if (literal)
-            return Dsymbol.toChars();
-
-        OutBuffer buf;
-        HdrGenState hgs;
-
-        buf.writestring(ident.toChars());
-        buf.writeByte('(');
-        foreach (i, tp; *parameters)
-        {
-            if (i > 0)
-                buf.writestring(", ");
-            .toCBuffer(tp, &buf, &hgs);
-        }
-        buf.writeByte(')');
-
-        if (onemember)
-        {
-            FuncDeclaration fd = onemember.isFuncDeclaration();
-            if (fd && fd.type)
-            {
-                TypeFunction tf = fd.type.isTypeFunction();
-                buf.writestring(parametersTypeToChars(tf.parameterList));
-            }
-        }
         return buf.extractChars();
     }
 
@@ -8288,30 +8270,52 @@ struct TemplateStats
     uint numInstantiations;     // number of instantiations of the template
     uint uniqueInstantiations;  // number of unique instantiations of the template
 
+    TemplateInstances* allInstances;
+
     /*******************************
      * Add this instance
      */
-    static void incInstance(const TemplateDeclaration td)
+    static void incInstance(const TemplateDeclaration td,
+                            const TemplateInstance ti)
     {
+        void log(ref TemplateStats ts)
+        {
+            if (ts.allInstances is null)
+                ts.allInstances = new TemplateInstances();
+            if (global.params.vtemplatesListInstances)
+                ts.allInstances.push(cast() ti);
+        }
+
+    // message(ti.loc, "incInstance %p %p", td, ti);
         if (!global.params.vtemplates)
             return;
         if (!td)
             return;
+        assert(ti);
         if (auto ts = cast(const void*) td in stats)
+        {
+            log(*ts);
             ++ts.numInstantiations;
+        }
         else
+        {
             stats[cast(const void*) td] = TemplateStats(1, 0);
+            log(stats[cast(const void*) td]);
+        }
     }
 
     /*******************************
      * Add this unique instance
      */
-    static void incUnique(const TemplateDeclaration td)
+    static void incUnique(const TemplateDeclaration td,
+                          const TemplateInstance ti)
     {
+        // message(ti.loc, "incUnique %p %p", td, ti);
         if (!global.params.vtemplates)
             return;
         if (!td)
             return;
+        assert(ti);
         if (auto ts = cast(const void*) td in stats)
             ++ts.uniqueInstantiations;
         else
@@ -8319,15 +8323,60 @@ struct TemplateStats
     }
 }
 
-
 void printTemplateStats()
 {
+    static struct TemplateDeclarationStats
+    {
+        TemplateDeclaration td;
+        TemplateStats ts;
+        static int compare(scope const TemplateDeclarationStats* a,
+                           scope const TemplateDeclarationStats* b) @safe nothrow @nogc pure
+        {
+            auto diff = b.ts.uniqueInstantiations - a.ts.uniqueInstantiations;
+            if (diff)
+                return diff;
+            else
+                return b.ts.numInstantiations - a.ts.numInstantiations;
+        }
+    }
+
     if (!global.params.vtemplates)
         return;
 
-    printf("  Number   Unique   Name\n");
-    foreach (td, ref ts; TemplateStats.stats)
+    Array!(TemplateDeclarationStats) sortedStats;
+    sortedStats.reserve(TemplateStats.stats.length);
+    foreach (td_, ref ts; TemplateStats.stats)
     {
-        printf("%8u %8u   %s\n", ts.numInstantiations, ts.uniqueInstantiations, (cast(const TemplateDeclaration) td).toChars());
+        sortedStats.push(TemplateDeclarationStats(cast(TemplateDeclaration) td_, ts));
+    }
+
+    sortedStats.sort!(TemplateDeclarationStats.compare);
+
+    foreach (const ref ss; sortedStats[])
+    {
+        if (global.params.vtemplatesListInstances &&
+            ss.ts.allInstances)
+        {
+            message(ss.td.loc,
+                    "vtemplate: %u (%u unique) instantiation(s) of template `%s` found, they are:",
+                    ss.ts.numInstantiations,
+                    ss.ts.uniqueInstantiations,
+                    ss.td.toCharsNoConstraints());
+            foreach (const ti; (*ss.ts.allInstances)[])
+            {
+                if (ti.tinst)   // if has enclosing instance
+                    message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
+                else
+                    message(ti.loc, "vtemplate: explicit instance `%s`", ti.toChars());
+            }
+        }
+        else
+        {
+            message(ss.td.loc,
+                    "vtemplate: %u (%u unique) instantiation(s) of template `%s` found",
+                    ss.ts.numInstantiations,
+                    ss.ts.uniqueInstantiations,
+                    ss.td.toCharsNoConstraints());
+        }
     }
 }
