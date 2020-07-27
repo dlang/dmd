@@ -2568,7 +2568,7 @@ extern (C++) class FuncDeclaration : Declaration
  * Returns:
  *      void expression that calls the invariant
  */
-Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
+Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
 {
     Expression e = null;
     // Call invariant directly only if it exists
