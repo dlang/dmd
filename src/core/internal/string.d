@@ -50,32 +50,6 @@ if (radix >= 2 && radix <= 16)
     return buf[i .. $];
 }
 
-// TEMPORARY. Delete after the related Phobos PR is merged.
-char[] unsignedToTempString()(ulong value, return scope char[] buf, uint radix) @safe
-{
-    if (radix < 2)
-        // not a valid radix, just return an empty string
-        return buf[$ .. $];
-
-    size_t i = buf.length;
-    do
-    {
-        if (value < radix)
-        {
-            ubyte x = cast(ubyte)value;
-            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
-            break;
-        }
-        else
-        {
-            ubyte x = cast(ubyte)(value % radix);
-            value = value / radix;
-            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
-        }
-    } while (value);
-    return buf[i .. $];
-}
-
 private struct TempStringNoAlloc()
 {
     // need to handle 65 bytes for radix of 2 with negative sign.
@@ -160,23 +134,6 @@ auto signedToTempString(uint radix = 10)(long value) @safe
     {
         r._len++;
         r.get()[0] = '-';
-    }
-    return r;
-}
-
-// TEMPORARY. Delete after the related Phobos PR is merged.
-char[] signedToTempString()(long value, return scope char[] buf, uint radix) @safe
-{
-    bool neg = value < 0;
-    if (neg)
-        value = cast(ulong)-value;
-    auto r = unsignedToTempString(value, buf, radix);
-    if (neg)
-    {
-        // about to do a slice without a bounds check
-        auto trustedSlice(return char[] r) @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
-        r = trustedSlice(r);
-        r[0] = '-';
     }
     return r;
 }
