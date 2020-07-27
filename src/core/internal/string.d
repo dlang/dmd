@@ -50,10 +50,9 @@ if (radix >= 2 && radix <= 16)
     return buf[i .. $];
 }
 
-private struct TempStringNoAlloc()
+private struct TempStringNoAlloc(ubyte N)
 {
-    // need to handle 65 bytes for radix of 2 with negative sign.
-    private char[65] _buf = void;
+    private char[N] _buf = void;
     private ubyte _len;
     inout(char)[] get() inout return
     {
@@ -76,7 +75,10 @@ Returns:
 */
 auto unsignedToTempString(uint radix = 10)(ulong value) @safe
 {
-    TempStringNoAlloc!() result = void;
+    // Need a buffer of 65 bytes for radix of 2 with room for
+    // signedToTempString to possibly add a negative sign.
+    enum bufferSize = radix >= 10 ? 20 : 65;
+    TempStringNoAlloc!bufferSize result = void;
     result._len = unsignedToTempString!radix(value, result._buf).length & 0xff;
     return result;
 }
