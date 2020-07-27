@@ -2,12 +2,15 @@ Usage of identical functions in a single module
 
 A binary should never contain multiple versions of a symbol.
 Before this version, it was allowed to provide multiple implementation for a function,
-even if they result in the same mangling, which can result in undefined behavior:
+even if they result in the same mangling, which can result in undefined behaviour:
 
 ---
 extern(C):
 void foo(int) { }
-void foo(double) { } // will error now
+void foo(double) { } // will issue a deprecation now
+
+void bar() {}
+void bar() {} // will raise an error
 ---
 
 However, it's still allowed to have multiple declarations as long as there's at

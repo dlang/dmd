@@ -359,7 +359,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
 
-        if (fd.overnext && !fd.errors)
+        // Only check valid functions which have a body to avoid errors
+        // for multiple declarations, e.g.
+        // void foo();
+        // void foo();
+        if (fd.fbody && fd.overnext && !fd.errors)
         {
             OutBuffer buf1;
             OutBuffer buf2;
@@ -411,15 +415,18 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         return 0;
 
                     auto tf2 = cast(TypeFunction)f2.type;
-                    // @@@DEPRECATED_2.092@@@
-                    f2.deprecation("%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
+                    // @@@DEPRECATED_2.094@@@
+                    // Deprecated in 2020-08, make this an error in 2.104
+                    deprecation(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
                             parametersTypeToChars(tf2.parameterList),
                             (f1.linkage == f2.linkage ? "another " : "").ptr,
                             linkageToChars(f1.linkage), f1.loc.toChars());
-                    f2.type = Type.terror;
-                    f2.errors = true;
+
+                    // Enable this when turning the deprecation into an error
+                    // f2.type = Type.terror;
+                    // f2.errors = true;
                     return 0;
                 }
 
@@ -433,7 +440,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (strcmp(s1, s2) == 0)
                 {
                     auto tf2 = cast(TypeFunction)f2.type;
-                    f2.error("%s `%s%s` conflicts with previous declaration at %s",
+                    error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
                             parametersTypeToChars(tf2.parameterList),
