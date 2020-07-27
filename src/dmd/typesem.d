@@ -3051,6 +3051,8 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (auto t = o.isType())
         {
             resolve(t, loc, sc, pe, pt, ps, intypeid);
+            if (*pt)
+                (*pt) = (*pt).addMod(mt.mod);
         }
         else if (auto e = o.isExpression())
         {
