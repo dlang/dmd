@@ -471,5 +471,3 @@ bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
             ident == Id.__c_long_double ||
             ident == Id.__c_wchar_t;
 }
-
-

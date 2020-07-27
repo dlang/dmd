@@ -105,6 +105,7 @@ struct Param
     bool showColumns;   // print character (column) numbers in diagnostics
     bool vtls;          // identify thread local variables
     bool vtemplates;    // collect and list statistics on template instantiations
+    bool vtemplatesListInstances; // collect and list statistics on template instantiations origins
     bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage

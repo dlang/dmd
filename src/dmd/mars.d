@@ -1831,8 +1831,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.vcg_ast = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
-        else if (arg == "-vtemplates") // https://dlang.org/dmd.html#switch-vtemplates
+        else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
+        {
             params.vtemplates = true;
+            if (p[1 + "vtemplates".length] == '=')
+            {
+                const(char)[] style = arg[1 + "vtemplates=".length .. $];
+                switch (style)
+                {
+                case "list-instances":
+                    params.vtemplatesListInstances = true;
+                    break;
+                default:
+                    error("unknown vtemplates style '%.*s', must be 'list-instances'", cast(int) style.length, style.ptr);
+                }
+            }
+        }
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
