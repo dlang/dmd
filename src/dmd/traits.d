@@ -1078,7 +1078,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             int dg(Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
-                if (!fd) {
+                if (!fd)
+                {
                     if(includeTemplates)
                         exps.push(new DsymbolExp(Loc.initial, s, false));
                     return 0;
