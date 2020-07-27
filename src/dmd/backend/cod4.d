@@ -1383,8 +1383,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code cs;
     regm_t retregs;
     reg_t resreg;
-    reg_t reg;
-    uint opr,lib,isbyte;
+    uint opr,isbyte;
 
     //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.EV.E1;
@@ -1395,8 +1394,8 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     char uns = tyuns(tyml) || tyuns(e2.Ety);
     uint sz = _tysize[tyml];
 
-    //uint rex = (I64 && sz == 8) ? REX_W : 0;
-    //uint grex = rex << 16;          // 64 bit operands
+    uint rex = (I64 && sz == 8) ? REX_W : 0;
+    uint grex = rex << 16;          // 64 bit operands
 
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && !(*pretregs & mST0))
@@ -1420,12 +1419,129 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (sz <= REGSIZE)                  // if word or byte
     {
-        isbyte = (sz == 1);               // 1 for byte operation
-        resreg = AX;                    // result register for * or /
-        if (uns)                        // if uint operation
-            opr = 4;                    // MUL
-        else                            // else signed
-            opr = 5;                    // IMUL
+        if (e2.Eoper == OPconst &&
+            (I32 || I64) &&
+            el_signx32(e2) &&
+            sz >= 4)
+        {
+            // See if we can use an LEA instruction
+
+            int ss;
+            int ss2 = 0;
+            int shift;
+
+            targ_size_t e2factor = cast(targ_size_t)el_tolong(e2);
+            switch (e2factor)
+            {
+                case 12:    ss = 1; ss2 = 2; goto L4;
+                case 24:    ss = 1; ss2 = 3; goto L4;
+
+                case 6:
+                case 3:     ss = 1; goto L4;
+
+                case 20:    ss = 2; ss2 = 2; goto L4;
+                case 40:    ss = 2; ss2 = 3; goto L4;
+
+                case 10:
+                case 5:     ss = 2; goto L4;
+
+                case 36:    ss = 3; ss2 = 2; goto L4;
+                case 72:    ss = 3; ss2 = 3; goto L4;
+
+                case 18:
+                case 9:     ss = 3; goto L4;
+                L4:
+                {
+                    getlvalue(cdb,&cs,e1,0);           // get EA
+                    modEA(cdb,&cs);
+                    regm_t idxregs = idxregm(&cs);
+                    regm_t regm = *pretregs & ~(idxregs | mBP | mR13);  // don't use EBP
+                    if (!regm)
+                        regm = allregs & ~(idxregs | mBP | mR13);
+                    reg_t reg;
+                    allocreg(cdb,&regm,&reg,tyml);
+                    cs.Iop = 0x8B;
+                    code_newreg(&cs,reg);
+                    cs.Irex |= rex;
+                    cdb.gen(&cs);                       // MOV reg,EA
+
+                    assert((reg & 7) != BP);
+                    cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                modregxrmx(ss,reg,reg));  // LEA reg,[ss*reg][reg]
+                    if (ss2)
+                    {
+                        cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                       modregxrm(ss2,reg,5));
+                        cdb.last().IFL1 = FLconst;
+                        cdb.last().IEV1.Vint = 0;       // LEA reg,0[ss2*reg]
+                    }
+                    else if (!(e2factor & 1))    // if even factor
+                    {
+                        genregs(cdb,0x03,reg,reg); // ADD reg,reg
+                        code_orrex(cdb.last(),rex);
+                    }
+                    cs.Iop = 0x89;
+                    code_newreg(&cs,reg);
+                    cdb.gen(&cs);                       // MOV EA,reg
+                    freenode(e2);
+                    fixresult(cdb,e,resreg,pretregs);
+                    return;
+                }
+
+                case 37:
+                case 74:    shift = 2;
+                            goto L5;
+                case 13:
+                case 26:    shift = 0;
+                            goto L5;
+                L5:
+                {
+                    getlvalue(cdb,&cs,e1,0);           // get EA
+                    modEA(cdb,&cs);
+                    regm_t idxregs = idxregm(&cs);
+                    regm_t regm = *pretregs & ~(idxregs | mBP | mR13);  // don't use EBP
+                    if (!regm)
+                        regm = allregs & ~(idxregs | mBP | mR13);
+                    reg_t reg;                          // return register
+                    allocreg(cdb,&regm,&reg,tyml);
+
+                    regm_t scratchm = allregs & ~(regm | idxregs | mBP | mR13);
+                    reg_t sreg;                         // scratch register
+                    allocreg(cdb,&scratchm,&sreg,TYint);
+
+                    cs.Iop = 0x8B;
+                    code_newreg(&cs,sreg);
+                    cs.Irex |= rex;
+                    cdb.gen(&cs);                                         // MOV sreg,EA
+
+                    assert((sreg & 7) != BP);
+                    assert((reg & 7) != BP);
+                    cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                          modregxrmx(2,sreg,sreg));       // LEA reg,[sreg*4][sreg]
+                    if (shift)
+                        cdb.genc2(0xC1,grex | modregrmx(3,4,sreg),shift); // SHL sreg,shift
+                    cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                          modregxrmx(3,sreg,reg));        // LEA reg,[sreg*8][reg]
+                    if (!(e2factor & 1))                                  // if even factor
+                    {
+                        genregs(cdb,0x03,reg,reg);                        // ADD reg,reg
+                        code_orrex(cdb.last(),rex);
+                    }
+                    cs.Iop = 0x89;
+                    code_newreg(&cs,reg);
+                    cdb.gen(&cs);                                        // MOV EA,reg
+                    freenode(e2);
+                    fixresult(cdb,e,resreg,pretregs);
+                    return;
+                }
+
+                default:
+                    break;
+            }
+        }
+
+        isbyte = (sz == 1);             // 1 for byte operation
+
         if (config.target_cpu >= TARGET_80286 &&
             e2.Eoper == OPconst && !isbyte)
         {
@@ -1464,6 +1580,8 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             getlvalue(cdb,&cs,e1,mAX);           // get EA
             getregs(cdb,isbyte ? mAX : mAX | mDX); // destroy these regs
             cs.Iop = 0xF7 ^ isbyte;                        // [I]MUL EA
+            opr = uns ? 4 : 5;              // MUL/IMUL
+            resreg = AX;                    // result register for *
         }
         code_newreg(&cs,opr);
         cdb.gen(&cs);
@@ -1479,40 +1597,92 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     else if (sz == 2 * REGSIZE)
     {
-        lib = CLIB.lmul;
-        retregs = mCX | mBX;
-        codelem(cdb,e2,&retregs,false);
-        getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
-        getregs(cdb,mDX | mAX);
-        cs.Iop = 0x8B;
-        cdb.gen(&cs);                   // MOV AX,EA
-        getlvalue_msw(&cs);
-        cs.Irm |= modregrm(0,DX,0);
-        cdb.gen(&cs);                   // MOV DX,EA+2
-        getlvalue_lsw(&cs);
-        retregs = mDX | mAX;
-        if (config.target_cpu >= TARGET_PentiumPro)
+        if (e2.Eoper == OPconst && I32)
         {
-            /*  IMUL    ECX,EAX
-                IMUL    EDX,EBX
-                ADD     ECX,EDX
-                MUL     EBX
-                ADD     EDX,ECX
+            /*  if (msw)
+                  IMUL    EDX,EDX,lsw
+                  IMUL    reg,EAX,msw
+                  ADD     reg,EDX
+                else
+                  IMUL    reg,EDX,lsw
+                MOV       EDX,lsw
+                MUL       EDX
+                ADD       EDX,reg
              */
-             getregs(cdb,mAX|mDX|mCX);
-             cdb.gen2(0x0FAF,modregrm(3,CX,AX));
-             cdb.gen2(0x0FAF,modregrm(3,DX,BX));
-             cdb.gen2(0x03,modregrm(3,CX,DX));
-             cdb.gen2(0xF7,modregrm(3,4,BX));
-             cdb.gen2(0x03,modregrm(3,DX,CX));
+            retregs = mDX|mAX;
+            getlvalue(cdb,&cs,e1,retregs);
+            getregs(cdb,retregs);
+            cs.Iop = 0x8B;
+            cdb.gen(&cs);                   // MOV AX,EA
+            getlvalue_msw(&cs);
+            cs.Irm |= modregrm(0,DX,0);
+            cdb.gen(&cs);                   // MOV DX,EA+2
+
+
+            regm_t scratch = allregs & ~(retregs);
+            reg_t reg;
+            allocreg(cdb,&scratch,&reg,TYint);
+            getregs(cdb,retregs);
+
+            targ_size_t e2factor = cast(targ_size_t)el_tolong(e2);
+            const lsw = cast(targ_int)(e2factor & ((1L << (REGSIZE * 8)) - 1));
+            const msw = cast(targ_int)(e2factor >> (REGSIZE * 8));
+
+            if (msw)
+            {
+                genmulimm(cdb,DX,DX,lsw);          // IMUL EDX,EDX,lsw
+                genmulimm(cdb,reg,AX,msw);         // IMUL reg,EAX,msw
+                cdb.gen2(0x03,modregrm(3,reg,DX)); // ADD reg,EAX
+            }
+            else
+                genmulimm(cdb,reg,DX,lsw);         // IMUL reg,EDX,lsw
+
+            movregconst(cdb,DX,lsw,0);             // MOV EDX,lsw
+            getregs(cdb,mDX);
+            cdb.gen2(0xF7,modregrm(3,4,DX));       // MUL EDX
+            cdb.gen2(0x03,modregrm(3,DX,reg));     // ADD EDX,reg
+
+            freenode(e2);
         }
         else
         {
-            callclib(cdb,e,lib,&retregs,idxregm(&cs));
+            retregs = mDX | mAX;
+            regm_t rretregs = (config.target_cpu >= TARGET_PentiumPro) ? allregs & ~retregs : mCX | mBX;
+            codelem(cdb,e2,&rretregs,false);
+            getlvalue(cdb,&cs,e1,retregs | rretregs);
+            getregs(cdb,retregs);
+            cs.Iop = 0x8B;
+            cdb.gen(&cs);                   // MOV AX,EA
+            getlvalue_msw(&cs);
+            cs.Irm |= modregrm(0,DX,0);
+            cdb.gen(&cs);                   // MOV DX,EA+2
+            if (config.target_cpu >= TARGET_PentiumPro)
+            {
+                regm_t rlo = findreglsw(rretregs);
+                regm_t rhi = findregmsw(rretregs);
+                /*  IMUL    rhi,EAX
+                    IMUL    EDX,rlo
+                    ADD     rhi,EDX
+                    MUL     rlo
+                    ADD     EDX,Erhi
+                 */
+                 getregs(cdb,mAX|mDX|mask(rhi));
+                 cdb.gen2(0x0FAF,modregrm(3,rhi,AX));
+                 cdb.gen2(0x0FAF,modregrm(3,DX,rlo));
+                 cdb.gen2(0x03,modregrm(3,rhi,DX));
+                 cdb.gen2(0xF7,modregrm(3,4,rlo));
+                 cdb.gen2(0x03,modregrm(3,DX,rhi));
+            }
+            else
+            {
+                callclib(cdb,e,CLIB.lmul,&retregs,idxregm(&cs));
+            }
         }
-        reg = findreglsw(retregs);
+
+        reg_t reg = findreglsw(retregs);
         cs.Iop = 0x89;
         NEWREG(cs.Irm,reg);
+        getlvalue_lsw(&cs);
         cdb.gen(&cs);                   // MOV EA,lsreg
         reg = findregmsw(retregs);
         NEWREG(cs.Irm,reg);

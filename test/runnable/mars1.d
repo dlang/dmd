@@ -2279,6 +2279,74 @@ void testmemcpy()
 
 ////////////////////////////////////////////////////////////////////////
 
+
+/* Test all the cases of uses of LEA for multiplication by a constant
+ */
+
+T testlea(uint C, T)(T x, T y)
+{
+    y = y * C;          // cdmul()
+    x *= C;             // cdmulass()
+    return x + y;
+}
+
+void testleax(uint C)(uint X, uint Y)
+{
+    assert(testlea!C(X,Y) == C * (X + Y));
+    assert(testlea!C(cast(long)X,cast(long)Y) == cast(long)C*X + cast(long)C*Y);
+}
+
+void testMulLea()
+{
+    testleax!3(10,11);
+    testleax!5(10,11);
+    testleax!6(10,11);
+    testleax!9(10,11);
+
+    testleax!10(10,11);
+    testleax!12(10,11);
+    testleax!18(10,11);
+    testleax!20(10,11);
+    testleax!24(10,11);
+    testleax!36(10,11);
+    testleax!40(10,11);
+    testleax!72(10,11);
+
+    testleax!37(10,11);
+    testleax!74(10,11);
+    testleax!13(10,11);
+    testleax!26(10,11);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+/* Test *= of register pair
+ */
+
+void testMulAssPair()
+{
+    static ulong pow(ulong x, int m)
+    {
+	ulong v = x;
+	ulong p = 1;
+	while (1)
+	{
+	    if (m & 1)
+		p *= v;
+	    m >>= 1;
+	    if (!m)
+		break;
+	    v *= v;
+	}
+	return p;
+    }
+
+    enum ulong e_10_pow_19 = 10uL^^19;
+    assert(e_10_pow_19 == pow(10uL, 19));
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -2359,6 +2427,8 @@ int main()
     testbyteswap();
     testrolror();
     testmemcpy();
+    testMulLea();
+    testMulAssPair();
 
     printf("Success\n");
     return 0;
