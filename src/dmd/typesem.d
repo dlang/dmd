@@ -1261,9 +1261,6 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter fparam = tf.parameterList[i];
-                // If `-preview=in` is on, set `scope` as well
-                if ((fparam.storageClass & STC.in_) && global.params.previewIn)
-                    fparam.storageClass |= STC.scope_;
                 fparam.storageClass |= STC.parameter;
                 mtype.inuse++;
                 fparam.type = fparam.type.typeSemantic(loc, argsc);
@@ -1520,7 +1517,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
                 }
 
                 // Remove redundant storage classes for type, they are already applied
-                fparam.storageClass &= ~(STC.TYPECTOR | STC.in_);
+                fparam.storageClass &= ~(STC.TYPECTOR);
             }
             argsc.pop();
         }

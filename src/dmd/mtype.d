@@ -4440,6 +4440,10 @@ extern (C++) final class TypeFunction : TypeNext
         if (!global.params.vsafe)
             return stc;
 
+        // When the preview switch is enable, `in` parameters are `scope`
+        if (stc & STC.in_ && global.params.previewIn)
+            return stc | STC.scope_;
+
         if (stc & (STC.scope_ | STC.return_ | STC.lazy_) || purity == PURE.impure)
             return stc;
 
@@ -6829,19 +6833,35 @@ extern (C++) final class Parameter : ASTNode
     /*********************************
      * Compute covariance of parameters `this` and `p`
      * as determined by the storage classes of both.
+     *
      * Params:
      *  returnByRef = true if the function returns by ref
      *  p = Parameter to compare with
+     *  previewIn = Whether `-previewIn` is being used, and thus if
+     *              `in` means `scope`.
+     *
      * Returns:
      *  true = `this` can be used in place of `p`
      *  false = nope
      */
-    bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
+    bool isCovariant(bool returnByRef, const Parameter p, bool previewIn = global.params.previewIn)
+        const pure nothrow @nogc @safe
     {
-        enum stc = STC.IOR | STC.lazy_;
-        if ((this.storageClass & stc) != (p.storageClass & stc))
+        ulong thisSTC = this.storageClass;
+        ulong otherSTC = p.storageClass;
+
+        if (previewIn)
+        {
+            if (thisSTC & STC.in_)
+                thisSTC |= STC.scope_;
+            if (otherSTC & STC.in_)
+                otherSTC |= STC.scope_;
+        }
+
+        enum stc = STC.ref_ | STC.out_ | STC.lazy_;
+        if ((thisSTC & stc) != (otherSTC & stc))
             return false;
-        return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
+        return isCovariantScope(returnByRef, thisSTC, otherSTC);
     }
 
     extern (D) private static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
