@@ -1048,8 +1048,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (td && td.funcroot)
                     f = td.funcroot;
                 ex = null;
+                if (dte.e1.op != TOK.dotType && dte.e1.op != TOK.this_)
+                    ex = dte.e1;
             }
-
             bool[string] funcTypeHash;
 
             /* Compute the function signature and insert it in the
@@ -1076,14 +1077,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
             int dg(Dsymbol s)
             {
-                if (includeTemplates)
-                {
-                    exps.push(new DsymbolExp(Loc.initial, s, false));
-                    return 0;
-                }
                 auto fd = s.isFuncDeclaration();
                 if (!fd)
+                {
+                    if(includeTemplates)
+                        exps.push(new DsymbolExp(Loc.initial, s, false));
                     return 0;
+                }
                 if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
                     return 0;
                 if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
