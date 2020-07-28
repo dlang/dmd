@@ -1707,23 +1707,11 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    code cs;
-    regm_t retregs;
-    reg_t resreg;
-    reg_t reg;
-    uint opr,lib,isbyte;
-
-    //printf("cddivass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
-    OPER op = e.Eoper;                     // OPxxxx
 
     tym_t tyml = tybasic(e1.Ety);              // type of lvalue
-    char uns = tyuns(tyml) || tyuns(e2.Ety);
-    uint sz = _tysize[tyml];
-
-    uint rex = (I64 && sz == 8) ? REX_W : 0;
-    uint grex = rex << 16;          // 64 bit operands
+    OPER op = e.Eoper;                     // OPxxxx
 
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
@@ -1745,17 +1733,19 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
+    code cs = void;
+
+    //printf("cddivass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
+    char uns = tyuns(tyml) || tyuns(e2.Ety);
+    uint sz = _tysize[tyml];
+
+    uint rex = (I64 && sz == 8) ? REX_W : 0;
+    uint grex = rex << 16;          // 64 bit operands
+
     if (sz <= REGSIZE)                  // if word or byte
     {
-        isbyte = (sz == 1);               // 1 for byte operation
-        resreg = AX;                    // result register for * or /
-        if (uns)                        // if uint operation
-            opr = 6;                    // DIV
-        else                            // else signed
-            opr = 7;                    // IDIV
-        if (op == OPmodass)
-            resreg = DX;                // remainder is in DX
-
+        uint isbyte = (sz == 1);        // 1 for byte operation
+        reg_t resreg;
         targ_size_t e2factor;
         int pow2;
 
@@ -1820,10 +1810,10 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            retregs = ALLREGS & ~(mAX|mDX);         // DX gets sign extension
-            codelem(cdb,e2,&retregs,false); // load rvalue in retregs
-            reg = findreg(retregs);
-            getlvalue(cdb,&cs,e1,mAX | mDX | retregs);     // get EA
+            regm_t retregs = ALLREGS & ~(mAX|mDX);     // DX gets sign extension
+            codelem(cdb,e2,&retregs,false);            // load rvalue in retregs
+            reg_t reg = findreg(retregs);
+            getlvalue(cdb,&cs,e1,mAX | mDX | retregs); // get EA
             getregs(cdb,mAX | mDX);         // destroy these regs
             cs.Irm |= modregrm(0,AX,0);
             cs.Iop = 0x8B;
@@ -1836,8 +1826,10 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 code_orrex(cdb.last(),rex);
             }
             getregs(cdb,mDX | mAX); // DX and AX will be destroyed
+            const uint opr = uns ? 6 : 7;     // DIV/IDIV
             genregs(cdb,0xF7,opr,reg);   // OPR reg
             code_orrex(cdb.last(),rex);
+            resreg = (op == OPmodass) ? DX : AX;        // result register
         }
         cs.Iop = 0x89 ^ isbyte;
         code_newreg(&cs,resreg);
@@ -1851,11 +1843,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     assert(sz == 2 * REGSIZE);
 
-    lib = (uns) ? CLIB.uldiv : CLIB.ldiv;
-    if (op == OPmodass)
-        lib++;
-
-    retregs = mCX | mBX;
+    regm_t retregs = mCX | mBX;
     codelem(cdb,e2,&retregs,false);
     getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
     getregs(cdb,mDX | mAX);
@@ -1868,13 +1856,18 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     retregs = mDX | mAX;
     if (op == OPmodass)
         retregs = mBX | mCX;
+
+    uint lib = uns ? CLIB.uldiv : CLIB.ldiv;
+    if (op == OPmodass)
+        ++lib;
     callclib(cdb,e,lib,&retregs,idxregm(&cs));
-    reg = findreglsw(retregs);
+
+    reg_t reglsw = findreglsw(retregs);
     cs.Iop = 0x89;
-    NEWREG(cs.Irm,reg);
+    NEWREG(cs.Irm,reglsw);
     cdb.gen(&cs);                   // MOV EA,lsreg
-    reg = findregmsw(retregs);
-    NEWREG(cs.Irm,reg);
+    reg_t regmsw = findregmsw(retregs);
+    NEWREG(cs.Irm,regmsw);
     getlvalue_msw(&cs);
     cdb.gen(&cs);                   // MOV EA+2,msreg
     if (e1.Ecount)                 // if we gen a CSE
