@@ -2847,8 +2847,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             {
                 Expression arg = (*fargs)[i];
                 assert(arg.type);
-                printf("\t%s: ", arg.toChars());
-                arg.type.print();
+                printf("\t%s: %s\n", arg.toChars(), arg.type.toChars());
             }
         }
     }

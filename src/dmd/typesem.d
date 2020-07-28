@@ -932,11 +932,11 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 printf("index is %p %s\n", mtype.index, mtype.index.toChars());
                 mtype.index.check();
                 printf("index.mod = x%x\n", mtype.index.mod);
-                printf("index.ito = x%x\n", mtype.index.ito);
-                if (mtype.index.ito)
+                printf("index.ito = x%p\n", mtype.index.getMcache().ito);
+                if (mtype.index.getMcache().ito)
                 {
-                    printf("index.ito.mod = x%x\n", mtype.index.ito.mod);
-                    printf("index.ito.ito = x%x\n", mtype.index.ito.ito);
+                    printf("index.ito.mod = x%x\n", mtype.index.getMcache().ito.mod);
+                    printf("index.ito.ito = x%p\n", mtype.index.getMcache().ito.getMcache().ito);
                 }
             }
         }
@@ -1554,7 +1554,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitDelegate(TypeDelegate mtype)
     {
-        //printf("TypeDelegate::semantic() %s\n", toChars());
+        //printf("TypeDelegate::semantic() %s\n", mtype.toChars());
         if (mtype.deco) // if semantic() already run
         {
             //printf("already done\n");

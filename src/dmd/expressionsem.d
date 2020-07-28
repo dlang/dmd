@@ -4666,7 +4666,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     printf("ue.e1 = %s\n", ue.e1.toChars());
                     printf("f = %s\n", exp.f.toChars());
-                    printf("t = %s\n", t.toChars());
+                    printf("t1 = %s\n", t1.toChars());
                     printf("e1 = %s\n", exp.e1.toChars());
                     printf("e1.type = %s\n", exp.e1.type.toChars());
                 }

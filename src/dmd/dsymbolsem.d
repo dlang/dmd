@@ -761,7 +761,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n",
                    dsym.toChars(), sc.parent ? sc.parent.toChars() : null, dsym.semanticRun);
             printf(" type = %s\n", dsym.type ? dsym.type.toChars() : "null");
-            printf(" stc = x%x\n", dsym.storage_class.stc);
+            printf(" stc = x%llx\n", dsym.storage_class);
             printf(" storage_class = x%llx\n", dsym.storage_class);
             printf("linkage = %d\n", dsym.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
@@ -6348,7 +6348,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
                     }
                 }
             }
-            //printf("[%s] %s doSemantic3 = %d\n", loc.toChars(), toChars(), doSemantic3);
+            //printf("[%s] %s doSemantic3 = %d\n", tempinst.tinst.loc.toChars(), tempinst.tinst.toChars(), doSemantic3);
         }
         if (doSemantic3)
             tempinst.trySemantic3(sc2);
