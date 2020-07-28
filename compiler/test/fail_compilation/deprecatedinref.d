@@ -2,8 +2,8 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/deprecatedinref.d(9): Deprecation: using `in ref` is deprecated, use `-preview=in` and `in` instead
-fail_compilation/deprecatedinref.d(10): Deprecation: using `ref in` is deprecated, use `-preview=in` and `in` instead
+fail_compilation/deprecatedinref.d(9): Error: attribute `ref` is redundant with previously-applied `in`
+fail_compilation/deprecatedinref.d(10): Error: attribute `in` cannot be added after `ref`: remove `ref`
 ---
 */
 void foo(in ref int);
