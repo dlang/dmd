@@ -1351,64 +1351,11 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    uint lib;
-    regm_t keepregs = 0;
-    regm_t resreg;
-    ubyte op;
     const uns = tyuns(tyml) || tyuns(e2.Ety);  // 1 if uint operation, 0 if not
-
-    switch (oper)
-    {
-        case OPdiv:
-            resreg = mAX;
-            op = 7 - uns;
-            lib = uns ? CLIB.uldiv : CLIB.ldiv;
-            if (I32)
-                keepregs |= mSI | mDI;
-            break;
-
-        case OPmod:
-            resreg = mDX;
-            op = 7 - uns;
-            lib = uns ? CLIB.ulmod : CLIB.lmod;
-            if (I32)
-                keepregs |= mSI | mDI;
-            break;
-
-        case OPremquo:
-            resreg = mDX | mAX;
-            op = 7 - uns;
-            lib = uns ? CLIB.uldiv : CLIB.ldiv;
-            if (I32)
-                keepregs |= mSI | mDI;
-            break;
-
-        default:
-            assert(0);
-    }
-
-    regm_t retregs;
-    regm_t rretregs;
     const isbyte = tybyte(e.Ety) != 0;
     const sz = _tysize[tyml];
-    if (sz <= REGSIZE)                  // dedicated regs for mul & div
-    {   retregs = mAX;
-        // pick some other regs
-        rretregs = isbyte ? BYTEREGS & ~mAX
-                        : ALLREGS & ~(mAX|mDX);
-    }
-    else
-    {
-        assert(sz <= 2 * REGSIZE);
-        retregs = mDX | mAX;
-        rretregs = mCX | mBX;           // second arg
-    }
-
-    reg_t rreg;
-
     const ubyte rex = (I64 && sz == 8) ? REX_W : 0;
     const uint grex = rex << 16;
-    const OPER opunslng = I16 ? OPu16_32 : OPu32_64;
 
     code cs = void;
     cs.Iflags = 0;
@@ -1620,6 +1567,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     r3 = DX;
                 }
 
+                regm_t resreg;
                 switch (oper)
                 {   case OPdiv:
                         // r3 = quotient
@@ -1687,6 +1635,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 I32 // not set up for I64 cent yet
                )
             {
+                regm_t retregs = mDX | mAX;
                 if (pow2 == 63 && !(retregs & BYTEREGS & mLSW))
                     retregs = (retregs & mMSW) | (BYTEREGS & mLSW);  // because of SETZ
 
@@ -1781,6 +1730,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 I32 // not set up for I64 cent yet
                )
             {
+                regm_t retregs = mDX | mAX;
                 codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
                 const rhi = findregmsw(retregs);
                 const rlo = findreglsw(retregs);
@@ -1862,7 +1812,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                        ADD reg,r
                        SAR reg,1
                      */
-                    retregs = allregs;
+                    regm_t retregs = allregs;
                     codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
                     const reg = findreg(retregs);
                     freenode(e2);
@@ -1875,10 +1825,31 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
                     cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
                     cdb.gen2(0xD1,grex | modregrmx(3,7,reg));    // SAR reg,1
-                    resreg = retregs;
+                    regm_t resreg = retregs;
                     fixresult(cdb,e,resreg,pretregs);
                     return;
                 }
+
+                regm_t resreg;
+                switch (oper)
+                {
+                    case OPdiv:
+                        resreg = mAX;
+                        break;
+
+                    case OPmod:
+                        resreg = mDX;
+                        break;
+
+                    case OPremquo:
+                        resreg = mDX | mAX;
+                        break;
+
+                    default:
+                        assert(0);
+                }
+
+                regm_t retregs = mAX;
                 codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
                 freenode(e2);
                 getregs(cdb,mAX | mDX);             // modify these regs
@@ -1932,29 +1903,77 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         default:                                    // OPconst and operators
             //printf("test2 %p, retregs = %s rretregs = %s resreg = %s\n", e, regm_str(retregs), regm_str(rretregs), regm_str(resreg));
+            regm_t retregs = sz <= REGSIZE ? mAX : mDX | mAX;
             codelem(cdb,e1,&retregs,false);           // eval left leaf
+            regm_t rretregs;
+            if (sz <= REGSIZE)                  // dedicated regs for div
+            {
+                // pick some other regs
+                rretregs = isbyte ? BYTEREGS & ~mAX
+                                : ALLREGS & ~(mAX|mDX);
+            }
+            else
+            {
+                assert(sz <= 2 * REGSIZE);
+                rretregs = mCX | mBX;           // second arg
+            }
             scodelem(cdb,e2,&rretregs,retregs,true);  // get rvalue
             if (sz <= REGSIZE)
             {
                 getregs(cdb,mAX | mDX);     // trash these regs
-                if (op == 7)                        // signed divide
-                {
-                    cdb.gen1(0x99);                 // CWD
-                    code_orrex(cdb.last(),rex);
-                }
-                else if (op == 6)                   // uint divide
+                if (uns)                        // unsigned divide
                 {
                     movregconst(cdb,DX,0,(sz == 8) ? 64 : 0);  // MOV DX,0
                     getregs(cdb,mDX);
                 }
-                rreg = findreg(rretregs);
-                cdb.gen2(0xF7 ^ isbyte,grex | modregrmx(3,op,rreg)); // OP AX,rreg
+                else
+                {
+                    cdb.gen1(0x99);                 // CWD
+                    code_orrex(cdb.last(),rex);
+                }
+                reg_t rreg = findreg(rretregs);
+                cdb.gen2(0xF7 ^ isbyte,grex | modregrmx(3,7 - uns,rreg)); // OP AX,rreg
                 if (I64 && isbyte && rreg >= 4)
                     code_orrex(cdb.last(), REX);
+                regm_t resreg;
+                switch (oper)
+                {
+                    case OPdiv:
+                        resreg = mAX;
+                        break;
+
+                    case OPmod:
+                        resreg = mDX;
+                        break;
+
+                    case OPremquo:
+                        resreg = mDX | mAX;
+                        break;
+
+                    default:
+                        assert(0);
+                }
                 fixresult(cdb,e,resreg,pretregs);
             }
             else if (sz == 2 * REGSIZE)
             {
+                uint lib;
+                switch (oper)
+                {
+                    case OPdiv:
+                    case OPremquo:
+                        lib = uns ? CLIB.uldiv : CLIB.ldiv;
+                        break;
+
+                    case OPmod:
+                        lib = uns ? CLIB.ulmod : CLIB.lmod;
+                        break;
+
+                    default:
+                        assert(0);
+                }
+
+                regm_t keepregs = I32 ? mSI | mDI : 0;
                 callclib(cdb,e,lib,pretregs,keepregs);
             }
             else
@@ -1966,11 +1985,30 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 goto default;            // have to handle it with codelem()
 
             // loadea() handles CWD or CLR DX for divides
+            regm_t retregs = mAX;
             codelem(cdb,e.EV.E1,&retregs,false);     // eval left leaf
-            loadea(cdb,e2,&cs,0xF7 ^ isbyte,op,0,
+            loadea(cdb,e2,&cs,0xF7 ^ isbyte,7 - uns,0,
                    mAX | mDX,
                    mAX | mDX);
             freenode(e2);
+            regm_t resreg;
+            switch (oper)
+            {
+                case OPdiv:
+                    resreg = mAX;
+                    break;
+
+                case OPmod:
+                    resreg = mDX;
+                    break;
+
+                case OPremquo:
+                    resreg = mDX | mAX;
+                    break;
+
+                default:
+                    assert(0);
+            }
             fixresult(cdb,e,resreg,pretregs);
             return;
     }
