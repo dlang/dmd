@@ -9317,6 +9317,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setResult(ale1x);
             ale.e1 = ale1x;
 
+            if (isAliasType(ale.e1.type))
+            {
+                exp.type = Type.tsize_t;
+                return setResult(exp);
+            }
+
             Type tn = ale.e1.type.toBasetype().nextOf();
             checkDefCtor(ale.loc, tn);
 
