@@ -117,7 +117,7 @@ private Expression checkAssignmentAsCondition(Expression e)
     if (ec.op == TOK.assign)
     {
         ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
-        return new ErrorExp();
+        return ErrorExp.get();
     }
     return e;
 }
@@ -188,14 +188,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             s.exp = resolveProperties(sc, s.exp);
             s.exp = s.exp.addDtorHook(sc);
             if (checkNonAssignmentArrayOp(s.exp))
-                s.exp = new ErrorExp();
+                s.exp = ErrorExp.get();
             if (auto f = isFuncAddress(s.exp))
             {
                 if (f.checkForwardRef(s.exp.loc))
-                    s.exp = new ErrorExp();
+                    s.exp = ErrorExp.get();
             }
             if (discardValue(s.exp))
-                s.exp = new ErrorExp();
+                s.exp = ErrorExp.get();
 
             s.exp = s.exp.optimize(WANTvalue);
             s.exp = checkGC(sc, s.exp);
@@ -517,7 +517,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         ds.condition = ds.condition.expressionSemantic(sc);
         ds.condition = resolveProperties(sc, ds.condition);
         if (checkNonAssignmentArrayOp(ds.condition))
-            ds.condition = new ErrorExp();
+            ds.condition = ErrorExp.get();
         ds.condition = ds.condition.optimize(WANTvalue);
         ds.condition = checkGC(sc, ds.condition);
 
@@ -590,7 +590,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.condition = fs.condition.expressionSemantic(sc);
             fs.condition = resolveProperties(sc, fs.condition);
             if (checkNonAssignmentArrayOp(fs.condition))
-                fs.condition = new ErrorExp();
+                fs.condition = ErrorExp.get();
             fs.condition = fs.condition.optimize(WANTvalue);
             fs.condition = checkGC(sc, fs.condition);
 
@@ -602,7 +602,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.increment = fs.increment.expressionSemantic(sc);
             fs.increment = resolveProperties(sc, fs.increment);
             if (checkNonAssignmentArrayOp(fs.increment))
-                fs.increment = new ErrorExp();
+                fs.increment = ErrorExp.get();
             fs.increment = fs.increment.optimize(WANTvalue);
             fs.increment = checkGC(sc, fs.increment);
         }
@@ -2247,7 +2247,7 @@ else
             ifs.condition = ifs.condition.addDtorHook(scd);
         }
         if (checkNonAssignmentArrayOp(ifs.condition))
-            ifs.condition = new ErrorExp();
+            ifs.condition = ErrorExp.get();
         ifs.condition = checkGC(scd, ifs.condition);
 
         // Convert to boolean after declaring prm so this works:
@@ -2536,7 +2536,7 @@ else
             }
         }
         if (checkNonAssignmentArrayOp(ss.condition))
-            ss.condition = new ErrorExp();
+            ss.condition = ErrorExp.get();
         ss.condition = ss.condition.optimize(WANTvalue);
         ss.condition = checkGC(sc, ss.condition);
         if (ss.condition.op == TOK.error)
@@ -3171,14 +3171,14 @@ else
 
             rs.exp = resolveProperties(sc, rs.exp);
             if (rs.exp.checkType())
-                rs.exp = new ErrorExp();
+                rs.exp = ErrorExp.get();
             if (auto f = isFuncAddress(rs.exp))
             {
                 if (fd.inferRetType && f.checkForwardRef(rs.exp.loc))
-                    rs.exp = new ErrorExp();
+                    rs.exp = ErrorExp.get();
             }
             if (checkNonAssignmentArrayOp(rs.exp))
-                rs.exp = new ErrorExp();
+                rs.exp = ErrorExp.get();
 
             // Extract side-effect part
             rs.exp = Expression.extractLast(rs.exp, e0);

@@ -652,7 +652,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     if (s && !s.isTemplateDeclaration())
                     {
                         e.e1.error("`%s.opBinary` isn't a template", e.e1.toChars());
-                        result = new ErrorExp();
+                        result = ErrorExp.get();
                         return;
                     }
                 }
@@ -662,7 +662,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     if (s_r && !s_r.isTemplateDeclaration())
                     {
                         e.e2.error("`%s.opBinaryRight` isn't a template", e.e2.toChars());
-                        result = new ErrorExp();
+                        result = ErrorExp.get();
                         return;
                     }
                     if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
@@ -730,7 +730,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
-                        result = new ErrorExp();
+                        result = ErrorExp.get();
                         return;
                     }
                 }
@@ -740,7 +740,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
-                        result = new ErrorExp();
+                        result = ErrorExp.get();
                         return;
                     }
                 }
@@ -815,7 +815,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                             functionResolve(m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
-                                result = new ErrorExp();
+                                result = ErrorExp.get();
                                 return;
                             }
                         }
@@ -825,7 +825,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                             functionResolve(m, s, e.loc, sc, tiargs, e.e2.type, &args1);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
-                                result = new ErrorExp();
+                                result = ErrorExp.get();
                                 return;
                             }
                         }
@@ -935,7 +935,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 e.error("use `%s` instead of `%s` when comparing with `null`",
                     Token.toChars(e.op == TOK.equal ? TOK.identity : TOK.notIdentity),
                     Token.toChars(e.op));
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return;
             }
             if (t1.ty == Tclass && t2.ty == Tnull ||
@@ -1060,7 +1060,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 {
                     e.error("cannot compare `%s` because its auto generated member-wise equality has recursive definition",
                         t1.toChars());
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                 }
                 return;
             }
@@ -1076,7 +1076,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 {
                     e.error("mismatched tuple lengths, `%d` and `%d`",
                         cast(int)dim, cast(int)tup2.exps.dim);
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                     return;
                 }
 
@@ -1231,7 +1231,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             // Don't attempt 'alias this' if an error occurred
             if (e.e1.type.ty == Terror || e.e2.type.ty == Terror)
             {
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return;
             }
             Identifier id = opId(e);
@@ -1247,7 +1247,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (s && !s.isTemplateDeclaration())
                 {
                     e.error("`%s.opOpAssign` isn't a template", e.e1.toChars());
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                     return;
                 }
             }
@@ -1287,7 +1287,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
-                        result = new ErrorExp();
+                        result = ErrorExp.get();
                         return;
                     }
                 }
@@ -1366,7 +1366,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
         {
             functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
-                return new ErrorExp();
+                return ErrorExp.get();
         }
         FuncDeclaration lastf = m.lastf;
         int count = m.count;
@@ -1374,7 +1374,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
         {
             functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
-                return new ErrorExp();
+                return ErrorExp.get();
         }
         if (m.count > 1)
         {

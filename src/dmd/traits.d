@@ -393,20 +393,20 @@ private Expression pointerBitmap(TraitsExp e)
     if (!e.args || e.args.dim != 1)
     {
         error(e.loc, "a single type expected for trait pointerBitmap");
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     Type t = getType((*e.args)[0]);
     if (!t)
     {
         error(e.loc, "`%s` is not a type", (*e.args)[0].toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     Array!(d_uns64) data;
     d_uns64 sz = getTypePointerBitmap(e.loc, t, &data);
     if (sz == d_uns64.max)
-        return new ErrorExp();
+        return ErrorExp.get();
 
     auto exps = new Expressions(data.dim + 1);
     (*exps)[0] = new IntegerExp(e.loc, sz, Type.tsize_t);
@@ -438,7 +438,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
         {
             sc.stc = save;
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         sc.stc = save;
     }
@@ -447,7 +447,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     Expression dimError(int expected)
     {
         e.error("expected %d arguments for `%s` but had %d", expected, e.ident.toChars(), cast(int)dim);
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     static IntegerExp True()
@@ -621,7 +621,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("type expected as second argument of __traits `%s` instead of `%s`",
                 e.ident.toChars(), o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         Type tb = t.baseElemOf();
@@ -642,7 +642,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("type expected as second argument of __traits `%s` instead of `%s`",
                 e.ident.toChars(), o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         Type tb = t.baseElemOf();
@@ -664,7 +664,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("type expected as second argument of __traits `%s` instead of `%s`",
                     e.ident.toChars(), o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         t = t.toBasetype();     // get the base in case `t` is an `enum`
@@ -697,7 +697,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         e.error("aggregate or function expected instead of `%s`", o.toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
     if (e.ident == Id.isDisabled)
     {
@@ -791,7 +791,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
          */
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 2))
-            return new ErrorExp();
+            return ErrorExp.get();
         if (dim != 1)
             return dimError(1);
 
@@ -802,7 +802,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!po.ident)
             {
                 e.error("argument `%s` has no identifier", po.type.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             id = po.ident;
         }
@@ -812,7 +812,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!s || !s.ident)
             {
                 e.error("argument `%s` has no identifier", o.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             id = s.ident;
         }
@@ -830,7 +830,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
         sc2.pop();
         if (!ok)
-            return new ErrorExp();
+            return ErrorExp.get();
 
         auto o = (*e.args)[0];
         auto s = getDsymbolWithoutExpCtx(o);
@@ -838,7 +838,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!isError(o))
                 e.error("argument `%s` has no protection", o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (s.semanticRun == PASS.init)
             s.dsymbolSemantic(null);
@@ -889,7 +889,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s || s.isImport())
         {
             e.error("argument `%s` has no parent", o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         if (auto f = s.isFuncDeclaration())
@@ -925,7 +925,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!ex)
         {
             e.error("expression expected as second argument of __traits `%s`", e.ident.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         ex = ex.ctfeInterpret();
 
@@ -937,7 +937,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!b.type.equals(Type.tbool))
             {
                 e.error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             includeTemplates = b.isBool(true);
         }
@@ -946,14 +946,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!se || se.len == 0)
         {
             e.error("string expected as second argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         se = se.toUTF8(sc);
 
         if (se.sz != 1)
         {
             e.error("string must be chars");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         auto id = Identifier.idPool(se.peekString());
 
@@ -979,7 +979,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else
         {
             e.error("invalid first argument");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         // ignore symbol visibility and disable access checks for these traits
@@ -1138,7 +1138,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!cd)
         {
             e.error("first argument is not a class");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (cd.sizeok != Sizeok.done)
         {
@@ -1147,7 +1147,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cd.sizeok != Sizeok.done)
         {
             e.error("%s `%s` is forward referenced", cd.kind(), cd.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         return new IntegerExp(e.loc, cd.structsize, Type.tsize_t);
@@ -1175,7 +1175,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
          */
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 3))
-            return new ErrorExp();
+            return ErrorExp.get();
 
         if (dim != 1)
             return dimError(1);
@@ -1216,7 +1216,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     printf("t = %d %s\n", t.ty, t.toChars());
             }
             e.error("first argument is not a symbol");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         auto exps = udad ? udad.getAttributes() : new Expressions();
@@ -1237,7 +1237,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!tf)
         {
             e.error("first argument is not a function");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         auto mods = new Expressions();
@@ -1267,7 +1267,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!tf)
         {
             e.error("argument to `__traits(isReturnOnStack, %s)` is not a function", o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         bool value = target.isReturnOnStack(tf, fd && fd.needThis());
@@ -1302,7 +1302,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!fd)
             {
                 e.error("argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             link = fd.linkage;
             varargs = fd.getParameterList().varargs;
@@ -1343,7 +1343,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
                 o.toChars(), o1.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         StorageClass stc;
@@ -1354,14 +1354,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("expression expected as second argument of `__traits(getParameterStorageClasses, %s, %s)`",
                 o.toChars(), o1.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         ex = ex.ctfeInterpret();
         auto ii = ex.toUInteger();
         if (ii >= fparams.length)
         {
             e.error("parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         uint n = cast(uint)ii;
@@ -1431,7 +1431,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!s || ((d = s.isDeclaration()) is null && (agg = s.isAggregateDeclaration()) is null))
             {
                 e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             if (d !is null)
                 link = d.linkage;
@@ -1465,7 +1465,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("In expression `%s` `%s` can't have members", e.toChars(), o.toChars());
             e.errorSupplemental("`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
 
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (auto imp = s.isImport())
         {
@@ -1478,7 +1478,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("In expression `%s` %s `%s` has no members", e.toChars(), s.kind(), s.toChars());
             e.errorSupplemental("`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         auto idents = new Identifiers();
@@ -1706,9 +1706,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Objects ob2;
         ob2.push((*e.args)[1]);
         if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob1, 0))
-            return new ErrorExp();
+            return ErrorExp.get();
         if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob2, 0))
-            return new ErrorExp();
+            return ErrorExp.get();
         if (ob1.dim != ob2.dim)
             return False();
         foreach (immutable i; 0 .. ob1.dim)
@@ -1727,7 +1727,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate",
                 o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (auto imp = s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=10990
             s = imp.mod;
@@ -1737,7 +1737,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
                 s.toChars(), s.kind());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         auto exps = new Expressions();
@@ -1783,7 +1783,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!fd)
         {
             e.error("first argument to __traits(getVirtualIndex) must be a function");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         fd = fd.toAliasFunc(); // Necessary to support multiple overloads.
@@ -1804,7 +1804,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("type expected as second argument of __traits `%s` instead of `%s`",
                 e.ident.toChars(), o.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         Type tb = t.baseElemOf();
@@ -1820,7 +1820,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!ex || !se || se.len == 0)
         {
             e.error("string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         se = se.toUTF8(sc);
 
@@ -1830,7 +1830,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             e.error("`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
                 cast(int)slice.length, slice.ptr);
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         return r.expressionSemantic(sc);
     }
@@ -1843,7 +1843,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s || !s.loc.isValid())
         {
             e.error("can only get the location of a symbol, not `%s`", arg0.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         const fd = s.isFuncDeclaration();
@@ -1855,7 +1855,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
                     "to get the Nth overload",
                     arg0.toChars(), /*td ? ", true".ptr :*/ "".ptr);
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         auto exps = new Expressions(3);
@@ -1880,7 +1880,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), cast(int) sub.length, sub.ptr);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
-    return new ErrorExp();
+    return ErrorExp.get();
 }
 
 /// compare arguments of __traits(isSame)

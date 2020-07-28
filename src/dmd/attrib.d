@@ -883,7 +883,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             {
                 error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.dim);
                 args.setDim(1);
-                (*args)[0] = new ErrorExp();
+                (*args)[0] = ErrorExp.get();
             }
             else
             {
@@ -893,7 +893,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                     if (e.op != TOK.error)
                     {
                         error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
-                        (*args)[0] = new ErrorExp();
+                        (*args)[0] = ErrorExp.get();
                     }
                 }
                 else if (e.isBool(true))
