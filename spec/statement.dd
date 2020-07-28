@@ -197,7 +197,7 @@ $(GNAME ExpressionStatement):
         $(P The expression is evaluated.)
 
         $(P Expressions that have no effect, like $(D (x + x)),
-        are illegal as expression statements unless the are cast
+        are illegal as expression statements unless they are cast
         to $(D_KEYWORD void).)
 
         ----
