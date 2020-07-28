@@ -912,15 +912,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // If function returns a struct, put a pointer to that
         // as the first argument
         .type *thidden = Type_toCtype(tf.next.pointerTo());
-        char[5+4+1] hiddenparam = void;
-        __gshared int hiddenparami;    // how many we've generated so far
+        char[5 + 10 + 1] hiddenparam = void;
+        __gshared uint hiddenparami;    // how many we've generated so far
 
         const(char)* name;
         if (fd.nrvo_can && fd.nrvo_var)
             name = fd.nrvo_var.ident.toChars();
         else
         {
-            sprintf(hiddenparam.ptr, "__HID%d", ++hiddenparami);
+            sprintf(hiddenparam.ptr, "__HID%u", ++hiddenparami);
             name = hiddenparam.ptr;
         }
         shidden = symbol_name(name, SCparameter, thidden);
