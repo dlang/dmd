@@ -1262,7 +1262,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
             {
                 Parameter fparam = tf.parameterList[i];
                 // If `-preview=in` is on, set `scope` as well
-                if ((fparam.storageClass & STC.in_) && global.params.inMeansScopeConst)
+                if ((fparam.storageClass & STC.in_) && global.params.previewIn)
                     fparam.storageClass |= STC.scope_;
                 fparam.storageClass |= STC.parameter;
                 mtype.inuse++;
