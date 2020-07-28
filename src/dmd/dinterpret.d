@@ -71,7 +71,7 @@ public Expression ctfeInterpret(Expression e)
         case TOK.type:
         case TOK.typeid_:
              if (e.type.ty == Terror)
-                return new ErrorExp();
+                return ErrorExp.get();
             goto case TOK.error;
 
         case TOK.error:
@@ -84,7 +84,7 @@ public Expression ctfeInterpret(Expression e)
     assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
     //assert(e.type.ty != Terror);    // FIXME
     if (e.type.ty == Terror)
-        return new ErrorExp();
+        return ErrorExp.get();
 
     auto rgnpos = ctfeGlobals.region.savePos();
 
@@ -95,7 +95,7 @@ public Expression ctfeInterpret(Expression e)
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
     if (CTFEExp.isCantExp(result))
-        result = new ErrorExp();
+        result = ErrorExp.get();
 
     ctfeGlobals.region.release(rgnpos);
 
@@ -6474,7 +6474,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
     else if (auto vie = e.isVoidInitExp())
     {
         error(loc, "uninitialized variable `%s` cannot be returned from CTFE", vie.var.toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     e = resolveSlice(e);

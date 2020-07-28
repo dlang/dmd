@@ -66,7 +66,7 @@ Expression expandVar(int result, VarDeclaration v)
 
     static Expression errorReturn()
     {
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     if (!v)
@@ -281,7 +281,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         void error()
         {
-            ret = new ErrorExp();
+            ret = ErrorExp.get();
         }
 
         bool expOptimize(ref Expression e, int flags, bool keepLvalue = false)

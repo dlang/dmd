@@ -144,7 +144,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                         e.toChars(), ts[0], ts[1]);
                 }
             }
-            result = new ErrorExp();
+            result = ErrorExp.get();
         }
 
         override void visit(StringExp e)
@@ -1619,7 +1619,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 auto ts = toAutoQualChars(e.type, t);
                 e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
                     e.toChars(), ts[0], ts[1]);
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return;
             }
 
@@ -1643,7 +1643,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     {
                         // copied from sarray_toDarray() in e2ir.c
                         e.error("cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up", e.toChars(), e.type.toChars(), t.toChars());
-                        result = new ErrorExp();
+                        result = ErrorExp.get();
                         return;
                     }
                     goto Lok;
@@ -1703,7 +1703,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         return;
                 }
                 e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return;
             }
 
@@ -1770,7 +1770,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
             {
                 e.error("cannot convert string literal to `void*`");
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return;
             }
 
@@ -2100,7 +2100,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (f.checkForwardRef(e.loc))
                 {
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                     return;
                 }
             }
@@ -2153,7 +2153,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (checkArrayLiteralEscape(sc, ae, false))
                 {
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                     return;
                 }
             }
@@ -2327,7 +2327,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         else if (f.needThis())
                         {
                             e.error("no `this` to create delegate for `%s`", f.toChars());
-                            result = new ErrorExp();
+                            result = ErrorExp.get();
                             return;
                         }
                         else if (f.isNested())
@@ -2338,7 +2338,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         else
                         {
                             e.error("cannot cast from function pointer to delegate");
-                            result = new ErrorExp();
+                            result = ErrorExp.get();
                             return;
                         }
                     }
@@ -2356,7 +2356,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (f.checkForwardRef(e.loc))
                 {
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                     return;
                 }
             }
@@ -2412,7 +2412,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (f.checkForwardRef(e.loc))
                 {
-                    result = new ErrorExp();
+                    result = ErrorExp.get();
                     return;
                 }
             }
@@ -2533,7 +2533,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             auto ts = toAutoQualChars(tsa ? tsa : e.type, t);
             e.error("cannot cast expression `%s` of type `%s` to `%s`",
                 e.toChars(), ts[0], ts[1]);
-            result = new ErrorExp();
+            result = ErrorExp.get();
         }
     }
 
@@ -2680,7 +2680,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
         else if (sc.func.setUnsafe())
         {
             be.error("pointer arithmetic not allowed in @safe functions");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
     }
 
@@ -3414,7 +3414,7 @@ Expression typeCombine(BinExp be, Scope* sc)
         Expression ex = be.incompatibleTypes();
         if (ex.op == TOK.error)
             return ex;
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     Type t1 = be.e1.type.toBasetype();
@@ -3453,7 +3453,7 @@ Expression integralPromotions(Expression e, Scope* sc)
     {
     case Tvoid:
         e.error("void has no value");
-        return new ErrorExp();
+        return ErrorExp.get();
 
     case Tint8:
     case Tuns8:
