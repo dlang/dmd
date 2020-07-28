@@ -522,7 +522,7 @@ MATCH implicitConvTo(Expression e, Type t)
         {
             version (none)
             {
-                printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s, committed = %d)\n", e.toChars(), e.type.toChars(), t.toChars(), e.committed);
+                printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             if (e.type.equals(t))
             {

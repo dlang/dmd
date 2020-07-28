@@ -11,6 +11,7 @@
 
 module dmd.toctype;
 
+import core.stdc.stdio;
 import core.stdc.stdlib;
 
 import dmd.backend.cc : Classsym, Symbol;
