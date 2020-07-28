@@ -926,7 +926,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else
         {
             e.error("symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         ex = ex.expressionSemantic(sc);
@@ -935,7 +935,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!symc)
         {
             e.error("symbol expected as second argument of __traits `child` instead of `%s`", oc.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         if (auto d = symc.isDeclaration())
