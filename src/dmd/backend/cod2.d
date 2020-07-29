@@ -1075,38 +1075,27 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
                         L4:
                         {
-                            regm_t retregs = isbyte ? BYTEREGS : ALLREGS;
-                            regm_t resreg = *pretregs & (ALLREGS | mBP);
+                            regm_t resreg = *pretregs & ALLREGS & ~(mBP | mR13);
                             if (!resreg)
-                                resreg = retregs;
+                                resreg = isbyte ? BYTEREGS : ALLREGS & ~(mBP | mR13);
 
-                            regm_t regm = isbyte ? BYTEREGS : ALLREGS;
-                            regm &= ~(mBP | mR13);                  // don't use EBP
-                            codelem(cdb,e.EV.E1,&regm,true);
-                            uint r = findreg(regm);
-
-                            if (ss2)
-                            {   // Don't use EBP
-                                resreg &= ~(mBP | mR13);
-                                if (!resreg)
-                                    resreg = retregs;
-                            }
-                            reg_t reg;
-                            allocreg(cdb,&resreg,&reg,tyml);
+                            codelem(cdb,e.EV.E1,&resreg,false);
+                            getregs(cdb,resreg);
+                            reg_t reg = findreg(resreg);
 
                             cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
-                                        modregxrmx(ss,r,r));
-                            assert((r & 7) != BP);
+                                        modregxrmx(ss,reg,reg));        // LEA reg,[ss*reg][reg]
+                            assert((reg & 7) != BP);
                             if (ss2)
                             {
                                 cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
                                                modregxrm(ss2,reg,5));
                                 cdb.last().IFL1 = FLconst;
-                                cdb.last().IEV1.Vint = 0;
+                                cdb.last().IEV1.Vint = 0;               // LEA reg,0[ss2*reg]
                             }
-                            else if (!(e2factor & 1))    // if even factor
+                            else if (!(e2factor & 1))                   // if even factor
                             {
-                                genregs(cdb,0x03,reg,reg); // ADD reg,reg
+                                genregs(cdb,0x03,reg,reg);              // ADD reg,reg
                                 code_orrex(cdb.last(),rex);
                             }
                             freenode(e2);
@@ -1137,20 +1126,17 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                             codelem(cdb,e.EV.E1,&sregm,false);
                             uint sreg = findreg(sregm);
                             getregs(cdb,resreg | sregm);
-                            // LEA reg,[sreg * 4][sreg]
-                            // SHL sreg,shift
-                            // LEA reg,[sreg * 8][reg]
                             assert((sreg & 7) != BP);
                             assert((reg & 7) != BP);
                             cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
-                                                  modregxrmx(2,sreg,sreg));
+                                                  modregxrmx(2,sreg,sreg));       // LEA reg,[sreg*4][sreg]
                             if (shift)
-                                cdb.genc2(0xC1,grex | modregrmx(3,4,sreg),shift);
+                                cdb.genc2(0xC1,grex | modregrmx(3,4,sreg),shift); // SHL sreg,shift
                             cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
-                                                  modregxrmx(3,sreg,reg));
-                            if (!(e2factor & 1))         // if even factor
+                                                  modregxrmx(3,sreg,reg));        // LEA reg,[sreg*8][reg]
+                            if (!(e2factor & 1))                                  // if even factor
                             {
-                                genregs(cdb,0x03,reg,reg); // ADD reg,reg
+                                genregs(cdb,0x03,reg,reg);                        // ADD reg,reg
                                 code_orrex(cdb.last(),rex);
                             }
                             freenode(e2);
