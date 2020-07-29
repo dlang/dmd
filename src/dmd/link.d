@@ -12,6 +12,7 @@
 module dmd.link;
 
 import core.stdc.ctype;
+import core.stdc.errno;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.sys.posix.stdio;
@@ -34,6 +35,45 @@ version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
+version (Posix)
+{
+    extern (C) extern __gshared char** environ;
+    static if (__VERSION__ >= 2083)
+    {
+        import core.sys.posix.spawn;
+
+        enum usePosixSpawn = true;
+    }
+    else version (CRuntime_Glibc)
+    {
+        // borrowed from https://github.com/dlang/druntime/commit/51a9962482a668fab00cc866045d76a9c4a39b63
+        // remove once 2.083 is bootstrap
+        enum usePosixSpawn = true;
+
+        extern(C):
+        struct __spawn_action;
+        struct posix_spawn_file_actions_t
+        {
+            int __allocated;
+            int __used;
+            __spawn_action* __actions;
+            int[16] __pad;
+        }
+        int posix_spawn_file_actions_addclose(posix_spawn_file_actions_t*, int);
+        int posix_spawn_file_actions_adddup2(posix_spawn_file_actions_t*, int, int);
+        int posix_spawn_file_actions_addopen(posix_spawn_file_actions_t*, int, const char*, int, mode_t);
+        int posix_spawn_file_actions_destroy(posix_spawn_file_actions_t*);
+        int posix_spawn_file_actions_init(posix_spawn_file_actions_t*);
+        int posix_spawnp(pid_t* pid, const char* file,
+                        const posix_spawn_file_actions_t* file_actions,
+                        const void* attrp,
+                        const char** argv, const char** envp);
+    }
+    else
+    {
+        enum usePosixSpawn = false;
+    }
+}
 version (CRuntime_Microsoft)
 {
   // until the new windows bindings are available when building dmd.
@@ -759,21 +799,45 @@ public int runLINK()
             perror("unable to create pipe to linker");
             return -1;
         }
-        childpid = fork();
-        if (childpid == 0)
+
+        static if (usePosixSpawn)
         {
-            // pipe linker stderr to fds[0]
-            dup2(fds[1], STDERR_FILENO);
-            close(fds[0]);
-            execvp(argv[0], argv.tdata());
-            perror(argv[0]); // failed to execute
-            return -1;
+            posix_spawn_file_actions_t fileActions;
+            if (0 != posix_spawn_file_actions_init(&fileActions)
+                // pipe linker stderr to fds[0]
+                || 0 != posix_spawn_file_actions_adddup2(&fileActions, fds[1], STDERR_FILENO)
+                || 0 != posix_spawn_file_actions_addclose(&fileActions, fds[0]))
+            {
+                perror("unable to set up linker: out of memory");
+                return -1;
+            }
+            // set errno so perror works
+            errno = posix_spawnp(&childpid, argv[0], &fileActions, null, argv.tdata(), environ);
+            if (errno != 0)
+            {
+                perror(argv[0]);
+                return -1;
+            }
+            posix_spawn_file_actions_destroy(&fileActions);
         }
-        else if (childpid == -1)
+        else
         {
-            perror("unable to fork");
-            return -1;
+            childpid = fork();
+            if (childpid == 0)
+            {
+                dup2(fds[1], STDERR_FILENO);
+                close(fds[0]);
+                execvp(argv[0], argv.tdata());
+                perror(argv[0]); // failed to execute
+                return -1;
+            }
+            else if (childpid == -1)
+            {
+                perror("unable to fork");
+                return -1;
+            }
         }
+
         close(fds[1]);
         const(int) nme = findNoMainError(fds[0]);
         waitpid(childpid, &status, 0);
