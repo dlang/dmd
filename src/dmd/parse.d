@@ -5533,7 +5533,18 @@ final class Parser(AST) : Lexer
         Lexp:
             {
                 AST.Expression exp = parseExpression();
-                check(TOK.semicolon, "statement");
+                /* https://issues.dlang.org/show_bug.cgi?id=15103
+                 * Improve declaration / initialization syntax error message
+                 * Error: found 'foo' when expecting ';' following statement
+                 * becomes Error: found `(` when expecting `;` or `=`, did you mean `Foo foo = 42`?
+                 */
+                if (token.value == TOK.identifier && exp.op == TOK.identifier)
+                {
+                    error("found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
+                    nextToken();
+                }
+                else
+                    check(TOK.semicolon, "statement");
                 s = new AST.ExpStatement(loc, exp);
                 break;
             }
