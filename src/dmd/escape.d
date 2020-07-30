@@ -1291,15 +1291,32 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         {
             if (!gag)
             {
-                const(char)* msg;
-                if (v.storage_class & STC.parameter)
-                    msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
+                const(char)* msg, supplemental;
+                if (v.storage_class & STC.parameter &&
+                    (v.type.hasPointers() || v.storage_class & STC.ref_))
+                {
+                    msg = "returning `%s` escapes a reference to parameter `%s`";
+                    supplemental = "perhaps annotate the parameter with `return`";
+                }
                 else
+                {
                     msg = "returning `%s` escapes a reference to local variable `%s`";
+                    if (v.ident is Id.This)
+                        supplemental = "perhaps annotate the function with `return`";
+                }
+
                 if (emitError)
-                    error(e.loc, msg, e.toChars(), v.toChars());
+                {
+                    e.error(msg, e.toChars(), v.toChars());
+                    if (supplemental)
+                        e.errorSupplemental(supplemental);
+                }
                 else
-                    deprecation(e.loc, msg, e.toChars(), v.toChars());
+                {
+                    e.deprecation(msg, e.toChars(), v.toChars());
+                    if (supplemental)
+                        deprecationSupplemental(e.loc, supplemental);
+                }
             }
             result = true;
         }
