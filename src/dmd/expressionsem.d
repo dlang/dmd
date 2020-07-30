@@ -4744,6 +4744,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
             exp.e1 = exp.e1.expressionSemantic(sc);
+            // https://issues.dlang.org/show_bug.cgi?id=21095
+            if (exp.e1.op == TOK.error)
+                return setError();
             t1 = exp.e1.type;
 
             // BUG: this should really be done by checking the static
