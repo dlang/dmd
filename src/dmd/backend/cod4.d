@@ -50,6 +50,12 @@ private extern (D) uint mask(uint m) { return 1 << m; }
                         /*   AX,CX,DX,BX                */
 __gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
 
+// from divcoeff.c
+extern (C)
+{
+    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
+    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
+}
 
 /*******************************
  * Return number of times symbol s appears in tree e.
@@ -1747,14 +1753,136 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         uint isbyte = (sz == 1);        // 1 for byte operation
         reg_t resreg;
         targ_size_t e2factor;
+        targ_size_t d;
+        bool neg;
         int pow2;
 
         assert(!isbyte);                      // should never happen
         assert(I16 || sz != SHORTSIZE);
+
+        if (e2.Eoper == OPconst)
+        {
+            e2factor = cast(targ_size_t)el_tolong(e2);
+            pow2 = ispow2(e2factor);
+            d = e2factor;
+            if (!uns && cast(targ_llong)e2factor < 0)
+            {
+                neg = true;
+                d = -d;
+            }
+        }
+
+        // Signed divide by a constant
+        if (config.flags4 & CFG4speed &&
+            e2.Eoper == OPconst &&
+            !uns &&
+            (d & (d - 1)) &&
+            ((I32 && sz == 4) || (I64 && (sz == 4 || sz == 8))))
+        {
+            /* R1 / 10
+             *
+             *  MOV     EAX,m
+             *  IMUL    R1
+             *  MOV     EAX,R1
+             *  SAR     EAX,31
+             *  SAR     EDX,shpost
+             *  SUB     EDX,EAX
+             *  IMUL    EAX,EDX,d
+             *  SUB     R1,EAX
+             *
+             * EDX = quotient
+             * R1 = remainder
+             */
+            assert(sz == 4 || sz == 8);
+
+            ulong m;
+            int shpost;
+            const int N = sz * 8;
+            const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
+
+            getlvalue(cdb,&cs,e1,mAX | mDX);
+
+            regm_t regm = allregs & ~(mAX | mDX);
+            reg_t reg;
+            allocreg(cdb,&regm,&reg,TYint);
+
+            cs.Iop = 0x8B;
+            code_newreg(&cs, reg);
+            cdb.gen(&cs);                       // MOV R1,EA
+            getregs(cdb,regm | mDX | mAX);
+
+            /* Algorithm 5.2
+             * if m>=2**(N-1)
+             *    q = SRA(n + MULSH(m-2**N,n), shpost) - XSIGN(n)
+             * else
+             *    q = SRA(MULSH(m,n), shpost) - XSIGN(n)
+             * if (neg)
+             *    q = -q
+             */
+            const bool mgt = mhighbit || m >= (1UL << (N - 1));
+            movregconst(cdb, AX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EAX,m
+            cdb.gen2(0xF7,grex | modregrmx(3,5,reg));               // IMUL R1
+            if (mgt)
+                cdb.gen2(0x03,grex | modregrmx(3,DX,reg));          // ADD EDX,R1
+            getregsNoSave(mAX);                                     // EAX no longer contains 'm'
+            genmovreg(cdb, AX, reg);                                // MOV EAX,R1
+            cdb.genc2(0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);     // SAR EAX,31
+            if (shpost)
+                cdb.genc2(0xC1,grex | modregrm(3,7,DX),shpost);     // SAR EDX,shpost
+            reg_t r3;
+            if (neg && op == OPdivass)
+            {
+                cdb.gen2(0x2B,grex | modregrm(3,AX,DX));            // SUB EAX,EDX
+                r3 = AX;
+            }
+            else
+            {
+                cdb.gen2(0x2B,grex | modregrm(3,DX,AX));            // SUB EDX,EAX
+                r3 = DX;
+            }
+
+            // r3 is quotient
+            reg_t resregx;
+            switch (op)
+            {   case OPdivass:
+                    resregx = r3;
+                    break;
+
+                case OPmodass:
+                    assert(reg != AX && r3 == DX);
+                    if (sz == 4 || (sz == 8 && cast(targ_long)d == d))
+                    {
+                        cdb.genc2(0x69,grex | modregrm(3,AX,DX),d);      // IMUL EAX,EDX,d
+                    }
+                    else
+                    {
+                        movregconst(cdb,AX,d,(sz == 8) ? 0x40 : 0);     // MOV EAX,d
+                        cdb.gen2(0x0FAF,grex | modregrmx(3,AX,DX));     // IMUL EAX,EDX
+                        getregsNoSave(mAX);                             // EAX no longer contains 'd'
+                    }
+                    cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));          // SUB R1,EAX
+                    resregx = reg;
+                    break;
+
+                default:
+                    assert(0);
+            }
+
+            cs.Iop = 0x89;
+            code_newreg(&cs,resregx);
+            cdb.gen(&cs);                           // MOV EA,resreg
+            if (e1.Ecount)                          // if we gen a CSE
+                cssave(e1,mask(resregx),!OTleaf(e1.Eoper));
+            freenode(e1);
+            fixresult(cdb,e,mask(resregx),pretregs);
+            return;
+        }
+
+
         if (config.flags4 & CFG4speed &&
             e2.Eoper == OPconst && !uns &&
             (sz == REGSIZE || (I64 && sz == 4)) &&
-            (pow2 = ispow2(e2factor = cast(targ_size_t)el_tolong(e2))) != -1 &&
+            pow2 != -1 &&
             e2factor == cast(int)e2factor &&
             !(config.target_cpu < TARGET_80286 && pow2 != 1 && op == OPdivass)
            )
@@ -1765,7 +1893,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             code_newreg(&cs, AX);
             cdb.gen(&cs);                       // MOV AX,EA
             freenode(e2);
-            getregs(cdb,mAX | mDX);     // trash these regs
+            getregs(cdb,mAX | mDX);             // trash these regs
             cdb.gen1(0x99);                     // CWD
             code_orrex(cdb.last(), rex);
             if (pow2 == 1)
