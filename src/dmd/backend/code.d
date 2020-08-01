@@ -388,6 +388,7 @@ void freenode(elem *e);
 int isregvar(elem *e, regm_t *pregm, reg_t *preg);
 void allocreg(ref CodeBuilder cdb, regm_t *pretregs, reg_t *preg, tym_t tym, int line, const(char)* file);
 void allocreg(ref CodeBuilder cdb, regm_t *pretregs, reg_t *preg, tym_t tym);
+reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm);
 regm_t lpadregs();
 void useregs (regm_t regm);
 void getregs(ref CodeBuilder cdb, regm_t r);
