@@ -66,6 +66,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getVirtualMethods)
     $(GLINK getUnitTests)
     $(GLINK parent)
+    $(GLINK child)
     $(GLINK classInstanceSize)
     $(GLINK getVirtualIndex)
     $(GLINK allMembers)
@@ -1325,6 +1326,54 @@ $(H2 $(GNAME parent))
         $(P Takes a single argument which must evaluate to a symbol.
         The result is the symbol that is the parent of it.
         )
+
+$(H2 $(GNAME child))
+
+        $(P Takes two arguments.
+        The first must be a symbol or expression.
+        The second is a symbol, such as an alias to a member of the first
+        argument.
+        The result is the second argument interpreted with its $(D this)
+        context set to the value of the first argument.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct A
+{
+    int i;
+    int foo(int j) {
+        return i * j;
+    }
+    T bar(T)(T t) {
+        return i + t;
+    }
+}
+
+alias Ai = A.i;
+alias Abar = A.bar!int;
+
+void main()
+{
+    A a;
+
+    __traits(child, a, Ai) = 3;
+    writeln(a.i);
+    writeln(__traits(child, a, A.foo)(2));
+    writeln(__traits(child, a, Abar)(5));
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+3
+6
+7
+)
 
 $(H2 $(GNAME classInstanceSize))
 
