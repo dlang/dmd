@@ -1282,7 +1282,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             e = e.implicitCastTo(sc, fparam.type);
 
             // default arg must be an lvalue
-            if (isRefOrOut && !isAuto)
+            if (isRefOrOut && !isAuto &&
+                !(global.params.previewIn && (fparam.storageClass & STC.in_)))
                 e = e.toLvalue(sc, e);
 
             fparam.defaultArg = e;
@@ -1389,7 +1390,14 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members ||
                         tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
                     {
-                        .error(loc, "cannot have parameter of opaque type `%s` by value", fparam.type.toChars());
+                        if (global.params.previewIn && (fparam.storageClass & STC.in_))
+                        {
+                            .error(loc, "cannot infer `ref` for `in` parameter `%s` of opaque type `%s`",
+                                   fparam.toChars(), fparam.type.toChars());
+                        }
+                        else
+                            .error(loc, "cannot have parameter of opaque type `%s` by value",
+                                   fparam.type.toChars());
                         errors = true;
                     }
                 }
@@ -1477,6 +1485,11 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 // Remove redundant storage classes for type, they are already applied
                 fparam.storageClass &= ~(STC.TYPECTOR);
             }
+
+            // Now that we're done processing the types of parameters,
+            // apply `STC.ref` where necessary
+            if (global.params.previewIn)
+                target.applyInRefParams(tf);
 
             // Now that we completed semantic for the argument types,
             // run semantic on their default values,

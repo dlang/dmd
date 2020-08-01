@@ -16,6 +16,6 @@ Upcoming language changes listed by -preview=name:
   =dtorfields       destruct fields of partially constructed objects
   =rvaluerefparam   enable rvalue arguments to ref parameters
   =nosharedaccess   disable access to shared memory objects
-  =in               in means scope const
+  =in               `in` on parameters means `scope const [ref]` and accepts rvalues
 ----
 */

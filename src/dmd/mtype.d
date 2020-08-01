@@ -4856,6 +4856,19 @@ extern (C++) final class TypeFunction : TypeNext
                                 ta = tn.sarrayOf(dim);
                             }
                         }
+                        else if ((p.storageClass & STC.in_) && global.params.previewIn)
+                        {
+                            // Allow converting a literal to an `in` which is `ref`
+                            if (arg.op == TOK.arrayLiteral && tp.ty == Tsarray)
+                            {
+                                Type tn = tp.nextOf();
+                                dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
+                                ta = tn.sarrayOf(dim);
+                            }
+
+                            // Need to make this a rvalue through a temporary
+                            m = MATCH.convert;
+                        }
                         else if (!global.params.rvalueRefParam ||
                                  p.storageClass & STC.out_ ||
                                  !arg.type.isCopyable())  // can't copy to temp for ref parameter
