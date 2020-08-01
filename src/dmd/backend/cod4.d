@@ -2036,12 +2036,45 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             !(config.target_cpu < TARGET_80286 && pow2 != 1 && op == OPdivass)
            )
         {
+            freenode(e2);
+            if (pow2 == 1 && op == OPdiv && config.target_cpu > TARGET_80386)
+            {
+                /* This is better than the code further down because it is
+                 * not constrained to using AX and DX.
+                 */
+                getlvalue(cdb,&cs,e1,0);
+                modEA(cdb, &cs);
+                regm_t keepmsk = idxregm(&cs);
+                regm_t regm = allregs & ~keepmsk;
+                reg_t reg;
+                allocreg(cdb,&regm,&reg,TYint);
+                cs.Iop = 0x8B;
+                code_newreg(&cs, reg);
+                cdb.gen(&cs);                       // MOV reg,EA
+
+                regm_t scratchm = allregs & ~(keepmsk | regm);
+                reg_t r;
+                allocreg(cdb,&scratchm,&r,TYint);
+                genmovreg(cdb,r,reg);                        // MOV r,reg
+                cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
+                cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
+                cdb.gen2(0xD1,grex | modregrmx(3,7,reg));    // SAR reg,1
+
+                cs.Iop = 0x89;
+                code_newreg(&cs,reg);
+                cdb.gen(&cs);                           // MOV EA,resreg
+                if (e1.Ecount)                          // if we gen a CSE
+                    cssave(e1,mask(reg),!OTleaf(e1.Eoper));
+                freenode(e1);
+                fixresult(cdb,e,mask(reg),pretregs);
+                return;
+            }
+
             // Signed divide or modulo by power of 2
             getlvalue(cdb,&cs,e1,mAX | mDX);
             cs.Iop = 0x8B;
             code_newreg(&cs, AX);
             cdb.gen(&cs);                       // MOV AX,EA
-            freenode(e2);
             getregs(cdb,mAX | mDX);             // trash these regs
             cdb.gen1(0x99);                     // CWD
             code_orrex(cdb.last(), rex);
