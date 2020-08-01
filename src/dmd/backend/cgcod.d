@@ -2203,6 +2203,23 @@ L3:
         getregs(cdb, retregs);
 }
 
+
+/*****************************************
+ * Allocate a scratch register.
+ * Params:
+ *      cdb = where to write any generated code to
+ *      regm = mask of registers to pick one from
+ * Returns:
+ *      selected register
+ */
+reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
+{
+    reg_t r;
+    allocreg(cdb, &regm, &r, TYoffset);
+    return r;
+}
+
+
 /******************************
  * Determine registers that should be destroyed upon arrival
  * to code entry point for exception handling.

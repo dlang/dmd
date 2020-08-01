@@ -1511,9 +1511,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     reg_t reg;                          // return register
                     allocreg(cdb,&regm,&reg,tyml);
 
-                    regm_t scratchm = allregs & ~(regm | idxregs | mBP | mR13);
-                    reg_t sreg;                         // scratch register
-                    allocreg(cdb,&scratchm,&sreg,TYint);
+                    reg_t sreg = allocScratchReg(cdb, allregs & ~(regm | idxregs | mBP | mR13));
 
                     cs.Iop = 0x8B;
                     code_newreg(&cs,sreg);
@@ -1625,9 +1623,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cdb.gen(&cs);                   // MOV DX,EA+2
 
 
-            regm_t scratch = allregs & ~(retregs);
-            reg_t reg;
-            allocreg(cdb,&scratch,&reg,TYint);
+            reg_t reg = allocScratchReg(cdb, allregs & ~retregs);
             getregs(cdb,retregs);
 
             targ_size_t e2factor = cast(targ_size_t)el_tolong(e2);
@@ -1803,14 +1799,12 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             getlvalue(cdb,&cs,e1,mAX | mDX);
             regm_t keepmsk = idxregm(&cs);
 
-            regm_t regm = allregs & ~(mAX | mDX) & ~keepmsk;
-            reg_t reg;
-            allocreg(cdb,&regm,&reg,TYint);
+            reg_t reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
 
             cs.Iop = 0x8B;
             code_newreg(&cs, reg);
             cdb.gen(&cs);                       // MOV R1,EA
-            getregs(cdb,regm | mDX | mAX);
+            getregs(cdb,mask(reg) | mDX | mAX);
 
             /* Algorithm 5.2
              * if m>=2**(N-1)
@@ -1885,7 +1879,6 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert(sz == 4 || sz == 8);
 
             reg_t r3;
-            regm_t regm;
             reg_t reg;
             ulong m;
             int shpre;
@@ -1911,8 +1904,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 regm_t keepmsk = idxregm(&cs);
                 modEA(cdb, &cs);
 
-                regm = allregs & ~(mAX | mDX) & ~keepmsk;
-                allocreg(cdb,&regm,&reg,TYint);
+                reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
                 cs.Iop = 0x8B;
                 code_newreg(&cs, reg);
                 cdb.gen(&cs);                       // MOV reg,EA
@@ -1920,7 +1912,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
                 genmovreg(cdb,AX,reg);                   // MOV EAX,reg
                 movregconst(cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0); // MOV EDX,m
-                getregs(cdb,regm | mDX | mAX);
+                getregs(cdb,mask(reg) | mDX | mAX);
                 cdb.gen2(0xF7,grex | modregrmx(3,4,DX));              // MUL EDX
                 genmovreg(cdb,AX,reg);                                // MOV EAX,reg
                 cdb.gen2(0x2B,grex | modregrm(3,AX,DX));              // SUB EAX,EDX
@@ -1928,7 +1920,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 regm_t regm3 = allregs & ~keepmsk;
                 if (op == OPmodass)
                 {
-                    regm3 &= ~regm;
+                    regm3 &= ~mask(reg);
                     if (!el_signx32(e2))
                         regm3 &= ~mAX;
                 }
@@ -1949,8 +1941,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 getlvalue(cdb,&cs,e1,mAX | mDX);
                 modEA(cdb, &cs);
                 regm_t keepmsk = idxregm(&cs);
-                regm = allregs & ~(mAX | mDX) & ~keepmsk;
-                allocreg(cdb,&regm,&reg,TYint);
+                reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
                 cs.Iop = 0x8B;
                 code_newreg(&cs, reg);
                 cdb.gen(&cs);                       // MOV reg,EA
@@ -1987,7 +1978,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     /* reg = original value
                      * r3  = quotient
                      */
-                    assert(!(regm & mAX));
+                    assert(reg != AX);
                     if (el_signx32(e2))
                     {
                         cdb.genc2(0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
@@ -1999,7 +1990,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         getregs(cdb,mAX);
                         cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r3));   // IMUL EAX,r3
                     }
-                    getregs(cdb,regm);
+                    getregs(cdb,mask(reg));
                     cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));        // SUB reg,EAX
                     resregx = reg;
                     break;
@@ -2045,16 +2036,12 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 getlvalue(cdb,&cs,e1,0);
                 modEA(cdb, &cs);
                 regm_t keepmsk = idxregm(&cs);
-                regm_t regm = allregs & ~keepmsk;
-                reg_t reg;
-                allocreg(cdb,&regm,&reg,TYint);
+                reg_t reg = allocScratchReg(cdb, allregs & ~keepmsk);
                 cs.Iop = 0x8B;
                 code_newreg(&cs, reg);
                 cdb.gen(&cs);                       // MOV reg,EA
 
-                regm_t scratchm = allregs & ~(keepmsk | regm);
-                reg_t r;
-                allocreg(cdb,&scratchm,&r,TYint);
+                reg_t r = allocScratchReg(cdb, allregs & ~(keepmsk | mask(reg)));
                 genmovreg(cdb,r,reg);                        // MOV r,reg
                 cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
                 cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
