@@ -1,0 +1,27 @@
+Add `__traits(child, parent, member)`
+
+Takes two arguments. The first must be a symbol or expression and the second
+must be a symbol, such as an alias to a member of `parent`. The result is
+`member` interpreted with its `this` context set to `parent`. This is the
+inverse of `__traits(parent, member)`.
+
+---
+struct A
+{
+    int i;
+    int foo(int j) {
+        return i * j;
+    }
+}
+
+alias Ai = A.i;
+
+void main()
+{
+    A a;
+
+    __traits(child, a, Ai) = 3;
+    assert(a.i == 3);
+    assert(__traits(child, a, A.foo)(2) == 6);
+}
+---

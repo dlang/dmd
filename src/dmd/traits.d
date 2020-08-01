@@ -123,6 +123,7 @@ shared static this()
         "identifier",
         "getProtection",
         "parent",
+        "child",
         "getLinkage",
         "getMember",
         "getOverloads",
@@ -910,6 +911,44 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
         }
         return symbolToExp(s, e.loc, sc, false);
+    }
+    if (e.ident == Id.child)
+    {
+        if (dim != 2)
+            return dimError(2);
+
+        Expression ex;
+        auto op = (*e.args)[0];
+        if (auto symp = getDsymbol(op))
+            ex = new DsymbolExp(e.loc, symp);
+        else if (auto exp = op.isExpression())
+            ex = exp;
+        else
+        {
+            e.error("symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toChars());
+            return ErrorExp.get();
+        }
+
+        ex = ex.expressionSemantic(sc);
+        auto oc = (*e.args)[1];
+        auto symc = getDsymbol(oc);
+        if (!symc)
+        {
+            e.error("symbol expected as second argument of __traits `child` instead of `%s`", oc.toChars());
+            return ErrorExp.get();
+        }
+
+        if (auto d = symc.isDeclaration())
+            ex = new DotVarExp(e.loc, ex, d);
+        else if (auto td = symc.isTemplateDeclaration())
+            ex = new DotExp(e.loc, ex, new TemplateExp(e.loc, td));
+        else if (auto ti = symc.isScopeDsymbol())
+            ex = new DotExp(e.loc, ex, new ScopeExp(e.loc, ti));
+        else
+            assert(0);
+
+        ex = ex.expressionSemantic(sc);
+        return ex;
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
