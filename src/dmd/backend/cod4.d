@@ -1801,8 +1801,9 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
             getlvalue(cdb,&cs,e1,mAX | mDX);
+            regm_t keepmsk = idxregm(&cs);
 
-            regm_t regm = allregs & ~(mAX | mDX);
+            regm_t regm = allregs & ~(mAX | mDX) & ~keepmsk;
             reg_t reg;
             allocreg(cdb,&regm,&reg,TYint);
 
@@ -1878,6 +1879,154 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             return;
         }
 
+        // Unsigned divide by a constant
+        void unsignedDivideByConstant(ref CodeBuilder cdb)
+        {
+            assert(sz == 4 || sz == 8);
+
+            reg_t r3;
+            regm_t regm;
+            reg_t reg;
+            ulong m;
+            int shpre;
+            int shpost;
+            code cs = void;
+
+            if (udiv_coefficients(sz * 8, e2factor, &shpre, &m, &shpost))
+            {
+                /* t1 = MULUH(m, n)
+                 * q = SRL(t1 + SRL(n - t1, 1), shpost - 1)
+                 *   MOV   EAX,reg
+                 *   MOV   EDX,m
+                 *   MUL   EDX
+                 *   MOV   EAX,reg
+                 *   SUB   EAX,EDX
+                 *   SHR   EAX,1
+                 *   LEA   R3,[EAX][EDX]
+                 *   SHR   R3,shpost-1
+                 */
+                assert(shpre == 0);
+
+                getlvalue(cdb,&cs,e1,mAX | mDX);
+                regm_t keepmsk = idxregm(&cs);
+                modEA(cdb, &cs);
+
+                regm = allregs & ~(mAX | mDX) & ~keepmsk;
+                allocreg(cdb,&regm,&reg,TYint);
+                cs.Iop = 0x8B;
+                code_newreg(&cs, reg);
+                cdb.gen(&cs);                       // MOV reg,EA
+                getregs(cdb,mDX | mAX);
+
+                genmovreg(cdb,AX,reg);                   // MOV EAX,reg
+                movregconst(cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0); // MOV EDX,m
+                getregs(cdb,regm | mDX | mAX);
+                cdb.gen2(0xF7,grex | modregrmx(3,4,DX));              // MUL EDX
+                genmovreg(cdb,AX,reg);                                // MOV EAX,reg
+                cdb.gen2(0x2B,grex | modregrm(3,AX,DX));              // SUB EAX,EDX
+                cdb.genc2(0xC1,grex | modregrm(3,5,AX),1);            // SHR EAX,1
+                regm_t regm3 = allregs & ~keepmsk;
+                if (op == OPmodass)
+                {
+                    regm3 &= ~regm;
+                    if (!el_signx32(e2))
+                        regm3 &= ~mAX;
+                }
+                allocreg(cdb,&regm3,&r3,TYint);
+                cdb.gen2sib(LEA,grex | modregxrm(0,r3,4),modregrm(0,AX,DX)); // LEA R3,[EAX][EDX]
+                if (shpost != 1)
+                    cdb.genc2(0xC1,grex | modregrmx(3,5,r3),shpost-1);   // SHR R3,shpost-1
+            }
+            else
+            {
+                /* q = SRL(MULUH(m, SRL(n, shpre)), shpost)
+                 *   SHR   EAX,shpre
+                 *   MOV   reg,m
+                 *   MUL   reg
+                 *   SHR   EDX,shpost
+                 */
+
+                getlvalue(cdb,&cs,e1,mAX | mDX);
+                modEA(cdb, &cs);
+                regm_t keepmsk = idxregm(&cs);
+                regm = allregs & ~(mAX | mDX) & ~keepmsk;
+                allocreg(cdb,&regm,&reg,TYint);
+                cs.Iop = 0x8B;
+                code_newreg(&cs, reg);
+                cdb.gen(&cs);                       // MOV reg,EA
+                getregs(cdb,mDX | mAX);
+
+                if (reg != AX)
+                {
+                    getregs(cdb,mAX);
+                    genmovreg(cdb,AX,reg);                 // MOV EAX,reg
+                }
+                if (shpre)
+                {
+                    getregs(cdb,mAX);
+                    cdb.genc2(0xC1,grex | modregrm(3,5,AX),shpre);      // SHR EAX,shpre
+                }
+                getregs(cdb,mDX);
+                movregconst(cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EDX,m
+                getregs(cdb,mDX | mAX);
+                cdb.gen2(0xF7,grex | modregrmx(3,4,DX));                // MUL EDX
+                if (shpost)
+                    cdb.genc2(0xC1,grex | modregrm(3,5,DX),shpost);     // SHR EDX,shpost
+                r3 = DX;
+            }
+
+            reg_t resregx;
+            switch (op)
+            {
+                case OPdivass:
+                    // r3 = quotient
+                    resregx = r3;
+                    break;
+
+                case OPmodass:
+                    /* reg = original value
+                     * r3  = quotient
+                     */
+                    assert(!(regm & mAX));
+                    if (el_signx32(e2))
+                    {
+                        cdb.genc2(0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
+                    }
+                    else
+                    {
+                        assert(!(mask(r3) & mAX));
+                        movregconst(cdb,AX,e2factor,(sz == 8) ? 0x40 : 0);  // MOV EAX,e2factor
+                        getregs(cdb,mAX);
+                        cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r3));   // IMUL EAX,r3
+                    }
+                    getregs(cdb,regm);
+                    cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));        // SUB reg,EAX
+                    resregx = reg;
+                    break;
+
+                default:
+                    assert(0);
+            }
+
+            cs.Iop = 0x89;
+            code_newreg(&cs,resregx);
+            cdb.gen(&cs);                           // MOV EA,resreg
+            if (e1.Ecount)                          // if we gen a CSE
+                cssave(e1,mask(resregx),!OTleaf(e1.Eoper));
+            freenode(e1);
+            fixresult(cdb,e,mask(resregx),pretregs);
+            return;
+        }
+
+        if (config.flags4 & CFG4speed &&
+            e2.Eoper == OPconst &&
+            uns &&
+            e2factor > 2 && (e2factor & (e2factor - 1)) &&
+            ((I32 && sz == 4) || (I64 && (sz == 4 || sz == 8))))
+        {
+            unsignedDivideByConstant(cdb);
+            return;
+        }
 
         if (config.flags4 & CFG4speed &&
             e2.Eoper == OPconst && !uns &&

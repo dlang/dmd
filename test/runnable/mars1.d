@@ -317,7 +317,6 @@ void testulldiv()
 
 ////////////////////////////////////////////////////////////////////////
 
-
 uint udiv10(uint x)
 {
     return x / 10;
@@ -637,7 +636,7 @@ void testfastdiv()
 {
     static int z = 0; // prevent constant folding by optimizer
 
-    static foreach (T; tuple!(int, long))
+    static foreach (T; tuple!(int, long, uint, ulong))
     {{
 	T u = 10000;
 	T r;
