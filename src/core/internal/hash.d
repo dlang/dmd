@@ -235,10 +235,8 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 }
 
 // Indicates if F is a built-in complex number type.
-private enum bool isComplex(F) = is(Unqual!F == cfloat) || is(Unqual!F == cdouble) || is(Unqual!F == creal);
-
 private F coalesceFloat(F)(const F val)
-if (__traits(isFloating, val) && !is(F == __vector) && !isComplex!F)
+if (__traits(isFloating, val) && !is(F == __vector) && !is(F : creal))
 {
     static if (floatCoalesceZeroes)
         if (val == cast(F) 0)
@@ -270,7 +268,7 @@ size_t hashOf(T)(scope const T val) if (__traits(isScalar, T) && !is(T == __vect
         else
             return cast(size_t) (val ^ (val >>> (size_t.sizeof * 8)));
     }
-    else static if (isComplex!T)
+    else static if (is(T : creal))
     {
         return hashOf(coalesceFloat(val.re), hashOf(coalesceFloat(val.im)));
     }
@@ -333,7 +331,7 @@ size_t hashOf(T)(scope const T val, size_t seed) if (__traits(isScalar, T) && !i
             seed = hashOf(cast(size_t) (val >>> (size_t.sizeof * 8 * i)), seed);
         return seed;
     }
-    else static if (isComplex!T)
+    else static if (is(T : creal))
     {
         return hashOf(val.re, hashOf(val.im, seed));
     }
