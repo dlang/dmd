@@ -524,7 +524,7 @@ class ReturnStatement : public Statement
 public:
     Expression *exp;
     size_t caseDim;
-
+    bool inStaticIf;
     Statement *syntaxCopy();
 
     ReturnStatement *endsWithReturnStatement() { return this; }

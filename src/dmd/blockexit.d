@@ -44,6 +44,7 @@ enum BE : int
     break_    = 0x20,
     continue_ = 0x40,
     errthrow  = 0x80,
+    staticIfReturn = 0x100,
     any       = (fallthru | throw_ | return_ | goto_ | halt),
 }
 
@@ -129,18 +130,23 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 {
                     //printf("result = x%x\n", result);
                     //printf("s: %s\n", s.toChars());
-                    if (result & BE.fallthru && slast)
+                    if (result & (BE.fallthru | BE.staticIfReturn) && slast)
                     {
                         slast = slast.last();
-                        if (slast && (slast.isCaseStatement() || slast.isDefaultStatement()) && (s.isCaseStatement() || s.isDefaultStatement()))
+                        if (slast && (slast.isCaseStatement() || slast.isDefaultStatement()) &&
+                            (s.isCaseStatement() || s.isDefaultStatement()))
                         {
                             // Allow if last case/default was empty
                             CaseStatement sc = slast.isCaseStatement();
                             DefaultStatement sd = slast.isDefaultStatement();
-                            if (sc && (!sc.statement.hasCode() || sc.statement.isCaseStatement() || sc.statement.isErrorStatement()))
+                            if (sc && (!sc.statement.hasCode() ||
+                                       sc.statement.isCaseStatement() ||
+                                       sc.statement.isErrorStatement()))
                             {
                             }
-                            else if (sd && (!sd.statement.hasCode() || sd.statement.isCaseStatement() || sd.statement.isErrorStatement()))
+                            else if (sd && (!sd.statement.hasCode() ||
+                                            sd.statement.isCaseStatement() ||
+                                            sd.statement.isErrorStatement()))
                             {
                             }
                             else
@@ -151,7 +157,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                         }
                     }
 
-                    if (!(result & BE.fallthru) && !s.comeFrom())
+                    if (!(result & (BE.fallthru | BE.staticIfReturn)) && !s.comeFrom())
                     {
                         if (blockExit(s, func, mustNotThrow) != BE.halt && s.hasCode())
                             s.warning("statement is not reachable");
@@ -163,6 +169,11 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                     }
                     slast = s;
                 }
+            }
+            if (result & BE.staticIfReturn)
+            {
+                result &= ~BE.staticIfReturn;
+                result |= BE.return_;
             }
         }
 
@@ -349,11 +360,10 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
         override void visit(ReturnStatement s)
         {
-            result = BE.return_;
+            result = s.inStaticIf ? BE.staticIfReturn : BE.return_;
             if (s.exp && canThrow(s.exp, func, mustNotThrow))
                 result |= BE.throw_;
         }
-
         override void visit(BreakStatement s)
         {
             //printf("BreakStatement::blockExit(%p) = x%x\n", s, s.ident ? BE.goto_ : BE.break_);

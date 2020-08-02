@@ -3133,6 +3133,9 @@ else
             errors = true;
         }
 
+        if (sc.flags & SCOPE.debug_)
+            rs.inStaticIf = true;
+
         if (fd.isCtorDeclaration())
         {
             if (rs.exp)

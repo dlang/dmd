@@ -1435,17 +1435,15 @@ extern (C++) final class ConditionalStatement : Statement
         //printf("ConditionalStatement::flatten()\n");
         if (condition.include(sc))
         {
+            s = new DebugStatement(loc, ifbody);
             DebugCondition dc = condition.isDebugCondition();
             if (dc)
             {
-                s = new DebugStatement(loc, ifbody);
                 debugThrowWalker(ifbody);
             }
-            else
-                s = ifbody;
         }
         else
-            s = elsebody;
+            s = new DebugStatement(loc, elsebody);
 
         auto a = new Statements();
         a.push(s);
@@ -1842,6 +1840,7 @@ extern (C++) final class ReturnStatement : Statement
 {
     Expression exp;
     size_t caseDim;
+    bool inStaticIf = false;
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
