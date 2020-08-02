@@ -2028,7 +2028,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
            )
         {
             freenode(e2);
-            if (pow2 == 1 && op == OPdiv && config.target_cpu > TARGET_80386)
+            if (pow2 == 1 && op == OPdivass && config.target_cpu > TARGET_80386)
             {
                 /* This is better than the code further down because it is
                  * not constrained to using AX and DX.
@@ -2139,6 +2139,119 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     assert(sz == 2 * REGSIZE);
+
+    targ_size_t e2factor;
+    int pow2;
+    if (e2.Eoper == OPconst)
+    {
+        e2factor = cast(targ_size_t)el_tolong(e2);
+        pow2 = ispow2(e2factor);
+    }
+
+    // Register pair signed divide by power of 2
+    if (op == OPdivass &&
+        !uns &&
+        e.Eoper == OPconst &&
+        pow2 != -1 &&
+        I32 // not set up for I16 or I64 cent
+       )
+    {
+        getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
+        regm_t retregs = mDX|mAX | mCX|mBX;     // LSW must be byte reg because of later SETZ
+        regm_t keepmsk = idxregm(&cs);
+        reg_t reg;
+        allocreg(cdb,&retregs,&reg,tyml);
+
+        const rhi = findregmsw(retregs);
+        const rlo = findreglsw(retregs);
+        freenode(e2);
+        getregs(cdb,retregs);
+
+        cs.Iop = 0x8B;
+        code_newreg(&cs,rlo);
+        cdb.gen(&cs);                   // MOV rlo,EA
+        getlvalue_msw(&cs);
+        code_newreg(&cs,rhi);
+        cdb.gen(&cs);                   // MOV rhi,EA+2
+        getlvalue_lsw(&cs);
+
+        if (pow2 < 32)
+        {
+            reg_t r1 = allocScratchReg(cdb, allregs & ~(retregs | keepmsk));
+
+            genmovreg(cdb,r1,rhi);                                        // MOV  r1,rhi
+            if (pow2 == 1)
+                cdb.genc2(0xC1,grex | modregrmx(3,5,r1),REGSIZE * 8 - 1); // SHR  r1,31
+            else
+            {
+                cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1); // SAR  r1,31
+                cdb.genc2(0x81,grex | modregrmx(3,4,r1),(1 << pow2) - 1); // AND  r1,mask
+            }
+            cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                   // ADD  rlo,r1
+            cdb.genc2(0x81,grex | modregxrmx(3,2,rhi),0);                 // ADC  rhi,0
+            cdb.genc2(0x0FAC,grex | modregrm(3,rhi,rlo),pow2);            // SHRD rlo,rhi,pow2
+            cdb.genc2(0xC1,grex | modregrmx(3,7,rhi),pow2);               // SAR  rhi,pow2
+        }
+        else if (pow2 == 32)
+        {
+            reg_t r1 = allocScratchReg(cdb, allregs & ~(retregs | keepmsk));
+
+            genmovreg(cdb,r1,rhi);                                        // MOV r1,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);     // SAR r1,31
+            cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                   // ADD rlo,r1
+            cdb.genc2(0x81,grex | modregxrmx(3,2,rhi),0);                 // ADC rhi,0
+            cdb.genmovreg(rlo,rhi);                                       // MOV rlo,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,rhi),REGSIZE * 8 - 1);    // SAR rhi,31
+        }
+        else if (pow2 < 63)
+        {
+            reg_t r1 = allocScratchReg(cdb, allregs & ~(retregs | keepmsk));
+            reg_t r2 = allocScratchReg(cdb, allregs & ~(retregs | keepmsk | mask(r1)));
+
+            genmovreg(cdb,r1,rhi);                                        // MOV r1,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);     // SAR r1,31
+            cdb.genmovreg(r2,r1);                                         // MOV r2,r1
+
+            if (pow2 == 33)
+            {
+                cdb.gen2(0xF7,modregrmx(3,3,r1));                         // NEG r1
+                cdb.gen2(0x03,grex | modregxrmx(3,rlo,r2));               // ADD rlo,r2
+                cdb.gen2(0x13,grex | modregxrmx(3,rhi,r1));               // ADC rhi,r1
+            }
+            else
+            {
+                cdb.genc2(0x81,grex | modregrmx(3,4,r2),(1 << (pow2-32)) - 1); // AND r2,mask
+                cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                    // ADD rlo,r1
+                cdb.gen2(0x13,grex | modregxrmx(3,rhi,r2));                    // ADC rhi,r2
+            }
+
+            cdb.genmovreg(rlo,rhi);                                       // MOV rlo,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,rlo),pow2 - 32);          // SAR rlo,pow2-32
+            cdb.genc2(0xC1,grex | modregrmx(3,7,rhi),REGSIZE * 8 - 1);    // SAR rhi,31
+        }
+        else
+        {
+            // This may be better done by cgelem.d
+            assert(pow2 == 63);
+            cdb.genc2(0x81,grex | modregrmx(3,4,rhi),0x8000_0000); // ADD rhi,0x8000_000
+            cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
+            cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
+            cdb.genregs(0x0FB6,rlo,rlo);                           // MOVZX rlo,rloL
+            movregconst(cdb,rhi,0,0);                              // MOV rhi,0
+        }
+
+        cs.Iop = 0x89;
+        code_newreg(&cs,rlo);
+        cdb.gen(&cs);                   // MOV EA,rlo
+        code_newreg(&cs,rhi);
+        getlvalue_msw(&cs);
+        cdb.gen(&cs);                   // MOV EA+2,rhi
+        if (e1.Ecount)                 // if we gen a CSE
+            cssave(e1,retregs,!OTleaf(e1.Eoper));
+        freenode(e1);
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
 
     regm_t retregs = mCX | mBX;
     codelem(cdb,e2,&retregs,false);
