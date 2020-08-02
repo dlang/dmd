@@ -974,3 +974,10 @@ static assert(!__traits(compiles,
 {
     static class C11624 : I11624 { }
 }));
+
+enum enumOfTypeString : string
+{
+    a = "a",
+    b = "b",
+}
+static assert(__traits(isDynamicArray, enumOfTypeString) == true);

@@ -305,6 +305,12 @@ void test7a()
     assert(__traits(isDynamicArray, char) == false);
     assert(__traits(isDynamicArray, wchar) == false);
     assert(__traits(isDynamicArray, dchar) == false);
+    enum E : string
+    {
+        a = "a",
+        b = "b",
+    }
+    assert(__traits(isDynamicArray, E) == true);
 }
 
 /********************************************************/
