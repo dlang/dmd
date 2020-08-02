@@ -1234,15 +1234,15 @@ code *asm_emit(Loc loc,
     uint usNumops, PTRNTAB ptb,
     OP *pop, OPND[] opnds)
 {
-    ubyte[16] auchOpcode;
-    uint usIdx = 0;
+    ubyte[16] instruction = void;
+    size_t insIdx = 0;
     debug
     {
-        void emit(uint op) { auchOpcode[usIdx++] = cast(ubyte)op; }
+        void emit(ubyte op) { instruction[insIdx++] = op; }
     }
     else
     {
-        void emit(uint op) { }
+        void emit(ubyte op) { }
     }
 //  uint us;
     code *pc = null;
@@ -1326,10 +1326,8 @@ code *asm_emit(Loc loc,
 
         debug (debuga)
         {
-            uint u;
-
-            for (u = 0; u < usIdx; u++)
-                printf("  %02X", auchOpcode[u]);
+            foreach (u; instruction[0 .. insIdx])
+                printf("  %02X", u);
 
             printOperands(pop, opnds);
         }
@@ -1513,7 +1511,7 @@ code *asm_emit(Loc loc,
     pc.Iop = opcode;
     if (pc.Ivex.pfx == 0xC4)
     {
-        debug uint oIdx = usIdx;
+        debug const oIdx = insIdx;
         ASM_OPERAND_TYPE    aoptyTmp;
         uint  uSizemaskTmp;
 
@@ -1526,13 +1524,13 @@ code *asm_emit(Loc loc,
             if ((aoptyTable[0] == _m || aoptyTable[0] == _rm) &&
                 aoptyTable[1] == _reg)
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     opnds[0 .. opnds.length >= 2 ? 2 : 1]);
             else if (usNumops == 2 || usNumops == 3 && aoptyTable[2] == _imm)
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     [opnds[1], opnds[0]]);
@@ -1552,7 +1550,7 @@ code *asm_emit(Loc loc,
             pc.Ivex.vvvv = cast(ubyte) ~int(opnds[0].base.val);
 
             asm_make_modrm_byte(
-                auchOpcode.ptr, &usIdx,
+                &emit,
                 pc,
                 ptb.pptb1.usFlags,
                 [opnds[1]]);
@@ -1571,7 +1569,7 @@ code *asm_emit(Loc loc,
             pc.Ivex.vvvv = cast(ubyte) ~int(opnds[1].base.val);
 
             asm_make_modrm_byte(
-                auchOpcode.ptr, &usIdx,
+                &emit,
                 pc,
                 ptb.pptb1.usFlags,
                 [opnds[2], opnds[0]]);
@@ -1582,13 +1580,13 @@ code *asm_emit(Loc loc,
 
             if (aoptyTable[0] == _m || aoptyTable[0] == _rm)
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     [opnds[0], opnds[2]]);
             else
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     [opnds[2], opnds[0]]);
@@ -1620,23 +1618,23 @@ code *asm_emit(Loc loc,
         {
             debug
             {
-                memmove(&auchOpcode.ptr[oIdx+3], &auchOpcode[oIdx], usIdx-oIdx);
-                usIdx = oIdx;
+                memmove(&instruction[oIdx+3], &instruction[oIdx], insIdx-oIdx);
+                insIdx = oIdx;
             }
             emit(0xC4);
-            emit(VEX3_B1(pc.Ivex));
-            emit(VEX3_B2(pc.Ivex));
+            emit(cast(ubyte)VEX3_B1(pc.Ivex));
+            emit(cast(ubyte)VEX3_B2(pc.Ivex));
             pc.Iflags |= CFvex3;
         }
         else
         {
             debug
             {
-                memmove(&auchOpcode[oIdx+2], &auchOpcode[oIdx], usIdx-oIdx);
-                usIdx = oIdx;
+                memmove(&instruction[oIdx+2], &instruction[oIdx], insIdx-oIdx);
+                insIdx = oIdx;
             }
             emit(0xC5);
-            emit(VEX2_B1(pc.Ivex));
+            emit(cast(ubyte)VEX2_B1(pc.Ivex));
         }
         pc.Iflags |= CFvex;
         emit(pc.Ivex.op);
@@ -1724,7 +1722,7 @@ code *asm_emit(Loc loc,
     }
     else
     {
-        emit(opcode);
+        emit(cast(ubyte)opcode);
     }
 L3:
 
@@ -1781,12 +1779,12 @@ L3:
                     pc.Irm += reg;
                 else
                     pc.Iop += reg;
-                debug auchOpcode[usIdx-1] += reg;
+                debug instruction[insIdx-1] += reg;
             }
             else
             {
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     [opnds[0]]);
@@ -1830,7 +1828,7 @@ L3:
                )
             {
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     opnds[0 .. 2]);
@@ -1838,7 +1836,7 @@ L3:
             else
             {
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     [opnds[1], opnds[0]]);
@@ -1868,7 +1866,7 @@ L3:
                     pc.Irm += reg;
                 else
                     pc.Iop += reg;
-                debug auchOpcode[usIdx-1] += reg;
+                debug instruction[insIdx-1] += reg;
             }
             else if (((aoptyTable[1] == _reg || aoptyTable[1] == _float) &&
                  amodTable[1] == _normal &&
@@ -1890,7 +1888,7 @@ L3:
                     pc.Irm += reg;
                 else
                     pc.Iop += reg;
-                debug auchOpcode[usIdx-1] += reg;
+                debug instruction[insIdx-1] += reg;
             }
             else if (ptb.pptb0.opcode == 0xF30FD6 ||
                      ptb.pptb0.opcode == 0x0F12 ||
@@ -1902,7 +1900,7 @@ L3:
                      ptb.pptb0.opcode == 0x0FD7)
             {
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     [opnds[1], opnds[0]]);
@@ -1910,7 +1908,7 @@ L3:
             else
             {
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     opnds[0 .. 2]);
@@ -1936,7 +1934,7 @@ L3:
            )
         {
             asm_make_modrm_byte(
-                auchOpcode.ptr, &usIdx,
+                &emit,
                 pc,
                 ptb.pptb1.usFlags,
                 [opnds[1], opnds[0]]);
@@ -1961,7 +1959,7 @@ L3:
                         pc.Irm += reg;
                     else
                         pc.Iop += reg;
-                    debug auchOpcode[usIdx-1] += reg;
+                    debug instruction[insIdx-1] += reg;
                     return true;
                 }
                 return false;
@@ -1969,7 +1967,7 @@ L3:
 
             if(!setRegisterProperties(0) && !setRegisterProperties(1))
                 asm_make_modrm_byte(
-                    auchOpcode.ptr, &usIdx,
+                    &emit,
                     pc,
                     ptb.pptb1.usFlags,
                     opnds[0 .. 2]);
@@ -2268,12 +2266,17 @@ L2:
 
 /****************************
  * Fill in the modregrm and sib bytes of code.
+ * Params:
+ *      emit = where to store instruction bytes generated (for debugging)
+ *      pc = instruction to be filled in
+ *      usFlags = opflag_t value from ptrntab
+ *      opnds = one for each operand
  */
 
 void asm_make_modrm_byte(
-        ubyte *puchOpcode, uint *pusIdx,
+        void delegate(ubyte) emit,
         code *pc,
-        uint usFlags,
+        opflag_t usFlags,
         scope OPND[] opnds)
 {
     struct MODRM_BYTE
@@ -2281,7 +2284,7 @@ void asm_make_modrm_byte(
         uint rm;
         uint reg;
         uint mod;
-        uint uchOpcode()
+        uint auchOpcode()
         {
             assert(rm < 8);
             assert(reg < 8);
@@ -2295,7 +2298,7 @@ void asm_make_modrm_byte(
         uint base;
         uint index;
         uint ss;
-        uint uchOpcode()
+        uint auchOpcode()
         {
             assert(base < 8);
             assert(index < 8);
@@ -2345,8 +2348,8 @@ void asm_make_modrm_byte(
             pc.Iflags |= CFoff;
             debug
             {
-                puchOpcode[(*pusIdx)++] = 0;
-                puchOpcode[(*pusIdx)++] = 0;
+                emit(0);
+                emit(0);
             }
             if (aopty == _m || aopty == _mnoi)
             {
@@ -2363,8 +2366,8 @@ void asm_make_modrm_byte(
                 {
                     if (aopty == _p || aopty == _rel)
                     {
-                        puchOpcode[(*pusIdx)++] = 0;
-                        puchOpcode[(*pusIdx)++] = 0;
+                        emit(0);
+                        emit(0);
                     }
                 }
 
@@ -2681,13 +2684,13 @@ void asm_make_modrm_byte(
         if (opnds[1].base.val & NUM_MASKR)
             pc.Irex |= REX_R;
     }
-    debug puchOpcode[ (*pusIdx)++ ] = cast(ubyte)mrmb.uchOpcode();
-    pc.Irm = cast(ubyte)mrmb.uchOpcode();
+    debug emit(cast(ubyte)mrmb.auchOpcode());
+    pc.Irm = cast(ubyte)mrmb.auchOpcode();
     //printf("Irm = %02x\n", pc.Irm);
     if (bSib)
     {
-        debug puchOpcode[ (*pusIdx)++ ] = cast(ubyte)sib.uchOpcode();
-        pc.Isib= cast(ubyte)sib.uchOpcode();
+        debug emit(cast(ubyte)sib.auchOpcode());
+        pc.Isib= cast(ubyte)sib.auchOpcode();
     }
     if ((!s || (opnds[0].pregDisp1 && !bOffsetsym)) &&
         aopty != _imm &&
@@ -2698,8 +2701,8 @@ void asm_make_modrm_byte(
             debug
             {
                 puc = (cast(ubyte *) &(opnds[0].disp));
-                puchOpcode[(*pusIdx)++] = puc[1];
-                puchOpcode[(*pusIdx)++] = puc[0];
+                emit(puc[1]);
+                emit(puc[0]);
             }
             if (usFlags & (_modrm | NUM_MASK))
             {
@@ -2719,10 +2722,10 @@ void asm_make_modrm_byte(
             debug
             {
                 puc = (cast(ubyte *) &(opnds[0].disp));
-                puchOpcode[(*pusIdx)++] = puc[3];
-                puchOpcode[(*pusIdx)++] = puc[2];
-                puchOpcode[(*pusIdx)++] = puc[1];
-                puchOpcode[(*pusIdx)++] = puc[0];
+                emit(puc[3]);
+                emit(puc[2]);
+                emit(puc[1]);
+                emit(puc[0]);
             }
             if (usFlags & (_modrm | NUM_MASK))
             {
