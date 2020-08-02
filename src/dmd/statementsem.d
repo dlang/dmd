@@ -2444,13 +2444,16 @@ else
                 else if (e.isBool(false))
                     inlining = PINLINE.never;
 
-                    FuncDeclaration fd = sc.func;
+                FuncDeclaration fd = sc.func;
                 if (!fd)
                 {
                     ps.error("`pragma(inline)` is not inside a function");
                     return setError();
                 }
-                fd.inlining = inlining;
+                if (!global.params.cov) // inline except when doing coverage
+                {
+                    fd.inlining = inlining;
+                }
             }
         }
         else if (!global.params.ignoreUnsupportedPragmas)
