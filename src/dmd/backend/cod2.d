@@ -1010,9 +1010,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  */
                 regm_t retregs = mAX | mDX;
                 codelem(cdb,e1,&retregs,false);    // eval left leaf
-                regm_t scratch = allregs & ~(mAX | mDX);
-                reg_t reg;
-                allocreg(cdb,&scratch,&reg,TYint);
+                reg_t reg = allocScratchReg(cdb, allregs & ~(mAX | mDX));
                 getregs(cdb,mDX | mAX);
 
                 const lsw = cast(targ_int)(e2factor & ((1L << (REGSIZE * 8)) - 1));
@@ -1633,9 +1631,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
                 if (pow2 < 32)
                 {
-                    regm_t scratchm = allregs & ~retregs;
-                    reg_t r1;
-                    allocreg(cdb,&scratchm,&r1,TYint);
+                    reg_t r1 = allocScratchReg(cdb, allregs & ~retregs);
 
                     genmovreg(cdb,r1,rhi);                                        // MOV  r1,rhi
                     if (pow2 == 1)
@@ -1652,9 +1648,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else if (pow2 == 32)
                 {
-                    regm_t scratchm = allregs & ~retregs;
-                    reg_t r1;
-                    allocreg(cdb,&scratchm,&r1,TYint);
+                    reg_t r1 = allocScratchReg(cdb, allregs & ~retregs);
 
                     genmovreg(cdb,r1,rhi);                                        // MOV r1,rhi
                     cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);     // SAR r1,31
@@ -1665,13 +1659,8 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else if (pow2 < 63)
                 {
-                    regm_t scratchm = allregs & ~retregs;
-                    reg_t r1;
-                    allocreg(cdb,&scratchm,&r1,TYint);
-
-                    scratchm = allregs & ~(retregs | scratchm);
-                    reg_t r2;
-                    allocreg(cdb,&scratchm,&r2,TYint);
+                    reg_t r1 = allocScratchReg(cdb, allregs & ~retregs);
+                    reg_t r2 = allocScratchReg(cdb, allregs & ~(retregs | mask(r1)));
 
                     genmovreg(cdb,r1,rhi);                                        // MOV r1,rhi
                     cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);     // SAR r1,31
@@ -1726,8 +1715,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 regm_t scratchm = allregs & ~retregs;
                 if (pow2 == 63)
                     scratchm &= BYTEREGS;               // because of SETZ
-                reg_t r1;
-                allocreg(cdb,&scratchm,&r1,TYint);
+                reg_t r1 = allocScratchReg(cdb, scratchm);
 
                 if (pow2 < 32)
                 {
@@ -1750,9 +1738,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else if (pow2 < 63)
                 {
-                    scratchm = allregs & ~(retregs | scratchm);
-                    reg_t r2;
-                    allocreg(cdb,&scratchm,&r2,TYint);
+                    reg_t r2 = allocScratchReg(cdb, allregs & ~(retregs | mask(r1)));
 
                     cdb.genmovreg(r1,rhi);                                      // MOV  r1,rhi
                     cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);   // SAR  r1,31
@@ -1804,9 +1790,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     freenode(e2);
                     getregs(cdb,retregs);
 
-                    regm_t scratchm = allregs & ~retregs;
-                    reg_t r;
-                    allocreg(cdb,&scratchm,&r,TYint);
+                    reg_t r = allocScratchReg(cdb, allregs & ~retregs);
                     genmovreg(cdb,r,reg);                        // MOV r,reg
                     cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
                     cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
@@ -4595,8 +4579,7 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             /* Do not allocate CX or SI here, as cdstreq() needs
              * them preserved. cdstreq() should use scodelem()
              */
-            regm_t scratch = (mAX|mBX|mDX|mDI) & ~mask(lreg);
-            allocreg(cdb,&scratch,&mreg,TYint);
+            mreg = allocScratchReg(cdb, (mAX|mBX|mDX|mDI) & ~mask(lreg));
         }
         else
         {
@@ -5043,9 +5026,9 @@ void cdabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
         reg_t r;
 
         if (!I16 && sz == REGSIZE)
-        {   regm_t scratch = allregs & ~retregs;
+        {
             reg = findreg(retregs);
-            allocreg(cdb,&scratch,&r,TYint);
+            r = allocScratchReg(cdb, allregs & ~retregs);
             getregs(cdb,retregs);
             genmovreg(cdb,r,reg);                     // MOV r,reg
             cdb.genc2(0xC1,modregrmx(3,7,r),REGSIZE * 8 - 1);      // SAR r,31/63
