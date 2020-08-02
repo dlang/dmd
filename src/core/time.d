@@ -68,7 +68,6 @@ module core.time;
 import core.exception;
 import core.stdc.time;
 import core.stdc.stdio;
-import core.internal.traits : _Unqual = Unqual;
 import core.internal.string;
 
 version (Windows)
@@ -620,12 +619,12 @@ public:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
     Duration opBinary(string op, D)(D rhs) const nothrow @nogc
-        if (((op == "+" || op == "-" || op == "%") && is(_Unqual!D == Duration)) ||
-           ((op == "+" || op == "-") && is(_Unqual!D == TickDuration)))
+        if (((op == "+" || op == "-" || op == "%") && is(immutable D == immutable Duration)) ||
+           ((op == "+" || op == "-") && is(immutable D == immutable TickDuration)))
     {
-        static if (is(_Unqual!D == Duration))
+        static if (is(immutable D == immutable Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
-        else if (is(_Unqual!D == TickDuration))
+        else if (is(immutable D == immutable TickDuration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
@@ -706,7 +705,7 @@ public:
       +/
     Duration opBinaryRight(string op, D)(D lhs) const nothrow @nogc
         if ((op == "+" || op == "-") &&
-            is(_Unqual!D == TickDuration))
+            is(immutable D == immutable TickDuration))
     {
         return Duration(mixin("lhs.hnsecs " ~ op ~ " _hnsecs"));
     }
@@ -759,12 +758,12 @@ public:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
     ref Duration opOpAssign(string op, D)(const scope D rhs) nothrow @nogc
-        if (((op == "+" || op == "-" || op == "%") && is(_Unqual!D == Duration)) ||
-           ((op == "+" || op == "-") && is(_Unqual!D == TickDuration)))
+        if (((op == "+" || op == "-" || op == "%") && is(immutable D == immutable Duration)) ||
+           ((op == "+" || op == "-") && is(immutable D == immutable TickDuration)))
     {
-        static if (is(_Unqual!D == Duration))
+        static if (is(immutable D == immutable Duration))
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
-        else if (is(_Unqual!D == TickDuration))
+        else if (is(immutable D == immutable TickDuration))
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
         return this;
     }
@@ -1107,7 +1106,7 @@ public:
         $(D duration.to!TickDuration())
       +/
     TickDuration opCast(T)() const nothrow @nogc
-        if (is(_Unqual!T == TickDuration))
+        if (is(immutable T == immutable TickDuration))
     {
         return TickDuration.from!"hnsecs"(_hnsecs);
     }
@@ -1161,7 +1160,7 @@ public:
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
     Duration opCast(T)() const nothrow @nogc
-        if (is(_Unqual!T == Duration))
+        if (is(immutable T == immutable Duration))
     {
         return this;
     }
@@ -1752,7 +1751,7 @@ unittest
         td    = The TickDuration to convert
   +/
 T to(string units, T, D)(D td) @safe pure nothrow @nogc
-    if (is(_Unqual!D == TickDuration) &&
+    if (is(immutable D == immutable TickDuration) &&
        (units == "seconds" ||
         units == "msecs" ||
         units == "usecs" ||
@@ -2959,7 +2958,7 @@ struct TickDuration
         $(D tickDuration.to!Duration())
       +/
     Duration opCast(T)() @safe const pure nothrow @nogc
-        if (is(_Unqual!T == Duration))
+        if (is(immutable T == immutable Duration))
     {
         return Duration(hnsecs);
     }
@@ -2985,7 +2984,7 @@ struct TickDuration
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
     TickDuration opCast(T)() @safe const pure nothrow @nogc
-        if (is(_Unqual!T == TickDuration))
+        if (is(immutable T == immutable TickDuration))
     {
         return this;
     }
