@@ -2577,7 +2577,9 @@ void asm_make_modrm_byte(
                     }
 
                     sib.base = 0x5;
-                    sib.index = opnds[0].pregDisp1.val;
+                    sib.index = opnds[0].pregDisp1.val & NUM_MASK;
+                    if (opnds[0].pregDisp1.val & NUM_MASKR)
+                        pc.Irex |= REX_X;
                 }
             }
             else
