@@ -2439,7 +2439,9 @@ else
                     return setError();
                 }
 
-                if (e.isBool(true))
+                if (global.params.cov)
+                    inlining = PINLINE.never; // never inline when measuring coverage
+                else if (e.isBool(true))
                     inlining = PINLINE.always;
                 else if (e.isBool(false))
                     inlining = PINLINE.never;
@@ -2450,10 +2452,7 @@ else
                     ps.error("`pragma(inline)` is not inside a function");
                     return setError();
                 }
-                if (global.params.cov)
-                {
-                    fd.inlining = PINLINE.never;
-                }
+                fd.inlining = inlining;
             }
         }
         else if (!global.params.ignoreUnsupportedPragmas)
