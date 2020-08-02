@@ -2253,6 +2253,100 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
+    // Register pair signed modulo by power of 2
+    if (op == OPmodass &&
+        !uns &&
+        e.Eoper == OPconst &&
+        pow2 != -1 &&
+        I32 // not set up for I64 cent yet
+       )
+    {
+        getlvalue(cdb,&cs,e1,mDX|mAX);
+        regm_t retregs = mDX|mAX;
+        regm_t keepmsk = idxregm(&cs);
+        reg_t reg;
+        allocreg(cdb,&retregs,&reg,tyml);
+
+        const rhi = findregmsw(retregs);
+        const rlo = findreglsw(retregs);
+        freenode(e2);
+        getregs(cdb,retregs);
+
+        cs.Iop = 0x8B;
+        code_newreg(&cs,rlo);
+        cdb.gen(&cs);                   // MOV rlo,EA
+        getlvalue_msw(&cs);
+        code_newreg(&cs,rhi);
+        cdb.gen(&cs);                   // MOV rhi,EA+2
+        getlvalue_lsw(&cs);
+
+        regm_t scratchm = allregs & ~(retregs | keepmsk);
+        if (pow2 == 63)
+            scratchm &= BYTEREGS;               // because of SETZ
+        reg_t r1 = allocScratchReg(cdb, scratchm);
+
+        if (pow2 < 32)
+        {
+            cdb.genmovreg(r1,rhi);                                    // MOV r1,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1); // SAR r1,31
+            cdb.gen2(0x33,grex | modregxrmx(3,rlo,r1));               // XOR rlo,r1
+            cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));               // SUB rlo,r1
+            cdb.genc2(0x81,grex | modregrmx(3,4,rlo),(1<<pow2)-1);    // AND rlo,(1<<pow2)-1
+            cdb.gen2(0x33,grex | modregxrmx(3,rlo,r1));               // XOR rlo,r1
+            cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));               // SUB rlo,r1
+            cdb.gen2(0x1B,grex | modregxrmx(3,rhi,rhi));              // SBB rhi,rhi
+        }
+        else if (pow2 == 32)
+        {
+            cdb.genmovreg(r1,rhi);                                      // MOV r1,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);   // SAR r1,31
+            cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                 // ADD rlo,r1
+            cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));                 // SUB rlo,r1
+            cdb.gen2(0x1B,grex | modregxrmx(3,rhi,rhi));                // SBB rhi,rhi
+        }
+        else if (pow2 < 63)
+        {
+            scratchm = allregs & ~(retregs | scratchm);
+            reg_t r2;
+            allocreg(cdb,&scratchm,&r2,TYint);
+
+            cdb.genmovreg(r1,rhi);                                      // MOV  r1,rhi
+            cdb.genc2(0xC1,grex | modregrmx(3,7,r1),REGSIZE * 8 - 1);   // SAR  r1,31
+            cdb.genmovreg(r2,r1);                                       // MOV  r2,r1
+            cdb.genc2(0x0FAC,grex | modregrm(3,r2,r1),64-pow2);         // SHRD r1,r2,64-pow2
+            cdb.genc2(0xC1,grex | modregrmx(3,5,r2),64-pow2);           // SHR  r2,64-pow2
+            cdb.gen2(0x03,grex | modregxrmx(3,rlo,r1));                 // ADD  rlo,r1
+            cdb.gen2(0x13,grex | modregxrmx(3,rhi,r2));                 // ADC  rhi,r2
+            cdb.genc2(0x81,grex | modregrmx(3,4,rhi),(1<<(pow2-32))-1); // AND  rhi,(1<<(pow2-32))-1
+            cdb.gen2(0x2B,grex | modregxrmx(3,rlo,r1));                 // SUB  rlo,r1
+            cdb.gen2(0x1B,grex | modregxrmx(3,rhi,r2));                 // SBB  rhi,r2
+        }
+        else
+        {
+            // This may be better done by cgelem.d
+            assert(pow2 == 63);
+
+            cdb.genc1(LEA,grex | modregxrmx(2,r1,rhi), FLconst, 0x8000_0000); // LEA r1,0x8000_0000[rhi]
+            cdb.gen2(0x0B,grex | modregxrmx(3,r1,rlo));               // OR   r1,rlo
+            cdb.gen2(0x0F94,modregrmx(3,0,r1));                       // SETZ r1
+            cdb.genc2(0xC1,grex | modregrmx(3,4,r1),REGSIZE * 8 - 1); // SHL  r1,31
+            cdb.gen2(0x2B,grex | modregxrmx(3,rhi,r1));               // SUB  rhi,r1
+        }
+
+
+        cs.Iop = 0x89;
+        code_newreg(&cs,rlo);
+        cdb.gen(&cs);                   // MOV EA,rlo
+        code_newreg(&cs,rhi);
+        getlvalue_msw(&cs);
+        cdb.gen(&cs);                   // MOV EA+2,rhi
+        if (e1.Ecount)                 // if we gen a CSE
+            cssave(e1,retregs,!OTleaf(e1.Eoper));
+        freenode(e1);
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
+
     regm_t retregs = mCX | mBX;
     codelem(cdb,e2,&retregs,false);
     getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
