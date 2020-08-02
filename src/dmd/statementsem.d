@@ -2450,9 +2450,9 @@ else
                     ps.error("`pragma(inline)` is not inside a function");
                     return setError();
                 }
-                if (!global.params.cov) // inline except when doing coverage
+                if (global.params.cov)
                 {
-                    fd.inlining = inlining;
+                    fd.inlining = PINLINE.never;
                 }
             }
         }
