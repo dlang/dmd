@@ -31,6 +31,8 @@ extern (C++) final class Identifier : RootObject
     private const int value;
     private const char[] name;
 
+nothrow:
+
     /**
        Construct an identifier from a D slice
 
@@ -43,28 +45,28 @@ extern (C++) final class Identifier : RootObject
          length = the length of `name`, excluding the terminating `'\0'`
          value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
      */
-    extern (D) this(const(char)* name, size_t length, int value) nothrow
+    extern (D) this(const(char)* name, size_t length, int value)
     {
         //printf("Identifier('%s', %d)\n", name, value);
         this.name = name[0 .. length];
         this.value = value;
     }
 
-    extern (D) this(const(char)[] name, int value) nothrow
+    extern (D) this(const(char)[] name, int value)
     {
         //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
         this.name = name;
         this.value = value;
     }
 
-    extern (D) this(const(char)* name) nothrow
+    extern (D) this(const(char)* name)
     {
         //printf("Identifier('%s', %d)\n", name, value);
         this(name.toDString(), TOK.identifier);
     }
 
     /// Sentinel for an anonymous identifier.
-    static Identifier anonymous() nothrow
+    static Identifier anonymous()
     {
         __gshared Identifier anonymous;
 
@@ -74,12 +76,11 @@ extern (C++) final class Identifier : RootObject
         return anonymous = new Identifier("__anonymous", TOK.identifier);
     }
 
-    static Identifier create(const(char)* name) nothrow
+    static Identifier create(const(char)* name)
     {
         return new Identifier(name);
     }
 
-nothrow:
     override const(char)* toChars() const pure
     {
         return name.ptr;
