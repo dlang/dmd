@@ -1607,18 +1607,13 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 MUL       EDX
                 ADD       EDX,reg
              */
+            freenode(e2);
             retregs = mDX|mAX;
-            getlvalue(cdb,&cs,e1,retregs);
-            getregs(cdb,retregs);
-            cs.Iop = LOD;
-            cdb.gen(&cs);                   // MOV AX,EA
-            getlvalue_msw(&cs);
-            cs.Irm |= modregrm(0,DX,0);
-            cdb.gen(&cs);                   // MOV DX,EA+2
+            reg_t rhi, rlo;
+            opAssLoadPair(cdb, cs, e, rhi, rlo, retregs, 0);
+            const regm_t keepmsk = idxregm(&cs);
 
-
-            reg_t reg = allocScratchReg(cdb, allregs & ~retregs);
-            getregs(cdb,retregs);
+            reg_t reg = allocScratchReg(cdb, allregs & ~(retregs | keepmsk));
 
             targ_size_t e2factor = cast(targ_size_t)el_tolong(e2);
             const lsw = cast(targ_int)(e2factor & ((1L << (REGSIZE * 8)) - 1));
@@ -1637,8 +1632,6 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             getregs(cdb,mDX);
             cdb.gen2(0xF7,modregrm(3,4,DX));       // MUL EDX
             cdb.gen2(0x03,modregrm(3,DX,reg));     // ADD EDX,reg
-
-            freenode(e2);
         }
         else
         {
@@ -1652,6 +1645,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             getlvalue_msw(&cs);
             cs.Irm |= modregrm(0,DX,0);
             cdb.gen(&cs);                   // MOV DX,EA+2
+            getlvalue_lsw(&cs);
             if (config.target_cpu >= TARGET_PentiumPro)
             {
                 regm_t rlo = findreglsw(rretregs);
@@ -1674,7 +1668,6 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 callclib(cdb,e,CLIB.lmul,&retregs,idxregm(&cs));
             }
         }
-        getlvalue_lsw(&cs);
 
         opAssStorePair(cdb, cs, e, findregmsw(retregs), findreglsw(retregs), pretregs);
         return;
@@ -4800,6 +4793,37 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     cs.Irm |= modregrm(0,reg,0);
     cs.Iflags |= CFvolatile;            // do not schedule
     cdb.gen(&cs);
+}
+
+
+/*********************
+ * Load register pair from EA of assignment operation.
+ * Params:
+ *      cdb = store generated code here
+ *      cs = instruction with EA already set in it
+ *      e = assignment expression that will be evaluated
+ *      rhi = set to most significant register of the pair
+ *      rlo = set toleast significant register of the pair
+ *      retregs = register candidates for rhi, rlo
+ *      keepmsk = registers to not modify
+ */
+void opAssLoadPair(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t rhi, out reg_t rlo, regm_t retregs, regm_t keepmsk)
+{
+    getlvalue(cdb,&cs,e.EV.E1,retregs | keepmsk);
+    const tym_t tyml = tybasic(e.EV.E1.Ety);              // type of lvalue
+    reg_t reg;
+    allocreg(cdb,&retregs,&reg,tyml);
+
+    rhi = findregmsw(retregs);
+    rlo = findreglsw(retregs);
+
+    cs.Iop = LOD;
+    code_newreg(&cs,rlo);
+    cdb.gen(&cs);                   // MOV rlo,EA
+    getlvalue_msw(&cs);
+    code_newreg(&cs,rhi);
+    cdb.gen(&cs);                   // MOV rhi,EA+2
+    getlvalue_lsw(&cs);
 }
 
 
