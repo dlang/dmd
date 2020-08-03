@@ -1590,13 +1590,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         code_newreg(&cs,opr);
         cdb.gen(&cs);
 
-        cs.Iop = STO ^ isbyte;
-        code_newreg(&cs,resreg);
-        cdb.gen(&cs);                           // MOV EA,resreg
-        if (e1.Ecount)                         // if we gen a CSE
-                cssave(e1,mask(resreg),!OTleaf(e1.Eoper));
-        freenode(e1);
-        fixresult(cdb,e,mask(resreg),pretregs);
+        opAssStoreReg(cdb, cs, e, resreg, pretregs);
         return;
     }
     else if (sz == 2 * REGSIZE)
@@ -1852,13 +1846,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     assert(0);
             }
 
-            cs.Iop = STO;
-            code_newreg(&cs,resregx);
-            cdb.gen(&cs);                           // MOV EA,resreg
-            if (e1.Ecount)                          // if we gen a CSE
-                cssave(e1,mask(resregx),!OTleaf(e1.Eoper));
-            freenode(e1);
-            fixresult(cdb,e,mask(resregx),pretregs);
+            opAssStoreReg(cdb, cs, e, resregx, pretregs);
             return;
         }
 
@@ -1988,13 +1976,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     assert(0);
             }
 
-            cs.Iop = STO;
-            code_newreg(&cs,resregx);
-            cdb.gen(&cs);                           // MOV EA,resreg
-            if (e1.Ecount)                          // if we gen a CSE
-                cssave(e1,mask(resregx),!OTleaf(e1.Eoper));
-            freenode(e1);
-            fixresult(cdb,e,mask(resregx),pretregs);
+            opAssStoreReg(cdb, cs, e, resregx, pretregs);
             return;
         }
 
@@ -2036,13 +2018,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
                 cdb.gen2(0xD1,grex | modregrmx(3,7,reg));    // SAR reg,1
 
-                cs.Iop = STO;
-                code_newreg(&cs,reg);
-                cdb.gen(&cs);                           // MOV EA,resreg
-                if (e1.Ecount)                          // if we gen a CSE
-                    cssave(e1,mask(reg),!OTleaf(e1.Eoper));
-                freenode(e1);
-                fixresult(cdb,e,mask(reg),pretregs);
+                opAssStoreReg(cdb, cs, e, reg, pretregs);
                 return;
             }
 
@@ -2117,13 +2093,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             code_orrex(cdb.last(),rex);
             resreg = (op == OPmodass) ? DX : AX;        // result register
         }
-        cs.Iop = STO ^ isbyte;
-        code_newreg(&cs,resreg);
-        cdb.gen(&cs);                           // MOV EA,resreg
-        if (e1.Ecount)                          // if we gen a CSE
-            cssave(e1,mask(resreg),!OTleaf(e1.Eoper));
-        freenode(e1);
-        fixresult(cdb,e,mask(resreg),pretregs);
+        opAssStoreReg(cdb, cs, e, resreg, pretregs);
         return;
     }
 
@@ -4830,6 +4800,32 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     cs.Irm |= modregrm(0,reg,0);
     cs.Iflags |= CFvolatile;            // do not schedule
     cdb.gen(&cs);
+}
+
+
+/*********************************************************
+ * Store register result of assignment operation EA.
+ * Params:
+ *      cdb = store generated code here
+ *      cs = instruction with EA already set in it
+ *      e = assignment expression that was evaluated
+ *      reg = register of result
+ *      pretregs = registers to store result in
+ */
+private
+void opAssStoreReg(ref CodeBuilder cdb, ref code cs, elem* e, reg_t reg, regm_t* pretregs)
+{
+    elem* e1 = e.EV.E1;
+    const tym_t tyml = tybasic(e1.Ety);     // type of lvalue
+    const uint sz = _tysize[tyml];
+    const ubyte isbyte = (sz == 1);         // 1 for byte operation
+    cs.Iop = STO ^ isbyte;
+    code_newreg(&cs,reg);
+    cdb.gen(&cs);                           // MOV EA,resreg
+    if (e1.Ecount)                          // if we gen a CSE
+        cssave(e1,mask(reg),!OTleaf(e1.Eoper));
+    freenode(e1);
+    fixresult(cdb,e,mask(reg),pretregs);
 }
 
 /*********************************************************
