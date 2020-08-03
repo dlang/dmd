@@ -2,6 +2,8 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Mostly code generation for assignment operators.
+ *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -1460,6 +1462,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {
                     getlvalue(cdb,&cs,e1,0);           // get EA
                     modEA(cdb,&cs);
+                    freenode(e2);
                     regm_t idxregs = idxregm(&cs);
                     regm_t regm = *pretregs & ~(idxregs | mBP | mR13);  // don't use EBP
                     if (!regm)
@@ -1486,11 +1489,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         genregs(cdb,0x03,reg,reg); // ADD reg,reg
                         code_orrex(cdb.last(),rex);
                     }
-                    cs.Iop = STO;
-                    code_newreg(&cs,reg);
-                    cdb.gen(&cs);                       // MOV EA,reg
-                    freenode(e2);
-                    fixresult(cdb,e,resreg,pretregs);
+                    opAssStoreReg(cdb,cs,e,reg,pretregs);
                     return;
                 }
 
@@ -1504,6 +1503,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {
                     getlvalue(cdb,&cs,e1,0);           // get EA
                     modEA(cdb,&cs);
+                    freenode(e2);
                     regm_t idxregs = idxregm(&cs);
                     regm_t regm = *pretregs & ~(idxregs | mBP | mR13);  // don't use EBP
                     if (!regm)
@@ -1531,11 +1531,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         genregs(cdb,0x03,reg,reg);                        // ADD reg,reg
                         code_orrex(cdb.last(),rex);
                     }
-                    cs.Iop = STO;
-                    code_newreg(&cs,reg);
-                    cdb.gen(&cs);                                        // MOV EA,reg
-                    freenode(e2);
-                    fixresult(cdb,e,resreg,pretregs);
+                    opAssStoreReg(cdb,cs,e,reg,pretregs);
                     return;
                 }
 
@@ -2498,6 +2494,11 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.gen(&cs);
             }
         }
+        if (e1.Ecount && !(retregs & regcon.mvar))   // if lvalue is a CSE
+            cssave(e1,retregs,!OTleaf(e1.Eoper));
+        freenode(e1);
+        *pretregs = retregs;
+        return;
     }
     else                                // else must evaluate in register
     {
@@ -2545,22 +2546,11 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 code_orflag(cdb.last(),CFpsw);
             }
 
-            cs.Iop = STO ^ isbyte;
-            if (isbyte && I64 && (reg >= 4))
-                cs.Irex |= REX;
-            cdb.gen(&cs);                                // MOV EA,reg
-
-            // If result is not in correct register
-            fixresult(cdb,e,retregs,pretregs);
-            retregs = *pretregs;
+            opAssStoreReg(cdb,cs,e,reg,pretregs);
+            return;
         }
-        else
-            assert(0);
+        assert(0);
     }
-    if (e1.Ecount && !(retregs & regcon.mvar))   // if lvalue is a CSE
-        cssave(e1,retregs,!OTleaf(e1.Eoper));
-    freenode(e1);
-    *pretregs = retregs;
 }
 
 
