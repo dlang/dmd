@@ -178,10 +178,11 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
         locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
     }
 
-    return image.isValid
-        ? image.processDebugLineSectionData(
-            (line) => locations[].processCallstack(line, image.baseAddress, dg))
-        : locations[].processCallstack(null, image.baseAddress, dg);
+    if (!image.isValid())
+        return locations[].processCallstack(null, image.baseAddress, dg);
+
+    return image.processDebugLineSectionData(
+        (line) => locations[].processCallstack(line, image.baseAddress, dg));
 }
 
 struct TraceInfoBuffer
