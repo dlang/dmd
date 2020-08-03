@@ -759,7 +759,8 @@ public int runLINK()
             perror("unable to create pipe to linker");
             return -1;
         }
-        childpid = fork();
+        // vfork instead of fork to avoid https://issues.dlang.org/show_bug.cgi?id=21089
+        childpid = vfork();
         if (childpid == 0)
         {
             // pipe linker stderr to fds[0]
@@ -767,7 +768,7 @@ public int runLINK()
             close(fds[0]);
             execvp(argv[0], argv.tdata());
             perror(argv[0]); // failed to execute
-            return -1;
+            _exit(-1);
         }
         else if (childpid == -1)
         {
