@@ -42,6 +42,11 @@ nothrow:
          value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
      */
     extern (D) this(const(char)* name, size_t length, int value)
+    in
+    {
+        assert(name[length] == '\0');
+    }
+    do
     {
         //printf("Identifier('%s', %d)\n", name, value);
         this(name[0 .. length], value);
