@@ -48,8 +48,7 @@ nothrow:
     extern (D) this(const(char)* name, size_t length, int value)
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this.name = name[0 .. length];
-        this.value = value;
+        this(name[0 .. length], value);
     }
 
     extern (D) this(const(char)[] name, int value)
