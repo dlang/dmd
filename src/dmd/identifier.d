@@ -33,6 +33,13 @@ extern (C++) final class Identifier : RootObject
 
 nothrow:
 
+    /// Construct an identifier from the given name.
+    extern (D) this(const(char)* name)
+    {
+        //printf("Identifier('%s', %d)\n", name, value);
+        this(name.toDString(), TOK.identifier);
+    }
+
     /**
        Construct an identifier from the given name.
 
@@ -58,13 +65,6 @@ nothrow:
         //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
         this.name = name;
         this.value = value;
-    }
-
-    /// ditto
-    extern (D) this(const(char)* name)
-    {
-        //printf("Identifier('%s', %d)\n", name, value);
-        this(name.toDString(), TOK.identifier);
     }
 
     /// Sentinel for an anonymous identifier.
