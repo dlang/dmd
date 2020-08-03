@@ -28,11 +28,9 @@ import dmd.utf;
  */
 extern (C++) final class Identifier : RootObject
 {
-private:
-    const int value;
-    const char[] name;
+    private const int value;
+    private const char[] name;
 
-public:
     /**
        Construct an identifier from a D slice
 
