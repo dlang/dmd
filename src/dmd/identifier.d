@@ -34,14 +34,10 @@ extern (C++) final class Identifier : RootObject
 nothrow:
 
     /**
-       Construct an identifier from a D slice
-
-       Note: Since `name` needs to be `\0` terminated for `toChars`,
-       no slice overload is provided yet.
+       Construct an identifier from the given name.
 
        Params:
-         name = the identifier name
-                There must be `'\0'` at `name[length]`.
+         name = the identifier name. There must be `'\0'` at `name[length]`.
          length = the length of `name`, excluding the terminating `'\0'`
          value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
      */
@@ -51,6 +47,7 @@ nothrow:
         this(name[0 .. length], value);
     }
 
+    /// ditto
     extern (D) this(const(char)[] name, int value)
     {
         //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
@@ -58,6 +55,7 @@ nothrow:
         this.value = value;
     }
 
+    /// ditto
     extern (D) this(const(char)* name)
     {
         //printf("Identifier('%s', %d)\n", name, value);
