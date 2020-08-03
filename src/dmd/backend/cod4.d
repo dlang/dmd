@@ -2104,24 +2104,12 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         I32 // not set up for I16 or I64 cent
        )
     {
-        getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
-        regm_t retregs = mDX|mAX | mCX|mBX;     // LSW must be byte reg because of later SETZ
-        regm_t keepmsk = idxregm(&cs);
-        reg_t reg;
-        allocreg(cdb,&retregs,&reg,tyml);
-
-        const rhi = findregmsw(retregs);
-        const rlo = findreglsw(retregs);
         freenode(e2);
-        getregs(cdb,retregs);
-
-        cs.Iop = LOD;
-        code_newreg(&cs,rlo);
-        cdb.gen(&cs);                   // MOV rlo,EA
-        getlvalue_msw(&cs);
-        code_newreg(&cs,rhi);
-        cdb.gen(&cs);                   // MOV rhi,EA+2
-        getlvalue_lsw(&cs);
+        regm_t retregs = mDX|mAX | mCX|mBX;     // LSW must be byte reg because of later SETZ
+        reg_t rhi, rlo;
+        opAssLoadPair(cdb, cs, e, rhi, rlo, retregs, 0);
+        const regm_t keepmsk = idxregm(&cs);
+        retregs = mask(rhi) | mask(rlo);
 
         if (pow2 < 32)
         {
@@ -2181,6 +2169,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             // This may be better done by cgelem.d
             assert(pow2 == 63);
+            assert(mask(rlo) & BYTEREGS);                          // for SETZ
             cdb.genc2(0x81,grex | modregrmx(3,4,rhi),0x8000_0000); // ADD rhi,0x8000_000
             cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
             cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
@@ -2200,24 +2189,11 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         I32 // not set up for I64 cent yet
        )
     {
-        getlvalue(cdb,&cs,e1,mDX|mAX);
-        regm_t retregs = mDX|mAX;
-        regm_t keepmsk = idxregm(&cs);
-        reg_t reg;
-        allocreg(cdb,&retregs,&reg,tyml);
-
-        const rhi = findregmsw(retregs);
-        const rlo = findreglsw(retregs);
         freenode(e2);
-        getregs(cdb,retregs);
-
-        cs.Iop = LOD;
-        code_newreg(&cs,rlo);
-        cdb.gen(&cs);                   // MOV rlo,EA
-        getlvalue_msw(&cs);
-        code_newreg(&cs,rhi);
-        cdb.gen(&cs);                   // MOV rhi,EA+2
-        getlvalue_lsw(&cs);
+        regm_t retregs = mDX|mAX;
+        reg_t rhi, rlo;
+        opAssLoadPair(cdb, cs, e, rhi, rlo, retregs, 0);
+        const regm_t keepmsk = idxregm(&cs);
 
         regm_t scratchm = allregs & ~(retregs | keepmsk);
         if (pow2 == 63)
