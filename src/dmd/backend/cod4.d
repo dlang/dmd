@@ -2283,20 +2283,14 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    regm_t retregs = mCX | mBX;
-    codelem(cdb,e2,&retregs,false);
-    getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
-    getregs(cdb,mDX | mAX);
-    cs.Iop = LOD;
-    cdb.gen(&cs);                   // MOV AX,EA
-    getlvalue_msw(&cs);
-    cs.Irm |= modregrm(0,DX,0);
-    cdb.gen(&cs);                   // MOV DX,EA+2
-    getlvalue_lsw(&cs);
-    retregs = mDX | mAX;
-    if (op == OPmodass)
-        retregs = mBX | mCX;
+    regm_t rretregs = mCX|mBX;
+    codelem(cdb,e2,&rretregs,false);    // load e2 into CX|BX
 
+    reg_t rlo;
+    reg_t rhi;
+    opAssLoadPair(cdb, cs, e, rhi, rlo, mDX|mAX, rretregs);
+
+    regm_t retregs = (op == OPmodass) ? mCX|mBX : mDX|mAX;
     uint lib = uns ? CLIB.uldiv : CLIB.ldiv;
     if (op == OPmodass)
         ++lib;
@@ -4790,6 +4784,37 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     cs.Irm |= modregrm(0,reg,0);
     cs.Iflags |= CFvolatile;            // do not schedule
     cdb.gen(&cs);
+}
+
+
+/*********************
+ * Load register pair from EA of assignment operation.
+ * Params:
+ *      cdb = store generated code here
+ *      cs = instruction with EA already set in it
+ *      e = assignment expression that will be evaluated
+ *      rhi = set to most significant register of the pair
+ *      rlo = set toleast significant register of the pair
+ *      retregs = register candidates for rhi, rlo
+ *      keepmsk = registers to not modify
+ */
+void opAssLoadPair(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t rhi, out reg_t rlo, regm_t retregs, regm_t keepmsk)
+{
+    getlvalue(cdb,&cs,e.EV.E1,retregs | keepmsk);
+    const tym_t tyml = tybasic(e.EV.E1.Ety);              // type of lvalue
+    reg_t reg;
+    allocreg(cdb,&retregs,&reg,tyml);
+
+    rhi = findregmsw(retregs);
+    rlo = findreglsw(retregs);
+
+    cs.Iop = LOD;
+    code_newreg(&cs,rlo);
+    cdb.gen(&cs);                   // MOV rlo,EA
+    getlvalue_msw(&cs);
+    code_newreg(&cs,rhi);
+    cdb.gen(&cs);                   // MOV rhi,EA+2
+    getlvalue_lsw(&cs);
 }
 
 
