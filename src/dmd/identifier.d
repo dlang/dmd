@@ -28,45 +28,47 @@ import dmd.utf;
  */
 extern (C++) final class Identifier : RootObject
 {
-private:
-    const int value;
-    const char[] name;
+    private const int value;
+    private const char[] name;
 
-public:
+nothrow:
+
+    /// Construct an identifier from the given name.
+    extern (D) this(const(char)* name)
+    {
+        //printf("Identifier('%s', %d)\n", name, value);
+        this(name.toDString(), TOK.identifier);
+    }
+
     /**
-       Construct an identifier from a D slice
-
-       Note: Since `name` needs to be `\0` terminated for `toChars`,
-       no slice overload is provided yet.
+       Construct an identifier from the given name.
 
        Params:
-         name = the identifier name
-                There must be `'\0'` at `name[length]`.
+         name = the identifier name. There must be `'\0'` at `name[length]`.
          length = the length of `name`, excluding the terminating `'\0'`
          value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
      */
-    extern (D) this(const(char)* name, size_t length, int value) nothrow
+    extern (D) this(const(char)* name, size_t length, int value)
+    in
+    {
+        assert(name[length] == '\0');
+    }
+    do
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this.name = name[0 .. length];
-        this.value = value;
+        this(name[0 .. length], value);
     }
 
-    extern (D) this(const(char)[] name, int value) nothrow
+    /// ditto
+    extern (D) this(const(char)[] name, int value)
     {
         //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
         this.name = name;
         this.value = value;
     }
 
-    extern (D) this(const(char)* name) nothrow
-    {
-        //printf("Identifier('%s', %d)\n", name, value);
-        this(name.toDString(), TOK.identifier);
-    }
-
     /// Sentinel for an anonymous identifier.
-    static Identifier anonymous() nothrow
+    static Identifier anonymous()
     {
         __gshared Identifier anonymous;
 
@@ -76,12 +78,11 @@ public:
         return anonymous = new Identifier("__anonymous", TOK.identifier);
     }
 
-    static Identifier create(const(char)* name) nothrow
+    static Identifier create(const(char)* name)
     {
         return new Identifier(name);
     }
 
-nothrow:
     override const(char)* toChars() const pure
     {
         return name.ptr;
