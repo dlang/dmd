@@ -2276,7 +2276,7 @@ public:
 
         // not a CommaExp introduced for temporaries, go on
         // the old path
-        if (!ve || !ve.var.storage_class & STC.temp)
+        if (!ve || !(ve.var.storage_class & STC.temp))
         {
             visit(cast(BinExp)e);
             return;
