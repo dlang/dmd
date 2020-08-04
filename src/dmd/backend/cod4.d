@@ -1769,8 +1769,10 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
             freenode(e2);
+
+            getlvalue(cdb,&cs,e1,mAX | mDX);
             reg_t reg;
-            opAssLoadReg(cdb, cs, e, reg, allregs, mAX|mDX);    // MOV reg,EA
+            opAssLoadReg(cdb, cs, e, reg, allregs & ~( mAX | mDX | idxregm(&cs)));    // MOV reg,EA
             getregs(cdb, mAX|mDX);
 
             /* Algorithm 5.2
@@ -4759,15 +4761,11 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  *      e = assignment expression that will be evaluated
  *      reg = set to register loaded from EA
  *      retregs = register candidates for reg
- *      keepmsk = registers to not modify
  */
 private
-void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs, regm_t keepmsk)
+void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs)
 {
-    getlvalue(cdb,&cs,e.EV.E1,keepmsk);
-    const tym_t tyml = tybasic(e.EV.E1.Ety);              // type of lvalue
-    retregs &= ~(keepmsk | idxregm(&cs));
-    allocreg(cdb,&retregs,&reg,tyml);
+    allocreg(cdb,&retregs,&reg,TYoffset);
 
     cs.Iop = LOD;
     code_newreg(&cs,reg);
