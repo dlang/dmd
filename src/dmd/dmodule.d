@@ -142,6 +142,24 @@ void semantic3OnDependencies(Module m)
 }
 
 /**
+ * Remove generated .di files on error and exit
+ */
+void removeHdrFilesAndFail(ref Param params, ref Modules modules)
+{
+    if (params.doHdrGeneration)
+    {
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            File.remove(m.hdrfile.toChars());
+        }
+    }
+
+    fatal();
+}
+
+/**
  * Converts a chain of identifiers to the filename of the module
  *
  * Params:
@@ -705,8 +723,11 @@ extern (C++) final class Module : Package
                     fprintf(stderr, "import path[%llu] = %s\n", cast(ulong)i, p);
             }
             else
+            {
                 fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile.toChars());
-            // fatal();
+            }
+
+            removeHdrFilesAndFail(global.params, Module.amodules);
         }
         return false;
     }

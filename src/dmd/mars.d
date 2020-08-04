@@ -125,24 +125,6 @@ Where:
 }
 
 /**
- * Remove generated .di files on error and exit
- */
-private void removeHdrFilesAndFail(ref Param params, ref Modules modules)
-{
-    if (params.doHdrGeneration)
-    {
-        foreach (m; modules)
-        {
-            if (m.isHdrFile)
-                continue;
-            File.remove(m.hdrfile.toChars());
-        }
-    }
-
-    fatal();
-}
-
-/**
  * DMD's real entry point
  *
  * Parses command line arguments and config file, open and read all
