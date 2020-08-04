@@ -1136,7 +1136,7 @@ public:
             }
             assert(0);
         }
-        visitWithMask(p.type, 0);
+        visitWithMask(p.type, (p.storageClass & STC.in_) ? MODFlags.const_ : 0);
     }
 }
 

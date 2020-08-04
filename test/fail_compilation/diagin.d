@@ -28,7 +28,7 @@ void foo2(T)(in T v, string) {}
 void foo3(T)(ref in T v, string) {}
 
 // Ensure that `in` has a unique mangling
-static assert(foo.mangleof       == `_D6diagin3fooFIxAyaZv`);
-static assert(foo1.mangleof      == `_D6diagin4foo1FIKxAyaZv`);
-static assert(foo2!int.mangleof  == `_D6diagin__T4foo2TiZQiFNaNbNiNfIxiAyaZv`);
-static assert(foo3!char.mangleof == `_D6diagin__T4foo3TaZQiFNaNbNiNfIKxaAyaZv`);
+static assert(foo.mangleof       == `_D6diagin3fooFIAyaZv`);
+static assert(foo1.mangleof      == `_D6diagin4foo1FIKAyaZv`);
+static assert(foo2!int.mangleof  == `_D6diagin__T4foo2TiZQiFNaNbNiNfIiAyaZv`);
+static assert(foo3!char.mangleof == `_D6diagin__T4foo3TaZQiFNaNbNiNfIKaAyaZv`);
