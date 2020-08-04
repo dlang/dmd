@@ -9,6 +9,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cod4.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod4.d
  */
 
 module dmd.backend.cod4;
@@ -1863,24 +1865,20 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  */
                 assert(shpre == 0);
 
+                freenode(e2);
                 getlvalue(cdb,&cs,e1,mAX | mDX);
-                regm_t keepmsk = idxregm(&cs);
-                modEA(cdb, &cs);
+                regm_t idxregs = idxregm(&cs);
+                opAssLoadReg(cdb, cs, e, reg, allregs & ~(mAX|mDX | idxregs)); // MOV reg,EA
+                getregs(cdb, mAX|mDX);
 
-                reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
-                cs.Iop = LOD;
-                code_newreg(&cs, reg);
-                cdb.gen(&cs);                       // MOV reg,EA
-                getregs(cdb,mDX | mAX);
-
-                genmovreg(cdb,AX,reg);                   // MOV EAX,reg
+                genmovreg(cdb,AX,reg);                                // MOV EAX,reg
                 movregconst(cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0); // MOV EDX,m
                 getregs(cdb,mask(reg) | mDX | mAX);
                 cdb.gen2(0xF7,grex | modregrmx(3,4,DX));              // MUL EDX
                 genmovreg(cdb,AX,reg);                                // MOV EAX,reg
                 cdb.gen2(0x2B,grex | modregrm(3,AX,DX));              // SUB EAX,EDX
                 cdb.genc2(0xC1,grex | modregrm(3,5,AX),1);            // SHR EAX,1
-                regm_t regm3 = allregs & ~keepmsk;
+                regm_t regm3 = allregs & ~idxregs;
                 if (op == OPmodass)
                 {
                     regm3 &= ~mask(reg);
@@ -1901,19 +1899,16 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  *   SHR   EDX,shpost
                  */
 
+                freenode(e2);
                 getlvalue(cdb,&cs,e1,mAX | mDX);
-                modEA(cdb, &cs);
-                regm_t keepmsk = idxregm(&cs);
-                reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
-                cs.Iop = LOD;
-                code_newreg(&cs, reg);
-                cdb.gen(&cs);                       // MOV reg,EA
-                getregs(cdb,mDX | mAX);
+                regm_t idxregs = idxregm(&cs);
+                opAssLoadReg(cdb, cs, e, reg, allregs & ~(mAX|mDX | idxregs)); // MOV reg,EA
+                getregs(cdb, mAX|mDX);
 
                 if (reg != AX)
                 {
                     getregs(cdb,mAX);
-                    genmovreg(cdb,AX,reg);                 // MOV EAX,reg
+                    genmovreg(cdb,AX,reg);                              // MOV EAX,reg
                 }
                 if (shpre)
                 {
@@ -4765,6 +4760,7 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 private
 void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs)
 {
+    modEA(cdb, &cs);
     allocreg(cdb,&retregs,&reg,TYoffset);
 
     cs.Iop = LOD;
