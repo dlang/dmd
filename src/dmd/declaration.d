@@ -1127,17 +1127,14 @@ extern (C++) class VarDeclaration : Declaration
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
 
-    private bool _isAnonymous;
-
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
+    in
     {
-        if (ident is Identifier.anonymous)
-        {
-            ident = Identifier.generateId("__anonvar");
-            _isAnonymous = true;
-        }
-        //printf("VarDeclaration('%s')\n", ident.toChars());
         assert(ident);
+    }
+    do
+    {
+        //printf("VarDeclaration('%s')\n", ident.toChars());
         super(loc, ident);
         debug
         {
@@ -1284,11 +1281,6 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
         return isField();
-    }
-
-    override final bool isAnonymous()
-    {
-        return _isAnonymous;
     }
 
     override final bool isExport() const

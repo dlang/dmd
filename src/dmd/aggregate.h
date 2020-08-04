@@ -273,8 +273,6 @@ public:
     bool stack;                         // true if this is a scope class
     int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
     bool inuse;                         // to prevent recursive attempts
-    bool isActuallyAnonymous;           // true if this class has an identifier, but was originally declared anonymous
-                                        // used in support of https://issues.dlang.org/show_bug.cgi?id=17371
 
     Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
     Baseok baseok;                      // set the progress of base classes resolving
@@ -289,7 +287,6 @@ public:
     #define OFFSET_RUNTIME 0x76543210
     #define OFFSET_FWDREF 0x76543211
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
-    bool isAnonymous();
 
     bool isBaseInfoComplete();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);

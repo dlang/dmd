@@ -307,9 +307,9 @@ extern (C++) class Dsymbol : ASTNode
         return false;
     }
 
-    bool isAnonymous()
+    final bool isAnonymous() const
     {
-        return ident is null;
+        return ident is null || ident.isAnonymous;
     }
 
     extern(D) private const(char)[] prettyFormatHelper()

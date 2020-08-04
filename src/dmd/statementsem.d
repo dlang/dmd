@@ -4290,7 +4290,7 @@ void catchSemantic(Catch c, Scope* sc)
         // DIP1008 requires destruction of the Throwable, even if the user didn't specify an identifier
         auto ident = c.ident;
         if (!ident && global.params.ehnogc)
-            ident = Identifier.anonymous();
+            ident = Identifier.generateAnonymousId("var");
 
         if (ident)
         {

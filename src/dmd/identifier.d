@@ -29,6 +29,10 @@ import dmd.utf;
 extern (C++) final class Identifier : RootObject
 {
     private const int value;
+
+    // Indicates if this is an identifier used for an anonymous symbol.
+    private const bool isAnonymous_ = false;
+
     private const char[] name;
 
 nothrow:
@@ -63,19 +67,15 @@ nothrow:
     extern (D) this(const(char)[] name, int value)
     {
         //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
-        this.name = name;
-        this.value = value;
+        this(name, value, false);
     }
 
-    /// Sentinel for an anonymous identifier.
-    static Identifier anonymous()
+    extern (D) private this(const(char)[] name, int value, bool isAnonymous)
     {
-        __gshared Identifier anonymous;
-
-        if (anonymous)
-            return anonymous;
-
-        return anonymous = new Identifier("__anonymous", TOK.identifier);
+        //printf("Identifier('%.*s', %d, %d)\n", cast(int)name.length, name.ptr, value, isAnonymous);
+        this.name = name;
+        this.value = value;
+        isAnonymous_ = isAnonymous;
     }
 
     static Identifier create(const(char)* name)
@@ -96,6 +96,11 @@ nothrow:
     int getValue() const pure
     {
         return value;
+    }
+
+    bool isAnonymous() const pure @nogc @safe
+    {
+        return isAnonymous_;
     }
 
     const(char)* toHChars2() const
@@ -138,18 +143,63 @@ nothrow:
 
     private extern (D) __gshared StringTable!Identifier stringtable;
 
+    /**
+     * Generates a new identifier.
+     *
+     * Params:
+     *  prefix = this will be the prefix of the name of the identifier. For debugging
+     *      purpose.
+     */
     extern(D) static Identifier generateId(const(char)[] prefix)
     {
-        __gshared size_t i;
-        return generateId(prefix, ++i);
+        return generateId(prefix, newSuffix, false);
     }
 
-    extern(D) static Identifier generateId(const(char)[] prefix, size_t i)
+    /**
+     * Generates a new anonymous identifier.
+     *
+     * Params:
+     *  name = this will be part of the name of the identifier. For debugging
+     *      purpose.
+     */
+    extern(D) static Identifier generateAnonymousId(const(char)[] name)
+    {
+        return generateId("__anon" ~ name, newSuffix, true);
+    }
+
+    /**
+     * Generates a new identifier.
+     *
+     * Params:
+     *  prefix = this will be the prefix of the name of the identifier. For debugging
+     *      purpose.
+     *  suffix = this will be the suffix of the name of the identifier. This is
+     *      what makes the identifier unique
+     */
+    extern(D) static Identifier generateId(const(char)[] prefix, size_t suffix)
+    {
+        return generateId(prefix, suffix, false);
+    }
+
+    /// ditto
+    static Identifier generateId(const(char)* prefix, size_t length, size_t suffix)
+    {
+        return generateId(prefix[0 .. length], suffix);
+    }
+
+    // Generates a new, unique, suffix for an identifier.
+    extern (D) private static size_t newSuffix()
+    {
+        __gshared size_t i;
+        return ++i;
+    }
+
+    extern(D) private static Identifier generateId(const(char)[] prefix, size_t suffix, bool isAnonymous)
     {
         OutBuffer buf;
         buf.write(prefix);
-        buf.print(i);
-        return idPool(buf[]);
+        buf.print(suffix);
+        return idPool(buf[], isAnonymous);
     }
 
     /***************************************
@@ -226,11 +276,16 @@ nothrow:
 
     extern (D) static Identifier idPool(const(char)[] s)
     {
+        return idPool(s, false);
+    }
+
+    extern (D) private static Identifier idPool(const(char)[] s, bool isAnonymous)
+    {
         auto sv = stringtable.update(s);
         auto id = sv.value;
         if (!id)
         {
-            id = new Identifier(sv.toString(), TOK.identifier);
+            id = new Identifier(sv.toString(), TOK.identifier, isAnonymous);
             sv.value = id;
         }
         return id;

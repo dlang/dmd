@@ -634,7 +634,8 @@ extern(C++) private final class Supported : Objc
         if (!fd.selector)
             return null;
 
-        auto var = new VarDeclaration(fd.loc, Type.tvoidptr, Identifier.anonymous, null);
+        auto ident = Identifier.generateAnonymousId("_cmd");
+        auto var = new VarDeclaration(fd.loc, Type.tvoidptr, ident, null);
         var.storage_class |= STC.parameter;
         var.dsymbolSemantic(sc);
         if (!sc.insert(var))
@@ -646,9 +647,10 @@ extern(C++) private final class Supported : Objc
 
     override void setMetaclass(InterfaceDeclaration interfaceDeclaration, Scope* sc) const
     {
-        static auto newMetaclass(Loc loc, BaseClasses* metaBases)
+        auto newMetaclass(Loc loc, BaseClasses* metaBases)
         {
-            return new InterfaceDeclaration(loc, null, metaBases);
+            auto ident = createMetaclassIdentifier(interfaceDeclaration);
+            return new InterfaceDeclaration(loc, ident, metaBases);
         }
 
         .setMetaclass!newMetaclass(interfaceDeclaration, sc);
@@ -658,7 +660,8 @@ extern(C++) private final class Supported : Objc
     {
         auto newMetaclass(Loc loc, BaseClasses* metaBases)
         {
-            return new ClassDeclaration(loc, null, metaBases, new Dsymbols(), 0);
+            auto ident = createMetaclassIdentifier(classDeclaration);
+            return new ClassDeclaration(loc, ident, metaBases, new Dsymbols(), 0);
         }
 
         .setMetaclass!newMetaclass(classDeclaration, sc);
@@ -797,4 +800,10 @@ if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
 
         objc.metaclass.dsymbolSemantic(sc);
     }
+}
+
+private Identifier createMetaclassIdentifier(ClassDeclaration classDeclaration)
+{
+    const name = "class_" ~ classDeclaration.ident.toString ~ "_Meta";
+    return Identifier.generateAnonymousId(name);
 }

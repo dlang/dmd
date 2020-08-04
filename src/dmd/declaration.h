@@ -237,9 +237,6 @@ public:
 
     VarDeclarations *maybes;    // STCmaybescope variables that are assigned to this STCmaybescope variable
 
-private:
-    bool _isAnonymous;
-
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -247,7 +244,6 @@ public:
     const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();
-    bool isAnonymous();
     bool isExport() const;
     bool isImportedSymbol() const;
     bool isDataseg();
