@@ -79,7 +79,7 @@ private immutable char[TMAX] mangleChar =
     Tfunction    : 'F', // D function
     Tsarray      : 'G',
     Taarray      : 'H',
-    Tident       : 'I',
+    //              I   // in
     //              J   // out
     //              K   // ref
     //              L   // lazy
@@ -99,6 +99,7 @@ private immutable char[TMAX] mangleChar =
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
+    Tident       : '@',
     Tinstance    : '@',
     Terror       : '@',
     Ttypeof      : '@',
@@ -1112,7 +1113,12 @@ public:
         switch (p.storageClass & (STC.IOR | STC.lazy_))
         {
         case 0:
+            break;
         case STC.in_:
+            buf.writeByte('I');
+            break;
+        case STC.in_ | STC.ref_:
+            buf.writestring("IK");
             break;
         case STC.out_:
             buf.writeByte('J');

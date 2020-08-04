@@ -3057,16 +3057,17 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     if (p.storageClass & STC.return_)
         buf.writestring("return ");
 
-    if (p.storageClass & STC.out_)
-        buf.writestring("out ");
-    else if (p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-    else if (p.storageClass & STC.in_)
+    if (p.storageClass & STC.in_)
         buf.writestring("in ");
+    else if (p.storageClass & STC.out_)
+        buf.writestring("out ");
     else if (p.storageClass & STC.lazy_)
         buf.writestring("lazy ");
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
+
+    if (p.storageClass & STC.ref_)
+        buf.writestring("ref ");
 
     StorageClass stc = p.storageClass;
     if (p.type && p.type.mod & MODFlags.shared_)
@@ -3089,7 +3090,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     }
     else
     {
-        typeToBuffer(p.type, p.ident, buf, hgs);
+        typeToBuffer(p.type, p.ident, buf, hgs, (stc & STC.in_) ? MODFlags.const_ : 0);
     }
 
     if (p.defaultArg)
@@ -3220,14 +3221,15 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
 /**************************************************
  * An entry point to pretty-print type.
  */
-private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGenState* hgs)
+private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGenState* hgs,
+                          ubyte modMask = 0)
 {
     if (auto tf = t.isTypeFunction())
     {
         visitFuncIdentWithPrefix(tf, ident, null, buf, hgs);
         return;
     }
-    visitWithMask(t, 0, buf, hgs);
+    visitWithMask(t, modMask, buf, hgs);
     if (ident)
     {
         buf.writeByte(' ');
