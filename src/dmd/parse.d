@@ -3981,6 +3981,12 @@ final class Parser(AST) : Lexer
                     //printf("it's type[expression]\n");
                     inBrackets++;
                     AST.Expression e = parseAssignExp(); // [ expression ]
+                    if (!e)
+                    {
+                        inBrackets--;
+                        check(TOK.rightBracket);
+                        continue;
+                    }
                     if (token.value == TOK.slice)
                     {
                         nextToken();
