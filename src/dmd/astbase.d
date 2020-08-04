@@ -138,6 +138,7 @@ struct ASTBase
         live                = (1L << 53),   // function @live attribute
 
         safeGroup = STC.safe | STC.trusted | STC.system,
+        IOR  = STC.in_ | STC.ref_ | STC.out_,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
         FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                     safeGroup),
@@ -201,6 +202,7 @@ struct ASTBase
         Tvector,
         Tint128,
         Tuns128,
+        Ttraits,
         Tmixin,
         TMAX
     }
@@ -249,6 +251,7 @@ struct ASTBase
     alias Tvector = ENUMTY.Tvector;
     alias Tint128 = ENUMTY.Tint128;
     alias Tuns128 = ENUMTY.Tuns128;
+    alias Ttraits = ENUMTY.Ttraits;
     alias Tmixin = ENUMTY.Tmixin;
     alias TMAX = ENUMTY.TMAX;
 
@@ -3478,6 +3481,31 @@ struct ASTBase
         Dsymbol toDsymbol(Scope* sc)
         {
             return null;
+        }
+
+        final pure inout nothrow @nogc
+        {
+            inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
+            inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
+            inout(TypeSArray)     isTypeSArray()     { return ty == Tsarray    ? cast(typeof(return))this : null; }
+            inout(TypeDArray)     isTypeDArray()     { return ty == Tarray     ? cast(typeof(return))this : null; }
+            inout(TypeAArray)     isTypeAArray()     { return ty == Taarray    ? cast(typeof(return))this : null; }
+            inout(TypePointer)    isTypePointer()    { return ty == Tpointer   ? cast(typeof(return))this : null; }
+            inout(TypeReference)  isTypeReference()  { return ty == Treference ? cast(typeof(return))this : null; }
+            inout(TypeFunction)   isTypeFunction()   { return ty == Tfunction  ? cast(typeof(return))this : null; }
+            inout(TypeDelegate)   isTypeDelegate()   { return ty == Tdelegate  ? cast(typeof(return))this : null; }
+            inout(TypeIdentifier) isTypeIdentifier() { return ty == Tident     ? cast(typeof(return))this : null; }
+            inout(TypeInstance)   isTypeInstance()   { return ty == Tinstance  ? cast(typeof(return))this : null; }
+            inout(TypeTypeof)     isTypeTypeof()     { return ty == Ttypeof    ? cast(typeof(return))this : null; }
+            inout(TypeReturn)     isTypeReturn()     { return ty == Treturn    ? cast(typeof(return))this : null; }
+            inout(TypeStruct)     isTypeStruct()     { return ty == Tstruct    ? cast(typeof(return))this : null; }
+            inout(TypeEnum)       isTypeEnum()       { return ty == Tenum      ? cast(typeof(return))this : null; }
+            inout(TypeClass)      isTypeClass()      { return ty == Tclass     ? cast(typeof(return))this : null; }
+            inout(TypeTuple)      isTypeTuple()      { return ty == Ttuple     ? cast(typeof(return))this : null; }
+            inout(TypeSlice)      isTypeSlice()      { return ty == Tslice     ? cast(typeof(return))this : null; }
+            inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
+            inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
+            inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         }
 
         override void accept(Visitor v)
