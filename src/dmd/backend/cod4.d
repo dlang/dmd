@@ -1768,15 +1768,10 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             const int N = sz * 8;
             const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
-            getlvalue(cdb,&cs,e1,mAX | mDX);
-            regm_t keepmsk = idxregm(&cs);
-
-            reg_t reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
-
-            cs.Iop = LOD;
-            code_newreg(&cs, reg);
-            cdb.gen(&cs);                       // MOV R1,EA
-            getregs(cdb,mask(reg) | mDX | mAX);
+            freenode(e2);
+            reg_t reg;
+            opAssLoadReg(cdb, cs, e, reg, allregs, mAX|mDX);    // MOV reg,EA
+            getregs(cdb, mAX|mDX);
 
             /* Algorithm 5.2
              * if m>=2**(N-1)
@@ -1788,11 +1783,11 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
              */
             const bool mgt = mhighbit || m >= (1UL << (N - 1));
             movregconst(cdb, AX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EAX,m
-            cdb.gen2(0xF7,grex | modregrmx(3,5,reg));               // IMUL R1
+            cdb.gen2(0xF7,grex | modregrmx(3,5,reg));               // IMUL reg
             if (mgt)
-                cdb.gen2(0x03,grex | modregrmx(3,DX,reg));          // ADD EDX,R1
+                cdb.gen2(0x03,grex | modregrmx(3,DX,reg));          // ADD EDX,reg
             getregsNoSave(mAX);                                     // EAX no longer contains 'm'
-            genmovreg(cdb, AX, reg);                                // MOV EAX,R1
+            genmovreg(cdb, AX, reg);                                // MOV EAX,reg
             cdb.genc2(0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);     // SAR EAX,31
             if (shpost)
                 cdb.genc2(0xC1,grex | modregrm(3,7,DX),shpost);     // SAR EDX,shpost
@@ -4781,6 +4776,29 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 
 /*********************
+ * Load register from EA of assignment operation.
+ * Params:
+ *      cdb = store generated code here
+ *      cs = instruction with EA already set in it
+ *      e = assignment expression that will be evaluated
+ *      reg = set to register loaded from EA
+ *      retregs = register candidates for reg
+ *      keepmsk = registers to not modify
+ */
+private
+void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs, regm_t keepmsk)
+{
+    getlvalue(cdb,&cs,e.EV.E1,keepmsk);
+    const tym_t tyml = tybasic(e.EV.E1.Ety);              // type of lvalue
+    retregs &= ~(keepmsk | idxregm(&cs));
+    allocreg(cdb,&retregs,&reg,tyml);
+
+    cs.Iop = LOD;
+    code_newreg(&cs,reg);
+    cdb.gen(&cs);                   // MOV reg,EA
+}
+
+/*********************
  * Load register pair from EA of assignment operation.
  * Params:
  *      cdb = store generated code here
@@ -4791,6 +4809,7 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  *      retregs = register candidates for rhi, rlo
  *      keepmsk = registers to not modify
  */
+private
 void opAssLoadPair(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t rhi, out reg_t rlo, regm_t retregs, regm_t keepmsk)
 {
     getlvalue(cdb,&cs,e.EV.E1,retregs | keepmsk);
