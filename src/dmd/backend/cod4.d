@@ -1991,14 +1991,11 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  * not constrained to using AX and DX.
                  */
                 getlvalue(cdb,&cs,e1,0);
-                modEA(cdb, &cs);
-                regm_t keepmsk = idxregm(&cs);
-                reg_t reg = allocScratchReg(cdb, allregs & ~keepmsk);
-                cs.Iop = LOD;
-                code_newreg(&cs, reg);
-                cdb.gen(&cs);                       // MOV reg,EA
+                regm_t idxregs = idxregm(&cs);
+                reg_t reg;
+                opAssLoadReg(cdb,cs,e,reg,allregs & ~idxregs); // MOV reg,EA
 
-                reg_t r = allocScratchReg(cdb, allregs & ~(keepmsk | mask(reg)));
+                reg_t r = allocScratchReg(cdb, allregs & ~(idxregs | mask(reg)));
                 genmovreg(cdb,r,reg);                        // MOV r,reg
                 cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
                 cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
@@ -2010,10 +2007,10 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             // Signed divide or modulo by power of 2
             getlvalue(cdb,&cs,e1,mAX | mDX);
-            cs.Iop = LOD;
-            code_newreg(&cs, AX);
-            cdb.gen(&cs);                       // MOV AX,EA
-            getregs(cdb,mAX | mDX);             // trash these regs
+            reg_t reg;
+            opAssLoadReg(cdb,cs,e,reg,mAX);
+
+            getregs(cdb,mDX);                   // DX is scratch register
             cdb.gen1(0x99);                     // CWD
             code_orrex(cdb.last(), rex);
             if (pow2 == 1)
@@ -4765,6 +4762,7 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 private
 void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs)
 {
+    modEA(cdb, &cs);
     allocreg(cdb,&retregs,&reg,TYoffset);
 
     cs.Iop = LOD;
