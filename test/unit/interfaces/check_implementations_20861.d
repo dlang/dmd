@@ -1,3 +1,5 @@
+// See ../../README.md for information about DMD unit tests.
+
 /**
  * Test cases for issue [20861][1].
  *

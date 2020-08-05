@@ -1,3 +1,5 @@
+// See ../README.md for information about DMD unit tests.
+
 module deinitialization;
 
 @("global.deinitialize")
