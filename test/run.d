@@ -190,7 +190,10 @@ Options:
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
-            ret |= spawnProcess(target.args, env, Config.none, scriptDir).wait;
+            int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
+            if (status)
+                writefln(">>> TARGET FAILED: ", target.filename);
+            ret |= status;
         }
         if (ret)
             return 1;
