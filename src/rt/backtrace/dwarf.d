@@ -701,12 +701,12 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
         foreach (ref sf; lp.sourceFiles)
         {
             if (sf.dirIndex > lp.includeDirectories.length)
-                printf("\t- Out of bound directory! (%d): %.*s\n",
+                printf("\t- Out of bound directory! (%llu): %.*s\n",
                        sf.dirIndex, cast(int) sf.file.length, sf.file.ptr);
             else if (sf.dirIndex > 0)
             {
-                const dir = lp.includeDirectors[sf.dirIndex - 1];
-                printf("\t- (Dir:%d:%.*s/)%.*s\n", sf.dirIndex,
+                const dir = lp.includeDirectories[sf.dirIndex - 1];
+                printf("\t- (Dir:%llu:%.*s/)%.*s\n", sf.dirIndex,
                        cast(int) dir.length, dir.ptr,
                        cast(int) sf.file.length, sf.file.ptr);
             }
