@@ -25,41 +25,38 @@ Params:
 private void onArrayCastError()(string fromType, size_t fromSize, string toType, size_t toSize) @trusted
 {
     import core.internal.string : unsignedToTempString;
+    import core.memory : pureMalloc;
 
-    const(char)[][9] msgComponents =
-    [
-        "An array of size "
-        , unsignedToTempString(fromSize)
-        , " does not align on an array of size "
-        , unsignedToTempString(toSize)
-        , ", so `"
-        , fromType
-        , "` cannot be cast to `"
-        , toType
-        , "`"
-    ];
-
-    // convert discontiguous `msgComponents` to contiguous string on the stack
+    // convert discontiguous `msgComponents` to contiguous string on the C heap
     enum msgLength = 2048;
-    char[msgLength] msg;
+    // note: never freed!
+    char* msg = cast(char *)pureMalloc(msgLength);
 
     size_t index = 0;
-    foreach (m; msgComponents)
+    void add(const(char)[] m)
     {
-        foreach (c; m)
-        {
-            msg[index++] = c;
-            if (index >= (msgLength - 1))
-                break;
-        }
-
-        if (index >= (msgLength - 1))
-            break;
+        auto N = msgLength - 1 - index;
+        if (N > m.length)
+            N = m.length;
+        msg[index .. index + N] = m[0 .. N];
+        index += N;
     }
+
+    add("An array of size ");
+    auto s = unsignedToTempString(fromSize);
+    add(s[]);
+    add(" does not align on an array of size ");
+    s = unsignedToTempString(toSize);
+    add(s[]);
+    add(", so `");
+    add(fromType);
+    add("` cannot be cast to `");
+    add(toType);
+    add("`");
     msg[index] = '\0'; // null-termination
 
     // first argument must evaluate to `false` at compile-time to maintain memory safety in release builds
-    assert(false, msg);
+    assert(false, msg[0 .. index]);
 }
 
 /**
