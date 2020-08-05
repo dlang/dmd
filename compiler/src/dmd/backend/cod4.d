@@ -2075,23 +2075,24 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             regm_t retregs = ALLREGS & ~(mAX|mDX);     // DX gets sign extension
             codelem(cdb,e2,&retregs,false);            // load rvalue in retregs
             reg_t reg = findreg(retregs);
+
             getlvalue(cdb,&cs,e1,mAX | mDX | retregs); // get EA
-            getregs(cdb,mAX | mDX);         // destroy these regs
-            cs.Irm |= modregrm(0,AX,0);
-            cs.Iop = LOD;
-            cdb.gen(&cs);                   // MOV AX,EA
-            if (uns)                        // if uint
-                movregconst(cdb,DX,0,0);    // CLR DX
-            else                            // else signed
+            reg_t r;
+            opAssLoadReg(cdb,cs,e,r,mAX);              // MOV AX,EA
+            assert(r == AX);
+
+            getregs(cdb,mDX);
+            if (uns)                                   // if uint
+                movregconst(cdb,DX,0,0);               // MOV DX,0
+            else                                       // else signed
             {
-                cdb.gen1(0x99);             // CWD
+                cdb.gen1(0x99);                        // CWD
                 code_orrex(cdb.last(),rex);
             }
-            getregs(cdb,mDX | mAX); // DX and AX will be destroyed
-            const uint opr = uns ? 6 : 7;     // DIV/IDIV
-            genregs(cdb,0xF7,opr,reg);   // OPR reg
+            const uint opr = uns ? 6 : 7;              // DIV/IDIV
+            genregs(cdb,0xF7,opr,reg);                 // [I]DIV reg
             code_orrex(cdb.last(),rex);
-            resreg = (op == OPmodass) ? DX : AX;        // result register
+            resreg = (op == OPmodass) ? DX : AX;       // result register
         }
         opAssStoreReg(cdb, cs, e, resreg, pretregs);
         return;
