@@ -185,17 +185,19 @@ Options:
             writefln("================================================================================");
         }
 
-        int ret;
+        bool failed;
         ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
-            if (status)
+            if (status != 0)
+            {
                 writefln(">>> TARGET FAILED: ", target.filename);
-            ret |= status;
+                failed = true;
+            }
         }
-        if (ret)
+        if (failed)
             return 1;
     }
 
