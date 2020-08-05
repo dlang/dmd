@@ -76,3 +76,8 @@ style:
 	$(QUIET)$(MAKE) -C src -f posix.mak style
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
+
+# Dont run targets in parallel because this makefile is just a thin wrapper
+# for build.d and multiple invocations might stomp on each other.
+# (build.d employs it's own parallelization)
+.NOTPARALLEL:

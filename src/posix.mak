@@ -92,8 +92,7 @@ ifeq (,$(HOST_DMD_PATH))
 endif
 HOST_DMD_RUN:=$(HOST_DMD)
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)" --called-from-make
-
+RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)"
 ######## Begin build targets
 
 all: dmd
@@ -199,5 +198,10 @@ endif
 ######################################################
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
+
+# Dont run targets in parallel because this makefile is just a thin wrapper
+# for build.d and multiple invocations might stomp on each other.
+# (build.d employs it's own parallelization)
+.NOTPARALLEL:
 
 endif
