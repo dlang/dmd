@@ -1,3 +1,5 @@
+// See ../../README.md for information about DMD unit tests.
+
 module parser.diagnostic_reporter;
 
 import core.stdc.stdarg;
