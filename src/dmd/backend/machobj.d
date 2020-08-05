@@ -2213,9 +2213,23 @@ int Obj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
 
     assert(sdata.Sseg);
     if (sdata.Sseg == UNKNOWN) // if we don't know then there
+    {
         sdata.Sseg = seg;      // wasn't any segment override
+        if (seg >= SegData.length)
+        {
+            printf("1: seg %d length %zd\n", seg, SegData.length);
+            assert(0);
+        }
+    }
     else
+    {
         seg = sdata.Sseg;
+        if (seg >= SegData.length)
+        {
+            printf("2: seg %d length %zd\n", seg, SegData.length);
+            assert(0);
+        }
+    }
     targ_size_t offset = Offset(seg);
     if (sdata.Salignment > 0)
     {   if (SegData[seg].SDalignment < sdata.Salignment)

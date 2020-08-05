@@ -2219,6 +2219,8 @@ int Obj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
         sdata.Sseg = seg;      // wasn't any segment override
     else
         seg = sdata.Sseg;
+    if (cast(uint)seg >= SegData.length)
+        assert(0);
     targ_size_t offset = Offset(seg);
     if (sdata.Salignment > 0)
     {   if (SegData[seg].SDalignment < sdata.Salignment)
