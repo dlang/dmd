@@ -338,8 +338,17 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            extraFlags.canFind("-unittest") ? [] : ["-betterC"],
-            flags["DFLAGS"], extraFlags, rule.sources).array)
+            (
+                // Only use -betterC when it doesn't break other features
+                extraFlags.canFind("-unittest", "-cov") ||
+                flags["DFLAGS"].canFind("-unittest", "-cov")
+            ) ? [] : ["-betterC"],
+            flags["DFLAGS"], extraFlags,
+
+            // source files need to have relative paths in order for the code coverage
+            // .lst files to be named properly for CodeCov to find them
+            rule.sources.map!(e => e.relativePath(srcDir))
+        ).array)
 );
 
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
