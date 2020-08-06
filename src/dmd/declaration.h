@@ -56,7 +56,6 @@ struct IntRange;
 #define STCnodtor       0x1000000ULL     // don't run destructor
 #define STCnothrow      0x2000000ULL     // never throws exceptions
 #define STCpure         0x4000000ULL     // pure function
-#define STCtls          0x8000000ULL     // thread local
 #define STCalias        0x10000000ULL    // alias parameter
 #define STCshared       0x20000000ULL    // accessible from multiple threads
 // accessible from multiple threads
