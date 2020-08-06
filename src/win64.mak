@@ -45,6 +45,8 @@ debdmd : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 reldmd : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
+reldmd-asserts : $(DEPENDENCIES)
+	$(MAKE_WIN32) $@
 detab : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 tolf : $(DEPENDENCIES)

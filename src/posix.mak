@@ -15,8 +15,9 @@
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:       Optimized release built
+# ENABLE_RELEASE:       Optimized release build
 # ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
+# ENABLE_ASSERTS:       Don't use -release if ENABLE_RELEASE is set
 # ENABLE_LTO:           Enable link-time optimizations
 # ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 # ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
