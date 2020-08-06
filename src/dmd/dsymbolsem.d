@@ -716,7 +716,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.storage_class & STC.scope_)
         {
-            StorageClass stc = dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.tls | STC.gshared);
+            StorageClass stc = dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.gshared);
             if (stc)
             {
                 OutBuffer buf;
@@ -733,7 +733,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.tls | STC.gshared | STC.ctfe))
+        if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.gshared | STC.ctfe))
         {
         }
         else
@@ -794,7 +794,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.type.hasWild())
         {
-            if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field) || dsym.isDataseg())
+            if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.gshared | STC.manifest | STC.field) || dsym.isDataseg())
             {
                 dsym.error("only parameters or stack based variables can be `inout`");
             }
@@ -841,7 +841,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         FuncDeclaration fd = parent.isFuncDeclaration();
         if (dsym.type.isscope() && !(dsym.storage_class & STC.nodtor))
         {
-            if (dsym.storage_class & (STC.field | STC.out_ | STC.ref_ | STC.static_ | STC.manifest | STC.tls | STC.gshared) || !fd)
+            if (dsym.storage_class & (STC.field | STC.out_ | STC.ref_ | STC.static_ | STC.manifest | STC.gshared) || !fd)
             {
                 dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be `scope`");
             }
@@ -871,7 +871,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
             else if (!dsym._init &&
-                     !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
+                     !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
                      dsym.type.hasVoidInitPointers())
             {
                 if (sc.func.setUnsafe())
@@ -977,7 +977,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // If local variable, use AssignExp to handle all the various
                 // possibilities.
-                if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.tls | STC.gshared | STC.extern_)) && !dsym._init.isVoidInitializer())
+                if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.gshared | STC.extern_)) && !dsym._init.isVoidInitializer())
                 {
                     //printf("fd = '%s', var = '%s'\n", fd.toChars(), toChars());
                     if (!ei)
@@ -1476,7 +1476,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (scd.decl)
         {
             sc = sc.push();
-            sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.gshared);
+            sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
             sc.inunion = scd.isunion ? scd : null;
             sc.flags = 0;
             for (size_t i = 0; i < scd.decl.dim; i++)

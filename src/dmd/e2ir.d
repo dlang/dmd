@@ -5937,9 +5937,6 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
     return e;
 }
 
-/************************************
- */
-
 elem *getTypeInfo(Loc loc, Type t, IRState *irs)
 {
     assert(t.ty != Terror);

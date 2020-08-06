@@ -940,17 +940,12 @@ public:
             return;
         }
 
-        if (vd.storage_class & (AST.STC.static_ | AST.STC.extern_ | AST.STC.tls | AST.STC.gshared) ||
+        if (vd.storage_class & (AST.STC.static_ | AST.STC.extern_ | AST.STC.gshared) ||
         vd.parent && vd.parent.isModule())
         {
             if (vd.linkage != LINK.c && vd.linkage != LINK.cpp && !(tdparent && (this.linkage == LINK.c || this.linkage == LINK.cpp)))
             {
                 ignored("variable %s because of linkage", vd.toPrettyChars());
-                return;
-            }
-            if (vd.storage_class & AST.STC.tls)
-            {
-                ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
             if (!isSupportedType(type))
