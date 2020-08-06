@@ -5864,6 +5864,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!name)
         {
             e.error("file `%s` cannot be found or not in a path specified with `-J`", se.toChars());
+            e.errorSupplemental("Path(s) searched (as provided by `-J`):");
+            foreach (idx, path; *global.filePath)
+            {
+                const attr = FileName.exists(path);
+                const(char)* err = attr == 2 ? "" :
+                    (attr == 1 ? " (not a directory)" : " (path not found)");
+                e.errorSupplemental("[%zu]: `%s`%s", idx, path, err);
+            }
             return setError();
         }
 
