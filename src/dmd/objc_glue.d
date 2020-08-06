@@ -67,6 +67,9 @@ extern(C++) abstract class ObjcGlue
             _objc = new Unsupported;
     }
 
+    /// Resets the Objective-C glue layer.
+    abstract void reset();
+
     abstract void setupMethodSelector(FuncDeclaration fd, elem** esel);
 
     abstract ElemResult setupMethodCall(FuncDeclaration fd, TypeFunction tf,
@@ -127,6 +130,11 @@ private:
 
 extern(C++) final class Unsupported : ObjcGlue
 {
+    override void reset()
+    {
+        // noop
+    }
+
     override void setupMethodSelector(FuncDeclaration fd, elem** esel)
     {
         // noop
@@ -176,6 +184,12 @@ extern(C++) final class Supported : ObjcGlue
     {
         Segments.initialize();
         Symbols.initialize();
+    }
+
+    override void reset()
+    {
+        Segments.reset();
+        Symbols.reset();
     }
 
     override void setupMethodSelector(FuncDeclaration fd, elem** esel)
@@ -345,6 +359,18 @@ struct Segments
         }
     }
 
+    /// Resets the segments.
+    static void reset()
+    {
+        clearCache();
+    }
+
+    // Clears any caches.
+    private static void clearCache()
+    {
+        segments.clear;
+    }
+
     static int opIndex(Id id)
     {
         if (auto segment = id in segments)
@@ -378,6 +404,8 @@ static:
 
     private __gshared
     {
+        alias SymbolCache = StringTable!(Symbol*)*;
+
         bool hasSymbols_ = false;
 
         Symbol* objc_msgSend = null;
@@ -395,17 +423,17 @@ static:
         Symbol* emptyVTable = null;
 
         // Cache for `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbols.
-        StringTable!(Symbol*)* classNameTable = null;
+        SymbolCache classNameTable = null;
 
         // Cache for `L_OBJC_CLASSLIST_REFERENCES_` symbols.
-        StringTable!(Symbol*)* classReferenceTable = null;
+        SymbolCache classReferenceTable = null;
 
-        StringTable!(Symbol*)* methVarNameTable = null;
-        StringTable!(Symbol*)* methVarRefTable = null;
-        StringTable!(Symbol*)* methVarTypeTable = null;
+        SymbolCache methVarNameTable = null;
+        SymbolCache methVarRefTable = null;
+        SymbolCache methVarTypeTable = null;
 
         // Cache for instance variable offsets
-        StringTable!(Symbol*)* ivarOffsetTable = null;
+        SymbolCache ivarOffsetTable = null;
     }
 
     void initialize()
@@ -419,11 +447,42 @@ static:
 
         foreach (m ; __traits(allMembers, This))
         {
-            static if (is(typeof(__traits(getMember, This, m)) == StringTable!(Symbol*)*))
+            static if (is(typeof(__traits(getMember, This, m)) == SymbolCache))
             {
                 __traits(getMember, This, m) = new StringTable!(Symbol*)();
                 __traits(getMember, This, m)._init();
             }
+        }
+    }
+
+    /// Resets the symbols.
+    void reset()
+    {
+        clearCache();
+        resetSymbolCache();
+    }
+
+    // Clears any caches.
+    private void clearCache()
+    {
+        alias This = typeof(this);
+
+        foreach (m ; __traits(allMembers, This))
+        {
+            static if (is(typeof(__traits(getMember, This, m)) == Symbol*))
+                __traits(getMember, This, m) = null;
+        }
+    }
+
+    // Resets the symbol caches.
+    private void resetSymbolCache()
+    {
+        alias This = typeof(this);
+
+        foreach (m ; __traits(allMembers, This))
+        {
+            static if (is(typeof(__traits(getMember, This, m)) == SymbolCache))
+                __traits(getMember, This, m).reset();
         }
     }
 
@@ -854,7 +913,7 @@ static:
      *
      * Returns: the cached symbol
      */
-    private Symbol* cache(const(char)[] name, StringTable!(Symbol*)* symbolCache,
+    private Symbol* cache(const(char)[] name, SymbolCache symbolCache,
         scope Symbol* delegate() block)
     {
         hasSymbols_ = true;
