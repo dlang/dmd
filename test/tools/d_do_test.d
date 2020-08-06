@@ -935,7 +935,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
             // ( <predicate> , "=", <content> )
             const conditional = chunk.findSplit("=");
 
-            if (!conditional) // <default>
+            if (conditional[1].empty) // <default>
             {
                 toSkip = chunk;
                 break;
