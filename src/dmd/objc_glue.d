@@ -67,6 +67,9 @@ extern(C++) abstract class ObjcGlue
             _objc = new Unsupported;
     }
 
+    /// Resets the Objective-C glue layer.
+    abstract void reset();
+
     abstract void setupMethodSelector(FuncDeclaration fd, elem** esel);
 
     abstract ElemResult setupMethodCall(FuncDeclaration fd, TypeFunction tf,
@@ -127,6 +130,11 @@ private:
 
 extern(C++) final class Unsupported : ObjcGlue
 {
+    override void reset()
+    {
+        // noop
+    }
+
     override void setupMethodSelector(FuncDeclaration fd, elem** esel)
     {
         // noop
@@ -176,6 +184,12 @@ extern(C++) final class Supported : ObjcGlue
     {
         Segments.initialize();
         Symbols.initialize();
+    }
+
+    override void reset()
+    {
+        Segments.reset();
+        Symbols.reset();
     }
 
     override void setupMethodSelector(FuncDeclaration fd, elem** esel)
@@ -345,6 +359,18 @@ struct Segments
         }
     }
 
+    /// Resets the segments.
+    static void reset()
+    {
+        clearCache();
+    }
+
+    // Clears any caches.
+    private static void clearCache()
+    {
+        segments.clear;
+    }
+
     static int opIndex(Id id)
     {
         if (auto segment = id in segments)
@@ -426,6 +452,37 @@ static:
                 __traits(getMember, This, m) = new StringTable!(Symbol*)();
                 __traits(getMember, This, m)._init();
             }
+        }
+    }
+
+    /// Resets the symbols.
+    void reset()
+    {
+        clearCache();
+        resetSymbolCache();
+    }
+
+    // Clears any caches.
+    private void clearCache()
+    {
+        alias This = typeof(this);
+
+        foreach (m ; __traits(allMembers, This))
+        {
+            static if (is(typeof(__traits(getMember, This, m)) == Symbol*))
+                __traits(getMember, This, m) = null;
+        }
+    }
+
+    // Resets the symbol caches.
+    private void resetSymbolCache()
+    {
+        alias This = typeof(this);
+
+        foreach (m ; __traits(allMembers, This))
+        {
+            static if (is(typeof(__traits(getMember, This, m)) == SymbolCache))
+                __traits(getMember, This, m).reset();
         }
     }
 

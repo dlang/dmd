@@ -267,6 +267,7 @@ void obj_start(const(char)* srcfile)
     el_reset();
     cg87_reset();
     out_reset();
+    objc.reset();
 }
 
 
