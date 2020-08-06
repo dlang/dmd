@@ -9,6 +9,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cod4.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod4.d
  */
 
 module dmd.backend.cod4;
@@ -4765,8 +4767,10 @@ private
 void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs, regm_t keepmsk)
 {
     getlvalue(cdb,&cs,e.EV.E1,keepmsk);
+    modEA(cdb, &cs);
     const tym_t tyml = tybasic(e.EV.E1.Ety);              // type of lvalue
-    retregs &= ~(keepmsk | idxregm(&cs));
+    if (retregs & ~keepmsk)
+        retregs &= ~(keepmsk | idxregm(&cs));
     allocreg(cdb,&retregs,&reg,tyml);
 
     cs.Iop = LOD;
