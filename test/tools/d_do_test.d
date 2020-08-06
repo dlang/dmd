@@ -906,9 +906,9 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
             // need some context behind this expression to stop the regex match
             // e.g. "$r:.*$ failed with..." uses " failed"
             auto context = refoutput[0 .. min(7, $)];
-
+            const parts = context.findSplitBefore("$");
             // Avoid collisions with other special sequences
-            if (auto parts = context.findSplitBefore("$"))
+            if (!parts[1].empty)
             {
                 context = parts[0];
                 enforce(context.length, "Another sequence following $r:...$ is not supported!");
