@@ -1243,16 +1243,18 @@ pure @safe:
             case 'I': // in  (I Type)
                 popFront();
                 put("in ");
-                parseType();
-                continue;
-            case 'J': // out (J Type)
-                popFront();
-                put( "out " );
+                if (front == 'K')
+                    goto case;
                 parseType();
                 continue;
             case 'K': // ref (K Type)
                 popFront();
                 put( "ref " );
+                parseType();
+                continue;
+            case 'J': // out (J Type)
+                popFront();
+                put( "out " );
                 parseType();
                 continue;
             case 'L': // lazy (L Type)
@@ -2442,6 +2444,7 @@ else
         ["_foo", "_foo"],
         ["_D88", "_D88"],
         ["_D3fooQeFIAyaZv", "void foo.foo(in immutable(char)[])" ],
+        ["_D3barQeFIKAyaZv", "void bar.bar(in ref immutable(char)[])" ],
         ["_D4test3fooAa", "char[] test.foo"],
         ["_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])"],
         ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
