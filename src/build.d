@@ -338,7 +338,11 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            extraFlags.canFind("-unittest") ? [] : ["-betterC"],
+            (
+                // Only use -betterC when it doesn't break other features
+                extraFlags.canFind("-unittest", "-cov") ||
+                flags["DFLAGS"].canFind("-unittest", "-cov")
+            ) ? [] : ["-betterC"],
             flags["DFLAGS"], extraFlags,
 
             // source files need to have relative paths in order for the code coverage
