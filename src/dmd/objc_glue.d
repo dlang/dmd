@@ -378,6 +378,8 @@ static:
 
     private __gshared
     {
+        alias SymbolCache = StringTable!(Symbol*)*;
+
         bool hasSymbols_ = false;
 
         Symbol* objc_msgSend = null;
@@ -395,17 +397,17 @@ static:
         Symbol* emptyVTable = null;
 
         // Cache for `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbols.
-        StringTable!(Symbol*)* classNameTable = null;
+        SymbolCache classNameTable = null;
 
         // Cache for `L_OBJC_CLASSLIST_REFERENCES_` symbols.
-        StringTable!(Symbol*)* classReferenceTable = null;
+        SymbolCache classReferenceTable = null;
 
-        StringTable!(Symbol*)* methVarNameTable = null;
-        StringTable!(Symbol*)* methVarRefTable = null;
-        StringTable!(Symbol*)* methVarTypeTable = null;
+        SymbolCache methVarNameTable = null;
+        SymbolCache methVarRefTable = null;
+        SymbolCache methVarTypeTable = null;
 
         // Cache for instance variable offsets
-        StringTable!(Symbol*)* ivarOffsetTable = null;
+        SymbolCache ivarOffsetTable = null;
     }
 
     void initialize()
@@ -419,7 +421,7 @@ static:
 
         foreach (m ; __traits(allMembers, This))
         {
-            static if (is(typeof(__traits(getMember, This, m)) == StringTable!(Symbol*)*))
+            static if (is(typeof(__traits(getMember, This, m)) == SymbolCache))
             {
                 __traits(getMember, This, m) = new StringTable!(Symbol*)();
                 __traits(getMember, This, m)._init();
@@ -854,7 +856,7 @@ static:
      *
      * Returns: the cached symbol
      */
-    private Symbol* cache(const(char)[] name, StringTable!(Symbol*)* symbolCache,
+    private Symbol* cache(const(char)[] name, SymbolCache symbolCache,
         scope Symbol* delegate() block)
     {
         hasSymbols_ = true;
