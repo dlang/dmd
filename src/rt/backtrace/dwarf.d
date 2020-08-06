@@ -38,7 +38,7 @@
  * See `runStateMachine` and `readLineNumberProgram` for more details.
  *
  * DWARF_Version:
- * This module only supports DWARF 3 and 4.
+ * This module only supports DWARF 3, 4 and 5.
  *
  * Reference: http://www.dwarfstd.org/
  * Copyright: Copyright Digital Mars 2015 - 2015.
@@ -487,6 +487,78 @@ T read(T)(ref const(ubyte)[] buffer) @nogc nothrow
     return result;
 }
 
+/**
+ * Reads an ULEB128 length and then reads the followings bytes specified by the
+ * length.
+ *
+ * Params:
+ *      buffer = buffer where the data is read from
+ * Returns:
+ *      Value contained in the block.
+ */
+ulong readBlock(ref const(ubyte)[] buffer) @nogc nothrow
+{
+    ulong length = buffer.readULEB128();
+    assert(length <= ulong.sizeof);
+
+    ulong block;
+    foreach (i; 0 .. length)
+    {
+        ubyte b = buffer.read!ubyte;
+        block <<= 8 * i;
+        block |= b;
+    }
+
+    return block;
+}
+
+/**
+ * Reads a MD5 hash from the `buffer`.
+ *
+ * Params:
+ *      buffer = buffer where the data is read from
+ * Returns:
+ *      A MD5 hash
+ */
+char[16] readMD5(ref const(ubyte)[] buffer) @nogc nothrow
+{
+    assert(buffer.length >= 16);
+
+    ubyte[16] bytes;
+    foreach (h; 0 .. 16)
+        bytes[h] = buffer.read!ubyte;
+
+    return cast(char[16])bytes;
+}
+
+/**
+ * Reads a null-terminated string from `buffer`.
+ * The string is not removed from buffer and doesn't contain the last null byte.
+ *
+ * Params:
+ *      buffer = buffer where the data is read from
+ *
+ * Returns:
+ *      A string
+ */
+const(char)[] readString(ref const(ubyte)[] buffer) @nogc nothrow
+{
+    import core.sys.posix.string : strnlen;
+
+    return cast(const(char)[])buffer[0 .. strnlen(cast(char*)buffer.ptr, buffer.length)];
+}
+
+unittest
+{
+    const(ubyte)[] data = [0x48, 0x61, 0x76, 0x65, 0x20, 0x61, 0x20, 0x67, 0x6f,
+        0x6f, 0x64, 0x20, 0x64, 0x61, 0x79, 0x20, 0x21, 0x00];
+    const(char)[] result = data.readString();
+    assert(result == "Have a good day !");
+
+    data = [0x00];
+    assert(data.readString == null);
+}
+
 ulong readULEB128(ref const(ubyte)[] buffer) @nogc nothrow
 {
     ulong val = 0;
@@ -533,6 +605,148 @@ long readSLEB128(ref const(ubyte)[] buffer) @nogc nothrow
     return val;
 }
 
+Array!EntryFormatData readEntryFormat(ref const(ubyte)[] buffer, ref Array!ulong entryFormat) @nogc nothrow
+{
+    // The count needs to be pair, as the specification says
+    assert(entryFormat.length % 2 == 0);
+    Array!EntryFormatData result;
+
+    for (uint i = 0; i < entryFormat.length; i += 2)
+    {
+        EntryFormatData efdata;
+        ulong form = entryFormat[i + 1];
+
+        switch (entryFormat[i])
+        {
+            case StandardContentDescription.path:
+                if (form == FormEncoding._string)
+                    efdata.path = buffer.readString();
+                else
+                {
+                    size_t offset = buffer.read!size_t;
+
+                    // TODO: set filename.path to the string at offset
+                    static if (0)
+                    {
+                        if (form == FormEncoding.line_strp) // Offset in debug_line_str
+                        {
+
+                        }
+                        else if (form == FormEncoding.strp) // Offset in debug_str
+                        {
+
+                        }
+                        else if (form == FormEncoding.strp_sup) // Offset of debug_str in debug_info
+                        {
+
+                        }
+                        else
+                            assert(0);
+                    }
+                    else
+                        assert(0);
+                }
+                break;
+
+            case StandardContentDescription.directoryIndex:
+                if (form == FormEncoding.data1)
+                    efdata.directoryIndex = cast(ulong)buffer.read!ubyte;
+                else if (form == FormEncoding.data2)
+                    efdata.directoryIndex = cast(ulong)buffer.read!ushort;
+                else if (form == FormEncoding.udata)
+                    efdata.directoryIndex = buffer.readULEB128();
+                else
+                    assert(0);
+                break;
+
+            case StandardContentDescription.timeStamp:
+                if (form == FormEncoding.udata)
+                    efdata.timeStamp = buffer.readULEB128();
+                else if (form == FormEncoding.data4)
+                    efdata.timeStamp = cast(ulong)buffer.read!uint;
+                else if (form == FormEncoding.data8)
+                    efdata.timeStamp = buffer.read!ulong;
+                else if (form == FormEncoding.block)
+                    efdata.timeStamp = buffer.readBlock();
+                else
+                    assert(0);
+                break;
+
+            case StandardContentDescription.size:
+                if (form == FormEncoding.data1)
+                    efdata.size = cast(ulong)buffer.read!ubyte;
+                else if (form == FormEncoding.data2)
+                    efdata.size = cast(ulong)buffer.read!ushort;
+                else if (form == FormEncoding.data4)
+                    efdata.size = cast(ulong)buffer.read!uint;
+                else if (form == FormEncoding.data8)
+                    efdata.size = buffer.read!ulong;
+                else
+                    assert(0);
+                break;
+
+            case StandardContentDescription.md5:
+                if (form == FormEncoding.data16)
+                    efdata.md5 = buffer.readMD5();
+                else
+                    assert(0);
+                break;
+
+            default:
+                assert(0);
+        }
+        result.insertBack(efdata);
+    }
+    return result;
+}
+
+enum FormEncoding : ubyte
+{
+    addr = 1,
+    block2 = 3,
+    block4 = 4,
+    data2 = 5,
+    data4 = 6,
+    data8 = 7,
+    _string = 8,
+    block = 9,
+    block1 = 10,
+    data1 = 11,
+    flag = 12,
+    sdata = 13,
+    strp = 14,
+    udata = 15,
+    ref_addr = 16,
+    ref1 = 17,
+    ref2 = 18,
+    ref4 = 19,
+    ref8 = 20,
+    ref_udata = 21,
+    indirect = 22,
+    sec_offset = 23,
+    exprloc = 24,
+    flag_present = 25,
+    strx = 26,
+    addrx = 27,
+    ref_sup4 = 28,
+    strp_sup = 29,
+    data16 = 30,
+    line_strp = 31,
+    ref_sig8 = 32,
+    implicit_const = 33,
+    loclistx = 34,
+    rnglistx = 35,
+    ref_sup8 = 36,
+    strx1 = 37,
+    strx2 = 38,
+    strx3 = 39,
+    strx4 = 40,
+    addrx1 = 41,
+    addrx2 = 42,
+    addrx3 = 43,
+    addrx4 = 44,
+}
+
 enum StandardOpcode : ubyte
 {
     extendedOp = 0,
@@ -556,6 +770,24 @@ enum ExtendedOpcode : ubyte
     setAddress = 2,
     defineFile = 3,
     setDiscriminator = 4,
+}
+
+enum StandardContentDescription : ubyte
+{
+    path = 1,
+    directoryIndex = 2,
+    timeStamp = 3,
+    size = 4,
+    md5 = 5,
+}
+
+struct EntryFormatData
+{
+    const(char)[] path;
+    ulong directoryIndex;
+    ulong timeStamp;
+    ulong size;
+    char[16] md5;
 }
 
 struct StateMachine
@@ -584,6 +816,8 @@ struct LineNumberProgram
 {
     ulong unitLength;
     ushort dwarfVersion;
+    ubyte addressSize;
+    ubyte segmentSelectorSize;
     ulong headerLength;
     ubyte minimumInstructionLength;
     ubyte maximumOperationsPerInstruction;
@@ -592,6 +826,17 @@ struct LineNumberProgram
     ubyte lineRange;
     ubyte opcodeBase;
     const(ubyte)[] standardOpcodeLengths;
+
+    ubyte directoryEntryFormatCount;
+    Array!ulong directoryEntryFormat;
+    ulong directoriesCount;
+    Array!EntryFormatData directories;
+
+    ubyte fileNameEntryFormatCount;
+    Array!ulong fileNameEntryFormat;
+    ulong fileNamesCount;
+    Array!EntryFormatData fileNames;
+
     Array!(const(char)[]) includeDirectories;
     Array!SourceFile sourceFiles;
     const(ubyte)[] program;
@@ -619,7 +864,13 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
 
     const dwarfVersionFieldOffset = cast(size_t) (data.ptr - originalData.ptr);
     lp.dwarfVersion = data.read!ushort();
-    assert(lp.dwarfVersion < 5, "DWARF v5+ not supported yet");
+    assert(lp.dwarfVersion < 6, "DWARF v6+ not supported yet");
+
+    if (lp.dwarfVersion >= 5)
+    {
+        lp.addressSize = data.read!ubyte();
+        lp.segmentSelectorSize = data.read!ubyte();
+    }
 
     lp.headerLength = (is64bitDwarf ? data.read!ulong() : data.read!uint());
 
@@ -634,6 +885,24 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
 
     lp.standardOpcodeLengths = data[0 .. lp.opcodeBase - 1];
     data = data[lp.opcodeBase - 1 .. $];
+
+    if (lp.dwarfVersion >= 5)
+    {
+        lp.directoryEntryFormatCount = data.read!ubyte();
+        foreach (c; 0 .. lp.directoryEntryFormatCount)
+            lp.directoryEntryFormat.insertBack(data.readULEB128());
+
+        lp.directoriesCount = data.readULEB128();
+        lp.directories = data.readEntryFormat(lp.directoryEntryFormat);
+
+
+        lp.fileNameEntryFormatCount = data.read!ubyte;
+        foreach (c; 0 .. lp.fileNameEntryFormatCount)
+            lp.fileNameEntryFormat.insertBack(data.readULEB128());
+
+        lp.fileNamesCount = data.readULEB128();
+        lp.fileNames = data.readEntryFormat(lp.fileNameEntryFormat);
+    }
 
     // A sequence ends with a null-byte.
     static auto readSequence(alias ReadEntry)(ref const(ubyte)[] data)
