@@ -893,9 +893,9 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
             /// ( whole path, remaining output )
             auto parts = output.findSplitAfter(pathEnd);
-
-            if (!parts || !exists(parts[0]))
+            if (parts[0].empty || !exists(parts[0])) {
                 return false;
+            }
 
             output = parts[1];
             continue;
