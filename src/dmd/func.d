@@ -1710,8 +1710,8 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (!isMember || !p.isClassDeclaration)
             return false;
-                                                             // https://issues.dlang.org/show_bug.cgi?id=19654
-        if (p.isClassDeclaration.classKind == ClassKind.objc && !p.isInterfaceDeclaration)
+
+        if (p.isClassDeclaration.classKind == ClassKind.objc)
             return .objc.isVirtual(this);
 
         version (none)

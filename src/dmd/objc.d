@@ -215,21 +215,6 @@ extern(C++) abstract class Objc
     abstract void setObjc(ClassDeclaration cd);
     abstract void setObjc(InterfaceDeclaration);
 
-    /**
-     * Deprecate the given Objective-C interface.
-     *
-     * Representing an Objective-C class as a D interface has been deprecated.
-     * Classes have now been properly implemented and the `class` keyword should
-     * be used instead.
-     *
-     * In the future, `extern(Objective-C)` interfaces will be used to represent
-     * Objective-C protocols.
-     *
-     * Params:
-     *  interfaceDeclaration = the interface declaration to deprecate
-     */
-    abstract void deprecate(InterfaceDeclaration interfaceDeclaration) const;
-
     abstract void setSelector(FuncDeclaration, Scope* sc);
     abstract void validateSelector(FuncDeclaration fd);
     abstract void checkLinkage(FuncDeclaration fd);
@@ -394,11 +379,6 @@ extern(C++) private final class Unsupported : Objc
         id.error("Objective-C interfaces not supported");
     }
 
-    override void deprecate(InterfaceDeclaration) const
-    {
-        // noop
-    }
-
     override void setSelector(FuncDeclaration, Scope*)
     {
         // noop
@@ -499,24 +479,6 @@ extern(C++) private final class Supported : Objc
         id.objc.isExtern = true;
     }
 
-    override void deprecate(InterfaceDeclaration id) const
-    in
-    {
-        assert(id.classKind == ClassKind.objc);
-    }
-    do
-    {
-        // don't report deprecations for the metaclass to avoid duplicated
-        // messages.
-        if (id.objc.isMeta)
-            return;
-
-        id.deprecation("Objective-C interfaces have been deprecated");
-        deprecationSupplemental(id.loc, "Representing an Objective-C class " ~
-            "as a D interface has been deprecated. Please use "~
-            "`extern (Objective-C) extern class` instead");
-    }
-
     override void setSelector(FuncDeclaration fd, Scope* sc)
     {
         foreachUda(fd, sc, (e) {
@@ -570,6 +532,9 @@ extern(C++) private final class Supported : Objc
     }
     do
     {
+        if (fd.toParent.isInterfaceDeclaration && fd.isFinal)
+            return false;
+
         // * final member functions are kept virtual with Objective-C linkage
         //   because the Objective-C runtime always use dynamic dispatch.
         // * static member functions are kept virtual too, as they represent
@@ -853,6 +818,7 @@ if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
         members.push(objc.metaclass);
         objc.metaclass.addMember(sc, classDeclaration);
 
+        objc.metaclass.members = new Dsymbols();
         objc.metaclass.dsymbolSemantic(sc);
     }
 }

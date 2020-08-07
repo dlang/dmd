@@ -4893,47 +4893,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(ClassDeclaration cldec)
     {
-        /// Checks that the given class implements all methods of its interfaces.
-        static void checkInterfaceImplementations(ClassDeclaration cd)
-        {
-            foreach (base; cd.interfaces)
-            {
-                // first entry is ClassInfo reference
-                auto methods = base.sym.vtbl[base.sym.vtblOffset .. $];
-
-                foreach (m; methods)
-                {
-                    auto ifd = m.isFuncDeclaration;
-                    assert(ifd);
-
-                    auto type = ifd.type.toTypeFunction();
-                    auto fd = cd.findFunc(ifd.ident, type);
-
-                    if (fd && !fd.isAbstract)
-                    {
-                        //printf("            found\n");
-                        // Check that calling conventions match
-                        if (fd.linkage != ifd.linkage)
-                            fd.error("linkage doesn't match interface function");
-
-                        // Check that it is current
-                        //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
-                            //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                        if (fd.toParent() != cd && ifd.toParent() == base.sym)
-                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
-                    }
-
-                    else
-                    {
-                        //printf("            not found %p\n", fd);
-                        // BUG: should mark this class as abstract?
-                        if (!cd.isAbstract())
-                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
-                    }
-                }
-            }
-        }
-
         //printf("ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", cldec.toChars(), cldec.type, cldec.sizeok, this);
         //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
         //printf("sc.stc = %x\n", sc.stc);
@@ -5578,8 +5537,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (0 &&          // deprecation disabled for now to accommodate existing extensive use
             cldec.storage_class & STC.scope_)
             deprecation(cldec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
-
-        checkInterfaceImplementations(cldec);
     }
 
     override void visit(InterfaceDeclaration idec)
@@ -5707,10 +5664,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             UserAttributeDeclaration.checkGNUABITag(idec, sc.linkage);
 
             if (sc.linkage == LINK.objc)
-            {
                 objc.setObjc(idec);
-                objc.deprecate(idec);
-            }
 
             // Check for errors, handle forward references
             BCLoop:
