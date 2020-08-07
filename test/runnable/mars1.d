@@ -2125,6 +2125,18 @@ void testMulAssPair()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21038
+
+const(wchar)* x21038 = "xz";
+const(dchar)* name21038 = "abcd";
+
+void test21038()
+{
+    assert((cast(size_t)    x21038) % wchar.sizeof == 0);
+    assert((cast(size_t) name21038) % dchar.sizeof == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2208,6 +2220,7 @@ int main()
     testmemcpy();
     testMulLea();
     testMulAssPair();
+    test21038();
 
     printf("Success\n");
     return 0;

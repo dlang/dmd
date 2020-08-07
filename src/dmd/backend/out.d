@@ -204,6 +204,10 @@ version (SCPP)
                 }
                 else
                 {
+                    version (SCPP)
+                        alignOffset(DATA, 2 << dt.DTalign);
+                    version (MARS)
+                        alignOffset(CDATA, 2 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;
