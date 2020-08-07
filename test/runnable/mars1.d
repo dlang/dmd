@@ -7,68 +7,6 @@ import core.stdc.stdio;
 
 template tuple(A...) { alias tuple = A; }
 
-/////////////////////////////////////////////////////
-
-void testgoto()
-{
-    int i;
-
-    i = 3;
-    goto L4;
-L3: i++;
-    goto L5;
-L4: goto L3;
-L5: assert(i == 4);
-}
-
-int testswitch()
-{
-    int i;
-
-    i = 3;
-    switch (i)
-    {
-        case 0:
-        case 1:
-        default:
-            assert(0);
-        case 3:
-            break;
-    }
-    return 0;
-}
-
-void testdo()
-{
-    int x = 0;
-
-    do
-    {
-        x++;
-    } while (x < 10);
-    printf("x == %d\n", x);
-    assert(x == 10);
-}
-
-
-void testbreak()
-{   int i, j;
-
-  Louter:
-    for (i = 0; i < 10; i++)
-    {
-        for (j = 0; j < 10; j++)
-        {
-            if (j == 3)
-                break Louter;
-        }
-    }
-
-    printf("i = %d, j = %d\n", i, j);
-    assert(i == 0);
-    assert(j == 3);
-}
-
 ///////////////////////
 
 // https://github.com/dlang/dmd/pull/11441
@@ -90,192 +28,6 @@ void testsdiv2()
     assert(sdiv2(10) == 5);
     assert(sdiv2(-10) == -5);
 }
-
-///////////////////////
-
-int foo(string s)
-{
-    int i;
-
-    i = 0;
-    switch (s)
-    {
-        case "hello":
-            i = 1;
-            break;
-        case "goodbye":
-            i = 2;
-            break;
-        case "goodb":
-            i = 3;
-            break;
-        default:
-            i = 10;
-            break;
-    }
-    return i;
-}
-
-
-void teststringswitch()
-{   int i;
-
-    i = foo("hello");
-    printf("i = %d\n", i);
-    assert(i == 1);
-
-    i = foo("goodbye");
-    printf("i = %d\n", i);
-    assert(i == 2);
-
-    i = foo("goodb");
-    printf("i = %d\n", i);
-    assert(i == 3);
-
-    i = foo("huzzah");
-    printf("i = %d\n", i);
-    assert(i == 10);
-}
-
-
-///////////////////////
-
-struct Foo
-{
-    int a;
-    char b;
-    long c;
-}
-
-Foo test(Foo f)
-{
-    f.a += 1;
-    f.b += 3;
-    f.c += 4;
-    return f;
-}
-
-
-void teststrarg()
-{
-    Foo g;
-    g.a = 1;
-    g.b = 2;
-    g.c = 3;
-
-    Foo q;
-    q = test(g);
-    assert(q.a == 2);
-    assert(q.b == 5);
-    assert(q.c == 7);
-}
-
-///////////////////////
-
-align (1) struct Foo1
-{
-  align (1):
-    int a;
-    char b;
-    long c;
-}
-
-struct Foo2
-{
-    int a;
-    char b;
-    long c;
-}
-
-struct Foo3
-{
-    int a;
-    align (1) char b;
-    long c;
-}
-
-struct Foo4
-{
-    int a;
-    struct { char b; }
-    long c;
-}
-
-void testsizes()
-{
-    printf("%zd\n", Foo1.sizeof);
-    assert(Foo1.a.offsetof == 0);
-    assert(Foo1.b.offsetof == 4);
-    assert(Foo1.c.offsetof == 5);
-    assert(Foo1.sizeof == 13);
-
-    assert(Foo2.a.offsetof == 0);
-    assert(Foo2.b.offsetof == 4);
-    assert(Foo2.c.offsetof == 8);
-    assert(Foo2.sizeof == 16);
-
-    assert(Foo3.a.offsetof == 0);
-    assert(Foo3.b.offsetof == 4);
-    assert(Foo3.c.offsetof == 8);
-    assert(Foo3.b.sizeof == 1);
-    assert(Foo3.sizeof == 16);
-
-    assert(Foo4.sizeof == 16);
-}
-
-///////////////////////
-
-size_t cond11565(size_t val)
-{
-    return val ? size_t.max : 0;
-}
-
-void test11565()
-{
-    assert(cond11565(true) == size_t.max);
-}
-
-///////////////////////
-
-int[3] array1 = [1:1,2,0:3];
-
-void testarrayinit()
-{
-    assert(array1[0] == 3);
-    assert(array1[1] == 1);
-    assert(array1[2] == 2);
-}
-
-///////////////////////
-
-void test13023(ulong n)
-{
-    static void func(bool b) {}
-
-    ulong k = 0;
-
-    func(k >= n / 2);
-
-    if (k >= n / 2)
-        assert(0);
-}
-
-///////////////////////
-
-struct U { int a; union { char c; int d; } long b; }
-
-U f = { b:3, d:0x22222222, a:1 };
-
-void testU()
-{
-    assert(f.b == 3);
-    assert(f.d == 0x22222222);
-    assert(f.c == 0x22);
-    assert(f.a == 1);
-    assert(f.sizeof == 16);
-    assert(U.sizeof == 16);
-}
-
 
 ///////////////////////
 
@@ -571,40 +323,6 @@ void testslmod()
 
 ////////////////////////////////////////////////////////////////////////
 
-void vfunc() {}
-
-void test12095(int k)
-{
-    int e = 0;
-    e ? k || assert(0) : !e || vfunc();
-    e ? k || assert(0) : e && vfunc();
-    !e ? !e || vfunc() : k || assert(0);
-}
-
-
-////////////////////////////////////////////////////////////////////////
-
-
-bool test3918a( float t, real u )
-{
-        printf("%Lf\n", u );
-        return t && u;
-}
-
-bool test3918b( real t, float u )
-{
-        printf("%Lf\n", t );
-        return t && u;
-}
-
-void test3918()
-{
-        assert(test3918a(float.nan, real.nan));
-        assert(test3918b(real.nan, float.nan));
-}
-
-////////////////////////////////////////////////////////////////////////
-
 T divC(int C, T)(T x)
 {
     T y = x;
@@ -651,6 +369,331 @@ void testfastdiv()
 
 ////////////////////////////////////////////////////////////////////////
 
+
+/* Test the pattern:
+ *   replace ((i / C1) / C2) with (i / (C1 * C2))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+void divdiv(T, T C1, T C2)(T i)
+{
+    auto a = (i / C1) / C2;
+    auto b = i / (C1 * C2);
+    if (a != b) assert(0);
+}
+
+void testdivdiv()
+{
+    divdiv!(int,10,20)(30);
+    divdiv!(uint,10,20)(30);
+    divdiv!(long,10,20)(30);
+    divdiv!(ulong,10,20)(30);
+
+    divdiv!(int,-10,20)(30);
+    divdiv!(long,-10,20)(30);
+
+    divdiv!(int,-10,-20)(-30);
+    divdiv!(long,-10,-20)(-30);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void testdivcmp()
+{
+    // https://github.com/dlang/dmd/pull/7128
+    static bool foo(uint a, uint b)
+    {
+        return cast(bool)(a / b); // convert / to >=
+    }
+
+    assert(!foo(3, 4));
+    assert(foo(4, 4));
+    assert(foo(5, 4));
+}
+
+/////////////////////////////////////////////////////
+
+void testgoto()
+{
+    int i;
+
+    i = 3;
+    goto L4;
+L3: i++;
+    goto L5;
+L4: goto L3;
+L5: assert(i == 4);
+}
+
+int testswitch()
+{
+    int i;
+
+    i = 3;
+    switch (i)
+    {
+        case 0:
+        case 1:
+        default:
+            assert(0);
+        case 3:
+            break;
+    }
+    return 0;
+}
+
+void testdo()
+{
+    int x = 0;
+
+    do
+    {
+        x++;
+    } while (x < 10);
+    printf("x == %d\n", x);
+    assert(x == 10);
+}
+
+
+void testbreak()
+{   int i, j;
+
+  Louter:
+    for (i = 0; i < 10; i++)
+    {
+        for (j = 0; j < 10; j++)
+        {
+            if (j == 3)
+                break Louter;
+        }
+    }
+
+    printf("i = %d, j = %d\n", i, j);
+    assert(i == 0);
+    assert(j == 3);
+}
+
+///////////////////////
+
+int foo(string s)
+{
+    int i;
+
+    i = 0;
+    switch (s)
+    {
+        case "hello":
+            i = 1;
+            break;
+        case "goodbye":
+            i = 2;
+            break;
+        case "goodb":
+            i = 3;
+            break;
+        default:
+            i = 10;
+            break;
+    }
+    return i;
+}
+
+
+void teststringswitch()
+{   int i;
+
+    i = foo("hello");
+    printf("i = %d\n", i);
+    assert(i == 1);
+
+    i = foo("goodbye");
+    printf("i = %d\n", i);
+    assert(i == 2);
+
+    i = foo("goodb");
+    printf("i = %d\n", i);
+    assert(i == 3);
+
+    i = foo("huzzah");
+    printf("i = %d\n", i);
+    assert(i == 10);
+}
+
+
+///////////////////////
+
+struct Foo
+{
+    int a;
+    char b;
+    long c;
+}
+
+Foo test(Foo f)
+{
+    f.a += 1;
+    f.b += 3;
+    f.c += 4;
+    return f;
+}
+
+
+void teststrarg()
+{
+    Foo g;
+    g.a = 1;
+    g.b = 2;
+    g.c = 3;
+
+    Foo q;
+    q = test(g);
+    assert(q.a == 2);
+    assert(q.b == 5);
+    assert(q.c == 7);
+}
+
+///////////////////////
+
+align (1) struct Foo1
+{
+  align (1):
+    int a;
+    char b;
+    long c;
+}
+
+struct Foo2
+{
+    int a;
+    char b;
+    long c;
+}
+
+struct Foo3
+{
+    int a;
+    align (1) char b;
+    long c;
+}
+
+struct Foo4
+{
+    int a;
+    struct { char b; }
+    long c;
+}
+
+void testsizes()
+{
+    printf("%zd\n", Foo1.sizeof);
+    assert(Foo1.a.offsetof == 0);
+    assert(Foo1.b.offsetof == 4);
+    assert(Foo1.c.offsetof == 5);
+    assert(Foo1.sizeof == 13);
+
+    assert(Foo2.a.offsetof == 0);
+    assert(Foo2.b.offsetof == 4);
+    assert(Foo2.c.offsetof == 8);
+    assert(Foo2.sizeof == 16);
+
+    assert(Foo3.a.offsetof == 0);
+    assert(Foo3.b.offsetof == 4);
+    assert(Foo3.c.offsetof == 8);
+    assert(Foo3.b.sizeof == 1);
+    assert(Foo3.sizeof == 16);
+
+    assert(Foo4.sizeof == 16);
+}
+
+///////////////////////
+
+size_t cond11565(size_t val)
+{
+    return val ? size_t.max : 0;
+}
+
+void test11565()
+{
+    assert(cond11565(true) == size_t.max);
+}
+
+///////////////////////
+
+int[3] array1 = [1:1,2,0:3];
+
+void testarrayinit()
+{
+    assert(array1[0] == 3);
+    assert(array1[1] == 1);
+    assert(array1[2] == 2);
+}
+
+///////////////////////
+
+void test13023(ulong n)
+{
+    static void func(bool b) {}
+
+    ulong k = 0;
+
+    func(k >= n / 2);
+
+    if (k >= n / 2)
+        assert(0);
+}
+
+///////////////////////
+
+struct U { int a; union { char c; int d; } long b; }
+
+U f = { b:3, d:0x22222222, a:1 };
+
+void testU()
+{
+    assert(f.b == 3);
+    assert(f.d == 0x22222222);
+    assert(f.c == 0x22);
+    assert(f.a == 1);
+    assert(f.sizeof == 16);
+    assert(U.sizeof == 16);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+void vfunc() {}
+
+void test12095(int k)
+{
+    int e = 0;
+    e ? k || assert(0) : !e || vfunc();
+    e ? k || assert(0) : e && vfunc();
+    !e ? !e || vfunc() : k || assert(0);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+
+bool test3918a( float t, real u )
+{
+        printf("%Lf\n", u );
+        return t && u;
+}
+
+bool test3918b( real t, float u )
+{
+        printf("%Lf\n", t );
+        return t && u;
+}
+
+void test3918()
+{
+        assert(test3918a(float.nan, real.nan));
+        assert(test3918b(real.nan, float.nan));
+}
+
+////////////////////////////////////////////////////////////////////////
 
 T docond1(T)(T l, ubyte thresh, ubyte val) {
     l += (thresh < val);
@@ -1484,35 +1527,6 @@ void test16102()
 
 ////////////////////////////////////////////////////////////////////////
 
-
-/* Test the pattern:
- *   replace ((i / C1) / C2) with (i / (C1 * C2))
- * when e1 is 0 or 1 and (i2-i1) is a power of 2.
- */
-
-void divdiv(T, T C1, T C2)(T i)
-{
-    auto a = (i / C1) / C2;
-    auto b = i / (C1 * C2);
-    if (a != b) assert(0);
-}
-
-void testdivdiv()
-{
-    divdiv!(int,10,20)(30);
-    divdiv!(uint,10,20)(30);
-    divdiv!(long,10,20)(30);
-    divdiv!(ulong,10,20)(30);
-
-    divdiv!(int,-10,20)(30);
-    divdiv!(long,-10,20)(30);
-
-    divdiv!(int,-10,-20)(-30);
-    divdiv!(long,-10,-20)(-30);
-}
-
-////////////////////////////////////////////////////////////////////////
-
 void test5a(ulong x, ulong y)
 {
     int a;
@@ -1596,21 +1610,6 @@ void testeqeqranges()
     int i = dataflow(4);
     if (i != 1)
         assert(0);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void testdivcmp()
-{
-    // https://github.com/dlang/dmd/pull/7128
-    static bool foo(uint a, uint b)
-    {
-        return cast(bool)(a / b); // convert / to >=
-    }
-
-    assert(!foo(3, 4));
-    assert(foo(4, 4));
-    assert(foo(5, 4));
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2173,24 +2172,28 @@ void testMulAssPair()
 
 int main()
 {
+    // All the various integer divide tests
+    testsdiv2();
+    testulldiv();
+    testfastudiv();
+    testsldiv();
+    testslmod();
+    testfastdiv();
+    testdivdiv();
+    testdivcmp();
+
     testgoto();
     testswitch();
     testdo();
     testbreak();
-    testsdiv2();
     teststringswitch();
     teststrarg();
     test12164();
     testsizes();
     testarrayinit();
     testU();
-    testulldiv();
     testbittest();
     test8658();
-    testfastudiv();
-    testsldiv();
-    testslmod();
-    testfastdiv();
     test3918();
     test12051();
     testdocond();
@@ -2229,11 +2232,9 @@ int main()
     test13474();
     test16699();
     test16102();
-    testdivdiv();
     test5();
     test6();
     testeqeqranges();
-    testdivcmp();
     test16189();
     test16997();
     test18315();
