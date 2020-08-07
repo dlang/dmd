@@ -2293,8 +2293,6 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t psw = *pretregs & mPSW;               /* save PSW bit                 */
     const op1 = e1.Eoper;
     uint sz1 = tysize(e1.Ety);
-    uint rex = (I64 && sz1 == 8) ? REX_W : 0;
-    uint grex = rex << 16;
     uint jop = jmpopcode(e1);
 
     uint jop1 = jmpopcode(e21);
@@ -2341,6 +2339,10 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         e22.Eoper == OPconst
        )
     {
+        uint sz = tysize(e.Ety);
+        uint rex = (I64 && sz == 8) ? REX_W : 0;
+        uint grex = rex << 16;
+
         regm_t retregs;
         targ_size_t v1,v2;
 
@@ -2357,7 +2359,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs = BYTEREGS;
         }
 
-        cdcmp_flag = 1;
+        cdcmp_flag = 1 | rex;
         v1 = cast(targ_size_t)e21.EV.Vllong;
         v2 = cast(targ_size_t)e22.EV.Vllong;
         if (jop == JNC)
