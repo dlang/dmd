@@ -1,4 +1,4 @@
-/**
+/***
  * Entry point for DMD.
  *
  * This modules defines the entry point (main) for DMD, as well as related
