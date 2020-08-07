@@ -2,12 +2,17 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Does strength reduction optimizations on the elem trees,
+ * i.e. rewriting trees to less expensive trees.
+ *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cgelem.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgelem.d
+ *              Add coverage tests to https://github.com/dlang/dmd/blob/master/test/runnable/testcgelem.d
  */
 
 module dmd.backend.cgelem;
