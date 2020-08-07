@@ -3222,10 +3222,6 @@ final class Parser(AST) : Lexer
                         error("if type, there must be an initializer");
                 }
 
-                AST.UserAttributeDeclaration uad;
-                if (udas)
-                    uad = new AST.UserAttributeDeclaration(udas, null);
-
                 AST.DeprecatedDeclaration dd;
                 if (deprecationMessage)
                 {
@@ -3233,8 +3229,16 @@ final class Parser(AST) : Lexer
                     stc |= STC.deprecated_;
                 }
 
-                auto em = new AST.EnumMember(loc, ident, value, type, stc, uad, dd);
+                auto em = new AST.EnumMember(loc, ident, value, type, stc, null, dd);
                 e.members.push(em);
+
+                if (udas)
+                {
+                    auto s = new AST.Dsymbols();
+                    s.push(em);
+                    auto uad = new AST.UserAttributeDeclaration(udas, s);
+                    em.userAttribDecl = uad;
+                }
 
                 if (token.value == TOK.rightCurly)
                 {

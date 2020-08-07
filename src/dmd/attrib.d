@@ -1369,7 +1369,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
             arrayExpressionSemantic(atts, sc);
         }
         auto exps = new Expressions();
-        if (userAttribDecl)
+        if (userAttribDecl && userAttribDecl !is this)
             exps.push(new TupleExp(Loc.initial, userAttribDecl.getAttributes()));
         if (atts && atts.dim)
             exps.push(new TupleExp(Loc.initial, atts));
