@@ -1814,6 +1814,7 @@ struct dt_t
     char dt;                            // type (DTxxxx)
     ubyte Dty;                          // pointer type
     ubyte DTn;                          // DTibytes: number of bytes
+    ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
     union
     {
         struct                          // DTibytes
