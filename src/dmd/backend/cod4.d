@@ -3140,8 +3140,8 @@ L3:
             {
                 getregs(cdb,retregs);
                 genregs(cdb,0x19,reg,reg);     // SBB reg,reg
-                if (rex)
-                    code_orrex(cdb.last(), rex);
+                if (rex || flag & REX_W)
+                    code_orrex(cdb.last(), REX_W);
                 if (flag)
                 { }                                         // cdcond() will handle it
                 else if (jop == JNC)

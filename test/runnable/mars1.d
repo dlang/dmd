@@ -638,14 +638,14 @@ void testfastdiv()
 
     static foreach (T; tuple!(int, long, uint, ulong))
     {{
-	T u = 10000;
-	T r;
-	static foreach (C; tuple!(10, 14, 14007, -10, -14, -14007))
-	{
-	    r = divC!C(u);     assert(r == u / (z + C));
-	    r = modC!C(u);     assert(r == u % (z + C));
-	    r = remquoC!C(u);  assert(r == ((u / (z + C) | (u % (z + C)))));
-	}
+        T u = 10000;
+        T r;
+        static foreach (C; tuple!(10, 14, 14007, -10, -14, -14007))
+        {
+            r = divC!C(u);     assert(r == u / (z + C));
+            r = modC!C(u);     assert(r == u % (z + C));
+            r = remquoC!C(u);  assert(r == ((u / (z + C) | (u % (z + C)))));
+        }
     }}
 }
 
@@ -2021,6 +2021,51 @@ void testrolror()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=20162
+
+void test20162()
+{
+    static long f(long a)
+    {
+         assert(a == -1L);
+         return a;
+    }
+
+    foreach (i; 1 .. 2)
+    {
+        foreach (j; 0 .. 2)
+        {
+            printf("%d %d %llx\n", i,
+              ((i != 0) ? -1 : +1),
+              f((i != 0) ? -1 : +1));
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void testsbbrex()
+{
+    // special code is generated for these two cases
+    static long foolt(dchar c)
+    {
+	return c < 0x10000 ? 1 : 2;
+    }
+
+    static long fooge(uint c)
+    {
+	return c >= 0x10000 ? 1L : 2L;
+    }
+
+    assert(foolt(0) == 1);
+    assert(foolt(0x10000) == 2);
+    assert(fooge(0) == 2);
+    assert(fooge(0x10000) == 1);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 // Some tests for OPmemcpy
 
 enum N = 128;
@@ -2205,6 +2250,8 @@ int main()
     test7();
     testbyteswap();
     testrolror();
+    test20162();
+    testsbbrex();
     testmemcpy();
     testMulLea();
     testMulAssPair();
