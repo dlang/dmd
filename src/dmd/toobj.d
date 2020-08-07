@@ -449,6 +449,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Put out the members
             id.members.foreachDsymbol( (s) { visitNoMultiObj(s); } );
 
+            // Objetive-C protocols are only output if implemented as a class.
+            // If so, they're output via the class declaration.
+            if (id.classKind == ClassKind.objc)
+                return;
+
             // Generate C symbols
             toSymbol(id);
 

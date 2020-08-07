@@ -166,6 +166,11 @@ enum
 
     // Used for symbols going in the __thread_data section for TLS variables for Mach-O 64bit
     mTYthreadData   = 0x5000,
+
+    // Used in combination with SCcomdat to output symbols with weak linkage.
+    // Compared to a symbol with only SCcomdat, this allows the symbol to be put
+    // in any section in the object file.
+    mTYweakLinkage  = 0x6000,
     mTYLINK         = 0x7800,        // all linkage bits
 
     mTYloadds       = 0x08000,       // 16 bit Windows LOADDS attribute

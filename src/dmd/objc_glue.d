@@ -320,12 +320,14 @@ struct Segments
         classname,
         classrefs,
         const_,
-        data,
+        objcData,
         imageinfo,
         ivar,
         methname,
         methtype,
-        selrefs
+        selrefs,
+        protolist,
+        data
     }
 
     private
@@ -350,12 +352,14 @@ struct Segments
                 Id.classname: Segments("__objc_classname", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.classrefs: Segments("__objc_classrefs", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
                 Id.const_: Segments("__objc_const", "__DATA", S_REGULAR, 3),
-                Id.data: Segments("__objc_data", "__DATA", S_REGULAR, 3),
+                Id.objcData: Segments("__objc_data", "__DATA", S_REGULAR, 3),
                 Id.imageinfo: Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
                 Id.ivar: Segments("__objc_ivar", "__DATA", S_REGULAR, 3),
                 Id.methname: Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.methtype: Segments("__objc_methtype", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.selrefs: Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
+                Id.protolist: Segments("__objc_protolist", "__DATA", S_COALESCED | S_ATTR_NO_DEAD_STRIP, 3),
+                Id.data: Segments("__data", "__DATA", S_REGULAR, 3),
             ];
         }
     }
@@ -428,6 +432,9 @@ static:
 
         // Cache for `L_OBJC_CLASSLIST_REFERENCES_` symbols.
         SymbolCache classReferenceTable = null;
+
+        // Cache for `__OBJC_PROTOCOL_$_` symbols.
+        SymbolCache protocolTable = null;
 
         SymbolCache methVarNameTable = null;
         SymbolCache methVarRefTable = null;
@@ -889,6 +896,17 @@ static:
         return symbol;
     }
 
+    Symbol* getProtocolSymbol(InterfaceDeclaration id)
+    in
+    {
+        assert(!id.objc.isMeta);
+    }
+    do
+    {
+        const name = id.objc.identifier.toString();
+        return cache(name, protocolTable, () => ProtocolDeclaration(id).toObjFile());
+    }
+
     private Symbol* setMsgSendSymbol(string name)(tym_t ty = TYnfunc)
     {
         alias This = typeof(this);
@@ -982,7 +1000,7 @@ struct ObjcClassDeclaration
 
         auto symbol = Symbols.getClassName(this);
         symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[Segments.Id.data];
+        symbol.Sseg = Segments[Segments.Id.objcData];
         outdata(symbol);
 
         return symbol;
@@ -1141,8 +1159,30 @@ private:
 
     Symbol* getProtocolList()
     {
-        // protocols are not supported yet
-        return null;
+        if (classDeclaration.interfaces.length == 0)
+            return null;
+
+        auto dtb = DtBuilder(0);
+        dtb.size(classDeclaration.interfaces.length); // count
+
+        auto protocolSymbols = classDeclaration
+            .interfaces
+            .map!(base => cast(InterfaceDeclaration) base.sym)
+            .map!(Symbols.getProtocolSymbol);
+
+        foreach (symbol; protocolSymbols)
+            dtb.xoff(symbol, 0); // pointer to protocol declaration
+
+        dtb.size(0); // null-terminate the list
+
+        enum prefix = "__OBJC_CLASS_PROTOCOLS_$_";
+        const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+        symbol.Sseg = Segments[Segments.Id.const_];
+        symbol.Salignment = 3;
+        symbol.Sdt = dtb.finish();
+
+        return symbol;
     }
 
     Symbol* getIVarList()
@@ -1250,6 +1290,237 @@ private:
         return isMeta ? 40 : cast(int) classDeclaration.size(classDeclaration.loc);
     }
 }
+
+/**
+ * Functionality for outputting symbols for a specific Objective-C protocol
+ * declaration.
+ */
+struct ProtocolDeclaration
+{
+    /// The interface declaration
+    private InterfaceDeclaration interfaceDeclaration;
+
+    this(InterfaceDeclaration interfaceDeclaration)
+    in
+    {
+        assert(interfaceDeclaration !is null);
+    }
+    do
+    {
+        this.interfaceDeclaration = interfaceDeclaration;
+    }
+
+    /**
+     * Outputs the protocol declaration to the object file.
+     *
+     * Returns: the exported symbol, that is, `__OBJC_PROTOCOL_$_`
+     */
+    Symbol* toObjFile()
+    {
+        const name = interfaceDeclaration.objc.identifier.toString();
+
+        auto type = type_fake(TYnptr);
+        type_setty(&type, type.Tty | mTYweakLinkage);
+
+        void createLabel(Symbol* protocol)
+        {
+            enum prefix = "__OBJC_LABEL_PROTOCOL_$_";
+            auto symbolName = prefix ~ name;
+
+            auto symbol = Symbols.getGlobal(symbolName, type);
+            symbol.Sseg = Segments[Segments.Id.protolist];
+            symbol.Sclass = SCcomdat;
+            symbol.Sflags |= SFLhidden;
+            symbol.Salignment = 3;
+
+            auto dtb = DtBuilder(0);
+            dtb.xoff(protocol, 0);
+            symbol.Sdt = dtb.finish();
+            outdata(symbol);
+        }
+
+        enum prefix = "__OBJC_PROTOCOL_$_";
+        auto symbolName = prefix ~ name;
+
+        auto symbol = Symbols.getGlobal(symbolName, type);
+        symbol.Sseg = Segments[Segments.Id.data];
+        symbol.Sclass = SCcomdat;
+        symbol.Sflags |= SFLhidden;
+        symbol.Salignment = 3;
+
+        auto dtb = DtBuilder(0);
+        toDt(dtb);
+        symbol.Sdt = dtb.finish();
+        outdata(symbol);
+
+        createLabel(symbol);
+
+        return symbol;
+    }
+
+private:
+
+    /**
+     * Outputs the protocols declaration to the object file.
+     *
+     * Params:
+     *  dtb = the `DtBuilder` to output the protocol declaration to
+     */
+    void toDt(ref DtBuilder dtb)
+    {
+        dtb.size(0); // isa, always null
+        dtb.xoff(Symbols.getClassNameRo(interfaceDeclaration.ident), 0); // name
+        dtb.xoffOrNull(protocolList); // protocols
+
+        dtb.xoffOrNull(instanceMethodList); // instance methods
+        dtb.xoffOrNull(classMethodList); // class methods
+        dtb.size(0); // optional instance methods
+        dtb.size(0); // optional class methods
+
+        dtb.size(0); // instance properties
+        dtb.dword(96); // the size of _protocol_t, always 96
+        dtb.dword(0); // flags, seems to always be 0
+
+        dtb.xoffOrNull(getMethodTypes); // extended method types
+
+        dtb.size(0); // demangled name. Used by Swift, unused by Objective-C
+        dtb.size(0); // class properties
+    }
+
+    /**
+     * Returns instance method list for this protocol declaration.
+     *
+     * This is a list of all instance methods declared in this protocol
+     * declaration.
+     *
+     * Returns: the symbol for the method list, `__OBJC_$_PROTOCOL_INSTANCE_METHODS_`
+     */
+    Symbol* instanceMethodList()
+    {
+        enum symbolNamePrefix = "__OBJC_$_PROTOCOL_INSTANCE_METHODS_";
+        return methodList(symbolNamePrefix, interfaceDeclaration.objc.methodList);
+    }
+
+    /**
+     * Returns class method list for this protocol declaration.
+     *
+     * This is a list of all class methods declared in this protocol
+     * declaration.
+     *
+     * Returns: the symbol for the method list, `__OBJC_$_PROTOCOL_CLASS_METHODS_`
+     */
+    Symbol* classMethodList()
+    {
+        enum symbolNamePrefix = "__OBJC_$_PROTOCOL_CLASS_METHODS_";
+        auto methods = interfaceDeclaration.objc.metaclass.objc.methodList;
+        return methodList(symbolNamePrefix, methods);
+    }
+
+    /**
+     * Returns a method list for this protocol declaration.
+     *
+     * Returns: the symbol for the method list
+     */
+    Symbol* methodList(string symbolNamePrefix, FuncDeclarations* methods)
+    {
+        if (methods.length == 0)
+            return null;
+
+        auto dtb = DtBuilder(0);
+
+        dtb.dword(24); // _objc_method.sizeof
+        dtb.dword(cast(int) methods.length); // method count
+
+        methods.each!((method) {
+            auto func = method.isFuncDeclaration;
+
+            dtb.xoff(func.objc.selector.toNameSymbol(), 0); // method name
+            dtb.xoff(Symbols.getMethVarType(func), 0); // method type string
+            dtb.size(0); // NULL, protocol methods have no implementation
+        });
+
+        const symbolName = symbolNamePrefix ~ interfaceDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.const_];
+        symbol.Salignment = 3;
+
+        return symbol;
+    }
+
+    /**
+     * Returns a list of type encodings for this protocol declaration.
+     *
+     * This is a list of all the type encodings for all methods declared in this
+     * protocol declaration.
+     *
+     * Returns: the symbol for the type encodings, `__OBJC_$_PROTOCOL_METHOD_TYPES_`
+     */
+    Symbol* getMethodTypes()
+    {
+        if (interfaceDeclaration.objc.methodList.length == 0)
+            return null;
+
+        auto dtb = DtBuilder(0);
+
+        auto varTypeSymbols = interfaceDeclaration
+            .objc
+            .methodList
+            .map!(Symbols.getMethVarType);
+
+        foreach (symbol; varTypeSymbols)
+            dtb.xoff(symbol, 0); // method type string
+
+        enum prefix = "__OBJC_$_PROTOCOL_METHOD_TYPES_";
+        const symbolName = prefix ~ interfaceDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.const_];
+        symbol.Salignment = 3;
+
+        outdata(symbol);
+
+        return symbol;
+    }
+
+    /// Returns: the symbol for the protocol references,  `__OBJC_$_PROTOCOL_REFS_`
+    Symbol* protocolList()
+    {
+        auto interfaces = interfaceDeclaration.interfaces;
+
+        if (interfaces.length == 0)
+            return null;
+
+        auto dtb = DtBuilder(0);
+
+        dtb.size(interfaces.length); // number of protocols in the list
+
+        auto symbols = interfaces
+            .map!(i => cast(InterfaceDeclaration) i.sym)
+            .map!(Symbols.getProtocolSymbol);
+
+        foreach (s; symbols)
+            dtb.xoff(s, 0); // pointer to protocol declaration
+
+        dtb.size(0); // null-terminate the list
+
+        const prefix = "__OBJC_$_PROTOCOL_REFS_";
+        const symbolName = prefix ~ interfaceDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.const_];
+        symbol.Salignment = 3;
+
+        outdata(symbol);
+
+        return symbol;
+    }
+}
+
+private:
 
 /*
  * Formats the given arguments into the given buffer.

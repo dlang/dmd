@@ -347,6 +347,10 @@ version (SCPP)
                 s.Sfl = FLtlsdata;
                 break;
 
+            case mTYweakLinkage:
+                s.Sfl = FLdata;        // initialized data
+                break;
+
             default:
                 assert(0);
         }
