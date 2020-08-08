@@ -30,6 +30,7 @@ import dmd.objc;
 import dmd.target;
 
 import dmd.root.stringtable;
+import dmd.root.array;
 
 import dmd.backend.dt;
 import dmd.backend.cc;
@@ -1093,14 +1094,12 @@ private:
          * Params:
          *  members = the members of the class declaration
          */
-        static int methodCount(Dsymbols* members)
+        static int methodCount(FuncDeclarations* methods)
         {
             int count;
 
-            members.foreachDsymbol((member) {
-                const func = member.isFuncDeclaration;
-
-                if (func && func.fbody)
+            methods.each!((method) {
+                if (method.fbody)
                     count++;
             });
 
@@ -1120,10 +1119,8 @@ private:
         dtb.dword(24); // _objc_method.sizeof
         dtb.dword(count); // method count
 
-        methods.foreachDsymbol((method) {
-            auto func = method.isFuncDeclaration;
-
-            if (func && func.fbody)
+        methods.each!((func) {
+            if (func.fbody)
             {
                 assert(func.objc.selector);
                 dtb.xoff(func.objc.selector.toNameSymbol(), 0); // method name

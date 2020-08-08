@@ -159,12 +159,12 @@ extern (C++) struct ObjcClassDeclaration
     ClassDeclaration metaclass;
 
     /// List of non-inherited methods.
-    Dsymbols* methodList;
+    FuncDeclarations* methodList;
 
     extern (D) this(ClassDeclaration classDeclaration)
     {
         this.classDeclaration = classDeclaration;
-        methodList = new Dsymbols;
+        methodList = new FuncDeclarations;
     }
 
     bool isRootClass() const

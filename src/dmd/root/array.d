@@ -591,3 +591,222 @@ unittest
     static assert (!is(typeof(Array!(OtherStruct).init.sort())));
     static assert (!is(typeof(Array!(OtherStruct).init.sort!pred)));
 }
+
+/**
+ * Iterates the given array and calls the given callable for each element.
+ *
+ * Use this instead of `foreach` when the array may expand during iteration.
+ *
+ * Params:
+ *  callable = the callable to call for each element
+ *  array = the array to iterate
+ *
+ * See_Also: $(REF foreachDsymbol, dmd, dsymbol)
+ */
+template each(alias callable, T)
+if (is(ReturnType!(typeof((T t) => callable(t))) == void))
+{
+    void each(ref Array!T array)
+    {
+        // Do not use foreach, as the size of the array may expand during iteration
+        for (size_t i = 0; i < array.length; ++i)
+            callable(array[i]);
+    }
+
+    void each(Array!T* array)
+    {
+        if (array)
+            each!callable(*array);
+    }
+}
+
+///
+@("iterate over an Array") unittest
+{
+    static immutable expected = [2, 3, 4, 5];
+
+    Array!int array;
+
+    foreach (e ; expected)
+        array.push(e);
+
+    int[] result;
+    array.each!((e) {
+        result ~= e;
+    });
+
+    assert(result == expected);
+}
+
+@("iterate over a pointer to an Array") unittest
+{
+    static immutable expected = [2, 3, 4, 5];
+
+    auto array = new Array!int;
+
+    foreach (e ; expected)
+        array.push(e);
+
+    int[] result;
+    array.each!((e) {
+        result ~= e;
+    });
+
+    assert(result == expected);
+}
+
+@("iterate while appending to the array being iterated") unittest
+{
+    static immutable expected = [2, 3, 4, 5];
+
+    Array!int array;
+
+    foreach (e ; expected[0 .. $ - 1])
+        array.push(e);
+
+    int[] result;
+
+    array.each!((e) {
+        if (e == 2)
+            array.push(5);
+
+        result ~= e;
+    });
+
+    assert(array[] == expected);
+    assert(result == expected);
+}
+
+/**
+ * Iterates the given array and calls the given callable for each element.
+ *
+ * If `callable` returns `!= 0`, it will stop the iteration and return that
+ * value, otherwise it will return 0.
+ *
+ * Use this instead of `foreach` when the array may expand during iteration.
+ *
+ * Params:
+ *  callable = the callable to call for each element
+ *  array = the array to iterate
+ *
+ * Returns: the last value returned by `callable`
+ * See_Also: $(REF foreachDsymbol, dmd, dsymbol)
+ */
+template each(alias callable, T)
+if (is(ReturnType!(typeof((T t) => callable(t))) == int))
+{
+    int each(ref Array!T array)
+    {
+        // Do not use foreach, as the size of the array may expand during iteration
+        for (size_t i = 0; i < array.length; ++i)
+        {
+            if (const result = callable(array[i]))
+                return result;
+        }
+
+        return 0;
+    }
+
+    int each(Array!T* array)
+    {
+        return array ? each!callable(*array) : 0;
+    }
+}
+
+///
+@("iterate over an Array and stop the iteration") unittest
+{
+    Array!int array;
+
+    foreach (e ; [2, 3, 4, 5])
+        array.push(e);
+
+    int[] result;
+    const returnValue = array.each!((e) {
+        result ~= e;
+
+        if (e == 3)
+            return 8;
+
+        return 0;
+    });
+
+    assert(result == [2, 3]);
+    assert(returnValue == 8);
+}
+
+@("iterate over an Array") unittest
+{
+    static immutable expected = [2, 3, 4, 5];
+
+    Array!int array;
+
+    foreach (e ; expected)
+        array.push(e);
+
+    int[] result;
+    const returnValue = array.each!((e) {
+        result ~= e;
+        return 0;
+    });
+
+    assert(result == expected);
+    assert(returnValue == 0);
+}
+
+@("iterate over a pointer to an Array and stop the iteration") unittest
+{
+    auto array = new Array!int;
+
+    foreach (e ; [2, 3, 4, 5])
+        array.push(e);
+
+    int[] result;
+    const returnValue = array.each!((e) {
+        result ~= e;
+
+        if (e == 3)
+            return 9;
+
+        return 0;
+    });
+
+    assert(result == [2, 3]);
+    assert(returnValue == 9);
+}
+
+@("iterate while appending to the array being iterated and stop the iteration") unittest
+{
+    Array!int array;
+
+    foreach (e ; [2, 3])
+        array.push(e);
+
+    int[] result;
+
+    const returnValue = array.each!((e) {
+        if (e == 2)
+            array.push(1);
+
+        result ~= e;
+
+        if (e == 1)
+            return 7;
+
+        return 0;
+    });
+
+    static immutable expected = [2, 3, 1];
+
+    assert(array[] == expected);
+    assert(result == expected);
+    assert(returnValue == 7);
+}
+
+private template ReturnType(T)
+{
+    static if (is(T R == return))
+        alias ReturnType = R;
+    else
+        static assert(false, "argument is not a function");
+}
