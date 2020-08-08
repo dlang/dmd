@@ -60,7 +60,24 @@ int main(string[] args)
     {
         // Ensure paths are relative to the root directory
         // s.t. error messages are clickable in most IDE's
-        writeln(e.msg.replace(buildPath("dmd", ""), buildPath("src", "dmd", "")));
+        auto output = stdout.lockingTextWriter();
+
+        for (auto oldMsg = e.msg; oldMsg.length; )
+        {
+            import std.ascii : isAlpha;
+
+            const cur = oldMsg.findSplitBefore("dmd" ~ dirSeparator);
+            output.put(cur[0]);
+
+            // Prepend "src/" if the remainder starts with a valid path
+            oldMsg = cur[1].find!(c => !isAlpha(c) && !"_.".canFind(c));
+            auto path = cur[1][0 .. $ - oldMsg.length];
+
+            if (isValidPath(path))
+                output.put("src" ~ dirSeparator);
+
+            output.put(path);
+        }
         return 1;
     }
 }
