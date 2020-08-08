@@ -61,6 +61,8 @@ import dmd.visitor;
  *    dg = delegate to call for each Dsymbol
  * Returns:
  *    last value returned by dg()
+ *
+ * See_Also: $(REF each, dmd, root, array)
  */
 int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
 {
@@ -85,6 +87,8 @@ int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
  * Params:
  *    symbols = Dsymbols
  *    dg = delegate to call for each Dsymbol
+ *
+ * See_Also: $(REF each, dmd, root, array)
  */
 void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
 {
