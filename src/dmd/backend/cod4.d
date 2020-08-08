@@ -9,6 +9,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cod4.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod4.d
  */
 
 module dmd.backend.cod4;
@@ -1767,14 +1769,27 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             int shpost;
             const int N = sz * 8;
             const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
+static if (1)
+{
+            getlvalue(cdb,&cs,e1,mAX | mDX);
+            regm_t keepmsk = idxregm(&cs);
 
+            reg_t reg = allocScratchReg(cdb, allregs & ~(mAX | mDX) & ~keepmsk);
+
+            cs.Iop = LOD;
+            code_newreg(&cs, reg);
+            cdb.gen(&cs);                       // MOV R1,EA
+            getregs(cdb,mask(reg) | mDX | mAX);
+}
+else
+{
             freenode(e2);
 
             getlvalue(cdb,&cs,e1,mAX | mDX);
             reg_t reg;
             opAssLoadReg(cdb, cs, e, reg, allregs & ~( mAX | mDX | idxregm(&cs)));    // MOV reg,EA
             getregs(cdb, mAX|mDX);
-
+}
             /* Algorithm 5.2
              * if m>=2**(N-1)
              *    q = SRA(n + MULSH(m-2**N,n), shpost) - XSIGN(n)
