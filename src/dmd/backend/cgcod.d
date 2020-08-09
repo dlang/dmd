@@ -1051,7 +1051,7 @@ else
     }
     else if (needframe)                 // if variables or parameters
     {
-        prolog_frame(cdbx, farfunc, xlocalsize, &enter, &cfa_offset);
+        prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
         hasframe = 1;
     }
 
