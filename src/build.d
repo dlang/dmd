@@ -58,9 +58,7 @@ int main(string[] args)
     }
     catch (BuildException e)
     {
-        // Ensure paths are relative to the root directory
-        // s.t. error messages are clickable in most IDE's
-        writeln(e.msg.replace(buildPath("dmd", ""), buildPath("src", "dmd", "")));
+        writeln(e.msg);
         return 1;
     }
 }
@@ -275,7 +273,7 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
             extraFlags,
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(srcDir))
+            rule.sources.map!(e => e.relativePath(dmdRepo))
         ).array
     )
 );
@@ -347,7 +345,7 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
 
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(srcDir))
+            rule.sources.map!(e => e.relativePath(dmdRepo))
         ).array)
 );
 
@@ -422,7 +420,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
             ].chain(extraFlags, platformArgs, flags["DFLAGS"],
                 // source files need to have relative paths in order for the code coverage
                 // .lst files to be named properly for CodeCov to find them
-                rule.sources.map!(e => e.relativePath(srcDir))
+                rule.sources.map!(e => e.relativePath(dmdRepo))
             ).array);
 });
 
@@ -502,7 +500,7 @@ alias toolsRepo = makeRule!((builder, rule) => builder
         auto toolsDir = env["TOOLS_DIR"];
         version(Win32)
             // Win32-git seems to confuse C:\... as a relative path
-            toolsDir = toolsDir.relativePath(srcDir);
+            toolsDir = toolsDir.relativePath(dmdRepo);
         run([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
     })
 );
@@ -739,7 +737,7 @@ alias installCopy = makeRule!((builder, rule) => builder
 alias install = makeRule!((builder, rule) {
     const dmdExeFile = dmdDefault.deps[0].target;
     auto sourceFiles = allBuildSources ~ [
-        env["D"].buildPath("readme.txt"),
+        env["D"].buildPath("README.md"),
         env["D"].buildPath("boostlicense.txt"),
     ];
     builder
@@ -1021,7 +1019,7 @@ void processEnvironment()
     env.getNumberedBool("ENABLE_WARNINGS");
     string[] warnings;
 
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
     if (env["HOST_DMD_KIND"] != "gdc")
         dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
@@ -1828,7 +1826,7 @@ class BuildException : Exception
 The directory where all run commands are executed from.  All relative file paths
 in a `run` command must be relative to `runDir`.
 */
-alias runDir = srcDir;
+alias runDir = dmdRepo;
 
 /**
 Run a command which may not succeed and optionally log the invocation.
