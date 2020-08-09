@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cod3.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod3.d
  */
 
@@ -3177,17 +3178,16 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
 
 /**********************************************
  * Set up frame register.
- * Input:
- *      *xlocalsize     amount of local variables
- * Output:
- *      *enter          set to true if ENTER instruction can be used, false otherwise
- *      *xlocalsize     amount to be subtracted from stack pointer
- *      *cfa_offset     the frame pointer's offset from the CFA
+ * Params:
+ *      cdb        = write generated code here
+ *      farfunc    = true if a far function
+ *      enter      = set to true if ENTER instruction can be used, false otherwise
+ *      xlocalsize = amount of local variables, set to amount to be subtracted from stack pointer
+ *      cfa_offset = set to frame pointer's offset from the CFA
  * Returns:
  *      generated code
  */
-
-void prolog_frame(ref CodeBuilder cdb, uint farfunc, uint* xlocalsize, bool* enter, int* cfa_offset)
+void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, bool* enter, int* cfa_offset)
 {
     //printf("prolog_frame\n");
     *cfa_offset = 0;
@@ -3208,7 +3208,7 @@ void prolog_frame(ref CodeBuilder cdb, uint farfunc, uint* xlocalsize, bool* ent
         config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_WIN64) ||
         !localsize ||
         config.flags & CFGstack ||
-        (*xlocalsize >= 0x1000 && config.exe & EX_flat) ||
+        (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
         (NTEXCEPTIONS == 2 &&
          (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
@@ -3230,7 +3230,7 @@ static if (NTEXCEPTIONS == 2)
             nteh_prolog(cdb);
             int sz = nteh_contextsym_size();
             assert(sz != 0);        // should be 5*4, not 0
-            *xlocalsize -= sz;      // sz is already subtracted from ESP
+            xlocalsize -= sz;      // sz is already subtracted from ESP
                                     // by nteh_prolog()
         }
 }
@@ -3328,7 +3328,7 @@ else
     {
         if (enter)
         {   // ENTER xlocalsize,0
-            cdb.genc(0xC8,0,FLconst,xlocalsize,FLconst,cast(targ_uns) 0);
+            cdb.genc(ENTER,0,FLconst,xlocalsize,FLconst,cast(targ_uns) 0);
             assert(!(config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)); // didn't emit Dwarf data
         }
         else if (xlocalsize == REGSIZE && config.flags4 & CFG4optimized)
@@ -4232,7 +4232,7 @@ void epilog(block *b)
                 else if (config.target_cpu >= TARGET_80286 &&
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
                    )
-                    cdbx.gen1(0xC9);           // LEAVE
+                    cdbx.gen1(LEAVE);          // LEAVE
                 else if (0 && xlocalsize == REGSIZE && Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
                     mfuncreg &= ~mask(regx);
@@ -4310,7 +4310,7 @@ Lopt:
         if (cr.Iop == 0x81 && cr.Irm == modregrm(3,0,SP))     // if ADD SP,imm
         {
             if (
-                c.Iop == 0xC9 ||                                  // LEAVE
+                c.Iop == LEAVE ||                                // LEAVE
                 (c.Iop == 0x8B && c.Irm == modregrm(3,SP,BP)) || // MOV SP,BP
                 (c.Iop == LEA && c.Irm == modregrm(1,SP,6))     // LEA SP,-imm[BP]
                )
@@ -6822,7 +6822,7 @@ static if (TARGET_OSX || TARGET_WINDOS)
         }
         else
         {
-            if (op == 0xC8)
+            if (op == ENTER)
                 do16bit(&ggen, cast(FL)c.IFL1,&c.IEV1,0);
         }
         flags &= CFseg | CFoff | CFselfrel;
