@@ -728,7 +728,6 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 
     Expression handleOverloadSet(OverloadSet os)
     {
-        assert(os);
         foreach (s; os.a)
         {
             auto fd = s.isFuncDeclaration();
@@ -751,7 +750,6 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 
     Expression handleTemplateDecl(TemplateDeclaration td)
     {
-        assert(td);
         if (td.onemember)
         {
             if (auto fd = td.onemember.isFuncDeclaration())
@@ -767,7 +765,6 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 
     Expression handleFuncDecl(FuncDeclaration fd)
     {
-        assert(fd);
         if ((cast(TypeFunction)fd.type).isproperty)
             return resolveProperties(sc, e1);
         return e1;
@@ -1677,7 +1674,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     Type* prettype, Expression* peprefix)
 {
     //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
-    assert(arguments);
     assert(fd || tf.next);
     size_t nargs = arguments ? arguments.dim : 0;
     const size_t nparams = tf.parameterList.length;
@@ -2513,7 +2509,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(IntegerExp e)
     {
-        assert(e.type);
         if (e.type.ty == Terror)
             return setError();
 
@@ -5508,7 +5503,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     /* Generate tuple from function parameter types.
                      */
-                    assert(tded.ty == Tfunction);
                     auto tdedf = tded.isTypeFunction();
                     auto args = new Parameters();
                     foreach (i, arg; tdedf.parameterList)
@@ -6330,7 +6324,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.type = exp.var.type;
             if (!exp.type && global.errors) // var is goofed up, just return error.
                 return setError();
-            assert(exp.type);
 
             if (t1.ty == Tpointer)
                 t1 = t1.nextOf();
@@ -6772,7 +6765,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             assert(exp.e1.op == TOK.star);
             PtrExp pe = cast(PtrExp)exp.e1;
-            assert(pe.e1.op == TOK.question);
             CondExp ce = cast(CondExp)pe.e1;
             assert(ce.e1.op == TOK.address);
             assert(ce.e2.op == TOK.address);
@@ -8512,7 +8504,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!td)
                     goto Lnomatch;
 
-                assert(exp.e1.type.ty == Ttuple);
                 TypeTuple tt = cast(TypeTuple)exp.e1.type;
 
                 Expression e0;
@@ -9401,7 +9392,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.type = exp.e1.type;
-        assert(exp.type);
         auto res = exp.op == TOK.assign ? exp.reorderSettingAAElem(sc) : exp;
         checkAssignEscape(sc, res, false);
         return setResult(res);
@@ -9551,7 +9541,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
               (tb2.nextOf().size(Loc.initial) == tb1next.size(Loc.initial)))))
         {
             // TOK.concatenateAssign
-            assert(exp.op == TOK.concatenateAssign);
             if (exp.e1.checkPostblit(sc, tb1next))
                 return setError();
 
@@ -11976,7 +11965,6 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
             }
         }
     }
-    assert(e);
 
     if (e.op == TOK.error)
         return e;
