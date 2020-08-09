@@ -3187,10 +3187,10 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
  * Returns:
  *      generated code
  */
-void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, bool* enter, int* cfa_offset)
+void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bool enter, out int cfa_offset)
 {
     //printf("prolog_frame\n");
-    *cfa_offset = 0;
+    cfa_offset = 0;
 
     if (0 && config.exe == EX_WIN64)
     {
@@ -3198,7 +3198,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, bool* 
         // LEA RBP,0[RSP]
         cdb. gen1(0x50 + BP);
         cdb.genc1(LEA,(REX_W<<16) | (modregrm(0,4,SP)<<8) | modregrm(2,BP,4),FLconst,0);
-        *enter = false;
+        enter = false;
         return;
     }
 
@@ -3246,12 +3246,12 @@ static if (NTEXCEPTIONS == 2)
              * which is why the offset of BP is set to 8
              */
             dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
-            *cfa_offset = off;  // remember the difference between the CFA and the frame pointer
+            cfa_offset = off;  // remember the difference between the CFA and the frame pointer
         }
-        *enter = false;              /* do not use ENTER instruction */
+        enter = false;              /* do not use ENTER instruction */
     }
     else
-        *enter = true;
+        enter = true;
 }
 
 /**********************************************

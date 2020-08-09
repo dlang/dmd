@@ -578,7 +578,7 @@ extern __gshared
 void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf);
 void prolog_ifunc2(ref CodeBuilder cdb, tym_t tyf, tym_t tym, bool pushds);
 void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds);
-void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, bool* enter, int* cfa_offset);
+void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bool enter, out int cfa_offset);
 void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc);
 void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc);
 void prolog_setupalloca(ref CodeBuilder cdb);
