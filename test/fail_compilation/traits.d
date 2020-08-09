@@ -19,6 +19,7 @@ fail_compilation/traits.d(309): Error: In expression `__traits(derivedMembers, f
 fail_compilation/traits.d(309):        `float` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation
 fail_compilation/traits.d(316): Error: In expression `__traits(derivedMembers, TemplatedStruct)` struct `TemplatedStruct(T)` has no members
 fail_compilation/traits.d(316):        `TemplatedStruct(T)` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation
+fail_compilation/traits.d(321): Error: `__traits(getCurrentFunction)` can only be used in function bodies
 ---
 */
 
@@ -59,3 +60,8 @@ enum DM5 = __traits(derivedMembers, Interface);             // no error
 enum DM6 = __traits(derivedMembers, TemplatedStruct!float); // no error
 enum DM7 = __traits(derivedMembers, TemplatedStruct);       // compile error
 enum DM8 = __traits(derivedMembers, mixin(__MODULE__));     // no error
+
+struct Foo
+{
+    const b = __traits(getCurrentFunction)();
+}

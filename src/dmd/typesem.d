@@ -1732,7 +1732,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             mtype.exp.ident != Id.getVirtualMethods &&
             mtype.exp.ident != Id.getAttributes &&
             mtype.exp.ident != Id.getUnitTests &&
-            mtype.exp.ident != Id.getAliasThis)
+            mtype.exp.ident != Id.getAliasThis &&
+            mtype.exp.ident != Id.getCurrentFunction)
         {
             static immutable (const(char)*)[2] ctxt = ["as type", "in alias"];
             .error(mtype.loc, "trait `%s` is either invalid or not supported %s",

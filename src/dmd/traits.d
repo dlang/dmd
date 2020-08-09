@@ -1938,6 +1938,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
+    if (e.ident == Id.getCurrentFunction)
+    {
+        if (dim != 0)
+            return dimError(0);
+        if (sc.func)
+            return new DsymbolExp(sc.func.loc, sc.func, false).expressionSemantic(sc);
+        e.error("`__traits(getCurrentFunction)` can only be used in function bodies");
+        return ErrorExp.get();
+    }
 
     static const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
     {

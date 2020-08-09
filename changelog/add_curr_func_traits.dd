@@ -1,0 +1,18 @@
+Add `__traits(getCurrentFunction)`
+
+This new trait takes no argument and can only be used in function bodies to retrieve the symbol matching to the function.
+While it was already possible to parse the string given by `__FUNCTION__` and use it in a `mixin()` the new traits is much more convenient.
+
+---
+long fact(long n) {
+    if (n <= 1)
+        return 1;
+    else
+        return n * __traits(getCurrentFunction)(n - 1);
+}
+
+void main()
+{
+    assert(fact(20) == 2_432_902_008_176_640_000);
+}
+---

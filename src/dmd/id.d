@@ -469,6 +469,7 @@ immutable Msgtable[] msgtable =
     { "hasPostblit" },
     { "hasCopyConstructor" },
     { "isCopyable" },
+    { "getCurrentFunction" },
 
     // For C++ mangling
     { "allocator" },
