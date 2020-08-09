@@ -1,12 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cgcod.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcod.d
  */
 
@@ -754,7 +754,7 @@ void prolog(ref CodeBuilder cdb)
     bool pushalloc = false;
     tym_t tyf = funcsym_p.ty();
     tym_t tym = tybasic(tyf);
-    uint farfunc = tyfarfunc(tym);
+    const farfunc = tyfarfunc(tym) != 0;
 
     // Special Intel 64 bit ABI prolog setup for variadic functions
     Symbol *sv64 = null;                        // set to __va_argsave
@@ -1051,7 +1051,7 @@ else
     }
     else if (needframe)                 // if variables or parameters
     {
-        prolog_frame(cdbx, farfunc, &xlocalsize, &enter, &cfa_offset);
+        prolog_frame(cdbx, farfunc, xlocalsize, &enter, &cfa_offset);
         hasframe = 1;
     }
 
@@ -1135,7 +1135,7 @@ else
             }
 
             uint regsaved;
-            prolog_trace(cdbx, farfunc != 0, &regsaved);
+            prolog_trace(cdbx, farfunc, &regsaved);
 
             if (spalign)
                 cod3_stackadj(cdbx, -spalign);

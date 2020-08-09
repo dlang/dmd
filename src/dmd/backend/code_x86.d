@@ -432,6 +432,8 @@ enum
     LOCK    = 0xF0,
     INT3    = 0xCC,
     HLT     = 0xF4,
+    ENTER   = 0xC8,
+    LEAVE   = 0xC9,
 
     STOSB   = 0xAA,
     STOS    = 0xAB,
