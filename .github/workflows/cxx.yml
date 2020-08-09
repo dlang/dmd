@@ -31,8 +31,7 @@ jobs:
       matrix:
         os: [ macOS-10.15, ubuntu-16.04, windows-2019 ]
         target: [
-          clang-9.0.0, clang-8.0.0, clang-7.0.0,
-          clang-6.0.0,  clang-5.0.2, clang-4.0.0, clang-3.9.0,
+          clang-9.0.0, clang-8.0.0, clang-7.0.0, clang-6.0.0,
           g++-9, g++-8, g++-7, g++-6, g++-5,
           msvc-2019, msvc-2017, msvc-2015
         ]
@@ -70,9 +69,6 @@ jobs:
           - { os: windows-2019, target: clang-8.0.0 }
           - { os: windows-2019, target: clang-7.0.0 }
           - { os: windows-2019, target: clang-6.0.0 }
-          - { os: windows-2019, target: clang-5.0.2 }
-          - { os: windows-2019, target: clang-4.0.0 }
-          - { os: windows-2019, target: clang-3.9.0 }
 
         include:
           # Clang boilerplate
@@ -80,9 +76,6 @@ jobs:
           - { target: clang-8.0.0, compiler: clang, cxx-version: 8.0.0 }
           - { target: clang-7.0.0, compiler: clang, cxx-version: 7.0.0 }
           - { target: clang-6.0.0, compiler: clang, cxx-version: 6.0.0 }
-          - { target: clang-5.0.2, compiler: clang, cxx-version: 5.0.2 }
-          - { target: clang-4.0.0, compiler: clang, cxx-version: 4.0.0 }
-          - { target: clang-3.9.0, compiler: clang, cxx-version: 3.9.0 }
           # g++ boilerplace
           - { target: g++-9, compiler: g++, cxx-version: 9.3.0 }
           - { target: g++-8, compiler: g++, cxx-version: 8.4.0 }
