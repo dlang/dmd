@@ -1198,6 +1198,9 @@ $(GNAME FinalSwitchStatement):
         initialized value.)
         )
 
+        $(IMPLEMENTATION_DEFINED If the $(EXPRESSION) value does not match any
+        of the $(I CaseRangeStatements), whether that is diagnosed at compile
+        time or at runtime.)
 
 
 $(H2 $(LEGACY_LNAME2 ContinueStatement, continue-statement, Continue Statement))
