@@ -7639,7 +7639,7 @@ int test15251()
 {
     for (ubyte lwr = 19;
         lwr != 20;
-        cast(void)++lwr)    // have to to be evaluated with ctfeNeedNothing
+        cast(void)++lwr)    // have to to be evaluated with CTFEGoal.Nothing
     {}
     return 1;
 }
