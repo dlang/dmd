@@ -1249,7 +1249,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto po = isParameter(o);
         auto s = getDsymbolWithoutExpCtx(o);
         UserAttributeDeclaration udad = null;
-        Scope* sc2 = sc;
         if (po)
         {
             udad = po.userAttribDecl;
@@ -1262,12 +1261,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
             //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
             udad = s.userAttribDecl;
-
-            // Use the symbol scope when possible
-            if (s._scope)
-                sc2 = s._scope;
-            else if (auto m = s.getModule()) // needed for some top level symbols
-                sc2 = m._scope;
         }
         else
         {
@@ -1286,7 +1279,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto exps = udad ? udad.getAttributes() : new Expressions();
         auto tup = new TupleExp(e.loc, exps);
-        return tup.expressionSemantic(sc2);
+        return tup.expressionSemantic(sc);
     }
     if (e.ident == Id.getFunctionAttributes)
     {
@@ -1498,19 +1491,34 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
                 return ErrorExp.get();
             }
+
             if (d !is null)
                 link = d.linkage;
-            else final switch (agg.classKind)
+            else
             {
-                case ClassKind.d:
-                    link = LINK.d;
-                    break;
-                case ClassKind.cpp:
-                    link = LINK.cpp;
-                    break;
-                case ClassKind.objc:
-                    link = LINK.objc;
-                    break;
+                // Resolves forward references
+                if (agg.sizeok != Sizeok.done)
+                {
+                    agg.size(e.loc);
+                    if (agg.sizeok != Sizeok.done)
+                    {
+                        e.error("%s `%s` is forward referenced", agg.kind(), agg.toChars());
+                        return new ErrorExp();
+                    }
+                }
+
+                final switch (agg.classKind)
+                {
+                    case ClassKind.d:
+                        link = LINK.d;
+                        break;
+                    case ClassKind.cpp:
+                        link = LINK.cpp;
+                        break;
+                    case ClassKind.objc:
+                        link = LINK.objc;
+                        break;
+                }
             }
         }
         auto linkage = linkageToChars(link);

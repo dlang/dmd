@@ -2500,6 +2500,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 em.userAttribDecl = em.ed.userAttribDecl;
         }
 
+        // Eval UDA in this same scope. Issues 19344, 20835, 21122
+        if (em.userAttribDecl)
+            em.userAttribDecl.setScope(sc);
+
         // The first enum member is special
         bool first = (em == (*em.ed.members)[0]);
 

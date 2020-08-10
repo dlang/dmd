@@ -30,3 +30,15 @@ enum Enum {
 
 static assert(getUDAs!(Enum.first, Struct)[0] == Struct(42));
 static assert(__traits(getAttributes, Enum.first)[0] == Struct(42));
+
+// https://issues.dlang.org/show_bug.cgi?id=21122
+
+void test21122()
+{
+    enum A;
+    enum E { @A a }
+
+    static assert(is(getAllUDAs!(E.a)[0] == A));
+}
+
+alias getAllUDAs(A...) = __traits(getAttributes, A);
