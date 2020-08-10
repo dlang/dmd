@@ -2183,7 +2183,7 @@ public:
                     return;
                 }
 
-                if ((v.storage_class & (STC.out_ | STC.ref_)) && hasValue(v))
+                if (v.storage_class & (STC.out_ | STC.ref_))
                 {
                     // Strip off the nest of ref variables
                     Expression ev = getValue(v);
