@@ -34,3 +34,35 @@ struct S { alias T = float*; }
 struct ST(X,Y) {}
 
 void foo(alias t)() {}
+
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21074
+
+alias Byte = ubyte;
+alias Byte2(A) = ubyte;
+alias T0 = mixin(q{const(Byte)})*;
+alias T1 = mixin(q{const(Byte[1])})*;
+alias T2 = mixin(q{const(Byte2!int)})*;
+alias T3 = mixin(q{const(mixin(Byte2!int))})*;
+alias T4 = mixin(q{const(mixin("__traits(getMember, S, \"T\")"))})*;
+alias T5 = const(mixin(q{Byte}))*;
+alias T6 = const(mixin(q{immutable(Byte)}))*;
+alias T7 = const(mixin(q{shared(Byte)}))*;
+alias T8 = const(mixin(q{Byte*}));
+
+// the following tests now work
+static assert(is(T0 == const(ubyte)*));
+static assert(is(T1 == const(ubyte[1])*));
+static assert(is(T2 == const(ubyte)*));
+static assert(is(T3 == const(ubyte)*));
+static assert(is(T4 == const(float*)*));
+static assert(is(T5 == const(ubyte)*));
+static assert(is(T6 == immutable(ubyte)*));
+static assert(is(T7 == const(shared(ubyte))*));
+static assert(is(T8 == const(ubyte*)));
+
+// this doesn't work but I'll file a new issue
+/*
+alias T8 = mixin(q{immutable(__traits(getMember, S, "T"))})*;
+static assert(is(T8 == immutable(float*)*));
+*/
