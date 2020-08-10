@@ -1,5 +1,6 @@
 /**
  * Inline assembler implementation for DMD.
+ * https://dlang.org/spec/iasm.html
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
  *              Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
@@ -3860,6 +3861,8 @@ void asm_add_exp(out OPND o1)
                 asm_token();
                 OPND o2;
                 asm_mul_exp(o2);
+                if (o2.base || o2.pregDisp1 || o2.pregDisp2)
+                    asmerr("cannot subtract register");
                 if (asm_isint(o1) && asm_isint(o2))
                 {
                     o1.disp -= o2.disp;
@@ -4046,6 +4049,8 @@ void asm_una_exp(ref OPND o1)
         case TOK.min:
             asm_token();
             asm_una_exp(o1);
+            if (o1.base || o1.pregDisp1 || o1.pregDisp2)
+                asmerr("cannot negate register");
             if (asm_isint(o1))
                 o1.disp = -o1.disp;
             break;
