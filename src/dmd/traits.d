@@ -1503,7 +1503,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     if (agg.sizeok != Sizeok.done)
                     {
                         e.error("%s `%s` is forward referenced", agg.kind(), agg.toChars());
-                        return new ErrorExp();
+                        return ErrorExp.get();
                     }
                 }
 
