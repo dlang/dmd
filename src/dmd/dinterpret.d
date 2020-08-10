@@ -2165,34 +2165,36 @@ public:
 
         if (goal == ctfeNeedLvalue)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v && !v.isDataseg() && !v.isCTFE() && !istate)
+            if (auto v = e.var.isVarDeclaration())
             {
-                e.error("variable `%s` cannot be read at compile time", v.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-            if (v && !hasValue(v))
-            {
-                if (!v.isCTFE() && v.isDataseg())
-                    e.error("static variable `%s` cannot be read at compile time", v.toChars());
-                else // CTFE initiated from inside a function
-                    e.error("variable `%s` cannot be read at compile time", v.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-
-            if (v && (v.storage_class & (STC.out_ | STC.ref_)) && hasValue(v))
-            {
-                // Strip off the nest of ref variables
-                Expression ev = getValue(v);
-                if (ev.op == TOK.variable ||
-                    ev.op == TOK.index ||
-                    ev.op == TOK.slice ||
-                    ev.op == TOK.dotVariable)
+                if (!v.isDataseg() && !v.isCTFE() && !istate)
                 {
-                    result = interpret(pue, ev, istate, goal);
+                    e.error("variable `%s` cannot be read at compile time", v.toChars());
+                    result = CTFEExp.cantexp;
                     return;
+                }
+                if (!hasValue(v))
+                {
+                    if (!v.isCTFE() && v.isDataseg())
+                        e.error("static variable `%s` cannot be read at compile time", v.toChars());
+                    else // CTFE initiated from inside a function
+                        e.error("variable `%s` cannot be read at compile time", v.toChars());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                if ((v.storage_class & (STC.out_ | STC.ref_)) && hasValue(v))
+                {
+                    // Strip off the nest of ref variables
+                    Expression ev = getValue(v);
+                    if (ev.op == TOK.variable ||
+                        ev.op == TOK.index ||
+                        ev.op == TOK.slice ||
+                        ev.op == TOK.dotVariable)
+                    {
+                        result = interpret(pue, ev, istate, goal);
+                        return;
+                    }
                 }
             }
             result = e;
