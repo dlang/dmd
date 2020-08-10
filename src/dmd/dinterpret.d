@@ -1862,14 +1862,6 @@ public:
             Type elemtype = (cast(TypeArray)val.type).next;
             d_uns64 elemsize = elemtype.size();
 
-            // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
-            if (val.type.ty == Tsarray && pointee.ty == Tarray && elemsize == pointee.nextOf().size())
-            {
-                emplaceExp!(AddrExp)(pue, e.loc, val, e.type);
-                result = pue.exp();
-                return;
-            }
-
             // It's OK to cast from fixed length to fixed length array, eg &int[n] to int[d]*.
             if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
             {
