@@ -1,12 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Code to do the Data Flow Analysis (doesn't act on the data).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.d, backend/gflow.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_gflow.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gflow.d
  */
 
@@ -499,6 +499,20 @@ private void flowaecp(int flowxx)
                 first = false;
             }
             assert(!first);     // it must have had predecessors
+
+            if (b.BC == BCjcatch)
+            {
+                /* Set Bin to 0 to account for:
+                    void* pstart = p;
+                    try
+                    {
+                        p = null; // account for this
+                        throw;
+                    }
+                    catch (Throwable o) { assert(p != pstart); }
+                */
+                vec_clear(b.Bin);
+            }
 
             if (anychng)
             {
