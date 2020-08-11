@@ -14,7 +14,7 @@ import dmd.root.longdouble;
 import core.stdc.ctype;
 import core.stdc.errno;
 
-version(CRuntime_Microsoft):
+version (Windows):
 @nogc:
 nothrow:
 
@@ -86,9 +86,9 @@ auto postab() { return cast(const longdouble *) _postab_bytes.ptr; }
  * Terminates on first unrecognized character.
  */
 
-longdouble_soft strtold_dm(const(char) *p, char **endp)
+longdouble strtold_dm(const(char) *p, char **endp)
 {
-    longdouble_soft ldval;
+    longdouble ldval;
     int  exp;
     long msdec,lsdec;
     uint msscale;
@@ -227,7 +227,7 @@ longdouble_soft strtold_dm(const(char) *p, char **endp)
                 // Stuff mantissa directly into long double
                 union U
                 {
-                    longdouble_soft ld;
+                    longdouble ld;
                     struct S
                     {
                         long mantissa;
@@ -252,7 +252,13 @@ longdouble_soft strtold_dm(const(char) *p, char **endp)
                 }
 
                 // Exponent is power of 2, not power of 10
-                ldval = ldexpl(ldval,exp);
+                static if (!is(longdouble_soft))
+                {
+                    import core.stdc.math : ldexpl;
+                    ldval = ldexpl(ldval, exp);
+                }
+                else
+                    ldval = cast(longdouble) ldexpl(longdouble_soft(ldval), exp);
             }
             goto L6;
         }
@@ -358,13 +364,13 @@ longdouble_soft strtold_dm(const(char) *p, char **endp)
         }
         static if(0) {
             for (int i = 0; i < 5; i++)
-                printf("%04x ",ldval.value[i]);
+                printf("%04x ",(cast(ushort *)&ldval)[i]);
             printf("\n");
             printf("%llx\n",dval);
         }
     }
 L6: // if overflow occurred
-    if (ldval == longdouble_soft.infinity)
+    if (ldval == longdouble.infinity)
         errno = ERANGE;
 
 L1:
@@ -392,7 +398,7 @@ void  main()
 {
     import core.stdc.stdio;
 
-    longdouble_soft ld;
+    longdouble ld;
     longdouble_test x;
     int  i;
 

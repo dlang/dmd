@@ -22,15 +22,15 @@ nothrow:
 // Type used by the front-end for compile-time reals
 public import dmd.root.longdouble : real_t = longdouble;
 
-private
+version (CRuntime_DigitalMars)
 {
-    version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
-
-    version(CRuntime_Microsoft) extern (C++)
-    {
-        public import dmd.root.longdouble : longdouble_soft, ld_sprint;
-        import dmd.root.strtold;
-    }
+    import dmd.root.strtold;
+    private __gshared extern (C) extern const(char)* __locale_decpoint;
+}
+version (CRuntime_Microsoft)
+{
+    public import dmd.root.longdouble : longdouble_soft, ld_sprint;
+    import dmd.root.strtold;
 }
 
 // Compile-time floating-point helper
@@ -199,10 +199,19 @@ extern (C++) struct CTFloat
     @system
     static real_t parseReal(const(char)* literal, bool* isOutOfRange = null)
     {
-        version(CRuntime_Microsoft) // Microsoft's strtold is for 64-bit `long double`
+        version (CRuntime_Microsoft)
+        {
+            // Microsoft's strtold is for 64-bit `long double`
             alias parseFn = strtold_dm;
+        }
+        else version (CRuntime_DigitalMars)
+        {
+            // DMC's strtold might return a wrong last mantissa bit
+            alias parseFn = strtold_dm;
+        }
         else
             alias parseFn = strtold;
+
         return parse!parseFn(literal, isOutOfRange);
     }
 
