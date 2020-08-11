@@ -5063,6 +5063,13 @@ private elem * elvalist(elem *e, goal_t goal)
 {
     assert(e.Eoper == OPva_start);
 
+    if (funcsym_p.ty() & mTYnaked)
+    {   // do not generate prolog
+        el_free(e);
+        e = el_long(TYint, 0);
+        return e;
+    }
+
     if (I32)
     {
         // (OPva_start &va)
