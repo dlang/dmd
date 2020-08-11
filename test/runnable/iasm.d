@@ -512,6 +512,7 @@ void test12()
         0xD4,0x0A,                      // aam
         0x3F,                           // aas
         0x67,0x63,0x3C,                 // arpl [SI],DI
+        0xF3,0x90,                      // pause
         0x14,0x05,                      // adc  AL,5
         0x83,0xD0,0x14,                 // adc  EAX,014h
         0x80,0x55,0xF8,0x17,            // adc  byte ptr -8[EBP],017h
@@ -605,6 +606,7 @@ void test12()
         aam                             ;
         aas                             ;
         arpl    [SI],DI                 ;
+        pause                           ;
 
         adc     AL,5                    ;
         adc     EAX,20                  ;

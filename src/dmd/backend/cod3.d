@@ -6192,6 +6192,10 @@ uint calccodsize(code *c)
             }
             break;
 
+        case 0x90:
+            size = (c.Iop == PAUSE) ? 2 : 1;
+            goto Lret2;
+
         case NOP:
         case ESCAPE:
             size = 0;                   // since these won't be output
