@@ -185,12 +185,14 @@ extern (C++) struct CTFloat
     @system
     static real_t parseFloat(const(char)* literal, bool* isOutOfRange = null)
     {
+        // not suited for the DMC runtime (which uses strtold)
         return parse!strtof(literal, isOutOfRange);
     }
 
     @system
     static real_t parseDouble(const(char)* literal, bool* isOutOfRange = null)
     {
+        // not suited for the DMC runtime (which uses strtold)
         return parse!strtod(literal, isOutOfRange);
     }
 

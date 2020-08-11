@@ -730,6 +730,20 @@ void test35()
 
 /*************************************/
 
+void test36()
+{
+    assert(0.9 != 0.9F);
+    static assert(0.9 != 0.9F);
+
+    static if (real.sizeof > double.sizeof)
+    {
+        assert(0.9 != 0.9L);
+        static assert(0.9 != 0.9L);
+    }
+}
+
+/*************************************/
+
 abstract class Foo37(T)
 {
     void bar () { }
@@ -1297,6 +1311,7 @@ int main()
     test33();
     test34();
     test35();
+    test36();
     test37();
     test38();
     test39();
