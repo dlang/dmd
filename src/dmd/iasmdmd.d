@@ -1714,6 +1714,10 @@ code *asm_emit(Loc loc,
             {
                 pc.Irm = puc[0];
             }
+            else if (opcode == PAUSE)
+            {
+                pc.Iop = PAUSE;
+            }
             else
             {
                 pc.IEV2.Vint = puc[0];

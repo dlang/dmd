@@ -1,11 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/ptrntab.d
  */
 
 module dmd.backend.ptrntab;
@@ -1751,12 +1752,9 @@ PTRNTAB3[2] aptb3VPXOR = /* VPXOR */ [
 
 ////////////////////// New Opcodes /////////////////////////////
 
-static if (0) // Use REP NOP instead
-{
 PTRNTAB0[1] aptb0PAUSE =  /* PAUSE */ [
-        { 0xf390, 0 }
+        { PAUSE, 0 }            // same as REP NOP sequene
 ];
-}
 
 PTRNTAB0[1] aptb0SYSCALL =  /* SYSCALL */ [
         { 0x0f05, _modcxr11 }
@@ -4802,6 +4800,7 @@ PTRNTAB2[2] aptb2SHA256MSG2 = /* SHA256MSG2 */ [
 
 immutable OP[] optab =
 [
+//      opcode string, number of operators, reference to PTRNTAB
         { "__emit",     ITdata | OPdb,  { null } },
         { "_emit",      ITdata | OPdb,  { null } },
         { "aaa",        0,              { aptb0AAA.ptr } },
@@ -5215,7 +5214,7 @@ immutable OP[] optab =
         { "palignr",        3,              { aptb3PALIGNR.ptr } },
         { "pand",           2,              { aptb2PAND.ptr } },
         { "pandn",          2,              { aptb2PANDN.ptr } },
-        /* { "pause",       0,              { aptb0PAUSE.ptr } }, */
+        { "pause",          0,              { aptb0PAUSE.ptr } },
         { "pavgb",          2,              { aptb2PAVGB.ptr } },
         { "pavgusb",        2,              { aptb2PAVGUSB.ptr } },
         { "pavgw",          2,              { aptb2PAVGW.ptr } },
