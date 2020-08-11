@@ -2,47 +2,37 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/dep_d1_ops.d(105): Deprecation: `opAdd` is deprecated.  Use `opBinary(string op)(...) if (op == "+")` instead.
-fail_compilation/dep_d1_ops.d(106): Deprecation: `opAdd_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "+")` instead.
-fail_compilation/dep_d1_ops.d(107): Deprecation: `opSub` is deprecated.  Use `opBinary(string op)(...) if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(108): Deprecation: `opSub_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(109): Deprecation: `opMul` is deprecated.  Use `opBinary(string op)(...) if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(110): Deprecation: `opMul_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(111): Deprecation: `opDiv` is deprecated.  Use `opBinary(string op)(...) if (op == "/")` instead.
-fail_compilation/dep_d1_ops.d(112): Deprecation: `opDiv_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "/")` instead.
-fail_compilation/dep_d1_ops.d(113): Deprecation: `opMod` is deprecated.  Use `opBinary(string op)(...) if (op == "%")` instead.
-fail_compilation/dep_d1_ops.d(114): Deprecation: `opMod_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "%")` instead.
-fail_compilation/dep_d1_ops.d(116): Deprecation: `opAnd` is deprecated.  Use `opBinary(string op)(...) if (op == "&")` instead.
-fail_compilation/dep_d1_ops.d(117): Deprecation: `opOr` is deprecated.  Use `opBinary(string op)(...) if (op == "|")` instead.
-fail_compilation/dep_d1_ops.d(118): Deprecation: `opXor` is deprecated.  Use `opBinary(string op)(...) if (op == "^")` instead.
-fail_compilation/dep_d1_ops.d(120): Deprecation: `opShl` is deprecated.  Use `opBinary(string op)(...) if (op == "<<")` instead.
-fail_compilation/dep_d1_ops.d(121): Deprecation: `opShl_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "<<")` instead.
-fail_compilation/dep_d1_ops.d(122): Deprecation: `opShr` is deprecated.  Use `opBinary(string op)(...) if (op == ">>")` instead.
-fail_compilation/dep_d1_ops.d(123): Deprecation: `opShr_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == ">>")` instead.
-fail_compilation/dep_d1_ops.d(124): Deprecation: `opUShr` is deprecated.  Use `opBinary(string op)(...) if (op == ">>>")` instead.
-fail_compilation/dep_d1_ops.d(125): Deprecation: `opUShr_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == ">>>")` instead.
-fail_compilation/dep_d1_ops.d(127): Deprecation: `opCat` is deprecated.  Use `opBinary(string op)(...) if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(128): Deprecation: `opCat_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(130): Deprecation: `opNeg` is deprecated.  Use `opUnary(string op)() if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(131): Deprecation: `opCom` is deprecated.  Use `opUnary(string op)() if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(132): Deprecation: `opPostInc` is deprecated.  Use `opUnary(string op)() if (op == "++")` instead.
-fail_compilation/dep_d1_ops.d(133): Deprecation: `opPostDec` is deprecated.  Use `opUnary(string op)() if (op == "--")` instead.
-fail_compilation/dep_d1_ops.d(134): Deprecation: `opStar` is deprecated.  Use `opUnary(string op)() if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(136): Deprecation: `opIn` is deprecated.  Use `opBinary(string op)(...) if (op == "in")` instead.
-fail_compilation/dep_d1_ops.d(137): Deprecation: `opIn_r` is deprecated.  Use `opBinaryRight(string op)(...) if (op == "in")` instead.
-fail_compilation/dep_d1_ops.d(139): Deprecation: `opAddAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "+")` instead.
-fail_compilation/dep_d1_ops.d(140): Deprecation: `opSubAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(141): Deprecation: `opMulAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(142): Deprecation: `opDivAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "/")` instead.
-fail_compilation/dep_d1_ops.d(143): Deprecation: `opModAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "%")` instead.
-fail_compilation/dep_d1_ops.d(144): Deprecation: `opAndAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "&")` instead.
-fail_compilation/dep_d1_ops.d(145): Deprecation: `opOrAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "|")` instead.
-fail_compilation/dep_d1_ops.d(146): Deprecation: `opXorAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "^")` instead.
-fail_compilation/dep_d1_ops.d(147): Deprecation: `opShlAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "<<")` instead.
-fail_compilation/dep_d1_ops.d(148): Deprecation: `opShrAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == ">>")` instead.
-fail_compilation/dep_d1_ops.d(149): Deprecation: `opUShrAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == ">>>")` instead.
-fail_compilation/dep_d1_ops.d(150): Deprecation: `opCatAssign` is deprecated.  Use `opOpAssign(string op)(...) if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(158): Deprecation: `opCom` is deprecated.  Use `opUnary(string op)() if (op == "~")` instead.
+fail_compilation/dep_d1_ops.d(105): Error: cannot resolve type for s + 1
+fail_compilation/dep_d1_ops.d(107): Error: cannot resolve type for s - 1
+fail_compilation/dep_d1_ops.d(109): Error: cannot resolve type for s * 1
+fail_compilation/dep_d1_ops.d(111): Error: cannot resolve type for s / 1
+fail_compilation/dep_d1_ops.d(113): Error: cannot resolve type for s % 1
+fail_compilation/dep_d1_ops.d(116): Error: cannot resolve type for s & 1
+fail_compilation/dep_d1_ops.d(117): Error: cannot resolve type for s | 1
+fail_compilation/dep_d1_ops.d(118): Error: cannot resolve type for s ^ 1
+fail_compilation/dep_d1_ops.d(120): Error: cannot resolve type for s << 1
+fail_compilation/dep_d1_ops.d(122): Error: cannot resolve type for s >> 1
+fail_compilation/dep_d1_ops.d(124): Error: cannot resolve type for s >>> 1
+fail_compilation/dep_d1_ops.d(127): Error: cannot resolve type for s ~ 1
+fail_compilation/dep_d1_ops.d(130): Error: `s` is not of arithmetic type, it is a `S`
+fail_compilation/dep_d1_ops.d(131): Error: `s` is not of integral type, it is a `S`
+fail_compilation/dep_d1_ops.d(132): Error: cannot resolve type for s++
+fail_compilation/dep_d1_ops.d(133): Error: cannot resolve type for s--
+fail_compilation/dep_d1_ops.d(134): Error: can only `*` a pointer, not a `S`
+fail_compilation/dep_d1_ops.d(136): Error: cannot resolve type for s in 1
+fail_compilation/dep_d1_ops.d(139): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(140): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(141): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(142): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(143): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(144): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(145): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(146): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(147): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(148): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(149): Error: `s` is not a scalar, it is a `S`
+fail_compilation/dep_d1_ops.d(150): Error: cannot append type `int` to type `S`
+fail_compilation/dep_d1_ops.d(158): Error: `nd` is not of integral type, it is a `dep_d1_ops.NoDeprecation`
 ---
 */
 
