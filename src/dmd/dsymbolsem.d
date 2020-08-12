@@ -5954,7 +5954,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
 
-    TemplateStats.incInstance(tempdecl);
+    if (!tempdecl.isTrivialAlias && !tempdecl.isTrivialAliasSeq)
+        TemplateStats.incInstance(tempdecl);
 
     tempdecl.checkDeprecated(tempinst.loc, sc);
 
