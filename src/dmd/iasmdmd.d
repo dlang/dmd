@@ -693,7 +693,7 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
             if (ASM_GET_aopty(opnd.usFlags) == _reg)
                 continue;
 
-            opflags[i] = opnd.usFlags |= OpndSize._anysize;
+            opflags[i] = opnd.usFlags = (opnd.usFlags & ~0x1F) | OpndSize._anysize;
             if(asmstate.ucItype != ITjump)
                 continue;
 
@@ -817,8 +817,8 @@ RETRY:
         }
         case 2:
         {
-            //printf("opflags1 = "); asm_output_flags(opflags1); printf(" ");
-            //printf("opflags2 = "); asm_output_flags(opflags2); printf("\n");
+            //printf("opflags1 = "); asm_output_flags(opflags[0]); printf(" ");
+            //printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n");
             PTRNTAB2 *table2;
             for (table2 = pop.ptb.pptb2;
                  table2.opcode != ASM_END;
@@ -1038,7 +1038,7 @@ opflag_t asm_determine_float_flags(ref OPND popnd)
 
     if (popnd.base &&
         !popnd.s && !popnd.disp && !popnd.vreal
-        && !(popnd.base.ty & (_r8 | _r16 | _r32)))
+        && !isOneOf(getOpndSize(popnd.base.ty), OpndSize._32_16_8))
     {
         return popnd.base.ty;
     }
@@ -1046,10 +1046,10 @@ opflag_t asm_determine_float_flags(ref OPND popnd)
     {
         us = asm_float_type_size(popnd.ptype, &usFloat);
         //printf("us = x%x, usFloat = x%x\n", us, usFloat);
-        if (popnd.pregDisp1.ty & (_r32 | _r64))
-            return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
-        else if (popnd.pregDisp1.ty & _r16)
-            return(CONSTRUCT_FLAGS(us, _m, _addr16, usFloat));
+        if (getOpndSize(popnd.pregDisp1.ty) == OpndSize._16)
+            return CONSTRUCT_FLAGS(us, _m, _addr16, usFloat);
+        else
+            return CONSTRUCT_FLAGS(us, _m, _addr32, usFloat);
     }
     else if (popnd.s !is null)
     {
@@ -1093,6 +1093,7 @@ version (none)
 
 opflag_t asm_determine_operand_flags(ref OPND popnd)
 {
+    //printf("asm_determine_operand_flags()\n");
     Dsymbol ps;
     int ty;
     opflag_t us;
@@ -1123,9 +1124,9 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
     {
         if (ps && ps.isLabel() && sz == OpndSize._anysize)
             sz = OpndSize._32;
-        return (popnd.pregDisp1.ty & (_r32 | _r64))
-            ? CONSTRUCT_FLAGS(sz, _m, _addr32, 0)
-            : CONSTRUCT_FLAGS(sz, _m, _addr16, 0);
+        return getOpndSize(popnd.pregDisp1.ty) == OpndSize._16
+            ? CONSTRUCT_FLAGS(sz, _m, _addr16, 0)
+            : CONSTRUCT_FLAGS(sz, _m, _addr32, 0);
     }
     else if (ps)
     {
@@ -1411,8 +1412,8 @@ code *asm_emit(Loc loc,
         case 2:
             if ((!global.params.is64bit &&
                   (amods[1] == _addr16 ||
-                   (isOneOf(uSizemaskTable[1] & OpndSize._16) && aoptyTable[1] == _rel) ||
-                   (isOneOf(uSizemaskTable[1] & OpndSize._32) && aoptyTable[1] == _mnoi) ||
+                   (isOneOf(OpndSize._16, uSizemaskTable[1]) && aoptyTable[1] == _rel ) ||
+                   (isOneOf(OpndSize._32, uSizemaskTable[1]) && aoptyTable[1] == _mnoi) ||
                    (ptb.pptb2.usFlags & _16_bit_addr)
                  )
                 )
@@ -1430,8 +1431,8 @@ code *asm_emit(Loc loc,
         case 1:
             if ((!global.params.is64bit &&
                   (amods[0] == _addr16 ||
-                   (isOneOf(uSizemaskTable[0] & OpndSize._16) && aoptyTable[0] == _rel) ||
-                   (isOneOf(uSizemaskTable[0] & OpndSize._32) && aoptyTable[0] == _mnoi) ||
+                   (isOneOf(OpndSize._16, uSizemaskTable[0]) && aoptyTable[0] == _rel ) ||
+                   (isOneOf(OpndSize._32, uSizemaskTable[0]) && aoptyTable[0] == _mnoi) ||
                     (ptb.pptb1.usFlags & _16_bit_addr))))
                 setImmediateFlags(0);
 
@@ -1739,9 +1740,10 @@ L3:
         if (s == asmstate.psDollar)
         {
             pc.IFL2 = FLconst;
-            if (isOneOf(uSizemaskTable[0] & OpndSize._16_8))
+            if (isOneOf(OpndSize._8,  uSizemaskTable[0]) ||
+                isOneOf(OpndSize._16, uSizemaskTable[0]))
                 pc.IEV2.Vint = cast(int)opnds[0].disp;
-            else if (isOneOf(uSizemaskTable[0] & OpndSize._32))
+            else if (isOneOf(OpndSize._32, uSizemaskTable[0]))
                 pc.IEV2.Vpointer = cast(targ_size_t) opnds[0].disp;
         }
         else
@@ -2391,9 +2393,9 @@ void asm_make_modrm_byte(
                 if (s == asmstate.psDollar)
                 {
                     pc.IFL1 = FLconst;
-                    if (isOneOf(uSizemask & OpndSize._16_8))
+                    if (isOneOf(uSizemask, OpndSize._16_8))
                         pc.IEV1.Vint = cast(int)opnds[0].disp;
-                    else if (isOneOf(uSizemask & OpndSize._32))
+                    else if (isOneOf(uSizemask, OpndSize._32))
                         pc.IEV1.Vpointer = cast(targ_size_t) opnds[0].disp;
                 }
                 else
@@ -2853,6 +2855,8 @@ bool asm_match_flags(opflag_t usOp, opflag_t usTable)
     uint                bSizematch;
 
     //printf("asm_match_flags(usOp = x%x, usTable = x%x)\n", usOp, usTable);
+    //printf("usOp   : "); asm_output_flags(usOp   ); printf("\n");
+    //printf("usTable: "); asm_output_flags(usTable); printf("\n");
     if (asmstate.ucItype == ITfloat)
     {
         return asm_match_float_flags(usOp, usTable);
@@ -2996,7 +3000,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
     uRegmaskTable = ASM_GET_uRegmask(usTable);
     bRegmatch = (uRegmaskTable & uRegmaskOp);
 
-    if (!(isOneOf(getOpndSize(usTable) & getOpndSize(usOp)) ||
+    if (!(isOneOf(getOpndSize(usOp), getOpndSize(usTable)) ||
           bRegmatch))
         return false;
 
@@ -3068,34 +3072,20 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
         case _32_8:       s = "_32_8";       break;
         case _32_16:      s = "_32_16";      break;
         case _32_16_8:    s = "_32_16_8";    break;
+        case _48_32:      s = "_48_32";      break;
+        case _48_32_16_8: s = "_48_32_16_8"; break;
         case _64_32:      s = "_64_32";      break;
         case _64_32_8:    s = "_64_32_8";    break;
         case _64_32_16:   s = "_64_32_16";   break;
         case _64_32_16_8: s = "_64_32_16_8"; break;
+//        case _64_48_32_16_8: s = "_64_48_32_16_8"; break;
         case _anysize:    s = "_anysize";    break;
 
         default:
-        assert(0);
+            printf("uSizemask = x%x\n", uSizemask);
+            assert(0);
     }
     printf("%s ", s);
-
-    if (uSizemask == OpndSize._anysize)
-        printf("_anysize ");
-    else if (uSizemask == 0)
-        printf("0        ");
-    else
-    {
-        if (uSizemask & OpndSize._8)
-            printf("_8  ");
-        if (uSizemask & OpndSize._16)
-            printf("_16 ");
-        if (uSizemask & OpndSize._32)
-            printf("_32 ");
-        if (uSizemask & OpndSize._48)
-            printf("_48 ");
-        if (uSizemask & OpndSize._64)
-            printf("_64 ");
-    }
 
     printf("_");
     switch (aopty)
@@ -4447,4 +4437,60 @@ private int ispow2(uint c)
         for (i = 0; c >>= 1; ++i)
         { }
     return i;
+}
+
+
+/*************************************
+ * Returns: true if szop is one of the values in sztbl
+ */
+private
+bool isOneOf(OpndSize szop, OpndSize sztbl)
+{
+    with (OpndSize)
+    {
+        immutable ubyte[OpndSize.max + 1] maskx =
+        [
+            none        : 0,
+
+            _8          : 1,
+            _16         : 2,
+            _32         : 4,
+            _48         : 8,
+            _64         : 16,
+
+            _16_8       : 2  | 1,
+            _32_8       : 4  | 1,
+            _32_16      : 4  | 2,
+            _32_16_8    : 4  | 2 | 1,
+            _48_32      : 8  | 4,
+            _48_32_16_8 : 8  | 4  | 2 | 1,
+            _64_32      : 16 | 4,
+            _64_32_8    : 16 | 4 | 1,
+            _64_32_16   : 16 | 4 | 2,
+            _64_32_16_8 : 16 | 4 | 2 | 1,
+            _64_48_32_16_8 : 16 | 8 | 4 | 2 | 1,
+
+            //_anysize    : 16 | 8 | 4 | 2 | 1,
+        ];
+
+        return (maskx[szop] & maskx[sztbl]) != 0;
+    }
+}
+
+unittest
+{
+    with (OpndSize)
+    {
+        assert( isOneOf(_8, _8));
+        assert(!isOneOf(_8, _16));
+        assert( isOneOf(_8, _16_8));
+        assert( isOneOf(_8, _32_8));
+        assert(!isOneOf(_8, _32_16));
+        assert( isOneOf(_8, _32_16_8));
+        assert(!isOneOf(_8, _64_32));
+        assert( isOneOf(_8, _64_32_8));
+        assert(!isOneOf(_8, _64_32_16));
+        assert( isOneOf(_8, _64_32_16_8));
+        assert( isOneOf(_8, _anysize));
+    }
 }

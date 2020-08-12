@@ -187,6 +187,8 @@ enum
     _m64    = CONSTRUCT_FLAGS(OpndSize._64, _m, _normal, 0 ),
     _m128   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
     _m256   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
+    _m48_32_16_8    = CONSTRUCT_FLAGS(OpndSize._48_32_16_8, _m, _normal, 0 ),
+    _m64_48_32_16_8 = CONSTRUCT_FLAGS(OpndSize._64_48_32_16_8, _m, _normal, 0 ),
     _rm8    = CONSTRUCT_FLAGS(OpndSize._8, _rm, _normal, 0 ),
     _rm16   = CONSTRUCT_FLAGS(OpndSize._16, _rm, _normal, 0 ),
     _rm32   = CONSTRUCT_FLAGS(OpndSize._32, _rm, _normal, 0),
@@ -269,34 +271,31 @@ enum OpndSize : ubyte
 {
     none = 0,
 
-    _8  = 0x1,
-    _16 = 0x2,
-    _32 = 0x4,
-    _48 = 0x8,
-    _64 = 0x10,
+    _8,  // 0x1,
+    _16, // 0x2,
+    _32, // 0x4,
+    _48, // 0x8,
+    _64, // 0x10,
 
-    _16_8       = _16 | _8,
-    _32_8       = _32 | _8,
-    _32_16      = _32 | _16,
-    _32_16_8    = _32 | _16 | _8,
-    _64_32      = _64 | _32,
-    _64_32_8    = _64 | _32 | _8,
-    _64_32_16   = _64 | _32 | _16,
-    _64_32_16_8 = _64 | _32 | _16 | _8,
+    _16_8,       // _16 | _8,
+    _32_8,       // _32 | _8,
+    _32_16,      // _32 | _16,
+    _32_16_8,    // _32 | _16 | _8,
+    _48_32,      // _48 | _32,
+    _48_32_16_8, // _48 | _32 | _16 | _8,
+    _64_32,      // _64 | _32,
+    _64_32_8,    // _64 | _32 | _8,
+    _64_32_16,   // _64 | _32 | _16,
+    _64_32_16_8, // _64 | _32 | _16 | _8,
+    _64_48_32_16_8, // _64 | _48 | _32 | _16 | _8,
 
-    _anysize    = _64 | _48 | _32 | _16 | _8,
+    _anysize = _64_48_32_16_8,    // _64 | _48 | _32 | _16 | _8,
 }
 
 /*************************************
  * Extract OpndSize from opflag_t.
  */
 OpndSize getOpndSize(opflag_t us) { return cast(OpndSize) (us & 0x1F); }
-
-/*************************************
- * Returns: true if sz1 is one of sz2
- */
-bool isOneOf(OpndSize sz1, OpndSize sz2) { return (sz1 & sz2) != 0; }
-bool isOneOf(int sz) { return sz != 0; }
 
 // For aopty (3 bits)
 alias ASM_OPERAND_TYPE = uint;

@@ -191,7 +191,7 @@ PTRNTAB1[3] aptb1INT= /* INT */ [
         { ASM_END }
 ];
 PTRNTAB1[2] aptb1INVLPG = /* INVLPG */ [         // 486 only instruction
-        { 0x0f01,       _I386|_7, _m8 | _m16 | _m32 | _m48 },
+        { 0x0f01,       _I386|_7, _m48_32_16_8 },
         { ASM_END }
 ];
 
@@ -588,9 +588,9 @@ PTRNTAB2[3]  aptb2LDS = /* LDS */ [
 ];
 
 PTRNTAB2[7]  aptb2LEA = /* LEA */ [
-        { 0x8d, _r|_16_bit,             _r16,   _m8 | _m16 | _m32 | _m48 },
-        { 0x8d, _r|_32_bit,             _r32,   _m8 | _m16 | _m32 | _m48 },
-        { 0x8d, _r|_64_bit,             _r64,   _m8 | _m16 | _m32 | _m48 | _m64 },
+        { 0x8d, _r|_16_bit,             _r16,   _m48_32_16_8 },
+        { 0x8d, _r|_32_bit,             _r32,   _m48_32_16_8 },
+        { 0x8d, _r|_64_bit,             _r64,   _m64_48_32_16_8 },
         { 0x8d, _r|_16_bit,             _r16,   _rel16 },
         { 0x8d, _r|_32_bit,             _r32,   _rel32 },
         { 0x8d, _r|_64_bit,             _r64,   _rel32 },
