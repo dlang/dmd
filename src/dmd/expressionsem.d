@@ -8564,7 +8564,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if ((cast(VarExp)exp.e1).var is (cast(VarExp)exp.e2).var)
             {
-                exp.deprecation("self-assignment of variables is deprecated");
+                // TODO borrow logic in `__traits(isSame)`
+                // TODO if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
+                exp.warning("assignment of `%s` to itself has no side-effect", exp.e1.toChars());
             }
         }
 
