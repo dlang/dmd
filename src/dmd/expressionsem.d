@@ -8565,7 +8565,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if ((cast(VarExp)exp.e1).var.ident is
                 (cast(VarExp)exp.e2).var.ident)
             {
-                exp.error("self-assignment of variables is not allowed");
+                exp.deprecation("self-assignment of variables is not allowed");
             }
         }
 
