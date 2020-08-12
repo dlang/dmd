@@ -556,7 +556,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 
     static size_t dim(Parameters *parameters);
-    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
+    static Parameter *getNth(Parameters *parameters, d_size_t nth);
     const char *toChars() const;
     bool isCovariant(bool returnByRef, const Parameter *p) const;
 };
