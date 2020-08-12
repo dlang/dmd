@@ -8565,8 +8565,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if ((cast(VarExp)exp.e1).var is (cast(VarExp)exp.e2).var)
             {
                 // TODO borrow logic in `__traits(isSame)`
-                // TODO if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
-                exp.warning("assignment of `%s` to itself has no side-effect", exp.e1.toChars());
+                if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
+                {
+                    exp.warning("assignment of `%s` to itself has no side-effect", exp.e1.toChars());
+                }
+                else if (true) // TODO: if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
+                {
+                    // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
+                }
             }
         }
 
