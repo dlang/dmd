@@ -3426,7 +3426,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             if (fd_aaLen is null)
             {
                 auto fparams = new Parameters();
-                fparams.push(new Parameter(STC.in_, mt, null, null, null));
+                fparams.push(new Parameter(STC.const_ | STC.scope_, mt, null, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PURE.const_;
