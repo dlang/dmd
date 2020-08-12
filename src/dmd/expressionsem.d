@@ -8558,6 +8558,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
+        if (exp.op == TOK.assign &&
+            exp.e1.op == TOK.variable &&
+            exp.e2.op == TOK.variable)
+        {
+            if ((cast(VarExp)exp.e1).var.ident is
+                (cast(VarExp)exp.e2).var.ident)
+            {
+                exp.error("self-assignment of variables is not allowed");
+            }
+        }
+
         if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
             exp.e1.checkSharedAccess(sc);
 
