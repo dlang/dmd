@@ -413,9 +413,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     fd = search_function(ad, id);
                     if (fd)
                     {
-                        // @@@DEPRECATED_2.094@@@.
+                        // @@@DEPRECATED_2.098@@@.
                         // Deprecated in 2.088
-                        // Make an error in 2.094
+                        // Make an error in 2.098
                         e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
                         // Rewrite +e1 as e1.add()
                         result = build_overload(e.loc, sc, e.e1, null, fd);
@@ -684,9 +684,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     s = search_function(ad1, id);
                     if (s && id != Id.assign)
                     {
-                        // @@@DEPRECATED_2.094@@@.
+                        // @@@DEPRECATED_2.098@@@.
                         // Deprecated in 2.088
-                        // Make an error in 2.094
+                        // Make an error in 2.098
                         if (id == Id.postinc || id == Id.postdec)
                             e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
                         else
@@ -703,9 +703,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                         s_r = null;
                     if (s_r)
                     {
-                        // @@@DEPRECATED_2.094@@@.
+                        // @@@DEPRECATED_2.098@@@.
                         // Deprecated in 2.088
-                        // Make an error in 2.094
+                        // Make an error in 2.098
                         e.deprecation("`%s` is deprecated.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), Token.toChars(e.op));
                     }
                 }
@@ -1264,9 +1264,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 s = search_function(ad1, id);
                 if (s)
                 {
-                    // @@@DEPRECATED_2.094@@@.
+                    // @@@DEPRECATED_2.098@@@.
                     // Deprecated in 2.088
-                    // Make an error in 2.094
+                    // Make an error in 2.098
                     scope char[] op = Token.toString(e.op).dup;
                     op[$-1] = '\0'; // remove trailing `=`
                     e.deprecation("`%s` is deprecated.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
