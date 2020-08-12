@@ -6068,35 +6068,48 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             /* The stringTab pools common strings within an object file.
              * Win32 and Win64 use COMDATs to pool common strings across object files.
              */
-            import dmd.root.outbuffer : OutBuffer;
-            import dmd.dmangle;
-
-            scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
-
             /* VC++ uses a name mangling scheme, for example, "hello" is mangled to:
              * ??_C@_05CJBACGMB@hello?$AA@
              *        ^ length
              *         ^^^^^^^^ 8 byte checksum
              * But the checksum algorithm is unknown. Just invent our own.
              */
+
+            import dmd.root.outbuffer : OutBuffer;
             OutBuffer buf;
             buf.writestring("__");
-            mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
 
-            if (buf.length >= 32 + 2)
-            {   // Replace long string with hash of that string
+            void printHash()
+            {
+                // Replace long string with hash of that string
                 import dmd.backend.md5;
                 MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
-                MD5Update(&mdContext, cast(ubyte*)buf.peekChars(), cast(uint)buf.length);
+                MD5Update(&mdContext, cast(ubyte*)str, cast(uint)(len * sz));
                 MD5Final(&mdContext);
-                buf.setsize(2);
                 foreach (u; mdContext.digest)
                 {
                     ubyte u1 = u >> 4;
                     buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
                     u1 = u & 0xF;
                     buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+                }
+            }
+
+            const mangleMinLen = 14; // mangling: "__a14_(14*2 chars)" = 6+14*2 = 34
+
+            if (len >= mangleMinLen) // long mangling for sure, use hash
+                printHash();
+            else
+            {
+                import dmd.dmangle;
+                scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
+                mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
+
+                if (buf.length >= 32 + 2)   // long mangling, replace with hash
+                {
+                    buf.setsize(2);
+                    printHash();
                 }
             }
 
