@@ -1133,17 +1133,21 @@ extern (C++) class FuncDeclaration : Declaration
     /***********************************
      * Determine lexical level difference from `this` to nested function `fd`.
      * Issue error if `this` cannot call `fd`.
+     *
      * Params:
      *      loc = location for error messages
      *      sc = context
      *      fd = target of call
+     *      decl = The `Declaration` that triggered this check.
+     *             Used to provide a better error message only.
      * Returns:
      *      0       same level
      *      >0      decrease nesting by number
      *      -1      increase nesting by 1 (`fd` is nested within 'this')
      *      LevelError  error
      */
-    final int getLevelAndCheck(const ref Loc loc, Scope* sc, FuncDeclaration fd)
+    final int getLevelAndCheck(const ref Loc loc, Scope* sc, FuncDeclaration fd,
+                               Declaration decl)
     {
         int level = getLevel(fd, sc.intypeof);
         if (level != LevelError)
@@ -1152,10 +1156,12 @@ extern (C++) class FuncDeclaration : Declaration
         // Don't give error if in template constraint
         if (!(sc.flags & SCOPE.constraint))
         {
-            const(char)* xstatic = isStatic() ? "static " : "";
+            const(char)* xstatic = isStatic() ? "`static` " : "";
             // better diagnostics for static functions
-            .error(loc, "%s%s %s cannot access frame of function %s",
-                xstatic, kind(), toPrettyChars(), fd.toPrettyChars());
+            .error(loc, "%s%s `%s` cannot access %s `%s` in frame of function `%s`",
+                   xstatic, kind(), toPrettyChars(), decl.kind(), decl.toChars(),
+                   fd.toPrettyChars());
+                .errorSupplemental(decl.loc, "`%s` declared here", decl.toChars());
             return LevelError;
         }
         return 1;
@@ -1851,7 +1857,7 @@ extern (C++) class FuncDeclaration : Declaration
                     }
                 }
 
-                const lv = fdthis.getLevelAndCheck(loc, sc, fdv);
+                const lv = fdthis.getLevelAndCheck(loc, sc, fdv, this);
                 if (lv == LevelError)
                     return true; // error
                 if (lv == -1)
