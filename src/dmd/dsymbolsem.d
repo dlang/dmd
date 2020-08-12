@@ -6477,6 +6477,8 @@ void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     tempinst.aliasdecl = d;
 
+    TemplateStats.addSpecial(tempdecl);
+
     tempinst.semanticRun = PASS.semanticdone;
 }
 
@@ -6501,6 +6503,8 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fa
     paramscope.pop();
 
     tempinst.aliasdecl = d;
+
+    TemplateStats.addSpecial(tempdecl);
 
     tempinst.semanticRun = PASS.semanticdone;
 }

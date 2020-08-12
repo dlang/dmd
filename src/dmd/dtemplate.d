@@ -8284,6 +8284,8 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
 struct TemplateStats
 {
     __gshared TemplateStats[const void*] stats;
+    /// templates that pass by `aliasInstanceSemantic()` and `aliasSeqInstanceSemantic()`
+    __gshared Array!(TemplateDeclaration) specials;
 
     uint numInstantiations;     // number of instantiations of the template
     uint uniqueInstantiations;  // number of unique instantiations of the template
@@ -8317,6 +8319,24 @@ struct TemplateStats
         else
             stats[cast(const void*) td] = TemplateStats(0, 1);
     }
+
+    /*******************************
+     * Add an instance to the "special" templates
+     */
+    static void addSpecial(TemplateDeclaration td)
+    {
+        if (!global.params.vtemplates || !td)
+            return;
+        if (specials.contains(td))
+            return;
+        specials.push(td);
+        // todo: use a lambda when host compilers of CIs will be ready... (non global template bug)
+        static int cmp(const TemplateDeclaration* a, const TemplateDeclaration* b)
+        {
+            return (*a).ident.toChars().strcmp((*b).ident.toChars());
+        }
+        specials.sort!cmp();
+    }
 }
 
 
@@ -8329,5 +8349,32 @@ void printTemplateStats()
     foreach (td, ref ts; TemplateStats.stats)
     {
         printf("%8u %8u   %s\n", ts.numInstantiations, ts.uniqueInstantiations, (cast(const TemplateDeclaration) td).toChars());
+    }
+
+    if (TemplateStats.specials.length)
+    {
+        const(char)[] line = "\ntemplate(s)";
+        foreach (td; TemplateStats.specials)
+            line ~= " `" ~ td.toString() ~ "`,";
+        line ~= " are excluded because their instantiation follows an optimized path ";
+
+        size_t beg, len;
+        for (size_t i = 0; i < line.length; i++)
+        {
+            immutable bool isSpac = line[i] == ' ';
+            immutable bool isLast = i == line.length - 1;
+            if (isSpac || isLast)
+            {
+                len += i - beg;
+                static immutable char*[2] spec  = ["%s", "%s\n"];
+                       immutable bool newLine   = (len > 80) || isLast;
+
+                printf(spec[newLine], (line[beg .. i] ~ "\0").ptr);
+
+                i   += newLine;
+                len  = newLine ? 0 : len;
+                beg  = i;
+            }
+        }
     }
 }
