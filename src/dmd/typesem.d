@@ -1341,10 +1341,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     }
                 }
 
-                if (fparam.storageClass & (STC.ref_ | STC.lazy_))
-                {
-                }
-                else if (fparam.storageClass & STC.out_)
+                if (fparam.storageClass & STC.out_)
                 {
                     if (ubyte m = fparam.type.mod & (MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild))
                     {
@@ -1494,11 +1491,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
                     if (farg && (fparam.storageClass & STC.ref_))
                     {
-                        if (farg.isLvalue())
-                        {
-                            // ref parameter
-                        }
-                        else
+                        if (!farg.isLvalue())
                             fparam.storageClass &= ~STC.ref_; // value parameter
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STC.autoref;
