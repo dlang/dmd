@@ -8558,21 +8558,56 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
-        if (exp.op == TOK.assign &&
-            exp.e1.op == TOK.variable &&
-            exp.e2.op == TOK.variable)
+        if (exp.op == TOK.assign) // check assignment of variable to itself
         {
-            if ((cast(VarExp)exp.e1).var is (cast(VarExp)exp.e2).var)
+            if (exp.e1.op == TOK.variable &&
+                exp.e2.op == TOK.variable)
             {
-                // TODO borrow logic in `__traits(isSame)`
-                if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
+                if ((cast(VarExp)exp.e1).var is (cast(VarExp)exp.e2).var)
                 {
-                    exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
+                    // TODO borrow logic in `__traits(isSame)`
+                    if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
+                    {
+                        exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
+                    }
+                    else if (true) // TODO: if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
+                    {
+                        // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
+                    }
                 }
-                else if (true) // TODO: if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
+            }
+            else if (exp.e1.op == TOK.star &&
+                     exp.e2.op == TOK.star)
+            {
+                auto p1 = (cast(PtrExp)exp.e1);
+                auto p2 = (cast(PtrExp)exp.e2);
+                auto pe1 = p1.e1;
+                auto pe2 = p2.e1;
+                if (pe1.op == TOK.variable &&
+                    pe2.op == TOK.variable)
                 {
-                    // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
+                    if ((cast(VarExp)pe1).var is (cast(VarExp)pe2).var)
+                    {
+                        // TODO borrow logic in `__traits(isSame)`
+                        if (true) // TODO: if inside aggregate constructor pe1 is a member variable
+                        {
+                            exp.warning("assignment of `%s` to itself has no side effect", pe1.toChars());
+                        }
+                        else if (true) // TODO: if (pe1.hasCopyCtor && pe1.hasPostblit)
+                        {
+                            // TODO: perror("assignment of member `%s` to itself misses initialization", pe1.toChars());
+                        }
+                    }
                 }
+            }
+            else if (exp.e1.op == TOK.and &&
+                     exp.e2.op == TOK.and)
+            {
+                auto p1 = (cast(AddrExp)exp.e1);
+                auto p2 = (cast(AddrExp)exp.e2);
+                auto pe1 = p1.e1;
+                auto pe2 = p2.e1;
+                // TODO need recursion for this
             }
         }
 
