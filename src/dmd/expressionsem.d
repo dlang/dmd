@@ -8567,7 +8567,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // TODO borrow logic in `__traits(isSame)`
                 if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
                 {
-                    exp.warning("assignment of `%s` to itself has no side-effect", exp.e1.toChars());
+                    exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
                 }
                 else if (true) // TODO: if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
                 {
