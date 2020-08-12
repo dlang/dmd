@@ -1249,6 +1249,46 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
         }
 
+        /// Perform semantic on the default argument to a parameter
+        /// Modify the `defaultArg` field of `fparam`, which must not be `null`
+        /// Returns `false` whether an error was encountered.
+        static bool defaultArgSemantic (ref Parameter fparam, Scope* sc)
+        {
+            Expression e = fparam.defaultArg;
+            const isRefOrOut = fparam.isReference();
+            const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
+            if (isRefOrOut && !isAuto)
+            {
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+            }
+            else
+            {
+                e = inferType(e, fparam.type);
+                Initializer iz = new ExpInitializer(e.loc, e);
+                iz = iz.initializerSemantic(sc, fparam.type, INITnointerpret);
+                e = iz.initializerToExpression();
+            }
+            if (e.op == TOK.function_) // https://issues.dlang.org/show_bug.cgi?id=4820
+            {
+                FuncExp fe = cast(FuncExp)e;
+                // Replace function literal with a function symbol,
+                // since default arg expression must be copied when used
+                // and copying the literal itself is wrong.
+                e = new VarExp(e.loc, fe.fd, false);
+                e = new AddrExp(e.loc, e);
+                e = e.expressionSemantic(sc);
+            }
+            e = e.implicitCastTo(sc, fparam.type);
+
+            // default arg must be an lvalue
+            if (isRefOrOut && !isAuto)
+                e = e.toLvalue(sc, e);
+
+            fparam.defaultArg = e;
+            return (e.op != TOK.error);
+        }
+
         ubyte wildparams = 0;
         if (tf.parameterList.parameters)
         {
@@ -1283,6 +1323,73 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 }
 
                 Type t = fparam.type.toBasetype();
+
+                /* If fparam after semantic() turns out to be a tuple, the number of parameters may
+                 * change.
+                 */
+                if (auto tt = t.isTypeTuple())
+                {
+                    /* TypeFunction::parameter also is used as the storage of
+                     * Parameter objects for FuncDeclaration. So we should copy
+                     * the elements of TypeTuple::arguments to avoid unintended
+                     * sharing of Parameter object among other functions.
+                     */
+                    if (tt.arguments && tt.arguments.dim)
+                    {
+                        /* Propagate additional storage class from tuple parameters to their
+                         * element-parameters.
+                         * Make a copy, as original may be referenced elsewhere.
+                         */
+                        size_t tdim = tt.arguments.dim;
+                        auto newparams = new Parameters(tdim);
+                        for (size_t j = 0; j < tdim; j++)
+                        {
+                            Parameter narg = (*tt.arguments)[j];
+
+                            // https://issues.dlang.org/show_bug.cgi?id=12744
+                            // If the storage classes of narg
+                            // conflict with the ones in fparam, it's ignored.
+                            StorageClass stc  = fparam.storageClass | narg.storageClass;
+                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            if (stc1 && stc2 && stc1 != stc2)
+                            {
+                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
+                                OutBuffer buf2;  stcToBuffer(&buf2, stc2);
+
+                                .error(loc, "incompatible parameter storage classes `%s` and `%s`",
+                                    buf1.peekChars(), buf2.peekChars());
+                                errors = true;
+                                stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
+                            }
+
+                            /* https://issues.dlang.org/show_bug.cgi?id=18572
+                             *
+                             * If a tuple parameter has a default argument, when expanding the parameter
+                             * tuple the default argument tuple must also be expanded.
+                             */
+                            if (fparam.defaultArg)
+                                if (!defaultArgSemantic(fparam, argsc))
+                                    errors = true;
+                            Expression paramDefaultArg = narg.defaultArg;
+                            TupleExp te = fparam.defaultArg ? fparam.defaultArg.isTupleExp() : null;
+                            if (te && te.exps && te.exps.length)
+                                paramDefaultArg = (*te.exps)[j];
+
+                            (*newparams)[j] = new Parameter(
+                                stc, narg.type, narg.ident, paramDefaultArg, narg.userAttribDecl);
+                        }
+                        fparam.type = new TypeTuple(newparams);
+                    }
+                    fparam.storageClass = STC.parameter;
+
+                    /* Reset number of parameters, and back up one to do this fparam again,
+                     * now that it is a tuple
+                     */
+                    dim = tf.parameterList.length;
+                    i--;
+                    continue;
+                }
 
                 if (t.ty == Tfunction)
                 {
@@ -1367,106 +1474,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 }
 
                 if (fparam.defaultArg)
-                {
-                    Expression e = fparam.defaultArg;
-                    const isRefOrOut = fparam.isReference();
-                    const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
-                    if (isRefOrOut && !isAuto)
-                    {
-                        e = e.expressionSemantic(argsc);
-                        e = resolveProperties(argsc, e);
-                    }
-                    else
-                    {
-                        e = inferType(e, fparam.type);
-                        Initializer iz = new ExpInitializer(e.loc, e);
-                        iz = iz.initializerSemantic(argsc, fparam.type, INITnointerpret);
-                        e = iz.initializerToExpression();
-                    }
-                    if (e.op == TOK.function_) // https://issues.dlang.org/show_bug.cgi?id=4820
-                    {
-                        FuncExp fe = cast(FuncExp)e;
-                        // Replace function literal with a function symbol,
-                        // since default arg expression must be copied when used
-                        // and copying the literal itself is wrong.
-                        e = new VarExp(e.loc, fe.fd, false);
-                        e = new AddrExp(e.loc, e);
-                        e = e.expressionSemantic(argsc);
-                    }
-                    e = e.implicitCastTo(argsc, fparam.type);
-
-                    // default arg must be an lvalue
-                    if (isRefOrOut && !isAuto)
-                        e = e.toLvalue(argsc, e);
-
-                    fparam.defaultArg = e;
-                    if (e.op == TOK.error)
+                    if (!defaultArgSemantic(fparam, argsc))
                         errors = true;
-                }
-
-                /* If fparam after semantic() turns out to be a tuple, the number of parameters may
-                 * change.
-                 */
-                if (auto tt = t.isTypeTuple())
-                {
-                    /* TypeFunction::parameter also is used as the storage of
-                     * Parameter objects for FuncDeclaration. So we should copy
-                     * the elements of TypeTuple::arguments to avoid unintended
-                     * sharing of Parameter object among other functions.
-                     */
-                    if (tt.arguments && tt.arguments.dim)
-                    {
-                        /* Propagate additional storage class from tuple parameters to their
-                         * element-parameters.
-                         * Make a copy, as original may be referenced elsewhere.
-                         */
-                        size_t tdim = tt.arguments.dim;
-                        auto newparams = new Parameters(tdim);
-                        for (size_t j = 0; j < tdim; j++)
-                        {
-                            Parameter narg = (*tt.arguments)[j];
-
-                            // https://issues.dlang.org/show_bug.cgi?id=12744
-                            // If the storage classes of narg
-                            // conflict with the ones in fparam, it's ignored.
-                            StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            if (stc1 && stc2 && stc1 != stc2)
-                            {
-                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
-                                OutBuffer buf2;  stcToBuffer(&buf2, stc2);
-
-                                .error(loc, "incompatible parameter storage classes `%s` and `%s`",
-                                    buf1.peekChars(), buf2.peekChars());
-                                errors = true;
-                                stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
-                            }
-
-                            /* https://issues.dlang.org/show_bug.cgi?id=18572
-                             *
-                             * If a tuple parameter has a default argument, when expanding the parameter
-                             * tuple the default argument tuple must also be expanded.
-                             */
-                            Expression paramDefaultArg = narg.defaultArg;
-                            TupleExp te = fparam.defaultArg ? fparam.defaultArg.isTupleExp() : null;
-                            if (te && te.exps && te.exps.length)
-                                paramDefaultArg = (*te.exps)[j];
-
-                            (*newparams)[j] = new Parameter(
-                                stc, narg.type, narg.ident, paramDefaultArg, narg.userAttribDecl);
-                        }
-                        fparam.type = new TypeTuple(newparams);
-                    }
-                    fparam.storageClass = STC.parameter;
-
-                    /* Reset number of parameters, and back up one to do this fparam again,
-                     * now that it is a tuple
-                     */
-                    dim = tf.parameterList.length;
-                    i--;
-                    continue;
-                }
 
                 if (fparam.storageClass & STC.scope_ && !fparam.type.hasPointers())
                 {
