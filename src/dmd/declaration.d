@@ -1597,7 +1597,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("\tfdthis = %s\n", fdthis.toChars());
         if (loc.isValid())
         {
-            if (fdthis.getLevelAndCheck(loc, sc, fdv) == fdthis.LevelError)
+            if (fdthis.getLevelAndCheck(loc, sc, fdv, this) == fdthis.LevelError)
                 return true;
         }
 
