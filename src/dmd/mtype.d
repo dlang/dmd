@@ -6762,14 +6762,22 @@ extern (C++) final class Parameter : ASTNode
         return nargs;
     }
 
-    /***************************************
-     * Get nth Parameter, folding in tuples.
+    /**
+     * Get nth `Parameter`, folding in tuples.
+     *
+     * Since `parameters` can include tuples, which would increase its
+     * length, this function allows to get the `nth` parameter as if
+     * all tuples transitively contained in `parameters` were flattened.
+     *
+     * Params:
+     *   parameters = Array of `Parameter` to iterate over
+     *   nth = Index of the desired parameter.
+     *
      * Returns:
-     *      Parameter*      nth Parameter
-     *      NULL            not found, *pn gets incremented by the number
-     *                      of Parameters
+     *   The parameter at index `nth` (taking tuples into account),
+     *   or `null` if out of bound.
      */
-    static Parameter getNth(Parameters* parameters, size_t nth, size_t* pn = null)
+    static Parameter getNth(Parameters* parameters, size_t nth)
     {
         Parameter param;
 

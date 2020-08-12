@@ -634,14 +634,14 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
 /******************************************
  * Perform semantic analysis on a type.
  * Params:
- *      t = Type AST node
+ *      type = Type AST node
  *      loc = the location of the type
  *      sc = context
  * Returns:
  *      `Type` with completed semantic analysis, `Terror` if errors
  *      were encountered
  */
-extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
+extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 {
     static Type error()
     {
@@ -1341,10 +1341,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
                     }
                 }
 
-                if (fparam.storageClass & (STC.ref_ | STC.lazy_))
-                {
-                }
-                else if (fparam.storageClass & STC.out_)
+                if (fparam.storageClass & STC.out_)
                 {
                     if (ubyte m = fparam.type.mod & (MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild))
                     {
@@ -1494,11 +1491,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
                     Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
                     if (farg && (fparam.storageClass & STC.ref_))
                     {
-                        if (farg.isLvalue())
-                        {
-                            // ref parameter
-                        }
-                        else
+                        if (!farg.isLvalue())
                             fparam.storageClass &= ~STC.ref_; // value parameter
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STC.autoref;
@@ -1933,28 +1926,28 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
         return error();
     }
 
-    switch (t.ty)
+    switch (type.ty)
     {
-        default:         return visitType(t);
-        case Tvector:    return visitVector(cast(TypeVector)t);
-        case Tsarray:    return visitSArray(cast(TypeSArray)t);
-        case Tarray:     return visitDArray(cast(TypeDArray)t);
-        case Taarray:    return visitAArray(cast(TypeAArray)t);
-        case Tpointer:   return visitPointer(cast(TypePointer)t);
-        case Treference: return visitReference(cast(TypeReference)t);
-        case Tfunction:  return visitFunction(cast(TypeFunction)t);
-        case Tdelegate:  return visitDelegate(cast(TypeDelegate)t);
-        case Tident:     return visitIdentifier(cast(TypeIdentifier)t);
-        case Tinstance:  return visitInstance(cast(TypeInstance)t);
-        case Ttypeof:    return visitTypeof(cast(TypeTypeof)t);
-        case Ttraits:    return visitTraits(cast(TypeTraits)t);
-        case Treturn:    return visitReturn(cast(TypeReturn)t);
-        case Tstruct:    return visitStruct(cast(TypeStruct)t);
-        case Tenum:      return visitEnum(cast(TypeEnum)t);
-        case Tclass:     return visitClass(cast(TypeClass)t);
-        case Ttuple:     return visitTuple (cast(TypeTuple)t);
-        case Tslice:     return visitSlice(cast(TypeSlice)t);
-        case Tmixin:     return visitMixin(cast(TypeMixin)t);
+        default:         return visitType(type);
+        case Tvector:    return visitVector(cast(TypeVector)type);
+        case Tsarray:    return visitSArray(cast(TypeSArray)type);
+        case Tarray:     return visitDArray(cast(TypeDArray)type);
+        case Taarray:    return visitAArray(cast(TypeAArray)type);
+        case Tpointer:   return visitPointer(cast(TypePointer)type);
+        case Treference: return visitReference(cast(TypeReference)type);
+        case Tfunction:  return visitFunction(cast(TypeFunction)type);
+        case Tdelegate:  return visitDelegate(cast(TypeDelegate)type);
+        case Tident:     return visitIdentifier(cast(TypeIdentifier)type);
+        case Tinstance:  return visitInstance(cast(TypeInstance)type);
+        case Ttypeof:    return visitTypeof(cast(TypeTypeof)type);
+        case Ttraits:    return visitTraits(cast(TypeTraits)type);
+        case Treturn:    return visitReturn(cast(TypeReturn)type);
+        case Tstruct:    return visitStruct(cast(TypeStruct)type);
+        case Tenum:      return visitEnum(cast(TypeEnum)type);
+        case Tclass:     return visitClass(cast(TypeClass)type);
+        case Ttuple:     return visitTuple (cast(TypeTuple)type);
+        case Tslice:     return visitSlice(cast(TypeSlice)type);
+        case Tmixin:     return visitMixin(cast(TypeMixin)type);
     }
 }
 
