@@ -3308,6 +3308,19 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
             lr = cast(Ledatarec*)SegData[seg].ledata;
             if (lr.i + nbytes <= LEDATAMAX)
                 goto L1;
+            if (lr.i == LEDATAMAX)
+            {
+                while (nbytes > LEDATAMAX)  // start writing full ledatas
+                {
+                    lr = ledata_new(seg, offset);
+                    memcpy(lr.data.ptr, p, LEDATAMAX);
+                    p = (cast(char *)p) + LEDATAMAX;
+                    nbytes -= LEDATAMAX;
+                    offset += LEDATAMAX;
+                    lr.i = LEDATAMAX;
+                }
+                goto L1;
+            }
         }
     }
     else
