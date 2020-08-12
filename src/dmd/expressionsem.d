@@ -8562,7 +8562,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1.op == TOK.variable &&
             exp.e2.op == TOK.variable)
         {
-            if ((cast(VarExp)exp.e1).var.ident.var.equals((cast(VarExp)exp.e2).var.ident))
+            if ((cast(VarExp)exp.e1).var.equals((cast(VarExp)exp.e2).var))
             {
                 exp.deprecation("self-assignment of variables is not allowed");
             }
