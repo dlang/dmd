@@ -2515,11 +2515,17 @@ Expression isSameVarExp(Expression e1, Expression e2) // TODO better function na
     else if (e1.op == TOK.symbolOffset &&
              e2.op == TOK.symbolOffset)
     {
+        e1.loc.message("two symbolOffset");
         auto se1 = (cast(SymOffExp)e1);
         auto se2 = (cast(SymOffExp)e2);
         if (se1.var is
             se2.var)
             return se1;
+    }
+    else if (e1.op == TOK.address && // TODO can this case happen?
+             e2.op == TOK.address)
+    {
+        e1.loc.message("two address");
     }
     return null;
 }
