@@ -1659,6 +1659,7 @@ private bool checkDefCtor(Loc loc, Type t)
 private bool hasAssignmentWithSideEffect(Type t)
 {
     t = t.baseElemOf();
+    // TODO break out into function `hasPostblit` in `dmd.traits`
     if (t.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
@@ -2492,6 +2493,51 @@ private Module loadStdMath()
         impStdMath = s;
     }
     return impStdMath.mod;
+}
+
+Expression isSameVarExp(Expression e1, Expression e2) // TODO better function name?
+{
+    if (e1.op == TOK.variable &&
+        e2.op == TOK.variable)
+    {
+        auto ve1 = (cast(VarExp)e1);
+        auto ve2 = (cast(VarExp)e2);
+        if (ve1.var is
+            ve2.var)
+            return ve1;
+    }
+    else if (e1.op == TOK.star &&
+             e2.op == TOK.star)
+    {
+        return isSameVarExp((cast(PtrExp)e1).e1,
+                            (cast(PtrExp)e2).e1);
+    }
+    else if (e1.op == TOK.symbolOffset &&
+             e2.op == TOK.symbolOffset)
+    {
+        auto se1 = (cast(SymOffExp)e1);
+        auto se2 = (cast(SymOffExp)e2);
+        if (se1.var is
+            se2.var)
+            return se1;
+    }
+    return null;
+}
+
+private void checkSelfAssignment(AssignExp exp, Scope* sc)
+{
+    if (exp.op != TOK.assign)
+        return;
+
+    if (auto ve1 = isSameVarExp(exp.e1, exp.e2))
+    {
+        if (true) // TODO: if `sc` is inside aggregate constructor exp.e1 of a struct member variable
+        {
+            // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
+        }
+        if (!ve1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
+            exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
+    }
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -8575,56 +8621,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
-        if (exp.op == TOK.assign) // check assignment of variable to itself
-        {
-            if (exp.e1.op == TOK.variable &&
-                exp.e2.op == TOK.variable)
-            {
-                auto v1 = (cast(VarExp)exp.e1).var;
-                auto v2 = (cast(VarExp)exp.e1).var;
-                if (v1 is v2)
-                {
-                    if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
-                    {
-                        // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
-                    }
-                    if (!v1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
-                        exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
-                }
-            }
-            else if (exp.e1.op == TOK.star &&
-                     exp.e2.op == TOK.star)
-            {
-                auto p1 = (cast(PtrExp)exp.e1);
-                auto p2 = (cast(PtrExp)exp.e2);
-                auto pe1 = p1.e1;
-                auto pe2 = p2.e1;
-                if (pe1.op == TOK.variable &&
-                    pe2.op == TOK.variable)
-                {
-                    auto v1 = (cast(VarExp)exp.e1).var;
-                    auto v2 = (cast(VarExp)exp.e1).var;
-                    if (v1 is v2)
-                    {
-                        if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
-                        {
-                            // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
-                        }
-                        if (!v1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
-                            exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
-                    }
-                }
-            }
-            else if (exp.e1.op == TOK.and &&
-                     exp.e2.op == TOK.and)
-            {
-                auto p1 = (cast(AddrExp)exp.e1);
-                auto p2 = (cast(AddrExp)exp.e2);
-                auto pe1 = p1.e1;
-                auto pe2 = p2.e1;
-                // TODO need recursion for this
-            }
-        }
+        if (exp.op == TOK.assign)
+            exp.checkSelfAssignment(sc);
 
         if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
             exp.e1.checkSharedAccess(sc);
