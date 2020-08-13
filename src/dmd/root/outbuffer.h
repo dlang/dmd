@@ -62,6 +62,8 @@ public:
     void fill0(d_size_t nbytes);
     void vprintf(const char *format, va_list args);
     void printf(const char *format, ...);
+    void print(uint64_t u);
+    void printHex(uint64_t u, unsigned mw = 0);
     void bracket(char left, char right);
     d_size_t bracket(d_size_t i, const char *left, d_size_t j, const char *right);
     void spread(d_size_t offset, d_size_t nbytes);

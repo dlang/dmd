@@ -448,6 +448,15 @@ void test_outbuffer()
     const char *data = buf.extractChars();
     assert(buf.length() == 0);
     assert(strcmp(data, "hello hello \n") == 0);
+
+    buf.reset();
+    buf.print(12345);
+    assert(strcmp(buf.peekChars(), "12345") == 0);
+    buf.reset();
+    buf.printHex(123456789999);
+    buf.writeByte('_');
+    buf.printHex(123456789999, 20);
+    assert(strcmp(buf.peekChars(), "1cbe991def_00000000001cbe991def") == 0);
 }
 
 /**********************************/

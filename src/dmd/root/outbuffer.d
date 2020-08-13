@@ -12,6 +12,7 @@
 module dmd.root.outbuffer;
 
 import core.stdc.stdarg;
+import core.stdc.stdint;
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.root.rmem;
@@ -379,11 +380,27 @@ struct OutBuffer
      * Params:
      *  u = integral value to append
      */
-    extern (C++) void print(ulong u) pure nothrow
+    extern (C++) void print(uint64_t u) pure nothrow
     {
         //import core.internal.string;  // not available
         UnsignedStringBuf buf = void;
         writestring(unsignedToTempString(u, buf));
+    }
+
+    /**************************************
+     * Convert `u` to a hex string and append it to the buffer.
+     * Params:
+     *  u = integral value to append
+     *  mw = min width with zero padding (e.g. u=255, mw=8 : '000000ff')
+     */
+    extern (C++) void printHex(uint64_t u, uint mw = 0) pure nothrow
+    {
+        UnsignedStringBuf buf = '0';
+        if(mw > buf.length)
+            mw = buf.length;
+        const hex = unsignedToTempString(u, buf, 16);
+        const start = hex.length < mw ? buf.length - mw : buf.length - hex.length;
+        writestring(buf[start .. $]);
     }
 
     extern (C++) void bracket(char left, char right) pure nothrow
@@ -591,4 +608,26 @@ unittest
 
     s = unsignedToTempString(29, buf[], 16);
     assert(s == "1d");
+}
+
+unittest
+{
+    OutBuffer buf;
+
+    buf.print(12_345);
+    assert(strcmp(buf.peekChars(), "12345") == 0);
+    buf.reset();
+    buf.printHex(0);
+    buf.writeByte('_');
+    buf.printHex(0, 4);
+    buf.writeByte('_');
+    buf.printHex(255);
+    buf.writeByte('_');
+    buf.printHex(255, 6);
+    assert(strcmp(buf.peekChars(), "0_0000_ff_0000ff") == 0);
+    buf.reset();
+    buf.printHex(123_456_789_999);
+    buf.writeByte('_');
+    buf.printHex(123_456_789_999, 20);
+    assert(strcmp(buf.peekChars(), "1cbe991def_00000000001cbe991def") == 0);
 }
