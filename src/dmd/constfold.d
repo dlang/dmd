@@ -672,22 +672,22 @@ UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2)
     case Tuns8:
     case Tchar:
         // Possible only with >>>=. >>> always gets promoted to int.
-        value = (value & 0xFF) >> count;
+        value = (value & 0xFF) >>> count;
         break;
     case Tint16:
     case Tuns16:
     case Twchar:
         // Possible only with >>>=. >>> always gets promoted to int.
-        value = (value & 0xFFFF) >> count;
+        value = (value & 0xFFFF) >>> count;
         break;
     case Tint32:
     case Tuns32:
     case Tdchar:
-        value = (value & 0xFFFFFFFF) >> count;
+        value = (value & 0xFFFFFFFF) >>> count;
         break;
     case Tint64:
     case Tuns64:
-        value = cast(d_uns64)value >> count;
+        value = value >>> count;
         break;
     case Terror:
         emplaceExp!(ErrorExp)(&ue);
