@@ -2497,30 +2497,25 @@ private Module loadStdMath()
 
 Expression isSameVarExp(Expression e1, Expression e2) // TODO better function name?
 {
-    if (e1.op == TOK.variable &&
-        e2.op == TOK.variable)
+    if (auto ve1 = e1.isVarExp())
     {
-        auto ve1 = (cast(VarExp)e1);
-        auto ve2 = (cast(VarExp)e2);
-        if (ve1.var is
-            ve2.var)
-            return ve1;
+        if (auto ve2 = e2.isVarExp())
+            if (ve1.var is
+                ve2.var)
+                return ve1;
     }
-    else if (e1.op == TOK.star &&
-             e2.op == TOK.star)
+    else if (auto pe1 = e1.isPtrExp())
     {
-        return isSameVarExp((cast(PtrExp)e1).e1,
-                            (cast(PtrExp)e2).e1);
+        if (auto pe2 = e2.isPtrExp())
+            return isSameVarExp(pe1.e1,
+                                pe2.e1);
     }
-    else if (e1.op == TOK.symbolOffset &&
-             e2.op == TOK.symbolOffset)
+    else if (auto se1 = e1.isSymOffExp())
     {
-        e1.loc.message("two symbolOffset");
-        auto se1 = (cast(SymOffExp)e1);
-        auto se2 = (cast(SymOffExp)e2);
-        if (se1.var is
-            se2.var)
-            return se1;
+        if (auto se2 = e2.isSymOffExp())
+            if (se1.var is
+                se2.var)
+                return se1;
     }
     else if (e1.op == TOK.address && // TODO can this case happen?
              e2.op == TOK.address)
@@ -2535,14 +2530,23 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
     if (exp.op != TOK.assign)
         return;
 
-    if (auto ve1 = isSameVarExp(exp.e1, exp.e2))
+    if (auto ve1 = exp.e1.isSameVarExp(exp.e2))
     {
-        if (true) // TODO: if `sc` is inside aggregate constructor exp.e1 of a struct member variable
-        {
-            // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
-        }
         if (!ve1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
-            exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
+        {
+            if (auto va1 = ve1.isVarExp())
+            {
+                // isMemberDecl
+                va1.loc.message("%s", va1.toChars());
+                va1.var.parent.loc.message("%s", va1.var.parent.toChars());
+                if (auto parent = va1.var.parent.isAggregateDeclaration())
+                    parent.loc.message("%s", parent.toChars());
+            }
+            if (CtorDeclaration ctd = sc.parent.isCtorDeclaration()) // TODO: a struct member variable
+                exp.error("constructor initialization of member `%s` to itself", exp.e1.toChars());
+            else
+                exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
+        }
     }
 }
 
