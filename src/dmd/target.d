@@ -785,7 +785,7 @@ extern (C++) struct Target
                 }
                 return stringExp("");
             case cppStd.stringof:
-                return new IntegerExp(cast(uint)global.params.cplusplus);
+                return new IntegerExp(global.params.cplusplus);
 
             default:
                 return null;
