@@ -895,11 +895,11 @@ static if (ELFOBJ || MACHOBJ)
              */
             Symbol *fdesym;
             {
-                const size_t len = strlen(sfunc.Sident.ptr);
+                const size_t len = strlen(getSymName(sfunc));
                 char *name = cast(char *)malloc(len + 3 + 1);
                 if (!name)
                     err_nomem();
-                memcpy(name, sfunc.Sident.ptr, len);
+                memcpy(name, getSymName(sfunc), len);
                 memcpy(name + len, ".eh".ptr, 3 + 1);
                 fdesym = symbol_name(name, SCglobal, tspvoid);
                 Obj.pubdef(dfseg, fdesym, startsize);
@@ -1664,12 +1664,7 @@ static if (ELFOBJ || MACHOBJ)
             debug_info.buf.write32(idxsibling);       // DW_AT_sibling
         }
 
-        const(char)* name;
-
-        version (MARS)
-            name = sfunc.prettyIdent ? sfunc.prettyIdent : sfunc.Sident.ptr;
-        else
-            name = sfunc.Sident.ptr;
+        const(char)* name = getSymName(sfunc);
 
         debug_info.buf.writeString(name);             // DW_AT_name
         debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
@@ -1722,7 +1717,7 @@ static if (ELFOBJ || MACHOBJ)
                         uint tidx = dwarf_typidx(sa.Stype);
 
                         debug_info.buf.writeuLEB128(vcode);           // abbreviation code
-                        debug_info.buf.writeString(sa.Sident.ptr);       // DW_AT_name
+                        debug_info.buf.writeString(getSymName(sa));   // DW_AT_name
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
                         soffset = cast(uint)debug_info.buf.length();
@@ -1791,8 +1786,7 @@ static if (ELFOBJ || MACHOBJ)
         /* ============= debug_pubnames =========================== */
 
         debug_pubnames.buf.write32(infobuf_offset);
-        // Should be the fully qualified name, not the simple DW_AT_name
-        debug_pubnames.buf.writeString(sfunc.Sident.ptr);
+        debug_pubnames.buf.writeString(name);
 
         /* ============= debug_aranges =========================== */
 
@@ -1894,7 +1888,7 @@ static if (ELFOBJ || MACHOBJ)
                 code = dwarf_abbrev_code(abuf.buf, abuf.length());
 
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString(s.Sident.ptr);    // DW_AT_name
+                debug_info.buf.writeString(getSymName(s));// DW_AT_name
                 debug_info.buf.write32(typidx);           // DW_AT_type
                 debug_info.buf.writeByte(1);              // DW_AT_external
 
@@ -2602,7 +2596,7 @@ static if (ELFOBJ || MACHOBJ)
                     code = dwarf_abbrev_code(abbrevTypeStruct1.ptr, (abbrevTypeStruct1).sizeof);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(s.Sident.ptr);        // DW_AT_name
+                    debug_info.buf.writeString(getSymName(s));    // DW_AT_name
                     debug_info.buf.writeByte(1);                  // DW_AT_declaration
                     break;                  // don't set Stypidx
                 }
@@ -2635,7 +2629,7 @@ static if (ELFOBJ || MACHOBJ)
                     code = dwarf_abbrev_code(abbrevTypeStruct0.ptr, (abbrevTypeStruct0).sizeof);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(s.Sident.ptr);        // DW_AT_name
+                    debug_info.buf.writeString(getSymName(s));    // DW_AT_name
                     debug_info.buf.writeByte(0);                  // DW_AT_byte_size
                 }
                 else
@@ -2673,7 +2667,7 @@ static if (ELFOBJ || MACHOBJ)
 
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(s.Sident.ptr);        // DW_AT_name
+                    debug_info.buf.writeString(getSymName(s));      // DW_AT_name
                     if (sz <= 0xFF)
                         debug_info.buf.writeByte(cast(uint)sz);     // DW_AT_byte_size
                     else if (sz <= 0xFFFF)
@@ -2692,7 +2686,7 @@ static if (ELFOBJ || MACHOBJ)
                         {
                             case SCmember:
                                 debug_info.buf.writeuLEB128(membercode);
-                                debug_info.buf.writeString(sf.Sident.ptr);
+                                debug_info.buf.writeString(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
                                 uint fi = (cast(uint *)fieldidx.buf)[n];
                                 debug_info.buf.write32(fi);
@@ -2757,7 +2751,7 @@ static if (ELFOBJ || MACHOBJ)
                     code = dwarf_abbrev_code(abbrevTypeEnumForward.ptr, abbrevTypeEnumForward.sizeof);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(s.Sident.ptr);        // DW_AT_name
+                    debug_info.buf.writeString(getSymName(s));    // DW_AT_name
                     debug_info.buf.writeByte(1);                  // DW_AT_declaration
                     break;                  // don't set Stypidx
                 }
@@ -2783,7 +2777,7 @@ static if (ELFOBJ || MACHOBJ)
 
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);
-                debug_info.buf.writeString(s.Sident.ptr);    // DW_AT_name
+                debug_info.buf.writeString(getSymName(s));// DW_AT_name
                 debug_info.buf.writeByte(sz);             // DW_AT_byte_size
 
                 foreach (sl2; ListRange(s.Senum.SEenumlist))
@@ -2792,7 +2786,7 @@ static if (ELFOBJ || MACHOBJ)
                     const value = cast(uint)el_tolongt(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);
-                    debug_info.buf.writeString(sf.Sident.ptr);
+                    debug_info.buf.writeString(getSymName(sf)); // DW_AT_name
                     if (tyuns(tbase2.Tty))
                         debug_info.buf.writeuLEB128(value);
                     else
@@ -2830,6 +2824,22 @@ static if (ELFOBJ || MACHOBJ)
             idx = *pidx;
         }
         return idx;
+    }
+
+    /**
+     *  Returns a pretty identifier name from `sym`.
+     *
+     *  Params:
+     *      sym = the symbol which the name comes from
+     *  Returns:
+     *      The identifier name
+     */
+    const(char)* getSymName(Symbol* sym)
+    {
+        version (MARS)
+            return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
+        else
+            return sym.Sident.ptr;
     }
 
     /* ======================= Abbreviation Codes ====================== */
