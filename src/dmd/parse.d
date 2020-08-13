@@ -7736,12 +7736,12 @@ final class Parser(AST) : Lexer
             break;
 
         case TOK.int32Literal:
-            e = new AST.IntegerExp(loc, cast(d_int32)token.intvalue, AST.Type.tint32);
+            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint32);
             nextToken();
             break;
 
         case TOK.uns32Literal:
-            e = new AST.IntegerExp(loc, cast(d_uns32)token.unsvalue, AST.Type.tuns32);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns32);
             nextToken();
             break;
 
@@ -7839,17 +7839,17 @@ final class Parser(AST) : Lexer
             break;
 
         case TOK.charLiteral:
-            e = new AST.IntegerExp(loc, cast(d_uns8)token.unsvalue, AST.Type.tchar);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tchar);
             nextToken();
             break;
 
         case TOK.wcharLiteral:
-            e = new AST.IntegerExp(loc, cast(d_uns16)token.unsvalue, AST.Type.twchar);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.twchar);
             nextToken();
             break;
 
         case TOK.dcharLiteral:
-            e = new AST.IntegerExp(loc, cast(d_uns32)token.unsvalue, AST.Type.tdchar);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tdchar);
             nextToken();
             break;
 
