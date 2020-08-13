@@ -2498,30 +2498,19 @@ private Module loadStdMath()
 Expression isSameVarExp(Expression e1, Expression e2) // TODO better function name?
 {
     if (auto ve1 = e1.isVarExp())
-    {
         if (auto ve2 = e2.isVarExp())
-            if (ve1.var is
-                ve2.var)
+            if (ve1.var is ve2.var)
                 return ve1;
-    }
-    else if (auto pe1 = e1.isPtrExp())
-    {
+    if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
-            return isSameVarExp(pe1.e1,
-                                pe2.e1);
-    }
-    else if (auto se1 = e1.isSymOffExp())
-    {
+            return isSameVarExp(pe1.e1, pe2.e1);
+    if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
-            if (se1.var is
-                se2.var)
+            if (se1.var is se2.var)
                 return se1;
-    }
-    else if (e1.op == TOK.address && // TODO can this case happen?
-             e2.op == TOK.address)
-    {
+    if (e1.op == TOK.address && // TODO can this case happen?
+        e2.op == TOK.address)
         e1.loc.message("two address");
-    }
     return null;
 }
 
@@ -2537,8 +2526,8 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             if (auto va1 = ve1.isVarExp())
             {
                 // isMemberDecl
-                va1.loc.message("%s", va1.toChars());
-                va1.var.parent.loc.message("%s", va1.var.parent.toChars());
+                // va1.loc.message("%s", va1.toChars());
+                // va1.var.parent.loc.message("%s", va1.var.parent.toChars());
                 if (auto parent = va1.var.parent.isAggregateDeclaration())
                     parent.loc.message("%s", parent.toChars());
             }
