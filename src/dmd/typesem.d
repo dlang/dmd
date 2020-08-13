@@ -1362,22 +1362,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                                 errors = true;
                                 stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }
-
-                            /* https://issues.dlang.org/show_bug.cgi?id=18572
-                             *
-                             * If a tuple parameter has a default argument, when expanding the parameter
-                             * tuple the default argument tuple must also be expanded.
-                             */
-                            if (fparam.defaultArg)
-                                if (!defaultArgSemantic(fparam, argsc))
-                                    errors = true;
-                            Expression paramDefaultArg = narg.defaultArg;
-                            TupleExp te = fparam.defaultArg ? fparam.defaultArg.isTupleExp() : null;
-                            if (te && te.exps && te.exps.length)
-                                paramDefaultArg = (*te.exps)[j];
-
                             (*newparams)[j] = new Parameter(
-                                stc, narg.type, narg.ident, paramDefaultArg, narg.userAttribDecl);
+                                stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
@@ -1473,10 +1459,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with `ref`)");
                 }
 
-                if (fparam.defaultArg)
-                    if (!defaultArgSemantic(fparam, argsc))
-                        errors = true;
-
                 if (fparam.storageClass & STC.scope_ && !fparam.type.hasPointers())
                 {
                     /*     X foo(ref return scope X) => Ref-ReturnScope
@@ -1492,26 +1474,71 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         fparam.storageClass &= ~STC.return_;
                 }
 
+                // Remove redundant storage classes for type, they are already applied
+                fparam.storageClass &= ~(STC.TYPECTOR);
+            }
+
+            // Now that we completed semantic for the argument types,
+            // run semantic on their default values,
+            // bearing in mind tuples have been expanded.
+            size_t tupleStartIdx = size_t.max;
+            foreach (oidx, oparam, eidx, eparam; tf.parameterList)
+            {
+                // oparam (original param) will always have the default arg
+                // if there's one, but `eparam` will not if it's an expanded
+                // tuple. When we see an expanded tuple, we need to save its
+                // position to get the offset in it later on.
+                if (oparam.defaultArg)
+                {
+                    // Get the obvious case out of the way
+                    if (oparam is eparam)
+                        errors |= !defaultArgSemantic(eparam, argsc);
+                    // We're seeing a new tuple
+                    else if (tupleStartIdx == size_t.max || tupleStartIdx < eidx)
+                    {
+                        /* https://issues.dlang.org/show_bug.cgi?id=18572
+                         *
+                         * If a tuple parameter has a default argument, when expanding the parameter
+                         * tuple the default argument tuple must also be expanded.
+                         */
+                        tupleStartIdx = eidx;
+                        errors |= !defaultArgSemantic(oparam, argsc);
+                        TupleExp te = oparam.defaultArg.isTupleExp();
+                        if (te && te.exps && te.exps.length)
+                            eparam.defaultArg = (*te.exps)[0];
+                    }
+                    // Processing an already-seen tuple
+                    else
+                    {
+                        TupleExp te = oparam.defaultArg.isTupleExp();
+                        if (te && te.exps && te.exps.length)
+                            eparam.defaultArg = (*te.exps)[eidx - tupleStartIdx];
+                    }
+                }
+
+                // We need to know the default argument to resolve `auto ref`,
+                // hence why this has to take place as the very last step.
                 /* Resolve "auto ref" storage class to be either ref or value,
                  * based on the argument matching the parameter
                  */
-                if (fparam.storageClass & STC.auto_)
+                if (eparam.storageClass & STC.auto_)
                 {
-                    Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
-                    if (farg && (fparam.storageClass & STC.ref_))
+                    Expression farg = mtype.fargs && eidx < mtype.fargs.dim ?
+                        (*mtype.fargs)[eidx] : eparam.defaultArg;
+                    if (farg && (eparam.storageClass & STC.ref_))
                     {
                         if (!farg.isLvalue())
-                            fparam.storageClass &= ~STC.ref_; // value parameter
-                        fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
-                        fparam.storageClass |= STC.autoref;
+                            eparam.storageClass &= ~STC.ref_; // value parameter
+                        eparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
+                        eparam.storageClass |= STC.autoref;
                     }
-                    else if (mtype.incomplete && (fparam.storageClass & STC.ref_))
+                    else if (mtype.incomplete && (eparam.storageClass & STC.ref_))
                     {
                         // the default argument may have been temporarily removed,
                         // see usage of `TypeFunction.incomplete`.
                         // https://issues.dlang.org/show_bug.cgi?id=19891
-                        fparam.storageClass &= ~STC.auto_;
-                        fparam.storageClass |= STC.autoref;
+                        eparam.storageClass &= ~STC.auto_;
+                        eparam.storageClass |= STC.autoref;
                     }
                     else
                     {
@@ -1519,10 +1546,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         errors = true;
                     }
                 }
-
-                // Remove redundant storage classes for type, they are already applied
-                fparam.storageClass &= ~(STC.TYPECTOR);
             }
+
             argsc.pop();
         }
         if (tf.isWild())
