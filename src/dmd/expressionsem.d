@@ -1651,6 +1651,23 @@ private bool checkDefCtor(Loc loc, Type t)
     return false;
 }
 
+/********************************************
+ * Check if assignment to `t` has side-effect.
+ * Returns:
+ *      true    if `t` has side effect
+ */
+private bool hasAssignmentWithSideEffect(Type t)
+{
+    t = t.baseElemOf();
+    if (t.ty == Tstruct)
+    {
+        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        return (sd.postblit &&
+                !sd.postblit.isDisabled());
+    }
+    return false;
+}
+
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
@@ -8563,17 +8580,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e1.op == TOK.variable &&
                 exp.e2.op == TOK.variable)
             {
-                if ((cast(VarExp)exp.e1).var is (cast(VarExp)exp.e2).var)
+                auto v1 = (cast(VarExp)exp.e1).var;
+                auto v2 = (cast(VarExp)exp.e1).var;
+                if (v1 is v2)
                 {
-                    // TODO borrow logic in `__traits(isSame)`
                     if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
-                    {
-                        exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
-                    }
-                    else if (true) // TODO: if (exp.e1.hasCopyCtor && exp.e1.hasPostblit)
                     {
                         // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
                     }
+                    if (!v1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
+                        exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
                 }
             }
             else if (exp.e1.op == TOK.star &&
@@ -8586,17 +8602,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (pe1.op == TOK.variable &&
                     pe2.op == TOK.variable)
                 {
-                    if ((cast(VarExp)pe1).var is (cast(VarExp)pe2).var)
+                    auto v1 = (cast(VarExp)exp.e1).var;
+                    auto v2 = (cast(VarExp)exp.e1).var;
+                    if (v1 is v2)
                     {
-                        // TODO borrow logic in `__traits(isSame)`
-                        if (true) // TODO: if inside aggregate constructor pe1 is a member variable
+                        if (true) // TODO: if inside aggregate constructor exp.e1 is a member variable
                         {
-                            exp.warning("assignment of `%s` to itself has no side effect", pe1.toChars());
+                            // TODO: exp.error("assignment of member `%s` to itself misses initialization", exp.e1.toChars());
                         }
-                        else if (true) // TODO: if (pe1.hasCopyCtor && pe1.hasPostblit)
-                        {
-                            // TODO: perror("assignment of member `%s` to itself misses initialization", pe1.toChars());
-                        }
+                        if (!v1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
+                            exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
                     }
                 }
             }
