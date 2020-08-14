@@ -380,6 +380,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
 
+    override const(char)* toPrettyChars(bool qualifyTypes = false)
+    {
+        if (objc.isMeta)
+            return .objc.toPrettyChars(this, qualifyTypes);
+
+        return super.toPrettyChars(qualifyTypes);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());

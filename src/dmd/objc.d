@@ -215,6 +215,17 @@ extern(C++) abstract class Objc
     abstract void setObjc(ClassDeclaration cd);
     abstract void setObjc(InterfaceDeclaration);
 
+    /**
+     * Returns a pretty textual representation of the given class declaration.
+     *
+     * Params:
+     *  classDeclaration = the class declaration to return the textual representation for
+     *  qualifyTypes = `true` if types should be qualified in the result
+     *
+     * Returns: the textual representation
+     */
+    abstract const(char)* toPrettyChars(ClassDeclaration classDeclaration, bool qualifyTypes) const;
+
     abstract void setSelector(FuncDeclaration, Scope* sc);
     abstract void validateSelector(FuncDeclaration fd);
     abstract void checkLinkage(FuncDeclaration fd);
@@ -379,6 +390,11 @@ extern(C++) private final class Unsupported : Objc
         id.error("Objective-C interfaces not supported");
     }
 
+    override const(char)* toPrettyChars(ClassDeclaration, bool qualifyTypes) const
+    {
+        assert(0, "Should never be called when Objective-C is not supported");
+    }
+
     override void setSelector(FuncDeclaration, Scope*)
     {
         // noop
@@ -477,6 +493,11 @@ extern(C++) private final class Supported : Objc
     {
         id.classKind = ClassKind.objc;
         id.objc.isExtern = true;
+    }
+
+    override const(char)* toPrettyChars(ClassDeclaration cd, bool qualifyTypes) const
+    {
+        return cd.parent.toPrettyChars(qualifyTypes);
     }
 
     override void setSelector(FuncDeclaration fd, Scope* sc)

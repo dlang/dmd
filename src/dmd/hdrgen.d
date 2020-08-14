@@ -2916,10 +2916,10 @@ void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier iden
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
+void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident, bool isStatic)
 {
     HdrGenState hgs;
-    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs);
+    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs, isStatic);
 }
 
 void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
@@ -3410,7 +3410,7 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
 }
 
 
-private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs)
+private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs, bool isStatic)
 {
     if (t.inuse)
     {
@@ -3423,6 +3423,8 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBu
         linkageToBuffer(buf, t.linkage);
         buf.writeByte(' ');
     }
+    if (t.linkage == LINK.objc && isStatic)
+        buf.write("static ");
     if (t.next)
     {
         typeToBuffer(t.next, null, buf, hgs);
@@ -3659,7 +3661,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
     {
         //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
         if (t.next.ty == Tfunction)
-            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs);
+            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs, false);
         else
         {
             visitWithMask(t.next, t.mod, buf, hgs);
@@ -3676,12 +3678,12 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
     void visitFunction(TypeFunction t)
     {
         //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
-        visitFuncIdentWithPostfix(t, null, buf, hgs);
+        visitFuncIdentWithPostfix(t, null, buf, hgs, false);
     }
 
     void visitDelegate(TypeDelegate t)
     {
-        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs);
+        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs, false);
     }
 
     void visitTypeQualifiedHelper(TypeQualified t)

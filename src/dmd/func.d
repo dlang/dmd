@@ -1187,7 +1187,7 @@ extern (C++) class FuncDeclaration : Declaration
     final const(char)* toFullSignature()
     {
         OutBuffer buf;
-        functionToBufferWithIdent(type.toTypeFunction(), &buf, toChars());
+        functionToBufferWithIdent(type.toTypeFunction(), &buf, toChars(), isStatic);
         return buf.extractChars();
     }
 

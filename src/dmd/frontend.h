@@ -2427,6 +2427,7 @@ public:
     ObjcClassDeclaration objc;
     Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
+    const char* toPrettyChars(bool qualifyTypes = false);
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf2(ClassDeclaration* cd);
@@ -5698,6 +5699,7 @@ public:
     static void deinitialize();
     virtual void setObjc(ClassDeclaration* cd) = 0;
     virtual void setObjc(InterfaceDeclaration* ) = 0;
+    virtual const char* toPrettyChars(ClassDeclaration* classDeclaration, bool qualifyTypes) const = 0;
     virtual void setSelector(FuncDeclaration* , Scope* sc) = 0;
     virtual void validateSelector(FuncDeclaration* fd) = 0;
     virtual void checkLinkage(FuncDeclaration* fd) = 0;
