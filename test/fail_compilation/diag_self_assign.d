@@ -1,20 +1,22 @@
+// REQUIRED_ARGS: -w
+
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_self_assign.d(26): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(28): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(29): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(28): Warning: assignment of `x` from itself has no side effect
 fail_compilation/diag_self_assign.d(30): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(34): Error: construction of member `this._xp` from itself
-fail_compilation/diag_self_assign.d(40): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(41): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(31): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(32): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(36): Error: construction of member `this._xp` from itself
 fail_compilation/diag_self_assign.d(42): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(62): Warning: assignment of `s._x` from itself has no side effect
-fail_compilation/diag_self_assign.d(66): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(72): Warning: assignment of `xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(74): Warning: assignment of `*xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(76): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(43): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(44): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(64): Warning: assignment of `s._x` from itself has no side effect
+fail_compilation/diag_self_assign.d(68): Warning: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(74): Warning: assignment of `xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(76): Warning: assignment of `*xp` from itself has no side effect
 fail_compilation/diag_self_assign.d(78): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(80): Warning: assignment of `*& x` from itself has no side effect
 ---
 */
 struct S
