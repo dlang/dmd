@@ -1658,13 +1658,13 @@ private bool checkDefCtor(Loc loc, Type t)
  */
 private bool hasAssignmentWithSideEffect(Type t)
 {
+    // TODO: use `isStructDeclaration` instead?
     t = t.baseElemOf();
-    // TODO break out into function `hasPostblit` in `dmd.traits`
     if (t.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
-        return (sd.postblit &&
-                !sd.postblit.isDisabled());
+        return (sd.hasPostblit ||
+                sd.hasCopyCtor);
     }
     return false;
 }
@@ -2564,7 +2564,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             else                // TODO: why isn't this branch entered for ordinary members?
                 exp.error("assignment of member `%s` from itself", ve1.toChars());
         }
-        else if (!ve1.type.hasAssignmentWithSideEffect) // TODO: check copy ctor
+        else if (!ve1.type.hasAssignmentWithSideEffect)
         {
             exp.warning("assignment of `%s` from itself has no side effect", exp.e1.toChars());
         }
