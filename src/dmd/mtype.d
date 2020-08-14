@@ -6651,6 +6651,13 @@ extern (C++) struct ParameterList
         return Parameter._foreach(parameters, dg);
     }
 
+    /// Iterates over the expanded parameters, matching them with the unexpanded
+    /// ones, for semantic processing
+    extern (D) int opApply(scope Parameter.SemanticForeachDg dg)
+    {
+        return Parameter._foreach(this.parameters, dg);
+    }
+
     extern (D) ParameterList syntaxCopy()
     {
         return ParameterList(Parameter.arraySyntaxCopy(parameters), varargs);
@@ -6795,7 +6802,13 @@ extern (C++) final class Parameter : ASTNode
         return res ? param : null;
     }
 
+    /// Type of delegate when iterating solely on the parameters
     alias ForeachDg = extern (D) int delegate(size_t paramidx, Parameter param);
+    /// Type of delegate when iterating on both the original set of parameters,
+    /// and the type tuple. Useful for semantic analysis.
+    /// 'o' stands for 'original' and 'e' stands for 'expanded'.
+    alias SemanticForeachDg = extern (D) int delegate(
+        size_t oidx, Parameter oparam, size_t eidx, Parameter eparam);
 
     /***************************************
      * Expands tuples in args in depth first order. Calls
@@ -6804,33 +6817,62 @@ extern (C++) final class Parameter : ASTNode
      * Use this function to avoid the O(N + N^2/2) complexity of
      * calculating dim and calling N times getNth.
      */
-    extern (D) static int _foreach(Parameters* parameters, scope ForeachDg dg, size_t* pn = null)
+    extern (D) static int _foreach(Parameters* parameters, scope ForeachDg dg)
     {
-        assert(dg);
-        if (!parameters)
+        assert(dg !is null);
+        return _foreach(parameters, (_oidx, _oparam, idx, param) => dg(idx, param));
+    }
+
+    /// Ditto
+    extern (D) static int _foreach(
+        Parameters* parameters, scope SemanticForeachDg dg)
+    {
+        assert(dg !is null);
+        if (parameters is null)
             return 0;
 
-        size_t n = pn ? *pn : 0; // take over index
-        int result = 0;
-        foreach (i; 0 .. parameters.dim)
+        size_t eidx;
+        foreach (oidx; 0 .. parameters.length)
         {
-            Parameter p = (*parameters)[i];
-            Type t = p.type.toBasetype();
-
-            if (auto tu = t.isTypeTuple())
-            {
-                result = _foreach(tu.arguments, dg, &n);
-            }
-            else
-                result = dg(n++, p);
-
-            if (result)
-                break;
+            Parameter oparam = (*parameters)[oidx];
+            if (auto r = _foreachImpl(dg, oidx, oparam, eidx, /* eparam */ oparam))
+                return r;
         }
+        return 0;
+    }
 
-        if (pn)
-            *pn = n; // update index
-        return result;
+    /// Implementation of the iteration process, which recurses in itself
+    /// and just forwards `oidx` and `oparam`.
+    extern (D) private static int _foreachImpl(scope SemanticForeachDg dg,
+        size_t oidx, Parameter oparam, ref size_t eidx, Parameter eparam)
+    {
+        if (eparam is null)
+            return 0;
+
+        Type t = eparam.type.toBasetype();
+        if (auto tu = t.isTypeTuple())
+        {
+            // Check for empty tuples
+            if (tu.arguments is null)
+                return 0;
+
+            foreach (nidx; 0 .. tu.arguments.length)
+            {
+                Parameter nextep = (*tu.arguments)[nidx];
+                if (auto r = _foreachImpl(dg, oidx, oparam, eidx, nextep))
+                    return r;
+            }
+        }
+        else
+        {
+            if (auto r = dg(oidx, oparam, eidx, eparam))
+                return r;
+            // The only place where we should increment eidx is here,
+            // as a TypeTuple doesn't count as a parameter (for arity)
+            // it it is empty.
+            eidx++;
+        }
+        return 0;
     }
 
     override const(char)* toChars() const

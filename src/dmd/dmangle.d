@@ -415,7 +415,8 @@ public:
         }
 
         // Write argument types
-        paramsToDecoBuffer(t.parameterList.parameters);
+        foreach (idx, param; t.parameterList)
+            param.accept(this);
         //if (buf.data[buf.length - 1] == '@') assert(0);
         buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
@@ -455,7 +456,10 @@ public:
     {
         //printf("TypeTuple.toDecoBuffer() t = %p, %s\n", t, t.toChars());
         visit(cast(Type)t);
-        paramsToDecoBuffer(t.arguments);
+        Parameter._foreach(t.arguments, (idx, param) {
+                param.accept(this);
+                return 0;
+        });
         buf.writeByte('Z');
     }
 
@@ -1088,18 +1092,6 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    void paramsToDecoBuffer(Parameters* parameters)
-    {
-        //printf("Parameter.paramsToDecoBuffer()\n");
-
-        int paramsToDecoBufferDg(size_t n, Parameter p)
-        {
-            p.accept(this);
-            return 0;
-        }
-
-        Parameter._foreach(parameters, &paramsToDecoBufferDg);
-    }
 
     override void visit(Parameter p)
     {
@@ -1231,6 +1223,7 @@ void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
     scope Mangler v = new Mangler(&buf);
 
     MODtoDecoBuffer(&buf, tf.mod);
-    v.paramsToDecoBuffer(tf.parameterList.parameters);
+    foreach (idx, param; tf.parameterList)
+        param.accept(v);
     buf.writeByte('Z' - tf.parameterList.varargs);
 }
