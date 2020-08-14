@@ -817,24 +817,25 @@ RETRY:
         }
         case 2:
         {
-            //printf("opflags1 = "); asm_output_flags(opflags[0]); printf(" ");
-            //printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n");
+            enum log = false;
+            if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
+            if (log) { printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n"); }
             PTRNTAB2 *table2;
             for (table2 = pop.ptb.pptb2;
                  table2.opcode != ASM_END;
                  table2++)
             {
-                //printf("table1   = "); asm_output_flags(table2.usOp1); printf(" ");
-                //printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n");
+                if (log) { printf("table1   = "); asm_output_flags(table2.usOp1); printf("\n"); }
+                if (log) { printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n"); }
                 if (global.params.is64bit && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
                 const bMatch1 = asm_match_flags(opflags[0], table2.usOp1);
                 const bMatch2 = asm_match_flags(opflags[1], table2.usOp2);
-                //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
+                if (log) printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
                 if (bMatch1 && bMatch2)
                 {
-                    //printf("match\n");
+                    if (log) printf("match\n");
 
                     /* Don't match if implicit sign-extension will
                      * change the value of the immediate operand
@@ -2160,7 +2161,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         {
             if (o1.uchMultiplier ||
                     (o2.pregDisp1.val == _ESP &&
-                    (o2.pregDisp1.ty & _r32) &&
+                    (getOpndSize(o2.pregDisp1.ty) == OpndSize._32) &&
                     !o2.uchMultiplier))
             {
                 o1.pregDisp2 = o1.pregDisp1;
@@ -3068,6 +3069,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
         case _32:         s = "_32";         break;
         case _48:         s = "_48";         break;
         case _64:         s = "_64";         break;
+        case _128:        s = "_128";        break;
         case _16_8:       s = "_16_8";       break;
         case _32_8:       s = "_32_8";       break;
         case _32_16:      s = "_32_16";      break;
@@ -3078,7 +3080,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
         case _64_32_8:    s = "_64_32_8";    break;
         case _64_32_16:   s = "_64_32_16";   break;
         case _64_32_16_8: s = "_64_32_16_8"; break;
-//        case _64_48_32_16_8: s = "_64_48_32_16_8"; break;
+        case _64_48_32_16_8: s = "_64_48_32_16_8"; break;
         case _anysize:    s = "_anysize";    break;
 
         default:
@@ -3305,6 +3307,7 @@ OpndSize asm_type_size(Type ptype)
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
             case 8:     if (global.params.is64bit) u = OpndSize._64;        break;
+            case 16:    u = OpndSize._128;       break;
             default:    break;
         }
     }
@@ -4314,14 +4317,22 @@ void asm_primary_exp(out OPND o1)
                  *  char[8] foo;
                  * of size 1 or size 8? Presume it is 8 if foo
                  * is the last token of the operand.
+                 * Note that this can be turned on and off by the user by
+                 * adding a constant:
+                 *   align(16) uint[4][2] constants =
+                 *   [ [0,0,0,0],[0,0,0,0] ];
+                 *   asm {
+                 *      movdqa XMM1,constants;   // operand treated as size 32
+                 *      movdqa XMM1,constants+0; // operand treated as size 16
+                 *   }
+                 * This is an inexcusable hack, but can't
+                 * fix it due to backward compatibility.
                  */
                 if (o1.ptype && asmstate.tokValue != TOK.comma && asmstate.tokValue != TOK.endOfFile)
                 {
-                    for (;
-                         o1.ptype.ty == Tsarray;
-                         o1.ptype = o1.ptype.nextOf())
-                    {
-                    }
+                    // Peel off only one layer of the array
+                    if (o1.ptype.ty == Tsarray)
+                        o1.ptype = o1.ptype.nextOf();
                 }
 
             Lpost:
@@ -4457,6 +4468,7 @@ bool isOneOf(OpndSize szop, OpndSize sztbl)
             _32         : 4,
             _48         : 8,
             _64         : 16,
+            _128        : 32,
 
             _16_8       : 2  | 1,
             _32_8       : 4  | 1,
@@ -4470,7 +4482,7 @@ bool isOneOf(OpndSize szop, OpndSize sztbl)
             _64_32_16_8 : 16 | 4 | 2 | 1,
             _64_48_32_16_8 : 16 | 8 | 4 | 2 | 1,
 
-            //_anysize    : 16 | 8 | 4 | 2 | 1,
+            _anysize    : 32 | 16 | 8 | 4 | 2 | 1,
         ];
 
         return (maskx[szop] & maskx[sztbl]) != 0;

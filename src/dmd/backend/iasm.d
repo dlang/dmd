@@ -185,7 +185,7 @@ enum
     _m32    = CONSTRUCT_FLAGS(OpndSize._32, _m, _normal, 0 ),
     _m48    = CONSTRUCT_FLAGS(OpndSize._48, _m, _normal, 0 ),
     _m64    = CONSTRUCT_FLAGS(OpndSize._64, _m, _normal, 0 ),
-    _m128   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
+    _m128   = CONSTRUCT_FLAGS(OpndSize._128, _m, _normal, 0 ),
     _m256   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
     _m48_32_16_8    = CONSTRUCT_FLAGS(OpndSize._48_32_16_8, _m, _normal, 0 ),
     _m64_48_32_16_8 = CONSTRUCT_FLAGS(OpndSize._64_48_32_16_8, _m, _normal, 0 ),
@@ -225,7 +225,7 @@ enum
     _xmm_m16  = CONSTRUCT_FLAGS( OpndSize._16,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
     _xmm_m32  = CONSTRUCT_FLAGS( OpndSize._32,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
     _xmm_m64  = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
-    _xmm_m128 = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
+    _xmm_m128 = CONSTRUCT_FLAGS( OpndSize._128,     _m, _rspecial, ASM_GET_uRegmask(_xmm)),
     _ymm_m256 = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_ymm)),
 
     _moffs8  = _rel8,
@@ -276,6 +276,7 @@ enum OpndSize : ubyte
     _32, // 0x4,
     _48, // 0x8,
     _64, // 0x10,
+    _128, // 0x20,
 
     _16_8,       // _16 | _8,
     _32_8,       // _32 | _8,
@@ -289,7 +290,7 @@ enum OpndSize : ubyte
     _64_32_16_8, // _64 | _32 | _16 | _8,
     _64_48_32_16_8, // _64 | _48 | _32 | _16 | _8,
 
-    _anysize = _64_48_32_16_8,    // _64 | _48 | _32 | _16 | _8,
+    _anysize,
 }
 
 /*************************************
