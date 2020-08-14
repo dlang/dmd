@@ -413,6 +413,12 @@ q{
             pragma(msg, "Warning: struct "~__traits(identifier, T)
                 ~" has method toHash, however it cannot be called with "
                 ~typeof(val).stringof~" this.");
+            static if (__traits(compiles, __traits(getLocation, T.toHash)))
+            {
+                enum file = __traits(getLocation, T.toHash)[0];
+                enum line = __traits(getLocation, T.toHash)[1].stringof;
+                pragma(msg, "  ",__traits(identifier, T),".toHash defined here: ",file,"(",line,")");
+            }
         }
 
         static if (T.tupleof.length == 0)
