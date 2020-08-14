@@ -2556,12 +2556,9 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         assert(ve1.type);       // TODO: needed?
         if (isThisExpr)
         {
-            auto ad = sc.func ? sc.func.isThis() : null;
-            if (sc.func)
-                sc.func.loc.message("x");
-            if (ad)
+            if (auto ctor = sc.func.isCtorDeclaration())
                 exp.error("construction of member `%s` from itself", ve1.toChars());
-            else                // TODO: why isn't this branch entered for ordinary members?
+            else
                 exp.error("assignment of member `%s` from itself", ve1.toChars());
         }
         else if (!ve1.type.hasAssignmentWithSideEffect)
