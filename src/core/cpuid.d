@@ -517,7 +517,7 @@ void getcacheinfoCPUID2()
         } else asm pure nothrow @nogc {
             mov EAX, 2;
             cpuid;
-            mov a, EAX;
+            mov a+0, EAX;
             mov a+4, EBX;
             mov a+8, ECX;
             mov a+12, EDX;
