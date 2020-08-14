@@ -4,8 +4,6 @@
 TEST_OUTPUT:
 ---
 fail_compilation/warn7444.d(24): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
-fail_compilation/warn7444.d(28): Warning: assignment of `sa` to itself has no side effect
-fail_compilation/warn7444.d(44): Warning: assignment of `da` to itself has no side effect
 ---
 */
 
