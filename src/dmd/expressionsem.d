@@ -2495,13 +2495,13 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-Expression isSameVarExp(Expression e1, Expression e2) // TODO better function name?
+Expression isSameVarExp(Expression e1, Expression e2) // TODO: better function name?
 {
     if (auto ve1 = e1.isVarExp())
         if (auto ve2 = e2.isVarExp())
             if (ve1.var is ve2.var)
                 return ve1;
-    // TODO `isThisExp`
+    // TODO: `isThisExp`
     if (auto dv1 = e1.isDotVarExp()) // this.x
         if (auto dv2 = e2.isDotVarExp()) // this.x
             if (dv1.var is dv2.var)
@@ -2513,7 +2513,7 @@ Expression isSameVarExp(Expression e1, Expression e2) // TODO better function na
         if (auto se2 = e2.isSymOffExp())
             if (se1.var is se2.var)
                 return se1;
-    if (e1.op == TOK.address && // TODO can this case happen?
+    if (e1.op == TOK.address && // TODO: can this case happen?
         e2.op == TOK.address)
         e1.loc.message("two address");
     return null;
@@ -2526,11 +2526,9 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
 
     if (auto ve1 = exp.e1.isSameVarExp(exp.e2))
     {
-        assert(ve1.type);
-        if (!ve1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
+        assert(ve1.type);                          // TODO: is this needed?
+        if (!ve1.type.hasAssignmentWithSideEffect) // TODO: check copy ctor
         {
-            // if (auto md1 = ve1.isMemberDecl())
-            //     md1.loc.message("%s", md1.toChars());
             if (auto va1 = ve1.isVarExp())
             {
                 va1.loc.message("%s", va1.toChars());
