@@ -2531,9 +2531,9 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
         if (auto se2 = e2.isSymOffExp())
             return (se1.var is se2.var) ? se1 : null;
 
-    if (e1.op == TOK.address && // TODO: can this case happen?
-        e2.op == TOK.address)
-        e1.loc.message("two address");
+    if (auto ae1 = e1.isAddrExp())
+        if (auto ae2 = e2.isAddrExp()) // TODO: can this case happen?
+            e1.loc.message("two address");
 
     return null;
 }
