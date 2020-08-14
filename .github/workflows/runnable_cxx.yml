@@ -288,6 +288,16 @@ jobs:
         fi
 
     ########################################
+    #      Run C++ frontend unittests      #
+    ########################################
+    - name: Run C++ frontend unittests
+      run: |
+        ./dmd/src/build.d cxx-unittest MODEL=64
+        if [ ${{ matrix.compiler }} == "g++" ]; then
+          ./dmd/src/build.d cxx-unittest MODEL=32
+        fi
+
+    ########################################
     #      Store generated artifacts       #
     ########################################
     - name: Store artifacts
