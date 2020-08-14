@@ -2495,20 +2495,43 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-Expression isSameVarExp(Expression e1, Expression e2) // TODO: better function name?
+Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
 {
     if (auto ve1 = e1.isVarExp())
         if (auto ve2 = e2.isVarExp())
             if (ve1.var is ve2.var)
                 return ve1;
-    // TODO: `isThisExp`
-    if (auto dv1 = e1.isDotVarExp()) // this.x
+    if (auto dv1 = e1.isDotVarExp())     // this.x
         if (auto dv2 = e2.isDotVarExp()) // this.x
-            if (dv1.var is dv2.var)
-                return dv1;
+            if (dv1.var is dv2.var)      // same aggregate variable
+            {
+                if (true)
+                {
+                    auto ae1 = dv1.e1.isVarExp();
+                    auto ae2 = dv2.e1.isVarExp();
+                    if (ae1 &&
+                        ae2 &&
+                        ae1.var is ae2.var) // `ae1.var` and `ae2.var` are same aggregate? variable
+                    {
+                        return e1;
+                    }
+                }
+                if (true)
+                {
+                    auto te1 = dv1.e1.isThisExp();
+                    auto te2 = dv2.e1.isThisExp();
+                    if (te1 &&
+                        te2 &&
+                        te1.var && te2.var) // `th1.var` and `th2.var` are same this variable
+                    {
+                        isThis = true;
+                        return e1;
+                    }
+                }
+            }
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
-            return isSameVarExp(pe1.e1, pe2.e1);
+            return isSameVarOrThisExp(pe1.e1, pe2.e1, isThis);
     if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
             if (se1.var is se2.var)
@@ -2524,22 +2547,20 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
     if (exp.op != TOK.assign)
         return;
 
-    if (auto ve1 = exp.e1.isSameVarExp(exp.e2))
+    bool isThis;
+    if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThis))
     {
         assert(ve1.type);                          // TODO: is this needed?
-        if (!ve1.type.hasAssignmentWithSideEffect) // TODO: check copy ctor
+        if (isThis)
         {
-            if (auto va1 = ve1.isVarExp())
-            {
-                va1.loc.message("%s", va1.toChars());
-                va1.var.parent.loc.message("%s", va1.var.parent.toChars());
-                if (auto parent = va1.var.parent.isAggregateDeclaration())
-                    parent.loc.message("%s", parent.toChars());
-            }
-            if (CtorDeclaration ctd = sc.parent.isCtorDeclaration()) // TODO: a struct member variable
-                exp.error("construction of member `%s` from itself", exp.e1.toChars());
-            else
-                exp.warning("assignment of `%s` from itself has no side effect", exp.e1.toChars());
+            /* if (auto parent = ve1.var.parent.isAggregateDeclaration()) */
+            /*     parent.loc.message("%s", parent.toChars()); */
+            // detect that we are in a constructor
+            exp.error("construction of member `%s` from itself", ve1.toChars());
+        }
+        else if (!ve1.type.hasAssignmentWithSideEffect) // TODO: check copy ctor
+        {
+            exp.warning("assignment of `%s` from itself has no side effect", exp.e1.toChars());
         }
     }
 }
