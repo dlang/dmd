@@ -2501,6 +2501,11 @@ Expression isSameVarExp(Expression e1, Expression e2) // TODO better function na
         if (auto ve2 = e2.isVarExp())
             if (ve1.var is ve2.var)
                 return ve1;
+    // TODO `isThisExp`
+    if (auto dv1 = e1.isDotVarExp()) // this.x
+        if (auto dv2 = e2.isDotVarExp()) // this.x
+            if (dv1.var is dv2.var)
+                return dv1;
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
             return isSameVarExp(pe1.e1, pe2.e1);
@@ -2518,10 +2523,6 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
 {
     if (exp.op != TOK.assign)
         return;
-
-    // TODO how can I find out the type of `exp.e1` and `exp.e2`? There is not
-    // typeid() for extern(C++) classes
-    exp.loc.message("Here: %p %p", exp.e1, exp.e2);
 
     if (auto ve1 = exp.e1.isSameVarExp(exp.e2))
     {
