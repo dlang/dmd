@@ -2539,9 +2539,9 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
                     parent.loc.message("%s", parent.toChars());
             }
             if (CtorDeclaration ctd = sc.parent.isCtorDeclaration()) // TODO: a struct member variable
-                exp.error("constructor initialization of member `%s` to itself", exp.e1.toChars());
+                exp.error("construction of member `%s` from itself", exp.e1.toChars());
             else
-                exp.warning("assignment of `%s` to itself has no side effect", exp.e1.toChars());
+                exp.warning("assignment of `%s` from itself has no side effect", exp.e1.toChars());
         }
     }
 }
