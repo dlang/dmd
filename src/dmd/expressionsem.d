@@ -2519,15 +2519,21 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
     if (exp.op != TOK.assign)
         return;
 
+    // TODO how can I find out the type of `exp.e1` and `exp.e2`? There is not
+    // typeid() for extern(C++) classes
+    exp.loc.message("Here: %p %p", exp.e1, exp.e2);
+
     if (auto ve1 = exp.e1.isSameVarExp(exp.e2))
     {
+        assert(ve1.type);
         if (!ve1.type.hasAssignmentWithSideEffect) // TODO check copy ctor
         {
+            // if (auto md1 = ve1.isMemberDecl())
+            //     md1.loc.message("%s", md1.toChars());
             if (auto va1 = ve1.isVarExp())
             {
-                // isMemberDecl
-                // va1.loc.message("%s", va1.toChars());
-                // va1.var.parent.loc.message("%s", va1.var.parent.toChars());
+                va1.loc.message("%s", va1.toChars());
+                va1.var.parent.loc.message("%s", va1.var.parent.toChars());
                 if (auto parent = va1.var.parent.isAggregateDeclaration())
                     parent.loc.message("%s", parent.toChars());
             }
