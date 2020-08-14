@@ -2499,40 +2499,29 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
 {
     if (auto ve1 = e1.isVarExp())
         if (auto ve2 = e2.isVarExp())
-            if (ve1.var is ve2.var)
-                return ve1;
+            return (ve1.var is ve2.var) ? ve1 : null; // same variable
 
-    if (auto dv1 = e1.isDotVarExp())     // this.x
-        if (auto dv2 = e2.isDotVarExp()) // this.x
-            if (dv1.var is dv2.var)      // same aggregate variable
+    if (auto te1 = e1.isThisExp())
+        if (auto te2 = e2.isThisExp())
+        {
+            if (te1.var is te2.var) // same this
             {
-                if (true)
-                {
-                    // TODO recurse into `isSameVarOrThisExp`
-                    auto ae1 = dv1.e1.isVarExp();
-                    auto ae2 = dv2.e1.isVarExp();
-                    if (ae1 &&
-                        ae2 &&
-                        ae1.var is ae2.var) // `ae1.var` and `ae2.var` are same aggregate? variable
-                    {
-                        return e1;
-                    }
-                }
-                if (true)
-                {
-                    // TODO recurse into `isSameVarOrThisExp`
-                    auto te1 = dv1.e1.isThisExp();
-                    auto te2 = dv2.e1.isThisExp();
-                    if (te1 &&
-                        te2 &&
-                        te1.var && te2.var) // `th1.var` and `th2.var` are same this variable
-                    {
-                        isThis = true;
-                        return e1;
-                    }
-                }
-                return null;
+                isThis = true;
+                return te1;
             }
+            else
+                return null;
+        }
+
+    if (auto dv1 = e1.isDotVarExp())
+        if (auto dv2 = e2.isDotVarExp())
+        {
+            if (dv1.var is dv2.var && // same aggregate variable
+                isSameVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
+                return dv1;
+            else
+                return null;
+        }
 
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
@@ -2540,8 +2529,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
 
     if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
-            if (se1.var is se2.var)
-                return se1;
+            return (se1.var is se2.var) ? se1 : null;
 
     if (e1.op == TOK.address && // TODO: can this case happen?
         e2.op == TOK.address)
