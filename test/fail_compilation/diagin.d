@@ -2,33 +2,24 @@
 PERMUTE_ARGS: -preview=in
 TEST_OUTPUT:
 ---
-fail_compilation/diagin.d(18): Error: function `diagin.foo(in string)` is not callable using argument types `()`
-fail_compilation/diagin.d(18):        missing argument for parameter #1: `in string`
-fail_compilation/diagin.d(19): Error: function `diagin.foo1(in ref string)` is not callable using argument types `()`
-fail_compilation/diagin.d(19):        missing argument for parameter #1: `in ref string`
-fail_compilation/diagin.d(20): Error: template `diagin.foo2` cannot deduce function from argument types `!()(int)`, candidates are:
-fail_compilation/diagin.d(27):        `foo2(T)(in T v, string)`
-fail_compilation/diagin.d(22): Error: template `diagin.foo3` cannot deduce function from argument types `!()(bool[])`, candidates are:
-fail_compilation/diagin.d(28):        `foo3(T)(in ref T v, string)`
+fail_compilation/diagin.d(14): Error: function `diagin.foo(in string)` is not callable using argument types `()`
+fail_compilation/diagin.d(14):        missing argument for parameter #1: `in string`
+fail_compilation/diagin.d(16): Error: template `diagin.foo1` cannot deduce function from argument types `!()(bool[])`, candidates are:
+fail_compilation/diagin.d(20):        `foo1(T)(in T v, string)`
 ---
  */
 
 void main ()
 {
     foo();
-    foo1();
-    foo2(42);
     bool[] lvalue;
-    foo3(lvalue);
+    foo1(lvalue);
 }
 
 void foo(in string) {}
-void foo1(in ref string) {}
-void foo2(T)(in T v, string) {}
-void foo3(T)(ref in T v, string) {}
+void foo1(T)(in T v, string) {}
 
 // Ensure that `in` has a unique mangling
 static assert(foo.mangleof       == `_D6diagin3fooFIAyaZv`);
-static assert(foo1.mangleof      == `_D6diagin4foo1FIKAyaZv`);
-static assert(foo2!int.mangleof  == `_D6diagin__T4foo2TiZQiFNaNbNiNfIiAyaZv`);
-static assert(foo3!char.mangleof == `_D6diagin__T4foo3TaZQiFNaNbNiNfIKaAyaZv`);
+static assert(foo1!int.mangleof  == `_D6diagin__T4foo1TiZQiFNaNbNiNfIiAyaZv`);
+static assert(foo1!char.mangleof == `_D6diagin__T4foo1TaZQiFNaNbNiNfIaAyaZv`);
