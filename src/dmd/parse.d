@@ -1347,41 +1347,71 @@ final class Parser(AST) : Lexer
         return a;
     }
 
-    /*********************************************
-     * Give error on redundant/conflicting storage class.
+    /**
+     * Provide an error message if `added` contains storage classes which are
+     * redundant with those in `orig`; otherwise, return the combination.
+     *
+     * Params:
+     *   orig = The already applied storage class.
+     *   added = The new storage class to add to `orig`.
+     *
+     * Returns:
+     *   The combination of both storage classes (`orig | added`).
      */
-    private StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
+    private StorageClass appendStorageClass(StorageClass orig, StorageClass added)
     {
-        if ((storageClass & stc) || (storageClass & STC.in_ && stc & (STC.const_ | STC.scope_)) || (stc & STC.in_ && storageClass & (STC.const_ | STC.scope_)))
+        if (orig & added)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, stc);
+            AST.stcToBuffer(&buf, added);
             error("redundant attribute `%s`", buf.peekChars());
-            return storageClass | stc;
+            return orig | added;
         }
 
-        storageClass |= stc;
+        orig |= added;
 
-        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
+        if ((orig & STC.in_) && (added & (STC.const_ | STC.scope_)))
         {
-            StorageClass u = storageClass & (STC.const_ | STC.immutable_ | STC.manifest);
+            if (added & STC.const_)
+                error("attribute `const` is redundant with previously-applied `in`");
+            else if (global.params.previewIn)
+                error("attribute `scope` is redundant with previously-applied `in`");
+            else
+                error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
+            return orig;
+        }
+
+        if ((added & STC.in_) && (orig & (STC.const_ | STC.scope_)))
+        {
+            if (orig & STC.const_)
+                error("attribute `in` cannot be added after `const`: remove `const`");
+            else if (global.params.previewIn)
+                error("attribute `in` cannot be added after `scope`: remove `scope`");
+            else
+                error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
+            return orig;
+        }
+
+        if (added & (STC.const_ | STC.immutable_ | STC.manifest))
+        {
+            StorageClass u = orig & (STC.const_ | STC.immutable_ | STC.manifest);
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & (STC.gshared | STC.shared_ | STC.tls))
+        if (added & (STC.gshared | STC.shared_ | STC.tls))
         {
-            StorageClass u = storageClass & (STC.gshared | STC.shared_ | STC.tls);
+            StorageClass u = orig & (STC.gshared | STC.shared_ | STC.tls);
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & STC.safeGroup)
+        if (added & STC.safeGroup)
         {
-            StorageClass u = storageClass & STC.safeGroup;
+            StorageClass u = orig & STC.safeGroup;
             if (u & (u - 1))
                 error("conflicting attribute `@%s`", token.toChars());
         }
 
-        return storageClass;
+        return orig;
     }
 
     /***********************************************
