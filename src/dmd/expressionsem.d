@@ -2501,6 +2501,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
         if (auto ve2 = e2.isVarExp())
             if (ve1.var is ve2.var)
                 return ve1;
+
     if (auto dv1 = e1.isDotVarExp())     // this.x
         if (auto dv2 = e2.isDotVarExp()) // this.x
             if (dv1.var is dv2.var)      // same aggregate variable
@@ -2532,16 +2533,20 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
                 }
                 return null;
             }
+
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
             return isSameVarOrThisExp(pe1.e1, pe2.e1, isThis);
+
     if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
             if (se1.var is se2.var)
                 return se1;
+
     if (e1.op == TOK.address && // TODO: can this case happen?
         e2.op == TOK.address)
         e1.loc.message("two address");
+
     return null;
 }
 
