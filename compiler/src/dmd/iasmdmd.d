@@ -1354,10 +1354,7 @@ code *asm_emit(Loc loc,
     {
         emit(0x67);
         pc.Iflags |= CFaddrsize;
-        if (!target.is64bit)
-            amods[i] = _addr16;
-        else
-            amods[i] = _addr32;
+        amods[i] = target.is64bit ? _addr32 : _addr16;
         opnds[i].usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
         opnds[i].usFlags |= CONSTRUCT_FLAGS(0,0,amods[i],0);
     }
@@ -1503,6 +1500,17 @@ code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
+            if ((target.is64bit &&
+                  (amods[1] == _addr32 ||
+                   (ptb.pptb2.usFlags & _32_bit_addr)
+                 )
+                )
+              )
+            {
+                error(asmstate.loc, "2: Addr Prefix");
+                setImmediateFlags(1);
+            }
+
             if ((!target.is64bit &&
                   (amods[1] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[1]) && aoptyTable[1] == _rel ) ||
@@ -1522,6 +1530,14 @@ code *asm_emit(Loc loc,
             goto case;
 
         case 1:
+            if ((target.is64bit &&
+                  (amods[0] == _addr32 ||
+                    (ptb.pptb1.usFlags & _32_bit_addr))))
+            {
+                error(asmstate.loc, "1: Addr Prefix");
+                setImmediateFlags(0);
+            }
+
             if ((!target.is64bit &&
                   (amods[0] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[0]) && aoptyTable[0] == _rel ) ||
