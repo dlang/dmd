@@ -2507,6 +2507,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
             {
                 if (true)
                 {
+                    // TODO recurse into `isSameVarOrThisExp`
                     auto ae1 = dv1.e1.isVarExp();
                     auto ae2 = dv2.e1.isVarExp();
                     if (ae1 &&
@@ -2518,6 +2519,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
                 }
                 if (true)
                 {
+                    // TODO recurse into `isSameVarOrThisExp`
                     auto te1 = dv1.e1.isThisExp();
                     auto te2 = dv2.e1.isThisExp();
                     if (te1 &&
@@ -2528,6 +2530,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
                         return e1;
                     }
                 }
+                return null;
             }
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
@@ -2547,16 +2550,19 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
     if (exp.op != TOK.assign)
         return;
 
-    bool isThis;
-    if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThis))
+    bool isThisExpr;
+    if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThisExpr))
     {
-        assert(ve1.type);                          // TODO: is this needed?
-        if (isThis)
+        assert(ve1.type);       // TODO: needed?
+        if (isThisExpr)
         {
-            /* if (auto parent = ve1.var.parent.isAggregateDeclaration()) */
-            /*     parent.loc.message("%s", parent.toChars()); */
-            // detect that we are in a constructor
-            exp.error("construction of member `%s` from itself", ve1.toChars());
+            auto ad = sc.func ? sc.func.isThis() : null;
+            if (sc.func)
+                sc.func.loc.message("x");
+            if (ad)
+                exp.error("construction of member `%s` from itself", ve1.toChars());
+            else                // TODO: why isn't this branch entered for ordinary members?
+                exp.error("assignment of member `%s` from itself", ve1.toChars());
         }
         else if (!ve1.type.hasAssignmentWithSideEffect) // TODO: check copy ctor
         {
