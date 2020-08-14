@@ -69,7 +69,7 @@ struct S
     T _t;
 }
 
-pure nothrow @nogc unittest
+void test1()
 {
     S s;
     s = s;
@@ -101,7 +101,7 @@ int x;                          // global?
 /**
  * See_Also: https://forum.dlang.org/post/cjccfvhbtbgnajplrvbd@forum.dlang.org
  */
-void test() @safe nothrow @nogc
+void test2() @safe nothrow @nogc
 {
     int x = x;          // x is in another scope so this doesn't cause shadowing
 }
