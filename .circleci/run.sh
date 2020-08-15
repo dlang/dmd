@@ -70,6 +70,7 @@ install_deps() {
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash install.sh dmd-$HOST_DMD_VER --activate)"
     $DC --version
     env
+    deactivate
 }
 
 setup_repos() {
@@ -104,9 +105,7 @@ setup_repos() {
 coverage()
 {
     # load environment for bootstrap compiler
-    if [ -f ~/dlang/install.sh ] ; then
-        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    fi
+    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     RDMD="$(type -p rdmd)"
 
     # build dmd, druntime, and phobos
@@ -121,11 +120,7 @@ coverage()
     # FIXME
     # Building d_do_test currently uses the host library for linking
     # Remove me after https://github.com/dlang/dmd/pull/7846 has been merged (-conf=)
-    if [ -f ~/dlang/install.sh ] ; then
-        deactivate
-    else
-        sudo rm -rf /dlang
-    fi
+    deactivate
 
     # FIXME
     # Temporarily the failing long file name test has been removed
@@ -175,26 +170,36 @@ check_d_builder()
 {
     echo "Testing D build"
     # load environment for bootstrap compiler
-    if [ -f ~/dlang/install.sh ] ; then
-        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    fi
+    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     ./src/build.d clean
     rm -rf generated # just to be sure
     # TODO: add support for 32-bit builds
     ./src/build.d MODEL=64
     ./generated/linux/release/64/dmd --version | grep -v "dirty"
     ./src/build.d clean
-    if [ -f ~/dlang/install.sh ] ; then
-        deactivate
-    fi
+    deactivate
+}
+
+# Generate frontend.h header file and check for changes
+test_cxx()
+{
+    # load environment for bootstrap compiler
+    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    echo "Test CXX frontend.h header generation"
+    ./src/build.d
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
+    ./src/build.d cxx-headers-test
+    deactivate
 }
 
 codecov()
 {
-    # CodeCov gets confused by lst files which it can't matched
+    # CodeCov gets confused by lst files which it can't match
     rm -rf test/runnable/extra-files
     download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
     bash ./codecov.sh -p . -Z
+    rm codecov.sh
 }
 
 case $1 in
@@ -204,7 +209,8 @@ case $1 in
         check_d_builder;
         coverage;
         check_clean_git;
-        check_run_individual;
         codecov;
+        check_run_individual;
+        test_cxx;
     ;;
 esac
