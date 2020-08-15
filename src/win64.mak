@@ -1,3 +1,4 @@
+# DEPRECATED - use src\build.d
 #_ win64.mak
 #
 # Supports same targets as win32.mak.

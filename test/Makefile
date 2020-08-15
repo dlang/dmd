@@ -1,3 +1,5 @@
+$(warning ===== DEPRECATION: test/Makefile is deprecated. Please use test/run.d instead.)
+
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
         OS:=windows

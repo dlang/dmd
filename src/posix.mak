@@ -39,6 +39,10 @@
 # install               Installs dmd into $(INSTALL_DIR)
 ################################################################################
 
+$(warning ===== DEPRECATION NOTICE ===== )
+$(warning ===== DEPRECATION: posix.mak is deprecated. Please use src/build.d instead.)
+$(warning ============================== )
+
 # Forward D compiler bootstrapping to bootstrap.sh
 ifneq (,$(AUTO_BOOTSTRAP))
 default:
