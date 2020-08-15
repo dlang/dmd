@@ -112,6 +112,7 @@ LOW_MEM_MIN_VERSION = v2.086.0
 VERSION = $(filter v2.%, $(shell $(HOST_DMD) --version 2>/dev/null))
 RUN_FLAGS = -g -i -Itools -version=NoMain
 
+USE_GENERATED=1
 ifeq ($(VERSION),)
 	# dmd was not found in $PATH
 	USE_GENERATED=1
@@ -217,8 +218,8 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULT
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -unittest -run $<
-	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -od$(RESULTS_DIR) -of$@ $<
+	DMD_INSTALL_MEMERR_HANDLER=1 $(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
+	DMD_INSTALL_MEMERR_HANDLER=1 $(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
 
 # Build d_do_test here to run it's unittests
 # TODO: Migrate this to run.d
