@@ -2477,6 +2477,7 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
+
 private void checkSameSubexps(BinExp e)
 {
     if (e.e1.equals(e.e2))
