@@ -11499,28 +11499,28 @@ Expression binSemantic(BinExp e, Scope* sc)
         e2x.type.ty != Tenum    // exclude enums for nwo
         )
     {
-        if (e.isAddExp() &&
+        if (auto ex = (e.isLogicalExp() || // &&, ||
+                       e.isAndExp() || // &
+                       e.isOrExp()) && // |
             e1x.equals(e2x))    // virtual call
-            e.warning("Addition `%s` can be replaced with `2*%s`",
-                      e.toChars(),
-                      e1x.toChars());
-        if (e.isMulExp() &&
-            e1x.equals(e2x))    // virtual call
-            // TODO only floating point
-            e.warning("Multiplication `%s` can be replaced with `2^^%s`",
-                      e.toChars(),
-                      e1x.toChars());
-        else if (e.isMinExp() &&
-            e1x.equals(e2x))    // virtual call
-            e.warning("Subtraction `%s` can be replaced with `0`",
-                      e.toChars());
-        else if ((e.isLogicalExp() ||
-                  e.isAndExp() ||
-                  e.isOrExp()) &&
-                 e1x.equals(e2x))    // virtual call
             e.warning("Expression `%s` can be replaced with `%s`",
                       e.toChars(),
                       e1x.toChars());
+        // else if (auto ae = e.isAddExp() &&
+        //     e1x.equals(e2x))    // virtual call
+        //     e.warning("Addition `%s` can be replaced with `2*%s`",
+        //               e.toChars(),
+        //               e1x.toChars());
+        // else if (auto me = e.isMulExp() &&
+        //     e1x.equals(e2x))    // virtual call
+        //     // TODO only floating point
+        //     e.warning("Multiplication `%s` can be replaced with `2^^%s`",
+        //               e.toChars(),
+        //               e1x.toChars());
+        // else if (auto se = e.isMinExp() &&
+        //     e1x.equals(e2x))    // virtual call
+        //     e.warning("Subtraction `%s` can be replaced with `0`",
+        //               e.toChars());
     }
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
