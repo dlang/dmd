@@ -10560,20 +10560,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
-    static private void checkSameSubexps(BinExp e)
-    {
-        if (e.e1.equals(e.e2))
-        {
-            e.e1.warning("Binary expression `%s` can be replaced with `%s`",
-                         e.toChars(),
-                         e.e1.toChars());
-        }
-    }
-
     override void visit(AndExp exp)
     {
-        checkSameSubexps(exp);
-
         if (exp.type)
         {
             result = exp;
@@ -10629,8 +10617,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(OrExp exp)
     {
-        checkSameSubexps(exp);
-
         if (exp.type)
         {
             result = exp;
@@ -10741,8 +10727,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(LogicalExp exp)
     {
-        checkSameSubexps(exp);
-
         static if (LOGSEMANTIC)
         {
             printf("LogicalExp::semantic() %s\n", exp.toChars());
@@ -10830,8 +10814,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("CmpExp::semantic('%s')\n", exp.toChars());
         }
-
-        checkSameSubexps(exp);
 
         if (exp.type)
         {
@@ -11511,6 +11493,13 @@ Expression binSemantic(BinExp e, Scope* sc)
     }
     Expression e1x = e.e1.expressionSemantic(sc);
     Expression e2x = e.e2.expressionSemantic(sc);
+
+    if (e1x.equals(e2x))
+    {
+        e.warning("Binary expression `%s` can be replaced with `%s`",
+                  e.toChars(),
+                  e1x.toChars());
+    }
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
     if (e1x.op == TOK.type)
