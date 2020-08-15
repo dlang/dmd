@@ -38,6 +38,8 @@ immutable rootRules = [
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
+    &buildFrontendHeaders,
+    &runCxxHeadersTest,
     &runCxxUnittest,
     &detab,
     &tolf,
@@ -445,6 +447,56 @@ auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-mai
         .msg("(RUN) DMD-UNITTEST")
         .deps([dmdUnittestExe])
         .command(dmdUnittestExe.targets);
+});
+
+/**
+BuildRule to run the DMD frontend header generation
+For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean before)
+*/
+alias buildFrontendHeaders = makeRule!((builder, rule) {
+    const dmdSources = sources.dmd.all ~ sources.root ~ sources.lexer;
+    const dmdExeFile = dmdDefault.deps[0].target;
+    builder
+        .name("cxx-headers")
+        .description("Build the C++ frontend headers ")
+        .msg("(DC) CXX-HEADERS")
+        .deps([dmdDefault])
+        .target(env["G"].buildPath("frontend.h"))
+        .command([dmdExeFile] ~ flags["DFLAGS"] ~
+            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target] ~ dmdSources);
+});
+
+alias runCxxHeadersTest = makeRule!((builder, rule) {
+    builder
+        .name("cxx-headers-test")
+        .description("Test the C++ frontend headers ")
+        .msg("(TEST) CXX-HEADERS")
+        .deps([buildFrontendHeaders])
+        .commandFunction(() {
+            const cxxHeaderGeneratedPath = buildFrontendHeaders.target;
+            const cxxHeaderReferencePath = env["D"].buildPath("frontend.h");
+            log("Comparing referenceHeader(%s) <-> generatedHeader(%s)",
+                cxxHeaderReferencePath, cxxHeaderGeneratedPath);
+            const generatedHeader = cxxHeaderGeneratedPath.readText;
+            const referenceHeader = cxxHeaderReferencePath.readText;
+            if (generatedHeader != referenceHeader) {
+                if (env.getDefault("AUTO_UPDATE", "0") == "1")
+                {
+                    generatedHeader.toFile(cxxHeaderReferencePath);
+                    writeln("NOTICE: Reference header file (" ~ cxxHeaderReferencePath ~
+                     ") has been auto-updated.");
+                }
+                else
+                {
+                    string message = "ERROR: Newly generated header file (" ~ cxxHeaderGeneratedPath ~
+                        ") doesn't match with the reference header file (" ~
+                        cxxHeaderReferencePath ~ ")\n";
+                    auto diff = tryRun(["git", "diff", "--no-index", cxxHeaderReferencePath, cxxHeaderGeneratedPath], runDir).output;
+                    diff ~= "\n===============\nNOTE: You can rerun with AUTO_UPDATE=1 to automatically update the reference header file.";
+                    abortBuild(message, diff);
+                }
+            }
+        });
 });
 
 /// Runs the C++ unittest executable
