@@ -11495,9 +11495,8 @@ Expression binSemantic(BinExp e, Scope* sc)
     Expression e2x = e.e2.expressionSemantic(sc);
 
     if (e1x.op == e2x.op && // fast discardal
-        e1x.type.ty != Tenum && // exclude enums for nwo
-        e2x.type.ty != Tenum    // exclude enums for nwo
-        )
+        !e1x.isIntegerExp() &&
+        !e2x.isIntegerExp()) // exclude literal
     {
         if (auto ex = (e.isLogicalExp() || // &&, ||
                        e.isAndExp() || // &
