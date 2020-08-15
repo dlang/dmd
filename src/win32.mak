@@ -1,3 +1,4 @@
+# DEPRECATED - use src\build.d
 #_ win32.mak
 #
 # Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
@@ -85,6 +86,9 @@ auto-tester-build: $(GEN)\build.exe
 dmd: $G reldmd
 
 $(GEN)\build.exe: build.d $(HOST_DMD_PATH)
+	echo "===== DEPRECATION NOTICE ====="
+	echo "===== DEPRECATION: win32.mak is deprecated. Please use src\build.d instead."
+	echo "=============================="
 	$(HOST_DC) -m$(MODEL) -of$@ -g build.d
 
 release:
