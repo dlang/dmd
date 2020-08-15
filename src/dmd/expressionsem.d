@@ -2481,7 +2481,9 @@ private void checkSameSubexps(BinExp e)
 {
     if (e.e1.equals(e.e2))
     {
-        e.e1.warning("Same lhs and rhs");
+        e.e1.warning("Binary expression `%s` can be replaced with `%s`",
+                     e.toChars(),
+                     e.e1.toChars());
     }
 }
 
