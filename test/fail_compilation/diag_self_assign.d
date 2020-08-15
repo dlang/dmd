@@ -20,6 +20,7 @@ fail_compilation/diag_self_assign.d(88): Warning: assignment of `xp` from itself
 fail_compilation/diag_self_assign.d(90): Warning: assignment of `*xp` from itself has no side effect
 fail_compilation/diag_self_assign.d(92): Warning: assignment of `*& x` from itself has no side effect
 fail_compilation/diag_self_assign.d(94): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(109): Warning: assignment of `g_x` from itself has no side effect
 ---
 */
 struct S
@@ -96,12 +97,14 @@ void test1()
     static assert(__traits(compiles, { int t; t = t; }));
 }
 
-int x;
+int g_x;
 
 /**
  * See_Also: https://forum.dlang.org/post/cjccfvhbtbgnajplrvbd@forum.dlang.org
  */
-void test2() @safe nothrow @nogc
+@safe nothrow @nogc void test2()
 {
-    int x = x;          // x is in another scope so this doesn't cause shadowing
+    int x;
+    x = g_x;          // x is in another scope so this doesn't cause shadowing
+    g_x = g_x;        // warn
 }
