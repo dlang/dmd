@@ -11494,18 +11494,31 @@ Expression binSemantic(BinExp e, Scope* sc)
     Expression e1x = e.e1.expressionSemantic(sc);
     Expression e2x = e.e2.expressionSemantic(sc);
 
-    if (e1x.op == e2x.op &&   // fast discardal
-        e1x.equals(e2x))      // virtual call
+    if (e1x.op == e2x.op && // fast discardal
+        e1x.type.ty != Tenum && // exclude enums for nwo
+        e2x.type.ty != Tenum    // exclude enums for nwo
+        )
     {
-        if (auto ae = e.isAddExp())
+        if (e.isAddExp() &&
+            e1x.equals(e2x))    // virtual call
             e.warning("Addition `%s` can be replaced with `2*%s`",
                       e.toChars(),
                       e1x.toChars());
-        else if (auto ae = e.isMinExp())
+        if (e.isMulExp() &&
+            e1x.equals(e2x))    // virtual call
+            // TODO only floating point
+            e.warning("Multiplication `%s` can be replaced with `2^^%s`",
+                      e.toChars(),
+                      e1x.toChars());
+        else if (e.isMinExp() &&
+            e1x.equals(e2x))    // virtual call
             e.warning("Subtraction `%s` can be replaced with `0`",
                       e.toChars());
-        else
-            e.warning("Binary expression `%s` can be replaced with `%s`",
+        else if ((e.isLogicalExp() ||
+                  e.isAndExp() ||
+                  e.isOrExp()) &&
+                 e1x.equals(e2x))    // virtual call
+            e.warning("Expression `%s` can be replaced with `%s`",
                       e.toChars(),
                       e1x.toChars());
     }
