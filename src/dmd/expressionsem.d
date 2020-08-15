@@ -11494,11 +11494,20 @@ Expression binSemantic(BinExp e, Scope* sc)
     Expression e1x = e.e1.expressionSemantic(sc);
     Expression e2x = e.e2.expressionSemantic(sc);
 
-    if (e1x.equals(e2x))
+    if (e1x.op == e2x.op &&   // fast discardal
+        e1x.equals(e2x))      // virtual call
     {
-        e.warning("Binary expression `%s` can be replaced with `%s`",
-                  e.toChars(),
-                  e1x.toChars());
+        if (auto ae = e.isAddExp())
+            e.warning("Addition `%s` can be replaced with `2*%s`",
+                      e.toChars(),
+                      e1x.toChars());
+        else if (auto ae = e.isMinExp())
+            e.warning("Subtraction `%s` can be replaced with `0`",
+                      e.toChars());
+        else
+            e.warning("Binary expression `%s` can be replaced with `%s`",
+                      e.toChars(),
+                      e1x.toChars());
     }
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
