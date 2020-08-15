@@ -96,7 +96,7 @@ void test1()
     static assert(__traits(compiles, { int t; t = t; }));
 }
 
-int x;                          // global?
+int x;
 
 /**
  * See_Also: https://forum.dlang.org/post/cjccfvhbtbgnajplrvbd@forum.dlang.org
