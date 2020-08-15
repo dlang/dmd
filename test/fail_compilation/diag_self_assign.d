@@ -3,24 +3,26 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_self_assign.d(37): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(38): Warning: assignment of `t` from itself has no side effect
-fail_compilation/diag_self_assign.d(40): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(41): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(39): Warning: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(40): Warning: assignment of `t` from itself has no side effect
 fail_compilation/diag_self_assign.d(42): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(46): Error: construction of member `this._xp` from itself
-fail_compilation/diag_self_assign.d(49): Error: construction of member `this._t` from itself
-fail_compilation/diag_self_assign.d(50): Error: construction of member `this._t._z` from itself
-fail_compilation/diag_self_assign.d(55): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(56): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(43): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(44): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(48): Error: construction of member `this._xp` from itself
+fail_compilation/diag_self_assign.d(51): Error: construction of member `this._t` from itself
+fail_compilation/diag_self_assign.d(52): Error: construction of member `this._t._z` from itself
 fail_compilation/diag_self_assign.d(57): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(79): Warning: assignment of `s._x` from itself has no side effect
-fail_compilation/diag_self_assign.d(83): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(89): Warning: assignment of `xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(91): Warning: assignment of `*xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(93): Warning: assignment of `*& x` from itself has no side effect
-fail_compilation/diag_self_assign.d(95): Warning: assignment of `*& x` from itself has no side effect
-fail_compilation/diag_self_assign.d(109): Warning: assignment of `g_x` from itself has no side effect
+fail_compilation/diag_self_assign.d(58): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(59): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(81): Warning: assignment of `s._x` from itself has no side effect
+fail_compilation/diag_self_assign.d(85): Warning: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(91): Warning: assignment of `xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(93): Warning: assignment of `*xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(95): Warning: assignment of `xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(97): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(99): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(115): Warning: assignment of `g_x` from itself has no side effect
+fail_compilation/diag_self_assign.d(116): Warning: assignment of `g_x` from itself has no side effect
 ---
 */
 struct S
@@ -70,7 +72,7 @@ struct S
     T _t;
 }
 
-void test1()
+pure nothrow @nogc void test1()
 {
     S s;
     s = s;
@@ -90,6 +92,8 @@ void test1()
 
     *xp = *xp;                  // warn
 
+    (&*xp) = (&*xp);            // warn
+
     (*&x) = (*&x);              // warn
 
     (*&*&x) = (*&*&x);          // warn
@@ -99,6 +103,8 @@ void test1()
 
 int g_x;
 
+alias g_y = g_x;
+
 /**
  * See_Also: https://forum.dlang.org/post/cjccfvhbtbgnajplrvbd@forum.dlang.org
  */
@@ -107,4 +113,5 @@ int g_x;
     int x;
     x = g_x;          // x is in another scope so this doesn't cause shadowing
     g_x = g_x;        // warn
+    g_y = g_y;        // warn
 }
