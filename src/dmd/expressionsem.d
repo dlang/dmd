@@ -2477,17 +2477,6 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-
-private void checkSameSubexps(BinExp e)
-{
-    if (e.e1.equals(e.e2))
-    {
-        e.e1.warning("Binary expression `%s` can be replaced with `%s`",
-                     e.toChars(),
-                     e.e1.toChars());
-    }
-}
-
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -10571,9 +10560,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
+    static private void checkSameSubexps(BinExp e)
+    {
+        if (e.e1.equals(e.e2))
+        {
+            e.e1.warning("Binary expression `%s` can be replaced with `%s`",
+                         e.toChars(),
+                         e.e1.toChars());
+        }
+    }
+
     override void visit(AndExp exp)
     {
-        exp.checkSameSubexps();
+        checkSameSubexps(exp);
 
         if (exp.type)
         {
@@ -10630,7 +10629,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(OrExp exp)
     {
-        exp.checkSameSubexps();
+        checkSameSubexps(exp);
 
         if (exp.type)
         {
@@ -10742,7 +10741,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(LogicalExp exp)
     {
-        exp.checkSameSubexps();
+        checkSameSubexps(exp);
 
         static if (LOGSEMANTIC)
         {
@@ -10832,7 +10831,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("CmpExp::semantic('%s')\n", exp.toChars());
         }
 
-        exp.checkSameSubexps();
+        checkSameSubexps(exp);
 
         if (exp.type)
         {
