@@ -389,6 +389,8 @@ public:
     {
         Int,
         Numeric,
+        String,
+        Enum,
         Other
     }
 
@@ -438,6 +440,12 @@ public:
                 AST.Tuns32,
                 AST.Tint64, AST.Tuns64:
                 return EnumKind.Numeric;
+            case AST.Tarray:
+                if (type.isString())
+                    return EnumKind.String;
+                break;
+            case AST.Tenum:
+                return EnumKind.Enum;
             default:
                 break;
         }
@@ -673,33 +681,41 @@ public:
         }
 
         if (vd.storage_class & AST.STC.manifest &&
-            vd._init && vd._init.isExpInitializer())
+            vd._init && vd._init.isExpInitializer() && vd.type !is null)
         {
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
 
-            if (kind != EnumKind.Other)
+            final switch (kind)
             {
-                hasNumericConstant = true;
-                buf.writestring("ENUM_CONSTANT_NUMERIC(");
-            }
-            else
-            {
-                hasTypedConstant = true;
-                buf.writestring("ENUM_CONSTANT(");
+                case EnumKind.Int, EnumKind.Numeric:
+                    hasNumericConstant = true;
+                    buf.writestring("ENUM_CONSTANT_NUMERIC(");
+                    break;
+
+                case EnumKind.String, EnumKind.Enum:
+                    hasTypedConstant = true;
+                    buf.writestring("ENUM_CONSTANT(");
+                    break;
+
+                case EnumKind.Other:
+                    buf.printf("// ignoring enum `%s` because type `%s` is currently not supported for enum constants.\n", vd.toPrettyChars(), type.toChars());
+                    return;
             }
             writeEnumTypeName(type);
             buf.writestring(", ");
             buf.writestring(vd.ident.toString());
             buf.writestring(", ");
             auto e = AST.initializerToExpression(vd._init);
-            if (kind != EnumKind.Other)
+            if (kind == EnumKind.Int || kind == EnumKind.Numeric)
             {
                 auto ie = e.isIntegerExp();
                 visitInteger(ie.toInteger(), type);
             }
             else
+            {
                 e.accept(this);
+            }
             buf.writestringln(")");
             buf.writenl();
             return;
@@ -1267,7 +1283,7 @@ public:
                 buf.writestring("ANON_ENUM_KEY(");
             else if (!manifestConstants)
                 buf.writestring("ANON_ENUM_KEY_NUMERIC(");
-            else if (manifestConstants && memberKind != EnumKind.Other)
+            else if (manifestConstants && memberKind == EnumKind.Int || memberKind == EnumKind.Numeric)
             {
                 hasNumericConstant = true;
                 buf.writestring("ENUM_CONSTANT_NUMERIC(");
@@ -1280,7 +1296,7 @@ public:
             writeEnumTypeName(memberType);
             buf.printf(", %s, ", m.ident.toChars());
 
-            if (memberKind != EnumKind.Other)
+            if (kind == EnumKind.Int || kind == EnumKind.Numeric)
             {
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
