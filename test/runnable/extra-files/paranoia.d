@@ -1527,7 +1527,6 @@ void part6(){
 		break;
 
 		case	 3:
-		X = X;
 		break;
 
 		case	 4:
@@ -2321,4 +2320,3 @@ else
 		return test.main();
 	}
 }
-
