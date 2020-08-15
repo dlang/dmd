@@ -2534,7 +2534,7 @@ public:
 
     override void visit(DefaultInitExp e)
     {
-        buf.writestring(Token.toString(e.subop));
+        buf.writestring(Token.toString(e.op));
     }
 
     override void visit(ClassReferenceExp e)
