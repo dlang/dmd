@@ -3,23 +3,23 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_self_assign.d(36): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(37): Warning: assignment of `t` from itself has no side effect
-fail_compilation/diag_self_assign.d(39): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(37): Warning: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(38): Warning: assignment of `t` from itself has no side effect
 fail_compilation/diag_self_assign.d(40): Error: construction of member `this._x` from itself
 fail_compilation/diag_self_assign.d(41): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(45): Error: construction of member `this._xp` from itself
-fail_compilation/diag_self_assign.d(48): Error: construction of member `this._t` from itself
-fail_compilation/diag_self_assign.d(49): Error: construction of member `this._t._z` from itself
-fail_compilation/diag_self_assign.d(54): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(42): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(46): Error: construction of member `this._xp` from itself
+fail_compilation/diag_self_assign.d(49): Error: construction of member `this._t` from itself
+fail_compilation/diag_self_assign.d(50): Error: construction of member `this._t._z` from itself
 fail_compilation/diag_self_assign.d(55): Error: assignment of member `this._x` from itself
 fail_compilation/diag_self_assign.d(56): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(78): Warning: assignment of `s._x` from itself has no side effect
-fail_compilation/diag_self_assign.d(82): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(88): Warning: assignment of `xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(90): Warning: assignment of `*xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(92): Warning: assignment of `*& x` from itself has no side effect
-fail_compilation/diag_self_assign.d(94): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(57): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(79): Warning: assignment of `s._x` from itself has no side effect
+fail_compilation/diag_self_assign.d(83): Warning: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(89): Warning: assignment of `xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(91): Warning: assignment of `*xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(93): Warning: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(95): Warning: assignment of `*& x` from itself has no side effect
 fail_compilation/diag_self_assign.d(109): Warning: assignment of `g_x` from itself has no side effect
 ---
 */
