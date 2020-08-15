@@ -59,6 +59,11 @@ int main(string[] args)
     catch (BuildException e)
     {
         writeln(e.msg);
+        if (e.details)
+        {
+            writeln("DETAILS:\n");
+            writeln(e.details);
+        }
         return 1;
     }
 }
@@ -1829,24 +1834,23 @@ auto log(T...)(string spec, T args)
 /**
 Aborts the current build
 
-TODO:
-    - Display detailed error messages
-
 Params:
     msg = error message to display
+    details = extra error details to display (e.g. a error diff)
 
 Throws: BuildException with the supplied message
 
 Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
 */
-BuildException abortBuild(string msg = "Build failed!")
+BuildException abortBuild(string msg = "Build failed!", string details = "")
 {
-    throw new BuildException(msg);
+    throw new BuildException(msg, details);
 }
 
 class BuildException : Exception
 {
-    this(string msg) { super(msg); }
+    string details = "";
+    this(string msg, string details) { super(msg); this.details = details; }
 }
 
 /**
