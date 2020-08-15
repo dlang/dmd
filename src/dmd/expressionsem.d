@@ -1762,7 +1762,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             else
             {
-                if (arg.op == TOK.default_)
+                if (isDefaultInitOp(arg.op))
                 {
                     arg = arg.resolveLoc(loc, sc);
                     (*arguments)[i] = arg;

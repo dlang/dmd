@@ -1269,8 +1269,6 @@ public:
 class DefaultInitExp : public Expression
 {
 public:
-    TOK subop;             // which of the derived classes this is
-
     void accept(Visitor *v) { v->visit(this); }
 };
 

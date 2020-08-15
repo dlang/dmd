@@ -5100,12 +5100,9 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        TOK subop;      // which of the derived classes this is
-
-        final extern (D) this(const ref Loc loc, TOK subop, int size)
+        final extern (D) this(const ref Loc loc, TOK op, int size)
         {
-            super(loc, TOK.default_, size);
-            this.subop = subop;
+            super(loc, op, size);
         }
 
         override void accept(Visitor v)

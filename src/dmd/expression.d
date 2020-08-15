@@ -1636,8 +1636,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(EqualExp)    isEqualExp() { return (op == TOK.equal || op == TOK.notEqual) ? cast(typeof(return))this : null; }
         inout(IdentityExp) isIdentityExp() { return (op == TOK.identity || op == TOK.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == TOK.question ? cast(typeof(return))this : null; }
-
-        inout(DefaultInitExp)    isDefaultInitExp() { return op == TOK.default_ ? cast(typeof(return))this : null; }
+        inout(DefaultInitExp)    isDefaultInitExp() { return isDefaultInitOp(op) ? cast(typeof(return))this: null; }
         inout(FileInitExp)       isFileInitExp() { return (op == TOK.file || op == TOK.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == TOK.line ? cast(typeof(return))this : null; }
         inout(ModuleInitExp)     isModuleInitExp() { return op == TOK.moduleString ? cast(typeof(return))this : null; }
@@ -6581,16 +6580,21 @@ extern (C++) final class CondExp : BinExp
     }
 }
 
+/// Returns: if this token is the `op` for a derived `DefaultInitExp` class.
+bool isDefaultInitOp(TOK op) pure nothrow @safe @nogc
+{
+    return  op == TOK.prettyFunction    || op == TOK.functionString ||
+            op == TOK.line              || op == TOK.moduleString   ||
+            op == TOK.file              || op == TOK.fileFullPath   ;
+}
+
 /***********************************************************
  */
 extern (C++) class DefaultInitExp : Expression
 {
-    TOK subop;      // which of the derived classes this is
-
-    extern (D) this(const ref Loc loc, TOK subop, int size)
+    extern (D) this(const ref Loc loc, TOK op, int size)
     {
-        super(loc, TOK.default_, size);
-        this.subop = subop;
+        super(loc, op, size);
     }
 
     override void accept(Visitor v)
@@ -6612,7 +6616,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s;
-        if (subop == TOK.fileFullPath)
+        if (op == TOK.fileFullPath)
             s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
