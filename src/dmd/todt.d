@@ -1237,7 +1237,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         /* Put out:
-         *  char[] name;
+         *  char[] name; // mangled name
          *  void[] init;
          *  hash_t function(in void*) xtoHash;
          *  bool function(in void*, in void*) xopEquals;
@@ -1254,8 +1254,12 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
          *  xgetRTInfo
          */
 
-        const name = sd.toPrettyChars();
-        const namelen = strlen(name);
+        import dmd.root.outbuffer : OutBuffer;
+        import dmd.dmangle : mangleToBuffer;
+        OutBuffer nameBuf;
+        mangleToBuffer(sd, &nameBuf);
+        const namelen = nameBuf.length;
+
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfostruct.structsize);
 
@@ -1355,7 +1359,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // Put out name[] immediately following TypeInfo_Struct
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(cast(uint)(namelen + 1), nameBuf.peekChars());
     }
 
     override void visit(TypeInfoClassDeclaration d)

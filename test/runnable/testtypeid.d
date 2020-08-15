@@ -557,7 +557,7 @@ void test11010()
     S11010 s;
     ti = typeid(s.p);
     assert(cast(TypeInfo_Pointer)ti !is null);
-    assert(ti.toString() == "testtypeid.S11010*");
+    assert(ti.toString() == "10testtypeid6S11010*");
 
     C11010 c = new C11010();
     c.p = new D11010();

@@ -703,7 +703,7 @@ void test32()
         TypeInfo ti = typeid(MyUnion32*);
         assert(!(ti is null));
         assert(ti.tsize==(MyUnion32*).sizeof);
-        assert(ti.toString()=="run.module_01.MyUnion32*");
+        assert(ti.toString()=="3run9module_019MyUnion32*");
 }
 
 /* ================================ */
