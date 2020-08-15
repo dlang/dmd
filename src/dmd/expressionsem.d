@@ -2477,6 +2477,14 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
+private void checkSameSubexps(BinExp e)
+{
+    if (e.e1.equals(e.e2))
+    {
+        e.e1.warning("Same lhs and rhs");
+    }
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -10562,6 +10570,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AndExp exp)
     {
+        exp.checkSameSubexps();
+
         if (exp.type)
         {
             result = exp;
@@ -10617,6 +10627,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(OrExp exp)
     {
+        exp.checkSameSubexps();
+
         if (exp.type)
         {
             result = exp;
@@ -10727,6 +10739,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(LogicalExp exp)
     {
+        exp.checkSameSubexps();
+
         static if (LOGSEMANTIC)
         {
             printf("LogicalExp::semantic() %s\n", exp.toChars());
@@ -10808,13 +10822,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
-
     override void visit(CmpExp exp)
     {
         static if (LOGSEMANTIC)
         {
             printf("CmpExp::semantic('%s')\n", exp.toChars());
         }
+
+        exp.checkSameSubexps();
+
         if (exp.type)
         {
             result = exp;
