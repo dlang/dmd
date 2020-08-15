@@ -4830,6 +4830,21 @@ L1:     pop     EAX;
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16400
+
+extern(C) void f16400(int, ...)
+{
+	asm {naked; ret;}
+}
+
+void test16400()
+{
+	assert(*(cast(ubyte*) &f16400) == 0xc3); // fails
+	f16400(0); // corrupts the stack
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm.d\n");
@@ -4904,6 +4919,7 @@ int main()
     test60();
     test9866();
     test17027();
+    test16400();
   }
     printf("Success\n");
     return 0;

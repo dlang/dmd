@@ -2151,7 +2151,15 @@ public:
             return;
         }
 
-        if (goal == CTFEGoal.LValue)
+        // Note: This is a workaround for
+        // https://issues.dlang.org/show_bug.cgi?id=17351
+        // The aforementioned bug triggers when passing manifest constant by `ref`.
+        // If there was not a previous reference to them, they are
+        // not cached and trigger a "cannot be read at compile time".
+        // This fix is a crude solution to get it to work. A more proper
+        // approach would be to resolve the forward reference, but that is
+        // much more involved.
+        if (goal == CTFEGoal.LValue && e.var.type.isMutable())
         {
             if (auto v = e.var.isVarDeclaration())
             {
