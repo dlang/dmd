@@ -121,8 +121,6 @@ public:
         }
         if (e.onstack)
             return;
-        if (e.allocator)
-            return;
         if (global.params.ehnogc && e.thrownew)
             return;                     // separate allocator is called for this, not the GC
         if (f.setGC())

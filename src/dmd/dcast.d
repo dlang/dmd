@@ -1199,28 +1199,22 @@ MATCH implicitConvTo(Expression e, Type t)
 
             /* Check call to 'allocator', then 'member'
              */
-            FuncDeclaration fd = e.allocator;
-            for (int count = 0; count < 2; ++count, (fd = e.member))
+            if (FuncDeclaration fd = e.member)
             {
-                if (!fd)
-                    continue;
                 if (fd.errors || fd.type.ty != Tfunction)
                     return; // error
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (tf.purity == PURE.impure)
                     return; // impure
 
-                if (fd == e.member)
+                if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
                 {
-                    if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
-                    {
-                        return;
-                    }
-                    // Allow a conversion to immutable type, or
-                    // conversions of mutable types between thread-local and shared.
+                    return;
                 }
+                // Allow a conversion to immutable type, or
+                // conversions of mutable types between thread-local and shared.
 
-                Expressions* args = (fd == e.allocator) ? e.newargs : e.arguments;
+                Expressions* args = e.arguments;
 
                 size_t nparams = tf.parameterList.length;
                 // if TypeInfoArray was prepended

@@ -117,6 +117,7 @@ public:
 
     Prot protection;
     bool noDefaultCtor;         // no default construction
+    bool isNewDisabled;
     Sizeok sizeok;              // set when structsize contains valid data
 
     virtual Scope *newScope(Scope *sc);

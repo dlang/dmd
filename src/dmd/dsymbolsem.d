@@ -1406,15 +1406,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             NewExp ne = cast(NewExp)ex;
                             if (dsym.type.toBasetype().ty == Tclass)
                             {
-                                if (ne.newargs && ne.newargs.dim > 1)
-                                {
-                                    dsym.mynew = true;
-                                }
-                                else
-                                {
-                                    ne.onstack = 1;
-                                    dsym.onstack = true;
-                                }
+                                ne.onstack = 1;
+                                dsym.onstack = true;
                             }
                         }
                         else if (ex.op == TOK.function_)
@@ -4564,15 +4557,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         //printf("NewDeclaration::semantic()\n");
 
-        // `@disable new();` should not be deprecated
-        if (!nd.isDisabled())
-        {
-            // @@@DEPRECATED_2.091@@@
-            // Made an error in 2.087.
-            // Should be removed in 2.091
-            error(nd.loc, "class allocators are obsolete, consider moving the allocation strategy outside of the class");
-        }
-
         if (nd.semanticRun >= PASS.semanticdone)
             return;
         if (nd._scope)
@@ -4583,35 +4567,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         nd.parent = sc.parent;
         Dsymbol p = nd.parent.pastMixin();
-        if (!p.isAggregateDeclaration())
+        AggregateDeclaration ag = p.isAggregateDeclaration;
+        if (!ag)
         {
             error(nd.loc, "allocator can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             nd.type = Type.terror;
             nd.errors = true;
             return;
         }
+        else if (nd.isDisabled())
+            ag.isNewDisabled = true;
+
         Type tret = Type.tvoid.pointerTo();
         if (!nd.type)
-            nd.type = new TypeFunction(nd.parameterList, tret, LINK.d, nd.storage_class);
+        {
+            ParameterList pl;
+            nd.type = new TypeFunction(pl, tret, LINK.d, nd.storage_class);
+        }
 
         nd.type = nd.type.typeSemantic(nd.loc, sc);
 
         // allow for `@disable new();` to force users of a type to use an external allocation strategy
         if (!nd.isDisabled())
-        {
-            // Check that there is at least one argument of type size_t
-            TypeFunction tf = nd.type.toTypeFunction();
-            if (tf.parameterList.length < 1)
-            {
-                nd.error("at least one argument of type `size_t` expected");
-            }
-            else
-            {
-                Parameter fparam = tf.parameterList[0];
-                if (!fparam.type.equals(Type.tsize_t))
-                    nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
-            }
-        }
+            nd.error("can only be `@disable`");
 
         funcDeclarationSemantic(nd);
     }

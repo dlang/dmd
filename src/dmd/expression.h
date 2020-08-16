@@ -505,18 +505,16 @@ public:
     /* thisexp.new(newargs) newtype(arguments)
      */
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
-    Expressions *newargs;       // Array of Expression's to call new operator
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
 
     Expression *argprefix;      // expression to be evaluated just before arguments[]
 
     CtorDeclaration *member;    // constructor function
-    NewDeclaration *allocator;  // allocator function
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
-    static NewExp *create(Loc loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
+    static NewExp *create(Loc loc, Expression *thisexp, Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -528,7 +526,6 @@ public:
     /* thisexp.new(newargs) class baseclasses { } (arguments)
      */
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
-    Expressions *newargs;       // Array of Expression's to call new operator
     ClassDeclaration *cd;       // class being instantiated
     Expressions *arguments;     // Array of Expression's to call class constructor
 

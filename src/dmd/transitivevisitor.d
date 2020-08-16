@@ -852,8 +852,6 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.NewDeclaration d)
     {
         //printf("Visiting NewDeclaration\n");
-        visitParameters(d.parameterList.parameters);
-        visitFuncBody(d);
     }
 
 //   Initializers
@@ -922,8 +920,6 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting NewExp\n");
         if (e.thisexp)
             e.thisexp.accept(this);
-        if (e.newargs && e.newargs.dim)
-            visitArgs(e.newargs);
         visitType(e.newtype);
         if (e.arguments && e.arguments.dim)
             visitArgs(e.arguments);
@@ -934,8 +930,6 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting NewAnonClassExp\n");
         if (e.thisexp)
             e.thisexp.accept(this);
-        if (e.newargs && e.newargs.dim)
-            visitArgs(e.newargs);
         if (e.arguments && e.arguments.dim)
             visitArgs(e.arguments);
         if (e.cd)

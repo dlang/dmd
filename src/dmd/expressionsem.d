@@ -1841,7 +1841,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         auto args = new Expressions(nargs - i);
                         foreach (u; i .. nargs)
                             (*args)[u - i] = (*arguments)[u];
-                        arg = new NewExp(loc, null, null, p.type, args);
+                        arg = new NewExp(loc, null, p.type, args);
                         break;
                     }
                 default:
@@ -3446,11 +3446,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.newtype = exp.type; // in case type gets cast to something else
         Type tb = exp.type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
-        if (arrayExpressionSemantic(exp.newargs, sc) ||
-            preFunctionParameters(sc, exp.newargs))
-        {
-            return setError();
-        }
         if (arrayExpressionSemantic(exp.arguments, sc))
         {
             return setError();
@@ -3488,6 +3483,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             if (!cd.ctor)
                 cd.ctor = cd.searchCtor();
+            if (cd.isNewDisabled)
+            {
+                exp.error("the `new` operator is disabled for type `%s`", cd.type.toChars());
+            }
             if (cd.noDefaultCtor && !nargs && !cd.defaultCtor)
             {
                 exp.error("default construction is disabled for type `%s`", cd.type.toChars());
@@ -3605,38 +3604,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (cd.aggNew)
-            {
-                // Prepend the size argument to newargs[]
-                Expression e = new IntegerExp(exp.loc, cd.size(exp.loc), Type.tsize_t);
-                if (!exp.newargs)
-                    exp.newargs = new Expressions();
-                exp.newargs.shift(e);
-
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.aggNew, null, tb, exp.newargs, FuncResolveFlag.standard);
-                if (!f || f.errors)
-                    return setError();
-
-                checkFunctionAttributes(exp, sc, f);
-                checkAccess(cd, exp.loc, sc, f);
-
-                TypeFunction tf = cast(TypeFunction)f.type;
-                Type rettype;
-                if (functionParameters(exp.loc, sc, tf, null, null, exp.newargs, f, &rettype, &newprefix))
-                    return setError();
-
-                exp.allocator = f.isNewDeclaration();
-                assert(exp.allocator);
-            }
-            else
-            {
-                if (exp.newargs && exp.newargs.dim)
-                {
-                    exp.error("no allocator for `%s`", cd.toChars());
-                    return setError();
-                }
-            }
-
             if (cd.ctor)
             {
                 FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
@@ -3688,44 +3655,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             if (!sd.ctor)
                 sd.ctor = sd.searchCtor();
+            if (sd.isNewDisabled)
+            {
+                exp.error("the `new` operator is disabled for type `%s`", sd.type.toChars());
+            }
             if (sd.noDefaultCtor && !nargs)
             {
                 exp.error("default construction is disabled for type `%s`", sd.type.toChars());
                 return setError();
             }
             // checkDeprecated() is already done in newtype.typeSemantic().
-
-            if (sd.aggNew)
-            {
-                // Prepend the uint size argument to newargs[]
-                Expression e = new IntegerExp(exp.loc, sd.size(exp.loc), Type.tsize_t);
-                if (!exp.newargs)
-                    exp.newargs = new Expressions();
-                exp.newargs.shift(e);
-
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.aggNew, null, tb, exp.newargs, FuncResolveFlag.standard);
-                if (!f || f.errors)
-                    return setError();
-
-                checkFunctionAttributes(exp, sc, f);
-                checkAccess(sd, exp.loc, sc, f);
-
-                TypeFunction tf = cast(TypeFunction)f.type;
-                Type rettype;
-                if (functionParameters(exp.loc, sc, tf, null, null, exp.newargs, f, &rettype, &newprefix))
-                    return setError();
-
-                exp.allocator = f.isNewDeclaration();
-                assert(exp.allocator);
-            }
-            else
-            {
-                if (exp.newargs && exp.newargs.dim)
-                {
-                    exp.error("no allocator for `%s`", sd.toChars());
-                    return setError();
-                }
-            }
 
             if (sd.ctor && nargs)
             {
@@ -3877,7 +3816,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             sds.members.push(e.cd);
         }
 
-        Expression n = new NewExp(e.loc, e.thisexp, e.newargs, e.cd.type, e.arguments);
+        Expression n = new NewExp(e.loc, e.thisexp, e.cd.type, e.arguments);
 
         Expression c = new CommaExp(e.loc, d, n);
         result = c.expressionSemantic(sc);

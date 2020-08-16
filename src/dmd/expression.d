@@ -3384,35 +3384,31 @@ extern (C++) final class TemplateExp : Expression
 extern (C++) final class NewExp : Expression
 {
     Expression thisexp;         // if !=null, 'this' for class being allocated
-    Expressions* newargs;       // Array of Expression's to call new operator
     Type newtype;
     Expressions* arguments;     // Array of Expression's
 
     Expression argprefix;       // expression to be evaluated just before arguments[]
     CtorDeclaration member;     // constructor function
-    NewDeclaration allocator;   // allocator function
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
-    extern (D) this(const ref Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
+    extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
     {
         super(loc, TOK.new_, __traits(classInstanceSize, NewExp));
         this.thisexp = thisexp;
-        this.newargs = newargs;
         this.newtype = newtype;
         this.arguments = arguments;
     }
 
-    static NewExp create(Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
+    static NewExp create(Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
     {
-        return new NewExp(loc, thisexp, newargs, newtype, arguments);
+        return new NewExp(loc, thisexp, newtype, arguments);
     }
 
     override Expression syntaxCopy()
     {
         return new NewExp(loc,
             thisexp ? thisexp.syntaxCopy() : null,
-            arraySyntaxCopy(newargs),
             newtype.syntaxCopy(),
             arraySyntaxCopy(arguments));
     }
@@ -3424,27 +3420,25 @@ extern (C++) final class NewExp : Expression
 }
 
 /***********************************************************
- * thisexp.new(newargs) class baseclasses { } (arguments)
+ * thisexp.new class baseclasses { } (arguments)
  */
 extern (C++) final class NewAnonClassExp : Expression
 {
     Expression thisexp;     // if !=null, 'this' for class being allocated
-    Expressions* newargs;   // Array of Expression's to call new operator
     ClassDeclaration cd;    // class being instantiated
     Expressions* arguments; // Array of Expression's to call class constructor
 
-    extern (D) this(const ref Loc loc, Expression thisexp, Expressions* newargs, ClassDeclaration cd, Expressions* arguments)
+    extern (D) this(const ref Loc loc, Expression thisexp, ClassDeclaration cd, Expressions* arguments)
     {
         super(loc, TOK.newAnonymousClass, __traits(classInstanceSize, NewAnonClassExp));
         this.thisexp = thisexp;
-        this.newargs = newargs;
         this.cd = cd;
         this.arguments = arguments;
     }
 
     override Expression syntaxCopy()
     {
-        return new NewAnonClassExp(loc, thisexp ? thisexp.syntaxCopy() : null, arraySyntaxCopy(newargs), cast(ClassDeclaration)cd.syntaxCopy(null), arraySyntaxCopy(arguments));
+        return new NewAnonClassExp(loc, thisexp ? thisexp.syntaxCopy() : null, cast(ClassDeclaration)cd.syntaxCopy(null), arraySyntaxCopy(arguments));
     }
 
     override void accept(Visitor v)
