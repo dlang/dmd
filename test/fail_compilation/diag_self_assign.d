@@ -3,26 +3,26 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_self_assign.d(39): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(40): Warning: assignment of `t` from itself has no side effect
-fail_compilation/diag_self_assign.d(42): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(43): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(44): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(48): Error: construction of member `this._xp` from itself
-fail_compilation/diag_self_assign.d(51): Error: construction of member `this._t` from itself
-fail_compilation/diag_self_assign.d(52): Error: construction of member `this._t._z` from itself
-fail_compilation/diag_self_assign.d(57): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(58): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(59): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(81): Warning: assignment of `s._x` from itself has no side effect
-fail_compilation/diag_self_assign.d(85): Warning: assignment of `x` from itself has no side effect
-fail_compilation/diag_self_assign.d(91): Warning: assignment of `xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(93): Warning: assignment of `*xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(95): Warning: assignment of `xp` from itself has no side effect
-fail_compilation/diag_self_assign.d(97): Warning: assignment of `*& x` from itself has no side effect
-fail_compilation/diag_self_assign.d(99): Warning: assignment of `*& x` from itself has no side effect
-fail_compilation/diag_self_assign.d(115): Warning: assignment of `g_x` from itself has no side effect
-fail_compilation/diag_self_assign.d(116): Warning: assignment of `g_x` from itself has no side effect
+fail_compilation/diag_self_assign.d(39): Deprecation: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(40): Deprecation: assignment of `t` from itself has no side effect
+fail_compilation/diag_self_assign.d(42): Deprecation: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(43): Deprecation: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(44): Deprecation: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(48): Deprecation: construction of member `this._xp` from itself
+fail_compilation/diag_self_assign.d(51): Deprecation: construction of member `this._t` from itself
+fail_compilation/diag_self_assign.d(52): Deprecation: construction of member `this._t._z` from itself
+fail_compilation/diag_self_assign.d(57): Deprecation: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(58): Deprecation: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(59): Deprecation: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(81): Deprecation: assignment of `s._x` from itself has no side effect
+fail_compilation/diag_self_assign.d(85): Deprecation: assignment of `x` from itself has no side effect
+fail_compilation/diag_self_assign.d(91): Deprecation: assignment of `xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(93): Deprecation: assignment of `*xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(95): Deprecation: assignment of `xp` from itself has no side effect
+fail_compilation/diag_self_assign.d(97): Deprecation: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(99): Deprecation: assignment of `*& x` from itself has no side effect
+fail_compilation/diag_self_assign.d(115): Deprecation: assignment of `g_x` from itself has no side effect
+fail_compilation/diag_self_assign.d(116): Deprecation: assignment of `g_x` from itself has no side effect
 ---
 */
 struct S
