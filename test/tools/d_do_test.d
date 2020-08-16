@@ -152,6 +152,9 @@ immutable(EnvData) processEnvironment()
     envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
     envData.tryDisabled    = environment.get("TRY_DISABLED") == "1";
 
+    enforce(envData.sep.length == 1,
+        "Path separator must be a single character, not: `"~envData.sep~"`");
+
     if (envData.ccompiler.empty)
     {
         if (envData.os != "windows")
@@ -617,11 +620,53 @@ string unifyNewLine(string str)
     return std.regex.replace(str, re, "\n");
 }
 
+/**
+Unifies a text `str` with words that could be DMD path references to a common
+separator `sep`. This normalizes the text and allows comparing path output
+results between different operating systems.
+
+Params:
+    str = text to be unified
+    sep = unification separator to use
+Returns: Text with path separator standardized to `sep`.
+*/
 string unifyDirSep(string str, string sep)
 {
-    static re = regex(`(?<=[-\w{}][-\w{}]*)/(?=[-\w][-\w/]*\.(di?|mixin)\b)`, "g");
-    return std.regex.replace(str, re, sep);
+    static void unifyWordFromBack(char[] r, char sep)
+    {
+        foreach_reverse(ref ch; r)
+        {
+            // stop at common word boundaries
+            if (ch == '\n' || ch == '\r' || ch == ' ')
+                break;
+            // normalize path characters
+            if (ch == '\\' || ch == '/')
+                ch = sep;
+        }
+    }
+    auto mStr = str.dup;
+    auto remaining = mStr;
+    alias needles = AliasSeq!(".d", ".di", ".mixin");
+    enum needlesArray = [needles];
+    // simple multi-delimiter word identification
+    while (!remaining.empty)
+    {
+        auto res = remaining.find(needles);
+        if (res[0].empty) break;
+
+        auto currentWord = remaining[0 .. res[0].ptr-remaining.ptr];
+        // skip over current word and matched delimiter
+        const needleLength = res[1] > 0 ? needlesArray[res[1] - 1].length : 0;
+        remaining = remaining[currentWord.length + needleLength .. $];
+
+        if (remaining.empty ||
+            remaining.startsWith(" ", "\n", "\r", "-mixin",
+                                 "(", ":", "'", "`", "\"", ".", ","))
+            unifyWordFromBack(currentWord, sep[0]);
+    }
+    return mStr.assumeUnique;
 }
+
 unittest
 {
     assert(`fail_compilation/test.d(1) Error: dummy error message for 'test'`.unifyDirSep(`\`)
@@ -636,6 +681,49 @@ unittest
 
     assert(`{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin(7): Error:`.unifyDirSep(`\`)
         == `{{RESULTS_DIR}}\fail_compilation\mixin_test.mixin(7): Error:`);
+
+    assert(`{{RESULTS_DIR}}/fail_compilation/mixin_test.d-mixin-50(7): Error:`.unifyDirSep(`\`)
+        == `{{RESULTS_DIR}}\fail_compilation\mixin_test.d-mixin-50(7): Error:`);
+    assert("runnable\\xtest46_gc.d-mixin-37(187): Error".unifyDirSep("/") == "runnable/xtest46_gc.d-mixin-37(187): Error");
+
+    // optional columns
+    assert(`{{RESULTS_DIR}}/fail_compilation/cols.d(12,7): Error:`.unifyDirSep(`\`)
+        == `{{RESULTS_DIR}}\fail_compilation\cols.d(12,7): Error:`);
+
+    // gnu style
+    assert(`fail_compilation/test.d:1: Error: dummy error message for 'test'`.unifyDirSep(`\`)
+        == `fail_compilation\test.d:1: Error: dummy error message for 'test'`);
+
+    // in quotes as well
+    assert("'imports\\foo.d'".unifyDirSep("/") == "'imports/foo.d'");
+    assert("`imports\\foo.d`".unifyDirSep("/") == "`imports/foo.d`");
+    assert("\"imports\\foo.d\"".unifyDirSep("/") == "\"imports/foo.d\"");
+
+    assert("fail_compilation\\foo.d: Error:".unifyDirSep("/") == "fail_compilation/foo.d: Error:");
+
+    // at the end of a sentence
+    assert("fail_compilation\\foo.d. A".unifyDirSep("/") == "fail_compilation/foo.d. A");
+    assert("fail_compilation\\foo.d(2). A".unifyDirSep("/") == "fail_compilation/foo.d(2). A");
+    assert("fail_compilation\\foo.d, A".unifyDirSep("/") == "fail_compilation/foo.d, A");
+    assert("fail_compilation\\foo.d(2), A".unifyDirSep("/") == "fail_compilation/foo.d(2), A");
+    assert("fail_compilation\\foo.d".unifyDirSep("/") == "fail_compilation/foo.d");
+    assert("fail_compilation\\foo.d\n".unifyDirSep("/") == "fail_compilation/foo.d\n");
+    assert("fail_compilation\\foo.d\r\n".unifyDirSep("/") == "fail_compilation/foo.d\r\n");
+    assert("\nfail_compilation\\foo.d".unifyDirSep("/") == "\nfail_compilation/foo.d");
+    assert("\r\nfail_compilation\\foo.d".unifyDirSep("/") == "\r\nfail_compilation/foo.d");
+    assert(("runnable\\xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
+            "runnable\\xtest46_gc.d-mixin-37(222): Deprecation: `opDot` is deprecated. Use `alias this`").unifyDirSep("/") ==
+           "runnable/xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
+           "runnable/xtest46_gc.d-mixin-37(222): Deprecation: `opDot` is deprecated. Use `alias this`");
+
+    assert("".unifyDirSep("/") == "");
+    assert(" \n ".unifyDirSep("/") == " \n ");
+    assert("runnable/xtest46_gc.d-mixin-$n$(222): ".unifyDirSep("\\") ==
+           "runnable\\xtest46_gc.d-mixin-$n$(222): ");
+
+    assert(`S('\xff').this(1)`.unifyDirSep("/") == `S('\xff').this(1)`);
+    assert(`invalid UTF character \U80000000`.unifyDirSep("/") == `invalid UTF character \U80000000`);
+    assert("https://code.dlang.org".unifyDirSep("\\") == "https://code.dlang.org");
 }
 
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
@@ -893,9 +981,9 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
             /// ( whole path, remaining output )
             auto parts = output.findSplitAfter(pathEnd);
-
-            if (!parts || !exists(parts[0]))
+            if (parts[0].empty || !exists(parts[0])) {
                 return false;
+            }
 
             output = parts[1];
             continue;
@@ -906,9 +994,9 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
             // need some context behind this expression to stop the regex match
             // e.g. "$r:.*$ failed with..." uses " failed"
             auto context = refoutput[0 .. min(7, $)];
-
+            const parts = context.findSplitBefore("$");
             // Avoid collisions with other special sequences
-            if (auto parts = context.findSplitBefore("$"))
+            if (!parts[1].empty)
             {
                 context = parts[0];
                 enforce(context.length, "Another sequence following $r:...$ is not supported!");
@@ -933,17 +1021,17 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
         foreach (const chunk; refparts[0].splitter('|'))
         {
             // ( <predicate> , "=", <content> )
-            const conditional = chunk.findSplit("=");
+            const searchResult = chunk.findSplit("=");
 
-            if (!conditional) // <default>
+            if (searchResult[1].empty) // <default>
             {
                 toSkip = chunk;
                 break;
             }
             // Match against OS or model (accepts "32mscoff" as "32")
-            else if (conditional[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
+            else if (searchResult[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
             {
-                toSkip = conditional[2];
+                toSkip = searchResult[2];
                 break;
             }
         }

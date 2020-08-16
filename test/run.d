@@ -193,7 +193,7 @@ Options:
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
             if (status != 0)
             {
-                writefln(">>> TARGET FAILED: ", target.filename);
+                writeln(">>> TARGET FAILED: ", target.filename);
                 failed = true;
             }
         }
