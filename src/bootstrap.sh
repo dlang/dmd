@@ -7,6 +7,8 @@
 # We recommend installing a D compiler globally and using src/build.d directly.
 # Visit https://dlang.org/download.html for more information
 
+set -euo pipefail
+
 HOST_DMD_VER="${HOST_DMD_VER:-2.088.0}"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -57,12 +59,20 @@ if [ ! -e "${HOST_RDMD}" ] ; then
         curl "${CURL_FLAGS[@]}" "${HOST_DMD_URL}.tar.xz" | tar -C "${HOST_DMD_ROOT}" -Jxf - || rm -rf "${HOST_DMD_ROOT}"
     else
         echo "[bootstrap] Downloading compiler ${HOST_DMD_URL}.zip"
-        TMPFILE="$(mktemp deleteme.XXXXXXXX)"
-        curl "${CURL_FLAGS[@]}" "${HOST_DMD_URL}.zip" -o "${TMPFILE}.zip"
-        unzip -qd "${HOST_DMD_ROOT}" "${TMPFILE}.zip"
-        rm "${TMPFILE}.zip"
+        TMPFILE="$(mktemp deleteme.XXXXXXXX.zip)"
+        ( curl "${CURL_FLAGS[@]}" "${HOST_DMD_URL}.zip" -o "${TMPFILE}"
+          unzip -qd "${HOST_DMD_ROOT}" "${TMPFILE}"
+          ) ||  rm -rf "${HOST_DMD_ROOT}"
+        rm -f "${TMPFILE}"
     fi
-    echo "[bootstrap] Compiler download successful."
+
+    # check for bootstrapping success
+    if [ -e "${HOST_RDMD}" ] ; then
+        echo "[bootstrap] Compiler download successful."
+    else
+        echo "ERROR: bootstrapping failed."
+        exit 1
+    fi
 fi
 
 # Call build.d with all arguments forwarded
