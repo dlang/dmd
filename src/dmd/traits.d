@@ -548,6 +548,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
+    if (e.ident == Id.isDynamicArray)
+    {
+        return isTypeX(t => (t.toBasetype().ty == Tarray));
+    }
     if (e.ident == Id.isArithmetic)
     {
         return isTypeX(t => t.isintegral() || t.isfloating());
@@ -584,10 +588,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isFuture)
     {
        return isDeclX(t => t.isFuture());
-    }
-    if (e.ident == Id.isDynamicArray)
-    {
-        return isTypeX(t => (t.toBasetype().ty == Tarray));
     }
     if (e.ident == Id.isStaticArray)
     {
