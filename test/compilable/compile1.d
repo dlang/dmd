@@ -980,4 +980,4 @@ enum enumOfTypeString : string
     a = "a",
     b = "b",
 }
-static assert(__traits(isDynamicArray, enumOfTypeString) == true);
+static assert(__traits(isDynamicArray, enumOfTypeString));
