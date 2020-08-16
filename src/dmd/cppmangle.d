@@ -1483,6 +1483,9 @@ private final class CppMangleVisitor : Visitor
         // expressions are mangled in <X..E>
         if (param.isTemplateValueParameter())
             buf.writeByte('X');
+        else if (param.isTemplateTupleParameter() &&
+                 global.params.cplusplus >= CppStdRevision.cpp11)
+            buf.writestring("Dp");
         buf.writeByte('T');
         writeSequenceFromIndex(idx);
         buf.writeByte('_');
