@@ -2558,7 +2558,10 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         else if (!ve1.type.hasAssignmentWithSideEffect)
         {
             // TODO: turn this warning into error after deprecation period
-            exp.deprecation("assignment of `%s` from itself has no side effect", exp.e1.toChars());
+            exp.deprecation("assignment of `%s` from itself has no side effect, to exercise assignment instead use `%s = %s.init`", // TODO advice ok?
+                            exp.e1.toChars(),
+                            exp.e1.toChars(),
+                            exp.e1.toChars());
         }
     }
 }
