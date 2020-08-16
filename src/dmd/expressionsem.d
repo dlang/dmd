@@ -2549,14 +2549,16 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         assert(ve1.type);       // TODO: needed?
         if (isThisExpr)
         {
+            // TODO: make these two deprecations into errors after deprecation period
             if (auto ctor = sc.func.isCtorDeclaration())
-                exp.error("construction of member `%s` from itself", ve1.toChars());
+                exp.deprecation("construction of member `%s` from itself", ve1.toChars());
             else
-                exp.error("assignment of member `%s` from itself", ve1.toChars());
+                exp.deprecation("assignment of member `%s` from itself", ve1.toChars());
         }
         else if (!ve1.type.hasAssignmentWithSideEffect)
         {
-            exp.warning("assignment of `%s` from itself has no side effect", exp.e1.toChars());
+            // TODO: turn this warning into error after deprecation period
+            exp.deprecation("assignment of `%s` from itself has no side effect", exp.e1.toChars());
         }
     }
 }
