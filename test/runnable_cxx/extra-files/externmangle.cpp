@@ -432,5 +432,7 @@ template<typename ...T> void foovargs(T... args);
 void test40()
 {
     foovargs<int, float>(1, 2.0f);
+    char c = 'a';
+    foovargs<char*>(&c);
 }
 #endif
