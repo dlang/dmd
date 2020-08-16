@@ -1659,7 +1659,7 @@ private bool checkDefCtor(Loc loc, Type t)
 private bool hasAssignmentWithSideEffect(Type t)
 {
     t = t.baseElemOf();
-    if (t.ty == Tstruct) // TODO: use `isStructDeclaration` instead eventhough it is virtual?
+    if (t.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
         return (sd.postblit ||
