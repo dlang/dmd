@@ -1658,12 +1658,12 @@ private bool checkDefCtor(Loc loc, Type t)
  */
 private bool hasAssignmentWithSideEffect(Type t)
 {
-    // TODO: use `isStructDeclaration` instead?
     t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (t.ty == Tstruct) // TODO: use `isStructDeclaration` instead eventhough it is virtual?
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
-        return (sd.hasPostblit ||
+        return (sd.postblit ||
+                sd.dtor ||
                 sd.hasCopyCtor);
     }
     return false;
