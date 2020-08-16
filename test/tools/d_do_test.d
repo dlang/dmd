@@ -933,17 +933,17 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
         foreach (const chunk; refparts[0].splitter('|'))
         {
             // ( <predicate> , "=", <content> )
-            const conditional = chunk.findSplit("=");
+            const searchResult = chunk.findSplit("=");
 
-            if (conditional[1].empty) // <default>
+            if (searchResult[1].empty) // <default>
             {
                 toSkip = chunk;
                 break;
             }
             // Match against OS or model (accepts "32mscoff" as "32")
-            else if (conditional[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
+            else if (searchResult[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
             {
-                toSkip = conditional[2];
+                toSkip = searchResult[2];
                 break;
             }
         }
