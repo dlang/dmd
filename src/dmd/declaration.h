@@ -506,8 +506,6 @@ public:
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     bool isThis2;                       // has a dual-context 'this' parameter
     VarDeclaration *v_arguments;        // '_arguments' parameter
-    ObjcSelector *selector;             // Objective-C method selector (member function only)
-    VarDeclaration *selectorParameter;  // Objective-C implicit selector parameter
 
     VarDeclaration *v_argptr;           // '_argptr' variable
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
@@ -580,6 +578,10 @@ public:
     FuncDeclarations *inlinedNestedCallees;
 
     unsigned flags;                     // FUNCFLAGxxxxx
+
+    // Data for a function declaration that is needed for the Objective-C
+    // integration.
+    ObjcFuncDeclaration objc;
 
     static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);

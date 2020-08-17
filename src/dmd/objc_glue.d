@@ -194,9 +194,9 @@ extern(C++) final class Supported : ObjcGlue
 
     override void setupMethodSelector(FuncDeclaration fd, elem** esel)
     {
-        if (fd && fd.selector && !*esel)
+        if (fd && fd.objc.selector && !*esel)
         {
-            *esel = el_var(Symbols.getMethVarRef(fd.selector.toString()));
+            *esel = el_var(Symbols.getMethVarRef(fd.objc.selector.toString()));
         }
     }
 
@@ -289,11 +289,11 @@ extern(C++) final class Supported : ObjcGlue
     }
     do
     {
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return count;
 
-        assert(fd.selectorParameter);
-        auto selectorSymbol = fd.selectorParameter.toSymbol();
+        assert(fd.objc.selectorParameter);
+        auto selectorSymbol = fd.objc.selectorParameter.toSymbol();
         memmove(params + 1, params, count * params[0].sizeof);
         params[0] = selectorSymbol;
 
@@ -1125,8 +1125,8 @@ private:
 
             if (func && func.fbody)
             {
-                assert(func.selector);
-                dtb.xoff(func.selector.toNameSymbol(), 0); // method name
+                assert(func.objc.selector);
+                dtb.xoff(func.objc.selector.toNameSymbol(), 0); // method name
                 dtb.xoff(Symbols.getMethVarType(func), 0); // method type string
                 dtb.xoff(func.toSymbol(), 0); // function implementation
             }

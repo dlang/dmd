@@ -784,7 +784,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
         pi += fd.parameters.dim;
-    if (fd.selector)
+    if (fd.objc.selector)
         pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
     Symbol*[10] paramsbuf = void;

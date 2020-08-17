@@ -4260,7 +4260,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             if (mt.sym.classKind == ClassKind.objc
                 && d.isFuncDeclaration()
                 && d.isFuncDeclaration().isStatic
-                && d.isFuncDeclaration().selector)
+                && d.isFuncDeclaration().objc.selector)
             {
                 auto classRef = new ObjcClassReferenceExp(e.loc, mt.sym);
                 return new DotVarExp(e.loc, classRef, d).expressionSemantic(sc);
