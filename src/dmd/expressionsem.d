@@ -2556,7 +2556,8 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             else
                 exp.deprecation("assignment of member `%s` from itself", ve1.toChars());
         }
-        else if (!ve1.type.hasAssignmentWithSideEffect)
+        else if (global.params.warnings != DiagnosticReporting.off &&
+                 !ve1.type.hasAssignmentWithSideEffect)
         {
             // TODO: turn this into warning after deprecation period
             exp.deprecation("assignment of `%s` from itself has no side effect, to exercise assignment instead use `%s = %s.init`", // TODO advice ok?
