@@ -803,6 +803,62 @@ if (is(ReturnType!(typeof((T t) => callable(t))) == int))
     assert(returnValue == 7);
 }
 
+/**
+ * Eagerly filters the given array based on the given predicate.
+ *
+ * Returns: a new array containing only elements for which the predicate returns
+ *  `true`
+ */
+inout(T)[] filterEagerly(alias predicate, T)(inout T[] array)
+if (is(ReturnType!(typeof((T t) => predicate(t))) == bool))
+{
+    inout(T)[] result;
+
+    foreach (e ; array)
+    {
+        if (predicate(e))
+            result ~= e;
+    }
+
+    return result;
+}
+
+///
+pure nothrow @safe unittest
+{
+    const result = [1, 2, 3, 4].filterEagerly!(e => e > 2);
+    assert(result == [3, 4]);
+}
+
+/**
+ * Eagerly iterates the array and calls the given callable for each element.
+ *
+ * Returns: a new array containing the result of each call to `callable`
+ */
+auto mapEagerly(alias callable, T)(inout T[] array)
+if (__traits(compiles, { auto _ = (T t) => callable(t); } ))
+{
+    if (array.length == 0)
+        return null;
+
+    alias NewElementType = ReturnType!(typeof((T t) => callable(t)));
+
+    inout(NewElementType)[] result;
+    result.reserve(array.length);
+
+    foreach (e ; array)
+        result ~= callable(e);
+
+    return result;
+}
+
+///
+pure nothrow @safe unittest
+{
+    const result = [1, 2, 3, 4].mapEagerly!(e => e * 2);
+    assert(result == [2, 4, 6, 8]);
+}
+
 private template ReturnType(T)
 {
     static if (is(T R == return))
