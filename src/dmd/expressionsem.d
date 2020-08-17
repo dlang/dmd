@@ -2550,7 +2550,6 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         assert(ve1.type);       // TODO: needed?
         if (isThisExpr)
         {
-            // TODO: should these really be deprecations?
             if (auto ctor = sc.func.isCtorDeclaration())
                 exp.error("construction of member `%s` from itself", ve1.toChars());
             else
