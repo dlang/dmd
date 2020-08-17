@@ -1662,7 +1662,8 @@ private bool hasAssignmentWithSideEffect(Type t)
     if (t.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
-        return (sd.postblit ||
+        return (sd.hasIdentityAssign ||
+                sd.postblit ||
                 sd.dtor ||
                 sd.hasCopyCtor);
     }
