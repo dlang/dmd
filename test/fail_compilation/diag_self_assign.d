@@ -5,15 +5,15 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag_self_assign.d(39): Deprecation: assignment of `x` from itself has no side effect, to exercise assignment instead use `x = x.init`
 fail_compilation/diag_self_assign.d(40): Deprecation: assignment of `t` from itself has no side effect, to exercise assignment instead use `t = t.init`
-fail_compilation/diag_self_assign.d(42): Deprecation: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(43): Deprecation: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(44): Deprecation: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(48): Deprecation: construction of member `this._xp` from itself
-fail_compilation/diag_self_assign.d(51): Deprecation: construction of member `this._t` from itself
-fail_compilation/diag_self_assign.d(52): Deprecation: construction of member `this._t._z` from itself
-fail_compilation/diag_self_assign.d(57): Deprecation: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(58): Deprecation: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(59): Deprecation: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(42): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(43): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(44): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(48): Error: construction of member `this._xp` from itself
+fail_compilation/diag_self_assign.d(51): Error: construction of member `this._t` from itself
+fail_compilation/diag_self_assign.d(52): Error: construction of member `this._t._z` from itself
+fail_compilation/diag_self_assign.d(57): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(58): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(59): Error: assignment of member `this._x` from itself
 fail_compilation/diag_self_assign.d(81): Deprecation: assignment of `s._x` from itself has no side effect, to exercise assignment instead use `s._x = s._x.init`
 fail_compilation/diag_self_assign.d(85): Deprecation: assignment of `x` from itself has no side effect, to exercise assignment instead use `x = x.init`
 fail_compilation/diag_self_assign.d(91): Deprecation: assignment of `xp` from itself has no side effect, to exercise assignment instead use `xp = xp.init`
