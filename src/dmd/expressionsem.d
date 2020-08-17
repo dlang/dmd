@@ -2556,7 +2556,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             else
                 exp.deprecation("assignment of member `%s` from itself", ve1.toChars());
         }
-        else if (global.params.warnings != DiagnosticReporting.off &&
+        else if (global.params.warnings != DiagnosticReporting.off && // TODO ok to hide this behind warning flag?
                  !ve1.type.hasAssignmentWithSideEffect)
         {
             // TODO: turn this into warning after deprecation period
