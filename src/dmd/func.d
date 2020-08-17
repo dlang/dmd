@@ -265,8 +265,6 @@ extern (C++) class FuncDeclaration : Declaration
     VarDeclaration vthis;               /// 'this' parameter (member and nested)
     bool isThis2;                       /// has a dual-context 'this' parameter
     VarDeclaration v_arguments;         /// '_arguments' parameter
-    ObjcSelector* selector;             /// Objective-C method selector (member function only)
-    VarDeclaration selectorParameter;   /// Objective-C implicit selector parameter
 
     VarDeclaration v_argptr;            /// '_argptr' variable
     VarDeclarations* parameters;        /// Array of VarDeclaration's for parameters
@@ -344,6 +342,12 @@ extern (C++) class FuncDeclaration : Declaration
     FuncDeclarations *inlinedNestedCallees;
 
     uint flags;                        /// FUNCFLAG.xxxxx
+
+    /**
+     * Data for a function declaration that is needed for the Objective-C
+     * integration.
+     */
+    ObjcFuncDeclaration objc;
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type)
     {
@@ -505,7 +509,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!isThis2 && !ad && !isNested())
         {
             vthis = null;
-            selectorParameter = null;
+            objc.selectorParameter = null;
             return;
         }
 
@@ -556,7 +560,7 @@ extern (C++) class FuncDeclaration : Declaration
             assert(0);
         vthis.parent = this;
         if (ad)
-            selectorParameter = objc.createSelectorParameter(this, sc);
+            objc.selectorParameter = .objc.createSelectorParameter(this, sc);
     }
 
     override final bool equals(const RootObject o) const
@@ -1666,7 +1670,7 @@ extern (C++) class FuncDeclaration : Declaration
     override inout(AggregateDeclaration) isThis() inout
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        auto ad = (storage_class & STC.static_) ? objc.isThis(this) : isMemberLocal();
+        auto ad = (storage_class & STC.static_) ? .objc.isThis(this) : isMemberLocal();
         //printf("-FuncDeclaration::isThis() %p\n", ad);
         return ad;
     }
@@ -1706,7 +1710,7 @@ extern (C++) class FuncDeclaration : Declaration
             return false;
                                                              // https://issues.dlang.org/show_bug.cgi?id=19654
         if (p.isClassDeclaration.classKind == ClassKind.objc && !p.isInterfaceDeclaration)
-            return objc.isVirtual(this);
+            return .objc.isVirtual(this);
 
         version (none)
         {

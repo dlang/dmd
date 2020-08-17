@@ -1038,7 +1038,7 @@ L1:
     }
     else if (ad && ad.isClassDeclaration && ad.isClassDeclaration.classKind == ClassKind.objc &&
              var.isFuncDeclaration && var.isFuncDeclaration.isStatic &&
-             var.isFuncDeclaration.selector)
+             var.isFuncDeclaration.objc.selector)
     {
         return new ObjcClassReferenceExp(e1.loc, cast(ClassDeclaration) ad);
     }

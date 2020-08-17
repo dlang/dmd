@@ -175,6 +175,19 @@ extern (C++) struct ObjcClassDeclaration
     }
 }
 
+/**
+ * Contains all data for a function declaration that is needed for the
+ * Objective-C integration.
+ */
+extern (C++) struct ObjcFuncDeclaration
+{
+    /// The method selector (member functions only).
+    ObjcSelector* selector;
+
+    /// The implicit selector parameter.
+    VarDeclaration selectorParameter;
+}
+
 // Should be an interface
 extern(C++) abstract class Objc
 {
@@ -527,7 +540,7 @@ extern(C++) private final class Supported : Objc
                 assert(literal.sd);
                 if (!isUdaSelector(literal.sd))
                     continue;
-                if (fd.selector)
+                if (fd.objc.selector)
                 {
                     fd.error("can only have one Objective-C selector per method");
                     return;
@@ -535,17 +548,17 @@ extern(C++) private final class Supported : Objc
                 assert(literal.elements.dim == 1);
                 StringExp se = (*literal.elements)[0].toStringExp();
                 assert(se);
-                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).peekString().ptr);
+                fd.objc.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).peekString().ptr);
             }
         }
     }
 
     override void validateSelector(FuncDeclaration fd)
     {
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return;
         TypeFunction tf = cast(TypeFunction)fd.type;
-        if (fd.selector.paramCount != tf.parameterList.parameters.dim)
+        if (fd.objc.selector.paramCount != tf.parameterList.parameters.dim)
             fd.error("number of colons in Objective-C selector must match number of parameters");
         if (fd.parent && fd.parent.isTemplateInstance())
             fd.error("template cannot have an Objective-C selector attached");
@@ -553,7 +566,7 @@ extern(C++) private final class Supported : Objc
 
     override void checkLinkage(FuncDeclaration fd)
     {
-        if (fd.linkage != LINK.objc && fd.selector)
+        if (fd.linkage != LINK.objc && fd.objc.selector)
             fd.error("must have Objective-C linkage to attach a selector");
     }
 
@@ -596,7 +609,7 @@ extern(C++) private final class Supported : Objc
         if (cd.classKind != ClassKind.objc)
             return;
 
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return;
 
         assert(fd.isStatic ? cd.objc.isMeta : !cd.objc.isMeta);
@@ -608,7 +621,7 @@ extern(C++) private final class Supported : Objc
     {
         with(funcDeclaration)
         {
-            if (!selector)
+            if (!objc.selector)
                 return null;
 
             // Use Objective-C class object as 'this'
@@ -631,7 +644,7 @@ extern(C++) private final class Supported : Objc
     }
     do
     {
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return null;
 
         auto ident = Identifier.generateAnonymousId("_cmd");
