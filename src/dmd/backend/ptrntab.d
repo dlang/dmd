@@ -5220,6 +5220,7 @@ immutable OP[] optab =
         { "pavgw",          2,              { aptb2PAVGW.ptr } },
         { "pblendvb",       3,              { aptb3PBLENDVB.ptr } },
         { "pblendw",        3,              { aptb3PBLENDW.ptr } },
+        { "pclmulqdq",      3,              { aptb3PCLMULQDQ.ptr } },
         { "pcmpeqb",        2,              { aptb2PCMPEQB.ptr } },
         { "pcmpeqd",        2,              { aptb2PCMPEQD.ptr } },
         { "pcmpeqq",        2,              { aptb2PCMPEQQ.ptr } },

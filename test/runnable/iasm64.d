@@ -4936,6 +4936,7 @@ void test61()
 
         0xC5, 0xF9, 0xE0, 0xC0,                   // vpavgb XMM0, XMM0, XMM0;
         0xC5, 0xF9, 0xE3, 0xC0,                   // vpavgw XMM0, XMM0, XMM0;
+        0x66, 0x0F, 0x3A, 0x44, 0x44, 0x88, 0x40, 0x00, // pclmulqdq XMM0, 64[RAX + 4 * RCX], 0;
         0xC4, 0xE3, 0x79, 0x44, 0x44, 0x88, 0x40, 0x00, // vpclmulqdq XMM0, XMM0, 64[RAX + 4 * RCX], 0;
         0xC4, 0xE2, 0x79, 0x01, 0xC0,             // vphaddw XMM0, XMM0, XMM0;
         0xC4, 0xE2, 0x79, 0x02, 0xC0,             // vphaddd XMM0, XMM0, XMM0;
@@ -5735,6 +5736,7 @@ void test61()
         vpavgb XMM0, XMM0, XMM0;
         vpavgw XMM0, XMM0, XMM0;
 
+        pclmulqdq XMM0, 64[RAX + 4 * RCX], 0;
         vpclmulqdq XMM0, XMM0, 64[RAX + 4 * RCX], 0;
 
         vphaddw XMM0, XMM0, XMM0;
