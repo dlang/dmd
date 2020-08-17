@@ -10766,6 +10766,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         sc.merge(exp.loc, ctorflow);
         ctorflow.freeFieldinit();
 
+        if (e1x.op == e2x.op && // fast discardal
+            !e1x.isIntegerExp() &&
+            !e2x.isIntegerExp()) // exclude literal
+        {
+            if (e1x.equals(e2x))    // virtual call
+                exp.warning("Expression `%s` can be replaced with `%s`",
+                            exp.toChars(),
+                            e1x.toChars());
+        }
+
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (e2x.op == TOK.type)
             e2x = resolveAliasThis(sc, e2x);
@@ -11498,8 +11508,7 @@ Expression binSemantic(BinExp e, Scope* sc)
         !e1x.isIntegerExp() &&
         !e2x.isIntegerExp()) // exclude literal
     {
-        if (auto ex = (e.isLogicalExp() || // &&, ||
-                       e.isAndExp() || // &
+        if (auto ex = (e.isAndExp() || // &
                        e.isOrExp()) && // |
             e1x.equals(e2x))    // virtual call
             e.warning("Expression `%s` can be replaced with `%s`",
