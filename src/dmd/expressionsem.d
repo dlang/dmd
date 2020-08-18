@@ -10814,10 +10814,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ctorflow.freeFieldinit();
 
         bool isThis;
-
         if (isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
         {
-            exp.warning("Expression `%s` can be replaced with `%s`",
+            // if (auto s1 = e1x.isSymbol())
+            //     if (auto s2 = e2x.isSymbol())
+            //         exp.warning("both symbols");
+            // if (auto em1 = e1x.isEnumMember())
+            //     if (auto em2 = e2x.isEnumMember())
+            //         exp.warning("both enums");
+
+            exp.warning("Logical expression `%s` is same as `%s`",
                         exp.toChars(),
                         e1x.toChars());
         }
@@ -11352,7 +11358,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         bool isThis;
         if (isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
         {
-            exp.warning("Expression `%s` can be replaced with `%s`",
+            exp.warning("Conditional expression `%s` is same as `%s`",
                         exp.toChars(),
                         e1x.toChars());
         }
@@ -11566,23 +11572,23 @@ Expression binSemantic(BinExp e, Scope* sc)
         if (auto ex = (e.isAndExp() || // &
                        e.isOrExp()) && // |
             isSameVarOrThisExp(e1x, e2x, isThis))    // virtual call
-            e.warning("Expression `%s` can be replaced with `%s`",
+            e.warning("Bitwise expression `%s` is same as `%s`",
                       e.toChars(),
                       e1x.toChars());
         // else if (auto ae = e.isAddExp() &&
         //     e1x.equals(e2x))    // virtual call
-        //     e.warning("Addition `%s` can be replaced with `2*%s`",
+        //     e.warning("Addition `%s` is same as `2*%s`",
         //               e.toChars(),
         //               e1x.toChars());
         // else if (auto me = e.isMulExp() &&
         //     e1x.equals(e2x))    // virtual call
         //     // TODO only floating point
-        //     e.warning("Multiplication `%s` can be replaced with `2^^%s`",
+        //     e.warning("Multiplication `%s` is same as `2^^%s`",
         //               e.toChars(),
         //               e1x.toChars());
         // else if (auto se = e.isMinExp() &&
         //     e1x.equals(e2x))    // virtual call
-        //     e.warning("Subtraction `%s` can be replaced with `0`",
+        //     e.warning("Subtraction `%s` is same as `0`",
         //               e.toChars());
     }
 
