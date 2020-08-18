@@ -2487,8 +2487,8 @@ Expression isSameNonEnumVarOrThisExp(Expression e1, Expression e2, out bool isTh
         if (auto ve2 = e2.isVarExp())
         {
             if (ve1.var.isEnumMember ||
-                ve2.var.isEnumMember) // exclude enums
-                return null;
+                ve2.var.isEnumMember)
+                return null;    // exclude enums
             else
                 return (ve1.var is ve2.var) ? ve1 : null; // same variable
         }
