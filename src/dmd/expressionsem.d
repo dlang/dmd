@@ -2477,7 +2477,6 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-
 Expression isSameNonEnumVarOrThisExp(Expression e1,
                                      Expression e2,
                                      out bool isThis) // TODO: better function name?
