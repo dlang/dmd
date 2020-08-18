@@ -370,7 +370,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
             // Always starts the lookup from 'this', because the conflicts with
             // previous overloads are already reported.
-            auto f1 = fd;
+            alias f1 = fd;
             mangleToFuncSignature(buf1, f1);
 
             overloadApply(f1, (Dsymbol s)
@@ -380,7 +380,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
 
                 // Don't have to check conflict between declaration and definition.
-                if ((f1.fbody !is null) != (f2.fbody !is null))
+                if (f2.fbody is null)
                     return 0;
 
                 /* Check for overload merging with base class member functions.
@@ -400,20 +400,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
                     (f2.linkage != LINK.d && f2.linkage != LINK.cpp))
                 {
-                    /* Allow the hack that is actually used in druntime,
-                     * to ignore function attributes for extern (C) functions.
-                     * TODO: Must be reconsidered in the future.
-                     *  BUG: https://issues.dlang.org/show_bug.cgi?id=18206
-                     *
-                     *  extern(C):
-                     *  alias sigfn_t  = void function(int);
-                     *  alias sigfn_t2 = void function(int) nothrow @nogc;
-                     *  sigfn_t  bsd_signal(int sig, sigfn_t  func);
-                     *  sigfn_t2 bsd_signal(int sig, sigfn_t2 func) nothrow @nogc;  // no error
-                     */
-                    if (f1.fbody is null || f2.fbody is null)
-                        return 0;
-
                     auto tf2 = cast(TypeFunction)f2.type;
                     // @@@DEPRECATED_2.094@@@
                     // Deprecated in 2020-08, make this an error in 2.104
