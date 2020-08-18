@@ -2524,9 +2524,9 @@ Expression isSameNonEnumVarOrThisExp(Expression e1,
         if (auto se2 = e2.isSymOffExp())
             return (se1.var is se2.var) ? se1 : null;
 
-    if (auto ae1 = e1.isAddrExp())
-        if (auto ae2 = e2.isAddrExp()) // TODO: can this case happen?
-            e1.loc.message("two address");
+    if (auto ae1 = e1.isAddrExp()) // for instance, `&(rover.Sl)` in `druntime/src/rt/trace.d`
+        if (auto ae2 = e2.isAddrExp())
+            return isSameNonEnumVarOrThisExp(ae1.e1, ae2, isThis);
 
     return null;
 }
