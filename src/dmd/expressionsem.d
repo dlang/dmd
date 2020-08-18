@@ -2545,14 +2545,19 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         return;
 
     bool isThisExpr;
-    if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThisExpr))
+    if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThisExpr)) // TODO move this check downwards?
     {
         assert(ve1.type);       // TODO: needed?
         if (isThisExpr)
         {
+            // TODO: use this instead?
+            // if (auto ag = sc.func.isMember())
+            // {
+            //     exp.loc.message("Scope is an aggregate member");
+            // }
             if (auto ctor = sc.func.isCtorDeclaration())
                 exp.error("construction of member `%s` from itself", ve1.toChars());
-            else
+            else                // TODO sc.func.isMemberDecl
                 exp.error("assignment of member `%s` from itself", ve1.toChars());
         }
         else if (global.params.warnings != DiagnosticReporting.off && // TODO ok to hide this behind warning flag?
