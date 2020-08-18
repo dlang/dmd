@@ -4142,14 +4142,32 @@ else
         /* https://dlang.org/spec/statement.html#asm
          */
 
+        //printf("AsmStatement()::semantic()\n");
         result = asmSemantic(s, sc);
     }
 
     override void visit(CompoundAsmStatement cas)
     {
+        //printf("CompoundAsmStatement()::semantic()\n");
         // Apply postfix attributes of the asm block to each statement.
         sc = sc.push();
         sc.stc |= cas.stc;
+
+        /* Go through the statements twice, first to declare any labels,
+         * second for anything else.
+         */
+
+        foreach (ref s; *cas.statements)
+        {
+            if (s)
+            {
+                if (auto ls = s.isLabelStatement())
+                {
+                    sc.func.searchLabel(ls.ident);
+                }
+            }
+        }
+
         foreach (ref s; *cas.statements)
         {
             s = s ? s.statementSemantic(sc) : null;

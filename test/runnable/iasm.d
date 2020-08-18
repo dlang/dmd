@@ -4844,6 +4844,22 @@ void test16400()
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16963
+
+void bar16963() { assert(0); }
+
+void test16963()
+{
+  asm
+  {
+    jmp bar16963; // forward reference to label
+    hlt;
+  bar16963:
+    ret;
+  }
+}
+
+/****************************************************/
 
 int main()
 {
@@ -4920,6 +4936,7 @@ int main()
     test9866();
     test17027();
     test16400();
+    test16963();
   }
     printf("Success\n");
     return 0;
