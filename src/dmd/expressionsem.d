@@ -2496,49 +2496,6 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
-{
-    if (auto ve1 = e1.isVarExp())
-        if (auto ve2 = e2.isVarExp())
-            return (ve1.var is ve2.var) ? ve1 : null; // same variable
-
-    if (auto te1 = e1.isThisExp())
-        if (auto te2 = e2.isThisExp())
-        {
-            if (te1.var is te2.var) // same this
-            {
-                isThis = true;
-                return te1;
-            }
-            else
-                return null;
-        }
-
-    if (auto dv1 = e1.isDotVarExp())
-        if (auto dv2 = e2.isDotVarExp())
-        {
-            if (dv1.var is dv2.var && // same aggregate variable
-                isSameVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
-                return dv1;
-            else
-                return null;
-        }
-
-    if (auto pe1 = e1.isPtrExp())
-        if (auto pe2 = e2.isPtrExp())
-            return isSameVarOrThisExp(pe1.e1, pe2.e1, isThis);
-
-    if (auto se1 = e1.isSymOffExp())
-        if (auto se2 = e2.isSymOffExp())
-            return (se1.var is se2.var) ? se1 : null;
-
-    if (auto ae1 = e1.isAddrExp())
-        if (auto ae2 = e2.isAddrExp()) // TODO: can this case happen?
-            e1.loc.message("two address");
-
-    return null;
-}
-
 private void checkSelfAssignment(AssignExp exp, Scope* sc)
 {
     if (exp.op != TOK.assign)
@@ -2573,6 +2530,60 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             }
         }
     }
+}
+
+Expression isSameNonEnumVarOrThisExp(Expression e1,
+                                     Expression e2,
+                                     out bool isThis) // TODO: better function name?
+{
+    if (e1.op != e2.op)         // fast discardal
+        return null;
+
+    if (auto ve1 = e1.isVarExp())
+        if (auto ve2 = e2.isVarExp())
+        {
+            if (ve1.var.isEnumMember ||
+                ve2.var.isEnumMember)
+                return null;    // exclude enums
+            else
+                return (ve1.var is ve2.var) ? ve1 : null; // same variable
+        }
+
+    if (auto te1 = e1.isThisExp())
+        if (auto te2 = e2.isThisExp())
+        {
+            if (te1.var is te2.var) // same this
+            {
+                isThis = true;
+                return te1;
+            }
+            else
+                return null;
+        }
+
+    if (auto dv1 = e1.isDotVarExp())
+        if (auto dv2 = e2.isDotVarExp())
+        {
+            if (dv1.var is dv2.var && // same aggregate variable
+                isSameNonEnumVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
+                return dv1;
+            else
+                return null;
+        }
+
+    if (auto pe1 = e1.isPtrExp())
+        if (auto pe2 = e2.isPtrExp())
+            return isSameNonEnumVarOrThisExp(pe1.e1, pe2.e1, isThis);
+
+    if (auto se1 = e1.isSymOffExp())
+        if (auto se2 = e2.isSymOffExp())
+            return (se1.var is se2.var) ? se1 : null;
+
+    if (auto ae1 = e1.isAddrExp())
+        if (auto ae2 = e2.isAddrExp()) // TODO: can this case happen?
+            e1.loc.message("two address");
+
+    return null;
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
