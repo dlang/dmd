@@ -5198,6 +5198,18 @@ extern (C++) final class TypeFunction : TypeNext
         return (funcFlags & (FunctionFlag.inoutParam | FunctionFlag.inoutQual)) != 0;
     }
 
+    /// Returns: whether `this` function type has the same attributes (`@safe`,...) as `other`
+    bool attributesEqual(const scope TypeFunction other) const pure nothrow @safe @nogc
+    {
+        enum attributes = FunctionFlag.isnothrow
+                        | FunctionFlag.isnogc
+                        | FunctionFlag.islive;
+
+        return this.trust == other.trust &&
+                this.purity == other.purity &&
+                (this.funcFlags & attributes) == (other.funcFlags & attributes);
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -6673,6 +6685,33 @@ extern (C++) struct ParameterList
     extern (D) ParameterList syntaxCopy()
     {
         return ParameterList(Parameter.arraySyntaxCopy(parameters), varargs);
+    }
+
+    /// Compares this to another ParameterList (and expands tuples if necessary)
+    extern (D) bool opEquals(scope ref ParameterList other) const
+    {
+        if (stc != other.stc || varargs != other.varargs || (!parameters != !other.parameters))
+            return false;
+
+        if (this.parameters is other.parameters)
+            return true;
+
+        size_t idx;
+        bool diff;
+
+        // Pairwise compare each parameter
+        // Can this avoid the O(n) indexing for the second list?
+        foreach (_, p1; cast() this)
+        {
+            auto p2 = other[idx++];
+            if (!p2 || p1 != p2) {
+                diff = true;
+                break;
+            }
+        }
+
+        // Ensure no remaining parameters in `other`
+        return !diff && other[idx] is null;
     }
 }
 

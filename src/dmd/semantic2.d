@@ -371,6 +371,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // Always starts the lookup from 'this', because the conflicts with
             // previous overloads are already reported.
             alias f1 = fd;
+            auto tf1 = cast(TypeFunction) f1.type;
             mangleToFuncSignature(buf1, f1);
 
             overloadApply(f1, (Dsymbol s)
@@ -394,13 +395,17 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (f1.overrides(f2))
                     return 0;
 
+                auto tf2 = cast(TypeFunction) f2.type;
+
                 // extern (C) functions always conflict each other.
                 if (f1.ident == f2.ident &&
                     f1.toParent2() == f2.toParent2() &&
                     (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
-                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp))
+                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp) &&
+
+                    // But allow the hack to declare overloads with different parameters/STC's
+                    (!tf1.attributesEqual(tf2) || tf1.parameterList != tf2.parameterList))
                 {
-                    auto tf2 = cast(TypeFunction)f2.type;
                     // @@@DEPRECATED_2.094@@@
                     // Deprecated in 2020-08, make this an error in 2.104
                     deprecation(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
@@ -425,7 +430,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
                 if (strcmp(s1, s2) == 0)
                 {
-                    auto tf2 = cast(TypeFunction)f2.type;
                     error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
