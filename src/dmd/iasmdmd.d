@@ -1937,14 +1937,15 @@ L3:
             opcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
             opcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
             opcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
-            opcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
+            opcode == 0x660F3A22 ||    // pinsrd  _xmm, _rm32,   _imm8
+            opcode == VEX_128_WIG(0x660FC5)    // vpextrw  _r32,  _mm,    _imm8
            )
         {
             asm_make_modrm_byte(
                 &emit,
                 pc,
                 ptb.pptb1.usFlags,
-                [opnds[1], opnds[0]]);
+                [opnds[1], opnds[0]]);  // swap operands
         }
         else
         {
