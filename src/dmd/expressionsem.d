@@ -2477,6 +2477,52 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
+Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
+{
+    if (e1.op == e2.op)         // fast discardal
+        return null;
+
+    if (auto ve1 = e1.isVarExp())
+        if (auto ve2 = e2.isVarExp())
+            return (ve1.var is ve2.var) ? ve1 : null; // same variable
+
+    if (auto te1 = e1.isThisExp())
+        if (auto te2 = e2.isThisExp())
+        {
+            if (te1.var is te2.var) // same this
+            {
+                isThis = true;
+                return te1;
+            }
+            else
+                return null;
+        }
+
+    if (auto dv1 = e1.isDotVarExp())
+        if (auto dv2 = e2.isDotVarExp())
+        {
+            if (dv1.var is dv2.var && // same aggregate variable
+                isSameVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
+                return dv1;
+            else
+                return null;
+        }
+
+    if (auto pe1 = e1.isPtrExp())
+        if (auto pe2 = e2.isPtrExp())
+            return isSameVarOrThisExp(pe1.e1, pe2.e1, isThis);
+
+    if (auto se1 = e1.isSymOffExp())
+        if (auto se2 = e2.isSymOffExp())
+            return (se1.var is se2.var) ? se1 : null;
+
+    if (auto ae1 = e1.isAddrExp())
+        if (auto ae2 = e2.isAddrExp()) // TODO: can this case happen?
+            e1.loc.message("two address");
+
+    return null;
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -10766,12 +10812,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         sc.merge(exp.loc, ctorflow);
         ctorflow.freeFieldinit();
 
+        bool isThis;
+
         if (e1x.op == e2x.op && // fast discardal
-            !e1x.isIntegerExp() &&
-            !e2x.isIntegerExp()) // exclude literal
+            isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
         {
             if (e1x.equals(e2x))    // virtual call
-                exp.warning("Expression `%s` can be replaced with `%s`",
+                exp.warning("Expression `%s` should be replaced with `%s`",
                             exp.toChars(),
                             e1x.toChars());
         }
