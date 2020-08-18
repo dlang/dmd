@@ -2007,6 +2007,9 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 private Type asType(RootObject o)
 {
     Type ta = isType(o);
+    // When called with context.res as argument, it can be `FuncDeclaration`
+    if (!ta && o.asFuncDecl())
+        ta = (cast(FuncDeclaration)o).type;
     assert(ta !is null, o.toString());
     return ta;
 }

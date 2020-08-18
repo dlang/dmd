@@ -249,11 +249,19 @@ else
 
     void foovargs(T...)(T args)
     {
-        float ret = args[0] + args[1];
-        assert(ret == 3.0f);
+        static if (is(T[0] == char*))
+        {
+            assert(*args[0] == 'a');
+        }
+        else
+        {
+            float ret = args[0] + args[1];
+            assert(ret == 3.0f);
+        }
     }
 
     alias FooVargs = foovargs!(int, float);
+    alias FooVargs2 = foovargs!(char*);
 }
 
 void main()
