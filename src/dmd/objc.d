@@ -34,9 +34,11 @@ import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
 import dmd.target;
+import dmd.tokens;
 
 struct ObjcSelector
 {
@@ -517,40 +519,30 @@ extern(C++) private final class Supported : Objc
 
     override void setSelector(FuncDeclaration fd, Scope* sc)
     {
-        import dmd.tokens;
+        foreachUda(fd, sc, (e) {
+            if (e.op != TOK.structLiteral)
+                return 0;
 
-        if (!fd.userAttribDecl)
-            return;
-        Expressions* udas = fd.userAttribDecl.getAttributes();
-        arrayExpressionSemantic(udas, sc, true);
-        for (size_t i = 0; i < udas.dim; i++)
-        {
-            Expression uda = (*udas)[i];
-            assert(uda);
-            if (uda.op != TOK.tuple)
-                continue;
-            Expressions* exps = (cast(TupleExp)uda).exps;
-            for (size_t j = 0; j < exps.dim; j++)
+            auto literal = cast(StructLiteralExp) e;
+            assert(literal.sd);
+
+            if (!isUdaSelector(literal.sd))
+                return 0;
+
+            if (fd.objc.selector)
             {
-                Expression e = (*exps)[j];
-                assert(e);
-                if (e.op != TOK.structLiteral)
-                    continue;
-                StructLiteralExp literal = cast(StructLiteralExp)e;
-                assert(literal.sd);
-                if (!isUdaSelector(literal.sd))
-                    continue;
-                if (fd.objc.selector)
-                {
-                    fd.error("can only have one Objective-C selector per method");
-                    return;
-                }
-                assert(literal.elements.dim == 1);
-                StringExp se = (*literal.elements)[0].toStringExp();
-                assert(se);
-                fd.objc.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).peekString().ptr);
+                fd.error("can only have one Objective-C selector per method");
+                return 1;
             }
-        }
+
+            assert(literal.elements.dim == 1);
+            auto se = (*literal.elements)[0].toStringExp();
+            assert(se);
+
+            fd.objc.selector = ObjcSelector.lookup(se.toUTF8(sc).peekString().ptr);
+
+            return 0;
+        });
     }
 
     override void validateSelector(FuncDeclaration fd)
@@ -739,12 +731,50 @@ extern(C++) private final class Supported : Objc
             "of Objective-C classes. Please use the Objective-C runtime instead");
     }
 
-    extern(D) private bool isUdaSelector(StructDeclaration sd)
+extern(D) private:
+
+    bool isUdaSelector(StructDeclaration sd)
     {
         if (sd.ident != Id.udaSelector || !sd.parent)
             return false;
         Module _module = sd.parent.isModule();
         return _module && _module.isCoreModule(Id.attribute);
+    }
+
+    /**
+     * Iterates the UDAs attached to the given function declaration.
+     *
+     * If `dg` returns `!= 0`, it will stop the iteration and return that
+     * value, otherwise it will return 0.
+     *
+     * Params:
+     *  fd = the function declaration to get the UDAs from
+     *  dg = called once for each UDA. If `dg` returns `!= 0`, it will stop the
+     *      iteration and return that value, otherwise it will return `0`.
+     */
+    int foreachUda(FuncDeclaration fd, Scope* sc, int delegate(Expression) dg) const
+    {
+        if (!fd.userAttribDecl)
+            return 0;
+
+        auto udas = fd.userAttribDecl.getAttributes();
+        arrayExpressionSemantic(udas, sc, true);
+
+        return udas.each!((uda) {
+            if (uda.op != TOK.tuple)
+                return 0;
+
+            auto exps = (cast(TupleExp) uda).exps;
+
+            return exps.each!((e) {
+                assert(e);
+
+                if (auto result = dg(e))
+                    return result;
+
+                return 0;
+            });
+        });
     }
 }
 
