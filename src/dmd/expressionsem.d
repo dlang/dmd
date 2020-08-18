@@ -2547,7 +2547,6 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
     bool isThisExpr;
     if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThisExpr)) // TODO move this check downwards?
     {
-        assert(ve1.type);       // TODO: needed?
         if (isThisExpr)
         {
             // TODO: use this instead?
@@ -2560,14 +2559,18 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             else                // TODO sc.func.isMemberDecl
                 exp.error("assignment of member `%s` from itself", ve1.toChars());
         }
-        else if (global.params.warnings != DiagnosticReporting.off && // TODO ok to hide this behind warning flag?
-                 !ve1.type.hasAssignmentWithSideEffect)
+        else
         {
-            // TODO: turn this into warning after deprecation period
-            exp.deprecation("assignment of `%s` from itself has no side effect, to exercise assignment instead use `%s = %s.init`", // TODO advice ok?
-                            exp.e1.toChars(),
-                            exp.e1.toChars(),
-                            exp.e1.toChars());
+            assert(ve1.type);       // TODO: needed?
+            if (global.params.warnings != DiagnosticReporting.off &&
+                !ve1.type.hasAssignmentWithSideEffect)
+            {
+                // TODO: turn this into a warning after deprecation period
+                exp.deprecation("assignment of `%s` from itself has no side effect, to exercise assignment instead use `%s = %s.init`", // TODO advice ok?
+                                exp.e1.toChars(),
+                                exp.e1.toChars(),
+                                exp.e1.toChars());
+            }
         }
     }
 }
