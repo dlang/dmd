@@ -2502,7 +2502,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         return;
 
     bool isThisExpr;
-    if (auto ve1 = exp.e1.isSameVarOrThisExp(exp.e2, isThisExpr)) // TODO move this check downwards?
+    if (auto ve1 = exp.e1.isSameNonEnumVarOrThisExp(exp.e2, isThisExpr)) // TODO move this check downwards?
     {
         if (isThisExpr)
         {
