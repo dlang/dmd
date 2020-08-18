@@ -2479,8 +2479,9 @@ private Module loadStdMath()
 
 Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
 {
-    if (e1.op == e2.op)         // fast discardal
-        return null;
+    // TODO: why this doesn't work?:
+    // if (e1.op != e2.op)         // fast discardal
+    //     return null;
 
     if (auto ve1 = e1.isVarExp())
         if (auto ve2 = e2.isVarExp())
@@ -10814,13 +10815,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         bool isThis;
 
-        if (e1x.op == e2x.op && // fast discardal
-            isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
+        if (isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
         {
-            if (e1x.equals(e2x))    // virtual call
-                exp.warning("Expression `%s` should be replaced with `%s`",
-                            exp.toChars(),
-                            e1x.toChars());
+            exp.warning("Expression `%s` can be replaced with `%s`",
+                        exp.toChars(),
+                        e1x.toChars());
         }
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -11350,6 +11349,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression e2x = exp.e2.expressionSemantic(sc);
         e2x = resolveProperties(sc, e2x);
 
+        bool isThis;
+        if (isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
+        {
+            exp.warning("Expression `%s` can be replaced with `%s`",
+                        exp.toChars(),
+                        e1x.toChars());
+        }
+
         sc.merge(exp.loc, ctorflow1);
         ctorflow1.freeFieldinit();
 
@@ -11555,9 +11562,10 @@ Expression binSemantic(BinExp e, Scope* sc)
         !e1x.isIntegerExp() &&
         !e2x.isIntegerExp()) // exclude literal
     {
+        bool isThis;
         if (auto ex = (e.isAndExp() || // &
                        e.isOrExp()) && // |
-            e1x.equals(e2x))    // virtual call
+            isSameVarOrThisExp(e1x, e2x, isThis))    // virtual call
             e.warning("Expression `%s` can be replaced with `%s`",
                       e.toChars(),
                       e1x.toChars());
