@@ -2479,7 +2479,7 @@ private Module loadStdMath()
 
 Expression isSameNonEnumVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
 {
-    // TODO: why this doesn't work?:
+    // TODO: why doesn't this work?:
     // if (e1.op != e2.op)         // fast discardal
     //     return null;
 
