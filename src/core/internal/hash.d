@@ -194,9 +194,7 @@ if (!is(T == enum) && __traits(isStaticArray, T) && !canBitwiseHash!T)
 
 //dynamic array hash
 size_t hashOf(T)(scope const T val, size_t seed = 0)
-if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
-    && !is(T == struct) && !is(T == class) && !is(T == union)
-    && (__traits(isScalar, S) || canBitwiseHash!S))
+if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
     alias ElementType = typeof(val[0]);
     static if (!canBitwiseHash!ElementType)
@@ -222,9 +220,7 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 
 //dynamic array hash
 size_t hashOf(T)(T val, size_t seed = 0)
-if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
-    && !is(T == struct) && !is(T == class) && !is(T == union)
-    && !(__traits(isScalar, S) || canBitwiseHash!S))
+if (is(T == S[], S) && !(__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
     size_t hash = seed;
     foreach (ref o; val)
