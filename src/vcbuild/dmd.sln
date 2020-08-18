@@ -11,6 +11,8 @@ Global
 		Debug|x64 = Debug|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
+		RelWithAsserts|Win32 = RelWithAsserts|Win32
+		RelWithAsserts|x64 = RelWithAsserts|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -21,6 +23,10 @@ Global
 		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.Release|Win32.Build.0 = Release|Win32
 		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.Release|x64.ActiveCfg = Release|x64
 		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.Release|x64.Build.0 = Release|x64
+		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.RelWithAsserts|Win32.ActiveCfg = RelWithAsserts|Win32
+		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.RelWithAsserts|Win32.Build.0 = RelWithAsserts|Win32
+		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.RelWithAsserts|x64.ActiveCfg = RelWithAsserts|x64
+		{C4DA4FAF-A928-4230-8353-E80C76F223E0}.RelWithAsserts|x64.Build.0 = RelWithAsserts|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
