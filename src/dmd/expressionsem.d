@@ -2477,7 +2477,7 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
+Expression isSameNonEnumVarOrThisExp(Expression e1, Expression e2, out bool isThis) // TODO: better function name?
 {
     // TODO: why this doesn't work?:
     // if (e1.op != e2.op)         // fast discardal
@@ -2485,7 +2485,13 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
 
     if (auto ve1 = e1.isVarExp())
         if (auto ve2 = e2.isVarExp())
-            return (ve1.var is ve2.var) ? ve1 : null; // same variable
+        {
+            if (ve1.var.isEnumMember ||
+                ve2.var.isEnumMember) // exclude enums
+                return null;
+            else
+                return (ve1.var is ve2.var) ? ve1 : null; // same variable
+        }
 
     if (auto te1 = e1.isThisExp())
         if (auto te2 = e2.isThisExp())
@@ -2503,7 +2509,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
         if (auto dv2 = e2.isDotVarExp())
         {
             if (dv1.var is dv2.var && // same aggregate variable
-                isSameVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
+                isSameNonEnumVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
                 return dv1;
             else
                 return null;
@@ -2511,7 +2517,7 @@ Expression isSameVarOrThisExp(Expression e1, Expression e2, out bool isThis) // 
 
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
-            return isSameVarOrThisExp(pe1.e1, pe2.e1, isThis);
+            return isSameNonEnumVarOrThisExp(pe1.e1, pe2.e1, isThis);
 
     if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
@@ -10814,7 +10820,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ctorflow.freeFieldinit();
 
         bool isThis;
-        if (isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
+        if (isSameNonEnumVarOrThisExp(e1x, e2x, isThis)) // only variables for now
         {
             // if (auto s1 = e1x.isSymbol())
             //     if (auto s2 = e2x.isSymbol())
@@ -11356,7 +11362,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e2x = resolveProperties(sc, e2x);
 
         bool isThis;
-        if (isSameVarOrThisExp(e1x, e2x, isThis)) // only variables for now
+        if (isSameNonEnumVarOrThisExp(e1x, e2x, isThis)) // only variables for now
         {
             exp.warning("Conditional expression `%s` is same as `%s`",
                         exp.toChars(),
@@ -11571,7 +11577,7 @@ Expression binSemantic(BinExp e, Scope* sc)
         bool isThis;
         if (auto ex = (e.isAndExp() || // &
                        e.isOrExp()) && // |
-            isSameVarOrThisExp(e1x, e2x, isThis))    // virtual call
+            isSameNonEnumVarOrThisExp(e1x, e2x, isThis))
             e.warning("Bitwise expression `%s` is same as `%s`",
                       e.toChars(),
                       e1x.toChars());
