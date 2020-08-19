@@ -515,12 +515,12 @@ enum RET
     RETstack    = 2     // returned on stack
 };
 
-enum TRUST
+enum class TRUST : unsigned char
 {
-    TRUSTdefault = 0,
-    TRUSTsystem = 1,    // @system (same as TRUSTdefault)
-    TRUSTtrusted = 2,   // @trusted
-    TRUSTsafe = 3       // @safe
+    default_ = 0,
+    system = 1,    // @system (same as TRUSTdefault)
+    trusted = 2,   // @trusted
+    safe = 3       // @safe
 };
 
 enum TRUSTformat
@@ -529,13 +529,13 @@ enum TRUSTformat
     TRUSTformatSystem    // emit @system when trust == TRUSTdefault
 };
 
-enum PURE
+enum class PURE : unsigned char
 {
-    PUREimpure = 0,     // not pure at all
-    PUREfwdref = 1,     // it's pure, but not known which level yet
-    PUREweak = 2,       // no mutable globals are read or written
-    PUREconst = 3,      // parameters are values or const
-    PUREstrong = 4      // parameters are values or immutable
+    impure = 0,     // not pure at all
+    fwdref = 1,     // it's pure, but not known which level yet
+    weak = 2,       // no mutable globals are read or written
+    const_ = 3,     // parameters are values or const
+    strong = 4      // parameters are values or immutable
 };
 
 class Parameter : public ASTNode
@@ -578,11 +578,11 @@ public:
 
     ParameterList parameterList; // function parameters
     LINK linkage;                // calling convention
+    unsigned funcFlags;
     TRUST trust;                 // level of trust
-    Expressions *fargs;          // function arguments
     PURE purity;                 // PURExxxx
-    unsigned short funcFlags;
     char inuse;
+    Expressions *fargs;          // function arguments
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();

@@ -281,7 +281,7 @@ struct ASTBase
         fwd,   // POD not yet computed
     }
 
-    enum TRUST : int
+    enum TRUST : ubyte
     {
         default_   = 0,
         system     = 1,    // @system (same as TRUST.default)
@@ -290,7 +290,7 @@ struct ASTBase
         live       = 4,    // @live
     }
 
-    enum PURE : int
+    enum PURE : ubyte
     {
         impure      = 0,    // not pure at all
         fwdref      = 1,    // it's pure, but not known which level yet
@@ -3965,8 +3965,9 @@ struct ASTBase
 
         ParameterList parameterList;   // function parameters
 
-        private enum FunctionFlag
+        private enum FunctionFlag : uint
         {
+            none            = 0,
             isnothrow       = 0x0001, // nothrow
             isnogc          = 0x0002, // is @nogc
             isproperty      = 0x0004, // can be called without parentheses
@@ -3980,14 +3981,13 @@ struct ASTBase
             inoutParam      = 0x0400, // inout on the parameters
             inoutQual       = 0x0800, // inout on the qualifier
         }
-        static assert (FunctionFlag.max <= ushort.max, "flags are stored in a ushort");
 
         LINK linkage;               // calling convention
+        FunctionFlag funcFlags;
         TRUST trust;                // level of trust
-        Expressions* fargs;         // function arguments
         PURE purity = PURE.impure;
-        ushort funcFlags;
         byte inuse;
+        Expressions* fargs;         // function arguments
 
         extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {

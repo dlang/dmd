@@ -362,8 +362,8 @@ void test_types()
     assert(tfunction->isreturninferred());
     assert(!tfunction->isscopeinferred());
     assert(tfunction->linkage == LINKd);
-    assert(tfunction->trust == TRUSTtrusted);
-    assert(tfunction->purity == PUREimpure);
+    assert(tfunction->trust == TRUST::trusted);
+    assert(tfunction->purity == PURE::impure);
 }
 
 /**********************************/
