@@ -10929,14 +10929,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         sc.merge(exp.loc, ctorflow);
         ctorflow.freeFieldinit();
 
-        bool isThis;
-        if (equalsExp(e1x, e2x, isThis)) // only variables for now
-        {
-            exp.warning("Logical expression `%s` is same as `%s`",
-                        exp.toChars(),
-                        e1x.toChars());
-        }
-
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (e2x.op == TOK.type)
             e2x = resolveAliasThis(sc, e2x);
@@ -10977,6 +10969,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = e1x;
         exp.e2 = e2x;
         result = exp;
+
+        bool isThis;
+        if (e1x.op == e2x.op && // fast discardal
+            !e1x.isExp() &&
+            equalsExp(e1x, e2x, isThis))
+        {
+            exp.warning("Logical expression `%s` is same as `%s`",
+                        exp.toChars(),
+                        e1x.toChars());
+        }
     }
 
     override void visit(CmpExp exp)
@@ -11673,20 +11675,6 @@ Expression binSemantic(BinExp e, Scope* sc)
     Expression e1x = e.e1.expressionSemantic(sc);
     Expression e2x = e.e2.expressionSemantic(sc);
 
-    if (e1x.op == e2x.op && // fast discardal
-        // exclude literals at top-level
-        !e1x.isIntegerExp() &&
-        !e2x.isIntegerExp())
-    {
-        bool isThis;
-        if (auto ex = (e.isAndExp() || // &
-                       e.isOrExp()) && // |
-            equalsExp(e1x, e2x, isThis))
-            e.warning("Bitwise expression `%s` is same as `%s`",
-                      e.toChars(),
-                      e1x.toChars());
-    }
-
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
     if (e1x.op == TOK.type)
         e1x = resolveAliasThis(sc, e1x);
@@ -11699,6 +11687,21 @@ Expression binSemantic(BinExp e, Scope* sc)
         return e2x;
     e.e1 = e1x;
     e.e2 = e2x;
+
+    // TODO is this the right place to do this?
+    if (e1x.op == e2x.op && // fast discardal
+        // exclude literals at top-level
+        !e1x.isIntegerExp())
+    {
+        bool isThis;
+        if (auto ex = (e.isAndExp() || // &
+                       e.isOrExp()) && // |
+            equalsExp(e1x, e2x, isThis))
+            e.warning("Bitwise expression `%s` is same as `%s`",
+                      e.toChars(),
+                      e1x.toChars());
+    }
+
     return null;
 }
 
