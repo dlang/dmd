@@ -2477,7 +2477,7 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-/** Fast check to detect if `e1` and `e2` are the same.
+/** Fast check to detect if `e1` and `e2` are expressions with same l- or r-value.
  */
 Expression isSameNonEnumVarOrThisExp(Expression e1,
                                      Expression e2,
