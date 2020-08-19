@@ -194,7 +194,7 @@ void check_equal_lhs_and_rhs(int i)
     if (x || x)                 // warn
         i = 42;
 
-    if ((x && x) ||             // warn
+    if ((x && x) ||             // warn. TODO two warnings
         (x && x))               // warn
         i = 42;
 
