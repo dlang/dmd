@@ -11674,8 +11674,9 @@ Expression binSemantic(BinExp e, Scope* sc)
     Expression e2x = e.e2.expressionSemantic(sc);
 
     if (e1x.op == e2x.op && // fast discardal
+        // exclude literals at top-level
         !e1x.isIntegerExp() &&
-        !e2x.isIntegerExp()) // exclude literal
+        !e2x.isIntegerExp())
     {
         bool isThis;
         if (auto ex = (e.isAndExp() || // &
