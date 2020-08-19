@@ -2502,7 +2502,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         return;
 
     bool isThisExpr;
-    if (auto ve1 = exp.e1.isSameExp(exp.e2, isThisExpr, false)) // TODO move this check downwards?
+    if (auto ve1 = equalsExp(exp.e1, exp.e2, isThisExpr, false)) // TODO move this check downwards?
     {
         if (isThisExpr)
         {
@@ -2534,13 +2534,17 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
 
 /** Fast check to detect if `e1` and `e2` are expressions with same l- or r-value.
  */
-Expression isSameExp(Expression e1,
-                                     Expression e2,
-                                     out bool isThis,
-                                     const bool excludeEnumConstants = true)
+Expression equalsExp(Expression e1,
+                     Expression e2,
+                     out bool isThis,
+                     in bool excludeEnumConstants = true,
+                     in bool includeIsExpressions = false)
 {
     if (e1.op != e2.op)         // fast discardal
         return null;
+
+    if (e1 is e2)               // fast approval
+        return e1;
 
     static Declaration isEnum(Declaration var)
     {
@@ -2550,61 +2554,85 @@ Expression isSameExp(Expression e1,
         return null;
     }
 
-    if (auto ve1 = e1.isVarExp())
-        if (auto ve2 = e2.isVarExp())
-        {
-            if (ve1.var is ve2.var && // same var
-                (!excludeEnumConstants ||
-                 (!isEnum(ve1.var) &&
-                  !isEnum(ve2.var))))
-                return ve1;
-            return null;
-        }
+    if (auto e1x = e1.isIdentifierExp())
+        if (auto e2x = e2.isIdentifierExp())
+            return (e1x.ident == e2x.ident) ? e1x : null;
 
-    if (auto te1 = e1.isThisExp())
-        if (auto te2 = e2.isThisExp())
+    if (auto e1x = e1.isVarExp())
+        if (auto e2x = e2.isVarExp())
+            return (e1x.var is e2x.var && // same var
+                    (!excludeEnumConstants ||
+                     (!isEnum(e1x.var) &&
+                      !isEnum(e2x.var)))) ? e1x : null;
+
+    if (auto e1x = e1.isThisExp())
+        if (auto e2x = e2.isThisExp())
         {
-            if (te1.var is te2.var && // same this
+            if (e1x.var is e2x.var && // same this
                 (!excludeEnumConstants ||
-                 (!isEnum(te1.var) &&
-                  !isEnum(te2.var))))
+                 (!isEnum(e1x.var) &&
+                  !isEnum(e2x.var))))
             {
                 isThis = true;
-                return te1;
+                return e1x;
             }
             return null;
         }
 
-    if (auto dv1 = e1.isDotVarExp())
-        if (auto dv2 = e2.isDotVarExp())
-        {
-            if (dv1.var is dv2.var && // same aggregate variable
-                (!excludeEnumConstants ||
-                 (!isEnum(dv1.var) &&
-                  !isEnum(dv2.var))) &&
-                isSameExp(dv1.e1, dv2.e1, isThis)) // same aggregate
-                return dv1;
-            return null;
-        }
+    if (auto e1x = e1.isDotVarExp())
+        if (auto e2x = e2.isDotVarExp())
+            return (e1x.var is e2x.var && // same aggregate variable
+                    (!excludeEnumConstants ||
+                     (!isEnum(e1x.var) &&
+                      !isEnum(e2x.var))) &&
+                    equalsExp(e1x.e1, e2x.e1, isThis)) ? e1x : null; // same aggregate
 
-    if (auto pe1 = e1.isPtrExp())
-        if (auto pe2 = e2.isPtrExp())
-            return isSameExp(pe1.e1, pe2.e1, isThis);
+    if (auto e1x = e1.isAddrExp()) // for instance, `&(rover.Sl)` in `druntime/src/rt/trace.d`
+        if (auto e2x = e2.isAddrExp())
+            return equalsExp(e1x.e1, e2x, isThis);
 
-    if (auto se1 = e1.isSymOffExp())
-        if (auto se2 = e2.isSymOffExp())
-        {
-            if (se1.var is se2.var && // same var
-                (!excludeEnumConstants ||
-                 (!isEnum(se1.var) &&
-                  !isEnum(se2.var))))
-                return se1;
-            return null;
-        }
+    if (auto e1x = e1.isLogicalExp()) // logical and/or
+        if (auto e2x = e2.isLogicalExp()) // logical and/or
+            return (equalsExp(e1x.e1, e1x.e2, isThis) &&
+                    equalsExp(e2x.e1, e2x.e2, isThis)) ? e1x : null;
 
-    if (auto ae1 = e1.isAddrExp()) // for instance, `&(rover.Sl)` in `druntime/src/rt/trace.d`
-        if (auto ae2 = e2.isAddrExp())
-            return isSameExp(ae1.e1, ae2, isThis);
+    if (auto e1x = e1.isAndExp()) // bitwise and
+        if (auto e2x = e2.isAndExp())
+            return (equalsExp(e1x.e1, e1x.e2, isThis) &&
+                    equalsExp(e2x.e1, e2x.e2, isThis)) ? e1x : null;
+
+    if (auto e1x = e1.isOrExp()) // bitwise or
+        if (auto e2x = e2.isOrExp())
+            return (equalsExp(e1x.e1, e1x.e2, isThis) &&
+                    equalsExp(e2x.e1, e2x.e2, isThis)) ? e1x : null;
+
+    if (auto e1x = e1.isIntegerExp())
+        if (auto e2x = e2.isIntegerExp())
+            return (e1x.getInteger == e2x.getInteger) ? e1x : null;
+
+    if (auto e1x = e1.isRealExp())
+        if (auto e2x = e2.isRealExp())
+            return (e1x.value == e2x.value) ? e1x : null;
+
+    if (auto e1x = e1.isComplexExp())
+        if (auto e2x = e2.isComplexExp())
+            return (e1x.value == e2x.value) ? e1x : null;
+
+    if (auto e1x = e1.isPtrExp())
+        if (auto e2x = e2.isPtrExp())
+            return equalsExp(e1x.e1, e2x.e1, isThis);
+
+    if (auto e1x = e1.isSymOffExp())
+        if (auto e2x = e2.isSymOffExp())
+            return (e1x.var is e2x.var && // same var
+                    (!excludeEnumConstants ||
+                     (!isEnum(e1x.var) &&
+                      !isEnum(e2x.var)))) ? e1x : null;
+
+    if (includeIsExpressions)
+        if (auto e1x = e1.isExp())
+            if (auto e2x = e2.isExp())
+                return (e1x == e2x) ? e1x : null;
 
     return null;
 }
@@ -10902,15 +10930,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ctorflow.freeFieldinit();
 
         bool isThis;
-        if (isSameExp(e1x, e2x, isThis)) // only variables for now
+        if (equalsExp(e1x, e2x, isThis)) // only variables for now
         {
-            // if (auto s1 = e1x.isSymbol())
-            //     if (auto s2 = e2x.isSymbol())
-            //         exp.warning("both symbols");
-            // if (auto em1 = e1x.isEnumMember())
-            //     if (auto em2 = e2x.isEnumMember())
-            //         exp.warning("both enums");
-
             exp.warning("Logical expression `%s` is same as `%s`",
                         exp.toChars(),
                         e1x.toChars());
@@ -11444,7 +11465,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e2x = resolveProperties(sc, e2x);
 
         bool isThis;
-        if (isSameExp(e1x, e2x, isThis)) // only variables for now
+        if (equalsExp(e1x, e2x, isThis)) // only variables for now
         {
             exp.warning("Conditional expression `%s` is same as `%s`",
                         exp.toChars(),
@@ -11659,25 +11680,10 @@ Expression binSemantic(BinExp e, Scope* sc)
         bool isThis;
         if (auto ex = (e.isAndExp() || // &
                        e.isOrExp()) && // |
-            isSameExp(e1x, e2x, isThis))
+            equalsExp(e1x, e2x, isThis))
             e.warning("Bitwise expression `%s` is same as `%s`",
                       e.toChars(),
                       e1x.toChars());
-        // else if (auto ae = e.isAddExp() &&
-        //     e1x.equals(e2x))    // virtual call
-        //     e.warning("Addition `%s` is same as `2*%s`",
-        //               e.toChars(),
-        //               e1x.toChars());
-        // else if (auto me = e.isMulExp() &&
-        //     e1x.equals(e2x))    // virtual call
-        //     // TODO only floating point
-        //     e.warning("Multiplication `%s` is same as `2^^%s`",
-        //               e.toChars(),
-        //               e1x.toChars());
-        // else if (auto se = e.isMinExp() &&
-        //     e1x.equals(e2x))    // virtual call
-        //     e.warning("Subtraction `%s` is same as `0`",
-        //               e.toChars());
     }
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
