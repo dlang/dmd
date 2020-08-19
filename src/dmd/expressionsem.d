@@ -11464,14 +11464,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression e2x = exp.e2.expressionSemantic(sc);
         e2x = resolveProperties(sc, e2x);
 
-        bool isThis;
-        if (equalsExp(e1x, e2x, isThis)) // only variables for now
-        {
-            exp.warning("Conditional expression `%s` is same as `%s`",
-                        exp.toChars(),
-                        e1x.toChars());
-        }
-
         sc.merge(exp.loc, ctorflow1);
         ctorflow1.freeFieldinit();
 
@@ -11510,6 +11502,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1 = exp.e1.type;
         Type t2 = exp.e2.type;
+
+        bool isThis;
+        if (e1x.op == e2x.op &&          // fast discardal
+            // exclude literals at top-level
+            !e1x.isIntegerExp() &&
+            equalsExp(e1x, e2x, isThis)) // only variables for now
+        {
+            exp.warning("Conditional expression `%s` is same as `%s`",
+                        exp.toChars(),
+                        e1x.toChars());
+        }
+
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
         // value if any
