@@ -121,6 +121,10 @@ test_dub_package() {
 }
 
 setup_repos() {
+
+    # Merge the target branch to check against latest revision
+    git merge upstream/$BRANCH
+
 for proj in druntime phobos; do
     if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
            ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $BRANCH > /dev/null; then
