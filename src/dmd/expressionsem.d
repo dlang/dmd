@@ -2502,7 +2502,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         return;
 
     bool isThisExpr;
-    if (auto ve1 = exp.e1.isSameNonEnumVarOrThisExp(exp.e2, isThisExpr, false)) // TODO move this check downwards?
+    if (auto ve1 = exp.e1.isSameExp(exp.e2, isThisExpr, false)) // TODO move this check downwards?
     {
         if (isThisExpr)
         {
@@ -2534,7 +2534,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
 
 /** Fast check to detect if `e1` and `e2` are expressions with same l- or r-value.
  */
-Expression isSameNonEnumVarOrThisExp(Expression e1,
+Expression isSameExp(Expression e1,
                                      Expression e2,
                                      out bool isThis,
                                      const bool excludeEnumConstants = true)
@@ -2582,14 +2582,14 @@ Expression isSameNonEnumVarOrThisExp(Expression e1,
                 (!excludeEnumConstants ||
                  (!isEnum(dv1.var) &&
                   !isEnum(dv2.var))) &&
-                isSameNonEnumVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
+                isSameExp(dv1.e1, dv2.e1, isThis)) // same aggregate
                 return dv1;
             return null;
         }
 
     if (auto pe1 = e1.isPtrExp())
         if (auto pe2 = e2.isPtrExp())
-            return isSameNonEnumVarOrThisExp(pe1.e1, pe2.e1, isThis);
+            return isSameExp(pe1.e1, pe2.e1, isThis);
 
     if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
@@ -2604,7 +2604,7 @@ Expression isSameNonEnumVarOrThisExp(Expression e1,
 
     if (auto ae1 = e1.isAddrExp()) // for instance, `&(rover.Sl)` in `druntime/src/rt/trace.d`
         if (auto ae2 = e2.isAddrExp())
-            return isSameNonEnumVarOrThisExp(ae1.e1, ae2, isThis);
+            return isSameExp(ae1.e1, ae2, isThis);
 
     return null;
 }
@@ -10902,7 +10902,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ctorflow.freeFieldinit();
 
         bool isThis;
-        if (isSameNonEnumVarOrThisExp(e1x, e2x, isThis)) // only variables for now
+        if (isSameExp(e1x, e2x, isThis)) // only variables for now
         {
             // if (auto s1 = e1x.isSymbol())
             //     if (auto s2 = e2x.isSymbol())
@@ -11444,7 +11444,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e2x = resolveProperties(sc, e2x);
 
         bool isThis;
-        if (isSameNonEnumVarOrThisExp(e1x, e2x, isThis)) // only variables for now
+        if (isSameExp(e1x, e2x, isThis)) // only variables for now
         {
             exp.warning("Conditional expression `%s` is same as `%s`",
                         exp.toChars(),
@@ -11659,7 +11659,7 @@ Expression binSemantic(BinExp e, Scope* sc)
         bool isThis;
         if (auto ex = (e.isAndExp() || // &
                        e.isOrExp()) && // |
-            isSameNonEnumVarOrThisExp(e1x, e2x, isThis))
+            isSameExp(e1x, e2x, isThis))
             e.warning("Bitwise expression `%s` is same as `%s`",
                       e.toChars(),
                       e1x.toChars());
