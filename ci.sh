@@ -115,7 +115,8 @@ test_dub_package() {
         done
         popd
         # Test rdmd build
-        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i test/dub_package/frontend.d -od="${build_path}" -of="${build_path}/frontend"
+        "./${build_path}/frontend"
     fi
     deactivate
 }
