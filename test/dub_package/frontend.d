@@ -7,6 +7,8 @@ import std.stdio;
 // test frontend
 void main()
 {
+    installMemoryHandler();
+
     import dmd.frontend;
     import std.algorithm : each;
 
@@ -52,4 +54,19 @@ string toUnixLineEndings(string str)
 {
     import std.string : replace;
     return str.replace("\r\n", "\n");
+}
+
+void installMemoryHandler()
+{
+    // (only available on some platforms on DMD)
+    version(DigitalMars)
+    {
+        import etc.linux.memoryerror;
+        static if(is(typeof(registerMemoryErrorHandler())))
+        {
+            import core.stdc.stdio : printf;
+            auto didInstall = registerMemoryErrorHandler();
+            printf(didInstall ? "SUCCESS\n" : "FAILED\n");
+        }
+    }
 }
