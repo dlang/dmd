@@ -3458,8 +3458,8 @@ extern (C++) final class NewAnonClassExp : Expression
 extern (C++) class SymbolExp : Expression
 {
     Declaration var;
-    bool hasOverloads;
     Dsymbol originalScope; // original scope before inlining
+    bool hasOverloads;
 
     extern (D) this(const ref Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
     {
