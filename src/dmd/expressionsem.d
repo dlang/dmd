@@ -2502,7 +2502,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
         return;
 
     bool isThisExpr;
-    if (auto ve1 = exp.e1.isSameNonEnumVarOrThisExp(exp.e2, isThisExpr)) // TODO move this check downwards?
+    if (auto ve1 = exp.e1.isSameNonEnumVarOrThisExp(exp.e2, isThisExpr, false)) // TODO move this check downwards?
     {
         if (isThisExpr)
         {
@@ -2532,43 +2532,59 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
     }
 }
 
+/** Fast check to detect if `e1` and `e2` are expressions with same l- or r-value.
+ */
 Expression isSameNonEnumVarOrThisExp(Expression e1,
                                      Expression e2,
-                                     out bool isThis) // TODO: better function name?
+                                     out bool isThis,
+                                     const bool excludeEnumConstants = true)
 {
     if (e1.op != e2.op)         // fast discardal
         return null;
 
+    static Declaration isEnum(Declaration var)
+    {
+        if (var.isEnumMember || // https://dlang.org/spec/enum.html#EnumMember
+            var.isEnumDeclaration) // https://dlang.org/spec/enum.html#EnumDeclaration
+            return var;
+        return null;
+    }
+
     if (auto ve1 = e1.isVarExp())
         if (auto ve2 = e2.isVarExp())
         {
-            if (ve1.var.isEnumMember ||
-                ve2.var.isEnumMember)
-                return null;    // exclude enums
-            else
-                return (ve1.var is ve2.var) ? ve1 : null; // same variable
+            if (ve1.var is ve2.var && // same var
+                (!excludeEnumConstants ||
+                 (!isEnum(ve1.var) &&
+                  !isEnum(ve2.var))))
+                return ve1;
+            return null;
         }
 
     if (auto te1 = e1.isThisExp())
         if (auto te2 = e2.isThisExp())
         {
-            if (te1.var is te2.var) // same this
+            if (te1.var is te2.var && // same this
+                (!excludeEnumConstants ||
+                 (!isEnum(te1.var) &&
+                  !isEnum(te2.var))))
             {
                 isThis = true;
                 return te1;
             }
-            else
-                return null;
+            return null;
         }
 
     if (auto dv1 = e1.isDotVarExp())
         if (auto dv2 = e2.isDotVarExp())
         {
             if (dv1.var is dv2.var && // same aggregate variable
+                (!excludeEnumConstants ||
+                 (!isEnum(dv1.var) &&
+                  !isEnum(dv2.var))) &&
                 isSameNonEnumVarOrThisExp(dv1.e1, dv2.e1, isThis)) // same aggregate
                 return dv1;
-            else
-                return null;
+            return null;
         }
 
     if (auto pe1 = e1.isPtrExp())
@@ -2577,11 +2593,18 @@ Expression isSameNonEnumVarOrThisExp(Expression e1,
 
     if (auto se1 = e1.isSymOffExp())
         if (auto se2 = e2.isSymOffExp())
-            return (se1.var is se2.var) ? se1 : null;
+        {
+            if (se1.var is se2.var && // same var
+                (!excludeEnumConstants ||
+                 (!isEnum(se1.var) &&
+                  !isEnum(se2.var))))
+                return se1;
+            return null;
+        }
 
-    if (auto ae1 = e1.isAddrExp())
-        if (auto ae2 = e2.isAddrExp()) // TODO: can this case happen?
-            e1.loc.message("two address");
+    if (auto ae1 = e1.isAddrExp()) // for instance, `&(rover.Sl)` in `druntime/src/rt/trace.d`
+        if (auto ae2 = e2.isAddrExp())
+            return isSameNonEnumVarOrThisExp(ae1.e1, ae2, isThis);
 
     return null;
 }
