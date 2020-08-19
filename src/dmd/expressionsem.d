@@ -2537,8 +2537,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
 Expression equalsExp(Expression e1,
                      Expression e2,
                      out bool isThis,
-                     in bool excludeEnumConstants = true,
-                     in bool includeIsExpressions = false)
+                     in bool excludeEnumConstants = true)
 {
     if (e1.op != e2.op)         // fast discardal
         return null;
@@ -2629,10 +2628,9 @@ Expression equalsExp(Expression e1,
                      (!isEnum(e1x.var) &&
                       !isEnum(e2x.var)))) ? e1x : null;
 
-    if (includeIsExpressions)
-        if (auto e1x = e1.isExp())
-            if (auto e2x = e2.isExp())
-                return (e1x == e2x) ? e1x : null;
+    if (auto e1x = e1.isExp())
+        if (auto e2x = e2.isExp())
+            return (e1x == e2x) ? e1x : null;
 
     return null;
 }
@@ -10972,7 +10970,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         bool isThis;
         if (e1x.op == e2x.op && // fast discardal
-            !e1x.isExp() &&
+            !e1x.type.isBoolean() &&
             equalsExp(e1x, e2x, isThis))
         {
             exp.warning("Logical expression `%s` is same as `%s`",
