@@ -581,8 +581,8 @@ public:
     TRUST trust;                 // level of trust
     Expressions *fargs;          // function arguments
     PURE purity;                 // PURExxxx
-    char inuse;
     unsigned short funcFlags;
+    char inuse;
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
