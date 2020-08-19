@@ -4203,8 +4203,8 @@ extern (C++) final class TypeFunction : TypeNext
     TRUST trust;                // level of trust
     Expressions* fargs;         // function arguments
     PURE purity = PURE.impure;
-    byte inuse;
     ushort funcFlags;
+    byte inuse;
 
     extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
     {
