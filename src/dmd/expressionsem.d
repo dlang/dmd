@@ -2477,6 +2477,8 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
+/** Fast check to detect if `e1` and `e2` are the same.
+ */
 Expression isSameNonEnumVarOrThisExp(Expression e1,
                                      Expression e2,
                                      out bool isThis) // TODO: better function name?
