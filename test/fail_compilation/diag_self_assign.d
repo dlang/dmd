@@ -23,16 +23,16 @@ fail_compilation/diag_self_assign.d(107): Deprecation: assignment of `*& x` from
 fail_compilation/diag_self_assign.d(109): Deprecation: assignment of `*& x` from itself has no side effect, to exercise assignment instead use `*& x = *& x.init`
 fail_compilation/diag_self_assign.d(125): Deprecation: assignment of `g_x` from itself has no side effect, to exercise assignment instead use `g_x = g_x.init`
 fail_compilation/diag_self_assign.d(126): Deprecation: assignment of `g_x` from itself has no side effect, to exercise assignment instead use `g_x = g_x.init`
-fail_compilation/diag_self_assign.d(195): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(202): Warning: Bitwise expression `x & xa` is same as `x`
-fail_compilation/diag_self_assign.d(208): Warning: Bitwise expression `x | x` is same as `x`
-fail_compilation/diag_self_assign.d(211): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(212): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(215): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(218): Warning: Logical expression `x || x` is same as `x`
-fail_compilation/diag_self_assign.d(221): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(222): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(227): Warning: Conditional expression `true ? x : x` is same as `x`
+fail_compilation/diag_self_assign.d(171): Warning: Bitwise expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(178): Warning: Bitwise expression `x & xa` is same as `x`
+fail_compilation/diag_self_assign.d(184): Warning: Bitwise expression `x | x` is same as `x`
+fail_compilation/diag_self_assign.d(187): Warning: Bitwise expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(188): Warning: Bitwise expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(191): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(194): Warning: Logical expression `x || x` is same as `x`
+fail_compilation/diag_self_assign.d(197): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(198): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(203): Warning: Conditional expression `true ? x : x` is same as `x`
 ---
 */
 struct S
@@ -138,30 +138,6 @@ struct U
     u = u;
 }
 
-@system unittest
-{
-    import std.exception : assertThrown;
-    import std.typecons : Nullable;
-    Nullable!int a;
-    assert(a.isNull);
-    assertThrown!Throwable(a.get);
-    a = 5;
-    assert(!a.isNull);
-    assert(a == 5);
-    assert(a != 3);
-    assert(a.get != 3);
-    a.nullify();
-    assert(a.isNull);
-    a = 3;
-    assert(a == 3);
-    a *= 6;
-    assert(a == 18);
-    auto b = a;
-    a = b;
-    assert(a == 18);
-    a.nullify();
-    assertThrown!Throwable(a += 2);
-}
 /// Neither GCC 10` nor Clang 10 warn here.
 void check_equal_lhs_and_rhs(int i)
 {
@@ -232,120 +208,11 @@ void check_equal_lhs_and_rhs(int i)
     assert(ei2 && ei3);
 }
 
-/** Fuzzy logic State.
- */
-struct Fuzzy
-{
-    @safe pure nothrow @nogc:
-
-    enum defaultCode = 0;
-
-    enum no       = make(defaultCode); // probability: 0
-    enum yes      = make(1);    // probability: 1
-    enum likely   = make(2);    // probability: > 1/2
-    enum unlikely = make(3);    // probability: < 1/2
-    enum unknown  = make(4);    // probability: any
-
-    this(bool b)
-    {
-        _v = b ? yes._v : no._v;
-    }
-
-    void opAssign(bool b)
-    {
-        _v = b ? yes._v : no._v;
-    }
-
-    Fuzzy opUnary(string s)() if (s == "~")
-    {
-        final switch (_v)
-        {
-        case no._v: return yes;
-        case yes._v: return no;
-        case likely._v: return unlikely;
-        case unlikely._v: return likely;
-        }
-    }
-
-    Fuzzy opBinary(string s)(Fuzzy rhs) if (s == "|")
-    {
-        import std.algorithm.comparion : among;
-        if (_v.among!(yes._v, no._v) && rhs._v.among!(yes._v, no._v))
-        {
-            return _v | rhs._v;
-        }
-        else if (_v == yes._v || rhs._v == yes._v)
-        {
-            return yes;
-        }
-        else if (_v == no._v)
-        {
-            return rhs._v;
-        }
-        else if (rhs._v == no._v)
-        {
-            return _v;
-        }
-        else if (_v == rhs._v) // both likely or unlikely or unknown
-        {
-            return _v;
-        }
-        else
-        {
-            return unknown;
-        }
-    }
-
-    // Fuzzy opBinary(string s)(Fuzzy rhs) if (s == "&")
-    // {
-    //     return make(_v & rhs._v);
-    // }
-
-    // Fuzzy opBinary(string s)(Fuzzy rhs) if (s == "^")
-    // {
-    //     auto v = _v + rhs._v;
-    //     return v >= 4 ? unknown : make(!!v);
-    // }
-
-private:
-    ubyte _v = defaultCode;
-    static Fuzzy make(ubyte b)
-    {
-        Fuzzy r = void;
-        r._v = b;
-        return r;
-    }
-}
-
-@safe pure nothrow @nogc unittest
-{
-    alias T = Fuzzy;
-    T a;
-    assert(a == T.no);
-
-    a = true;
-    assert(a == T.yes);
-
-    a = T.likely;
-    assert(a == T.likely);
-
-    a = T.unlikely;
-    assert(a == T.unlikely);
-
-    with (T)
-    {
-        assert(~no == yes);
-        assert(no == ~yes);
-        assert(~unlikely == likely);
-        assert(unlikely == ~likely);
-    }
-}
-
 /** State being either `yes`, `no` or `unknown`.
  */
 struct Tristate
 {
-    @safe pure nothrow @nogc:
+@safe pure nothrow @nogc:
 
     enum defaultCode = 0;
 
