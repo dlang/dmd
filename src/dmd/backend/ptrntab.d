@@ -415,13 +415,13 @@ PTRNTAB1[3]  aptb1XLAT = /* XLAT */ [
         { 0xd7, _modax, _m8 },
         { ASM_END }
 ];
-PTRNTAB1[2]  aptb1CMPXCH8B = /* CMPXCH8B */ [
+PTRNTAB1[2]  aptb1CMPXCHG8B = /* CMPXCHG8B */ [
     { 0x0fc7, _1 | _modaxdx | _I386, _m64 },
         { ASM_END }
 ];
 
-PTRNTAB1[2]  aptb1CMPXCH16B = /* CMPXCH16B */ [
-    { 0x0fc7, _1 | _modaxdx | _64_bit, _m64 },
+PTRNTAB1[2]  aptb1CMPXCHG16B = /* CMPXCHG16B */ [
+    { 0x0fc7, _1 | _modaxdx | _64_bit, _m128 },
         { ASM_END }
 ];
 
@@ -4890,8 +4890,8 @@ immutable OP[] optab =
         { "cmpss",      3,              { aptb3CMPSS.ptr } },
         { "cmpsw",      0,              { aptb0CMPSW.ptr } },
         { "cmpxchg",    2,              { aptb2CMPXCHG.ptr } },
-        { "cmpxchg16b", 1,              { aptb1CMPXCH16B.ptr } },
-        { "cmpxchg8b",  1,              { aptb1CMPXCH8B.ptr } },
+        { "cmpxchg16b", 1,              { aptb1CMPXCHG16B.ptr } },
+        { "cmpxchg8b",  1,              { aptb1CMPXCHG8B.ptr } },
         { "comisd",     2,              { aptb2COMISD.ptr } },
         { "comiss",     2,              { aptb2COMISS.ptr } },
         { "cpuid",      0,              { aptb0CPUID.ptr } },

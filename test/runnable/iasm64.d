@@ -803,7 +803,7 @@ void test13()
         0x0F,0x2C,0xDC,                 // cvttps2pi    MM3,XMM4
         0x0F,0x2C,0x7D,0xD8,            // cvttps2pi    MM7,-028h[RBP]
         0xF2,0x0F,0x2C,0xC4,            // cvttsd2si    EAX,XMM4
-        0xF2,0x0F,0x2C,0x4D,0xE0,       // cvttsd2si    ECX,-020h[RBP]
+        0xF2,0x0F,0x2C,0x4D,0xD8,       // cvttsd2si    ECX,-028h[RBP]
         0xF3,0x0F,0x2C,0xC4,            // cvttss2si    EAX,XMM4
         0xF3,0x0F,0x2C,0x4D,0xD0,       // cvttss2si    ECX,-030h[RBP]
 0x66,   0x0F,0x5E,0xE8,                 // divpd        XMM5,XMM0
@@ -1006,7 +1006,7 @@ void test13()
         cvttps2pi MM7,m64[RBP]          ;
 
         cvttsd2si EAX,XMM4              ;
-        cvttsd2si ECX,m128[RBP]         ;
+        cvttsd2si ECX,m64[RBP]          ;
 
         cvttss2si EAX,XMM4              ;
         cvttss2si ECX,m32[RBP]          ;
