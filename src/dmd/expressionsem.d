@@ -10970,7 +10970,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         bool isThis;
         if (e1x.op == e2x.op && // fast discardal
-            !e1x.type.isBoolean() &&
+            !(e1x.isBool(false) ||
+              e1x.isBool(true)) &&
             equalsExp(e1x, e2x, isThis))
         {
             exp.warning("Logical expression `%s` is same as `%s`",
