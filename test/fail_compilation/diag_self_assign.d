@@ -24,14 +24,16 @@ fail_compilation/diag_self_assign.d(109): Deprecation: assignment of `*& x` from
 fail_compilation/diag_self_assign.d(125): Deprecation: assignment of `g_x` from itself has no side effect, to exercise assignment instead use `g_x = g_x.init`
 fail_compilation/diag_self_assign.d(126): Deprecation: assignment of `g_x` from itself has no side effect, to exercise assignment instead use `g_x = g_x.init`
 fail_compilation/diag_self_assign.d(171): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(178): Warning: Bitwise expression `x & xa` is same as `x`
+fail_compilation/diag_self_assign.d(178): Warning: Bitwise expression `x & x` is same as `x`
 fail_compilation/diag_self_assign.d(184): Warning: Bitwise expression `x | x` is same as `x`
 fail_compilation/diag_self_assign.d(187): Warning: Bitwise expression `x & x` is same as `x`
 fail_compilation/diag_self_assign.d(188): Warning: Bitwise expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(187): Warning: Bitwise expression `x & x | x & x` is same as `x & x`
 fail_compilation/diag_self_assign.d(191): Warning: Logical expression `x && x` is same as `x`
 fail_compilation/diag_self_assign.d(194): Warning: Logical expression `x || x` is same as `x`
 fail_compilation/diag_self_assign.d(197): Warning: Logical expression `x && x` is same as `x`
 fail_compilation/diag_self_assign.d(198): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(197): Warning: Logical expression `x && x || x && x` is same as `x && x`
 fail_compilation/diag_self_assign.d(203): Warning: Conditional expression `true ? x : x` is same as `x`
 ---
 */
