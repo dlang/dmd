@@ -533,6 +533,14 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
     }
 
+    /* https://issues.dlang.org/show_bug.cgi?id=12652
+       Non-constant hash initializers should have a special-case diagnostic
+     */
+    void visitAssocArrayLiteral(AssocArrayLiteralExp e)
+    {
+        e.error("Associative array literals currently cannot be initialized globally, in structs or in classes; try using 'enum' or a module constructor instead");
+    }
+
     void visitStructLiteral(StructLiteralExp sle)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
