@@ -629,7 +629,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     printCtfePerformanceStats();
     printTemplateStats();
-    printUnusedSymbolStats(modules);
+    printUnusedSymbolStats(modules); // TODO pass `Module.amodules` for all modules
 
     Library library = null;
     if (params.lib)
