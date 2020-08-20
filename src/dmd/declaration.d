@@ -711,7 +711,6 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
-    bool _referenced;   // true if referenced
 
     extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
@@ -859,24 +858,10 @@ extern (C++) final class AliasDeclaration : Declaration
         return toAlias().getType();
     }
 
-    bool isImported() const @safe pure nothrow @nogc
-    {
-        return _import !is null;
-    }
-
     override Dsymbol toAlias()
     {
-        if (!_referenced)
-        {
-          if (_import)
-            loc.warning("Imported alias `%s` is referenced first time", toChars());
-          else
-            loc.warning("Normal alias `%s` is referenced first time", toChars());
-        }
-        _referenced = true;
-
-        // printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d, _import = %p)\n",
-        //        loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse, _import);
+        //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
+        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
         if (inuse == 1 && type && _scope)
