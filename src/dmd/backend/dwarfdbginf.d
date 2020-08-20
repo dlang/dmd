@@ -2057,48 +2057,69 @@ static if (ELFOBJ || MACHOBJ)
             0,                      // no children
             0,                      0,
         ];
+        static immutable ubyte[6] abbrevTypeShared =
+        [
+            DW_TAG_shared_type,
+            0,                      // no children
+            DW_AT_type,             DW_FORM_ref4,
+            0,                      0,
+        ];
+        static immutable ubyte[4] abbrevTypeSharedVoid =
+        [
+            DW_TAG_shared_type,
+            0,                      // no children
+            0,                      0,
+        ];
 
         if (!t)
             return 0;
 
-        if (t.Tty & mTYconst)
+        foreach(mty; [mTYconst, mTYshared, mTYvolatile])
         {
-            // We make a copy of the type to strip off the const qualifier and
-            // recurse, and then add the const abbrev code. To avoid ending in a
-            // loop if the type references the const version of itself somehow,
-            // we need to set TFforward here, because setting TFforward during
-            // member generation of dwarf_typidx(tnext) has no effect on t itself.
-            ushort old_flags = t.Tflags;
-            t.Tflags |= TFforward;
+            if (t.Tty & mty)
+            {
+                // We make a copy of the type to strip off the const qualifier and
+                // recurse, and then add the const abbrev code. To avoid ending in a
+                // loop if the type references the const version of itself somehow,
+                // we need to set TFforward here, because setting TFforward during
+                // member generation of dwarf_typidx(tnext) has no effect on t itself.
+                const ushort old_flags = t.Tflags;
+                t.Tflags |= TFforward;
 
-            tnext = type_copy(t);
-            tnext.Tcount++;
-            tnext.Tty &= ~mTYconst;
-            nextidx = dwarf_typidx(tnext);
+                tnext = type_copy(t);
+                tnext.Tcount++;
+                tnext.Tty &= ~mty;
+                nextidx = dwarf_typidx(tnext);
 
-            t.Tflags = old_flags;
+                t.Tflags = old_flags;
 
-            code = nextidx
-                ? dwarf_abbrev_code(abbrevTypeConst.ptr, (abbrevTypeConst).sizeof)
-                : dwarf_abbrev_code(abbrevTypeConstVoid.ptr, (abbrevTypeConstVoid).sizeof);
-            goto Lcv;
-        }
+                if (mty == mTYconst)
+                {
+                    code = nextidx
+                        ? dwarf_abbrev_code(abbrevTypeConst)
+                        : dwarf_abbrev_code(abbrevTypeConstVoid);
+                }
+                else if (mty == mTYvolatile)
+                {
+                    code = nextidx
+                        ? dwarf_abbrev_code(abbrevTypeVolatile)
+                        : dwarf_abbrev_code(abbrevTypeVolatileVoid);
+                }
+                else if (mty == mTYshared)
+                {
+                    code = nextidx
+                        ? dwarf_abbrev_code(abbrevTypeShared)
+                        : dwarf_abbrev_code(abbrevTypeSharedVoid);
+                }
+                else
+                    assert(0);
 
-        if (t.Tty & mTYvolatile)
-        {
-            tnext = type_copy(t);
-            tnext.Tcount++;
-            tnext.Tty &= ~mTYvolatile;
-            nextidx = dwarf_typidx(tnext);
-            code = nextidx
-                ? dwarf_abbrev_code(abbrevTypeVolatile.ptr, (abbrevTypeVolatile).sizeof)
-                : dwarf_abbrev_code(abbrevTypeVolatileVoid.ptr, (abbrevTypeVolatileVoid).sizeof);
-        Lcv:
-            idx = cast(uint)debug_info.buf.length();
-            debug_info.buf.writeuLEB128(code);    // abbreviation code
-            if (nextidx)
-                debug_info.buf.write32(nextidx);  // DW_AT_type
-            goto Lret;
+                idx = cast(uint)debug_info.buf.length();
+                debug_info.buf.writeuLEB128(code);    // abbreviation code
+                if (nextidx)
+                    debug_info.buf.write32(nextidx);  // DW_AT_type
+                goto Lret;
+            }
         }
 
         tym_t ty;
@@ -2859,6 +2880,10 @@ static if (ELFOBJ || MACHOBJ)
 
     /* ======================= Abbreviation Codes ====================== */
 
+    extern(D) uint dwarf_abbrev_code(const(ubyte)[] data)
+    {
+        return dwarf_abbrev_code(data.ptr, data.length);
+    }
 
     uint dwarf_abbrev_code(const(ubyte)* data, size_t nbytes)
     {
