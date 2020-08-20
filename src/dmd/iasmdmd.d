@@ -72,6 +72,8 @@ public void iasm_term()
  * Params:
  *      s = inline asm statement
  *      sc = context
+ * Returns:
+ *      `s` on success, ErrorStatement if errors happened
  */
 public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
 {
@@ -86,6 +88,7 @@ public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
     asmstate.ucItype = 0;
     asmstate.bReturnax = false;
     asmstate.lbracketNestCount = 0;
+    asmstate.errors = false;
 
     asmstate.statement = s;
     asmstate.sc = sc;
@@ -133,7 +136,10 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             asm_token();
             uint _align = asm_getnum();
             if (ispow2(_align) == -1)
+            {
                 asmerr("`align %d` must be a power of 2", _align);
+                goto AFTER_EMIT;
+            }
             else
                 s.asmalign = _align;
             break;
@@ -183,6 +189,8 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 foreach (i; 0 .. 4)
                 {
                     asm_cond_exp(opnds[i]);
+                    if (asmstate.errors)
+                        goto AFTER_EMIT;
                     nOps = i + 1;
                     if (asmstate.tokValue != TOK.comma)
                         break;
@@ -194,6 +202,9 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             // generate
 
             ptb = asm_classify(o, opnds[0 .. nOps], usNumops);
+            if (asmstate.errors)
+                goto AFTER_EMIT;
+
             assert(ptb.pptb0);
 
             //
@@ -243,8 +254,7 @@ AFTER_EMIT:
     {
         asmerr("end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
     }
-    //return asmstate.bReturnax;
-    return s;
+    return asmstate.errors ? new ErrorStatement() : s;
 }
 
 /**********************************
@@ -320,6 +330,7 @@ struct ASM_STATE
     ucItype_t ucItype;  /// Instruction type
     Loc loc;
     bool bInit;
+    bool errors;        /// true if semantic errors occurred
     LabelDsymbol psDollar;
     Dsymbol psLocalsize;
     bool bReturnax;
@@ -636,15 +647,14 @@ struct OPND
 
 void asm_chktok(TOK toknum, const(char)* msg)
 {
-    if (asmstate.tokValue == toknum)
-        asm_token();                    // scan past token
-    else
+    if (asmstate.tokValue != toknum)
     {
         /* When we run out of tokens, asmstate.tok is null.
          * But when this happens when a ';' was hit.
          */
         asmerr(msg, asmstate.tok ? asmstate.tok.toChars() : ";");
     }
+    asm_token();        // keep consuming tokens
 }
 
 
@@ -698,7 +708,10 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
                 continue;
 
             if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
+            {
                 asmerr("label expected", opnd.s.toChars());
+                return;
+            }
             opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
         }
         if (bRetry)
@@ -707,6 +720,7 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
                 asmerr("operand for `%s` invalid in 64bit mode", asm_opstr(pop));
             else
                 asmerr("bad type/size of operands `%s`", asm_opstr(pop));
+            return;
         }
         bRetry = true;
     }
@@ -744,14 +758,16 @@ RETRY:
     {
         case 0:
             if (global.params.is64bit && (pop.ptb.pptb0.usFlags & _i64_bit))
+            {
                 asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
-
+                break;
+            }
             if ((asmstate.ucItype == ITopt ||
                  asmstate.ucItype == ITfloat) &&
                 usNumops != 0)
             {
                 paramError();
-                goto RETRY;
+                break;
             }
             return returnIt(pop.ptb);
 
@@ -801,7 +817,7 @@ RETRY:
                             break;
                         default:
                             paramError();
-                            goto RETRY;
+                            break RETRY;
                     }
                 }
             }
@@ -813,6 +829,8 @@ RETRY:
             }
             debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
+            if (asmstate.errors)
+                break;
             goto RETRY;
         }
         case 2:
@@ -897,7 +915,7 @@ RETRY:
                             break;
                         default:
                             paramError();
-                            goto RETRY;
+                            break RETRY;
                     }
                 }
 version (none)
@@ -919,6 +937,8 @@ version (none)
             }
             debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
+            if (asmstate.errors)
+                break;
             goto RETRY;
         }
         case 3:
@@ -953,7 +973,7 @@ version (none)
                             break;
                         default:
                             paramError();
-                            goto RETRY;
+                            break RETRY;
                     }
                 }
             }
@@ -965,6 +985,8 @@ version (none)
             }
             debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
+            if (asmstate.errors)
+                break;
             goto RETRY;
         }
         case 4:
@@ -1004,7 +1026,7 @@ version (none)
                             break;
                         default:
                             paramError();
-                            goto RETRY;
+                            break RETRY;
                     }
                 }
             }
@@ -1016,6 +1038,8 @@ version (none)
             }
             debug (debuga) printMismatches(usActual);
             TYPE_SIZE_ERROR();
+            if (asmstate.errors)
+                break;
             goto RETRY;
         }
         default:
@@ -1104,7 +1128,10 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
 
     // If specified 'offset' or 'segment' but no symbol
     if ((popnd.bOffset || popnd.bSeg) && !popnd.s)
-        error(asmstate.loc, "specified 'offset' or 'segment' but no symbol");
+    {
+        asmerr("specified 'offset' or 'segment' but no symbol");
+        return 0;
+    }
 
     if (asmstate.ucItype == ITfloat)
         return asm_determine_float_flags(popnd);
@@ -1278,7 +1305,10 @@ code *asm_emit(Loc loc,
         if (opnd.bSeg)
         {
             if (!(d && d.isDataseg()))
+            {
                 asmerr("bad addr mode");
+                return;
+            }
         }
         switch (sizeMask)
         {
@@ -1384,7 +1414,7 @@ code *asm_emit(Loc loc,
     asmstate.statement.regs |= asm_modify_regs(ptb, opnds);
 
     if (ptb.pptb0.usFlags & _64_bit && !global.params.is64bit)
-        error(asmstate.loc, "use -m64 to compile 64 bit instructions");
+        asmerr("use -m64 to compile 64 bit instructions");
 
     if (global.params.is64bit && (ptb.pptb0.usFlags & _64_bit))
     {
@@ -1474,7 +1504,7 @@ code *asm_emit(Loc loc,
                 if (pregSegment.val != usDefaultseg)
                 {
                     if (asmstate.ucItype == ITjump)
-                        error(asmstate.loc, "Cannot generate a segment prefix for a branching instruction");
+                        asmerr("Cannot generate a segment prefix for a branching instruction");
                     else
                         switch (pregSegment.val)
                         {
@@ -1994,12 +2024,15 @@ L3:
 
 void asmerr(const(char)* format, ...)
 {
+    if (asmstate.errors)
+        return;
+
     va_list ap;
     va_start(ap, format);
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    exit(EXIT_FAILURE);
+    asmstate.errors = true;
 }
 
 /*******************************
@@ -2074,7 +2107,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         debug (debuga) printf("Invalid addr because /%.s/\n",
                               debugWhy.ptr, cast(int)debugWhy.length);
-        error(asmstate.loc, "cannot have two symbols in addressing mode");
+        asmerr("cannot have two symbols in addressing mode");
     }
 
     //printf("asm_merge_opnds()\n");
@@ -2113,7 +2146,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         size_t index = cast(int)o2.disp;
         if (index >= tup.objects.dim)
         {
-            error(asmstate.loc, "tuple index %llu exceeds length %llu",
+            asmerr("tuple index %llu exceeds length %llu",
                     cast(ulong) index, cast(ulong) tup.objects.dim);
         }
         else
@@ -2138,7 +2171,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
                     return;
                 }
             }
-            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toChars());
+            asmerr("invalid asm operand `%s`", o1.s.toChars());
         }
     }
 
@@ -2247,9 +2280,15 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             }
         }
         if (v.isThreadlocal())
-            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
+        {
+            asmerr("cannot directly load TLS variable `%s`", v.toChars());
+            return;
+        }
         else if (v.isDataseg() && global.params.pic != PIC.fixed)
-            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
+        {
+            asmerr("cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
+            return;
+        }
     }
     em = s.isEnumMember();
     if (em)
@@ -2451,7 +2490,10 @@ void asm_make_modrm_byte(
             if (d.isDataseg() || d.isCodeseg())
             {
                 if (!global.params.is64bit && amod == _addr16)
-                    error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
+                {
+                    asmerr("cannot have 16 bit addressing mode in 32 bit code");
+                    return;
+                }
                 goto DATA_REF;
             }
             mrmb.rm = BPRM;
@@ -2511,6 +2553,7 @@ void asm_make_modrm_byte(
 
                 default:
                     asmerr("bad 16 bit index address mode");
+                    return;
             }
         }
         mrmb.rm = rm;
@@ -2548,13 +2591,19 @@ void asm_make_modrm_byte(
             if (opnds[0].pregDisp2)
             {
                 if (opnds[0].pregDisp2.val == _ESP)
-                    error(asmstate.loc, "`ESP` cannot be scaled index register");
+                {
+                    asmerr("`ESP` cannot be scaled index register");
+                    return;
+                }
             }
             else
             {
                 if (opnds[0].uchMultiplier &&
                     opnds[0].pregDisp1.val ==_ESP)
-                    error(asmstate.loc, "`ESP` cannot be scaled index register");
+                {
+                    asmerr("`ESP` cannot be scaled index register");
+                    return;
+                }
                 bDisp = true;
             }
 
@@ -2577,7 +2626,10 @@ void asm_make_modrm_byte(
                     if (opnds[0].pregDisp2)
                     {
                         if (opnds[0].pregDisp2.val != _EBP)
-                            error(asmstate.loc, "`EBP` cannot be base register");
+                        {
+                            asmerr("`EBP` cannot be base register");
+                            return;
+                        }
                     }
                     else
                     {
@@ -2629,8 +2681,8 @@ void asm_make_modrm_byte(
                 case 8: sib.ss = 3; break;
 
                 default:
-                    error(asmstate.loc, "scale factor must be one of 0,1,2,4,8");
-                    break;
+                    asmerr("scale factor must be one of 0,1,2,4,8");
+                    return;
             }
         }
         else
@@ -2638,7 +2690,10 @@ void asm_make_modrm_byte(
             uint rm;
 
             if (opnds[0].uchMultiplier)
-                error(asmstate.loc, "scale factor not allowed");
+            {
+                asmerr("scale factor not allowed");
+                return;
+            }
             switch (opnds[0].pregDisp1.val & (NUM_MASKR | NUM_MASK))
             {
                 case _EBP:
@@ -2652,9 +2707,8 @@ void asm_make_modrm_byte(
                     break;
 
                 case _ESP:
-                    error(asmstate.loc, "`[ESP]` addressing mode not allowed");
-                    rm = 0;                     // no uninitialized data
-                    break;
+                    asmerr("`[ESP]` addressing mode not allowed");
+                    return;
 
                 default:
                     rm = opnds[0].pregDisp1.val & NUM_MASK;
@@ -3343,7 +3397,10 @@ code *asm_da_parse(OP *pop)
         {
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident);
             if (!label)
-                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
+            {
+                asmerr("label `%s` not found", asmstate.tok.ident.toChars());
+                break;
+            }
             else
                 label.iasm = true;
 
@@ -3352,7 +3409,10 @@ code *asm_da_parse(OP *pop)
             cdb.genasm(cast(_LabelDsymbol*)label);
         }
         else
-            error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
+        {
+            asmerr("label expected as argument to DA pseudo-op"); // illegal addressing mode
+            break;
+        }
         asm_token();
         if (asmstate.tokValue != TOK.comma)
             break;
@@ -3553,7 +3613,8 @@ code *asm_db_parse(OP *pop)
         }
 
         asm_token();
-        if (asmstate.tokValue != TOK.comma)
+        if (asmstate.tokValue != TOK.comma ||
+            asmstate.errors)
             break;
         asm_token();
     }
@@ -4120,7 +4181,7 @@ version (none)
             // Check for offset keyword
             if (asmstate.tok.ident == Id.offset)
             {
-                error(asmstate.loc, "use offsetof instead of offset");
+                asmerr("use offsetof instead of offset");
                 goto Loffset;
             }
             if (asmstate.tok.ident == Id.offsetof)
