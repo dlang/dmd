@@ -7,25 +7,33 @@ import dmd.arraytypes;
 import dmd.errors;
 import dmd.declaration;
 
-void printUnusedSymbolStats(ref Modules modules)
+void printUnusedSymbolStats(const ref Modules modules)
 {
-    static void checkModule(Module m)
+    // auto tab = Module.modules.tab;
+    // printf("%ld\n", tab.length);
+
+    // pragma(msg, __FILE__, "(", __LINE__, ",1): Debug: ", typeof(tab));
+
+    // foreach (const keyValue; tab.asRange)
+    // {
+    //     pragma(msg, __FILE__, "(", __LINE__, ",1): Debug: ", typeof(keyValue.value));
+    //     if (const ad = cast(const AliasDeclaration)keyValue.value)
+    //     {
+    //         ad.loc.warning("ad:%s", keyValue.value.toChars());
+    //     }
+    // }
+
+    foreach (const m; modules)
     {
-        if (!m.members)
-            return;
-        foreach (const memb; *(m.members)) // top-level members
+        m.loc.warning("module:%s\n", m.toChars());
+        if (m.decldefs)
         {
-            if (const ad = cast(const AliasDeclaration)memb)
-                if (!ad.isReferenced) // TODO: exclude private functions
-                {
-                    if (ad._import)
-                        ad.loc.warning("unused imported alias %s", ad.toChars());
-                    else
-                        ad.loc.warning("unused alias %s", ad.toChars());
-                }
+            printf("decldefs:%p\n", m.decldefs);
+            foreach (const decl; *(m.decldefs))           // top-level declarations
+            {
+                pragma(msg, __FILE__, "(", __LINE__, ",1): Debug: ", typeof(decl));
+                decl.loc.warning("decl:%s\n", decl.toChars());
+            }
         }
     }
-
-    foreach (m; modules)
-        checkModule(m);
 }
