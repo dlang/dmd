@@ -1848,7 +1848,7 @@ extern (C++) final class IntegerExp : Expression
         v.visit(this);
     }
 
-    dinteger_t getInteger()
+    dinteger_t getInteger() @safe pure nothrow @nogc
     {
         return value;
     }
@@ -4576,6 +4576,7 @@ extern (C++) class BinAssignExp : BinExp
 
     override final Expression modifiableLvalue(Scope* sc, Expression e)
     {
+        assert(e is e1);
         // should check e1.checkModifiable() ?
         return toLvalue(sc, this);
     }

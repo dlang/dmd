@@ -40,7 +40,10 @@ import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.statement : Statement;
 import dmd.visitor;
+import dmd.root.array;
+import dmd.diagnostics : doCheckUnused;
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -201,6 +204,88 @@ extern (C++) void ObjectNotFound(Identifier id)
     error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
+
+enum STC : StorageClass
+{
+    undefined_          = 0L,
+    static_             = (1L << 0),
+    extern_             = (1L << 1),
+    const_              = (1L << 2),
+    final_              = (1L << 3),
+    abstract_           = (1L << 4),
+    parameter           = (1L << 5),
+    field               = (1L << 6),
+    override_           = (1L << 7),
+    auto_               = (1L << 8),
+    synchronized_       = (1L << 9),
+    deprecated_         = (1L << 10),
+    in_                 = (1L << 11),   // in parameter
+    out_                = (1L << 12),   // out parameter
+    lazy_               = (1L << 13),   // lazy parameter
+    foreach_            = (1L << 14),   // variable for foreach loop
+                          //(1L << 15)
+    variadic            = (1L << 16),   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
+    ctorinit            = (1L << 17),   // can only be set inside constructor
+    templateparameter   = (1L << 18),   // template parameter
+    scope_              = (1L << 19),
+    immutable_          = (1L << 20),
+    ref_                = (1L << 21),
+    init                = (1L << 22),   // has explicit initializer
+    manifest            = (1L << 23),   // manifest constant
+    nodtor              = (1L << 24),   // don't run destructor
+    nothrow_            = (1L << 25),   // never throws exceptions
+    pure_               = (1L << 26),   // pure function
+    tls                 = (1L << 27),   // thread local
+    alias_              = (1L << 28),   // alias parameter
+    shared_             = (1L << 29),   // accessible from multiple threads
+    gshared             = (1L << 30),   // accessible from multiple threads, but not typed as "shared"
+    wild                = (1L << 31),   // for "wild" type constructor
+    property            = (1L << 32),
+    safe                = (1L << 33),
+    trusted             = (1L << 34),
+    system              = (1L << 35),
+    ctfe                = (1L << 36),   // can be used in CTFE, even if it is static
+    disable             = (1L << 37),   // for functions that are not callable
+    result              = (1L << 38),   // for result variables passed to out contracts
+    nodefaultctor       = (1L << 39),   // must be set inside constructor
+    temp                = (1L << 40),   // temporary variable
+    rvalue              = (1L << 41),   // force rvalue for variables
+    nogc                = (1L << 42),   // @nogc
+    volatile_           = (1L << 43),   // destined for volatile in the back end
+    return_             = (1L << 44),   // 'return ref' or 'return scope' for function parameters
+    autoref             = (1L << 45),   // Mark for the already deduced 'auto ref' parameter
+    inference           = (1L << 46),   // do attribute inference
+    exptemp             = (1L << 47),   // temporary variable that has lifetime restricted to an expression
+    maybescope          = (1L << 48),   // parameter might be 'scope'
+    scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
+    future              = (1L << 50),   // introducing new base class function
+    local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+    returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+    live                = (1L << 53),   // function @live attribute
+
+    // Group members are mutually exclusive (there can be only one)
+    safeGroup = STC.safe | STC.trusted | STC.system,
+
+    /// Group for `in` / `out` / `ref` storage classes on parameter
+    IOR  = STC.in_ | STC.ref_ | STC.out_,
+
+    TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
+                STC.safeGroup),
+}
+
+enum STCStorageClass =
+    (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
+     STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
+     STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
+     STC.property | STC.safeGroup | STC.disable | STC.local | STC.live);
+
+/* These storage classes "flow through" to the inner scope of a Dsymbol
+ */
+enum STCFlowThruAggregate = STC.safeGroup;    /// for an AggregateDeclaration
+enum STCFlowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system); /// for a FuncDeclaration
 
 /* Accumulator for successive matches.
  */
@@ -840,8 +925,10 @@ extern (C++) final class AliasDeclaration : Declaration
 
     override Dsymbol toAlias()
     {
-        //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
-        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse);
+        tagAsReferenced();
+
+        // printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d, _import = %p)\n",
+        //        loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse, _import);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
 
@@ -1035,6 +1122,60 @@ extern (C++) final class OverDeclaration : Declaration
     }
 }
 
+/** Variable state.
+ */
+enum VSTATE : ubyte
+{
+    unknown,                    // unknown state (value)
+    noninit,                    // non-`init` state (value)
+    init,                       // `init` (default) state (value)
+    newInit, // newed class with default constructor setting each member `m` to `m.init`
+    ignore,                     // should be ignored
+}
+static assert(VSTATE.sizeof == 1);
+
+/** Variable access, expressing either read status or write status exclusively.
+ */
+enum VACCESS : ubyte
+{
+    none,                       // no access
+    partial,                    // partial access (including full)
+    partialMaybe,               // partial (non-full) access maybe
+    full,                       // full access
+    fullMaybe,                  // full access maybe
+    partialOrFullMaybe,         // partial or full access maybe. maybe change `unknown`
+    /* TODO express non-direct transitive access via indirections in class to
+     * distinguish changing the classes pointer from its members?
+     */
+}
+static assert(VACCESS.sizeof == 1);
+
+struct AllVarStat
+{
+    // TODO: pack these
+    VACCESS readAccess = VACCESS.none;     // read access
+    VACCESS writeAccess = VACCESS.none;    // write access
+}
+
+struct VarStat
+{
+    this(VSTATE recentState)
+    {
+        this.recentState = recentState;
+    }
+    // TODO: pack these
+    Expression recentExp; // last read or write expression of `this`, or `null` if `this` is unreferenced
+
+    VACCESS recentReadAccess = VACCESS.none;   // recent read access
+    VACCESS recentWriteAccess = VACCESS.none;  // recent write access
+    VACCESS recentAliasedAccess = VACCESS.none; // recent escape access
+    VSTATE recentState = VSTATE.unknown;       // recent state (value)
+
+    VACCESS allReadAccess = VACCESS.none;   // all read access
+    VACCESS allWriteAccess = VACCESS.none;  // all write access
+    VACCESS allAliasedAccess = VACCESS.none; // all escape access
+}
+
 /***********************************************************
  */
 extern (C++) class VarDeclaration : Declaration
@@ -1076,6 +1217,8 @@ extern (C++) class VarDeclaration : Declaration
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
 
     bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+
+    AllVarStat allVarStat; // kinds of access done by all expression
 
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     in

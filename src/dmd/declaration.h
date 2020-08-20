@@ -221,6 +221,22 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+/** Tri-state bool.
+ *
+ * See_Also: https://en.wikipedia.org/wiki/Three-valued_logic
+ */
+typedef char VSTATE;
+static_assert(sizeof(VSTATE) == 1, "VSTATE must have a size of 1 byte");
+
+typedef char VACCESS;
+
+struct AllVarStat
+{
+    // TODO: pack these
+    VACCESS readAccess;         // read access
+    VACCESS writeAccess;        // write access
+};
+
 /**************************************************************/
 
 class VarDeclaration : public Declaration
@@ -256,6 +272,8 @@ public:
     bool doNotInferReturn;      // do not infer 'return' for this variable
     unsigned char isdataseg;    // private data for isDataseg
     bool isArgDtorVar;          // temporary created to handle scope destruction of a function argument
+
+    AllVarStat allVarStat;   // kinds of access done by all expression
 
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);

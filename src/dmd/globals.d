@@ -32,7 +32,15 @@ enum MessageStyle : ubyte
     gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
+enum Diagnostics : ubyte
+{
+    none                    = 0,
+    symbolAccess            = (1 << 0), // diagnose symbol access
+    usedImportModuleMembers = (1 << 2), // diagnose referenced import symbols
+}
+
 /// In which context checks for assertions, contracts, bounds checks etc. are enabled
+
 enum CHECKENABLE : ubyte
 {
     _default,     /// initial value
@@ -245,6 +253,7 @@ extern (C++) struct Param
     Array!(const(char)*) makeDeps;      // dependencies for makedeps
 
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
+    Diagnostics diagnostics;
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable

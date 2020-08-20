@@ -716,6 +716,14 @@ dmd -cov -unittest myprog.d
             $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
             )`,
         ),
+        Option("diagnose=[unused]",
+            "perform supplemental diagostics",
+            `An optional argument determines type of diagnostics,
+            where:
+            $(DL
+            $(DT unused)$(DD Show unused symbols, typically type and variable declarations.)
+            )`,
+        ),
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),

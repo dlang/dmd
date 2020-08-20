@@ -128,6 +128,10 @@ struct Scope
 
     AliasDeclaration *aliasAsg; // if set, then aliasAsg is being assigned a new value,
                                 // do not set wasRead for it
+    AA *vstats;
+
+    char pass;                 // TODO: use enum PASS instead
+
     Scope();
 
     Scope *copy();

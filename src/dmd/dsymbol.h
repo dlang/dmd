@@ -180,6 +180,7 @@ public:
     Scope *_scope;               // !=NULL means context to use for semantic()
     const utf8_t *prettystring;
     bool errors;                // this symbol failed to pass semantic()
+    bool vrefByName;            // referenced by name
     PASS semanticRun;
     unsigned short localNum;        // perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
     DeprecatedDeclaration *depdecl; // customized deprecation message

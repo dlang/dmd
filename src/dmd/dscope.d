@@ -77,6 +77,27 @@ private enum PersistentFlags =
     SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
     SCOPE.printf | SCOPE.scanf | SCOPE.Cfile;
 
+import dmd.declaration : VarStat;
+
+struct VarDeclarationKey
+{
+    bool opEquals(in typeof(this) that) const pure nothrow @safe @nogc
+    {
+        return _key is that._key;
+    }
+    hash_t toHash() const @trusted pure nothrow
+    {
+        return hashOf(cast(void*)_key);
+    }
+    inout(VarDeclaration) key() inout pure nothrow @safe @nogc
+    {
+        return _key;
+    }
+    private VarDeclaration _key; // TODO: non-null
+}
+
+alias VStats = VarStat[VarDeclarationKey]; // `key`s are `VarDeclaration`'s but are typed as `void*` for equivalence instead of `Object.opEquals`
+
 struct Scope
 {
     Scope* enclosing;               /// enclosing Scope
@@ -145,6 +166,9 @@ struct Scope
     AliasDeclaration aliasAsg; /// if set, then aliasAsg is being assigned a new value,
                                /// do not set wasRead for it
 
+    VStats vstats;
+    PASS pass;
+
     extern (D) __gshared Scope* freelist;
 
     extern (D) static Scope* alloc()
@@ -191,12 +215,15 @@ struct Scope
          * The copied scope should not inherit fieldinit.
          */
         sc.ctorflow.fieldinit = null;
+        sc.vstats = null;          // Enclosing scope doesn't inherit `vstats`.
         return sc;
     }
 
-    extern (C++) Scope* push()
+    extern (C++) Scope* push(PASS pass = PASS.init)
     {
         Scope* s = copy();
+        if (s.pass == PASS.init) // only override if undefined
+            s.pass = pass;
         //printf("Scope::push(this = %p) new = %p\n", this, s);
         assert(!(flags & SCOPE.free));
         s.scopesym = null;
@@ -220,10 +247,10 @@ struct Scope
         return s;
     }
 
-    extern (C++) Scope* push(ScopeDsymbol ss)
+    extern (C++) Scope* push(ScopeDsymbol ss, PASS pass = PASS.init)
     {
         //printf("Scope::push(%s)\n", ss.toChars());
-        Scope* s = push();
+        Scope* s = push(pass);
         s.scopesym = ss;
         return s;
     }
@@ -234,6 +261,10 @@ struct Scope
         if (enclosing)
             enclosing.ctorflow.OR(ctorflow);
         ctorflow.freeFieldinit();
+
+        import dmd.diagnostics : checkVarStatsBeforePop;
+        if (pass == PASS.semantic3)
+            checkVarStatsBeforePop(&this);
 
         Scope* enc = enclosing;
         if (!nofree)

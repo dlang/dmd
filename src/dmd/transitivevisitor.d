@@ -57,7 +57,7 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    void visitVarDecl(AST.VarDeclaration v)
+    final void visitVarDecl(AST.VarDeclaration v)
     {
         //printf("Visiting VarDeclaration\n");
         if (v.type)
@@ -179,7 +179,7 @@ package mixin template ParseVisitMethods(AST)
             s.elsebody.accept(this);
     }
 
-    void visitArgs(AST.Expressions* expressions, AST.Expression basis = null)
+    final void visitArgs(AST.Expressions* expressions, AST.Expression basis = null)
     {
         if (!expressions || !expressions.dim)
             return;
@@ -321,7 +321,7 @@ package mixin template ParseVisitMethods(AST)
 //   Type Nodes
 //============================================================
 
-    void visitType(AST.Type t)
+    final void visitType(AST.Type t)
     {
         //printf("Visiting Type\n");
         if (!t)
@@ -335,7 +335,7 @@ package mixin template ParseVisitMethods(AST)
             t.accept(this);
     }
 
-    void visitFunctionType(AST.TypeFunction t, AST.TemplateDeclaration td)
+    final void visitFunctionType(AST.TypeFunction t, AST.TemplateDeclaration td)
     {
         if (t.next)
             visitType(t.next);
@@ -347,7 +347,7 @@ package mixin template ParseVisitMethods(AST)
         visitParameters(t.parameterList.parameters);
     }
 
-    void visitParameters(AST.Parameters* parameters)
+    final void visitParameters(AST.Parameters* parameters)
     {
         if (parameters)
         {
@@ -416,7 +416,7 @@ package mixin template ParseVisitMethods(AST)
         visitFunctionType(t.next.isTypeFunction(), null);
     }
 
-    void visitTypeQualified(AST.TypeQualified t)
+    final void visitTypeQualified(AST.TypeQualified t)
     {
         //printf("Visiting TypeQualified\n");
         foreach (id; t.idents)
@@ -502,7 +502,7 @@ package mixin template ParseVisitMethods(AST)
 
 //      Declarations
 //=========================================================
-    void visitAttribDeclaration(AST.AttribDeclaration d)
+    final void visitAttribDeclaration(AST.AttribDeclaration d)
     {
         if (d.decl)
             foreach (de; *d.decl)
@@ -591,7 +591,7 @@ package mixin template ParseVisitMethods(AST)
         visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    void visitFuncBody(AST.FuncDeclaration f)
+    final void visitFuncBody(AST.FuncDeclaration f)
     {
         //printf("Visiting funcBody\n");
         if (f.frequires)
@@ -614,7 +614,7 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    void visitBaseClasses(AST.ClassDeclaration d)
+    final void visitBaseClasses(AST.ClassDeclaration d)
     {
         //printf("Visiting ClassDeclaration\n");
         if (!d || !d.baseclasses.dim)
@@ -623,7 +623,7 @@ package mixin template ParseVisitMethods(AST)
             visitType(b.type);
     }
 
-    bool visitEponymousMember(AST.TemplateDeclaration d)
+    final bool visitEponymousMember(AST.TemplateDeclaration d)
     {
         //printf("Visiting EponymousMember\n");
         if (!d.members || d.members.dim != 1)
@@ -686,7 +686,7 @@ package mixin template ParseVisitMethods(AST)
         return false;
     }
 
-    void visitTemplateParameters(AST.TemplateParameters* parameters)
+    final void visitTemplateParameters(AST.TemplateParameters* parameters)
     {
         if (!parameters || !parameters.dim)
             return;
@@ -708,7 +708,7 @@ package mixin template ParseVisitMethods(AST)
             s.accept(this);
     }
 
-    void visitObject(RootObject oarg)
+    final void visitObject(RootObject oarg)
     {
         if (auto t = AST.isType(oarg))
         {
@@ -726,7 +726,7 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    void visitTiargs(AST.TemplateInstance ti)
+    final void visitTiargs(AST.TemplateInstance ti)
     {
         //printf("Visiting tiargs\n");
         if (!ti.tiargs)
