@@ -109,8 +109,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             assert(tempdecl);
 
             sc = tempdecl._scope;
-            sc = sc.push(tempinst.argsym);
-            sc = sc.push(tempinst);
+            sc = sc.push(tempinst.argsym, PASS.semantic3);
+            sc = sc.push(tempinst, PASS.semantic3);
             sc.tinst = tempinst;
             sc.minst = tempinst.minst;
 
@@ -163,8 +163,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (tmix.members)
         {
-            sc = sc.push(tmix.argsym);
-            sc = sc.push(tmix);
+            sc = sc.push(tmix.argsym, PASS.semantic3);
+            sc = sc.push(tmix, PASS.semantic3);
             for (size_t i = 0; i < tmix.members.dim; i++)
             {
                 Dsymbol s = (*tmix.members)[i];
@@ -304,7 +304,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
             ss.endlinnum = funcdecl.endloc.linnum;
-            Scope* sc2 = sc.push(ss);
+            Scope* sc2 = sc.push(ss, PASS.semantic3);
             sc2.func = funcdecl;
             sc2.parent = funcdecl;
             sc2.ctorflow.callSuper = CSX.none;
@@ -544,7 +544,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
                 sym.endlinnum = fensure_endlin;
-                scout = sc2.push(sym);
+                scout = sc2.push(sym, PASS.semantic3);
             }
 
             if (funcdecl.fbody)
@@ -552,7 +552,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
                 sym.endlinnum = funcdecl.endloc.linnum;
-                sc2 = sc2.push(sym);
+                sc2 = sc2.push(sym, PASS.semantic3);
 
                 auto ad2 = funcdecl.isMemberLocal();
 
@@ -959,7 +959,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
                 sym.endlinnum = funcdecl.endloc.linnum;
-                sc2 = sc2.push(sym);
+                sc2 = sc2.push(sym, PASS.semantic3);
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
 
                 // BUG: need to error if accessing out parameters
@@ -1326,7 +1326,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Do semantic type AFTER pure/nothrow inference.
         if (!f.deco && funcdecl.ident != Id.xopEquals && funcdecl.ident != Id.xopCmp)
         {
-            sc = sc.push();
+            sc = sc.push(PASS.semantic3);
             if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
                 sc.flags |= SCOPE.ctor;
             sc.stc = 0;
@@ -1429,7 +1429,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (ns.members)
         {
-            sc = sc.push(ns);
+            sc = sc.push(ns, PASS.semantic3);
             sc.linkage = LINK.cpp;
             foreach (s; *ns.members)
             {

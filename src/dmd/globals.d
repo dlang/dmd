@@ -46,6 +46,13 @@ enum MessageStyle : ubyte
     gnu,          // filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
+enum Diagnostics : ubyte
+{
+    none                    = 0,
+    symbolAccess            = (1 << 0), // diagnose symbol access
+    usedImportModuleMembers = (1 << 2), // diagnose referenced import symbols
+}
+
 enum CHECKENABLE : ubyte
 {
     _default,     // initial value
@@ -275,6 +282,7 @@ extern (C++) struct Param
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
+    Diagnostics diagnostics;
 
     // Hidden debug switches
     bool debugb;

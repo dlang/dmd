@@ -120,6 +120,8 @@ struct Scope
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
+    AA *vstats;
+
     Scope();
 
     Scope *copy();

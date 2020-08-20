@@ -240,6 +240,7 @@ extern (C++) class Dsymbol : ASTNode
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
+    bool vrefByName;        // referenced by name
     PASS semanticRun = PASS.init;
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
@@ -314,6 +315,16 @@ extern (C++) class Dsymbol : ASTNode
     final bool isAnonymous() const
     {
         return ident is null || ident.isAnonymous;
+    }
+
+    final void tagAsReferenced() pure nothrow @safe @nogc
+    {
+        vrefByName = true;
+    }
+
+    final bool isReferenced() const pure nothrow @safe @nogc
+    {
+        return vrefByName;
     }
 
     extern(D) private const(char)[] prettyFormatHelper()
@@ -1316,6 +1327,7 @@ public:
             if (s1)
             {
                 //printf("\tfound in locals = '%s.%s'\n",toChars(),s1.toChars());
+                s1.tagAsReferenced();
                 return s1;
             }
         }
@@ -1360,6 +1372,7 @@ public:
             if (!s)
             {
                 s = s2;
+                ss.tagAsReferenced();
                 if (s && s.isOverloadSet())
                     a = mergeOverloadSet(ident, a, s);
             }
@@ -1446,6 +1459,7 @@ public:
                 s = a;
             }
             //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
+            s.tagAsReferenced();
             return s;
         }
         //printf(" not found in imports\n");
