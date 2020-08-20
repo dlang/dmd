@@ -506,8 +506,6 @@ extern (C++) final class Module : Package
      */
     Module importedFrom;
 
-    Dsymbols* decldefs;         // top level declarations for this Module
-
     Modules aimports;           // all imported modules
 
     uint debuglevel;            // debug level
