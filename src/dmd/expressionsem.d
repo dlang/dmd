@@ -77,7 +77,7 @@ import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 
-enum LOGSEMANTIC = false;
+enum LOGSEMANTIC = true;
 
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
@@ -1347,8 +1347,11 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
-        if (v && ve.checkPurity(sc, v))
-            return ErrorExp.get();
+        if (!v || !v.type || (v.type.ty != Talias && (!v.type.nextOf() || v.type.nextOf().ty != Talias)))
+        {
+            if (v && ve.checkPurity(sc, v))
+                return new ErrorExp().get;
+        }
     }
     if (e2)
         return null;
@@ -5564,8 +5567,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (e.id && !(sc.flags & SCOPE.condition))
         {
+            if (!global.params.sk_typefunctions && sc.flags & SCOPE.ctfe)
+            {
             e.error("can only declare type aliases within `static if` conditionals or `static assert`s");
             return setError();
+            }
+            else
+            {
+                auto vd = new VarDeclaration(e.loc, Type.basic[Talias], e.id, new ExpInitializer(e.loc, 
+                        new TypeExp(e.loc, new TypeError())));
+                if (e.tok2 == TOK.super_)
+                {
+                  //  vd.type = Type.basic[Talias].arrayOf();
+                }
+                else
+                    vd.type = Type.basic[Talias];
+
+                //vd.setScope(sc);
+                vd.storage_class |= STCStorageClass.temp;
+                sc.insert(vd);
+
+                e.id = cast(Identifier) vd;
+             }
         }
 
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.

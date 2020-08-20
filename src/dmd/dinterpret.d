@@ -2982,10 +2982,53 @@ public:
     override void visit(IsExp e)
     {
         auto targe = e.targ.isTypeExpression();
-        assert(targe);
+        if(!targe)
+        {
+            e.error("is expressions within type functions may only use type expressions");
+        }
         auto targ = ctfeInterpret(targe.exp);
         auto te = targ.isTypeExp();
         result = IntegerExp.createBool(te && te.type && te.type.ty != Terror);
+        // handling of more complex isExps
+        VarDeclaration vd = null;
+        if (e.id)
+        {
+            vd = cast(VarDeclaration)e.id;
+            // vd = sym.isVarDeclaration();
+    //        ctfeGlobals.stack.push(vd);
+  //          printf("pushing vd: %s\n", vd.toChars());
+        }
+
+        {
+            if (e.tok2 != TOK.reserved)
+            {
+                switch(e.tok2)
+                {
+                   case TOK.super_:
+                    {
+                        if (te.type.ty != Tclass)
+                        {
+                            result = IntegerExp.createBool(false);
+                            return ;
+                        }
+                        ClassDeclaration cd = (cast(TypeClass)te.type).sym;
+                        if (cd.semanticRun < PASS.semanticdone)
+                            cd.dsymbolSemantic(null);
+
+                        printf("cd:%s\n", cd.toChars());
+                        auto te2 = new TypeExp(e.loc, cd.baseClass.type);
+                        if (!vd)
+                        {
+                            printf("no vd\n");
+                        }
+                        (new AssignExp(e.loc, new VarExp(e.loc, vd), te2)).interpretRegion(istate);
+
+                    }
+                break;
+                    default: assert(0);
+                }
+            }
+        }
     }
 
 
