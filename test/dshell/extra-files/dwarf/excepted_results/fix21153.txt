@@ -1,0 +1,4 @@
+DW_AT_name        : fix21153.i
+D main
+fix21153._d_cmain!().main
+
