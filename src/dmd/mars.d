@@ -65,6 +65,7 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
+import dmd.unused;
 
 /**
  * Print DMD's logo on stdout
@@ -628,6 +629,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     printCtfePerformanceStats();
     printTemplateStats();
+    printUnusedSymbolStats(modules);
 
     Library library = null;
     if (params.lib)

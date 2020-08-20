@@ -413,7 +413,7 @@ extern (C++) final class Module : Package
 
     static void _init()
     {
-        modules = new DsymbolTable();
+      modules = new DsymbolTable();
     }
 
     /**
