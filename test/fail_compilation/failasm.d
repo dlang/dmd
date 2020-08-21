@@ -2,7 +2,7 @@
 REQUIRED_ARGS: -m32
 TEST_OUTPUT:
 ---
-fail_compilation/failasm.d(112): Error: use -m64 to compile 64 bit instructions
+fail_compilation/failasm.d(111): Error: use -m64 to compile 64 bit instructions
 ---
 */
 
@@ -15,7 +15,6 @@ uint func()
     asm
     {
         naked;
-        inc [EAX];
         inc byte ptr [EAX];
         inc short ptr [EAX];
         inc int ptr [EAX];

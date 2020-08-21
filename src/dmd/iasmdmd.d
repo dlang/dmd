@@ -774,14 +774,16 @@ RETRY:
 
         case 1:
         {
-            //printf("opflags1 = "); asm_output_flags(opflags1); printf("\n");
+            enum log = false;
+            if (log) { printf("`%s`\n", asm_opstr(pop)); }
+            if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
             PTRNTAB1 *table1;
             for (table1 = pop.ptb.pptb1; table1.opcode != ASM_END;
                     table1++)
             {
-                //printf("table    = "); asm_output_flags(table1.usOp1); printf("\n");
+                if (log) { printf("table    = "); asm_output_flags(table1.usOp1); printf("\n"); }
                 const bMatch1 = asm_match_flags(opflags[0], table1.usOp1);
-                //printf("bMatch1 = x%x\n", bMatch1);
+                if (log) { printf("bMatch1 = x%x\n", bMatch1); }
                 if (bMatch1)
                 {
                     if (table1.opcode == 0x68 &&
@@ -795,6 +797,16 @@ RETRY:
                     {
                         bInvalid64bit = true;
                         continue;
+                    }
+
+                    // Check for ambiguous size
+                    if (getOpndSize(opflags[0]) == OpndSize._anysize &&
+                        !opnds[0].bPtr &&
+                        (table1 + 1).opcode != ASM_END &&
+                        getOpndSize(table1.usOp1) == OpndSize._8)
+                    {
+                        asmerr("operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
+                        break RETRY;
                     }
 
                     break;
@@ -837,6 +849,8 @@ RETRY:
         case 2:
         {
             enum log = false;
+            if (log) { printf("`%s`\n", asm_opstr(pop)); }
+            if (log) { printf("`%s`\n", asm_opstr(pop)); }
             if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
             if (log) { printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n"); }
             PTRNTAB2 *table2;
@@ -897,8 +911,23 @@ RETRY:
                             }
                         }
                     }
+
+                    // Check for ambiguous size
+                    if (asmstate.ucItype == ITopt &&
+                        getOpndSize(opflags[0]) == OpndSize._anysize &&
+                        !opnds[0].bPtr &&
+                        opflags[1] == 0 &&
+                        table2.usOp2 == 0 &&
+                        (table2 + 1).opcode != ASM_END &&
+                        getOpndSize(table2.usOp1) == OpndSize._8)
+                    {
+                        asmerr("operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
+                        break RETRY;
+                    }
+
                     break;
                 }
+
                 if (asmstate.ucItype == ITopt ||
                     asmstate.ucItype == ITfloat)
                 {
@@ -944,16 +973,43 @@ version (none)
         }
         case 3:
         {
+            enum log = false;
+            if (log) { printf("`%s`\n", asm_opstr(pop)); }
+            if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
+            if (log) { printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n"); }
+            if (log) { printf("opflags3 = "); asm_output_flags(opflags[2]); printf("\n"); }
             PTRNTAB3 *table3;
             for (table3 = pop.ptb.pptb3;
                  table3.opcode != ASM_END;
                  table3++)
             {
+                if (log) { printf("table1   = "); asm_output_flags(table3.usOp1); printf("\n"); }
+                if (log) { printf("table2   = "); asm_output_flags(table3.usOp2); printf("\n"); }
+                if (log) { printf("table3   = "); asm_output_flags(table3.usOp3); printf("\n"); }
                 const bMatch1 = asm_match_flags(opflags[0], table3.usOp1);
                 const bMatch2 = asm_match_flags(opflags[1], table3.usOp2);
                 const bMatch3 = asm_match_flags(opflags[2], table3.usOp3);
                 if (bMatch1 && bMatch2 && bMatch3)
+                {
+                    if (log) printf("match\n");
+
+                    // Check for ambiguous size
+                    if (asmstate.ucItype == ITopt &&
+                        getOpndSize(opflags[0]) == OpndSize._anysize &&
+                        !opnds[0].bPtr &&
+                        opflags[1] == 0 &&
+                        opflags[2] == 0 &&
+                        table3.usOp2 == 0 &&
+                        table3.usOp3 == 0 &&
+                        (table3 + 1).opcode != ASM_END &&
+                        getOpndSize(table3.usOp1) == OpndSize._8)
+                    {
+                        asmerr("operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
+                        break RETRY;
+                    }
+
                     goto Lfound3;
+                }
                 if (asmstate.ucItype == ITopt)
                 {
                     switch (usNumops)
