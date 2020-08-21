@@ -1148,7 +1148,11 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
     if (ds && ds.storage_class & STC.lazy_)
         sz = OpndSize._anysize;
     else
-        sz = asm_type_size((ds && ds.storage_class & (STC.out_ | STC.ref_)) ? popnd.ptype.pointerTo() : popnd.ptype);
+    {
+        auto ptype = (ds && ds.storage_class & (STC.out_ | STC.ref_)) ? popnd.ptype.pointerTo() : popnd.ptype;
+        sz = asm_type_size(ptype, popnd.bPtr);
+    }
+
     if (popnd.pregDisp1 && !popnd.base)
     {
         if (ps && ps.isLabel() && sz == OpndSize._anysize)
@@ -1226,6 +1230,7 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
         else
             return CONSTRUCT_FLAGS(sz, _m, _normal, 0);
     }
+
     if (popnd.segreg /*|| popnd.bPtr*/)
     {
         amod = _addr32;
@@ -1242,7 +1247,6 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
 //                               _rel, amod, 0);
                                  _m, amod, 0);
     }
-
     else if (popnd.ptype)
         us = CONSTRUCT_FLAGS(sz, _imm, _normal, 0);
     else if (popnd.disp >= byte.min && popnd.disp <= ubyte.max)
@@ -3349,7 +3353,7 @@ void asm_token_trans(Token *tok)
 /*******************************
  */
 
-OpndSize asm_type_size(Type ptype)
+OpndSize asm_type_size(Type ptype, bool bPtr)
 {
     OpndSize u;
 
@@ -3364,7 +3368,11 @@ OpndSize asm_type_size(Type ptype)
             case 2:     u = OpndSize._16;        break;
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
-            case 8:     if (global.params.is64bit) u = OpndSize._64;        break;
+
+            case 8:     if (global.params.is64bit || bPtr)
+                            u = OpndSize._64;
+                        break;
+
             case 16:    u = OpndSize._128;       break;
             default:    break;
         }
