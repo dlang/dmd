@@ -9328,6 +9328,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 e2x = e2x.implicitCastTo(sc, exp.e1.type);
 
+                if (e2x.op == TOK.error && exp.e2.op == TOK.string_ && (t1.ty == Tpointer || t1.ty == Tarray))
+                {
+                    TY pt = t1.nextOf().ty;
+                    if (pt == Tchar || pt == Twchar || pt == Tdchar)
+                    {
+                        exp.errorSupplemental("`%s` should be of type `%s` or `%s` and not `%s`",
+                            exp.e1.toChars(), t1.constOf().toChars(), t1.immutableOf().toChars(), t1.toChars());
+                    }
+                }
+
                 // Fix Issue 13435: https://issues.dlang.org/show_bug.cgi?id=13435
 
                 // If the implicit cast has failed and the assign expression is
