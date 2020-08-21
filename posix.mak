@@ -31,7 +31,7 @@ INSTALL_DIR=../install
 DOCDIR=doc
 IMPDIR=import
 
-OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
+OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov=ctfe,)
 
 # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
 # Note that shared libraries and C files are always compiled with PIC.
