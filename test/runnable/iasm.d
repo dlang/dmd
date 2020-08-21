@@ -3888,7 +3888,7 @@ void test52()
 //      neg     i       ;
 //      neg     l       ;
         neg     x       ;
-        neg     [EBX]   ;
+        neg     byte ptr [EBX]   ;
 
 L1:     pop     EAX     ;
         mov     p[EBP],EAX ;

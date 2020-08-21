@@ -3902,8 +3902,8 @@ void test52()
 //      neg     i       ;
 //      neg     l       ;
         neg     x       ;
-        neg     [EBX]   ;
-        neg     [RBX]   ;
+        neg     byte ptr [EBX]   ;
+        neg     byte ptr [RBX]   ;
         neg     R8      ;
 
 L1:     pop     RAX     ;
