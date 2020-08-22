@@ -30,6 +30,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.optimize;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -2269,16 +2270,18 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             o1.disp += v.offset;
             goto L2;
         }
-        if ((v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) &&
-            !v.type.isfloating() && v.type.ty != Tvector && v._init)
+
+        if (!v.type.isfloating() && v.type.ty != Tvector)
         {
-            ExpInitializer ei = v._init.isExpInitializer();
-            if (ei)
+            if (auto e = expandVar(WANTexpand, v))
             {
-                o1.disp = ei.exp.toInteger();
+                if (e.isErrorExp())
+                    return;
+                o1.disp = e.toInteger();
                 return;
             }
         }
+
         if (v.isThreadlocal())
         {
             asmerr("cannot directly load TLS variable `%s`", v.toChars());

@@ -4861,6 +4861,22 @@ void test16963()
 
 /****************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=5922
+
+void test5922()
+{
+    immutable size_t x = 10;
+    size_t y;
+    asm
+    {
+        mov EDI, x;
+	mov y, EDI;
+    }
+    assert(y == 10);
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm.d\n");
@@ -4937,6 +4953,7 @@ int main()
     test17027();
     test16400();
     test16963();
+    test5922();
   }
     printf("Success\n");
     return 0;
