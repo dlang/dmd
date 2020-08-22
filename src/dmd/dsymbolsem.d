@@ -6625,7 +6625,23 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
         if (e)  // Try to convert Expression to Dsymbol
         {
-            s = getDsymbol(e);
+            if (TupleExp te = e.isTupleExp())
+            {
+                Objects* objs = new Objects;
+                foreach (ex; *te.exps)
+                {
+                    if (Dsymbol sx = getDsymbol(ex))
+                        objs.push(sx);
+                    else break;
+                }
+                if ((*objs).dim == (*te.exps).dim)
+                {
+                    s = new TupleDeclaration(e.loc, Identifier.generateId("__tup"), objs);
+                    dsymbolSemantic(s, sc);
+                }
+            }
+            if (!s)
+                s = getDsymbol(e);
             if (!s)
             {
                 if (e.op != TOK.error)
