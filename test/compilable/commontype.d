@@ -240,7 +240,7 @@ static assert(is( X!( void function() pure @trusted, void function() nothrow @sa
 static assert(is( X!( void function() @trusted, void function() ) == void function()));
 static assert(is( X!( void function() @trusted, void function() @trusted ) == void function() @trusted ));
 static assert(is( X!( void function() @safe, void function() @trusted ) == void function() @trusted ));
-static assert(is( X!( void function() @trusted, void function() @safe ) == void function() @safe )); // not commutative 
+static assert(is( X!( void function() @trusted, void function() @safe ) == void function() @safe )); // not commutative
 
 static assert(is( X!( const(int function())*, int function()* ) == const(int function())* ));
 static assert(is( X!( immutable(int function())*, int function()* ) == const(int function())* ));
@@ -299,10 +299,10 @@ static assert(is( X!( shared(const(C))[4], shared(C)[4] ) == shared(const(C))[4]
 static assert(is( X!( shared(C)[4], shared(const(C))[4] ) == shared(const(C))[4] ));
 
 // base class conversion
-static assert(Error!( C[4], B[4] ));
+static assert(is( X!(C[4], B[4]) ));
 static assert(Error!( C[4], I[4] ));
 static assert(Error!( C[4], D[4] ));
-static assert(is( X!( C[4], const(B)[4] ) == const(B)[] )); // !?
+static assert(is( X!( C[4], const(B)[4] ) == const(B)[4] ));
 static assert(Error!( C[4], const(I)[4] ));
 static assert(Error!( C[4], const(D)[4] ));
 static assert(Error!( C*[4], B*[4] ));

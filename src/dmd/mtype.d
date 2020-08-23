@@ -3685,12 +3685,25 @@ extern (C++) final class TypeSArray : TypeArray
 
             if (dim.equals(tsa.dim))
             {
+                MATCH m = next.implicitConvTo(tsa.next);
+
+                /* Allow conversion to non-interface base class.
+                 */
+                if (m == MATCH.convert &&
+                    next.ty == Tclass)
+                {
+                    if (auto toc = tsa.next.isTypeClass)
+                    {
+                        if (!toc.sym.isInterfaceDeclaration)
+                            return MATCH.convert;
+                    }
+                }
+
                 /* Since static arrays are value types, allow
                  * conversions from const elements to non-const
                  * ones, just like we allow conversion from const int
                  * to int.
                  */
-                MATCH m = next.implicitConvTo(tsa.next);
                 if (m >= MATCH.constant)
                 {
                     if (mod != to.mod)
