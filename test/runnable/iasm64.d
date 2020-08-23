@@ -186,6 +186,9 @@ void test6()
         0x49, 0x8B, 0x45, 0x00,         // mov RAX,0[R13]
         0x4A, 0x8B, 0x04, 0x1D, 0x00, 0x00, 0x00, 0x00, // mov RAX,[00h][R11]
         0x49, 0x8B, 0x03,               // mov RAX,[R11]
+
+        0x8B, 0x05, 0x00, 0x00, 0x00, 0x00,  // mov EAX,[RIP]
+        0x8B, 0x05, 0x05, 0x00, 0x00, 0x00,  // mov EAX,5[RIP]
     ];
     int i;
 
@@ -218,6 +221,9 @@ void test6()
         mov     RAX,[R13]               ;
         mov     RAX,[0+1*R11]           ;
         mov     RAX,[R11]               ;
+
+        mov     EAX,[RIP]               ;
+        mov     EAX,5[RIP]              ;
 
 L1:
         pop     RBX                     ;

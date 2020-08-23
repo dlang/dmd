@@ -542,6 +542,8 @@ enum // 64 bit only registers
     _R13B = 13,
     _R14B = 14,
     _R15B = 15,
+
+    _RIP = 0xFF,   // some unique value
 }
 
 immutable REG[65] regtab64 =
@@ -612,6 +614,7 @@ immutable REG[65] regtab64 =
     {"YMM14", 14,    _ymm},
     {"YMM15", 15,    _ymm},
     {"CR8",   8,     _r64 | _special | _crn},
+    {"RIP",   _RIP,  _r64},
 ];
 
 
@@ -633,6 +636,7 @@ struct OPND
     bool bOffset;            // if 'offset' keyword
     bool bSeg;               // if 'segment' keyword
     bool bPtr;               // if 'ptr' keyword
+    bool bRIP;               // if [RIP] addressing
     uint uchMultiplier;      // register multiplier; valid values are 0,1,2,4,8
     opflag_t usFlags;
     Dsymbol s;
@@ -1217,7 +1221,9 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
         sz = asm_type_size(ptype, popnd.bPtr);
     }
 
-    if (popnd.pregDisp1 && !popnd.base)
+    if (popnd.bRIP)
+        return CONSTRUCT_FLAGS(sz, _m, _addr32, 0);
+    else if (popnd.pregDisp1 && !popnd.base)
     {
         if (ps && ps.isLabel() && sz == OpndSize._anysize)
             sz = OpndSize._32;
@@ -2171,7 +2177,6 @@ private @safe pure bool asm_is_fpreg(const(char)[] szReg)
 
 private void asm_merge_opnds(ref OPND o1, ref OPND o2)
 {
-
     void illegalAddressError(string debugWhy)
     {
         debug (debuga) printf("Invalid addr because /%.s/\n",
@@ -2283,6 +2288,10 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         else
             o1.pregDisp2 = o2.pregDisp2;
     }
+
+    if (o1.bRIP && (o1.pregDisp1 || o2.bRIP || o1.base))
+        return illegalAddressError("o1.pregDisp1 && RIP");
+    o1.bRIP |= o2.bRIP;
 
     if (o1.base && o1.pregDisp1)
     {
@@ -4397,7 +4406,9 @@ void asm_primary_exp(out OPND o1)
                 else if (asmstate.lbracketNestCount)
                 {
                     // should be a register
-                    if (o1.pregDisp1)
+                    if (regp.val == _RIP)
+                        o1.bRIP = true;
+                    else if (o1.pregDisp1)
                         asmerr("bad operand");
                     else
                         o1.pregDisp1 = regp;

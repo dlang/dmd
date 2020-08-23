@@ -53,9 +53,13 @@ void test2()
 ---
 fail_compilation/iasm1.d(306): Error: operand cannot have both R8 and [R9]
 fail_compilation/iasm1.d(307): Error: operand cannot have both RDX and 0x3
+fail_compilation/iasm1.d(308): Error: cannot have two symbols in addressing mode
+fail_compilation/iasm1.d(309): Error: cannot have two symbols in addressing mode
+fail_compilation/iasm1.d(310): Error: cannot have two symbols in addressing mode
 ---
 */
 
+// https://issues.dlang.org/show_bug.cgi?id=17616
 // https://issues.dlang.org/show_bug.cgi?id=18373
 
 #line 300
@@ -67,6 +71,9 @@ void test3()
         naked;
         mov RAX,[R9][R10]R8;
         mov RAX,[3]RDX;
+	mov RAX,[RIP][RIP];
+	mov RAX,[RIP][RCX];
+	mov RAX,[RIP]RCX;
     }
 }
 
