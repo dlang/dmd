@@ -2290,6 +2290,8 @@ void test23()
         0xF3, 0x0F, 0x16, 0x4D, 0xE8,   // movshdup     XMM1,-010h[EBP]
         0xF3, 0x0F, 0x12, 0xCA,         // movsldup     XMM1,XMM2
         0xF3, 0x0F, 0x12, 0x4D, 0xE8,   // movsldup     XMM1,-010h[EBP]
+
+        0xC4, 0xE3, 0x7D, 0x04, 0xC7, 0xAA, // vpermilps YMM0,YMM7,0AAh ;
     ];
     int i;
 
@@ -2339,6 +2341,8 @@ void test23()
 
         movsldup        XMM1,XMM2       ;
         movsldup        XMM1,m128[EBP]  ;
+
+        vpermilps       YMM0,YMM7,0xAA  ;
 
 L1:                                     ;
         pop     EBX                     ;

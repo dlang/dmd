@@ -417,7 +417,7 @@ enum // the x86 CPU numbers for these registers
     _FS           = 4,
 }
 
-immutable REG[63] regtab =
+immutable REG[71] regtab =
 [
     {"AL",   _AL,    _r8 | _al},
     {"AH",   _AH,    _r8},
@@ -482,6 +482,14 @@ immutable REG[63] regtab =
     {"XMM5", 5,      _xmm},
     {"XMM6", 6,      _xmm},
     {"XMM7", 7,      _xmm},
+    {"YMM0",   0,    _ymm},
+    {"YMM1",   1,    _ymm},
+    {"YMM2",   2,    _ymm},
+    {"YMM3",   3,    _ymm},
+    {"YMM4",   4,    _ymm},
+    {"YMM5",   5,    _ymm},
+    {"YMM6",   6,    _ymm},
+    {"YMM7",   7,    _ymm},
 ];
 
 
@@ -536,7 +544,7 @@ enum // 64 bit only registers
     _R15B = 15,
 }
 
-immutable REG[73] regtab64 =
+immutable REG[65] regtab64 =
 [
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -595,14 +603,6 @@ immutable REG[73] regtab64 =
     {"XMM14", 14,    _xmm},
     {"XMM15", 15,    _xmm},
 
-    {"YMM0",   0,    _ymm},
-    {"YMM1",   1,    _ymm},
-    {"YMM2",   2,    _ymm},
-    {"YMM3",   3,    _ymm},
-    {"YMM4",   4,    _ymm},
-    {"YMM5",   5,    _ymm},
-    {"YMM6",   6,    _ymm},
-    {"YMM7",   7,    _ymm},
     {"YMM8",   8,    _ymm},
     {"YMM9",   9,    _ymm},
     {"YMM10", 10,    _ymm},
