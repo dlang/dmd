@@ -526,7 +526,7 @@ extern(C++) private final class Supported : Objc
             auto literal = cast(StructLiteralExp) e;
             assert(literal.sd);
 
-            if (!isUdaSelector(literal.sd))
+            if (!isCoreUda(literal.sd, Id.udaSelector))
                 return 0;
 
             if (fd.objc.selector)
@@ -733,11 +733,23 @@ extern(C++) private final class Supported : Objc
 
 extern(D) private:
 
-    bool isUdaSelector(StructDeclaration sd)
+    /**
+     * Returns `true` if the given symbol is a symbol declared in
+     * `core.attribute` and has the given identifier.
+     *
+     * This is used to determine if a symbol is a UDA declared in
+     * `core.attribute`.
+     *
+     * Params:
+     *  sd = the symbol to check
+     *  ident = the name of the expected UDA
+     */
+    bool isCoreUda(ScopeDsymbol sd, Identifier ident) const
     {
-        if (sd.ident != Id.udaSelector || !sd.parent)
+        if (sd.ident != ident || !sd.parent)
             return false;
-        Module _module = sd.parent.isModule();
+
+        auto _module = sd.parent.isModule();
         return _module && _module.isCoreModule(Id.attribute);
     }
 
