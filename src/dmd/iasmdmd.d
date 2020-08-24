@@ -4380,6 +4380,8 @@ void asm_primary_exp(out OPND o1)
                         }
                     }
                     TOK e2o = tryExpressionToOperand(e, o1, s);
+                    if (e2o == TOK.error)
+                        return;
                     if (e2o == TOK.const_)
                         goto Lpost;
                 }
@@ -4469,24 +4471,23 @@ void asm_primary_exp(out OPND o1)
  * Params:
  *      e =     Input. The expression to evaluate. This can be an arbitrarily complex expression
  *              but it must either represent a constant after CTFE or give a higher level variable.
- *      o1 =    Output. The ASM operand to define from `e`.
- *      s =     Output. The symbol when `e` represents a variable.
+ *      o1 =    if `e` turns out to be a constant, `o1` is set to reflect that
+ *      s =     if `e` turns out to be a variable, `s` is set to reflect that
  *
  * Returns:
  *      `TOK.variable` if `s` was set to a variable,
  *      `TOK.const_` if `e` was evaluated to a valid constant,
  *      `TOK.error` otherwise.
  */
-TOK tryExpressionToOperand(Expression e, ref OPND o1, ref Dsymbol s)
+TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
 {
     Scope *sc = asmstate.sc.startCTFE();
     e = e.expressionSemantic(sc);
     sc.endCTFE();
     e = e.ctfeInterpret();
-    if (e.op == TOK.variable)
+    if (auto ve = e.isVarExp())
     {
-        VarExp v = cast(VarExp) e;
-        s = v.var;
+        s = ve.var;
         return TOK.variable;
     }
     if (e.isConst())
