@@ -1,0 +1,36 @@
+Added support for input parameters (`in` parameter, `-preview=in`)
+
+D has supported the `in`, `ref`, and `out` storage classes on parameters
+since its inception. `out` and `ref` are commonly used,
+however `in` was usually left behind, as, while it was originally intended
+as an alias to `const scope`, it was made an alias to `const` when
+support for `scope` was introduced (DIP1000).
+
+DMD v2.092.0 rectified this by adding `-preview=in` to mean `const scope`,
+as it was originally intended, instead of `const` without the switch.
+
+However, this didn't really capture the intended meaning of `in`:
+the be applied on input parameters.
+Input parameters are parameters that a function intend to only examine,
+without modifying it, nor keeping a reference to them around.
+This is covered by `const scope`. However, some input parameters can
+be pretty large, or copying them can have side effects (postblit, copy constructor),
+hence those should be passed by reference to avoid runtime overhead.
+Which prompts a new issue: D doesn't support passing rvalues by references.
+Hence, when designing an API accepting an input parameter, a common
+practice was to have both an `in`-accepting overload, and an `in ref`-accepting one.
+While this works well for a single parameter, it also suffers from combinatorial explosion.
+
+This release reworks the meaning of `in` to properly support all those use cases.
+`in` parameters will now be passed by reference when optimal, and will accept rvalue.
+When using the switch, `in ref` parameters will also trigger an error.
+
+Note that the rules for passing by reference are as follow:
+- If the type has an elaborate copy or destruction (postblit, copy constructor, destructor),
+the type is always passed by reference.
+- If the type is not copy-able, it will always be passed by reference.
+- Reference types (dynamic arrays, function pointers, delegates, associative arrays, classes)
+  do not get passed by `ref`. This allows for covariance on delegates.
+- Otherwise, if the type's size requires it, it will be passed by reference.
+  Currently, types which are over twice the machine word size will be passed by reference,
+  however this is controlled by the backend and can be changed based on the platform's ABI.

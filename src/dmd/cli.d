@@ -762,7 +762,7 @@ dmd -cov -unittest myprog.d
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
         Feature("in", "previewIn",
-            "in means scope const"),
+            "`in` on parameters means `scope const [ref]` and accepts rvalues"),
     ];
 }
 

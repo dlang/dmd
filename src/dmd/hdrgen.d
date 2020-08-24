@@ -3059,6 +3059,8 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
 
     if (p.storageClass & STC.in_)
         buf.writestring("in ");
+    else if (global.params.previewIn && p.storageClass & STC.ref_)
+        buf.writestring("ref ");
     else if (p.storageClass & STC.out_)
         buf.writestring("out ");
     else if (p.storageClass & STC.lazy_)
@@ -3066,7 +3068,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
 
-    if (p.storageClass & STC.ref_)
+    if (!global.params.previewIn && p.storageClass & STC.ref_)
         buf.writestring("ref ");
 
     StorageClass stc = p.storageClass;

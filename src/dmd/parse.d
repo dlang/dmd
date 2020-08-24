@@ -1368,25 +1368,35 @@ final class Parser(AST) : Lexer
             return orig | added;
         }
 
+        const Redundant = (STC.const_ | STC.scope_ |
+                           (global.params.previewIn ? STC.ref_ : 0));
         orig |= added;
 
-        if ((orig & STC.in_) && (added & (STC.const_ | STC.scope_)))
+        if ((orig & STC.in_) && (added & Redundant))
         {
             if (added & STC.const_)
                 error("attribute `const` is redundant with previously-applied `in`");
             else if (global.params.previewIn)
-                error("attribute `scope` is redundant with previously-applied `in`");
+            {
+                error("attribute `%s` is redundant with previously-applied `in`",
+                      (orig & STC.scope_) ? "scope".ptr : "ref".ptr);
+            }
             else
                 error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
             return orig;
         }
 
-        if ((added & STC.in_) && (orig & (STC.const_ | STC.scope_)))
+        if ((added & STC.in_) && (orig & Redundant))
         {
             if (orig & STC.const_)
                 error("attribute `in` cannot be added after `const`: remove `const`");
             else if (global.params.previewIn)
-                error("attribute `in` cannot be added after `scope`: remove `scope`");
+            {
+                // Windows `printf` does not support `%1$s`
+                const(char*) stc_str = (orig & STC.scope_) ? "scope".ptr : "ref".ptr;
+                error("attribute `in` cannot be added after `%s`: remove `%s`",
+                      stc_str, stc_str);
+            }
             else
                 error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
             return orig;
