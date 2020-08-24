@@ -4076,8 +4076,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (type && mod)
             {
                 printedMain = true;
-                const(char)* name = FileName.searchPath(global.path, mod.srcfile.toChars(), true);
-                message("entry     %-10s\t%s", type, name);
+                auto name = mod.srcfile.toChars();
+                auto path = FileName.searchPath(global.path, name, true);
+                message("entry     %-10s\t%s", type, path ? path : name);
             }
         }
 
