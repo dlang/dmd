@@ -567,9 +567,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                if (!funcdecl.inferRetType && !target.isReturnOnStack(f, funcdecl.needThis()))
-                    funcdecl.nrvo_can = 0;
-
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
