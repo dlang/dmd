@@ -777,6 +777,14 @@ RETRY:
             enum log = false;
             if (log) { printf("`%s`\n", asm_opstr(pop)); }
             if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
+
+            if (pop.ptb.pptb1.opcode == 0xE8 &&
+                opnds[0].s == asmstate.psDollar &&
+                (opnds[0].disp >= byte.min && opnds[0].disp <= byte.max)
+               )
+                // Rewrite CALL $+disp from rel8 to rel32
+                opflags[0] = CONSTRUCT_FLAGS(OpndSize._32, _rel, _flbl, 0);
+
             PTRNTAB1 *table1;
             for (table1 = pop.ptb.pptb1; table1.opcode != ASM_END;
                     table1++)
@@ -1232,9 +1240,9 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
                         if (popnd.disp >= byte.min &&
                             popnd.disp <= byte.max)
                             us = CONSTRUCT_FLAGS(OpndSize._8, _rel, _flbl,0);
-                        else if (popnd.disp >= short.min &&
-                            popnd.disp <= short.max && !global.params.is64bit)
-                            us = CONSTRUCT_FLAGS(OpndSize._16, _rel, _flbl,0);
+                        //else if (popnd.disp >= short.min &&
+                            //popnd.disp <= short.max && global.params.is16bit)
+                            //us = CONSTRUCT_FLAGS(OpndSize._16, _rel, _flbl,0);
                         else
                             us = CONSTRUCT_FLAGS(OpndSize._32, _rel, _flbl,0);
                     }
