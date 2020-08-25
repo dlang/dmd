@@ -1561,6 +1561,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
+        const bool fromModule = sds.isModule() !is null  || sds.isPackage() !is null;
+
         auto idents = new Identifiers();
 
         int pushIdentsDg(size_t n, Dsymbol sm)
@@ -1581,6 +1583,27 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             // skip version and debug identifiers
             if (sm.isVersionSymbol() || sm.isDebugSymbol())
                 return 0;
+
+            // for imports or package imports containing public imports, e.g `import std.algorithm`
+            // put the FQN, otherwise only the root package (sm.ident, `std`) would be added.
+            if (Import ip = sm.isImport())
+            {
+                if (!fromModule)                // https://issues.dlang.org/show_bug.cgi?id=17057
+                    return 0;
+                if (ip.names.dim != 0)          // dont put import if it has symbol selections
+                    return 0;
+                Identifier fqn = ip.aliasId;    // prefer the alias in `import aliasId = ...`
+                if (!fqn)
+                {
+                    OutBuffer ob;
+                    ip.mod.fullyQualifiedName(ob);
+                    fqn = new Identifier(ob.extractChars());
+                }
+                if ((*idents).contains(fqn))
+                    return 0;
+                idents.push(fqn);
+                return 0;
+            }
 
             //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
@@ -1603,25 +1626,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
                 if (sm.isTypeInfoDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=15177
                     return 0;
-                if ((!sds.isModule() && !sds.isPackage()) && sm.isImport()) // https://issues.dlang.org/show_bug.cgi?id=17057
-                    return 0;
 
                 //printf("\t%s\n", sm.ident.toChars());
 
-                /* Skip if already present in idents[]
-                 */
-                foreach (id; *idents)
-                {
-                    if (id == sm.ident)
-                        return 0;
-
-                    // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                    debug
-                    {
-                        import core.stdc.string : strcmp;
-                        assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
-                    }
-                }
+                //Skip if already present in idents[]
+                if ((*idents).contains(sm.ident))
+                    return 0;
                 idents.push(sm.ident);
             }
             else if (auto ed = sm.isEnumDeclaration())
