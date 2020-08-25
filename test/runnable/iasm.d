@@ -4748,6 +4748,10 @@ void test9866()
         0x66, 0x0f, 0xb7, 0x00, // movzx AX, word ptr [EAX];
               0x0f, 0xb7, 0xc0, // movzx EAX, AX;
               0x0f, 0xb7, 0x00, // movzx EAX, word ptr [EAX];
+
+        0xEB, 0x00,                   //jmp   $;
+        0xE9, 0xCD, 0xAB, 0x00, 0x00, // jmp  $+0xABCD;
+        0xE8, 0x05, 0x00, 0x00, 0x00, // call $+5;
     ];
 
     asm
@@ -4771,6 +4775,10 @@ void test9866()
         movzx AX, word ptr [EAX];
         movzx EAX, AX;
         movzx EAX, word ptr [EAX];
+
+        jmp $;
+        jmp $+0xABCD;
+        call $+5;
 
 L1:     pop     EAX;
         mov     p[EBP],EAX;
