@@ -1546,6 +1546,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             s = imp.mod;
         }
 
+        // https://issues.dlang.org/show_bug.cgi?id=16044
+        if (auto p = s.isPackage())
+        {
+            if (auto pm = p.isPackageMod())
+                s = pm;
+        }
+
         auto sds = s.isScopeDsymbol();
         if (!sds || sds.isTemplateDeclaration())
         {
@@ -1596,7 +1603,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
                 if (sm.isTypeInfoDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=15177
                     return 0;
-                if (!sds.isModule() && sm.isImport()) // https://issues.dlang.org/show_bug.cgi?id=17057
+                if ((!sds.isModule() && !sds.isPackage()) && sm.isImport()) // https://issues.dlang.org/show_bug.cgi?id=17057
                     return 0;
 
                 //printf("\t%s\n", sm.ident.toChars());
