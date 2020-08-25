@@ -1704,9 +1704,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
 
-            if (!inferRetType && retStyle(f) != RETstack)
-                nrvo_can = 0;
-
             bool inferRef = (f->isref && (storage_class & STCauto));
 
             fbody = ::semantic(fbody, sc2);
