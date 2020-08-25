@@ -201,6 +201,28 @@ The following is a list of all available settings:
                          default: (none). Test files with this variable will be ignored unless
                          the D_OBJC environment variable is set to "1"
 
+    EXTRA_ARTIFACT:     artifact used in the test (configuration) which needs to be generated
+                        by invoking a specified command before running the test.
+
+                        Syntax: <artifact> = <command>
+
+                        Both <artifact> and <command> can use bash-like variables as defined below
+                        to handle platform specific build whereas <command> also can use $@ to
+                        refer to <artifact>. The ${DMD} variable also contains the appropriate model
+                        and PIC flags by default (as denoted by MODEL/PIC).
+
+                        Generated artifacts can be referenced in REQUIRED_ARGS by using $@[<i>],
+                        where <i> is the zero-based index among all artifacts in lexical order.
+
+                        Example:
+                        EXTRA_ARTIFACT: foo.lib = ${DMD} -lib -of=$@ foo.d
+                        EXTRA_ARTIFACT: bar.lib = ${DMD} -lib -release -of=$@ bar.d
+
+                        REQUIRED_ARGS: $@[0] $@[1]
+
+                        Note:    Generated artifacts will be removed after the test
+                        Default: (none)
+
     EXTRA_FILES:         list of extra files and sources used by the test, either during
                          compilation or execution of the test. It is currently ignored by the test
                          runner, but serves as documentation of the test itself.
