@@ -4,6 +4,8 @@ import std.algorithm;
 import std.file;
 import std.process;
 
+import std.conv;
+
 int main()
 {
     version(DigitalMars) { }
@@ -24,11 +26,21 @@ int main()
     else
         immutable slash = "/";
 
-
     // If the Unix system doesn't have objdump, disable the tests
-    auto sysHasObjdump = executeShell("objdump --help");
-    if (sysHasObjdump.status)
+    auto sysObjdump = executeShell("objdump --version");
+    if (sysObjdump.status)
         return DISABLED;
+    // DWARF 3 (and 4) support has been implemented in version 2.20 (2.20.51.0.1)
+    try
+    {
+        if(sysObjdump.output.split("\n")[0][$ - 4 .. $].to!double < 2.20)
+            return DISABLED;
+    }
+    catch (ConvException ce)
+    {
+        // The conversion failed, then it's definitively an old version (or a too new)
+        return DISABLED;
+    }
 
     immutable extra_dwarf_dir = EXTRA_FILES ~ slash ~ "dwarf" ~ slash;
     bool failed;
