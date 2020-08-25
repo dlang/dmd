@@ -1646,6 +1646,15 @@ static if (ELFOBJ || MACHOBJ)
         {
             abuf.writeByte(DW_AT_external);       abuf.writeByte(DW_FORM_flag);
         }
+        if (sfunc.Sfunc.Fflags3 & Fpure)
+        {
+            abuf.writeByte(DW_AT_pure);
+            static if (DWARF_VERSION >= 4)
+                abuf.writeByte(DW_FORM_flag_present);
+            else
+                abuf.writeByte(DW_FORM_flag);
+        }
+
         abuf.writeByte(DW_AT_low_pc);     abuf.writeByte(DW_FORM_addr);
         abuf.writeByte(DW_AT_high_pc);    abuf.writeByte(DW_FORM_addr);
         abuf.writeByte(DW_AT_frame_base); abuf.writeByte(DW_FORM_data4);
@@ -1675,6 +1684,12 @@ static if (ELFOBJ || MACHOBJ)
 
         if (sfunc.Sclass == SCglobal)
             debug_info.buf.writeByte(1);              // DW_AT_external
+
+        static if (DWARF_VERSION < 4)
+        {
+            if (sfunc.Sfunc.Fflags3 & Fpure)
+                debug_info.buf.writeByte(true);         // DW_AT_pure
+        }
 
         // DW_AT_low_pc and DW_AT_high_pc
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
