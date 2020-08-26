@@ -4,6 +4,20 @@ Running DMD's test suite
 This is the documentation and guide for DMD's test suite.
 Maybe you are looking for the [contributing guide](../CONTRIBUTING.md) too?
 
+---
+
+- [Quick guide](#quick-guide)
+- [Types of Tests](#types-of-tests)
+- [`run.d` targets](#rund-targets)
+- [Test Configuration](#test-configuration)
+- [Environment variables](#environment-variables)
+- [Bash Tests](#bash-tests)
+- [Test configuration variables](#test-configuration-variables)
+- [`TEST_OUTPUT`](#test_output)
+- [Test Coding Practices](#test-coding-practices)
+
+---
+
 Quick guide
 -----------
 
@@ -15,7 +29,7 @@ Quick guide
 
 Note:
 
-- `run.d` will automatically use all available threads. Use e.g. `-j4` if you need a lower parallelism
+- [`run.d`](./run.d) will automatically use all available threads. Use e.g. `-j4` if you need a lower parallelism
 - all commands below assume that you are in the `test` directory
 
 ### Run only a specific subset
@@ -25,7 +39,7 @@ Note:
 ./run.d compilable
 ```
 
-As linking is slow the `runnable` tests take a bit longer to run:
+As linking is slow the [`runnable`](runnable/README.md) tests take a bit longer to run:
 
 ```console
 ./run.d runnable
@@ -38,8 +52,8 @@ As linking is slow the `runnable` tests take a bit longer to run:
 ```
 
 Multiple arguments are supported too.
-You can use `./run.d` to quickly run a custom subset of tests.
-For example, all diagnostic tests in `fail_compilation`:
+You can use [`./run.d`](./run.d) to quickly run a custom subset of tests.
+For example, all diagnostic tests in [`fail_compilation`](fail_compilation/README.md):
 
 ```console
 ./run.d fail_compilation/diag*.d
@@ -67,8 +81,8 @@ Note:
 
 ### Running the Unit Tests
 
-The unit tests will automatically run when all tests are run using `./run.d` or
-`make`. To only run the unit tests the `./run.d unit_tests` command can be used.
+The unit tests will automatically run when all tests are run using `./run.d`.
+To only run the unit tests the `./run.d unit_tests` command can be used.
 For a more finer grain control over the unit tests the `./run.d -u` command can
 be used:
 
@@ -112,18 +126,23 @@ There are two types of tests in the DMD test suite:
 
 * **End-to-end test**. These are tests that invokes the compiler as an external
 process in some kind of way. Then it asserts either the exit code or the output
-of the compiler. These tests are located in `compilable`, `fail_compilation` and
-`runnable`.
+of the compiler. These tests are located in
+
+  - [`compilable`](compilable/README.md)
+  - [`fail_compilation`](fail_compilation/README.md)
+  - [`runnable`](runnable/README.md)
+  - [`runnable_cxx`](runnable_cxx/README.md)
+  - [`dshell`](dshell/README.md)
 
 * **Unit tests**. These tests are more of a unit test, integration or
 functional style tests. These tests are using the compiler as a library. They
 are more flexible because they can assert state internal to the compiler which
 the end-to-end tests would never have access to. The unit test runner will
-compile all files in the `unit` directory into a single executable and run the
+compile all files in the [`unit`](unit/README.md) directory into a single executable and run the
 tests. This should make it quick to run the tests since only a single process
 need to be started.
 
-Makefile targets
+`run.d` targets
 ----------------
 
     default | all:      run all unit tests that haven't been run yet
@@ -296,10 +315,10 @@ The following is a list of all available settings:
                          Optionally a MODEL suffix can used for further filtering, e.g.
                          win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
 
-Makefile Environment variables
+Environment variables
 ------------------------------
 
-The Makefile uses environment variables to store test settings and as a way to pass these settings to the test wrapper tool `d_do_test`.
+[`run.d`](./run.d) uses environment variables to store test settings and as a way to pass these settings to the test wrapper tool [`d_do_test.d`](tools/d_do_test.d).
 
 > Note: These variables are also available inside any Bash test.
 
@@ -322,7 +341,7 @@ Windows vs non-windows portability env vars:
 Bash Tests
 ----------
 
-Along with the environment variables provided by the Makefile (see above), an additional set of environment variables are made available to Bash tests. These variables are defined in `tools/exported_vars.sh`:
+Along with the environment variables provided by [`run.d`](./run.d) (see above), an additional set of environment variables are made available to Bash tests. These variables are defined in `tools/exported_vars.sh`:
 
     TEST_DIR           the name of the test directory
                        (one of compilable, fail_compilation or runnable)
