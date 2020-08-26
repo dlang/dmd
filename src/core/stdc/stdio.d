@@ -1302,11 +1302,12 @@ extern (D) @trusted
     int getchar()()                 { return getc(stdin);     }
     ///
     int putchar()(int c)            { return putc(c,stdout);  }
-    ///
-    int getc()(FILE* stream)        { return fgetc(stream);   }
-    ///
-    int putc()(int c, FILE* stream) { return fputc(c,stream); }
 }
+
+///
+alias getc = fgetc;
+///
+alias putc = fputc;
 
 ///
 @trusted int ungetc(int c, FILE* stream); // No unsafe pointer manipulation.
