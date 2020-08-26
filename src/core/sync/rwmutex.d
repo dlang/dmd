@@ -239,20 +239,30 @@ class ReadWriteMutex
          */
         bool tryLock(Duration timeout)
         {
-            const initialTime = MonoTime.currTime;
             synchronized( m_commonMutex )
             {
+                if (!shouldQueueReader)
+                {
+                    ++m_numActiveReaders;
+                    return true;
+                }
+
+                enum zero = Duration.zero();
+                if (timeout <= zero)
+                    return false;
+
                 ++m_numQueuedReaders;
                 scope(exit) --m_numQueuedReaders;
 
+                enum maxWaitPerCall = dur!"hours"(24 * 365); // Avoid problems calling wait with huge Duration.
+                const initialTime = MonoTime.currTime;
+                m_readerQueue.wait(timeout < maxWaitPerCall ? timeout : maxWaitPerCall);
                 while (shouldQueueReader)
                 {
                     const timeElapsed = MonoTime.currTime - initialTime;
                     if (timeElapsed >= timeout)
                         return false;
                     auto nextWait = timeout - timeElapsed;
-                    // Avoid problems calling wait(Duration) with huge arguments.
-                    enum maxWaitPerCall = dur!"hours"(24 * 365);
                     m_readerQueue.wait(nextWait < maxWaitPerCall ? nextWait : maxWaitPerCall);
                 }
                 ++m_numActiveReaders;
@@ -390,20 +400,30 @@ class ReadWriteMutex
          */
         bool tryLock(Duration timeout)
         {
-            const initialTime = MonoTime.currTime;
             synchronized( m_commonMutex )
             {
+                if (!shouldQueueWriter)
+                {
+                    ++m_numActiveWriters;
+                    return true;
+                }
+
+                enum zero = Duration.zero();
+                if (timeout <= zero)
+                    return false;
+
                 ++m_numQueuedWriters;
                 scope(exit) --m_numQueuedWriters;
 
+                enum maxWaitPerCall = dur!"hours"(24 * 365); // Avoid problems calling wait with huge Duration.
+                const initialTime = MonoTime.currTime;
+                m_writerQueue.wait(timeout < maxWaitPerCall ? timeout : maxWaitPerCall);
                 while (shouldQueueWriter)
                 {
                     const timeElapsed = MonoTime.currTime - initialTime;
                     if (timeElapsed >= timeout)
                         return false;
                     auto nextWait = timeout - timeElapsed;
-                    // Avoid problems calling wait(Duration) with huge arguments.
-                    enum maxWaitPerCall = dur!"hours"(24 * 365);
                     m_writerQueue.wait(nextWait < maxWaitPerCall ? nextWait : maxWaitPerCall);
                 }
                 ++m_numActiveWriters;
