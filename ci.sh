@@ -45,7 +45,7 @@ clone() {
 # build dmd, druntime, phobos
 build() {
     source ~/dlang/*/activate # activate host compiler
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_ASSERTS=1 ENABLE_WARNINGS=1 all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
     deactivate # deactivate host compiler
@@ -61,7 +61,7 @@ rebuild() {
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 ENABLE_ASSERTS=1 ENABLE_WARNINGS=1 all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
