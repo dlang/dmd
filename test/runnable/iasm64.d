@@ -3711,6 +3711,8 @@ void test50()
         0x9B,           // wait
         0x91,           // xchg EAX,ECX
         0xD7,           // xlat
+        0x48, 0x8D, 0x1D, 0x02, 0x00, 0x00, 0x00, // lea RBX,L1;
+        0x89, 0xC0,     // mov EAX,EAX
     ];
     int i;
 
@@ -3835,6 +3837,8 @@ L10:    nop; nop;         // put instructions above this or L10 changes
         wait    ;
         xchg    EAX,ECX ;
         xlat    ;
+        lea     RBX,L1 ;
+        mov     EAX,EAX ;
 
 L1:                                     ;
         pop     RBX                     ;
