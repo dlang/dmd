@@ -7247,6 +7247,20 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                                 goto L1; // dparent is most nested
                             }
                         }
+
+                        // Take into account class hierarchy (Issue 17870)
+                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
+                        {
+                            auto pc = cast(ClassDeclaration)dparent;
+                            auto ec = cast(ClassDeclaration)enclosing;
+                            if (pc.isBaseOf(ec, null))
+                                goto L1;
+                            else if (ec.isBaseOf(pc, null))
+                            {
+                                enclosing = dparent;
+                                goto L1;
+                            }
+                        }
                         error("`%s` is nested in both `%s` and `%s`", toChars(), enclosing.toChars(), dparent.toChars());
                         errors = true;
                     }
