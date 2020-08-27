@@ -2965,7 +2965,7 @@ static if (0)
 
 void Obj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    //dbg_printf("Obj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,offset,val);
+    //printf("Obj_reftocodeseg(seg=%d, offset=x%llx, val=x%llx, off=x%llx )\n",seg,offset,val, val - funcsym_p.Soffset);
 
     reltype_t relinfo;
 static if (0)

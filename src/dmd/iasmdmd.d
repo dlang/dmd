@@ -1570,27 +1570,27 @@ code *asm_emit(Loc loc,
                         switch (pregSegment.val)
                         {
                         case _CS:
-                            emit(0x2e);
+                            emit(SEGCS);
                             pc.Iflags |= CFcs;
                             break;
                         case _SS:
-                            emit(0x36);
+                            emit(SEGSS);
                             pc.Iflags |= CFss;
                             break;
                         case _DS:
-                            emit(0x3e);
+                            emit(SEGDS);
                             pc.Iflags |= CFds;
                             break;
                         case _ES:
-                            emit(0x26);
+                            emit(SEGES);
                             pc.Iflags |= CFes;
                             break;
                         case _FS:
-                            emit(0x64);
+                            emit(SEGFS);
                             pc.Iflags |= CFfs;
                             break;
                         case _GS:
-                            emit(0x65);
+                            emit(SEGGS);
                             pc.Iflags |= CFgs;
                             break;
                         default:
@@ -2432,9 +2432,10 @@ void asm_make_modrm_byte(
         printf("asm_make_modrm_byte(usFlags = x%x)\n", usFlags);
         printf("op1: ");
         asm_output_flags(opnds[0].usFlags);
+        printf("\n");
         if (opnds.length == 2)
         {
-            printf(" op2: ");
+            printf("op2: ");
             asm_output_flags(opnds[1].usFlags);
         }
         printf("\n");
@@ -2448,7 +2449,7 @@ void asm_make_modrm_byte(
     {
         Declaration d = s.isDeclaration();
 
-        if (amod == _fn16 && aopty == _rel && opnds.length ==2)
+        if ((amod == _fn16 || amod == _flbl) && aopty == _rel && opnds.length == 2)
         {
             aopty = _m;
             goto L1;
@@ -2504,9 +2505,10 @@ void asm_make_modrm_byte(
                 }
                 else
                 {
-                    pc.IFL1 = FLblockoff;
+                    pc.IFL1 = global.params.is64bit ? FLblock : FLblockoff;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
+                pc.Iflags |= CFoff;
             }
             else if (s == asmstate.psLocalsize)
             {
@@ -2535,9 +2537,14 @@ void asm_make_modrm_byte(
     }
     mrmb.reg = usFlags & NUM_MASK;
 
-    if (s && (aopty == _m || aopty == _mnoi) && !s.isLabel())
+    if (s && (aopty == _m || aopty == _mnoi))
     {
-        if (s == asmstate.psLocalsize)
+        if (s.isLabel)
+        {
+            mrmb.rm = BPRM;
+            mrmb.mod = 0x0;
+        }
+        else if (s == asmstate.psLocalsize)
         {
     DATA_REF:
             mrmb.rm = BPRM;
@@ -4411,7 +4418,9 @@ void asm_primary_exp(out OPND o1)
                 }
                 if (auto label = s.isLabel())
                 {
-                    o1.segreg = &regtab[25]; // Make it use CS as a base for a label
+                    // Use the following for non-FLAT memory models
+                    //o1.segreg = &regtab[25]; // use CS as a base for a label
+
                     label.iasm = true;
                 }
                 Identifier id = asmstate.tok.ident;
