@@ -49,6 +49,29 @@ void test2()
 
 /*********************************************/
 
+/* TEST_OUTPUT:
+---
+fail_compilation/iasm1.d(306): Error: operand cannot have both R8 and [R9]
+fail_compilation/iasm1.d(307): Error: operand cannot have both RDX and 0x3
+---
+*/
+
+// https://issues.dlang.org/show_bug.cgi?id=18373
+
+#line 300
+
+void test3()
+{
+    asm
+    {
+        naked;
+        mov RAX,[R9][R10]R8;
+        mov RAX,[3]RDX;
+    }
+}
+
+/*********************************************/
+
 /*
 TEST_OUTPUT:
 ---

@@ -2283,6 +2283,19 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         else
             o1.pregDisp2 = o2.pregDisp2;
     }
+
+    if (o1.base && o1.pregDisp1)
+    {
+        asmerr("operand cannot have both %s and [%s]", o1.base.regstr.ptr, o1.pregDisp1.regstr.ptr);
+        return;
+    }
+
+    if (o1.base && o1.disp)
+    {
+        asmerr("operand cannot have both %s and 0x%llx", o1.base.regstr.ptr, o1.disp);
+        return;
+    }
+
     if (o2.uchMultiplier)
     {
         if (o1.uchMultiplier)
