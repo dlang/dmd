@@ -373,6 +373,7 @@ alias versionFile = makeRule!((builder, rule) {
     .target(env["G"].buildPath("VERSION"))
     .condition(() => !rule.target.exists || rule.target.readText != contents)
     .msg("(TX) VERSION")
+    .name("version")
     .commandFunction(() => writeText(rule.target, contents));
 });
 
@@ -380,6 +381,7 @@ alias sysconfDirFile = makeRule!((builder, rule) => builder
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
     .condition(() => !rule.target.exists || rule.target.readText != env["SYSCONFDIR"])
     .msg("(TX) SYSCONFDIR")
+    .name("sysconfdir")
     .commandFunction(() => writeText(rule.target, env["SYSCONFDIR"]))
 );
 
@@ -388,6 +390,7 @@ alias directoryRule = makeRuleWithArgs!((MethodInitializer!BuildRule builder, Bu
    .target(dir)
    .condition(() => !exists(dir))
    .msg("mkdirRecurse '%s'".format(dir))
+   .name("mkdir")
    .commandFunction(() => mkdirRecurse(dir))
 );
 
@@ -412,6 +415,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD" ~ targetSuffix)
+        .name("dmd")
         .deps([versionFile, sysconfDirFile, lexer, backend])
         .command([
             env["HOST_DMD_RUN"],
@@ -496,13 +500,14 @@ alias clean = makeRule!((builder, rule) => builder
 alias toolsRepo = makeRule!((builder, rule) => builder
     .target(env["TOOLS_DIR"])
     .msg("(GIT) DLANG/TOOLS")
+    .name("git-tools")
     .condition(() => !exists(rule.target))
     .commandFunction(delegate() {
         auto toolsDir = env["TOOLS_DIR"];
         version(Win32)
             // Win32-git seems to confuse C:\... as a relative path
             toolsDir = toolsDir.relativePath(dmdRepo);
-        run([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
+        verboseRun("git", [env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
     })
 );
 
@@ -520,7 +525,7 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
         foreach (nextSources; taskPool.parallel(allRepoSources.chunks(chunkLength), 1))
         {
             const nextCommand = cmdPrefix ~ nextSources;
-            run(nextCommand);
+            verboseRun("ws-check", nextCommand);
         }
     })
 );
@@ -530,6 +535,7 @@ alias style = makeRule!((builder, rule)
     const dscannerDir = env["GENERATED"].buildPath("dscanner");
     alias dscannerRepo = methodInit!(BuildRule, (repoBuilder, repoRule) => repoBuilder
         .msg("(GIT) DScanner")
+        .name("dscanner-git")
         .target(dscannerDir)
         .condition(() => !exists(dscannerDir))
         .command([
@@ -549,15 +555,17 @@ alias style = makeRule!((builder, rule)
 
         version (Windows) dscannerBuilder
             .msg("(CMD) DScanner")
+            .name("dscanner-cmd")
             .target(dscannerDir.buildPath("bin", "dscanner".exeName))
             .commandFunction(()
             {
                 // The build script expects to be run inside dscannerDir
-                run([dscannerDir.buildPath("build.bat")], dscannerDir);
+                verboseRun("dscanner", [dscannerDir.buildPath("build.bat")], dscannerDir);
             });
 
         else dscannerBuilder
             .msg("(MAKE) DScanner")
+            .name("dscanner-make")
             .target(dscannerDir.buildPath("dsc".exeName))
             .command([
                 // debug build is faster but disable trace output
@@ -586,6 +594,7 @@ alias style = makeRule!((builder, rule)
 alias man = makeRule!((builder, rule) {
     alias genMan = methodInit!(BuildRule, (genManBuilder, genManRule) => genManBuilder
         .target(env["G"].buildPath("gen_man"))
+        .name("style")
         .sources([
             dmdRepo.buildPath("docs", "gen_man.d"),
             env["D"].buildPath("cli.d")])
@@ -603,6 +612,7 @@ alias man = makeRule!((builder, rule) {
         .target(genManDir.buildPath("man1", "dmd.1"))
         .deps([genMan, directoryRule(dmdManRule.target.dirName)])
         .msg("(GEN_MAN) " ~ dmdManRule.target)
+        .name("man-build")
         .commandFunction(() {
             writeText(dmdManRule.target, genMan.target.execute.output);
         })
@@ -616,6 +626,7 @@ alias man = makeRule!((builder, rule) {
             .target(genManDir.buildPath(e))
             .sources([dmdRepo.buildPath("docs", "man", e)])
             .deps([directoryRule(manFileRule.target.dirName)])
+            .name("man-copy")
             .commandFunction(() => copyAndTouch(manFileRule.sources[0], manFileRule.target))
             .msg("copy '%s' to '%s'".format(manFileRule.sources[0], manFileRule.target))
         ))
@@ -645,7 +656,7 @@ alias zip = makeRule!((builder, rule) => builder
     .commandFunction(() {
         if (exists(rule.target))
             remove(rule.target);
-        run([env["ZIP"], rule.target, thisBuildScript] ~ rule.sources);
+        verboseRun("zip", [env["ZIP"], rule.target, thisBuildScript] ~ rule.sources);
     })
 );
 
@@ -685,6 +696,7 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
                     // Need to use a short relative path to make sure ddoc links are correct
                     source.relativePath(runDir)
                 ] ~ flags["DFLAGS"])
+            .name("ddoc")
             .msg("(DDOC) " ~ source);
         })
     ).array);
@@ -1521,7 +1533,7 @@ class BuildRule
     string[] command; // the rule command
     void delegate() commandFunction; // a custom rule command which gets called instead of command
     string msg; // msg of the rule that is e.g. written to the CLI when it's executed
-    string name; /// optional string that can be used to identify this rule
+    string name; /// string that can be used to identify this rule
     string description; /// optional string to describe this rule rather than printing the target files
 
     /// Finish creating the rule by checking that it is configured properly
@@ -1544,6 +1556,7 @@ class BuildRule
     **/
     bool run(bool depUpdated = false)
     {
+        assert(!name.empty, "Build " ~ msg ~ " has no name");
         if (condition !is null && !condition())
         {
             log("Skipping build of %-(%s%) as its condition returned false", targets);
@@ -1591,7 +1604,7 @@ class BuildRule
             }
             else if (command.length)
             {
-                command.run;
+                verboseRun(name, command);
             }
         }
 
@@ -1792,10 +1805,33 @@ Params:
     spec = a format specifier
     args = the data to format to the log
 */
-auto log(T...)(string spec, T args)
+void log(T...)(string spec, T args)
 {
     if (verbose)
         writefln(spec, args);
+}
+
+/**
+Logs multiple lines of output.
+All lines are prefixed with the provided section name.
+
+Params:
+    section = section name to use a line prefix
+    r = output to log
+*/
+void logOutput(R)(string section, R r)
+{
+    import std.ascii : newline;
+    if (r.empty)
+        return;
+    section = section.empty ? "unknown" : section;
+    auto sectionName = text("[", section, "] ");
+    // write as one message blob to avoid interleaved message lines in the CI log
+    r.stripRight
+     .splitter(newline)
+     .map!(l => chain(sectionName, l))
+     .joiner(newline)
+     .writeln;
 }
 
 /**
@@ -1861,6 +1897,80 @@ auto run(T)(T args, string workDir = runDir)
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));
     }
     return res.output;
+}
+
+/**
+Wrapper around execute that logs the execution, prints output from stderr,
+and throws an exception for a non-zero exit code.
+
+Params:
+    args = the command and command arguments to execute
+    workDir = the commands working directory
+*/
+void verboseRun(T)(string section, T args, string workDir = runDir)
+{
+    import std.ascii : newline;
+
+    args = args.filter!(a => !a.empty).array;
+    log("Run: %s", args.join(" "));
+    auto p = pipeProcess(args, Redirect.stdout | Redirect.stderr, null,
+                           Config.none, workDir);
+
+    auto appStdErr = appender!string;
+    auto appStdOut = appender!string;
+    enum size_t chunkSize = 4096;
+
+    // consume a stream into an appender without limit
+    static void consumeStream(A, R)(ref A app, ref R r)
+    {
+        if (!r.empty)
+        {
+            auto chunk = r.front;
+            r.popFront;
+            app.put(chunk);
+        }
+    }
+
+    foreach (_; 0..2) // make sure both streams are exhausted
+    {
+        auto stdoutChunks = p.stdout.byChunk(chunkSize);
+        auto stderrChunks = p.stderr.byChunk(chunkSize);
+        while (!stdoutChunks.empty || !stderrChunks.empty)
+        {
+            consumeStream(appStdOut, stdoutChunks);
+            consumeStream(appStdErr, stderrChunks);
+        }
+    }
+
+    int status = wait(p.pid);
+    auto dataStdOut = appStdOut.data;
+    auto dataStdErr = appStdErr.data;
+
+    if (status)
+    {
+        string output;
+        // prefix stdout/stderr if both occur
+        if (!dataStdOut.empty && !dataStdErr.empty)
+        {
+            auto stderr = dataStdErr.stripRight.splitter(newline).map!(l => "[stderr] " ~ l);
+            auto stdout = dataStdOut.stripRight.splitter(newline).map!(l => "[stdout] " ~ l);
+            output = chain(stderr, stdout).join(newline);
+        }
+        else if (!dataStdOut.empty)
+        {
+            output = dataStdOut;
+        }
+        else if (!dataStdErr.empty)
+        {
+            output = dataStdErr;
+        }
+        abortBuild(output ? output : format("Last command failed with exit code %s", status));
+    }
+
+    // print output from stderr by default
+    logOutput(section, dataStdErr);
+    if (verbose)
+        logOutput(section, dataStdOut);
 }
 
 /**
