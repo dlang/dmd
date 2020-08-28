@@ -1111,7 +1111,7 @@ string detectHostCxx()
 {
     import std.meta: AliasSeq;
 
-    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
+    const cxxVersion = [env.getDefault("CXX", env.getDefault("HOST_CXX", "c++")), "--version"].execute.output;
 
     alias GCC = AliasSeq!("g++", "gcc", "Free Software");
     alias CLANG = AliasSeq!("clang");
