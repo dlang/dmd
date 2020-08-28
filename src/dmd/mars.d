@@ -1291,6 +1291,10 @@ void addDefaultVersionIdentifiers(const ref Param params)
     }
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+
+    // Version identifiers for `-preview` switches
+    import dmd.cli : Usage;
+    mixin(Usage.generatePreviewVersions("params"));
 }
 
 private void printPredefinedVersions(FILE* stream)

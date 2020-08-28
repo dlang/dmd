@@ -764,6 +764,19 @@ dmd -cov -unittest myprog.d
         Feature("in", "previewIn",
             "`in` on parameters means `scope const [ref]` and accepts rvalues"),
     ];
+
+    /// Helper to generate one `D_Preview_<name>` version per flag enabled
+    static string generatePreviewVersions(string argname)
+    {
+        string ret;
+        foreach (flag; previews)
+        {
+            ret ~= `if (` ~ argname ~ `.` ~ flag.paramName ~
+                `) VersionCondition.addPredefinedGlobalIdent("D_Preview_` ~ flag.name
+                ~ `");` ~ '\n';
+        }
+        return ret;
+    }
 }
 
 /**
