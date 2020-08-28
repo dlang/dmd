@@ -12498,7 +12498,6 @@ struct Global
     DArray< char > written;
     Array<const char*>* path;
     Array<const char*>* filePath;
-    DArray< char > _version;
     DArray< const char > vendor;
     Param params;
     uint32_t errors;
@@ -12516,8 +12515,9 @@ struct Global
     void increaseErrorCount();
     void _init();
     uint32_t versionNumber();
+    const char* const versionChars();
     ~Global();
-    Global() : inifilename(), mars_ext("d"), obj_ext(), lib_ext(), dll_ext(), doc_ext("html"), ddoc_ext("ddoc"), hdr_ext("di"), cxxhdr_ext("h"), json_ext("json"), map_ext("map"), run_noext(), copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"), written("written by Walter Bright"), path(), filePath(), _version(), vendor(), params(), errors(), warnings(), gag(), gaggedErrors(), gaggedWarnings(), console(), versionids(), debugids() {}
+    Global() : inifilename(), mars_ext("d"), obj_ext(), lib_ext(), dll_ext(), doc_ext("html"), ddoc_ext("ddoc"), hdr_ext("di"), cxxhdr_ext("h"), json_ext("json"), map_ext("map"), run_noext(), copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"), written("written by Walter Bright"), path(), filePath(), vendor(), params(), errors(), warnings(), gag(), gaggedErrors(), gaggedWarnings(), console(), versionids(), debugids() {}
 };
 
 typedef uint64_t dinteger_t;

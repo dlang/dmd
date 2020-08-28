@@ -829,7 +829,7 @@ public:
     {
         objectStart();
         requiredProperty("vendor", global.vendor);
-        requiredProperty("version", global._version);
+        requiredProperty("version", global.versionString());
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
         property("size_t", size_t.sizeof);

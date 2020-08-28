@@ -290,7 +290,6 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    DString version;         // Compiler version string
     DString vendor;          // Compiler backend name
 
     Param params;
@@ -326,6 +325,11 @@ struct Global
     Returns: the version as the number that would be returned for __VERSION__
     */
     unsigned versionNumber();
+
+    /**
+    Returns: the compiler version string.
+    */
+    const char * versionChars();
 };
 
 extern Global global;

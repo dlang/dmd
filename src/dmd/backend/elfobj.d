@@ -1500,10 +1500,11 @@ void Obj_compiler()
     enum n = compilerHeader.length;
     char[n + maxVersionLength] compiler = compilerHeader;
 
-    assert(config._version.length < maxVersionLength);
+    assert(config._version.length + 1  < maxVersionLength);
     const newLength = n + config._version.length;
     compiler[n .. newLength] = config._version;
-    comment_data.write(compiler[0 .. newLength]);
+    compiler[newLength] = 0;
+    comment_data.write(compiler[0 .. newLength + 1]);
     //dbg_printf("Comment data size %d\n",comment_data.length());
 }
 

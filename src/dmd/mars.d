@@ -73,7 +73,7 @@ private void logo()
 {
     printf("DMD%llu D Compiler %.*s\n%.*s %.*s\n",
         cast(ulong)size_t.sizeof * 8,
-        cast(int) global._version.length - 1, global._version.ptr,
+        cast(int) global.versionString().length, global.versionString().ptr,
         cast(int)global.copyright.length, global.copyright.ptr,
         cast(int)global.written.length, global.written.ptr
     );
@@ -93,7 +93,7 @@ extern(C) void printInternalFailure(FILE* stream)
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
     "---\n").ptr, stream);
-    stream.fprintf("DMD %.*s\n", cast(int) global._version.length - 1, global._version.ptr);
+    stream.fprintf("DMD %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
     stream.printPredefinedVersions;
     stream.printGlobalConfigs();
     fputs("---\n".ptr, stream);
@@ -1347,7 +1347,7 @@ private void printPredefinedVersions(FILE* stream)
 extern(C) void printGlobalConfigs(FILE* stream)
 {
     stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
-    stream.fprintf("version   %.*s\n", cast(int) global._version.length - 1, global._version.ptr);
+    stream.fprintf("version   %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
     const iniOutput = global.inifilename ? global.inifilename : "(none)";
     stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
