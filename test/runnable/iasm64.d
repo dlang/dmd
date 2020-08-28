@@ -6903,6 +6903,28 @@ void test63()
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=6166
+
+struct NRV { int[8] a; }
+
+NRV rvo()
+{
+    NRV v;
+    v.a[1] = 3;
+    asm @nogc pure
+    {
+        mov int ptr v+4,7;
+    }
+    return v;
+}
+
+void test6166()
+{
+    auto n = rvo();
+    assert(n.a[1] == 7);
+}
+
+/****************************************************/
 
 int main()
 {
@@ -6981,6 +7003,7 @@ int main()
     test18553();
     test20126();
     test63();
+    test6166();
 
     printf("Success\n");
     return 0;

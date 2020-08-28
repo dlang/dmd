@@ -2326,9 +2326,17 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
         return;
     }
 
-    auto v = s.isVarDeclaration();
-    if (v)
+    if (auto v = s.isVarDeclaration())
     {
+        if (auto fd = asmstate.sc.func)
+        {
+             /* https://issues.dlang.org/show_bug.cgi?id=6166
+              * We could leave it on unless fd.nrvo_var==v,
+              * but fd.nrvo_var isn't set yet
+              */
+             fd.nrvo_can = false;
+        }
+
         if (v.isParameter())
             asmstate.statement.refparam = true;
 
