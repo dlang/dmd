@@ -803,10 +803,294 @@ if (is(ReturnType!(typeof((T t) => callable(t))) == int))
     assert(returnValue == 7);
 }
 
-private template ReturnType(T)
+/// Returns: A static array constructed from `array`.
+pragma(inline, true) T[n] staticArray(T, size_t n)(auto ref T[n] array)
+{
+    return array;
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    enum a = [0, 1].staticArray;
+    static assert(is(typeof(a) == int[2]));
+    static assert(a == [0, 1]);
+}
+
+/// Returns: `true` if the two given ranges are equal
+bool equal(Range1, Range2)(Range1 range1, Range2 range2)
+{
+    template isArray(T)
+    {
+        static if (is(T U : U[]))
+            enum isArray = true;
+
+        else
+            enum isArray = false;
+    }
+
+    static if (isArray!Range1 && isArray!Range2 && is(typeof(range1 == range2)))
+        return range1 == range2;
+
+    else
+    {
+        static if (hasLength!Range1 && hasLength!Range2 && is(typeof(r1.length == r2.length)))
+        {
+            if (range1.length != range2.length)
+                return false;
+        }
+
+        for (; !range1.empty; range1.popFront(), range2.popFront())
+        {
+            if (range2.empty)
+                return false;
+
+            if (range1.front != range2.front)
+                return false;
+        }
+
+        return range2.empty;
+    }
+}
+
+///
+pure nothrow @nogc @safe unittest
+{
+    enum a = [ 1, 2, 4, 3 ].staticArray;
+    static assert(!equal(a[], a[1..$]));
+    static assert(equal(a[], a[]));
+
+    // different types
+    enum b = [ 1.0, 2, 4, 3].staticArray;
+    static assert(!equal(a[], b[1..$]));
+    static assert(equal(a[], b[]));
+}
+
+pure nothrow @safe unittest
+{
+    static assert(equal([1, 2, 3].map!(x => x * 2), [1, 2, 3].map!(x => x * 2)));
+
+    static assert(!equal([1, 2].map!(x => x * 2), [1, 2, 3].map!(x => x * 2)));
+}
+
+/**
+ * Lazily filters the given range based on the given predicate.
+ *
+ * Returns: a range containing only elements for which the predicate returns
+ *  `true`
+ */
+auto filter(alias predicate, Range)(Range range)
+if (isInputRange!(Unqual!Range) && isPredicateOf!(predicate, ElementType!Range))
+{
+    return Filter!(predicate, Range)(range);
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    enum a = [1, 2, 3, 4].staticArray;
+    enum result = a[].filter!(e => e > 2);
+
+    enum expected = [3, 4].staticArray;
+    static assert(result.equal(expected[]));
+}
+
+private struct Filter(alias predicate, Range)
+{
+    private Range range;
+    private bool primed;
+
+    private void prime()
+    {
+        if (primed)
+            return;
+
+        while (!range.empty && !predicate(range.front))
+            range.popFront();
+
+        primed = true;
+    }
+
+    @property bool empty()
+    {
+        prime();
+        return range.empty;
+    }
+
+    @property auto front()
+    {
+        assert(!range.empty);
+        prime();
+        return range.front;
+    }
+
+    void popFront()
+    {
+        assert(!range.empty);
+        prime();
+
+        do
+        {
+            range.popFront();
+        } while (!range.empty && !predicate(range.front));
+    }
+
+    auto opSlice()
+    {
+        return this;
+    }
+}
+
+/**
+ * Lazily iterates the given range and calls the given callable for each element.
+ *
+ * Returns: a range containing the result of each call to `callable`
+ */
+auto map(alias callable, Range)(Range range)
+if (isInputRange!(Unqual!Range) && isCallableWith!(callable, ElementType!Range))
+{
+    return Map!(callable, Range)(range);
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    enum a = [1, 2, 3, 4].staticArray;
+    enum expected = [2, 4, 6, 8].staticArray;
+
+    enum result = a[].map!(e => e * 2);
+    static assert(result.equal(expected[]));
+}
+
+private struct Map(alias callable, Range)
+{
+    private Range range;
+
+    @property bool empty()
+    {
+        return range.empty;
+    }
+
+    @property auto front()
+    {
+        assert(!range.empty);
+        return callable(range.front);
+    }
+
+    void popFront()
+    {
+        assert(!range.empty);
+        range.popFront();
+    }
+
+    static if (hasLength!Range)
+    {
+        @property auto length()
+        {
+            return range.length;
+        }
+
+        alias opDollar = length;
+    }
+}
+
+/// Evaluates to the element type of `R`.
+template ElementType(R)
+{
+    static if (is(typeof(R.init.front.init) T))
+        alias ElementType = T;
+    else
+        alias ElementType = void;
+}
+
+/// Evaluates to `true` if the given type satisfy the input range interface.
+enum isInputRange(R) =
+    is(typeof(R.init) == R)
+    && is(ReturnType!(typeof((R r) => r.empty)) == bool)
+    && is(typeof((return ref R r) => r.front))
+    && !is(ReturnType!(typeof((R r) => r.front)) == void)
+    && is(typeof((R r) => r.popFront));
+
+/// Evaluates to `true` if `func` can be called with a value of `T` and returns `bool`.
+enum isPredicateOf(alias func, T) =
+    is(ReturnType!(typeof((T t) => func(t))) == bool);
+
+/// Evaluates to `true` if `func` be called withl a value of `T`.
+enum isCallableWith(alias func, T) =
+    __traits(compiles, { auto _ = (T t) => func(t); });
+
+private:
+
+template ReturnType(T)
 {
     static if (is(T R == return))
         alias ReturnType = R;
     else
         static assert(false, "argument is not a function");
+}
+
+alias Unqual(T) = ReturnType!(typeof((T t) => cast() t));
+
+template hasLength(Range)
+{
+    static if (is(typeof(((Range* r) => r.length)(null)) Length))
+        enum hasLength = is(Length == size_t);
+    else
+        enum hasLength = false;
+}
+
+/// Implements the range interface primitive `front` for built-in arrays.
+@property ref inout(T) front(T)(return scope inout(T)[] a) pure nothrow @nogc @safe
+{
+    assert(a.length, "Attempting to fetch the front of an empty array of " ~ T.stringof);
+    return a[0];
+}
+
+///
+pure nothrow @nogc @safe unittest
+{
+    enum a = [1, 2, 3].staticArray;
+    static assert(a[].front == 1);
+}
+
+/// Implements the range interface primitive `empty` for types that obey $(LREF hasLength) property
+@property bool empty(T)(auto ref scope T a)
+if (is(typeof(a.length) : size_t))
+{
+    return !a.length;
+}
+
+///
+pure nothrow @nogc @safe unittest
+{
+    enum a = [1, 2, 3].staticArray;
+
+    static assert(!a.empty);
+    static assert(a[3 .. $].empty);
+}
+
+pure nothrow @safe unittest
+{
+    int[string] b;
+    assert(b.empty);
+    b["zero"] = 0;
+    assert(!b.empty);
+}
+
+/// Implements the range interface primitive `popFront` for built-in arrays.
+void popFront(T)(scope ref inout(T)[] array) pure nothrow @nogc @safe
+{
+    assert(array.length, "Attempting to popFront() past the end of an array of " ~ T.stringof);
+    array = array[1 .. $];
+}
+
+///
+pure nothrow @nogc @safe unittest
+{
+    auto a = [1, 2, 3].staticArray;
+    auto b = a[];
+    auto expected = [2, 3].staticArray;
+
+    b.popFront();
+    assert(b == expected[]);
 }
