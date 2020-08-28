@@ -105,6 +105,14 @@ void test_tokens()
     assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
 }
 
+void test_compiler_globals()
+{
+    // only check constant prefix of version
+    assert(strncmp(global.versionChars(), "v2.", 3) == 0);
+    unsigned versionNumber = global.versionNumber();
+    assert(versionNumber >= 2060 && versionNumber <= 3000);
+}
+
 /**********************************/
 
 class TestVisitor : public Visitor
@@ -457,6 +465,7 @@ int main(int argc, char **argv)
     frontend_init();
 
     test_tokens();
+    test_compiler_globals();
     test_visitors();
     test_semantic();
     test_expression();

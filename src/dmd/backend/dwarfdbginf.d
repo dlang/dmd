@@ -1126,7 +1126,7 @@ static if (ELFOBJ || MACHOBJ)
         version (MARS)
         {
             debug_info.buf.write("Digital Mars D ");
-            debug_info.buf.write(config._version);     // DW_AT_producer
+            debug_info.buf.writeString(config._version);     // DW_AT_producer
             // DW_AT_language
             debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
         }

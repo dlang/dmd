@@ -325,7 +325,9 @@ extern (C++) struct Global
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
-    string _version;
+    private enum string _version = import("VERSION");
+    private enum uint _versionNumber = parseVersionNumber(_version);
+
     const(char)[] vendor;    // Compiler backend name
 
     Param params;
@@ -380,8 +382,6 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
-        _version = import("VERSION") ~ '\0';
-
         version (MARS)
         {
             vendor = "Digital Mars D";
@@ -469,41 +469,59 @@ extern (C++) struct Global
     }
 
     /**
+     * Computes the version number __VERSION__ from the compiler version string.
+     */
+    extern (D) private static uint parseVersionNumber(string version_)
+    {
+        //
+        // parse _version
+        //
+        uint major = 0;
+        uint minor = 0;
+        bool point = false;
+        // skip initial 'v'
+        foreach (const c; version_[1..$])
+        {
+            if ('0' <= c && c <= '9') // isdigit
+            {
+                minor = minor * 10 + c - '0';
+            }
+            else if (c == '.')
+            {
+                if (point)
+                    break; // ignore everything after second '.'
+                point = true;
+                major = minor;
+                minor = 0;
+            }
+            else
+                break;
+        }
+        return major * 1000 + minor;
+    }
+
+    /**
     Returns: the version as the number that would be returned for __VERSION__
     */
     extern(C++) uint versionNumber()
     {
-        import core.stdc.ctype;
-        __gshared uint cached = 0;
-        if (cached == 0)
-        {
-            //
-            // parse _version
-            //
-            uint major = 0;
-            uint minor = 0;
-            bool point = false;
-            for (const(char)* p = _version.ptr + 1;; p++)
-            {
-                const c = *p;
-                if (isdigit(cast(char)c))
-                {
-                    minor = minor * 10 + c - '0';
-                }
-                else if (c == '.')
-                {
-                    if (point)
-                        break; // ignore everything after second '.'
-                    point = true;
-                    major = minor;
-                    minor = 0;
-                }
-                else
-                    break;
-            }
-            cached = major * 1000 + minor;
-        }
-        return cached;
+        return _versionNumber;
+    }
+
+    /**
+    Returns: compiler version string.
+    */
+    extern(D) string versionString()
+    {
+        return _version;
+    }
+
+    /**
+    Returns: compiler version as char string.
+    */
+    extern(C++) const(char*) versionChars()
+    {
+        return _version.ptr;
     }
 
     /**
