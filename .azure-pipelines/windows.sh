@@ -79,7 +79,7 @@ fi
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/${MODEL}/dmd"
 
 cd "${DMD_DIR}/src"
-"${DM_MAKE}" -f "${MAKE_FILE}" reldmd DMD="$DMD_BIN_PATH"
+"${DM_MAKE}" -f "${MAKE_FILE}" reldmd-asserts DMD="$DMD_BIN_PATH"
 
 ################################################################################
 # WORKAROUND: Build zlib separately with DigitalMars make

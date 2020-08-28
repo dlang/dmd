@@ -71,7 +71,7 @@ DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) C
 
 ############################### Rule Variables ###############################
 
-RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" VERBOSE=$(VERBOSE) "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)"
+RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" "VERBOSE=$(VERBOSE)" "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_ASSERTS=$(ENABLE_ASSERTS)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)"
 
 ############################## Release Targets ###############################
 
@@ -79,7 +79,7 @@ defaulttarget: $G debdmd
 
 # FIXME: Windows test suite uses src/dmd.exe instead of $(GENERATED)/dmd.exe
 auto-tester-build: $(GEN)\build.exe
-	$(RUN_BUILD) "ENABLE_RELEASE=1" $@
+	$(RUN_BUILD) "ENABLE_RELEASE=1" "ENABLE_ASSERTS=1" $@
 	copy $(TARGETEXE) .
 
 dmd: $G reldmd
@@ -108,6 +108,11 @@ reldmd: check-host-dc reldmd-make
 
 reldmd-make: $(GEN)\build.exe
 	$(RUN_BUILD) "ENABLE_RELEASE=1" $(TARGETEXE)
+
+reldmd-asserts: check-host-dc reldmd-asserts-make
+
+reldmd-asserts-make: $(GEN)\build.exe
+	$(RUN_BUILD) "ENABLE_RELEASE=1" "ENABLE_ASSERTS=1" $(TARGETEXE)
 
 # Don't use ENABLE_RELEASE=1 to avoid -inline
 profile:

@@ -15,8 +15,9 @@
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:       Optimized release built
+# ENABLE_RELEASE:       Optimized release build
 # ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
+# ENABLE_ASSERTS:       Don't use -release if ENABLE_RELEASE is set
 # ENABLE_LTO:           Enable link-time optimizations
 # ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 # ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
@@ -92,7 +93,7 @@ ifeq (,$(HOST_DMD_PATH))
 endif
 HOST_DMD_RUN:=$(HOST_DMD)
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)"
+RUN_BUILD = $(GENERATED)/build OS="$(OS)" BUILD="$(BUILD)" MODEL="$(MODEL)" HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)" VERBOSE="$(VERBOSE)" ENABLE_RELEASE="$(ENABLE_RELEASE)" ENABLE_DEBUG="$(ENABLE_DEBUG)" ENABLE_ASSERTS="$(ENABLE_ASSERTS)" ENABLE_UNITTEST="$(ENABLE_UNITTEST)" ENABLE_PROFILE="$(ENABLE_PROFILE)" ENABLE_COVERAGE="$(ENABLE_COVERAGE)" DFLAGS="$(DFLAGS)"
 ######## Begin build targets
 
 all: dmd
