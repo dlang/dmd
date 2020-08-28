@@ -1016,10 +1016,6 @@ void processEnvironment()
     else
         env.getDefault("ZIP", "zip");
 
-    // TODO: this isn't being used for anything yet...
-    env.getNumberedBool("ENABLE_WARNINGS");
-    string[] warnings;
-
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
     if (env["HOST_DMD_KIND"] != "gdc")
         dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
