@@ -2837,21 +2837,14 @@ L3:
     if (!I16 && flags & 2)                      // load 16 bit value
     {
         value &= 0xFFFF;
-        if (value == 0)
-            goto L1;
-        else
+        if (value && !(flags & mPSW))
         {
-            if (flags & mPSW)
-                goto L1;
             cdb.genc2(0xC7,modregrmx(3,0,reg),value); // MOV reg,value
-            cdb.last().Iflags |= CFopsize;           // yes, even for I64
             if (regm)
-                // High bits of register are not affected by 16 bit load
-                regimmed_set(reg,(regv & ~cast(targ_size_t)0xFFFF) | value);
+                regimmed_set(reg, value);
+            return;
         }
-        return;
     }
-L1:
 
     // If we already have the right value in the right register
     if (regm && (regv & 0xFFFFFFFF) == (value & 0xFFFFFFFF) && !(flags & 64))
