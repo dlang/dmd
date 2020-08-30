@@ -2714,6 +2714,12 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
                 return r;
             next = fd.overnext;
         }
+        else if (auto os = d.isOverloadSet())
+        {
+            foreach (ds; os.a)
+                if (int r = dg(ds))
+                    return r;
+        }
         else
         {
             d.error("is aliased to a function");
@@ -2944,9 +2950,10 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
-        /* This case happens when several ctors are mixed in an agregate.
+        /* This case used to happen when several ctors are mixed in an agregate.
            A (bad) error message is already generated in overloadApply().
            see https://issues.dlang.org/show_bug.cgi?id=19729
+           and https://issues.dlang.org/show_bug.cgi?id=17259
         */
         if (!od)
             return null;
