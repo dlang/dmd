@@ -1,0 +1,6 @@
+steps:
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: windows-$(ARCH)
+      targetPath: artifacts
+    displayName: Publish artifacts
