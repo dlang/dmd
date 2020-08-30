@@ -836,12 +836,43 @@ extern (C++) void generateJson(Modules* modules)
     }
 }
 
+version (DigitalMars)
+{
+    private void installMemErrHandler()
+    {
+        // (only available on some platforms on DMD)
+        const shouldDoMemoryError = getenv("DMD_INSTALL_MEMERR_HANDLER");
+        if (shouldDoMemoryError !is null && *shouldDoMemoryError == '1')
+        {
+            import etc.linux.memoryerror;
+            static if (is(typeof(registerMemoryErrorHandler())))
+            {
+                registerMemoryErrorHandler();
+            }
+            else
+            {
+                printf("**WARNING** Memory error handler not supported on this platform!\n");
+            }
+        }
+    }
+}
 
-version (NoMain) {} else
+version (NoMain)
+{
+    version (DigitalMars)
+    {
+        shared static this()
+        {
+            installMemErrHandler();
+        }
+    }
+}
+else
 {
     // in druntime:
     alias MainFunc = extern(C) int function(char[][] args);
     extern (C) int _d_run_main(int argc, char** argv, MainFunc dMain);
+
 
     // When using a C main, host DMD may not link against host druntime by default.
     version (DigitalMars)
@@ -902,6 +933,12 @@ version (NoMain) {} else
      */
     extern (C) int _Dmain(char[][])
     {
+        // possibly install memory error handler
+        version (DigitalMars)
+        {
+            installMemErrHandler();
+        }
+
         import core.runtime;
         import core.memory;
         static if (!isGCAvailable)
