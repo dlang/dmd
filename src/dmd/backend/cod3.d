@@ -2765,10 +2765,9 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
             (((regv = regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
             goto L2;
 
-        /* Avoid byte register loads on Pentium Pro and Pentium II
-         * to avoid dependency stalls.
+        /* Avoid byte register loads to avoid dependency stalls.
          */
-        if (config.flags4 & CFG4speed &&
+        if ((I32 || I64) &&
             config.target_cpu >= TARGET_PentiumPro && !(flags & 4))
             goto L3;
 
@@ -2840,8 +2839,7 @@ L3:
         if (value && !(flags & mPSW))
         {
             cdb.genc2(0xC7,modregrmx(3,0,reg),value); // MOV reg,value
-            if (regm)
-                regimmed_set(reg, value);
+            regimmed_set(reg, value);
             return;
         }
     }
