@@ -992,21 +992,45 @@ void processEnvironment()
 
     const os = env["OS"];
 
-    const hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
+    // Detect the host compiler kind and version
+    const hostDmdInfo = [env["HOST_DMD_RUN"], `-Xi=compilerInfo`, `-Xf=-`].execute();
 
-    alias DMD = AliasSeq!("DMD");
-    alias LDC = AliasSeq!("LDC");
-    alias GDC = AliasSeq!("GDC", "gdmd", "gdc");
-    const kindIdx = hostDMDVersion.canFind(DMD, LDC, GDC);
-
-    enforce(kindIdx, "Invalid Host DMD found: " ~ hostDMDVersion);
-
-    if (kindIdx <= DMD.length)
-        env["HOST_DMD_KIND"] = "dmd";
-    else if (kindIdx <= LDC.length + DMD.length)
-        env["HOST_DMD_KIND"] = "ldc";
-    else
+    if (hostDmdInfo.status) // Failed, JSON output currently not supported for GDC
+    {
         env["HOST_DMD_KIND"] = "gdc";
+        env["HOST_DMD_VERSION"] = "v2.076";
+    }
+    else
+    {
+        /// Reads the content of a single field without parsing the entire JSON
+        alias get = field => hostDmdInfo.output
+            .findSplitAfter(field ~ `" : "`)[1]
+            .findSplitBefore(`"`)[0];
+
+        const ver = env["HOST_DMD_VERSION"] = get(`version`)[1 .. "vX.XXX.X".length];
+
+        // Vendor was introduced in 2.080
+        if (ver < "2.080.1")
+        {
+            auto name = get("binary").baseName().stripExtension();
+            if (name == "ldmd2")
+                name = "ldc";
+            else if (name == "gdmd")
+                name = "gdc";
+            else
+                enforce(name == "dmd", "Unknown compiler: " ~ name);
+
+            env["HOST_DMD_KIND"] = name;
+        }
+        else
+        {
+            env["HOST_DMD_KIND"] = [
+                "Digital Mars D": "dmd",
+                "LDC": "ldc",
+                "GNU D": "gdc"
+            ][get(`vendor`)];
+        }
+    }
 
     env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
     env.getDefault("DETAB", "detab");
