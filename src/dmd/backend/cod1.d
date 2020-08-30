@@ -712,7 +712,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
     if (!I16)
     {
         if (reg == 6 && op == 0xFF ||             /* don't PUSH a word    */
-            op == 0x0FB7 || op == 0x0FBF ||       /* MOVZX/MOVSX          */
+            op == MOVZXw || op == MOVSXw ||       /* MOVZX/MOVSX          */
             (op & 0xFFF8) == 0xD8 ||              /* 8087 instructions    */
             op == LEA)                            /* LEA                  */
         {
@@ -1787,7 +1787,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
             if (I32)
             {
                 if (tyfv(tym))
-                    genregs(cdb, 0x0FB7, scrreg, reg); // MOVZX scrreg,msreg
+                    genregs(cdb, MOVZXw, scrreg, reg); // MOVZX scrreg,msreg
                 else
                 {
                     genmovreg(cdb, scrreg, reg);      // MOV scrreg,msreg
@@ -5014,7 +5014,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         {
             allocreg(cdb, &regm, &reg, TYoffset);  // get a register
             if (I32)                                    // it's a 48 bit pointer
-                loadea(cdb, e, &cs, 0x0FB7, reg, REGSIZE, 0, 0); // MOVZX reg,data+4
+                loadea(cdb, e, &cs, MOVZXw, reg, REGSIZE, 0, 0); // MOVZX reg,data+4
             else
             {
                 loadea(cdb, e, &cs, 0x8B, reg, REGSIZE, 0, 0); // MOV reg,data+2
@@ -5225,7 +5225,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     !(config.exe & EX_OSX64 && !(sytab[e.EV.Vsym.Sclass] & SCSS))
                    )
                 {
-//                    opmv = tyuns(tym) ? 0x0FB6 : 0x0FBE;      // MOVZX/MOVSX
+//                    opmv = tyuns(tym) ? MOVZXb : MOVSXb;      // MOVZX/MOVSX
                 }
                 loadea(cdb, e, &cs, opmv, reg, 0, 0, 0);     // MOV regL,data
             }
@@ -5270,7 +5270,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 !(config.exe & EX_OSX64 && !(sytab[e.EV.Vsym.Sclass] & SCSS))
                )
             {
-//                opmv = tyuns(tym) ? 0x0FB7 : 0x0FBF;  // MOVZX/MOVSX
+//                opmv = tyuns(tym) ? MOVZXw : MOVSXw;  // MOVZX/MOVSX
             }
             loadea(cdb, e, &cs, opmv, reg, 0, RMload, 0);
         }

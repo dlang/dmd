@@ -3682,7 +3682,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
         }
     }
 
-    genregs(cdb,0x0FB6,AX,AX);                 // MOVZX EAX,AL
+    genregs(cdb,MOVZXb,AX,AX);                 // MOVZX EAX,AL
     cdb.genc2(0xC1,modregrm(3,4,AX),2);                     // SHL EAX,2
     int raxoff = cast(int)(voff+6*8+0x7F);
     uint L2offset = (raxoff < -0x7F) ? 0x2D : 0x2A;
@@ -5501,7 +5501,7 @@ void pinholeopt(code *c,block *b)
                             {
                                 if (u == 0xFF && (rm <= modregrm(3,4,BX) || I64))
                                 {
-                                    c.Iop = 0x0FB6;     // MOVZX
+                                    c.Iop = MOVZXb;     // MOVZX
                                     c.Irm = modregrm(3,ereg,ereg);
                                     if (c.Irex & REX_B)
                                         c.Irex |= REX_R;
@@ -5509,7 +5509,7 @@ void pinholeopt(code *c,block *b)
                                 }
                                 if (u == 0xFFFF)
                                 {
-                                    c.Iop = 0x0FB7;     // MOVZX
+                                    c.Iop = MOVZXw;     // MOVZX
                                     c.Irm = modregrm(3,ereg,ereg);
                                     if (c.Irex & REX_B)
                                         c.Irex |= REX_R;

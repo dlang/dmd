@@ -435,6 +435,10 @@ enum
     HLT     = 0xF4,
     ENTER   = 0xC8,
     LEAVE   = 0xC9,
+    MOVSXb  = 0x0FBE,
+    MOVSXw  = 0x0FBF,
+    MOVZXb  = 0x0FB6,
+    MOVZXw  = 0x0FB7,
 
     STOSB   = 0xAA,
     STOS    = 0xAB,
