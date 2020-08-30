@@ -1146,10 +1146,12 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
 /******************************************
  * Create inclusive invariant for struct/class by aggregating
  * all the invariants in invs[].
- *      void __invariant() const [pure nothrow @trusted]
- *      {
- *          invs[0](), invs[1](), ...;
- *      }
+ * ---
+ * void __invariant() const [pure nothrow @trusted]
+ * {
+ *     invs[0](), invs[1](), ...;
+ * }
+ * ---
  */
 FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
