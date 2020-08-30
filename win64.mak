@@ -145,6 +145,8 @@ clean:
 	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
 
-auto-tester-build: target
+auto-tester-build:
+	echo "Windows builds have been disabled on auto-tester"
 
-auto-tester-test: unittest test_all
+auto-tester-test:
+	echo "Windows builds have been disabled on auto-tester"
