@@ -671,12 +671,12 @@ PTRNTAB2[4]  aptb2MOVS = /* MOVS */ [
         { ASM_END }
 ];
 PTRNTAB2[7]  aptb2MOVSX = /* MOVSX */ [
-        { 0x0fbe,       _r|_16_bit,             _r16,   _rm8 },
-        { 0x0fbe,       _r|_32_bit,             _r32,   _rm8 },
-        { 0x0fbe,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
-        { 0x0fbf,       _r|_16_bit,             _r16,   _rm16 },
-        { 0x0fbf,       _r|_32_bit,             _r32,   _rm16 },
-        { 0x0fbf,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
+        { MOVSXb,       _r|_16_bit,             _r16,   _rm8 },
+        { MOVSXb,       _r|_32_bit,             _r32,   _rm8 },
+        { MOVSXb,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
+        { MOVSXw,       _r|_16_bit,             _r16,   _rm16 },
+        { MOVSXw,       _r|_32_bit,             _r32,   _rm16 },
+        { MOVSXw,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
         { ASM_END }
 ];
 PTRNTAB2[2]  aptb2MOVSXD = /* MOVSXD */ [
@@ -684,12 +684,12 @@ PTRNTAB2[2]  aptb2MOVSXD = /* MOVSXD */ [
         { ASM_END }
 ];
 PTRNTAB2[7]  aptb2MOVZX = /* MOVZX */ [
-        { 0x0fb6,       _r|_16_bit,             _r16,   _rm8 },
-        { 0x0fb6,       _r|_32_bit,             _r32,   _rm8 },
-        { 0x0fb6,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
-        { 0x0fb7,       _r|_16_bit,             _r16,   _rm16 },
-        { 0x0fb7,       _r|_32_bit,             _r32,   _rm16 },
-        { 0x0fb7,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
+        { MOVZXb,       _r|_16_bit,             _r16,   _rm8 },
+        { MOVZXb,       _r|_32_bit,             _r32,   _rm8 },
+        { MOVZXb,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
+        { MOVZXw,       _r|_16_bit,             _r16,   _rm16 },
+        { MOVZXw,       _r|_32_bit,             _r32,   _rm16 },
+        { MOVZXw,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
         { ASM_END }
 ];
 PTRNTAB2[9]  aptb2MUL = /* MUL */ [
