@@ -185,7 +185,7 @@ Options:
             writefln("================================================================================");
         }
 
-        bool failed;
+        string[] failedTargets;
         ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; parallel(targets, 1))
         {
@@ -193,12 +193,18 @@ Options:
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
             if (status != 0)
             {
-                writeln(">>> TARGET FAILED: ", target.filename);
-                failed = true;
+                const name = target.normalizedTestName;
+                writeln(">>> TARGET FAILED: ", name);
+                failedTargets ~= name;
             }
         }
-        if (failed)
+        if (failedTargets.length > 0)
+        {
+            // print overview of failed targets (for CIs)
+            writeln("FAILED targets:");
+            failedTargets.each!(l => writeln("- ",  l));
             return 1;
+        }
     }
 
     return 0;
