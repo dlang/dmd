@@ -44,6 +44,7 @@ struct ASTCodegen
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
     alias Parameter                 = dmd.mtype.Parameter;
+    alias Tarray                    = dmd.mtype.Tarray;
     alias Taarray                   = dmd.mtype.Taarray;
     alias Tbool                     = dmd.mtype.Tbool;
     alias Tchar                     = dmd.mtype.Tchar;
