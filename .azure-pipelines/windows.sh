@@ -126,7 +126,12 @@ if [ "$MODEL" == "32" ] ; then
 fi
 
 "$HOST_DC" -m$MODEL -g -i run.d
-./run --environment --jobs=$N all ARGS="-O -inline -g" MODEL="$MODEL"
+targets=("all")
+if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
+    # do not run runnable_cxx or unit_tests with older bootstrap compilers
+    targets=("compilable" "fail_compilation" "runnable"  "dshell")
+fi
+./run --environment --jobs=$N "${targets[@]}" ARGS="-O -inline -g" MODEL="$MODEL"
 
 ################################################################################
 # Prepare artifacts
