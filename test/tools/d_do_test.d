@@ -1,4 +1,23 @@
 #!/usr/bin/env rdmd
+/**
+ * D testing tool.
+ *
+ * This module implements the test runner for all tests except `unit`.
+ *
+ * The general procedure is:
+ *
+ *  1. Parse the environment variables (`processEnvironment`)
+ *  2. Extract test parameters from the source file (`gatherTestParameters`)
+ * [3. Compile non-D sources (` collectExtraSources`)]
+ *  4. Compile the test file (`tryMain`)
+ *  5. Verify the compiler output (`compareOutput`)
+ * [6. Run the generated executable (`tryMain`) ]
+ * [5. Verify the executable's output (`compareOutput`) ]
+ * [7. Run post-test steps (`tryMain`) ]
+ *  8. Remove intermediate files (`tryMain`)
+ *
+ * Optional steps are marked with [...]
+*/
 module d_do_test;
 
 import std.algorithm;
@@ -19,6 +38,7 @@ import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
 
+/// Absolute path to the test directory
 const dmdTestDir = __FILE_FULL_PATH__.dirName.dirName;
 
 version(Win32)
@@ -26,6 +46,7 @@ version(Win32)
     extern(C) int putenv(const char*);
 }
 
+/// Prints the `--help` information
 void usage()
 {
     write("d_do_test <test_file>\n"
@@ -53,66 +74,72 @@ void usage()
           ~ "      EXE:          .exe or <null> (required)\n");
 }
 
+/// Type of test to execute (mapped to the subdirectories)
 enum TestMode
 {
-    COMPILE,
-    FAIL_COMPILE,
-    RUN,
-    DSHELL,
+    COMPILE,      /// compilable
+    FAIL_COMPILE, /// fail_compilation
+    RUN,          /// runnable, runnable_cxx
+    DSHELL,       /// dshell
 }
 
+/// Test parameters specified in the source file
+/// (conditionally expanded depending on the environment)
 struct TestArgs
 {
-    TestMode mode;
+    TestMode mode;                  /// Test type based on the directory
 
-    bool     compileSeparately;
-    bool     link;
-    bool     clearDflags; /// whether DFLAGS should be cleared before invoking dmd
-    string   executeArgs;
-    string   cxxflags;
-    string[] sources;
-    string[] compiledImports;
-    string[] cppSources;
-    string[] objcSources;
-    string   permuteArgs;
-    string[] argSets;
-    string   compileOutput;
-    string   compileOutputFile; /// file containing the expected output
-    string   runOutput; /// Expected output of the compiled executable
-    string   gdbScript;
-    string   gdbMatch;
-    string   postScript;
-    string[] outputFiles; /// generated files appended to the compilation output
-    string   transformOutput; /// Transformations for the compiler output
-    string   requiredArgs;
-    string   requiredArgsForLink;
-    string   disabledReason; // if empty, the test is not disabled
+    bool     compileSeparately;     /// `COMPILE_SEPARATELY`: compile each source file separately
+    bool     link;                  /// `LINK`: force linking for `fail_compilation` & `compilable` tests
+    bool     clearDflags;           /// `DFLAGS`: whether DFLAGS should be cleared before invoking dmd
+    string   executeArgs;           /// `EXECUTE_ARGS`: arguments passed to the compiled executable (for `runnable[_cxx]`)
+    string   cxxflags;              /// `CXXFLAGS`: arguments passed to $CC when compiling `EXTRA_CPP_SOURCES`
+    string[] sources;               /// `EXTRA_SOURCES`: additional D sources (+ main source file)
+    string[] compiledImports;       /// `COMPILED_IMPORTS`: files compiled alongside the main source
+    string[] cppSources;            /// `EXTRA_CPP_SOURCES`: additional C++ sources
+    string[] objcSources;           /// `EXTRA_OBJC_SOURCES`: additional Objective-C sources
+    string   permuteArgs;           /// `PERMUTE_ARGS`: set of dmd arguments to permute for multiple test runs
+    string[] argSets;               /// `ARG_SETS`: selection of dmd arguments to use in different test runs
+    string   compileOutput;         /// `TEST_OUTPUT`: expected output of dmd
+    string   compileOutputFile;     /// `TEST_OUTPUT_FILE`: file containing the expected `TEST_OUTPUT`
+    string   runOutput;             /// `RUN_OUTPUT`: expected output of the compiled executable
+    string   gdbScript;             /// `GDB_SCRIPT`: script executed when running the compiled executable in GDB
+    string   gdbMatch;              /// `GDB_MATCH`: regex describing the expected output from executing `GDB_SSCRIPT`
+    string   postScript;            /// `POSTSCRIPT`: bash script executed after a successful test
+    string[] outputFiles;           /// generated files appended to the compilation output
+    string   transformOutput;       /// Transformations for the compiler output
+    string   requiredArgs;          /// `REQUIRED_ARGS`: dmd arguments passed when compiling D sources
+    string   requiredArgsForLink;   /// `COMPILE_SEPARATELY`: dmd arguments passed when linking separately compiled objects
+    string   disabledReason;        /// `DISABLED`: reason to skip this test or empty, if the test is not disabled
 
+    /// Returns: whether this disabled due to some reason
     bool isDisabled() const { return disabledReason.length != 0; }
 }
 
+/// Test parameters specified in the environment (e.g. target model)
+/// which are shared between all tests
 struct EnvData
 {
-    string all_args;
-    string dmd;
-    string results_dir;
-    string sep;
-    string dsep;
-    string obj;
-    string exe;
-    string os;
-    string compiler;
-    string ccompiler;
-    string model;
-    string required_args;
-    string cxxCompatFlags;      /// Additional flags passed to $(compiler) when `EXTRA_CPP_SOURCES` is present
-    string[] picFlag;           /// Compiler flag for PIC (if requested from environment)
-    bool dobjc;
-    bool coverage_build;
-    bool autoUpdate;
-    bool printRuntime;          /// Print time spent on a single test
-    bool usingMicrosoftCompiler;
-    bool tryDisabled;           /// Silently try disabled tests (ignore failure but report success)
+    string all_args;             /// `ARGS`: arguments to test in permutations
+    string dmd;                  /// `DMD`: compiler under test
+    string results_dir;          /// `RESULTS_DIR`: directory for temporary files
+    string sep;                  /// `SEP`: directory separator (`/` or `\`)
+    string dsep;                 /// `DSEP`: double directory separator ( `/` or `\\`)
+    string obj;                  /// `OBJ`: object file extension (`.o` or `.obj`)
+    string exe;                  /// `EXE`: executable file extension (none or `.exe`)
+    string os;                   /// `OS`: host operating system (`linux`, `windows`, ...)
+    string compiler;             /// `HOST_DMD`: host D compiler
+    string ccompiler;            /// `CC`: host C++ compiler
+    string model;                /// `MODEL`: target model (`32` or `64`)
+    string required_args;        /// `REQUIRED_ARGS`: flags added to the tests `REQUIRED_ARGS` parameter
+    string cxxCompatFlags;       /// Additional flags passed to $(compiler) when `EXTRA_CPP_SOURCES` is present
+    string[] picFlag;            /// Compiler flag for PIC (if requested from environment)
+    bool dobjc;                  /// `D_OBJC`: run Objective-C tests
+    bool coverage_build;         /// `COVERAGE`: coverage build, skip linking & executing to save time
+    bool autoUpdate;             /// `AUTO_UPDATE`: update `(TEST|RUN)_OUTPUT` on missmatch
+    bool printRuntime;           /// `PRINT_RUNTIME`: Print time spent on a single test
+    bool usingMicrosoftCompiler; /// Using Visual Studio toolchain
+    bool tryDisabled;            /// `TRY_DISABLED`:Silently try disabled tests (ignore failure and report success)
 }
 
 /++
@@ -200,6 +227,28 @@ immutable(EnvData) processEnvironment()
     return cast(immutable) envData;
 }
 
+/**
+ * Read the single-line test parameter `token` from the source code which
+ * might be defined multiple times. All definitions found will be joined
+ * into a single string using `multilineDelimiter` as a separator.
+ *
+ * This will skip conditional parameters declared as `<token>(<environment>)`
+ * if the specified environment doesn't match the passed `envData`, e.g.
+ *
+ * ---
+ * REQURIRED_ARGS(linux): -ignore
+ * PERMUTE_ARGS(windows64): -ignore
+ * ---
+ *
+ * Params:
+ *   envData            = environment data
+ *   file               = source code
+ *   token              = test parameter
+ *   result             = variable to store the parameter
+ *   multilineDelimiter = separator for multiple declarations
+ *
+ * Returns: whether the parameter was found in the source code
+ */
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
 {
     auto tokenStart = std.string.indexOf(file, token);
@@ -264,6 +313,25 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     return true;
 }
 
+/**
+ * Read the multi-line test parameter `token` from the source code and joins
+ * multiple definitions into a single string.
+ *
+ * ```
+ * TEST_OUTPUT:
+ * ---
+ * Hello, World!
+ * ---
+ * ```
+ *
+ * Params:
+ *   file   = source code
+ *   token  = test parameter
+ *   result = variable to store the parameter
+ *   sep    = platform-dependent directory separator
+ *
+ * Returns: whether the parameter was found in the source code
+ */
 bool findOutputParameter(string file, string token, out string result, string sep)
 {
     bool found = false;
@@ -305,6 +373,8 @@ bool findOutputParameter(string file, string token, out string result, string se
     return found;
 }
 
+/// Replaces the placeholer `${RESULTS_DIR}` with the actual path
+/// to `test_results` stored in `envData`.
 void replaceResultsDir(ref string arguments, const ref EnvData envData)
 {
     // Bash would expand this automatically on Posix, but we need to manually
@@ -312,6 +382,7 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
 }
 
+/// Returns: the reason why this test is disabled or null if it isn't skipped.
 string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
 {
     if (disabledPlatforms.length == 0)
@@ -327,6 +398,21 @@ string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
     return null;
 }
 
+/**
+ * Reads the test configuration from the source code (using `findTestParameter` and
+ * `findOutputParameter`) and initializes `testArgs` accordingly. Also merges
+ * configurations/additional parameters specified in the environment, e.g.
+ * `REQUIRED_ARGS`.
+ *
+ * Params:
+ *   testArgs   = test configuration object
+ *   input_dir  = test directory (e.g. `runnable`)
+ *   input_file = path to the source file
+ *   envData    = environment configurations
+ *
+ * Returns: whether this test should be executed (true) or skipped (false)
+ * Throws: Exception if the test configuration is invalid
+ */
 bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
 {
     string file = cast(string)std.file.read(input_file);
@@ -501,6 +587,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     return true;
 }
 
+/// Generates all permutations of the space-separated word contained in `argstr`
 string[] combinations(string argstr)
 {
     string[] results;
@@ -528,6 +615,10 @@ string[] combinations(string argstr)
     return results;
 }
 
+/**
+ * Generates a random filename located in `result_path`.
+ * Returns: "<result_path>/<8 random characters>"
+ */
 string genTempFilename(string result_path)
 {
     auto a = appender!string();
@@ -541,6 +632,10 @@ string genTempFilename(string result_path)
     return a.data;
 }
 
+/**
+ * Executes `command` using the POSIX `system` utility
+ * Returns: the exit code
+ */
 int system(string command)
 {
     static import core.stdc.stdlib;
@@ -563,12 +658,26 @@ version(Windows)
     }
 }
 
+/// Removes the file identified by `filename` if it exists
 void removeIfExists(in char[] filename)
 {
     if (std.file.exists(filename))
         std.file.remove(filename);
 }
 
+/**
+ * Executes `command` while logging the invocation and any output produced into f.
+ *
+ * Params:
+ *  f           = the logfile
+ *  command     = the command to execute
+ *  expectPass  = whether the command should succeed
+ *  result_path = directory used for temporary files
+ *
+ * Returns: the output produced by `command`
+ * Throws:
+ *   Exception if `command` returns another exit code than 0/1 (depending on expectPass)
+ */
 string execute(ref File f, string command, bool expectpass, string result_path)
 {
     auto filename = genTempFilename(result_path);
@@ -611,6 +720,7 @@ string quoteSpaces(string str)
     return str;
 }
 
+/// Replaces non-Unix line endings in `str` with `\n`
 string unifyNewLine(string str)
 {
     // On Windows, Outbuffer.writenl() puts `\r\n` into the buffer,
@@ -726,6 +836,22 @@ unittest
     assert("https://code.dlang.org".unifyDirSep("\\") == "https://code.dlang.org");
 }
 
+/**
+ * Compiles all non-D sources using their respective compiler and flags
+ * and appends the generated objects to `sources`.
+ *
+ * Params:
+ *   input_dir    = test directory (e.g. `runnable`)
+ *   output_dir   = directory for intermediate files
+ *   extraSources = sources to compile
+ *   sources      = list of D sources to extend with object files
+ *   envData      = environment configuration
+ *   compiler     = external compiler (E.g. clang)
+ *   cxxflags     = external compiler flags
+ *   logfile      = the logfile
+ *
+ * Returns: false if a compilation error occurred
+ */
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
                           ref string[] sources, in EnvData envData, in string compiler,
                           const(char)[] cxxflags, ref File logfile)
@@ -1138,12 +1264,20 @@ string generateDiff(const string expected, string expectedFile,
         return format(`%-(%s, %) failed: %s`, cmd, e.msg);
 }
 
+/**
+ * Exception thrown to abort the test without further error messages
+ * (they were either already printed or suppressed due to the environment)
+ */
 class SilentQuit : Exception { this() { super(null); } }
 
+/**
+ * Exception thrown when the actual output doesn't match the expected
+ * `TEST_OUTPUT`/`RUN_OUTPUT.`
+ */
 class CompareException : Exception
 {
-    string expected;
-    string actual;
+    string expected; /// expected output
+    string actual;   /// actual output
     bool fromRun; /// Compared execution instead of compilation output
 
     this(string expected, string actual, string diff, bool fromRun = false) {
@@ -1597,6 +1731,16 @@ int tryMain(string[] args)
     return 0;
 }
 
+/**
+ * Executes a bash script (deprecated in favour of `dshell` tests).
+ *
+ * Params:
+ *   input_dir = test directory (e.g. `runnable`)
+ *   test_name = script filename
+ *   envData   = environment configuration
+ *
+ * Returns: the script's exit code
+ */
 int runBashTest(string input_dir, string test_name, const ref EnvData envData)
 {
     enum script = "tools/sh_do_test.sh";
@@ -1619,6 +1763,16 @@ int runBashTest(string input_dir, string test_name, const ref EnvData envData)
     return process.wait();
 }
 
+/**
+ * Executes `fun` mutually exclusive to other instances of `d_do_test`
+ * using the lockfile `$RESULTS_DIR/gdb.lock`.
+ *
+ * Params:
+ *   envData = environment configuration
+ *   fun     = task to execute
+ *
+ * Returns: the return value of `fun`
+ */
 int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
 {
     // Tests failed on SemaphoreCI when multiple GDB tests were run at once
@@ -1629,7 +1783,18 @@ int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
     return fun();
 }
 
-/// Run a dshell test
+/**
+ * Executes a `dshell` test.
+ *
+ * Params:
+ *   input_dir   = test directory (e.g. `runnable`)
+ *   test_name   = script filename
+ *   envData     = environment configuration
+ *   output_dir  = directory for intermediate files (usually `${RESULTS_DIR}/dshell`)
+ *   output_file = logfile path
+ *
+ * Returns: the script's exit code (or dmd's exit code upon compilation failure)
+ */
 int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
     string output_dir, string output_file)
 {
@@ -1716,6 +1881,13 @@ static this()
     return 0;
 }
 
+/**
+ * Prints the summary of a test failure to stdout and removes the logfile.
+ *
+ * Params:
+ *   testLogName      = name of the test
+ *   output_file_temp = path of the logfile
+ **/
 void printTestFailure(string testLogName, string output_file_temp)
 {
     writeln("==============================");
