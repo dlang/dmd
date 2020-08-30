@@ -5180,6 +5180,52 @@ elem *callfunc(const ref Loc loc,
                  */
                 ea.Ety = TYllong;
             }
+
+            /* Do integral promotions. This is not necessary per the C ABI, but
+             * some code from the C world seems to rely on it.
+             */
+            if (op == NotIntrinsic && tyintegral(ea.Ety) && arg.type.size(arg.loc) < 4)
+            {
+                if (ea.Eoper == OPconst)
+                {
+                    ea.EV.Vullong = el_tolong(ea);
+                    ea.Ety = TYint;
+                }
+                else
+                {
+                    OPER opc;
+                    switch (tybasic(ea.Ety))
+                    {
+                        case TYbool:
+                        case TYchar:
+                        case TYuchar:
+                        case TYchar8:
+                            opc = OPu8_16;
+                            goto L1;
+
+                        case TYschar:
+                            opc = OPs8_16;
+                            goto L1;
+
+                        case TYchar16:
+                        case TYwchar_t:
+                        case TYushort:
+                            opc = OPu16_32;
+                            goto L1;
+
+                        case TYshort:
+                            opc = OPs16_32;
+                        L1:
+                            ea = el_una(opc, TYint, ea);
+                            ea.Esrcpos = ea.EV.E1.Esrcpos;
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+            }
+
             elems[i] = ea;
         }
         if (!left_to_right)
