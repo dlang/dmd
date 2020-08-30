@@ -200,7 +200,7 @@ extern (C++) struct Param
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 
-    bool markdown;          // enable Markdown replacements in Ddoc
+    bool markdown = true;   // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway

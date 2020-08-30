@@ -10,7 +10,6 @@ Upcoming language changes listed by -preview=name:
   =dip1008          implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md (@nogc Throwable)
   =dip1021          implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md (Mutable function arguments)
   =fieldwise        use fieldwise comparisons for struct equality
-  =markdown         enable Markdown replacements in Ddoc
   =fixAliasThis     when a symbol is resolved, check alias this scope before going to upper scopes
   =intpromote       fix integral promotions for unary + - ~ operators
   =dtorfields       destruct fields of partially constructed objects
