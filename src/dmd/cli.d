@@ -765,6 +765,7 @@ dmd -cov -unittest myprog.d
     static immutable reverts = [
         Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
         Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
+        Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
     ];
 
     /// Returns all available previews
@@ -783,7 +784,7 @@ dmd -cov -unittest myprog.d
         Feature("intpromote", "fix16997",
             "fix integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields",
-            "destruct fields of partially constructed objects"),
+            "destruct fields of partially constructed objects", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",

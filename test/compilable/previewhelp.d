@@ -12,7 +12,6 @@ Upcoming language changes listed by -preview=name:
   =fieldwise        use fieldwise comparisons for struct equality
   =fixAliasThis     when a symbol is resolved, check alias this scope before going to upper scopes
   =intpromote       fix integral promotions for unary + - ~ operators
-  =dtorfields       destruct fields of partially constructed objects
   =rvaluerefparam   enable rvalue arguments to ref parameters
   =nosharedaccess   disable access to shared memory objects
   =in               `in` on parameters means `scope const [ref]` and accepts rvalues

@@ -2044,7 +2044,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.vfield = true;
                             break;
                         case 14_246:
-                            params.dtorFields = true;
+                            params.dtorFields = FeatureState.enabled;
                             break;
                         case 14_488:
                             params.vcomplex = true;
@@ -2064,7 +2064,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     switch (ident.toDString())
                     {
                         case "dtorfields":
-                            params.dtorFields = true;
+                            params.dtorFields = FeatureState.enabled;
                             break;
                         case "intpromote":
                             params.fix16997 = true;

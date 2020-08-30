@@ -11,23 +11,6 @@ class C
     this() nothrow {}
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=17505
-struct Array
-{
-    int[] _payload;
-    ~this()
-    {
-        import core.stdc.stdlib : free;
-        free(_payload.ptr);
-    }
-}
-
-class Scanner
-{
-    Array arr;
-    this() @safe {}
-}
-
 // https://issues.dlang.org/show_bug.cgi?id=17506
 struct TreeMap
 {

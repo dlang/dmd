@@ -6863,7 +6863,7 @@ struct Param
     bool inclusiveInContracts;
     bool vsafe;
     bool ehnogc;
-    bool dtorFields;
+    FeatureState dtorFields;
     bool fieldwise;
     bool rvalueRefParam;
     CppStdRevision cplusplus;
@@ -6994,7 +6994,6 @@ struct Param
         inclusiveInContracts(),
         vsafe(),
         ehnogc(),
-        dtorFields(),
         fieldwise(),
         rvalueRefParam(),
         cplusplus((CppStdRevision)201103u),
