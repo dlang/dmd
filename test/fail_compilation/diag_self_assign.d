@@ -29,15 +29,15 @@ fail_compilation/diag_self_assign.d(189,9): Warning: Expression `x | x` is same 
 fail_compilation/diag_self_assign.d(192,9): Warning: Expression `x & x` is same as `x`
 fail_compilation/diag_self_assign.d(193,9): Warning: Expression `x & x` is same as `x`
 fail_compilation/diag_self_assign.d(192,9): Warning: Expression `x & x | x & x` is same as `x & x`
-fail_compilation/diag_self_assign.d(196,9): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(199,9): Warning: Logical expression `x || x` is same as `x`
-fail_compilation/diag_self_assign.d(202,10): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(203,10): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(202,9): Warning: Logical expression `x && x || x && x` is same as `x && x`
-fail_compilation/diag_self_assign.d(208,16): Warning: Conditional expression `true ? x : x` is same as `x`
-fail_compilation/diag_self_assign.d(209,24): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(209,35): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(209,16): Warning: Conditional expression `true ? x && x : x && x` is same as `x && x`
+fail_compilation/diag_self_assign.d(196,9): Warning: Expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(199,9): Warning: Expression `x || x` is same as `x`
+fail_compilation/diag_self_assign.d(202,10): Warning: Expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(203,10): Warning: Expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(202,9): Warning: Expression `x && x || x && x` is same as `x && x`
+fail_compilation/diag_self_assign.d(208,16): Warning: Expression `true ? x : x` is same as `x`
+fail_compilation/diag_self_assign.d(209,24): Warning: Expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(209,35): Warning: Expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(209,16): Warning: Expression `true ? x && x : x && x` is same as `x && x`
 ---
 */
 struct S
