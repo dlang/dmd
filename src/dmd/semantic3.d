@@ -1348,13 +1348,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         /* If any of the fields of the aggregate have a destructor, add
          *   scope (failure) { this.fieldDtor(); }
-         * as the first statement. It is not necessary to add it after
+         * as the first statement of the constructor (unless the constructor
+         * doesn't define a body - @disable, extern)
+         *.It is not necessary to add it after
          * each initialization of a field, because destruction of .init constructed
          * structs should be benign.
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (ad && ad.fieldDtor && global.params.dtorFields)
+        if (ctor.fbody && ad && ad.fieldDtor && global.params.dtorFields)
         {
             /* Generate:
              *   this.fieldDtor()
