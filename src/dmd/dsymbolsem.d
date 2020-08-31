@@ -5433,13 +5433,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 //printf("Creating default this(){} for class %s\n", toChars());
                 auto btf = fd.type.toTypeFunction();
                 auto tf = new TypeFunction(ParameterList(), null, LINK.d, fd.storage_class);
-                tf.mod       = btf.mod;
-                tf.purity    = btf.purity;
-                tf.isnothrow = btf.isnothrow;
-                tf.isnogc    = btf.isnogc;
-                tf.trust     = btf.trust;
+                tf.mod = btf.mod;
+                // Don't copy @safe, ... from the base class constructor and let it be inferred instead
+                // This is required if other lowerings add code to the generated constructor which
+                // is less strict (e.g. `preview=dtorfields` might introduce a call to a less qualified dtor)
 
                 auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, 0, tf);
+                ctor.storage_class |= STC.inference;
+                ctor.generated = true;
                 ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
 
                 cldec.members.push(ctor);
