@@ -615,23 +615,6 @@ string[] combinations(string argstr)
     return results;
 }
 
-/**
- * Generates a random filename located in `result_path`.
- * Returns: "<result_path>/<8 random characters>"
- */
-string genTempFilename(string result_path)
-{
-    auto a = appender!string();
-    a.put(result_path);
-    foreach (ref e; 0 .. 8)
-    {
-        formattedWrite(a, "%x", rndGen.front);
-        rndGen.popFront();
-    }
-
-    return a.data;
-}
-
 /// Removes the file identified by `filename` if it exists
 void removeIfExists(in char[] filename)
 {
@@ -1404,7 +1387,7 @@ int tryMain(string[] args)
         {
             string[] toCleanup;
 
-            auto thisRunName = genTempFilename(result_path);
+            auto thisRunName = output_file ~ to!string(permuteIndex);
             auto fThisRun = File(thisRunName, "w");
             scope(exit)
             {
