@@ -556,7 +556,7 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
-        if (global.params.is64bit && global.params.isPOSIX)
+        if (global.params.is64bit && isPOSIX)
             return .toArgTypes_sysv_x64(t);
         if (global.params.is64bit && global.params.isWindows)
             return null;
@@ -617,7 +617,7 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if (global.params.is64bit && global.params.isPOSIX)
+        else if (global.params.is64bit && isPOSIX)
         {
             TypeTuple tt = .toArgTypes_sysv_x64(tn);
             if (!tt)
