@@ -2511,7 +2511,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             // {
             //     exp.loc.message("Scope is an aggregate member");
             // }
-            if (auto ctor = sc.func.isCtorDeclaration())
+            if (sc.func.isCtorDeclaration())
                 exp.error("construction of member `%s` from itself", ve1.toChars());
             else                // TODO sc.func.isMemberDecl
                 exp.error("assignment of member `%s` from itself", ve1.toChars());
@@ -11696,13 +11696,33 @@ Expression binSemantic(BinExp e, Scope* sc)
         // exclude literals at top-level
         !e1x.isIntegerExp())
     {
-        bool isThis;
-        if (auto ex = (e.isAndExp() || // &
-                       e.isOrExp()) && // |
-            equalsExp(e1x, e2x, isThis))
-            e.warning("Bitwise expression `%s` is same as `%s`",
-                      e.toChars(),
-                      e1x.toChars());
+        bool _isThis;           // unused
+        switch (e.op)
+        {
+        case TOK.and:
+        case TOK.or:
+            if (equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is same as `%s`", e.toChars(), e1x.toChars());
+            break;
+        case TOK.xor:
+            if (equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is always `0`", e.toChars());
+            break;
+        case TOK.equal:
+        case TOK.lessOrEqual:
+        case TOK.greaterOrEqual:
+            if (equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is always `true`", e.toChars());
+            break;
+        case TOK.notEqual:
+        case TOK.lessThan:
+        case TOK.greaterThan:
+            if (equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is always `false`", e.toChars());
+            break;
+        default:
+            break;
+        }
     }
 
     return null;
