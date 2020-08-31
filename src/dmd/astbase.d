@@ -3707,7 +3707,7 @@ struct ASTBase
     {
         Type basetype;
 
-        extern (D) this(Type baseType)
+        extern (D) this(Type basetype)
         {
             super(Tvector);
             this.basetype = basetype;
