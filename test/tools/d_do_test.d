@@ -1353,9 +1353,7 @@ int tryMain(string[] args)
         }
     }
 
-    removeIfExists(output_file);
-
-    auto f = File(output_file, "a");
+    auto f = File(output_file, "w");
 
     if (
         //prepare cpp extra sources
@@ -1394,7 +1392,7 @@ int tryMain(string[] args)
                 fThisRun.close();
                 f.write(readText(thisRunName));
                 f.writeln();
-                removeIfExists(thisRunName);
+                std.file.remove(thisRunName); // Never reached unless file is present
             }
 
             string compile_output;
@@ -1752,7 +1750,6 @@ int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
 
     writefln(" ... %s", testLogName);
 
-    removeIfExists(output_file);
     if (exists(testOutDir))
         rmdirRecurse(testOutDir);
     mkdirRecurse(testOutDir);
@@ -1770,13 +1767,14 @@ static this()
     }
 
     const testScriptExe = buildPath(testOutDir, "run" ~ envData.exe);
-    const output_file_temp = output_file ~ ".tmp";
+
+    auto outfile = File(output_file, "w");
+    enum keepFilesOpen = Config.retainStdout | Config.retainStderr;
 
     //
     // compile the test
     //
     {
-        auto outfile = File(output_file_temp, "w");
         const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
             envData.picFlag ~ [
             "-od" ~ testOutDir,
@@ -1792,11 +1790,12 @@ static this()
         outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
         // Note that spawnprocess closes the file, so it will need to be re-opened
         // below when we run the test
-        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile);
+        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, null, keepFilesOpen);
         const exitCode = wait(compileProc);
         if (exitCode != 0)
         {
-            printTestFailure(testLogName, output_file_temp);
+            outfile.close();
+            printTestFailure(testLogName, output_file);
             return exitCode;
         }
     }
@@ -1805,10 +1804,9 @@ static this()
     // run the test
     //
     {
-        auto outfile = File(output_file_temp, "a");
         const runTest = [testScriptExe];
         outfile.writeln("[RUN_TEST] ", escapeShellCommand(runTest));
-        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile);
+        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, null, keepFilesOpen);
         const exitCode = wait(runTestProc);
 
         if (exitCode == 125) // = DISABLED from tools/dshell_prebuilt.d
@@ -1818,13 +1816,12 @@ static this()
         }
         else if (exitCode != 0)
         {
-            printTestFailure(testLogName, output_file_temp);
+            outfile.close();
+            printTestFailure(testLogName, output_file);
             return exitCode;
         }
     }
 
-    rename(output_file_temp, output_file);
-    // TODO: should we remove all the test artifacts if the test passes? rmdirRecurse(testOutDir)?
     return 0;
 }
 
