@@ -1898,7 +1898,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
         *pretregs = retregs;
     else if (forregs)             // if return the result in registers
     {
-        if (forregs & (mST01 | mST0))
+        if ((forregs | retregs) & (mST01 | mST0))
         {
             fixresult87(cdb, e, retregs, pretregs);
             return;
@@ -2999,25 +2999,36 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
     type* t2 = null;
     tym_t ty2 = TYMAX;
 
-    tym_t tyb = tybasic(ty);
+    // SROA with mixed registers
+    if (ty & mTYxmmgpr)
+    {
+        ty = TYdouble;
+        ty2 = TYllong;
+    }
+    else if (ty & mTYgprxmm)
+    {
+        ty = TYllong;
+        ty2 = TYdouble;
+    }
 
     // Treat array of 1 the same as its element type
     // (Don't put volatile parameters in registers)
-    if (tyb == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile)
+    if (tybasic(ty) == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile)
         && type_size(t.Tnext) > 1)
     {
         t = t.Tnext;
-        tyb = tybasic(t.Tty);
+        ty = t.Tty;
     }
 
-    if (tyb == TYstruct && type_zeroSize(t, fpr.tyf))
+    if (tybasic(ty) == TYstruct && type_zeroSize(t, fpr.tyf))
         return 0;               // don't allocate into registers
 
     ++fpr.i;
 
-    // If struct just wraps another type
-    if (tyb == TYstruct && tybasic(t.Tty) == TYstruct)
+    // If struct or array
+    if (tyaggregate(ty))
     {
+        assert(t);
         if (config.exe == EX_WIN64)
         {
             /* Structs occupy a general purpose register, regardless of the struct
@@ -3028,8 +3039,20 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
         }
         else
         {
-            type* targ1 = t.Ttag.Sstruct.Sarg1type;
-            type* targ2 = t.Ttag.Sstruct.Sarg2type;
+            type* targ1, targ2;
+            if (tybasic(t.Tty) == TYstruct)
+            {
+                targ1 = t.Ttag.Sstruct.Sarg1type;
+                targ2 = t.Ttag.Sstruct.Sarg2type;
+            }
+            else if (tybasic(t.Tty) == TYarray)
+            {
+                if (I64)
+                    argtypes(t, targ1, targ2);
+            }
+            else
+                assert(0);
+
             if (targ1)
             {
                 t = targ1;
@@ -3077,9 +3100,17 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
             fpr.xmmcnt += 2;
             return 1;
         }
+
+        if (tybasic(ty) == TYcfloat
+            && fpr.numfloatregs - fpr.xmmcnt >= 1)
+        {
+            // Allocate XMM register
+            *preg1 = fpr.floatregs[fpr.xmmcnt++];
+            return 1;
+        }
     }
 
-    for (int j = 0; j < 2; j++)
+    foreach (j; 0 .. 2)
     {
         if (fpr.regcnt < fpr.numintegerregs)
         {
@@ -3115,13 +3146,115 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
         return 0;
 
      Lnext:
-        if (!t2)
+        if (tybasic(ty2) == TYMAX)
             break;
         preg = preg2;
         t = t2;
         ty = ty2;
     }
     return 1;
+}
+
+/***************************************
+ * Finds replacemnt types for register passing of aggregates.
+ */
+void argtypes(type* t, ref type* arg1type, ref type* arg2type)
+{
+    if (!t) return;
+
+    tym_t ty = t.Tty;
+
+    if (!tyaggregate(ty))
+        return;
+
+    arg1type = arg2type = null;
+
+    if (tybasic(ty) == TYarray)
+    {
+        size_t sz = cast(size_t) type_size(t);
+        if (sz == 0)
+            return;
+
+        if ((I32 || config.exe == EX_WIN64) && (sz & (sz - 1)))  // power of 2
+            return;
+
+        if (config.exe == EX_WIN64 && sz > REGSIZE)
+            return;
+
+        if (sz <= 2 * REGSIZE)
+        {
+            type** argtype = &arg1type;
+            size_t argsz = sz < REGSIZE ? sz : REGSIZE;
+            foreach (v; 0 .. (sz > REGSIZE) + 1)
+            {
+                *argtype = argsz == 1 ? tstypes[TYchar]
+                         : argsz == 2 ? tstypes[TYshort]
+                         : argsz <= 4 ? tstypes[TYlong]
+                         : tstypes[TYllong];
+                argtype = &arg2type;
+                argsz = sz - REGSIZE;
+            }
+        }
+
+        if (I64 && config.exe != EX_WIN64)
+        {
+            type* tn = t.Tnext;
+            tym_t tyn = tn.Tty;
+            while (tyn == TYarray)
+            {
+                tn = tn.Tnext;
+                assert(tn);
+                tyn = tybasic(tn.Tty);
+            }
+
+            if (tybasic(tyn) == TYstruct)
+            {
+                if (type_size(tn) == sz) // array(s) of size 1
+                {
+                    arg1type = tn.Ttag.Sstruct.Sarg1type;
+                    arg2type = tn.Ttag.Sstruct.Sarg2type;
+                    return;
+                }
+
+                type* t1 = tn.Ttag.Sstruct.Sarg1type;
+                if (t1)
+                {
+                    tn = t1;
+                    tyn = tn.Tty;
+                }
+            }
+
+            if (sz == tysize(tyn))
+            {
+                if (tysimd(tyn))
+                {
+                    type* ts = type_fake(tybasic(tyn));
+                    ts.Tcount = 1;
+                    arg1type = ts;
+                    return;
+                }
+                else if (tybasic(tyn) == TYldouble || tybasic(tyn) == TYildouble)
+                {
+                    arg1type = tstypes[tybasic(tyn)];
+                    return;
+                }
+            }
+
+            if (sz <= 16)
+            {
+                if (tyfloating(tyn))
+                {
+                    arg1type = sz <= 4 ? tstypes[TYfloat] : tstypes[TYdouble];
+                    if (sz > 8)
+                        arg2type = (sz - 8) <= 4 ? tstypes[TYfloat] : tstypes[TYdouble];
+                }
+            }
+        }
+    }
+    else if (tybasic(ty) == TYstruct)
+    {
+        // TODO: Move code from `cgelem.d:elstruct()` here
+    }
 }
 
 /*******************************
@@ -3390,23 +3523,27 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 ++xmmcnt;
             int preg2 = parameters[i].reg2;
             reg_t mreg,lreg;
-            if (preg2 != NOREG)
+            if (preg2 != NOREG || tybasic(ep.Ety) == TYcfloat)
             {
-                // BUG: still doesn't handle case of mXMM0|mAX or mAX|mXMM0
                 assert(ep.Eoper != OPstrthis);
                 if (mask(preg2) & XMMREGS)
-                {
                     ++xmmcnt;
-                    lreg = XMM0;
-                    mreg = XMM1;
+                if (tybasic(ep.Ety) == TYcfloat)
+                {
+                    lreg = ST01;
+                    mreg = NOREG;
                 }
-                else
+                else if (tyrelax(ep.Ety) == TYcent)
                 {
                     lreg = mask(preg ) & mLSW ? cast(reg_t)preg  : AX;
                     mreg = mask(preg2) & mMSW ? cast(reg_t)preg2 : DX;
                 }
-                retregs = mask(mreg) | mask(lreg);
-
+                else
+                {
+                    lreg = XMM0;
+                    mreg = XMM1;
+                }
+                retregs = (mask(mreg) | mask(lreg)) & ~mask(NOREG);
                 CodeBuilder cdbsave;
                 cdbsave.ctor();
                 if (keepmsk & retregs)
@@ -3439,11 +3576,22 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     retregs |= mask(preg);
                 if (preg2 != mreg)
                     retregs |= mask(preg2);
+                retregs &= ~mask(NOREG);
                 getregs(cdb,retregs);
 
                 tym_t ty1 = tybasic(ep.Ety);
                 tym_t ty2 = ty1;
-                if (ty1 == TYstruct)
+                if (ep.Ety & mTYgprxmm)
+                {
+                    ty1 = TYllong;
+                    ty2 = TYdouble;
+                }
+                else if (ep.Ety & mTYxmmgpr)
+                {
+                    ty1 = TYdouble;
+                    ty2 = TYllong;
+                }
+                else if (ty1 == TYstruct)
                 {
                     type* targ1 = ep.ET.Ttag.Sstruct.Sarg1type;
                     type* targ2 = ep.ET.Ttag.Sstruct.Sarg2type;
@@ -3457,7 +3605,30 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 else if (tybasic(ty1) == TYcdouble)
                     ty1 = ty2 = TYdouble;
 
-                foreach (v; 0 .. 2)
+                if (tybasic(ep.Ety) == TYcfloat)
+                {
+                    assert(I64);
+                    assert(lreg == ST01 && mreg == NOREG);
+                    // spill
+                    pop87();
+                    pop87();
+                    cdb.genfltreg(0xD9, 3, tysize(TYfloat));
+                    genfwait(cdb);
+                    cdb.genfltreg(0xD9, 3, 0);
+                    genfwait(cdb);
+                    // reload
+                    if (config.exe == EX_WIN64)
+                    {
+                        cdb.genfltreg(LOD, preg, 0);
+                        code_orrex(cdb.last(), REX_W);
+                    }
+                    else
+                    {
+                        assert(mask(preg) & XMMREGS);
+                        cdb.genxmmreg(xmmload(TYdouble), cast(reg_t) preg, 0, TYdouble);
+                    }
+                }
+                else foreach (v; 0 .. 2)
                 {
                     if (v ^ (preg != mreg))
                         genmovreg(cdb, preg, lreg, ty1);
@@ -3465,7 +3636,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                         genmovreg(cdb, preg2, mreg, ty2);
                 }
 
-                retregs = mask(preg) | mask(preg2);
+                retregs = (mask(preg) | mask(preg2)) & ~mask(NOREG);
             }
             else if (ep.Eoper == OPstrthis)
             {
@@ -3831,7 +4002,14 @@ static if (0)
     }
 }
 
-    retregs = regmask(e.Ety, tym1);
+    reg_t reg1 = NOREG, reg2 = NOREG;
+
+    if (config.exe == EX_WIN64) // Win64 is currently broken
+        retregs = regmask(e.Ety, tym1);
+    else
+        retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+
+    assert(retregs || !*pretregs);
 
     if (!usefuncarg)
     {
@@ -3909,6 +4087,68 @@ static if (0)
             cdb.gen2(0xDD, modregrm(3, 3, 0));           // FPOP
             cdb.gen2(0xDD, modregrm(3, 3, 0));           // FPOP
         }
+    }
+
+    /* Special handling for functions that return one part
+       in XMM0 and the other part in AX
+     */
+    if (*pretregs && retregs)
+    {
+        if (reg1 == NOREG || reg2 == NOREG)
+        {}
+        else if ((0 == (mask(reg1) & XMMREGS)) ^ (0 == (mask(reg2) & XMMREGS)))
+        {
+            reg_t lreg, mreg;
+            if (mask(reg1) & XMMREGS)
+            {
+                lreg = XMM0;
+                mreg = XMM1;
+            }
+            else
+            {
+                lreg = mask(reg1) & mLSW ? reg1 : AX;
+                mreg = mask(reg2) & mMSW ? reg2 : DX;
+            }
+            for (int v = 0; v < 2; v++)
+            {
+                if (v ^ (reg2 != lreg))
+                    genmovreg(cdb,lreg,reg1);
+                else
+                    genmovreg(cdb,mreg,reg2);
+            }
+            retregs = mask(lreg) | mask(mreg);
+        }
+    }
+
+    /* Special handling for functions which return complex float in XMM0 or RAX. */
+
+    if (I64
+        && config.exe != EX_WIN64 // broken
+        && *pretregs && tybasic(e.Ety) == TYcfloat)
+    {
+        assert(reg2 == NOREG);
+        // spill
+        if (config.exe == EX_WIN64)
+        {
+            assert(reg1 == AX);
+            cdb.genfltreg(STO, reg1, 0);
+            code_orrex(cdb.last(), REX_W);
+        }
+        else
+        {
+            assert(reg1 == XMM0);
+            cdb.genxmmreg(xmmstore(TYdouble), reg1, 0, TYdouble);
+        }
+        // reload real
+        push87(cdb);
+        cdb.genfltreg(0xD9, 0, 0);
+        genfwait(cdb);
+        // reload imaginary
+        push87(cdb);
+        cdb.genfltreg(0xD9, 0, tysize(TYfloat));
+        genfwait(cdb);
+
+        retregs = mST01;
     }
 
     fixresult(cdb, e, retregs, pretregs);

@@ -777,7 +777,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
     //printf("fixresult87(e = %p, retregs = %s, *pretregs = %s)\n", e,regm_str(retregs),regm_str(*pretregs));
     assert(!*pretregs || retregs);
 
-    if (*pretregs & mST01)
+    if ((*pretregs | retregs) & mST01)
     {
         fixresult_complex87(cdb, e, retregs, pretregs);
         return;

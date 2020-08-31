@@ -493,6 +493,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void callclib(ref CodeBuilder cdb, elem *e, uint clib, regm_t *pretregs, regm_t keepmask);
 void pushParams(ref CodeBuilder cdb,elem *, uint, tym_t tyf);
 void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
+void argtypes(type* t, ref type* arg1type, ref type* arg2type);
 
 /* cod2.c */
 bool movOnly(const elem *e);
@@ -560,6 +561,7 @@ void searchfixlist(Symbol *s) {}
 void outfixlist();
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
+regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2);
 
 extern __gshared
 {
