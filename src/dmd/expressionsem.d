@@ -10974,7 +10974,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
               e1x.isBool(true)) &&
             equalsExp(e1x, e2x, isThis))
         {
-            exp.warning("Logical expression `%s` is same as `%s`",
+            exp.warning("Expression `%s` is same as `%s`",
                         exp.toChars(),
                         e1x.toChars());
         }
@@ -11693,8 +11693,7 @@ Expression binSemantic(BinExp e, Scope* sc)
 
     // TODO is this the right place to do this?
     if (e1x.op == e2x.op && // fast discardal
-        // exclude literals at top-level
-        !e1x.isIntegerExp())
+        !e1x.isIntegerExp())  // exclude literals at top-level
     {
         bool _isThis;           // unused
         switch (e.op)
@@ -11711,13 +11710,15 @@ Expression binSemantic(BinExp e, Scope* sc)
         case TOK.equal:
         case TOK.lessOrEqual:
         case TOK.greaterOrEqual:
-            if (equalsExp(e1x, e2x, _isThis))
+            if (!e1x.type.isfloating &&
+                equalsExp(e1x, e2x, _isThis))
                 e.warning("Expression `%s` is always `true`", e.toChars());
             break;
         case TOK.notEqual:
         case TOK.lessThan:
         case TOK.greaterThan:
-            if (equalsExp(e1x, e2x, _isThis))
+            if (!e1x.type.isfloating &&
+                equalsExp(e1x, e2x, _isThis))
                 e.warning("Expression `%s` is always `false`", e.toChars());
             break;
         default:
