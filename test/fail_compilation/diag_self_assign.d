@@ -1,40 +1,43 @@
-// REQUIRED_ARGS: -w
+// REQUIRED_ARGS: -w -vcolumns
 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_self_assign.d(49): Deprecation: assignment of `x` from itself has no side effect, to exercise assignment instead use `x = x.init`
-fail_compilation/diag_self_assign.d(50): Deprecation: assignment of `t` from itself has no side effect, to exercise assignment instead use `t = t.init`
-fail_compilation/diag_self_assign.d(52): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(53): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(54): Error: construction of member `this._x` from itself
-fail_compilation/diag_self_assign.d(58): Error: construction of member `this._xp` from itself
-fail_compilation/diag_self_assign.d(61): Error: construction of member `this._t` from itself
-fail_compilation/diag_self_assign.d(62): Error: construction of member `this._t._z` from itself
-fail_compilation/diag_self_assign.d(67): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(68): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(69): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(91): Deprecation: assignment of `s._x` from itself has no side effect, to exercise assignment instead use `s._x = s._x.init`
-fail_compilation/diag_self_assign.d(95): Deprecation: assignment of `x` from itself has no side effect, to exercise assignment instead use `x = x.init`
-fail_compilation/diag_self_assign.d(101): Deprecation: assignment of `xp` from itself has no side effect, to exercise assignment instead use `xp = xp.init`
-fail_compilation/diag_self_assign.d(103): Deprecation: assignment of `*xp` from itself has no side effect, to exercise assignment instead use `*xp = *xp.init`
-fail_compilation/diag_self_assign.d(105): Deprecation: assignment of `xp` from itself has no side effect, to exercise assignment instead use `xp = xp.init`
-fail_compilation/diag_self_assign.d(107): Deprecation: assignment of `*& x` from itself has no side effect, to exercise assignment instead use `*& x = *& x.init`
-fail_compilation/diag_self_assign.d(109): Deprecation: assignment of `*& x` from itself has no side effect, to exercise assignment instead use `*& x = *& x.init`
-fail_compilation/diag_self_assign.d(125): Deprecation: assignment of `g_x` from itself has no side effect, to exercise assignment instead use `g_x = g_x.init`
-fail_compilation/diag_self_assign.d(126): Deprecation: assignment of `g_x` from itself has no side effect, to exercise assignment instead use `g_x = g_x.init`
-fail_compilation/diag_self_assign.d(171): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(178): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(184): Warning: Bitwise expression `x | x` is same as `x`
-fail_compilation/diag_self_assign.d(187): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(188): Warning: Bitwise expression `x & x` is same as `x`
-fail_compilation/diag_self_assign.d(187): Warning: Bitwise expression `x & x | x & x` is same as `x & x`
-fail_compilation/diag_self_assign.d(191): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(194): Warning: Logical expression `x || x` is same as `x`
-fail_compilation/diag_self_assign.d(197): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(198): Warning: Logical expression `x && x` is same as `x`
-fail_compilation/diag_self_assign.d(197): Warning: Logical expression `x && x || x && x` is same as `x && x`
-fail_compilation/diag_self_assign.d(203): Warning: Conditional expression `true ? x : x` is same as `x`
+fail_compilation/diag_self_assign.d(54,11): Deprecation: assignment of `x` from itself has no side effect, to force assignment use `x = x.init`
+fail_compilation/diag_self_assign.d(55,11): Deprecation: assignment of `t` from itself has no side effect, to force assignment use `t = t.init`
+fail_compilation/diag_self_assign.d(57,12): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(58,17): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(59,12): Error: construction of member `this._x` from itself
+fail_compilation/diag_self_assign.d(63,13): Error: construction of member `this._xp` from itself
+fail_compilation/diag_self_assign.d(66,12): Error: construction of member `this._t` from itself
+fail_compilation/diag_self_assign.d(67,15): Error: construction of member `this._t._z` from itself
+fail_compilation/diag_self_assign.d(72,12): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(73,17): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(74,12): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(96,10): Deprecation: assignment of `s._x` from itself has no side effect, to force assignment use `s._x = s._x.init`
+fail_compilation/diag_self_assign.d(100,7): Deprecation: assignment of `x` from itself has no side effect, to force assignment use `x = x.init`
+fail_compilation/diag_self_assign.d(106,8): Deprecation: assignment of `xp` from itself has no side effect, to force assignment use `xp = xp.init`
+fail_compilation/diag_self_assign.d(108,9): Deprecation: assignment of `*xp` from itself has no side effect, to force assignment use `*xp = *xp.init`
+fail_compilation/diag_self_assign.d(110,12): Deprecation: assignment of `xp` from itself has no side effect, to force assignment use `xp = xp.init`
+fail_compilation/diag_self_assign.d(112,11): Deprecation: assignment of `*& x` from itself has no side effect, to force assignment use `*& x = *& x.init`
+fail_compilation/diag_self_assign.d(114,13): Deprecation: assignment of `*& x` from itself has no side effect, to force assignment use `*& x = *& x.init`
+fail_compilation/diag_self_assign.d(130,9): Deprecation: assignment of `g_x` from itself has no side effect, to force assignment use `g_x = g_x.init`
+fail_compilation/diag_self_assign.d(131,9): Deprecation: assignment of `g_x` from itself has no side effect, to force assignment use `g_x = g_x.init`
+fail_compilation/diag_self_assign.d(176,9): Warning: Expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(183,9): Warning: Expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(189,9): Warning: Expression `x | x` is same as `x`
+fail_compilation/diag_self_assign.d(192,9): Warning: Expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(193,9): Warning: Expression `x & x` is same as `x`
+fail_compilation/diag_self_assign.d(192,9): Warning: Expression `x & x | x & x` is same as `x & x`
+fail_compilation/diag_self_assign.d(196,9): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(199,9): Warning: Logical expression `x || x` is same as `x`
+fail_compilation/diag_self_assign.d(202,10): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(203,10): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(202,9): Warning: Logical expression `x && x || x && x` is same as `x && x`
+fail_compilation/diag_self_assign.d(208,16): Warning: Conditional expression `true ? x : x` is same as `x`
+fail_compilation/diag_self_assign.d(209,24): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(209,35): Warning: Logical expression `x && x` is same as `x`
+fail_compilation/diag_self_assign.d(209,16): Warning: Conditional expression `true ? x && x : x && x` is same as `x && x`
 ---
 */
 struct S
@@ -196,13 +199,14 @@ void check_equal_lhs_and_rhs(int i)
     if (x || x)                 // warn
         i = 42;
 
-    if ((x && x) ||             // warn. TODO two warnings
+    if ((x && x) ||             // warn
         (x && x))               // warn
         i = 42;
 
     const i1 = true ? 42 : 42;
     const i2 = true ? a : a;
     const i3 = true ? x : x;    // warn
+    const i4 = true ? (x && x) : (x && x); // warn
 
     enum int ei2 = 2;
     enum int ei3 = 3;
@@ -316,6 +320,17 @@ private:
         assert((unknown & unknown) == unknown); // TODO: shouldn't warn
         assert((yes & unknown) == unknown);
         assert((unknown & yes) == unknown);
+
+        // exclusive or
+        assert((yes ^ yes) == no);
+        assert((no ^ no) == no);
+        assert((no ^ yes) == yes);
+        assert((yes ^ no) == yes);
+        assert((no ^ unknown) == unknown);
+        assert((yes ^ unknown) == unknown);
+        assert((unknown ^ no) == unknown);
+        assert((unknown ^ yes) == unknown);
+        assert((unknown ^ unknown) == unknown);
     }
 }
 

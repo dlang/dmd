@@ -2523,7 +2523,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
                 !ve1.type.hasAssignmentWithSideEffect)
             {
                 // TODO: turn this into a warning after deprecation period
-                exp.deprecation("assignment of `%s` from itself has no side effect, to exercise assignment instead use `%s = %s.init`", // TODO advice ok?
+                exp.deprecation("assignment of `%s` from itself has no side effect, to force assignment use `%s = %s.init`", // TODO advice ok?
                                 exp.e1.toChars(),
                                 exp.e1.toChars(),
                                 exp.e1.toChars());
