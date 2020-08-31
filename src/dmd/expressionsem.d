@@ -11710,14 +11710,16 @@ Expression binSemantic(BinExp e, Scope* sc)
         case TOK.equal:
         case TOK.lessOrEqual:
         case TOK.greaterOrEqual:
-            if (!e1x.type.isfloating &&
+            if (e1x.type &&
+                !e1x.type.isfloating &&
                 equalsExp(e1x, e2x, _isThis))
                 e.warning("Expression `%s` is always `true`", e.toChars());
             break;
         case TOK.notEqual:
         case TOK.lessThan:
         case TOK.greaterThan:
-            if (!e1x.type.isfloating &&
+            if (e1x.type &&
+                !e1x.type.isfloating &&
                 equalsExp(e1x, e2x, _isThis))
                 e.warning("Expression `%s` is always `false`", e.toChars());
             break;
