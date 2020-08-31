@@ -632,32 +632,6 @@ string genTempFilename(string result_path)
     return a.data;
 }
 
-/**
- * Executes `command` using the POSIX `system` utility
- * Returns: the exit code
- */
-int system(string command)
-{
-    static import core.stdc.stdlib;
-    if (!command) return core.stdc.stdlib.system(null);
-    const commandz = toStringz(command);
-    auto status = core.stdc.stdlib.system(commandz);
-    if (status == -1) return status;
-    version (Windows) status <<= 8;
-    return status;
-}
-
-version(Windows)
-{
-    extern (D) bool WIFEXITED( int status )    { return ( status & 0x7F ) == 0; }
-    extern (D) int  WEXITSTATUS( int status )  { return ( status & 0xFF00 ) >> 8; }
-    extern (D) int  WTERMSIG( int status )     { return status & 0x7F; }
-    extern (D) bool WIFSIGNALED( int status )
-    {
-        return ( cast(byte) ( ( status & 0x7F ) + 1 ) >> 1 ) > 0;
-    }
-}
-
 /// Removes the file identified by `filename` if it exists
 void removeIfExists(in char[] filename)
 {
@@ -672,38 +646,28 @@ void removeIfExists(in char[] filename)
  *  f           = the logfile
  *  command     = the command to execute
  *  expectPass  = whether the command should succeed
- *  result_path = directory used for temporary files
  *
  * Returns: the output produced by `command`
  * Throws:
  *   Exception if `command` returns another exit code than 0/1 (depending on expectPass)
  */
-string execute(ref File f, string command, bool expectpass, string result_path)
+string execute(ref File f, string command, bool expectpass)
 {
-    auto filename = genTempFilename(result_path);
-    scope(exit) removeIfExists(filename);
-
-    auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
-
-    string output = readText(filename);
     f.writeln(command);
-    f.write(output);
+    const result = std.process.executeShell(command);
+    f.write(result.output);
 
-    if (WIFSIGNALED(rc))
+    if (result.status < 0)
     {
-        auto value = WTERMSIG(rc);
-        enforce(0 == value, "caught signal: " ~ to!string(value));
+        enforce(false, "caught signal: " ~ to!string(result.status));
     }
-    else if (WIFEXITED(rc))
+    else
     {
-        auto value = WEXITSTATUS(rc);
-        if (expectpass)
-            enforce(0 == value, "expected rc == 0, exited with rc == " ~ to!string(value));
-        else
-            enforce(1 == value, "expected rc == 1, but exited with rc == " ~ to!string(value));
+        const exp = expectpass ? 0 : 1;
+        enforce(result.status == exp, format("Expected rc == %d, but exited with rc == %d", exp, result.status));
     }
 
-    return output;
+    return result.output;
 }
 
 /// add quotes around the whole string if it contains spaces that are not in quotes
@@ -1465,7 +1429,7 @@ int tryMain(string[] args)
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
 
                 try
-                    compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                    compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
                 catch (Exception e)
                 {
                     writeln(""); // We're at "... runnable/xxxx.d (args)"
@@ -1482,7 +1446,7 @@ int tryMain(string[] args)
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, permutedArgs, output_dir, argSet, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
                 }
 
                 if (testArgs.mode == TestMode.RUN || testArgs.link)
@@ -1493,7 +1457,7 @@ int tryMain(string[] args)
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
 
-                    execute(fThisRun, command, true, result_path);
+                    execute(fThisRun, command, true);
                 }
             }
 
@@ -1570,7 +1534,7 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    const output = execute(fThisRun, command, true, result_path)
+                    const output = execute(fThisRun, command, true)
                                     .strip()
                                     .unifyNewLine();
 
@@ -1591,7 +1555,7 @@ int tryMain(string[] args)
                             write(testArgs.gdbScript);
                         }
                         string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
-                        auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
+                        auto gdb_output = execute(fThisRun, gdbCommand, true);
                         if (testArgs.gdbMatch !is null)
                         {
                             enforce(match(gdb_output, regex(testArgs.gdbMatch)),
@@ -1609,7 +1573,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
