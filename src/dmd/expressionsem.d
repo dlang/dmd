@@ -11510,7 +11510,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             !e1x.isIntegerExp() &&
             equalsExp(e1x, e2x, isThis)) // only variables for now
         {
-            exp.warning("Conditional expression `%s` is same as `%s`",
+            exp.warning("Expression `%s` is same as `%s`",
                         exp.toChars(),
                         e1x.toChars());
         }
