@@ -19,3 +19,16 @@ extern(C++) class Extern
     HasDtor member;
     this();
 }
+
+/******************************************
+ * https://issues.dlang.org/show_bug.cgi?id=21213
+ */
+class Parent
+{
+    this() nothrow pure @nogc @safe {}
+}
+
+class Child : Parent
+{
+    HasDtor member;
+}
