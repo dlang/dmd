@@ -2045,7 +2045,7 @@ public:
 // ignoring function dmd.aliasthis.resolveAliasThis because of linkage
 // ignoring function dmd.aliasthis.checkDeprecatedAliasThis because of linkage
 // ignoring function dmd.apply.walkPostorder because of linkage
-extern TypeTuple* toArgTypes(Type* t);
+extern TypeTuple* toArgTypes_x86(Type* t);
 
 extern TypeTuple* toArgTypes_sysv_x64(Type* t);
 
@@ -9943,6 +9943,7 @@ extern int32_t clib_inited;
 // ignoring function dmd.backend.code.callclib because it's extern
 // ignoring function dmd.backend.code.pushParams because it's extern
 // ignoring function dmd.backend.code.offsetinreg because it's extern
+// ignoring function dmd.backend.code.argtypes because it's extern
 // ignoring function dmd.backend.code.movOnly because it's extern
 // ignoring function dmd.backend.code.idxregm because it's extern
 // ignoring function dmd.backend.code.opdouble because it's extern
@@ -10006,6 +10007,7 @@ extern void searchfixlist(Symbol* s);
 // ignoring function dmd.backend.code.outfixlist because it's extern
 // ignoring function dmd.backend.code.code_hydrate because it's extern
 // ignoring function dmd.backend.code.code_dehydrate because it's extern
+// ignoring function dmd.backend.code.allocretregs because it's extern
 extern int32_t hasframe;
 
 extern bool enforcealign;
@@ -12371,6 +12373,8 @@ ENUM_CONSTANT_NUMERIC(int32_t, mTYunaligned, 0)
 ENUM_CONSTANT_NUMERIC(int32_t, mTYimmutable, 524288)
 ENUM_CONSTANT_NUMERIC(int32_t, mTYshared, 1048576)
 ENUM_CONSTANT_NUMERIC(int32_t, mTYnothrow, 2097152)
+ENUM_CONSTANT_NUMERIC(int32_t, mTYxmmgpr, 4194304)
+ENUM_CONSTANT_NUMERIC(int32_t, mTYgprxmm, 8388608)
 ENUM_CONSTANT_NUMERIC(int32_t, mTYnoret, 16777216)
 ENUM_CONSTANT_NUMERIC(int32_t, mTYtransu, 16777216)
 ENUM_CONSTANT_NUMERIC(int32_t, mTYfar16, 16777216)
@@ -14163,7 +14167,6 @@ END_ENUM_TYPE(Color, Classification, CLASSIFICATION, classification)
 
 extern void error(const Loc& loc, const char* format, ...);
 
-// ignoring extern () block because of linkage
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
 
 extern void errorSupplemental(const Loc& loc, const char* format, ...);

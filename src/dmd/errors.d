@@ -423,7 +423,8 @@ else
     {
         _verrorSupplemental(loc, format, ap);
     }
-extern (C++) void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+
+private void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     Color color;
     if (global.gag)
@@ -454,7 +455,8 @@ else
     {
         _vwarning(loc, format, ap);
     }
-extern (C++) void _vwarning(const ref Loc loc, const(char)* format, va_list ap)
+
+private void _vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings != DiagnosticReporting.off)
     {
@@ -488,7 +490,8 @@ else
     {
         _vwarningSupplemental(loc, format, ap);
     }
-extern (C++) void _vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+
+private void _vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings != DiagnosticReporting.off && !global.gag)
         verrorPrint(loc, Classification.warning, "       ", format, ap);
@@ -538,7 +541,8 @@ else
     {
         _vmessage(loc, format, ap);
     }
-extern (C++) void _vmessage(const ref Loc loc, const(char)* format, va_list ap)
+
+private void _vmessage(const ref Loc loc, const(char)* format, va_list ap)
 {
     const p = loc.toChars();
     if (*p)
@@ -569,7 +573,7 @@ else
     {
         _vtip(format, ap);
     }
-extern (C++) void _vtip(const(char)* format, va_list ap)
+private void _vtip(const(char)* format, va_list ap)
 {
     if (!global.gag)
     {
@@ -595,7 +599,8 @@ else
     {
         _vdeprecationSupplemental(loc, format, ap);
     }
-extern (C++) void _vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+
+private void _vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.useDeprecated == DiagnosticReporting.error)
         verrorSupplemental(loc, format, ap);
