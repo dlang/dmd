@@ -80,8 +80,9 @@ defaulttarget: $G debdmd
 
 # FIXME: Windows test suite uses src/dmd.exe instead of $(GENERATED)/dmd.exe
 auto-tester-build: $(GEN)\build.exe
-	$(RUN_BUILD) "ENABLE_RELEASE=1" "ENABLE_ASSERTS=1" $@
-	copy $(TARGETEXE) .
+	echo "Windows builds have been disabled"
+	#$(RUN_BUILD) "ENABLE_RELEASE=1" "ENABLE_ASSERTS=1" $@
+	#copy $(TARGETEXE) .
 
 dmd: $G reldmd
 

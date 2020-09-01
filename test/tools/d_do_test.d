@@ -1750,7 +1750,7 @@ int runBashTest(string input_dir, string test_name, const ref EnvData envData)
         const cmd = "bash " ~ script ~ ' ' ~ input_dir ~ ' ' ~  test_name;
         const env = [
             // Make sure the path is bash-friendly
-            "DMD": envData.dmd.relativePath(dmdTestDir).replace('\\', '/')
+            "DMD": envData.dmd.relativePath(dmdTestDir).replace("\\", "/")
         ];
 
         auto process = spawnShell(cmd, env, Config.none, dmdTestDir);
