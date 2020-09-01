@@ -1,15 +1,15 @@
 /**
- * Break down a D type into basic (register) types for the Itanium C++ ABI.
+ * Break down a D type into basic (register) types for the 32-bit x86 ABI.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes.d, _argtypes.d)
- * Documentation:  https://dlang.org/phobos/dmd_argtypes.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/argtypes.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_x86.d, _argtypes_x86.d)
+ * Documentation:  https://dlang.org/phobos/dmd_argtypes_x86.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/argtypes_x86.d
  */
 
-module dmd.argtypes;
+module dmd.argtypes_x86;
 
 import core.stdc.stdio;
 import core.checkedint;
@@ -19,29 +19,18 @@ import dmd.globals;
 import dmd.mtype;
 import dmd.visitor;
 
-private bool isDMDx64Target()
-{
-    version (MARS)
-        return global.params.is64bit;
-    else
-        return false;
-}
-
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
- * It's highly platform dependent.
+ * This is the implementation for the 32-bit x86 ABI.
  * Params:
  *      t = type to break down
  * Returns:
  *      tuple of types, each element can be passed in a register.
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  *      null indicates a `void`.
- * References:
- *  For 64 bit code, follows Itanium C++ ABI 1.86 Chapter 3
- *  http://refspecs.linux-foundation.org/cxxabi-1.86.html#calls
  */
-extern (C++) TypeTuple toArgTypes(Type t)
+extern (C++) TypeTuple toArgTypes_x86(Type t)
 {
     extern (C++) final class ToArgTypes : Visitor
     {
@@ -115,13 +104,8 @@ extern (C++) TypeTuple toArgTypes(Type t)
                 t1 = Type.tfloat80;
                 break;
             case Tcomplex32:
-                if (isDMDx64Target())
-                    t1 = Type.tfloat64;
-                else
-                {
-                    t1 = Type.tfloat64;
-                    t2 = Type.tfloat64;
-                }
+                t1 = Type.tfloat64;
+                t2 = Type.tfloat64;
                 break;
             case Tcomplex64:
                 t1 = Type.tfloat64;
@@ -264,16 +248,6 @@ extern (C++) TypeTuple toArgTypes(Type t)
             /* Should be done as if it were:
              * struct S { size_t length; void* ptr; }
              */
-            if (isDMDx64Target() && !global.params.isLP64)
-            {
-                // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
-                const offset = cast(uint)Type.tsize_t.size(Loc.initial);
-                Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
-                if (t)
-                {
-                    return oneType(t);
-                }
-            }
             return twoTypes(Type.tsize_t, Type.tvoidptr);
         }
 
@@ -282,16 +256,6 @@ extern (C++) TypeTuple toArgTypes(Type t)
             /* Should be done as if it were:
              * struct S { void* funcptr; void* ptr; }
              */
-            if (isDMDx64Target() && !global.params.isLP64)
-            {
-                // For AMD64 ILP32 ABI, delegates fit into a single integer register.
-                const offset = cast(uint)Type.tsize_t.size(Loc.initial);
-                Type t = argtypemerge(Type.tvoidptr, Type.tvoidptr, offset);
-                if (t)
-                {
-                    return oneType(t);
-                }
-            }
             return twoTypes(Type.tvoidptr, Type.tvoidptr);
         }
 
@@ -364,147 +328,52 @@ extern (C++) TypeTuple toArgTypes(Type t)
             if (nfields == 0)
                 return memory();
 
-            if (isDMDx64Target())
+            Type t1 = null;
+            switch (cast(uint)sz)
             {
-                if (sz == 0 || sz > 16)
-                    return memory();
-
-                Type t1 = null;
-                Type t2 = null;
-
-                foreach (n; 0 .. nfields)
-                {
-                    uint foffset;
-                    uint falignsize;
-                    Type ftype = getFieldInfo(n, foffset, falignsize);
-
-                    //printf("  [%u] ftype = %s\n", n, ftype.toChars());
-                    TypeTuple tup = toArgTypes(ftype);
-                    if (!tup)
-                        return memory();
-                    const dim = tup.arguments.dim;
-                    Type ft1 = null;
-                    Type ft2 = null;
-                    switch (dim)
-                    {
-                    case 2:
-                        ft1 = (*tup.arguments)[0].type;
-                        ft2 = (*tup.arguments)[1].type;
-                        break;
-                    case 1:
-                        if (foffset < 8)
-                            ft1 = (*tup.arguments)[0].type;
-                        else
-                            ft2 = (*tup.arguments)[0].type;
-                        break;
-                    default:
-                        return memory();
-                    }
-                    if (foffset & 7)
-                    {
-                        // Misaligned fields goto Lmemory
-                        if (foffset & (falignsize - 1))
-                            return memory();
-
-                        // Fields that overlap the 8byte boundary goto memory
-                        const fieldsz = ftype.size(Loc.initial);
-                        bool overflow;
-                        const nextOffset = addu(foffset, fieldsz, overflow);
-                        assert(!overflow);
-                        if (foffset < 8 && nextOffset > 8)
-                            return memory();
-                    }
-                    // First field in 8byte must be at start of 8byte
-                    assert(t1 || foffset == 0);
-                    //printf("ft1 = %s\n", ft1 ? ft1.toChars() : "null");
-                    //printf("ft2 = %s\n", ft2 ? ft2.toChars() : "null");
-                    if (ft1)
-                    {
-                        t1 = argtypemerge(t1, ft1, foffset);
-                        if (!t1)
-                            return memory();
-                    }
-                    if (ft2)
-                    {
-                        const off2 = ft1 ? 8 : foffset;
-                        if (!t2 && off2 != 8)
-                            return memory();
-                        assert(t2 || off2 == 8);
-                        t2 = argtypemerge(t2, ft2, off2 - 8);
-                        if (!t2)
-                            return memory();
-                    }
-                }
-                if (t2)
-                {
-                    if (t1.isfloating() && t2.isfloating())
-                    {
-                        if ((t1.ty == Tfloat32 || t1.ty == Tfloat64) && (t2.ty == Tfloat32 || t2.ty == Tfloat64))
-                        {
-                        }
-                        else
-                            return memory();
-                    }
-                    else if (t1.isfloating() || t2.isfloating())
-                        return memory();
-                    return twoTypes(t1, t2);
-                }
-
-                //printf("\ttoArgTypes() %s => [%s,%s]\n", t.toChars(), t1 ? t1.toChars() : "", t2 ? t2.toChars() : "");
-                if (t1)
-                    return oneType(t1);
-                else
-                    return memory();
+            case 1:
+                t1 = Type.tint8;
+                break;
+            case 2:
+                t1 = Type.tint16;
+                break;
+            case 4:
+                t1 = Type.tint32;
+                break;
+            case 8:
+                t1 = Type.tint64;
+                break;
+            case 16:
+                t1 = null; // could be a TypeVector
+                break;
+            default:
+                return memory();
             }
+            if (global.params.isFreeBSD && nfields == 1 &&
+                (sz == 4 || sz == 8))
+            {
+                /* FreeBSD changed their 32 bit ABI at some point before 10.3 for the following:
+                 *  struct { float f;  } => arg1type is float
+                 *  struct { double d; } => arg1type is double
+                 * Cannot find any documentation on it.
+                 */
+
+                uint foffset;
+                uint falignsize;
+                Type ftype = getFieldInfo(0, foffset, falignsize);
+                TypeTuple tup = toArgTypes_x86(ftype);
+                if (tup && tup.arguments.dim == 1)
+                {
+                    Type ft1 = (*tup.arguments)[0].type;
+                    if (ft1.ty == Tfloat32 || ft1.ty == Tfloat64)
+                        return oneType(ft1);
+                }
+            }
+
+            if (t1)
+                return oneType(t1);
             else
-            {
-                Type t1 = null;
-                switch (cast(uint)sz)
-                {
-                case 1:
-                    t1 = Type.tint8;
-                    break;
-                case 2:
-                    t1 = Type.tint16;
-                    break;
-                case 4:
-                    t1 = Type.tint32;
-                    break;
-                case 8:
-                    t1 = Type.tint64;
-                    break;
-                case 16:
-                    t1 = null; // could be a TypeVector
-                    break;
-                default:
-                    return memory();
-                }
-                if (global.params.isFreeBSD && nfields == 1 &&
-                    (sz == 4 || sz == 8))
-                {
-                    /* FreeBSD changed their 32 bit ABI at some point before 10.3 for the following:
-                     *  struct { float f;  } => arg1type is float
-                     *  struct { double d; } => arg1type is double
-                     * Cannot find any documentation on it.
-                     */
-
-                    uint foffset;
-                    uint falignsize;
-                    Type ftype = getFieldInfo(0, foffset, falignsize);
-                    TypeTuple tup = toArgTypes(ftype);
-                    if (tup && tup.arguments.dim == 1)
-                    {
-                        Type ft1 = (*tup.arguments)[0].type;
-                        if (ft1.ty == Tfloat32 || ft1.ty == Tfloat64)
-                            return oneType(ft1);
-                    }
-                }
-
-                if (t1)
-                    return oneType(t1);
-                else
-                    return memory();
-            }
+                return memory();
         }
 
         override void visit(TypeEnum t)

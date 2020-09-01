@@ -25,7 +25,7 @@
 
 module dmd.target;
 
-import dmd.argtypes;
+import dmd.argtypes_x86;
 import dmd.argtypes_sysv_x64;
 import core.stdc.string : strlen;
 import dmd.cppmangle;
@@ -556,11 +556,12 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
-        if (global.params.is64bit && isPOSIX)
-            return .toArgTypes_sysv_x64(t);
-        if (global.params.is64bit && global.params.isWindows)
-            return null;
-        return .toArgTypes(t);
+        if (global.params.is64bit)
+        {
+            // no argTypes for Win64 yet
+            return isPOSIX ? toArgTypes_sysv_x64(t) : null;
+        }
+        return toArgTypes_x86(t);
     }
 
     /**
