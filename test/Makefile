@@ -144,7 +144,12 @@ ifneq ($(N),)
     EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
 endif
 
+ifeq (windows,$(OS))
+all:
+	echo "Windows builds have been disabled"
+else
 all: run_tests
+endif
 
 quick: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
