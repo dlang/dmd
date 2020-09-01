@@ -1107,9 +1107,85 @@ extern (C++) abstract class Expression : ASTNode
             error("`pure` %s `%s` cannot call impure %s `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 f.toPrettyChars());
+
+            checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
             return true;
         }
         return false;
+    }
+
+    /**
+     * Checks whether `f` is a generated `DtorDeclaration` that hides a user-defined one
+     * which passes `check` while `f` doesn't (e.g. when the user defined dtor is pure but
+     * the generated dtor is not).
+     * In that case the method will identify and print all members causing the attribute
+     * missmatch.
+     *
+     * Params:
+     *   sc = scope
+     *   f  = potential `DtorDeclaration`
+     *   check = current check (e.g. whether it's pure)
+     *   checkName = the kind of check (e.g. `"pure"`)
+     */
+    extern (D) void checkOverridenDtor(Scope* sc, FuncDeclaration f,
+                scope bool function(DtorDeclaration) check, const string checkName
+    ) {
+        auto dd = f.isDtorDeclaration();
+        if (!dd || !dd.generated)
+            return;
+
+        // DtorDeclaration without parents should fail at an earlier stage
+        auto ad = cast(AggregateDeclaration) f.toParent2();
+        assert(ad);
+        assert(ad.dtors.length);
+
+        // Search for the user-defined destructor (if any)
+        foreach(dtor; ad.dtors)
+        {
+            if (dtor.generated)
+                continue;
+
+            if (!check(dtor)) // doesn't match check (e.g. is impure as well)
+                return;
+
+            // Sanity check
+            assert(!check(cast(DtorDeclaration) ad.fieldDtor));
+            break;
+        }
+
+        dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
+                            dd.generated ? "generated " : "".ptr,
+                            ad.toChars,
+                            cast(int) checkName.length, checkName.ptr);
+
+        // Search for the offending fields
+        foreach (field; ad.fields)
+        {
+            // Only structs may define automatically called destructors
+            auto ts = field.type.isTypeStruct();
+            if (!ts)
+            {
+                // But they might be part of a static array
+                auto ta = field.type.isTypeSArray();
+                if (!ta)
+                    continue;
+
+                ts = ta.baseElemOf().isTypeStruct();
+                if (!ts)
+                    continue;
+            }
+
+            auto fieldSym = ts.toDsymbol(sc);
+            assert(fieldSym); // Resolving ts must succeed because missing defs. should error before
+
+            auto fieldSd = fieldSym.isStructDeclaration();
+            assert(fieldSd); // ts is a TypeStruct, this would imply a malformed ASR
+
+            if (fieldSd.dtor && !check(fieldSd.dtor))
+            {
+                field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
+            }
+        }
     }
 
     /*******************************************
@@ -1266,6 +1342,9 @@ extern (C++) abstract class Expression : ASTNode
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                     prettyChars);
                 .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+
+                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
+
                 return true;
             }
         }
@@ -1301,6 +1380,9 @@ extern (C++) abstract class Expression : ASTNode
                 if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT))
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+
+                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+
                 return true;
             }
         }
