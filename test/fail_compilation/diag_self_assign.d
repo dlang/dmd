@@ -11,9 +11,9 @@ fail_compilation/diag_self_assign.d(59,12): Error: construction of member `this.
 fail_compilation/diag_self_assign.d(63,13): Error: construction of member `this._xp` from itself
 fail_compilation/diag_self_assign.d(66,12): Error: construction of member `this._t` from itself
 fail_compilation/diag_self_assign.d(67,15): Error: construction of member `this._t._z` from itself
-fail_compilation/diag_self_assign.d(72,12): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(73,17): Error: assignment of member `this._x` from itself
-fail_compilation/diag_self_assign.d(74,12): Error: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(72,12): Warning: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(73,17): Warning: assignment of member `this._x` from itself
+fail_compilation/diag_self_assign.d(74,12): Warning: assignment of member `this._x` from itself
 fail_compilation/diag_self_assign.d(96,10): Deprecation: assignment of `s._x` from itself has no side effect, to force assignment use `s._x = s._x.init`
 fail_compilation/diag_self_assign.d(100,7): Deprecation: assignment of `x` from itself has no side effect, to force assignment use `x = x.init`
 fail_compilation/diag_self_assign.d(106,8): Deprecation: assignment of `xp` from itself has no side effect, to force assignment use `xp = xp.init`
@@ -69,9 +69,9 @@ struct S
 
     void foo()
     {
-        _x = _x;                // error
-        this._x = _x;           // error
-        _x = this._x;           // error
+        _x = _x;                // warn
+        this._x = _x;           // warn
+        _x = this._x;           // warn
     }
 
     this(this) { count += 1;}   // posblit

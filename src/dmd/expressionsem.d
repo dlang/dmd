@@ -2514,7 +2514,7 @@ private void checkSelfAssignment(AssignExp exp, Scope* sc)
             if (sc.func.isCtorDeclaration())
                 exp.error("construction of member `%s` from itself", ve1.toChars());
             else                // TODO sc.func.isMemberDecl
-                exp.error("assignment of member `%s` from itself", ve1.toChars());
+                exp.warning("assignment of member `%s` from itself", ve1.toChars());
         }
         else
         {
