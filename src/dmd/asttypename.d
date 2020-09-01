@@ -73,7 +73,7 @@ string astTypeName(RootObject node)
     }
 }
 
-enum mixin_string =
+extern(D) enum mixin_string =
 ({
     string astTypeNameFunctions;
     string visitOverloads;
