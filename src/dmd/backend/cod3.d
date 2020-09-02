@@ -2930,8 +2930,6 @@ void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym)
                 genregs(cdb, 0x89, from, to);    // MOV to,from
                 if (I64 && tysize(tym) >= 8)
                     code_orrex(cdb.last(), REX_W);
-                else if (tysize(tym) == 2)
-                    code_orflag(cdb.last(), CFopsize);
                 break;
 
             case _X(XMM0, XMM0):             // MOVD/Q to,from
