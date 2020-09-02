@@ -2182,6 +2182,37 @@ void test21038()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=19846
+
+alias Void = byte[0];
+static immutable Void VOID; // = [];
+
+__gshared int x19846;
+
+Void print19846()
+{
+    //printf("This should print\n");
+    x19846 = 3;
+    return VOID;
+}
+
+Void identity19846(Void value, out int i)
+{
+    i = 7;
+    return value;
+}
+
+void test19846()
+{
+    int i;
+    identity19846(print19846(), i);
+    //printf("i = %d\n", i);
+    assert(x19846 == 3);
+    assert(i == 7);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     // All the various integer divide tests
@@ -2269,6 +2300,7 @@ int main()
     testMulLea();
     testMulAssPair();
     test21038();
+    test19846();
 
     printf("Success\n");
     return 0;
