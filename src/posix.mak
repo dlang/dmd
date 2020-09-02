@@ -118,6 +118,14 @@ auto-tester-build: $(GENERATED)/build
 toolchain-info: $(GENERATED)/build
 	$(RUN_BUILD) $@
 
+# Run header test on linux
+ifeq ($(OS)$(MODEL),linux64)
+  HEADER_TEST=cxx-headers-test
+endif
+
+auto-tester-test: $(GENERATED)/build
+	$(RUN_BUILD) unittest $(HEADER_TEST)
+
 unittest: $G/dmd-unittest
 	$<
 
