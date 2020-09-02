@@ -3650,6 +3650,9 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             }
             else if (ep.Eoper == OPstrpar && config.exe == EX_WIN64 && type_size(ep.ET) == 0)
             {
+                retregs = 0;
+                scodelem(cdb, ep.EV.E1, &retregs, keepmsk, false);
+                freenode(ep);
             }
             else
             {
@@ -4458,6 +4461,18 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if (sz == 0)
             {
                 docommas(cdb, &e1); // skip over any commas
+
+                const stackpushsave = stackpush;
+                const stackcleansave = cgstate.stackclean;
+                cgstate.stackclean = 0;
+
+                regm_t retregs = 0;
+                codelem(cdb,e1,&retregs,true);
+
+                assert(cgstate.stackclean == 0);
+                cgstate.stackclean = stackcleansave;
+                genstackclean(cdb,stackpush - stackpushsave,0);
+
                 freenode(e);
                 return;
             }
