@@ -89,6 +89,14 @@ enum CppStdRevision
     CppStdRevisionCpp17 = 201703
 };
 
+/// Configuration for the C++ header generator
+enum class CxxHeaderMode
+{
+    none,   /// Don't generate headers
+    silent, /// Generate headers
+    verbose /// Generate headers and add comments for hidden declarations
+};
+
 // Put command line switches in here
 struct Param
 {
@@ -172,6 +180,7 @@ struct Param
     bool revertUsage;       // print help on -revert switch
     bool previewUsage;      // print help on -preview switch
     bool externStdUsage;    // print help on -extern-std switch
+    bool hcUsage;           // print help on -HC switch
     bool logo;              // print logo;
 
     CPU cpu;                // CPU instruction set to target
@@ -206,7 +215,7 @@ struct Param
     DString hdrname;       // write 'header' file to docname
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
-    bool doCxxHdrGeneration;  // write 'Cxx header' file
+    CxxHeaderMode doCxxHdrGeneration;  // write 'Cxx header' file
     DString cxxhdrdir;        // write 'header' file to docdir directory
     DString cxxhdrname;       // write 'header' file to docname
 

@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -HC -c -o-
+REQUIRED_ARGS: -HC=silent -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
@@ -20,13 +20,10 @@ typedef int32_t T;
 
 extern "C" int32_t x;
 
-// ignored variable dtoh_AliasDeclaration.x
 extern "C" int32_t foo(int32_t x);
 
-// ignored function dtoh_AliasDeclaration.foo
 extern int32_t foo2(int32_t x);
 
-// ignored function dtoh_AliasDeclaration.foo2
 struct S;
 
 typedef S aliasS;
@@ -35,7 +32,6 @@ struct S2;
 
 typedef S2 aliasS2;
 
-// ignoring non-cpp class C
 typedef C* aliasC;
 
 class C2;

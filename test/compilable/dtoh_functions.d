@@ -11,9 +11,6 @@ TEST_OUTPUT:
 #include <stdint.h>
 
 
-// ignoring function dtoh_functions.foo because of linkage
-// ignoring function dtoh_functions.fun because it's extern
-// ignoring function dtoh_functions.fun2 because it's extern
 extern "C" int32_t bar(int32_t x);
 
 extern "C" int32_t bar2(int32_t x);
