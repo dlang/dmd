@@ -816,7 +816,6 @@ public:
 RootObject();
 virtual bool equals(const RootObject* const o) const;
 virtual const char* toChars() const;
-// ignoring extern () block because of linkage
 virtual DYNCAST dyncast() const;
 };
 
@@ -832,13 +831,8 @@ struct Loc
 const char* filename;
 uint32_t linnum;
 uint32_t charnum;
-// ignoring variable dmd.globals.Loc.initial because of linkage
-// ignoring extern () block because of linkage
 const char* toChars(bool showColumns, uint8_t messageStyle) const;
 bool equals(const Loc& loc) const;
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.globals.Loc.isValid because of linkage
 Loc() : filename(), linnum(), charnum() {}
 };
 
@@ -859,9 +853,6 @@ PASS semanticRun;
 DeprecatedDeclaration* depdecl;
 UserAttributeDeclaration* userAttribDecl;
 UnitTestDeclaration* ddocUnittest;
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 static Dsymbol* create(Identifier* ident);
 const char* toChars() const;
 virtual const char* toPrettyCharsHelper();
@@ -869,7 +860,6 @@ const Loc getLoc();
 const char* locToChars();
 bool equals(const RootObject* const o) const;
 bool isAnonymous() const;
-// ignoring extern () block because of linkage
 void error(const Loc& loc, const char* format, ...);
 void error(const char* format, ...);
 void deprecation(const Loc& loc, const char* format, ...);
@@ -889,7 +879,6 @@ bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2);
 TemplateInstance* isSpeculative();
 Ungag ungagSpeculative() const;
 DYNCAST dyncast() const;
-// ignoring extern () block because of linkage
 virtual Identifier* getIdent();
 virtual const char* toPrettyChars(bool QualifyTypes = false);
 virtual const char* kind() const;
@@ -899,8 +888,6 @@ virtual void addMember(Scope* sc, ScopeDsymbol* sds);
 virtual void setScope(Scope* sc);
 virtual void importAll(Scope* sc);
 virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 virtual bool overloadInsert(Dsymbol* s);
 virtual d_uns64 size(const Loc& loc);
 virtual bool isforwardRef();
@@ -920,7 +907,6 @@ virtual bool needThis();
 virtual Prot prot();
 virtual Dsymbol* syntaxCopy(Dsymbol* s);
 virtual bool oneMember(Dsymbol** ps, Identifier* ident);
-// ignoring extern () block because of linkage
 virtual void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
 virtual bool hasPointers();
 virtual bool hasStaticCtorOrDtor();
@@ -989,21 +975,8 @@ ENUM_CONSTANT_NUMERIC(uint64_t, ChunkSize, 8LLU)
 
 ENUM_CONSTANT_NUMERIC(uint64_t, BitsPerChunk, 64LLU)
 
-// ignoring function dmd.root.bitarray.BitArray.length because of linkage
-// ignoring function dmd.root.bitarray.BitArray.length because of linkage
-// ignoring function dmd.root.bitarray.BitArray.opAssign because of linkage
-// ignoring function dmd.root.bitarray.BitArray.opIndex because of linkage
-// ignoring function dmd.root.bitarray.BitArray.opIndexAssign because of linkage
-// ignoring function dmd.root.bitarray.BitArray.opEquals because of linkage
-// ignoring function dmd.root.bitarray.BitArray.zero because of linkage
-// ignoring function dmd.root.bitarray.BitArray.isZero because of linkage
-// ignoring function dmd.root.bitarray.BitArray.or because of linkage
-// ignoring function dmd.root.bitarray.BitArray.swap because of linkage
-// ignoring function dmd.root.bitarray.BitArray.~this because of linkage
 size_t len;
 uint64_t* ptr;
-// ignoring function dmd.root.bitarray.BitArray.chunks because of linkage
-// ignoring function dmd.root.bitarray.BitArray.bytes because of linkage
 BitArray() {}
 };
 
@@ -1017,14 +990,9 @@ Array<Dsymbol*>* importedScopes;
 Kind* prots;
 BitArray accessiblePackages;
 BitArray privateAccessiblePackages;
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 Dsymbol* syntaxCopy(Dsymbol* s);
 Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
-// ignoring extern () block because of linkage
 virtual void importScope(Dsymbol* s, Prot protection);
-// ignoring extern () block because of linkage
 virtual bool isPackageAccessible(Package* p, Prot protection, int32_t flags = 0);
 bool isforwardRef();
 static void multiplyDefined(const Loc& loc, Dsymbol* s1, Dsymbol* s2);
@@ -1033,8 +1001,6 @@ FuncDeclaration* findGetMembers();
 virtual Dsymbol* symtabInsert(Dsymbol* s);
 virtual Dsymbol* symtabLookup(Dsymbol* s, Identifier* id);
 bool hasStaticCtorOrDtor();
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 ScopeDsymbol* isScopeDsymbol();
 void accept(Visitor* v);
 ~ScopeDsymbol();
@@ -1044,7 +1010,6 @@ struct Prot
 {
 Kind kind;
 Package* pkg;
-// ignoring extern () block because of linkage
 bool isMoreRestrictiveThan(const Prot other) const;
 bool opEquals(const Prot& other) const;
 bool isSubsetOf(const Prot& parent) const;
@@ -1059,7 +1024,6 @@ uint8_t size;
 uint8_t parens;
 Type* type;
 Loc loc;
-// ignoring extern () block because of linkage
 static void _init();
 static void deinitialize();
 Expression* copy();
@@ -1070,11 +1034,6 @@ void error(const char* format, ...) const;
 void errorSupplemental(const char* format, ...);
 void warning(const char* format, ...) const;
 void deprecation(const char* format, ...) const;
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 virtual dinteger_t toInteger();
 virtual uinteger_t toUInteger();
 virtual _d_real toReal();
@@ -1091,20 +1050,8 @@ Expression* castTo(Scope* sc, Type* t);
 virtual Expression* resolveLoc(const Loc& loc, Scope* sc);
 virtual bool checkType();
 virtual bool checkValue();
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 bool checkDeprecated(Scope* sc, Dsymbol* s);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 static bool checkImpure(Scope* sc);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 virtual Modifiable checkModifiable(Scope* sc, int32_t flag = 0);
 virtual Expression* toBoolean(Scope* sc);
 virtual Expression* addDtorHook(Scope* sc);
@@ -1231,7 +1178,6 @@ Identifier* identifier;
 ClassDeclaration* classDeclaration;
 ClassDeclaration* metaclass;
 Array<FuncDeclaration*>* methodList;
-// ignoring extern () block because of linkage
 bool isRootClass() const;
 ObjcClassDeclaration() : isMeta(false), isExtern(false), identifier(), classDeclaration(), metaclass(), methodList() {}
 };
@@ -1239,49 +1185,28 @@ ObjcClassDeclaration() : isMeta(false), isExtern(false), identifier(), classDecl
 struct FileName
 {
 DArray< const char > str;
-// ignoring extern () block because of linkage
 static bool equals(const char* name1, const char* name2);
-// ignoring extern () block because of linkage
 static bool absolute(const char* name);
-// ignoring extern () block because of linkage
 static const char* toAbsolute(const char* name, const char* base);
 static const char* ext(const char* str);
-// ignoring extern () block because of linkage
 const char* ext() const;
 static const char* removeExt(const char* str);
-// ignoring extern () block because of linkage
 static const char* name(const char* str);
-// ignoring extern () block because of linkage
 const char* name() const;
 static const char* path(const char* str);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 static const char* combine(const char* path, const char* name);
-// ignoring extern () block because of linkage
-// ignoring function dmd.root.filename.FileName.buildPath because of linkage
 static Array<const char*>* splitPath(const char* path);
-// ignoring function dmd.root.filename.FileName.splitPath because of linkage
-// ignoring extern () block because of linkage
 static const char* defaultExt(const char* name, const char* ext);
-// ignoring extern () block because of linkage
 static const char* forceExt(const char* name, const char* ext);
-// ignoring extern () block because of linkage
 static bool equalsExt(const char* name, const char* ext);
-// ignoring extern () block because of linkage
 bool equalsExt(const char* ext) const;
 static const char* searchPath(Array<const char*>* path, const char* name, bool cwd);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 static const char* safeSearchPath(Array<const char*>* path, const char* name);
 static int32_t exists(const char* name);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 static bool ensurePathExists(const char* path);
 static const char* canonicalName(const char* name);
-// ignoring extern () block because of linkage
 static void free(const char* str);
 const char* toChars() const;
-// ignoring function dmd.root.filename.FileName.toString because of linkage
 FileName() {}
 };
 
@@ -1363,16 +1288,12 @@ static ClassDeclaration* typeinfoshared;
 static ClassDeclaration* typeinfowild;
 static TemplateDeclaration* rtinfo;
 static Type* basic[46LLU];
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 virtual const char* kind() const;
 Type* copy() const;
 virtual Type* syntaxCopy();
 bool equals(const RootObject* const o) const;
 bool equivalent(Type* t);
 DYNCAST dyncast() const;
-// ignoring extern () block because of linkage
 int32_t covariant(Type* t, uint64_t* pstc);
 const char* toChars() const;
 char* toPrettyChars(bool QualifyTypes = false);
@@ -1429,7 +1350,6 @@ Type* arrayOf();
 Type* sarrayOf(dinteger_t dim);
 bool hasDeprecatedAliasThis();
 Type* aliasthisOf();
-// ignoring extern () block because of linkage
 virtual Type* makeConst();
 virtual Type* makeImmutable();
 virtual Type* makeShared();
@@ -1463,7 +1383,6 @@ uinteger_t sizemask();
 virtual bool needsDestruction();
 virtual bool needsCopyOrPostblit();
 virtual bool needsNested();
-// ignoring extern () block because of linkage
 virtual TypeBasic* isTypeBasic();
 TypeError* isTypeError();
 TypeVector* isTypeVector();
@@ -1716,7 +1635,6 @@ virtual void visit(VoidInitializer* i);
 class Visitor : public ParseTimeVisitor
 {
 public:
-// ignored function alias dmd.visitor.Visitor.visit
 virtual void visit(ErrorStatement* s);
 virtual void visit(PeelStatement* s);
 virtual void visit(UnrolledLoopStatement* s);
@@ -1781,7 +1699,6 @@ virtual void visit(ThrownExceptionExp* e);
 class SemanticTimePermissiveVisitor : public Visitor
 {
 public:
-// ignored function alias dmd.visitor.SemanticTimePermissiveVisitor.visit
 void visit(Dsymbol* _param_0);
 void visit(Parameter* _param_0);
 void visit(Statement* _param_0);
@@ -1795,7 +1712,6 @@ void visit(Initializer* _param_0);
 class StatementRewriteWalker : public SemanticTimePermissiveVisitor
 {
 public:
-// ignored function alias dmd.statement_rewrite_walker.StatementRewriteWalker.visit
 Statement** ps;
 void visitStmt(Statement*& s);
 void replaceCurrent(Statement* s);
@@ -1837,18 +1753,13 @@ VarArg varargs;
 ParameterList(Array<Parameter*>* parameters, VarArg varargs = cast(VarArg)cast(ubyte)0u, StorageClass stc = 0);
 size_t length();
 Parameter* opIndex(size_t i);
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 ParameterList() : parameters(), stc(), varargs((VarArg)0u) {}
 };
 
 class StoppableVisitor : public Visitor
 {
 public:
-// ignored function alias dmd.visitor.Visitor.visit
 bool stop;
-// ignoring extern () block because of linkage
 };
 
 struct TargetC
@@ -1856,8 +1767,6 @@ struct TargetC
 uint32_t longsize;
 uint32_t long_doublesize;
 uint32_t criticalSectionSize;
-// ignoring extern () block because of linkage
-// ignoring function dmd.target.TargetC.getCriticalSectionSize because of linkage
 TargetC() : longsize(), long_doublesize(), criticalSectionSize() {}
 };
 
@@ -1866,7 +1775,6 @@ struct TargetCPP
 bool reverseOverloads;
 bool exceptions;
 bool twoDtorInVtable;
-// ignoring extern () block because of linkage
 const char* toMangle(Dsymbol* s);
 const char* typeInfoMangle(ClassDeclaration* cd);
 const char* typeMangle(Type* t);
@@ -1878,7 +1786,6 @@ TargetCPP() : reverseOverloads(), exceptions(), twoDtorInVtable() {}
 struct TargetObjC
 {
 bool supported;
-// ignoring extern () block because of linkage
 TargetObjC() : supported() {}
 };
 
@@ -1942,14 +1849,6 @@ static Complex_ld sqrtc(Complex_ld& z);
 Complex_ld() {}
 };
 
-// ignoring function dmd.access.checkAccess because of linkage
-// ignoring function dmd.access.checkAccess because of linkage
-// ignoring function dmd.access.checkAccess because of linkage
-// ignoring function dmd.access.symbolIsVisible because of linkage
-// ignoring function dmd.access.symbolIsVisible because of linkage
-// ignoring function dmd.access.symbolIsVisible because of linkage
-// ignoring function dmd.access.checkSymbolAccess because of linkage
-// ignoring function dmd.access.mostVisibleOverload because of linkage
 BEGIN_ENUM(Sizeok, SIZEOK, sizeok)
     ENUM_KEY(int32_t, none, 0, Sizeok, SIZEOK, sizeok, S)
     ENUM_KEY(int32_t, fwd, 1, Sizeok, SIZEOK, sizeok, S)
@@ -1999,7 +1898,6 @@ public:
     Prot protection;
     bool noDefaultCtor;
     Sizeok sizeok;
-    // ignoring extern () block because of linkage
     virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     bool determineFields();
@@ -2007,16 +1905,11 @@ public:
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
     d_uns64 size(const Loc& loc);
-    // ignoring extern () block because of linkage
     bool fill(Loc loc, Array<Expression*>* elements, bool ctorinit);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Type* getType();
     bool isDeprecated() const;
     void setDeprecated();
     bool isNested() const;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool isExport() const;
     Dsymbol* searchCtor();
     Prot prot();
@@ -2034,7 +1927,6 @@ public:
     Identifier* ident;
     Dsymbol* sym;
     bool isDeprecated_;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     AliasThis* isAliasThis();
@@ -2042,9 +1934,6 @@ public:
     bool isDeprecated() const;
 };
 
-// ignoring function dmd.aliasthis.resolveAliasThis because of linkage
-// ignoring function dmd.aliasthis.checkDeprecatedAliasThis because of linkage
-// ignoring function dmd.apply.walkPostorder because of linkage
 extern TypeTuple* toArgTypes_x86(Type* t);
 
 extern TypeTuple* toArgTypes_sysv_x64(Type* t);
@@ -2053,17 +1942,6 @@ extern TypeTuple* toArgTypes_aarch64(Type* t);
 
 extern bool isHFVA(Type* t, int32_t maxNumElements = 4, Type** rewriteType);
 
-// ignoring function dmd.arrayop.isArrayOpValid because of linkage
-// ignoring function dmd.arrayop.isNonAssignmentArrayOp because of linkage
-// ignoring function dmd.arrayop.checkNonAssignmentArrayOp because of linkage
-// ignoring function dmd.arrayop.arrayOp because of linkage
-// ignoring function dmd.arrayop.arrayOp because of linkage
-// ignoring function dmd.arrayop.isArrayOpImplicitCast because of linkage
-// ignoring function dmd.arrayop.isUnaArrayOp because of linkage
-// ignoring function dmd.arrayop.isBinArrayOp because of linkage
-// ignoring function dmd.arrayop.isBinAssignArrayOp because of linkage
-// ignoring function dmd.arrayop.isArrayOpOperand because of linkage
-// ignoring function dmd.arrayop.arrayOpInvalidError because of linkage
 typedef Array<const char*> Strings;
 
 typedef Array<Identifier*> Identifiers;
@@ -2118,25 +1996,11 @@ typedef Array<TemplateInstance*> TemplateInstances;
 
 typedef Array<Ensure> Ensures;
 
-// ignoring non-cpp struct ASTCodegen because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
-// ignoring function dmd.asttypename.astTypeName because of linkage
 class AttribDeclaration : public Dsymbol
 {
 public:
     Array<Dsymbol*>* decl;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     virtual Array<Dsymbol*>* include(Scope* sc);
-    // ignoring extern () block because of linkage
     virtual Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
@@ -2158,7 +2022,6 @@ class StorageClassDeclaration : public AttribDeclaration
 {
 public:
     StorageClass stc;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool oneMember(Dsymbol** ps, Identifier* ident);
@@ -2172,7 +2035,6 @@ class DeprecatedDeclaration : public StorageClassDeclaration
 public:
     Expression* msg;
     char* msgstr;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
@@ -2183,12 +2045,10 @@ class LinkDeclaration : public AttribDeclaration
 {
 public:
     LINK linkage;
-    // ignoring extern () block because of linkage
     static LinkDeclaration* create(LINK p, Array<Dsymbol*>* decl);
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -2196,12 +2056,10 @@ class CPPMangleDeclaration : public AttribDeclaration
 {
 public:
     CPPMANGLE cppmangle;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -2209,13 +2067,9 @@ class CPPNamespaceDeclaration : public AttribDeclaration
 {
 public:
     Expression* exp;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
 };
@@ -2225,8 +2079,6 @@ class ProtDeclaration : public AttribDeclaration
 public:
     Prot protection;
     Array<Identifier*>* pkg_identifiers;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -2243,7 +2095,6 @@ public:
     ENUM_CONSTANT_NUMERIC(uint32_t, UNKNOWN, 0u)
 
     uint32_t salign;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void accept(Visitor* v);
@@ -2257,7 +2108,6 @@ public:
     uint32_t anonoffset;
     uint32_t anonstructsize;
     uint32_t anonalignsize;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     void setScope(Scope* sc);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
@@ -2270,7 +2120,6 @@ class PragmaDeclaration : public AttribDeclaration
 {
 public:
     Array<Expression*>* args;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     const char* kind() const;
@@ -2282,7 +2131,6 @@ class ConditionalDeclaration : public AttribDeclaration
 public:
     Condition* condition;
     Array<Dsymbol*>* elsedecl;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     Array<Dsymbol*>* include(Scope* sc);
@@ -2297,7 +2145,6 @@ public:
     ScopeDsymbol* scopesym;
     bool addisdone;
     bool onStack;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Array<Dsymbol*>* include(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -2315,7 +2162,6 @@ public:
     bool onStack;
     bool cached;
     Array<Dsymbol*>* cache;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     Array<Dsymbol*>* include(Scope* sc);
@@ -2344,7 +2190,6 @@ public:
     Array<Expression*>* exps;
     ScopeDsymbol* scopesym;
     bool compiled;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
@@ -2357,11 +2202,9 @@ class UserAttributeDeclaration : public AttribDeclaration
 {
 public:
     Array<Expression*>* atts;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
-    // ignoring extern () block because of linkage
     Array<Expression*>* getAttributes();
     const char* kind() const;
     void accept(Visitor* v);
@@ -2382,15 +2225,12 @@ BEGIN_ENUM(BE, BE, be)
     ENUM_KEY(int32_t, any, 31, BE, BE, be, BE)
 END_ENUM(BE, BE, be)
 
-// ignoring function dmd.blockexit.blockExit because of linkage
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
 extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression*>* arguments);
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
-// ignoring function dmd.chkformat.checkPrintfFormat because of linkage
-// ignoring function dmd.chkformat.checkScanfFormat because of linkage
 BEGIN_ENUM(TargetOS, TARGETOS, targetos)
     ENUM_KEY(int32_t, all, 2147483647, TargetOS, TARGETOS, targetos, TOS)
     ENUM_KEY(int32_t, linux, 1, TargetOS, TARGETOS, targetos, TOS)
@@ -2401,21 +2241,6 @@ BEGIN_ENUM(TargetOS, TARGETOS, targetos)
     ENUM_KEY(int32_t, dragonFlyBSD, 32, TargetOS, TARGETOS, targetos, TOS)
 END_ENUM(TargetOS, TARGETOS, targetos)
 
-// ignoring function dmd.cli.isCurrentTargetOS because of linkage
-// ignoring function dmd.cli.capitalize because of linkage
-// ignoring non-cpp struct Usage because of linkage
-// ignoring non-cpp struct CLIUsage because of linkage
-// ignoring function dmd.clone.mergeFuncAttrs because of linkage
-// ignoring function dmd.clone.hasIdentityOpAssign because of linkage
-// ignoring function dmd.clone.buildOpAssign because of linkage
-// ignoring function dmd.clone.needOpEquals because of linkage
-// ignoring function dmd.clone.buildOpEquals because of linkage
-// ignoring function dmd.clone.buildXopEquals because of linkage
-// ignoring function dmd.clone.buildXopCmp because of linkage
-// ignoring function dmd.clone.buildXtoHash because of linkage
-// ignoring function dmd.clone.buildDtor because of linkage
-// ignoring function dmd.clone.buildExternDDtor because of linkage
-// ignoring function dmd.clone.buildInv because of linkage
 extern Module* rootHasMain;
 
 extern bool includeImports;
@@ -2440,15 +2265,6 @@ struct complex_t
     public:
     complex_t(_d_real re);
     complex_t(_d_real re, _d_real im);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     int32_t opEquals(complex_t y) const;
 };
 
@@ -2468,7 +2284,6 @@ public:
     Loc loc;
     Include inc;
     DYNCAST dyncast() const;
-    // ignoring extern () block because of linkage
     virtual Condition* syntaxCopy() = 0;
     virtual int32_t include(Scope* sc) = 0;
     virtual DebugCondition* isDebugCondition();
@@ -2479,21 +2294,12 @@ public:
 class StaticForeach : public RootObject
 {
 public:
-    // ignoring extern () block because of linkage
     Loc loc;
     ForeachStatement* aggrfe;
     ForeachRangeStatement* rangefe;
     bool needExpansion;
-    // ignoring extern () block because of linkage
     StaticForeach* syntaxCopy();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void lowerNonArrayAggregate(Scope* sc);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
 };
 
 class DVCondition : public Condition
@@ -2502,7 +2308,6 @@ public:
     uint32_t level;
     Identifier* ident;
     Module* mod;
-    // ignoring extern () block because of linkage
     Condition* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -2511,9 +2316,6 @@ class DebugCondition : public DVCondition
 {
 public:
     static void addGlobalIdent(const char* ident);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     int32_t include(Scope* sc);
     DebugCondition* isDebugCondition();
     void accept(Visitor* v);
@@ -2523,15 +2325,8 @@ public:
 class VersionCondition : public DVCondition
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static void addGlobalIdent(const char* ident);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static void addPredefinedGlobalIdent(const char* ident);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     int32_t include(Scope* sc);
     VersionCondition* isVersionCondition();
     void accept(Visitor* v);
@@ -2542,45 +2337,12 @@ class StaticIfCondition : public Condition
 {
 public:
     Expression* exp;
-    // ignoring extern () block because of linkage
     Condition* syntaxCopy();
     int32_t include(Scope* sc);
     void accept(Visitor* v);
     const char* toChars() const;
 };
 
-// ignoring function dmd.cond.findCondition because of linkage
-// ignoring function dmd.constfold.isConst because of linkage
-// ignoring function dmd.constfold.cantExp because of linkage
-// ignoring function dmd.constfold.Neg because of linkage
-// ignoring function dmd.constfold.Com because of linkage
-// ignoring function dmd.constfold.Not because of linkage
-// ignoring function dmd.constfold.Add because of linkage
-// ignoring function dmd.constfold.Min because of linkage
-// ignoring function dmd.constfold.Mul because of linkage
-// ignoring function dmd.constfold.Div because of linkage
-// ignoring function dmd.constfold.Mod because of linkage
-// ignoring function dmd.constfold.Pow because of linkage
-// ignoring function dmd.constfold.Shl because of linkage
-// ignoring function dmd.constfold.Shr because of linkage
-// ignoring function dmd.constfold.Ushr because of linkage
-// ignoring function dmd.constfold.And because of linkage
-// ignoring function dmd.constfold.Or because of linkage
-// ignoring function dmd.constfold.Xor because of linkage
-// ignoring function dmd.constfold.Equal because of linkage
-// ignoring function dmd.constfold.Identity because of linkage
-// ignoring function dmd.constfold.Cmp because of linkage
-// ignoring function dmd.constfold.Cast because of linkage
-// ignoring function dmd.constfold.ArrayLength because of linkage
-// ignoring function dmd.constfold.Index because of linkage
-// ignoring function dmd.constfold.Slice because of linkage
-// ignoring function dmd.constfold.sliceAssignArrayLiteralFromString because of linkage
-// ignoring function dmd.constfold.sliceAssignStringFromArrayLiteral because of linkage
-// ignoring function dmd.constfold.sliceAssignStringFromString because of linkage
-// ignoring function dmd.constfold.sliceCmpStringWithString because of linkage
-// ignoring function dmd.constfold.sliceCmpStringWithArray because of linkage
-// ignoring function dmd.constfold.Cat because of linkage
-// ignoring function dmd.constfold.Ptr because of linkage
 BEGIN_ENUM(CppOperator, CPPOPERATOR, cppoperator)
     ENUM_KEY(int32_t, Cast, 0, CppOperator, CPPOPERATOR, cppoperator, CO)
     ENUM_KEY(int32_t, Assign, 1, CppOperator, CPPOPERATOR, cppoperator, CO)
@@ -2597,7 +2359,6 @@ extern const char* toCppMangleItanium(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleItanium(Dsymbol* s);
 
-// ignoring function dmd.cppmangle.isPrimaryDtor because of linkage
 extern const char* toCppMangleMSVC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleMSVC(Dsymbol* s);
@@ -2606,80 +2367,26 @@ class ClassReferenceExp : public Expression
 {
 public:
     StructLiteralExp* value;
-    // ignoring extern () block because of linkage
     ClassDeclaration* originalClass();
     int32_t getFieldIndex(Type* fieldtype, uint32_t fieldoffset);
     int32_t findFieldIndexByName(VarDeclaration* v);
     void accept(Visitor* v);
 };
 
-// ignoring function dmd.ctfeexpr.findFieldIndexByName because of linkage
 class ThrownExceptionExp : public Expression
 {
 public:
     ClassReferenceExp* thrown;
-    // ignoring extern () block because of linkage
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class CTFEExp : public Expression
 {
 public:
-    // ignoring extern () block because of linkage
     const char* toChars() const;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
 };
 
-// ignoring function dmd.ctfeexpr.exceptionOrCantInterpret because of linkage
-// ignoring function dmd.ctfeexpr.needToCopyLiteral because of linkage
-// ignoring function dmd.ctfeexpr.copyLiteral because of linkage
-// ignoring function dmd.ctfeexpr.paintTypeOntoLiteral because of linkage
-// ignoring function dmd.ctfeexpr.paintTypeOntoLiteral because of linkage
-// ignoring function dmd.ctfeexpr.resolveSlice because of linkage
-// ignoring function dmd.ctfeexpr.resolveArrayLength because of linkage
-// ignoring function dmd.ctfeexpr.createBlockDuplicatedArrayLiteral because of linkage
-// ignoring function dmd.ctfeexpr.createBlockDuplicatedStringLiteral because of linkage
-// ignoring function dmd.ctfeexpr.isAssocArray because of linkage
-// ignoring function dmd.ctfeexpr.toBuiltinAAType because of linkage
-// ignoring function dmd.ctfeexpr.isTypeInfo_Class because of linkage
-// ignoring function dmd.ctfeexpr.isPointer because of linkage
-// ignoring function dmd.ctfeexpr.isTrueBool because of linkage
-// ignoring function dmd.ctfeexpr.isSafePointerCast because of linkage
-// ignoring function dmd.ctfeexpr.getAggregateFromPointer because of linkage
-// ignoring function dmd.ctfeexpr.pointToSameMemoryBlock because of linkage
-// ignoring function dmd.ctfeexpr.pointerDifference because of linkage
-// ignoring function dmd.ctfeexpr.pointerArithmetic because of linkage
-// ignoring function dmd.ctfeexpr.comparePointers because of linkage
-// ignoring function dmd.ctfeexpr.isFloatIntPaint because of linkage
-// ignoring function dmd.ctfeexpr.paintFloatInt because of linkage
-// ignoring function dmd.ctfeexpr.isCtfeComparable because of linkage
-// ignoring function dmd.ctfeexpr.specificCmp because of linkage
-// ignoring function dmd.ctfeexpr.intUnsignedCmp because of linkage
-// ignoring function dmd.ctfeexpr.intSignedCmp because of linkage
-// ignoring function dmd.ctfeexpr.realCmp because of linkage
-// ignoring function dmd.ctfeexpr.ctfeEqual because of linkage
-// ignoring function dmd.ctfeexpr.ctfeIdentity because of linkage
-// ignoring function dmd.ctfeexpr.ctfeCmp because of linkage
-// ignoring function dmd.ctfeexpr.ctfeCat because of linkage
-// ignoring function dmd.ctfeexpr.findKeyInAA because of linkage
-// ignoring function dmd.ctfeexpr.ctfeIndex because of linkage
-// ignoring function dmd.ctfeexpr.ctfeCast because of linkage
-// ignoring function dmd.ctfeexpr.assignInPlace because of linkage
-// ignoring function dmd.ctfeexpr.assignAssocArrayElement because of linkage
-// ignoring function dmd.ctfeexpr.changeArrayLiteralLength because of linkage
-// ignoring function dmd.ctfeexpr.isCtfeValueValid because of linkage
-// ignoring function dmd.ctfeexpr.isCtfeReferenceValid because of linkage
-// ignoring function dmd.ctfeexpr.showCtfeExpr because of linkage
-// ignoring function dmd.ctfeexpr.voidInitLiteral because of linkage
 BEGIN_ENUM_NUMERIC(uint16_t, CSX, CSX, csx)
     ENUM_KEY_NUMERIC(uint16_t, none, 0u, CSX, CSX, csx, CSX)
     ENUM_KEY_NUMERIC(uint16_t, this_ctor, 1u, CSX, CSX, csx, CSX)
@@ -2690,25 +2397,10 @@ BEGIN_ENUM_NUMERIC(uint16_t, CSX, CSX, csx)
     ENUM_KEY_NUMERIC(uint16_t, halt, 32u, CSX, CSX, csx, CSX)
 END_ENUM_NUMERIC(uint16_t, CSX, CSX, csx)
 
-// ignoring non-cpp struct FieldInit because of linkage
-// ignoring non-cpp struct CtorFlow because of linkage
-// ignoring function dmd.ctorflow.mergeCallSuper because of linkage
-// ignoring function dmd.ctorflow.mergeFieldInit because of linkage
 ENUM_CONSTANT_NUMERIC(bool, LOG, false)
 
-// ignoring function dmd.dcast.implicitCastTo because of linkage
-// ignoring function dmd.dcast.implicitConvTo because of linkage
-// ignoring function dmd.dcast.toStaticArrayType because of linkage
-// ignoring function dmd.dcast.castTo because of linkage
-// ignoring function dmd.dcast.inferType because of linkage
-// ignoring function dmd.dcast.scaleFactor because of linkage
-// ignoring function dmd.dcast.typeMerge because of linkage
-// ignoring function dmd.dcast.typeCombine because of linkage
-// ignoring function dmd.dcast.integralPromotions because of linkage
-// ignoring function dmd.dcast.fix16997 because of linkage
 extern bool arrayTypeCompatibleWithoutCasting(Type* t1, Type* t2);
 
-// ignoring function dmd.dcast.getIntRange because of linkage
 BEGIN_ENUM(Abstract, ABSTRACT, abstract)
     ENUM_KEY(int32_t, fwdref, 0, Abstract, ABSTRACT, abstract, A)
     ENUM_KEY(int32_t, yes, 1, Abstract, ABSTRACT, abstract, A)
@@ -2722,13 +2414,8 @@ struct BaseClass
     uint32_t offset;
     Array<FuncDeclaration*> vtbl;
     DArray< BaseClass > baseInterfaces;
-    // ignoring extern () block because of linkage
     bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration*>* vtbl, int32_t newinstance);
-    // ignoring extern () block because of linkage
     ~BaseClass();
-    // ignoring function dmd.dclass.BaseClass.__fieldPostblit because of linkage
-    // ignored generated function dmd.dclass.BaseClass.__fieldPostblit
-    // ignoring function dmd.dclass.BaseClass.opAssign because of linkage
     BaseClass() : type(), sym(), offset(), vtbl(), baseInterfaces() {}
 };
 
@@ -2770,7 +2457,6 @@ public:
     Baseok baseok;
     ObjcClassDeclaration objc;
     Symbol* cpp_type_info_ptr_sym;
-    // ignoring extern () block because of linkage
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass*>* baseclasses, Array<Dsymbol*>* members, bool inObject);
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
@@ -2806,7 +2492,6 @@ public:
 class InterfaceDeclaration : public ClassDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
@@ -2820,8 +2505,6 @@ public:
     ~InterfaceDeclaration();
 };
 
-// ignoring function dmd.declaration.checkFrameAccess because of linkage
-// ignoring function dmd.declaration.modifyFieldVar because of linkage
 extern void ObjectNotFound(Identifier* id);
 
 BEGIN_ENUM_NUMERIC(uint64_t, STC, STC, stc)
@@ -2891,7 +2574,6 @@ ENUM_CONSTANT(STC, STCFlowThruAggregate, (STC)60129542144LLU)
 
 ENUM_CONSTANT(STC, STCFlowThruFunction, (STC)18446726413102348896LLU)
 
-// ignoring non-cpp struct MatchAccumulator because of linkage
 class Declaration : public Dsymbol
 {
 public:
@@ -2902,12 +2584,8 @@ public:
     LINK linkage;
     int32_t inuse;
     DArray< char > mangleOverride;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     const char* kind() const;
     d_uns64 size(const Loc& loc);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     bool isStatic() const;
     virtual bool isDelete();
@@ -2944,7 +2622,6 @@ public:
     Array<RootObject*>* objects;
     bool isexp;
     TypeTuple* tupletype;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     Type* getType();
@@ -2960,8 +2637,6 @@ public:
     Dsymbol* aliassym;
     Dsymbol* overnext;
     Dsymbol* _import;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool overloadInsert(Dsymbol* s);
@@ -2971,7 +2646,6 @@ public:
     Dsymbol* toAlias2();
     bool isOverloadable() const;
     AliasDeclaration* isAliasDeclaration();
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -2981,7 +2655,6 @@ public:
     Dsymbol* overnext;
     Dsymbol* aliassym;
     bool hasOverloads;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     bool equals(const RootObject* const o) const;
     bool overloadInsert(Dsymbol* s);
@@ -3021,7 +2694,6 @@ public:
     Expression* edtor;
     IntRange* range;
     Array<VarDeclaration*>* maybes;
-    // ignoring extern () block because of linkage
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class);
     Dsymbol* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
@@ -3037,11 +2709,7 @@ public:
     bool hasPointers();
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void checkCtorConstInit();
-    // ignoring extern () block because of linkage
     Dsymbol* toAlias();
     VarDeclaration* isVarDeclaration();
     void accept(Visitor* v);
@@ -3054,7 +2722,6 @@ class SymbolDeclaration : public Declaration
 {
 public:
     StructDeclaration* dsym;
-    // ignoring extern () block because of linkage
     SymbolDeclaration* isSymbolDeclaration();
     void accept(Visitor* v);
 };
@@ -3063,7 +2730,6 @@ class TypeInfoDeclaration : public VarDeclaration
 {
 public:
     Type* tinfo;
-    // ignoring extern () block because of linkage
     static TypeInfoDeclaration* create(Type* tinfo);
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* toChars() const;
@@ -3075,7 +2741,6 @@ public:
 class TypeInfoStructDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoStructDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoStructDeclaration();
@@ -3084,7 +2749,6 @@ public:
 class TypeInfoClassDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoClassDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoClassDeclaration();
@@ -3093,7 +2757,6 @@ public:
 class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoInterfaceDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoInterfaceDeclaration();
@@ -3102,7 +2765,6 @@ public:
 class TypeInfoPointerDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoPointerDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoPointerDeclaration();
@@ -3111,7 +2773,6 @@ public:
 class TypeInfoArrayDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoArrayDeclaration();
@@ -3120,7 +2781,6 @@ public:
 class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoStaticArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoStaticArrayDeclaration();
@@ -3129,7 +2789,6 @@ public:
 class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoAssociativeArrayDeclaration();
@@ -3138,7 +2797,6 @@ public:
 class TypeInfoEnumDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoEnumDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoEnumDeclaration();
@@ -3147,7 +2805,6 @@ public:
 class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoFunctionDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoFunctionDeclaration();
@@ -3156,7 +2813,6 @@ public:
 class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoDelegateDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoDelegateDeclaration();
@@ -3165,7 +2821,6 @@ public:
 class TypeInfoTupleDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoTupleDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoTupleDeclaration();
@@ -3174,7 +2829,6 @@ public:
 class TypeInfoConstDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoConstDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoConstDeclaration();
@@ -3183,7 +2837,6 @@ public:
 class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoInvariantDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoInvariantDeclaration();
@@ -3192,7 +2845,6 @@ public:
 class TypeInfoSharedDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoSharedDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoSharedDeclaration();
@@ -3201,7 +2853,6 @@ public:
 class TypeInfoWildDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoWildDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoWildDeclaration();
@@ -3210,7 +2861,6 @@ public:
 class TypeInfoVectorDeclaration : public TypeInfoDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeInfoVectorDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
     ~TypeInfoVectorDeclaration();
@@ -3219,16 +2869,12 @@ public:
 class ThisDeclaration : public VarDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     ThisDeclaration* isThisDeclaration();
     void accept(Visitor* v);
     ~ThisDeclaration();
 };
 
-// ignoring function dmd.delegatize.toDelegate because of linkage
-// ignoring function dmd.delegatize.lambdaCheckForNestedRef because of linkage
-// ignoring function dmd.delegatize.ensureStaticLinkTo because of linkage
 class EnumDeclaration : public ScopeDsymbol
 {
 public:
@@ -3241,7 +2887,6 @@ public:
     bool isdeprecated;
     bool added;
     int32_t inuse;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
@@ -3268,8 +2913,6 @@ public:
     Expression* origValue;
     Type* origType;
     EnumDeclaration* ed;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     Expression* getVarExp(const Loc& loc, Scope* sc);
@@ -3278,7 +2921,6 @@ public:
     ~EnumMember();
 };
 
-// ignoring function dmd.denum.isSpecialEnumIdent because of linkage
 class Import : public Dsymbol
 {
 public:
@@ -3292,8 +2934,6 @@ public:
     Module* mod;
     Package* pkg;
     Array<AliasDeclaration*> aliasdecls;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Prot prot();
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -3309,22 +2949,12 @@ public:
     ~Import();
 };
 
-// ignoring function dmd.dinifile.findConfFile because of linkage
-// ignoring function dmd.dinifile.readFromEnv because of linkage
-// ignoring function dmd.dinifile.updateRealEnvironment because of linkage
-// ignoring function dmd.dinifile.parseConfFile because of linkage
-// ignoring function dmd.dinterpret.ctfeInterpret because of linkage
-// ignoring function dmd.dinterpret.ctfeInterpretForPragmaMsg because of linkage
 extern Expression* getValue(VarDeclaration* vd);
 
 extern void printCtfePerformanceStats();
 
-// ignoring function dmd.dinterpret.incArrayAllocs because of linkage
 struct MacroTable
 {
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Macro* mactab;
     MacroTable() {}
 };
@@ -3339,9 +2969,6 @@ extern void mangleToBuffer(Dsymbol* s, OutBuffer* buf);
 
 extern void mangleToBuffer(TemplateInstance* ti, OutBuffer* buf);
 
-// ignoring function dmd.dmangle.mangleToFuncSignature because of linkage
-// ignoring function dmd.dmodule.semantic3OnDependencies because of linkage
-// ignoring function dmd.dmodule.removeHdrFilesAndFail because of linkage
 BEGIN_ENUM(PKG, PKG, pkg)
     ENUM_KEY(int32_t, unknown, 0, PKG, PKG, pkg, PKG)
     ENUM_KEY(int32_t, module_, 1, PKG, PKG, pkg, PKG)
@@ -3354,10 +2981,8 @@ public:
     PKG isPkgMod;
     uint32_t tag;
     Module* mod;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     bool equals(const RootObject* const o) const;
-    // ignoring extern () block because of linkage
     Package* isPackage();
     bool isAncestorPackageOf(const Package* const pkg) const;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
@@ -3417,18 +3042,12 @@ public:
     Escape* escapetable;
     size_t nameoffset;
     size_t namelen;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
-    // ignoring extern () block because of linkage
     static Module* load(Loc loc, Array<Identifier*>* packages, Identifier* ident);
     const char* kind() const;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool loadSourceBuffer(const Loc& loc, ReadResult& readResult);
     bool read(const Loc& loc);
     Module* parse();
-    // ignoring extern () block because of linkage
     void importAll(Scope* prevsc);
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
@@ -3436,13 +3055,9 @@ public:
     bool isPackageAccessible(Package* p, Prot protection, int32_t flags = 0);
     Dsymbol* symtabInsert(Dsymbol* s);
     void deleteObjFile();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static void runDeferredSemantic();
     static void runDeferredSemantic2();
     static void runDeferredSemantic3();
-    // ignoring extern () block because of linkage
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);
@@ -3470,21 +3085,12 @@ struct ModuleDeclaration
     Array<Identifier*>* packages;
     bool isdeprecated;
     Expression* msg;
-    // ignoring extern () block because of linkage
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     ModuleDeclaration() : loc(), id(), packages(), isdeprecated(), msg() {}
 };
 
-// ignoring non-cpp struct Escape because of linkage
 extern void gendocfile(Module* m);
 
-// ignoring function dmd.doc.escapeDdocString because of linkage
-// ignoring non-cpp struct DocComment because of linkage
-// ignoring function dmd.doc.skiptoident because of linkage
-// ignoring function dmd.doc.isIdStart because of linkage
-// ignoring function dmd.doc.isIdTail because of linkage
-// ignoring function dmd.doc.utfStride because of linkage
 BEGIN_ENUM(SCOPE, SCOPE, scope)
     ENUM_KEY(int32_t, ctor, 1, SCOPE, SCOPE, scope, SCOPE)
     ENUM_KEY(int32_t, noaccesscheck, 2, SCOPE, SCOPE, scope, SCOPE)
@@ -3508,7 +3114,6 @@ END_ENUM(SCOPE, SCOPE, scope)
 
 ENUM_CONSTANT(SCOPE, SCOPEpush, (SCOPE)788474)
 
-// ignoring non-cpp struct Scope because of linkage
 extern FuncDeclaration* search_toString(StructDeclaration* sd);
 
 extern void semanticTypeInfo(Scope* sc, Type* t);
@@ -3544,7 +3149,6 @@ public:
     uint32_t alignment;
     StructPOD ispod;
     TypeTuple* argTypes;
-    // ignoring extern () block because of linkage
     static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);
     Dsymbol* syntaxCopy(Dsymbol* s);
     void semanticTypeInfoMembers();
@@ -3564,7 +3168,6 @@ public:
 class UnionDeclaration : public StructDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     UnionDeclaration* isUnionDeclaration();
@@ -3572,9 +3175,6 @@ public:
     ~UnionDeclaration();
 };
 
-// ignoring function dmd.dsymbol.foreachDsymbol because of linkage
-// ignoring function dmd.dsymbol.foreachDsymbol because of linkage
-// ignoring non-cpp struct Ungag because of linkage
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, IgnoreNone, 0)
     ANON_ENUM_KEY(int32_t, IgnorePrivateImports, 1)
@@ -3590,7 +3190,6 @@ class WithScopeSymbol : public ScopeDsymbol
 {
 public:
     WithStatement* withstate;
-    // ignoring extern () block because of linkage
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     WithScopeSymbol* isWithScopeSymbol();
     void accept(Visitor* v);
@@ -3602,9 +3201,6 @@ class ArrayScopeSymbol : public ScopeDsymbol
 public:
     RootObject* arrayContent;
     Scope* sc;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     ArrayScopeSymbol* isArrayScopeSymbol();
     void accept(Visitor* v);
@@ -3615,7 +3211,6 @@ class OverloadSet : public Dsymbol
 {
 public:
     Array<Dsymbol*> a;
-    // ignoring extern () block because of linkage
     void push(Dsymbol* s);
     OverloadSet* isOverloadSet();
     const char* kind() const;
@@ -3627,7 +3222,6 @@ class ForwardingScopeDsymbol : public ScopeDsymbol
 {
 public:
     ScopeDsymbol* forward;
-    // ignoring extern () block because of linkage
     Dsymbol* symtabInsert(Dsymbol* s);
     Dsymbol* symtabLookup(Dsymbol* s, Identifier* id);
     void importScope(Dsymbol* s, Prot protection);
@@ -3660,10 +3254,6 @@ ENUM_CONSTANT_NUMERIC(bool, LOG, false)
 
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
-// ignoring function dmd.dsymbolsem.getAlignment because of linkage
-// ignoring function dmd.dsymbolsem.getMessage because of linkage
-// ignoring function dmd.dsymbolsem.templateInstanceSemantic because of linkage
-// ignoring function dmd.dsymbolsem.aliasSemantic because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, IDX_NOTFOUND, 305419896)
 
 extern Expression* isExpression(RootObject* o);
@@ -3680,22 +3270,15 @@ extern TemplateParameter* isTemplateParameter(RootObject* o);
 
 extern bool isError(const RootObject* const o);
 
-// ignoring function dmd.dtemplate.arrayObjectIsError because of linkage
-// ignoring function dmd.dtemplate.getType because of linkage
-// ignoring function dmd.dtemplate.getDsymbol because of linkage
-// ignoring function dmd.dtemplate.objectSyntaxCopy because of linkage
 class Tuple : public RootObject
 {
 public:
     Array<RootObject*> objects;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     DYNCAST dyncast() const;
     const char* toChars() const;
     ~Tuple();
 };
 
-// ignoring non-cpp struct TemplatePrevious because of linkage
 class TemplateDeclaration : public ScopeDsymbol
 {
 public:
@@ -3719,7 +3302,6 @@ public:
     Expression* lastConstraint;
     Array<Expression*> lastConstraintNegs;
     Array<RootObject*>* lastConstraintTiargs;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* _param_0);
     bool overloadInsert(Dsymbol* s);
     bool hasStaticCtorOrDtor();
@@ -3728,18 +3310,11 @@ public:
     const char* toCharsNoConstraints() const;
     const char* toCharsMaybeConstraints(bool includeConstraints) const;
     Prot prot();
-    // ignoring extern () block because of linkage
     const char* getConstraintEvalError(const char*& tip);
     void formatParamsWithTiargs(Array<RootObject*>& tiargs, OutBuffer& buf);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
-    // ignoring extern () block because of linkage
     MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, Array<Expression*>* fargs);
-    // ignoring extern () block because of linkage
     RootObject* declareParameter(Scope* sc, TemplateParameter* tp, RootObject* o);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     TemplateDeclaration* isTemplateDeclaration();
     TemplateTupleParameter* isVariadic();
     bool isDeprecated() const;
@@ -3754,24 +3329,18 @@ public:
     Type* tded;
     Array<Expression*> argexps;
     Array<Type*> tparams;
-    // ignoring extern () block because of linkage
     void update(Expression* e, Type* tparam);
     void update(Type* tt, Expression* e, Type* tparam);
     MATCH matchAll(Type* tt);
     ~TypeDeduced();
 };
 
-// ignoring function dmd.dtemplate.functionResolve because of linkage
-// ignoring variable dmd.dtemplate.emptyArrayElement because of linkage
-// ignoring function dmd.dtemplate.deduceType because of linkage
-// ignoring function dmd.dtemplate.reliesOnTident because of linkage
 class TemplateParameter : public ASTNode
 {
 public:
     Loc loc;
     Identifier* ident;
     bool dependent;
-    // ignoring extern () block because of linkage
     virtual TemplateTypeParameter* isTemplateTypeParameter();
     virtual TemplateValueParameter* isTemplateValueParameter();
     virtual TemplateAliasParameter* isTemplateAliasParameter();
@@ -3794,8 +3363,6 @@ class TemplateTypeParameter : public TemplateParameter
 public:
     Type* specType;
     Type* defaultType;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     TemplateTypeParameter* isTemplateTypeParameter();
     TemplateParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
@@ -3810,7 +3377,6 @@ public:
 class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
-    // ignoring extern () block because of linkage
     TemplateThisParameter* isTemplateThisParameter();
     TemplateParameter* syntaxCopy();
     void accept(Visitor* v);
@@ -3822,8 +3388,6 @@ public:
     Type* valType;
     Expression* specValue;
     Expression* defaultValue;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     TemplateValueParameter* isTemplateValueParameter();
     TemplateParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
@@ -3841,8 +3405,6 @@ public:
     Type* specType;
     RootObject* specAlias;
     RootObject* defaultAlias;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     TemplateAliasParameter* isTemplateAliasParameter();
     TemplateParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
@@ -3857,7 +3419,6 @@ public:
 class TemplateTupleParameter : public TemplateParameter
 {
 public:
-    // ignoring extern () block because of linkage
     TemplateTupleParameter* isTemplateTupleParameter();
     TemplateParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
@@ -3897,10 +3458,6 @@ public:
         ENUM_KEY_NUMERIC(uint32_t, available, 8191u, Flag, FLAG, flag, F)
     END_ENUM_NUMERIC(uint32_t, Flag, FLAG, flag)
 
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     Dsymbol* toAlias();
     const char* kind() const;
@@ -3913,61 +3470,33 @@ public:
     size_t toHash();
     bool isDiscardable();
     bool needsCodegen();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     TemplateInstance* isTemplateInstance();
     void accept(Visitor* v);
     ~TemplateInstance();
 };
 
-// ignoring function dmd.dtemplate.unSpeculative because of linkage
-// ignoring function dmd.dtemplate.definitelyValueParameter because of linkage
 class TemplateMixin : public TemplateInstance
 {
 public:
     TypeQualified* tqual;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     bool oneMember(Dsymbol** ps, Identifier* ident);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     TemplateMixin* isTemplateMixin();
     void accept(Visitor* v);
     ~TemplateMixin();
 };
 
-// ignoring non-cpp struct TemplateInstanceBox because of linkage
-// ignoring function dmd.dtemplate.matchArg because of linkage
-// ignoring function dmd.dtemplate.matchArg because of linkage
-// ignoring non-cpp struct TemplateStats because of linkage
-// ignoring function dmd.dtemplate.printTemplateStats because of linkage
 ENUM_CONSTANT_NUMERIC(bool, isBuildingCompiler, false)
 
-// ignoring function dmd.dtoh.hashIf because of linkage
-// ignoring function dmd.dtoh.hashElIf because of linkage
-// ignoring function dmd.dtoh.hashEndIf because of linkage
-// ignoring function dmd.dtoh.hashDefine because of linkage
-// ignoring function dmd.dtoh.hashInclude because of linkage
 extern void genCppHdrFiles(Array<Module*>& ms);
 
 class ToCppBuffer : public Visitor
 {
 public:
-    // ignored function alias dmd.dtoh.ToCppBuffer.visit
     BEGIN_ENUM(EnumKind, ENUMKIND, enumkind)
         ENUM_KEY(int32_t, Int, 0, EnumKind, ENUMKIND, enumkind, EK)
         ENUM_KEY(int32_t, Numeric, 1, EnumKind, ENUMKIND, enumkind, EK)
@@ -3998,6 +3527,7 @@ public:
     bool hasAnonNumericEnum;
     bool hasNumericConstant;
     bool hasTypedConstant;
+    bool printIgnored;
     ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
     EnumKind getEnumKind(Type* type);
     void writeEnumTypeName(Type* type);
@@ -4055,8 +3585,6 @@ class DebugSymbol : public Dsymbol
 {
 public:
     uint32_t level;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* toChars() const;
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -4069,8 +3597,6 @@ class VersionSymbol : public Dsymbol
 {
 public:
     uint32_t level;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* toChars() const;
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -4079,46 +3605,12 @@ public:
     void accept(Visitor* v);
 };
 
-// ignoring function dmd.env.putenvRestorable because of linkage
-// ignoring function dmd.env.allocNameValue because of linkage
-// ignoring function dmd.env.restoreEnvVars because of linkage
-// ignoring function dmd.env.saveEnvVar because of linkage
-// ignoring function dmd.escape.checkMutableArguments because of linkage
-// ignoring function dmd.escape.checkArrayLiteralEscape because of linkage
-// ignoring function dmd.escape.checkAssocArrayLiteralEscape because of linkage
-// ignoring function dmd.escape.checkParamArgumentEscape because of linkage
-// ignoring function dmd.escape.checkParamArgumentReturn because of linkage
-// ignoring function dmd.escape.checkConstructorEscape because of linkage
-// ignoring function dmd.escape.checkAssignEscape because of linkage
-// ignoring function dmd.escape.checkThrowEscape because of linkage
-// ignoring function dmd.escape.checkNewEscape because of linkage
-// ignoring function dmd.escape.checkReturnEscape because of linkage
-// ignoring function dmd.escape.checkReturnEscapeRef because of linkage
-// ignoring function dmd.escape.escapeByValue because of linkage
-// ignoring function dmd.escape.escapeByRef because of linkage
-// ignoring non-cpp struct EscapeByResults because of linkage
-// ignoring function dmd.escape.findAllOuterAccessedVariables because of linkage
-// ignoring function dmd.escape.notMaybeScope because of linkage
-// ignoring function dmd.escape.eliminateMaybeScopes because of linkage
-// ignoring function dmd.escape.isReferenceToMutable because of linkage
-// ignoring function dmd.escape.isReferenceToMutable because of linkage
 ENUM_CONSTANT_NUMERIC(bool, LOGSEMANTIC, false)
 
-// ignoring function dmd.expression.firstComma because of linkage
-// ignoring function dmd.expression.lastComma because of linkage
-// ignoring function dmd.expression.hasThis because of linkage
-// ignoring function dmd.expression.isNeedThisScope because of linkage
-// ignoring function dmd.expression.isDotOpDispatch because of linkage
 extern void expandTuples(Array<Expression*>* exps);
 
-// ignoring function dmd.expression.isAliasThisTuple because of linkage
-// ignoring function dmd.expression.expandAliasThisTuples because of linkage
-// ignoring function dmd.expression.getFuncTemplateDecl because of linkage
-// ignoring function dmd.expression.valueNoDtor because of linkage
-// ignoring extern () block because of linkage
 struct UnionExp
 {
-    // ignoring extern () block because of linkage
     Expression* exp();
     Expression* copy();
     #pragma pack(push, 8)
@@ -4149,9 +3641,6 @@ struct UnionExp
     UnionExp() {}
 };
 
-// ignoring function dmd.expression.RealIdentical because of linkage
-// ignoring function dmd.expression.typeDotIdExp because of linkage
-// ignoring function dmd.expression.expToVariable because of linkage
 BEGIN_ENUM_NUMERIC(uint8_t, OwnedBy, OWNEDBY, ownedby)
     ENUM_KEY_NUMERIC(uint8_t, code, 0u, OwnedBy, OWNEDBY, ownedby, OB)
     ENUM_KEY_NUMERIC(uint8_t, ctfe, 1u, OwnedBy, OWNEDBY, ownedby, OB)
@@ -4166,8 +3655,6 @@ class IntegerExp : public Expression
 {
 public:
     dinteger_t value;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
     static void emplace(UnionExp* pue, Loc loc, dinteger_t value, Type* type);
     bool equals(const RootObject* const o) const;
@@ -4180,7 +3667,6 @@ public:
     void accept(Visitor* v);
     dinteger_t getInteger();
     void setInteger(dinteger_t value);
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     static IntegerExp* createBool(bool b);
 };
@@ -4188,7 +3674,6 @@ public:
 class ErrorExp : public Expression
 {
 public:
-    // ignoring extern () block because of linkage
     static ErrorExp* get();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -4199,7 +3684,6 @@ class VoidInitExp : public Expression
 {
 public:
     VarDeclaration* var;
-    // ignoring extern () block because of linkage
     const char* toChars() const;
     void accept(Visitor* v);
 };
@@ -4208,7 +3692,6 @@ class RealExp : public Expression
 {
 public:
     _d_real value;
-    // ignoring extern () block because of linkage
     static RealExp* create(Loc loc, _d_real value, Type* type);
     static void emplace(UnionExp* pue, Loc loc, _d_real value, Type* type);
     bool equals(const RootObject* const o) const;
@@ -4225,7 +3708,6 @@ class ComplexExp : public Expression
 {
 public:
     complex_t value;
-    // ignoring extern () block because of linkage
     static ComplexExp* create(Loc loc, complex_t value, Type* type);
     static void emplace(UnionExp* pue, Loc loc, complex_t value, Type* type);
     bool equals(const RootObject* const o) const;
@@ -4242,7 +3724,6 @@ class IdentifierExp : public Expression
 {
 public:
     Identifier* ident;
-    // ignoring extern () block because of linkage
     static IdentifierExp* create(Loc loc, Identifier* ident);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4252,7 +3733,6 @@ public:
 class DollarExp : public IdentifierExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4261,7 +3741,6 @@ class DsymbolExp : public Expression
 public:
     Dsymbol* s;
     bool hasOverloads;
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -4271,7 +3750,6 @@ class ThisExp : public Expression
 {
 public:
     VarDeclaration* var;
-    // ignoring extern () block because of linkage
     ThisExp(const Loc& loc, const TOK tok);
     Expression* syntaxCopy();
     bool isBool(bool result);
@@ -4283,14 +3761,12 @@ public:
 class SuperExp : public ThisExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class NullExp : public Expression
 {
 public:
-    // ignoring extern () block because of linkage
     bool equals(const RootObject* const o) const;
     bool isBool(bool result);
     StringExp* toStringExp();
@@ -4313,13 +3789,9 @@ public:
 
     char postfix;
     OwnedBy ownedByCtfe;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static StringExp* create(Loc loc, char* s);
     static StringExp* create(Loc loc, void* string, size_t len);
     static void emplace(UnionExp* pue, Loc loc, char* s);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool equals(const RootObject* const o) const;
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
@@ -4333,13 +3805,6 @@ public:
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
     uint32_t charAt(uinteger_t i) const;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4348,9 +3813,6 @@ class TupleExp : public Expression
 public:
     Expression* e0;
     Array<Expression*>* exps;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static TupleExp* create(Loc loc, Array<Expression*>* exps);
     TupleExp* toTupleExp();
     Expression* syntaxCopy();
@@ -4364,9 +3826,6 @@ public:
     Expression* basis;
     Array<Expression*>* elements;
     OwnedBy ownedByCtfe;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static ArrayLiteralExp* create(Loc loc, Array<Expression*>* elements);
     static void emplace(UnionExp* pue, Loc loc, Array<Expression*>* elements);
     Expression* syntaxCopy();
@@ -4384,7 +3843,6 @@ public:
     Array<Expression*>* keys;
     Array<Expression*>* values;
     OwnedBy ownedByCtfe;
-    // ignoring extern () block because of linkage
     bool equals(const RootObject* const o) const;
     Expression* syntaxCopy();
     bool isBool(bool result);
@@ -4416,7 +3874,6 @@ public:
     bool useStaticInit;
     bool isOriginal;
     OwnedBy ownedByCtfe;
-    // ignoring extern () block because of linkage
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype);
     bool equals(const RootObject* const o) const;
     Expression* syntaxCopy();
@@ -4429,7 +3886,6 @@ public:
 class TypeExp : public Expression
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     bool checkType();
     bool checkValue();
@@ -4440,7 +3896,6 @@ class ScopeExp : public Expression
 {
 public:
     ScopeDsymbol* sds;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     bool checkType();
     bool checkValue();
@@ -4452,7 +3907,6 @@ class TemplateExp : public Expression
 public:
     TemplateDeclaration* td;
     FuncDeclaration* fd;
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     bool checkType();
@@ -4472,7 +3926,6 @@ public:
     NewDeclaration* allocator;
     bool onstack;
     bool thrownew;
-    // ignoring extern () block because of linkage
     static NewExp* create(Loc loc, Expression* thisexp, Array<Expression*>* newargs, Type* newtype, Array<Expression*>* arguments);
     Expression* syntaxCopy();
     void accept(Visitor* v);
@@ -4485,7 +3938,6 @@ public:
     Array<Expression*>* newargs;
     ClassDeclaration* cd;
     Array<Expression*>* arguments;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4496,7 +3948,6 @@ public:
     Declaration* var;
     Dsymbol* originalScope;
     bool hasOverloads;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4504,7 +3955,6 @@ class SymOffExp : public SymbolExp
 {
 public:
     dinteger_t offset;
-    // ignoring extern () block because of linkage
     bool isBool(bool result);
     void accept(Visitor* v);
 };
@@ -4513,7 +3963,6 @@ class VarExp : public SymbolExp
 {
 public:
     bool delegateWasExtracted;
-    // ignoring extern () block because of linkage
     static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
     bool equals(const RootObject* const o) const;
     Modifiable checkModifiable(Scope* sc, int32_t flag);
@@ -4528,7 +3977,6 @@ class OverExp : public Expression
 {
 public:
     OverloadSet* vars;
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -4540,11 +3988,8 @@ public:
     FuncLiteralDeclaration* fd;
     TemplateDeclaration* td;
     TOK tok;
-    // ignoring extern () block because of linkage
     bool equals(const RootObject* const o) const;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
-    // ignoring extern () block because of linkage
     const char* toChars() const;
     bool checkType();
     bool checkValue();
@@ -4555,7 +4000,6 @@ class DeclarationExp : public Expression
 {
 public:
     Dsymbol* declaration;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     bool hasCode();
     void accept(Visitor* v);
@@ -4565,7 +4009,6 @@ class TypeidExp : public Expression
 {
 public:
     RootObject* obj;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4575,7 +4018,6 @@ class TraitsExp : public Expression
 public:
     Identifier* ident;
     Array<RootObject*>* args;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4583,7 +4025,6 @@ public:
 class HaltExp : public Expression
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4596,7 +4037,6 @@ public:
     Array<TemplateParameter*>* parameters;
     TOK tok;
     TOK tok2;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4606,7 +4046,6 @@ class UnaExp : public Expression
 public:
     Expression* e1;
     Type* att1;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     Expression* incompatibleTypes();
     void setNoderefOperand();
@@ -4625,13 +4064,8 @@ public:
     Expression* e2;
     Type* att1;
     Type* att2;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     Expression* incompatibleTypes();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void setNoderefOperands();
     Expression* reorderSettingAAElem(Scope* sc);
     void accept(Visitor* v);
@@ -4640,7 +4074,6 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -4651,7 +4084,6 @@ class CompileExp : public Expression
 {
 public:
     Array<Expression*>* exps;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     bool equals(const RootObject* const o) const;
     void accept(Visitor* v);
@@ -4660,7 +4092,6 @@ public:
 class ImportExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4668,7 +4099,6 @@ class AssertExp : public UnaExp
 {
 public:
     Expression* msg;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4679,7 +4109,6 @@ public:
     Identifier* ident;
     bool noderef;
     bool wantsym;
-    // ignoring extern () block because of linkage
     static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
     void accept(Visitor* v);
 };
@@ -4688,7 +4117,6 @@ class DotTemplateExp : public UnaExp
 {
 public:
     TemplateDeclaration* td;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4697,7 +4125,6 @@ class DotVarExp : public UnaExp
 public:
     Declaration* var;
     bool hasOverloads;
-    // ignoring extern () block because of linkage
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4709,8 +4136,6 @@ class DotTemplateInstanceExp : public UnaExp
 {
 public:
     TemplateInstance* ti;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     bool findTempDecl(Scope* sc);
     void accept(Visitor* v);
@@ -4722,7 +4147,6 @@ public:
     FuncDeclaration* func;
     bool hasOverloads;
     VarDeclaration* vthis2;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4730,7 +4154,6 @@ class DotTypeExp : public UnaExp
 {
 public:
     Dsymbol* sym;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4742,11 +4165,6 @@ public:
     bool directcall;
     bool inDebugStatement;
     VarDeclaration* vthis2;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static CallExp* create(Loc loc, Expression* e, Array<Expression*>* exps);
     static CallExp* create(Loc loc, Expression* e);
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
@@ -4758,20 +4176,15 @@ public:
     void accept(Visitor* v);
 };
 
-// ignoring function dmd.expression.isFuncAddress because of linkage
 class AddrExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class PtrExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4782,28 +4195,24 @@ public:
 class NegExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class UAddExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ComExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class NotExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4811,7 +4220,6 @@ class DeleteExp : public UnaExp
 {
 public:
     bool isRAII;
-    // ignoring extern () block because of linkage
     Expression* toBoolean(Scope* sc);
     void accept(Visitor* v);
 };
@@ -4821,8 +4229,6 @@ class CastExp : public UnaExp
 public:
     Type* to;
     uint8_t mod;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     Expression* addDtorHook(Scope* sc);
     void accept(Visitor* v);
@@ -4834,7 +4240,6 @@ public:
     TypeVector* to;
     uint32_t dim;
     OwnedBy ownedByCtfe;
-    // ignoring extern () block because of linkage
     static VectorExp* create(Loc loc, Expression* e, Type* t);
     static void emplace(UnionExp* pue, Loc loc, Expression* e, Type* type);
     Expression* syntaxCopy();
@@ -4844,7 +4249,6 @@ public:
 class VectorArrayExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -4859,8 +4263,6 @@ public:
     bool upperIsInBounds;
     bool lowerIsLessThanUpper;
     bool arrayop;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
@@ -4873,7 +4275,6 @@ public:
 class ArrayLengthExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4883,8 +4284,6 @@ public:
     Array<Expression*>* arguments;
     size_t currentDimension;
     VarDeclaration* lengthVar;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4894,7 +4293,6 @@ public:
 class DotExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4903,7 +4301,6 @@ class CommaExp : public BinExp
 public:
     bool isGenerated;
     bool allowCommaExp;
-    // ignoring extern () block because of linkage
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4920,7 +4317,6 @@ class IntervalExp : public Expression
 public:
     Expression* lwr;
     Expression* upr;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4928,7 +4324,6 @@ public:
 class DelegatePtrExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -4938,7 +4333,6 @@ public:
 class DelegateFuncptrExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -4951,27 +4345,23 @@ public:
     VarDeclaration* lengthVar;
     bool modifiable;
     bool indexIsInBounds;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class PostExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class PreExp : public UnaExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -4985,7 +4375,6 @@ class AssignExp : public BinExp
 {
 public:
     MemorySet memset;
-    // ignoring extern () block because of linkage
     AssignExp(const Loc& loc, TOK tok, Expression* e1, Expression* e2);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
@@ -4996,143 +4385,120 @@ public:
 class ConstructExp : public AssignExp
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class BlitExp : public AssignExp
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class AddAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class MinAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class MulAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class DivAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ModAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class AndAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class OrAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class XorAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class PowAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ShlAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ShrAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class UshrAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class CatAssignExp : public BinAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class CatElemAssignExp : public CatAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class CatDcharAssignExp : public CatAssignExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class AddExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class MinExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class CatExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
@@ -5140,77 +4506,66 @@ public:
 class MulExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class DivExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ModExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class PowExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ShlExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ShrExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class UshrExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class AndExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class OrExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class XorExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class LogicalExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* toBoolean(Scope* sc);
     void accept(Visitor* v);
 };
@@ -5218,35 +4573,30 @@ public:
 class CmpExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class InExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class RemoveExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class EqualExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class IdentityExp : public BinExp
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -5254,7 +4604,6 @@ class CondExp : public BinExp
 {
 public:
     Expression* econd;
-    // ignoring extern () block because of linkage
     Expression* syntaxCopy();
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
@@ -5265,18 +4614,15 @@ public:
     void accept(Visitor* v);
 };
 
-// ignoring function dmd.expression.isDefaultInitOp because of linkage
 class DefaultInitExp : public Expression
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class FileInitExp : public DefaultInitExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
@@ -5284,7 +4630,6 @@ public:
 class LineInitExp : public DefaultInitExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
@@ -5292,7 +4637,6 @@ public:
 class ModuleInitExp : public DefaultInitExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
@@ -5300,7 +4644,6 @@ public:
 class FuncInitExp : public DefaultInitExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
@@ -5308,7 +4651,6 @@ public:
 class PrettyFuncInitExp : public DefaultInitExp
 {
 public:
-    // ignoring extern () block because of linkage
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
@@ -5317,36 +4659,15 @@ class ObjcClassReferenceExp : public Expression
 {
 public:
     ClassDeclaration* classDeclaration;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 ENUM_CONSTANT_NUMERIC(bool, LOGSEMANTIC, false)
 
-// ignoring function dmd.expressionsem.expressionsToString because of linkage
-// ignoring function dmd.expressionsem.semanticString because of linkage
-// ignoring function dmd.expressionsem.resolveOpDollar because of linkage
-// ignoring function dmd.expressionsem.resolveOpDollar because of linkage
-// ignoring function dmd.expressionsem.arrayExpressionSemantic because of linkage
-// ignoring function dmd.expressionsem.resolvePropertiesOnly because of linkage
-// ignoring function dmd.expressionsem.symbolToExp because of linkage
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
-// ignoring function dmd.expressionsem.resolveIsPackage because of linkage
-// ignoring function dmd.expressionsem.trySemantic because of linkage
-// ignoring function dmd.expressionsem.unaSemantic because of linkage
-// ignoring function dmd.expressionsem.binSemantic because of linkage
-// ignoring function dmd.expressionsem.binSemanticProp because of linkage
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
-// ignoring function dmd.expressionsem.semanticX because of linkage
-// ignoring function dmd.expressionsem.semanticY because of linkage
-// ignoring function dmd.expressionsem.semanticY because of linkage
-// ignoring function dmd.expressionsem.checkSharedAccess because of linkage
-// ignoring function dmd.expressionsem.checkAddressVar because of linkage
-// ignoring function dmd.expressionsem.getThisSkipNestedFuncs because of linkage
-// ignoring function dmd.expressionsem.makeThis2Argument because of linkage
-// ignoring function dmd.expressionsem.verifyHookExist because of linkage
 BEGIN_ENUM(ILS, ILS, ils)
     ENUM_KEY(int32_t, uninitialized, 0, ILS, ILS, ils, ILS)
     ENUM_KEY(int32_t, no, 1, ILS, ILS, ils, ILS)
@@ -5356,7 +4677,6 @@ END_ENUM(ILS, ILS, ils)
 class NrvoWalker : public StatementRewriteWalker
 {
 public:
-    // ignored function alias dmd.func.NrvoWalker.visit
     FuncDeclaration* fd;
     Scope* sc;
     void visit(ReturnStatement* s);
@@ -5444,21 +4764,15 @@ public:
     Array<FuncDeclaration*>* inlinedNestedCallees;
     uint32_t flags;
     ObjcFuncDeclaration objc;
-    // ignoring extern () block because of linkage
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type);
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool functionSemantic();
     bool functionSemantic3();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool equals(const RootObject* const o) const;
     int32_t overrides(FuncDeclaration* fd);
     int32_t findVtblIndex(Array<Dsymbol*>* vtbl, int32_t dim);
     BaseClass* overrideInterface();
     bool overloadInsert(Dsymbol* s);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration* g);
     LabelDsymbol* searchLabel(Identifier* ident);
@@ -5482,18 +4796,11 @@ public:
     void initInferAttributes();
     PURE isPure();
     PURE isPureBypassingInference();
-    // ignoring extern () block because of linkage
     bool isSafe();
     bool isSafeBypassingInference();
     bool isTrusted();
-    // ignoring extern () block because of linkage
     bool isNogc();
     bool isNogcBypassingInference();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool isTypeIsolatedIndirect(Type* t);
     virtual bool isNested() const;
     AggregateDeclaration* isThis();
@@ -5505,20 +4812,13 @@ public:
     virtual bool addPostInvariant();
     const char* kind() const;
     bool isUnique() const;
-    // ignoring extern () block because of linkage
     bool needsClosure();
-    // ignoring extern () block because of linkage
     bool hasNestedFrameRefs();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static bool needsFensure(FuncDeclaration* fd);
     void buildEnsureRequire();
-    // ignoring extern () block because of linkage
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter*>* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter*>* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
-    // ignoring extern () block because of linkage
     bool checkNrvo();
     FuncDeclaration* isFuncDeclaration();
     virtual FuncDeclaration* toAliasFunc();
@@ -5526,23 +4826,17 @@ public:
     ~FuncDeclaration();
 };
 
-// ignoring function dmd.func.addInvariant because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.func.MODMatchToBuffer because of linkage
 BEGIN_ENUM_NUMERIC(uint8_t, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag)
     ENUM_KEY_NUMERIC(uint8_t, standard, 0u, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag, FRF)
     ENUM_KEY_NUMERIC(uint8_t, quiet, 1u, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag, FRF)
     ENUM_KEY_NUMERIC(uint8_t, overloadOnly, 2u, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag, FRF)
 END_ENUM_NUMERIC(uint8_t, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag)
 
-// ignoring function dmd.func.resolveFuncCall because of linkage
-// ignoring function dmd.func.getIndirection because of linkage
 class FuncAliasDeclaration : public FuncDeclaration
 {
 public:
     FuncDeclaration* funcalias;
     bool hasOverloads;
-    // ignoring extern () block because of linkage
     FuncAliasDeclaration* isFuncAliasDeclaration();
     const char* kind() const;
     FuncDeclaration* toAliasFunc();
@@ -5556,7 +4850,6 @@ public:
     TOK tok;
     Type* treq;
     bool deferToObj;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool isNested() const;
     AggregateDeclaration* isThis();
@@ -5575,7 +4868,6 @@ class CtorDeclaration : public FuncDeclaration
 {
 public:
     bool isCpCtor;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     const char* toChars() const;
@@ -5590,7 +4882,6 @@ public:
 class PostBlitDeclaration : public FuncDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool isVirtual() const;
     bool addPreInvariant();
@@ -5604,8 +4895,6 @@ public:
 class DtorDeclaration : public FuncDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     const char* toChars() const;
@@ -5621,8 +4910,6 @@ public:
 class StaticCtorDeclaration : public FuncDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     AggregateDeclaration* isThis();
     bool isVirtual() const;
@@ -5637,7 +4924,6 @@ public:
 class SharedStaticCtorDeclaration : public StaticCtorDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     SharedStaticCtorDeclaration* isSharedStaticCtorDeclaration();
     void accept(Visitor* v);
@@ -5648,8 +4934,6 @@ class StaticDtorDeclaration : public FuncDeclaration
 {
 public:
     VarDeclaration* vgate;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     AggregateDeclaration* isThis();
     bool isVirtual() const;
@@ -5664,7 +4948,6 @@ public:
 class SharedStaticDtorDeclaration : public StaticDtorDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     SharedStaticDtorDeclaration* isSharedStaticDtorDeclaration();
     void accept(Visitor* v);
@@ -5674,7 +4957,6 @@ public:
 class InvariantDeclaration : public FuncDeclaration
 {
 public:
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     bool isVirtual() const;
     bool addPreInvariant();
@@ -5689,7 +4971,6 @@ class UnitTestDeclaration : public FuncDeclaration
 public:
     char* codedoc;
     Array<FuncDeclaration*> deferredNested;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     AggregateDeclaration* isThis();
     bool isVirtual() const;
@@ -5704,7 +4985,6 @@ class NewDeclaration : public FuncDeclaration
 {
 public:
     ParameterList parameterList;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     bool isVirtual() const;
@@ -5715,63 +4995,25 @@ public:
     ~NewDeclaration();
 };
 
-// ignoring function dmd.gluelayer.obj_write_deferred because it's extern
-// ignoring function dmd.gluelayer.obj_start because it's extern
-// ignoring function dmd.gluelayer.obj_end because it's extern
-// ignoring function dmd.gluelayer.genObjFile because it's extern
-// ignoring function dmd.gluelayer.backend_init because it's extern
-// ignoring function dmd.gluelayer.backend_term because it's extern
-// ignoring function dmd.gluelayer.asmSemantic because it's extern
-// ignoring function dmd.gluelayer.toObjFile because it's extern
 class ObjcGlue
 {
 public:
     static void initialize();
 };
 
-// ignoring non-cpp struct HdrGenState because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, TEST_EMIT_ALL, 0)
 
 extern void genhdrfile(Module* m);
 
 extern void moduleToBuffer(OutBuffer* buf, Module* m);
 
-// ignoring function dmd.hdrgen.moduleToBuffer2 because of linkage
-// ignoring function dmd.hdrgen.toCBuffer because of linkage
-// ignoring function dmd.hdrgen.toCBuffer because of linkage
-// ignoring function dmd.hdrgen.toCBuffer because of linkage
-// ignoring function dmd.hdrgen.toCBufferInstance because of linkage
-// ignoring function dmd.hdrgen.toCBuffer because of linkage
-// ignoring function dmd.hdrgen.stcToBuffer because of linkage
-// ignoring function dmd.hdrgen.stcToString because of linkage
-// ignoring function dmd.hdrgen.stcToChars because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.hdrgen.linkageToChars because of linkage
-// ignoring function dmd.hdrgen.linkageToString because of linkage
-// ignoring function dmd.hdrgen.protectionToBuffer because of linkage
-// ignoring function dmd.hdrgen.protectionToChars because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.hdrgen.functionToBufferFull because of linkage
-// ignoring function dmd.hdrgen.functionToBufferWithIdent because of linkage
-// ignoring function dmd.hdrgen.toCBuffer because of linkage
-// ignoring function dmd.hdrgen.argExpTypesToCBuffer because of linkage
-// ignoring function dmd.hdrgen.toCBuffer because of linkage
-// ignoring function dmd.hdrgen.arrayObjectsToBuffer because of linkage
 extern const char* parametersTypeToChars(ParameterList pl);
 
-// ignoring function dmd.hdrgen.parameterToChars because of linkage
-// ignoring variable dmd.impcnvtab.impcnvResult because of linkage
-// ignoring variable dmd.impcnvtab.impcnvType1 because of linkage
-// ignoring variable dmd.impcnvtab.impcnvType2 because of linkage
-// ignoring function dmd.imphint.importHint because of linkage
-// ignoring function dmd.imphint._sharedStaticCtor_L32_C1 because of linkage
 BEGIN_ENUM(NeedInterpret, NEEDINTERPRET, needinterpret)
     ENUM_KEY(int32_t, INITnointerpret, 0, NeedInterpret, NEEDINTERPRET, needinterpret, NI)
     ENUM_KEY(int32_t, INITinterpret, 1, NeedInterpret, NEEDINTERPRET, needinterpret, NI)
 END_ENUM(NeedInterpret, NEEDINTERPRET, needinterpret)
 
-// ignored enum member dmd.init.NeedInterpret.INITnointerpret
-// ignored enum member dmd.init.NeedInterpret.INITinterpret
 BEGIN_ENUM_NUMERIC(uint8_t, InitKind, INITKIND, initkind)
     ENUM_KEY_NUMERIC(uint8_t, void_, 0u, InitKind, INITKIND, initkind, IK)
     ENUM_KEY_NUMERIC(uint8_t, error, 1u, InitKind, INITKIND, initkind, IK)
@@ -5785,7 +5027,6 @@ class Initializer : public ASTNode
 public:
     Loc loc;
     InitKind kind;
-    // ignoring extern () block because of linkage
     const char* toChars() const;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
@@ -5799,14 +5040,12 @@ class VoidInitializer : public Initializer
 {
 public:
     Type* type;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 class ErrorInitializer : public Initializer
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -5815,8 +5054,6 @@ class StructInitializer : public Initializer
 public:
     Array<Identifier*> field;
     Array<Initializer*> value;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
     ~StructInitializer();
 };
@@ -5829,8 +5066,6 @@ public:
     uint32_t dim;
     Type* type;
     bool sem;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool isAssociativeArray() const;
     void accept(Visitor* v);
     ~ArrayInitializer();
@@ -5841,83 +5076,49 @@ class ExpInitializer : public Initializer
 public:
     bool expandTuples;
     Expression* exp;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
 extern bool hasNonConstPointers(Expression* e);
 
-// ignoring function dmd.init.syntaxCopy because of linkage
-// ignoring function dmd.initsem.toAssocArrayLiteral because of linkage
 extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type* t, NeedInterpret needInterpret);
 
-// ignoring function dmd.initsem.inferType because of linkage
 extern Expression* initializerToExpression(Initializer* init, Type* itype);
 
-// ignoring function dmd.inline.inlineScanModule because of linkage
-// ignoring function dmd.inline.inlineCopy because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, COST_MAX, 250)
 
-// ignoring function dmd.inlinecost.tooCostly because of linkage
-// ignoring function dmd.inlinecost.inlineCostExpression because of linkage
-// ignoring function dmd.inlinecost.inlineCostFunction because of linkage
-// ignoring function dmd.inlinecost.isInlinableNestedAggregate because of linkage
-// ignoring non-cpp struct SignExtendedNumber because of linkage
-// ignoring non-cpp struct IntRange because of linkage
 extern void json_generate(OutBuffer* buf, Array<Module*>* modules);
 
 ENUM_CONSTANT(const char*, jsonFieldNames, "`compilerInfo`, `buildInfo`, `modules`, `semantics`")
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
 
-// ignoring extern () block because of linkage
 ENUM_CONSTANT_NUMERIC(bool, LOG, false)
 
-// ignoring function dmd.lambdacomp.isSameFuncLiteral because of linkage
-// ignoring non-cpp class Library
 extern Library* LibElf_factory();
 
-// ignoring function dmd.link.pipe because it's extern
-// ignoring function dmd.link.runLINK because of linkage
-// ignoring function dmd.link.runProgram because of linkage
 extern "C" void printInternalFailure(_IO_FILE* stream);
 
 extern void generateJson(Array<Module*>* modules);
 
 typedef int32_t(*MainFunc)(DArray< DArray< char > > args);
 
-// ignoring function dmd.mars._d_run_main because it's extern
 extern "C" DArray< DArray< char > > rt_options;
 
 extern "C" int32_t main(int32_t argc, char** argv);
 
 extern "C" int32_t _Dmain(DArray< DArray< char > > _param_0);
 
-// ignoring function dmd.mars.getenv_setargv because of linkage
-// ignoring function dmd.mars.parse_arch_arg because of linkage
-// ignoring function dmd.mars.parse_conf_arg because of linkage
-// ignoring function dmd.mars.setTarget because of linkage
-// ignoring function dmd.mars.addDefaultVersionIdentifiers because of linkage
 extern "C" void printGlobalConfigs(_IO_FILE* stream);
 
 extern "C" void flushMixins();
 
-// ignoring function dmd.mars.parseCommandLine because of linkage
-// ignoring function dmd.mars.createModule because of linkage
-// ignoring function dmd.mars.createModules because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, LOGDOTEXP, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, LOGDEFAULTINIT, 0)
 
 ENUM_CONSTANT_NUMERIC(uint64_t, SIZE_INVALID, 18446744073709551615LLU)
 
-// ignoring function dmd.mtype.MODimplicitConv because of linkage
-// ignoring function dmd.mtype.MODmethodConv because of linkage
-// ignoring function dmd.mtype.MODmerge because of linkage
-// ignoring function dmd.mtype.MODtoBuffer because of linkage
-// ignoring function dmd.mtype.MODtoChars because of linkage
-// ignoring function dmd.mtype.MODtoString because of linkage
-// ignoring function dmd.mtype.ModToStc because of linkage
 BEGIN_ENUM(ENUMTY, ENUMTY, enumty)
     ENUM_KEY(int32_t, Tarray, 0, ENUMTY, ENUMTY, enumty, ENUMTY)
     ENUM_KEY(int32_t, Tsarray, 1, ENUMTY, ENUMTY, enumty, ENUMTY)
@@ -5968,56 +5169,8 @@ BEGIN_ENUM(ENUMTY, ENUMTY, enumty)
     ENUM_KEY(int32_t, TMAX, 46, ENUMTY, ENUMTY, enumty, ENUMTY)
 END_ENUM(ENUMTY, ENUMTY, enumty)
 
-// ignored enum member dmd.mtype.ENUMTY.Tarray
-// ignored enum member dmd.mtype.ENUMTY.Tsarray
-// ignored enum member dmd.mtype.ENUMTY.Taarray
-// ignored enum member dmd.mtype.ENUMTY.Tpointer
-// ignored enum member dmd.mtype.ENUMTY.Treference
-// ignored enum member dmd.mtype.ENUMTY.Tfunction
-// ignored enum member dmd.mtype.ENUMTY.Tident
-// ignored enum member dmd.mtype.ENUMTY.Tclass
-// ignored enum member dmd.mtype.ENUMTY.Tstruct
-// ignored enum member dmd.mtype.ENUMTY.Tenum
-// ignored enum member dmd.mtype.ENUMTY.Tdelegate
-// ignored enum member dmd.mtype.ENUMTY.Tnone
-// ignored enum member dmd.mtype.ENUMTY.Tvoid
-// ignored enum member dmd.mtype.ENUMTY.Tint8
-// ignored enum member dmd.mtype.ENUMTY.Tuns8
-// ignored enum member dmd.mtype.ENUMTY.Tint16
-// ignored enum member dmd.mtype.ENUMTY.Tuns16
-// ignored enum member dmd.mtype.ENUMTY.Tint32
-// ignored enum member dmd.mtype.ENUMTY.Tuns32
-// ignored enum member dmd.mtype.ENUMTY.Tint64
-// ignored enum member dmd.mtype.ENUMTY.Tuns64
-// ignored enum member dmd.mtype.ENUMTY.Tfloat32
-// ignored enum member dmd.mtype.ENUMTY.Tfloat64
-// ignored enum member dmd.mtype.ENUMTY.Tfloat80
-// ignored enum member dmd.mtype.ENUMTY.Timaginary32
-// ignored enum member dmd.mtype.ENUMTY.Timaginary64
-// ignored enum member dmd.mtype.ENUMTY.Timaginary80
-// ignored enum member dmd.mtype.ENUMTY.Tcomplex32
-// ignored enum member dmd.mtype.ENUMTY.Tcomplex64
-// ignored enum member dmd.mtype.ENUMTY.Tcomplex80
-// ignored enum member dmd.mtype.ENUMTY.Tbool
-// ignored enum member dmd.mtype.ENUMTY.Tchar
-// ignored enum member dmd.mtype.ENUMTY.Twchar
-// ignored enum member dmd.mtype.ENUMTY.Tdchar
-// ignored enum member dmd.mtype.ENUMTY.Terror
-// ignored enum member dmd.mtype.ENUMTY.Tinstance
-// ignored enum member dmd.mtype.ENUMTY.Ttypeof
-// ignored enum member dmd.mtype.ENUMTY.Ttuple
-// ignored enum member dmd.mtype.ENUMTY.Tslice
-// ignored enum member dmd.mtype.ENUMTY.Treturn
-// ignored enum member dmd.mtype.ENUMTY.Tnull
-// ignored enum member dmd.mtype.ENUMTY.Tvector
-// ignored enum member dmd.mtype.ENUMTY.Tint128
-// ignored enum member dmd.mtype.ENUMTY.Tuns128
-// ignored enum member dmd.mtype.ENUMTY.Ttraits
-// ignored enum member dmd.mtype.ENUMTY.Tmixin
-// ignored enum member dmd.mtype.ENUMTY.TMAX
 typedef uint8_t TY;
 
-// ignoring function dmd.mtype.isSomeChar because of linkage
 BEGIN_ENUM(MODFlags, MODFLAGS, modflags)
     ENUM_KEY(int32_t, const_, 1, MODFlags, MODFLAGS, modflags, MODF)
     ENUM_KEY(int32_t, immutable_, 4, MODFlags, MODFLAGS, modflags, MODF)
@@ -6037,7 +5190,6 @@ END_ENUM(DotExpFlag, DOTEXPFLAG, dotexpflag)
 class TypeError : public Type
 {
 public:
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     d_uns64 size(const Loc& loc);
@@ -6049,7 +5201,6 @@ class TypeNext : public Type
 {
 public:
     Type* next;
-    // ignoring extern () block because of linkage
     void checkDeprecated(const Loc& loc, Scope* sc);
     int32_t hasWild() const;
     Type* nextOf();
@@ -6073,7 +5224,6 @@ class TypeBasic : public Type
 public:
     char* dstring;
     uint32_t flags;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
@@ -6095,7 +5245,6 @@ class TypeVector : public Type
 {
 public:
     Type* basetype;
-    // ignoring extern () block because of linkage
     static TypeVector* create(Type* basetype);
     const char* kind() const;
     Type* syntaxCopy();
@@ -6116,7 +5265,6 @@ public:
 class TypeArray : public TypeNext
 {
 public:
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -6124,7 +5272,6 @@ class TypeSArray : public TypeArray
 {
 public:
     Expression* dim;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     d_uns64 size(const Loc& loc);
@@ -6145,7 +5292,6 @@ public:
 class TypeDArray : public TypeArray
 {
 public:
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
@@ -6163,7 +5309,6 @@ class TypeAArray : public TypeArray
 public:
     Type* index;
     Loc loc;
-    // ignoring extern () block because of linkage
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const;
     Type* syntaxCopy();
@@ -6179,7 +5324,6 @@ public:
 class TypePointer : public TypeNext
 {
 public:
-    // ignoring extern () block because of linkage
     static TypePointer* create(Type* t);
     const char* kind() const;
     Type* syntaxCopy();
@@ -6195,7 +5339,6 @@ public:
 class TypeReference : public TypeNext
 {
 public:
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
@@ -6220,8 +5363,6 @@ BEGIN_ENUM(TRUSTformat, TRUSTFORMAT, trustformat)
     ENUM_KEY(int32_t, TRUSTformatSystem, 1, TRUSTformat, TRUSTFORMAT, trustformat, TRUST)
 END_ENUM(TRUSTformat, TRUSTFORMAT, trustformat)
 
-// ignored enum member dmd.mtype.TRUSTformat.TRUSTformatDefault
-// ignored enum member dmd.mtype.TRUSTformat.TRUSTformatSystem
 class TypeFunction : public TypeNext
 {
 public:
@@ -6248,7 +5389,6 @@ public:
     PURE purity;
     int8_t inuse;
     Array<Expression*>* fargs;
-    // ignoring extern () block because of linkage
     static TypeFunction* create(Array<Parameter*>* parameters, Type* treturn, uint8_t varargs, LINK linkage, StorageClass stc = 0);
     const char* kind() const;
     Type* syntaxCopy();
@@ -6260,9 +5400,6 @@ public:
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
     const char* getParamError(Expression* arg, Parameter* par);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     bool isnothrow() const;
     void isnothrow(bool v);
     bool isnogc() const;
@@ -6294,7 +5431,6 @@ public:
 class TypeDelegate : public TypeNext
 {
 public:
-    // ignoring extern () block because of linkage
     static TypeDelegate* create(Type* t);
     const char* kind() const;
     Type* syntaxCopy();
@@ -6314,7 +5450,6 @@ public:
     Loc loc;
     TraitsExp* exp;
     Dsymbol* sym;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -6327,7 +5462,6 @@ class TypeMixin : public Type
 public:
     Loc loc;
     Array<Expression*>* exps;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -6339,7 +5473,6 @@ class TypeQualified : public Type
 public:
     Loc loc;
     Array<RootObject*> idents;
-    // ignoring extern () block because of linkage
     void syntaxCopyHelper(TypeQualified* t);
     void addIdent(Identifier* ident);
     void addInst(TemplateInstance* inst);
@@ -6354,7 +5487,6 @@ class TypeIdentifier : public TypeQualified
 public:
     Identifier* ident;
     Dsymbol* originalSymbol;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -6366,7 +5498,6 @@ class TypeInstance : public TypeQualified
 {
 public:
     TemplateInstance* tempinst;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -6379,7 +5510,6 @@ class TypeTypeof : public TypeQualified
 public:
     Expression* exp;
     int32_t inuse;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -6391,7 +5521,6 @@ public:
 class TypeReturn : public TypeQualified
 {
 public:
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -6414,7 +5543,6 @@ public:
     StructDeclaration* sym;
     AliasThisRec att;
     bool inuse;
-    // ignoring extern () block because of linkage
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const;
     d_uns64 size(const Loc& loc);
@@ -6431,8 +5559,6 @@ public:
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
     uint8_t deduceWild(Type* t, bool isRef);
@@ -6444,7 +5570,6 @@ class TypeEnum : public Type
 {
 public:
     EnumDeclaration* sym;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     d_uns64 size(const Loc& loc);
@@ -6466,7 +5591,6 @@ public:
     bool needsNested();
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
-    // ignoring extern () block because of linkage
     bool isZeroInit(const Loc& loc);
     bool hasPointers();
     bool hasVoidInitPointers();
@@ -6480,15 +5604,12 @@ public:
     ClassDeclaration* sym;
     AliasThisRec att;
     CPPMANGLE cppmangle;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     d_uns64 size(const Loc& loc) /* const */;
     Type* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     ClassDeclaration* isClassHandle();
     bool isBaseOf(Type* t, int32_t* poffset);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
     uint8_t deduceWild(Type* t, bool isRef);
@@ -6505,12 +5626,7 @@ class TypeTuple : public Type
 public:
     static TypeTuple* empty;
     Array<Parameter*>* arguments;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static TypeTuple* create(Array<Parameter*>* arguments);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static TypeTuple* create();
     static TypeTuple* create(Type* t1);
     static TypeTuple* create(Type* t1, Type* t2);
@@ -6525,7 +5641,6 @@ class TypeSlice : public TypeNext
 public:
     Expression* lwr;
     Expression* upr;
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     void accept(Visitor* v);
@@ -6534,7 +5649,6 @@ public:
 class TypeNull : public Type
 {
 public:
-    // ignoring extern () block because of linkage
     const char* kind() const;
     Type* syntaxCopy();
     MATCH implicitConvTo(Type* to);
@@ -6552,24 +5666,16 @@ public:
     Identifier* ident;
     Expression* defaultArg;
     UserAttributeDeclaration* userAttribDecl;
-    // ignoring extern () block because of linkage
     static Parameter* create(StorageClass storageClass, Type* type, Identifier* ident, Expression* defaultArg, UserAttributeDeclaration* userAttribDecl);
     Parameter* syntaxCopy();
     Type* isLazyArray();
     bool isReference() const;
     DYNCAST dyncast() const;
     void accept(Visitor* v);
-    // ignoring extern () block because of linkage
     static size_t dim(Array<Parameter*>* parameters);
     static Parameter* getNth(Array<Parameter*>* parameters, size_t nth);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     const char* toChars() const;
     bool isCovariant(bool returnByRef, const Parameter* const p, bool previewIn) const;
-    // ignoring extern () block because of linkage
     BEGIN_ENUM(SR, SR, sr)
         ENUM_KEY(int32_t, None, 0, SR, SR, sr, SR)
         ENUM_KEY(int32_t, Scope, 1, SR, SR, sr, SR)
@@ -6581,24 +5687,15 @@ public:
         ENUM_KEY(int32_t, Ref_ReturnScope, 7, SR, SR, sr, SR)
     END_ENUM(SR, SR, sr)
 
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
 };
 
-// ignoring function dmd.mtype.toAutoQualChars because of linkage
-// ignoring function dmd.mtype.modifiersApply because of linkage
-// ignoring function dmd.mtype.attributesApply because of linkage
 extern AggregateDeclaration* isAggregate(Type* t);
 
-// ignoring function dmd.mtype.isIndexableNonAggregate because of linkage
-// ignoring function dmd.mtype.isCopyable because of linkage
 class NOGCVisitor : public StoppableVisitor
 {
 public:
-    // ignored function alias dmd.nogc.NOGCVisitor.visit
     FuncDeclaration* f;
     bool err;
-    // ignoring extern () block because of linkage
     void doCond(Expression* exp);
     void visit(Expression* e);
     void visit(DeclarationExp* e);
@@ -6613,12 +5710,10 @@ public:
     void visit(CatExp* e);
 };
 
-// ignoring function dmd.nogc.checkGC because of linkage
 class Nspace : public ScopeDsymbol
 {
 public:
     Expression* identExp;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
@@ -6631,13 +5726,10 @@ public:
     ~Nspace();
 };
 
-// ignoring function dmd.ob.oblive because of linkage
 typedef Array<ObNode*> ObNodes;
 
 typedef StmtState<ObNode> StmtState;
 
-// ignoring non-cpp struct ObState because of linkage
-// ignoring non-cpp struct ObNode because of linkage
 BEGIN_ENUM_NUMERIC(uint8_t, ObType, OBTYPE, obtype)
     ENUM_KEY_NUMERIC(uint8_t, goto_, 0u, ObType, OBTYPE, obtype, OT)
     ENUM_KEY_NUMERIC(uint8_t, return_, 1u, ObType, OBTYPE, obtype, OT)
@@ -6649,7 +5741,6 @@ BEGIN_ENUM_NUMERIC(uint8_t, ObType, OBTYPE, obtype)
     ENUM_KEY_NUMERIC(uint8_t, fend, 7u, ObType, OBTYPE, obtype, OT)
 END_ENUM_NUMERIC(uint8_t, ObType, OBTYPE, obtype)
 
-// ignoring function dmd.ob.toString because of linkage
 BEGIN_ENUM_NUMERIC(uint8_t, PtrState, PTRSTATE, ptrstate)
     ENUM_KEY_NUMERIC(uint8_t, Initial, 0u, PtrState, PTRSTATE, ptrstate, PS)
     ENUM_KEY_NUMERIC(uint8_t, Undefined, 1u, PtrState, PTRSTATE, ptrstate, PS)
@@ -6658,35 +5749,6 @@ BEGIN_ENUM_NUMERIC(uint8_t, PtrState, PTRSTATE, ptrstate)
     ENUM_KEY_NUMERIC(uint8_t, Readonly, 4u, PtrState, PTRSTATE, ptrstate, PS)
 END_ENUM_NUMERIC(uint8_t, PtrState, PTRSTATE, ptrstate)
 
-// ignoring function dmd.ob.toChars because of linkage
-// ignoring function dmd.ob.toString because of linkage
-// ignoring non-cpp struct PtrVarState because of linkage
-// ignoring function dmd.ob.setLabelStatementExtraFields because of linkage
-// ignoring function dmd.ob.toObNodes because of linkage
-// ignoring function dmd.ob.insertFinallyBlockCalls because of linkage
-// ignoring function dmd.ob.insertFinallyBlockGotos because of linkage
-// ignoring function dmd.ob.numberNodes because of linkage
-// ignoring function dmd.ob.removeUnreachable because of linkage
-// ignoring function dmd.ob.computePreds because of linkage
-// ignoring function dmd.ob.isTrackableVar because of linkage
-// ignoring function dmd.ob.isTrackableVarExp because of linkage
-// ignoring function dmd.ob.collectVars because of linkage
-// ignoring function dmd.ob.allocDeps because of linkage
-// ignoring function dmd.ob.allocStates because of linkage
-// ignoring function dmd.ob.isBorrowedPtr because of linkage
-// ignoring function dmd.ob.isReadonlyPtr because of linkage
-// ignoring function dmd.ob.genKill because of linkage
-// ignoring function dmd.ob.toPtrState because of linkage
-// ignoring function dmd.ob.hasPointersToMutableFields because of linkage
-// ignoring function dmd.ob.hasMutableFields because of linkage
-// ignoring function dmd.ob.doDataFlowAnalysis because of linkage
-// ignoring function dmd.ob.checkObErrors because of linkage
-// ignoring function dmd.ob.readVar because of linkage
-// ignoring function dmd.ob.makeChildrenUndefined because of linkage
-// ignoring function dmd.ob.makeUndefined because of linkage
-// ignoring function dmd.ob.isMutableRef because of linkage
-// ignoring non-cpp struct ObjcSelector because of linkage
-// ignoring function dmd.objc.objc because of linkage
 class Objc
 {
 public:
@@ -6712,16 +5774,6 @@ public:
     virtual void checkTupleof(Expression* expression, TypeClass* type) const = 0;
 };
 
-// ignoring function dmd.opover.isCommutative because of linkage
-// ignoring function dmd.opover.opToArg because of linkage
-// ignoring function dmd.opover.op_overload because of linkage
-// ignoring function dmd.opover.build_overload because of linkage
-// ignoring function dmd.opover.search_function because of linkage
-// ignoring function dmd.opover.inferForeachAggregate because of linkage
-// ignoring function dmd.opover.inferApplyArgTypes because of linkage
-// ignoring function dmd.optimize.expandVar because of linkage
-// ignoring function dmd.optimize.Expression_optimize because of linkage
-// ignoring variable dmd.parse.precedence because of linkage
 BEGIN_ENUM(ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags)
     ENUM_KEY(int32_t, semi, 1, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
     ENUM_KEY(int32_t, scope_, 2, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
@@ -6750,15 +5802,10 @@ BEGIN_ENUM(PREC, PREC, prec)
     ENUM_KEY(int32_t, primary, 16, PREC, PREC, prec, PREC)
 END_ENUM(PREC, PREC, prec)
 
-// ignoring function dmd.printast.printAST because of linkage
-// ignoring function dmd.safe.checkUnsafeAccess because of linkage
-// ignoring function dmd.safe.isSafeCast because of linkage
 class PostorderStatementVisitor : public StoppableVisitor
 {
 public:
-    // ignored function alias dmd.sapply.PostorderStatementVisitor.visit
     StoppableVisitor* v;
-    // ignoring extern () block because of linkage
     bool doCond(Statement* s);
     bool applyTo(Statement* s);
     void visit(Statement* s);
@@ -6785,10 +5832,8 @@ public:
     void visit(LabelStatement* s);
 };
 
-// ignoring function dmd.sapply.walkPostorder because of linkage
 ENUM_CONSTANT_NUMERIC(bool, LOG, false)
 
-// ignoring function dmd.scanelf.scanElfObjModule because of linkage
 ENUM_CONSTANT_NUMERIC(bool, LOG, false)
 
 extern void semantic2(Dsymbol* dsym, Scope* sc);
@@ -6801,13 +5846,6 @@ extern bool isTrivialExp(Expression* e);
 
 extern bool hasSideEffect(Expression* e);
 
-// ignoring function dmd.sideeffect.callSideEffectLevel because of linkage
-// ignoring function dmd.sideeffect.callSideEffectLevel because of linkage
-// ignoring function dmd.sideeffect.discardValue because of linkage
-// ignoring function dmd.sideeffect.copyToTemp because of linkage
-// ignoring function dmd.sideeffect.extractSideEffect because of linkage
-// ignoring function dmd.statement.getThrowable because of linkage
-// ignoring function dmd.statement.getException because of linkage
 BEGIN_ENUM_NUMERIC(uint8_t, STMT, STMT, stmt)
     ENUM_KEY_NUMERIC(uint8_t, Error, 0u, STMT, STMT, stmt, STMT)
     ENUM_KEY_NUMERIC(uint8_t, Peel, 1u, STMT, STMT, stmt, STMT)
@@ -6861,7 +5899,6 @@ public:
     Loc loc;
     STMT stmt;
     DYNCAST dyncast() const;
-    // ignoring extern () block because of linkage
     virtual Statement* syntaxCopy();
     static Array<Statement*>* arraySyntaxCopy(Array<Statement*>* a);
     const char* toChars() const;
@@ -6913,7 +5950,6 @@ public:
 class ErrorStatement : public Statement
 {
 public:
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -6922,7 +5958,6 @@ class PeelStatement : public Statement
 {
 public:
     Statement* s;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -6930,9 +5965,6 @@ class ExpStatement : public Statement
 {
 public:
     Expression* exp;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static ExpStatement* create(Loc loc, Expression* exp);
     Statement* syntaxCopy();
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
@@ -6944,7 +5976,6 @@ class DtorExpStatement : public ExpStatement
 {
 public:
     VarDeclaration* var;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -6953,8 +5984,6 @@ class CompileStatement : public Statement
 {
 public:
     Array<Expression*>* exps;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Array<Statement*>* compileIt(Scope* sc);
     Array<Statement*>* flatten(Scope* sc);
@@ -6965,9 +5994,6 @@ class CompoundStatement : public Statement
 {
 public:
     Array<Statement*>* statements;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static CompoundStatement* create(Loc loc, Statement* s1, Statement* s2);
     Statement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
@@ -6979,7 +6005,6 @@ public:
 class CompoundDeclarationStatement : public CompoundStatement
 {
 public:
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -6988,7 +6013,6 @@ class UnrolledLoopStatement : public Statement
 {
 public:
     Array<Statement*>* statements;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -7000,7 +6024,6 @@ class ScopeStatement : public Statement
 public:
     Statement* statement;
     Loc endloc;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     ReturnStatement* endsWithReturnStatement();
     bool hasBreak() const;
@@ -7013,8 +6036,6 @@ class ForwardingStatement : public Statement
 public:
     ForwardingScopeDsymbol* sym;
     Statement* statement;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
@@ -7026,7 +6047,6 @@ public:
     Expression* condition;
     Statement* _body;
     Loc endloc;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -7039,7 +6059,6 @@ public:
     Statement* _body;
     Expression* condition;
     Loc endloc;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -7055,7 +6074,6 @@ public:
     Statement* _body;
     Loc endloc;
     Statement* relatedLabeled;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     Statement* getRelatedLabeled();
@@ -7077,7 +6095,6 @@ public:
     FuncDeclaration* func;
     Array<Statement*>* cases;
     Array<ScopeStatement*>* gotos;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -7094,7 +6111,6 @@ public:
     Statement* _body;
     Loc endloc;
     VarDeclaration* key;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -7110,7 +6126,6 @@ public:
     Statement* elsebody;
     VarDeclaration* match;
     Loc endloc;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7121,7 +6136,6 @@ public:
     Condition* condition;
     Statement* ifbody;
     Statement* elsebody;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
@@ -7131,7 +6145,6 @@ class StaticForeachStatement : public Statement
 {
 public:
     StaticForeach* sfe;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
@@ -7143,7 +6156,6 @@ public:
     Identifier* ident;
     Array<Expression*>* args;
     Statement* _body;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7152,7 +6164,6 @@ class StaticAssertStatement : public Statement
 {
 public:
     StaticAssert* sa;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7171,10 +6182,8 @@ public:
     int32_t hasNoDefault;
     int32_t hasVars;
     VarDeclaration* lastVar;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
     ~SwitchStatement();
 };
@@ -7187,7 +6196,6 @@ public:
     int32_t index;
     VarDeclaration* lastVar;
     void* extra;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7198,7 +6206,6 @@ public:
     Expression* first;
     Expression* last;
     Statement* statement;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7208,7 +6215,6 @@ class DefaultStatement : public Statement
 public:
     Statement* statement;
     VarDeclaration* lastVar;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7217,7 +6223,6 @@ class GotoDefaultStatement : public Statement
 {
 public:
     SwitchStatement* sw;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7227,7 +6232,6 @@ class GotoCaseStatement : public Statement
 public:
     Expression* exp;
     CaseStatement* cs;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7236,8 +6240,6 @@ class SwitchErrorStatement : public Statement
 {
 public:
     Expression* exp;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -7246,7 +6248,6 @@ class ReturnStatement : public Statement
 public:
     Expression* exp;
     size_t caseDim;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     ReturnStatement* endsWithReturnStatement();
     void accept(Visitor* v);
@@ -7256,7 +6257,6 @@ class BreakStatement : public Statement
 {
 public:
     Identifier* ident;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7265,7 +6265,6 @@ class ContinueStatement : public Statement
 {
 public:
     Identifier* ident;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7275,7 +6274,6 @@ class SynchronizedStatement : public Statement
 public:
     Expression* exp;
     Statement* _body;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -7289,7 +6287,6 @@ public:
     Statement* _body;
     VarDeclaration* wthis;
     Loc endloc;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7300,7 +6297,6 @@ public:
     Statement* _body;
     Array<Catch*>* catches;
     Statement* tryBody;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     bool hasBreak() const;
     void accept(Visitor* v);
@@ -7316,7 +6312,6 @@ public:
     VarDeclaration* var;
     bool errors;
     bool internalCatch;
-    // ignoring extern () block because of linkage
     Catch* syntaxCopy();
 };
 
@@ -7327,7 +6322,6 @@ public:
     Statement* finalbody;
     Statement* tryBody;
     bool bodyFallsThru;
-    // ignoring extern () block because of linkage
     static TryFinallyStatement* create(Loc loc, Statement* _body, Statement* finalbody);
     Statement* syntaxCopy();
     bool hasBreak() const;
@@ -7340,7 +6334,6 @@ class ScopeGuardStatement : public Statement
 public:
     TOK tok;
     Statement* statement;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     void accept(Visitor* v);
@@ -7351,7 +6344,6 @@ class ThrowStatement : public Statement
 public:
     Expression* exp;
     bool internalThrow;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7360,7 +6352,6 @@ class DebugStatement : public Statement
 {
 public:
     Statement* statement;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
@@ -7375,9 +6366,7 @@ public:
     TryFinallyStatement* tf;
     ScopeGuardStatement* os;
     VarDeclaration* lastVar;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
-    // ignoring extern () block because of linkage
     void accept(Visitor* v);
 };
 
@@ -7393,7 +6382,6 @@ public:
     Statement* gotoTarget;
     void* extra;
     bool breaks;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexit, Statement** sfinally);
@@ -7406,7 +6394,6 @@ public:
     LabelStatement* statement;
     bool deleted;
     bool iasm;
-    // ignoring extern () block because of linkage
     static LabelDsymbol* create(Identifier* ident);
     LabelDsymbol* isLabel();
     void accept(Visitor* v);
@@ -7416,8 +6403,6 @@ class AsmStatement : public Statement
 {
 public:
     Token* tokens;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7430,7 +6415,6 @@ public:
     uint32_t regs;
     bool refparam;
     bool naked;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7447,7 +6431,6 @@ public:
     Array<Expression*>* clobbers;
     Array<Identifier*>* labels;
     Array<GotoStatement*>* gotos;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7456,7 +6439,6 @@ class CompoundAsmStatement : public CompoundStatement
 {
 public:
     StorageClass stc;
-    // ignoring extern () block because of linkage
     CompoundAsmStatement* syntaxCopy();
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
@@ -7466,22 +6448,17 @@ class ImportStatement : public Statement
 {
 public:
     Array<Dsymbol*>* imports;
-    // ignoring extern () block because of linkage
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
 
 extern Statement* statementSemantic(Statement* s, Scope* sc);
 
-// ignoring function dmd.statementsem.catchSemantic because of linkage
-// ignoring function dmd.statementsem.semanticNoScope because of linkage
-// ignoring function dmd.statementsem.semanticScope because of linkage
 class StaticAssert : public Dsymbol
 {
 public:
     Expression* exp;
     Expression* msg;
-    // ignoring extern () block because of linkage
     Dsymbol* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     bool oneMember(Dsymbol** ps, Identifier* ident);
@@ -7489,9 +6466,6 @@ public:
     void accept(Visitor* v);
 };
 
-// ignoring function dmd.staticcond.evalStaticCondition because of linkage
-// ignoring function dmd.staticcond.visualizeStaticCondition because of linkage
-// ignoring template dmd.stmtstate.StmtState(block) because of linkage
 struct Target
 {
     uint32_t ptrsize;
@@ -7528,7 +6502,6 @@ struct Target
         d_int64 max_10_exp;
         // Ignoring var min_10_exp alignment 0
         d_int64 min_10_exp;
-        // ignoring extern () block because of linkage
     };
 
     FPTypeProperties<float> FloatProperties;
@@ -7556,8 +6529,6 @@ struct Target
     END_ENUM(TargetInfoKeys, TARGETINFOKEYS, targetinfokeys)
 
     Expression* getTargetInfo(const char* name, const Loc& loc);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     Target() : ptrsize(), realsize(), realpad(), realalignsize(), classinfosize(), maxStaticDataSize(), c(), cpp(), objc(), FloatProperties(), DoubleProperties(), RealProperties() {}
 };
 
@@ -7565,37 +6536,15 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter*>* parameters);
 
-// ignoring function dmd.templateparamsem.aliasParameterSemantic because of linkage
 ENUM_CONSTANT_NUMERIC(bool, LOGSEMANTIC, false)
 
-// ignoring function dmd.traits._sharedStaticCtor_L92_C1 because of linkage
-// ignoring function dmd.traits.getTypePointerBitmap because of linkage
-// ignoring function dmd.traits.semanticTraits because of linkage
-// ignoring function dmd.typesem.typeToExpression because of linkage
-// ignoring function dmd.typesem.typeToExpressionHelper because of linkage
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
-// ignoring function dmd.typesem.compileTypeMixin because of linkage
-// ignoring function dmd.typesem.merge because of linkage
-// ignoring function dmd.typesem.getProperty because of linkage
-// ignoring function dmd.typesem.resolve because of linkage
-// ignoring function dmd.typesem.dotExp because of linkage
-// ignoring function dmd.typesem.defaultInit because of linkage
-// ignoring function dmd.typinf.genTypeInfo because of linkage
 extern Type* getTypeInfoType(Loc loc, Type* t, Scope* sc);
 
-// ignoring function dmd.typinf.isSpeculativeType because of linkage
-// ignoring function dmd.utils.toWinPath because of linkage
-// ignoring function dmd.utils.readFile because of linkage
-// ignoring function dmd.utils.readFile because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.utils.ensurePathToNameExists because of linkage
-// ignoring function dmd.utils.escapePath because of linkage
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
 public:
-    // ignored function alias dmd.visitor.SemanticTimeTransitiveVisitor.visit
-    // ignored function alias dmd.visitor.SemanticTimeTransitiveVisitor.visit
     void visit(PeelStatement* s);
     void visit(UnrolledLoopStatement* s);
     void visit(DebugStatement* s);
@@ -7616,10 +6565,6 @@ public:
     void visit(RemoveExp* e);
 };
 
-// ignoring function dmd.foreachvar.foreachVar because of linkage
-// ignoring function dmd.foreachvar.foreachExpAndVar because of linkage
-// ignoring function dmd.dmsc.out_config_init because it's extern
-// ignoring function dmd.dmsc.out_config_debug because it's extern
 extern void backend_init();
 
 extern targ_size_t _align(targ_size_t size, targ_size_t offset);
@@ -7632,9 +6577,6 @@ extern void backend_term();
 
 typedef Array<elem*> Elems;
 
-// ignored function alias dmd.e2ir.toSymbol
-// ignored function alias dmd.glue.toSymbol
-// ignoring function dmd.e2ir.mem_malloc2 because it's extern
 extern int32_t REGSIZE();
 
 extern bool ISREF(Declaration* var);
@@ -7643,7 +6585,6 @@ extern bool ISX64REF(Declaration* var);
 
 extern bool ISX64REF(IRState* irs, Expression* exp);
 
-// ignoring extern () block because of linkage
 extern elem* addressElem(elem* e, Type* t, bool alwaysCopy = false);
 
 extern bool elemIsLvalue(elem* e);
@@ -7692,13 +6633,10 @@ extern void except_fillInEHTable(Symbol* s);
 
 extern Statement* asmSemantic(AsmStatement* s, Scope* sc);
 
-// ignoring function dmd.iasmdmd.inlineAsmSemantic because of linkage
 extern uint32_t iasm_regs(block* bp);
 
-// ignoring function dmd.iasmgcc.gccAsmSemantic because of linkage
 typedef Array<Symbol*> symbols;
 
-// ignored function alias dmd.glue.toSymbol
 extern elem* eictor;
 
 extern Symbol* ictorlocalgot;
@@ -7735,7 +6673,6 @@ extern void obj_end(Library* library, const char* objfilename);
 
 extern bool obj_includelib(const char* name);
 
-// ignoring extern () block because of linkage
 extern void obj_startaddress(Symbol* s);
 
 extern bool obj_linkerdirective(const char* directive);
@@ -7752,7 +6689,6 @@ extern Symbol* getBzeroSymbol();
 
 extern elem* toEfilenamePtr(Module* m);
 
-// ignoring function dmd.objc_glue.objc because of linkage
 class ObjcGlue
 {
 public:
@@ -7775,8 +6711,6 @@ public:
     virtual elem* getOffset(VarDeclaration* var, Type* type, elem* offset) const = 0;
 };
 
-// ignored function alias dmd.s2ir.toSymbol
-// ignored function alias dmd.glue.toSymbol
 typedef StmtState<block> StmtState;
 
 extern void elem_setLoc(elem* e, const Loc& loc);
@@ -7815,7 +6749,6 @@ extern Symbol* toSymbolCpp(ClassDeclaration* cd);
 
 extern Symbol* toSymbolCppTypeInfo(ClassDeclaration* cd);
 
-// ignoring function dmd.toctype.modToTym because of linkage
 extern TYPE* Type_toCtype(Type* t);
 
 extern void toDebug(EnumDeclaration* ed);
@@ -7826,8 +6759,6 @@ extern void toDebug(ClassDeclaration* cd);
 
 extern void toDebugClosure(Symbol* closstru);
 
-// ignored function alias dmd.todt.toSymbol
-// ignored function alias dmd.glue.toSymbol
 typedef Array<dt_t*> Dts;
 
 extern void Initializer_toDt(Initializer* init, DtBuilder& dtb);
@@ -7846,11 +6777,6 @@ extern void ClassReferenceExp_toInstanceDt(ClassReferenceExp* ce, DtBuilder& dtb
 
 extern void TypeInfo_toDt(DtBuilder& dtb, TypeInfoDeclaration* d);
 
-// ignored function alias dmd.toir.toSymbol
-// ignored function alias dmd.glue.toSymbol
-// ignoring non-cpp struct Label because of linkage
-// ignoring non-cpp struct IRState because of linkage
-// ignoring extern () block because of linkage
 extern elem* getEthis(const Loc& loc, IRState* irs, Dsymbol* fd, Dsymbol* fdp, Dsymbol* origSc);
 
 extern elem* fixEthis2(elem* ethis, FuncDeclaration* fd, bool ctxt2 = false);
@@ -7875,8 +6801,6 @@ extern void buildCapture(FuncDeclaration* fd);
 
 extern RET retStyle(TypeFunction* tf, bool needsThis);
 
-// ignored function alias dmd.toobj.toSymbol
-// ignored function alias dmd.glue.toSymbol
 extern void genModuleInfo(Module* m);
 
 extern void write_pointers(Type* type, Symbol* s, uint32_t offset);
@@ -7979,7 +6903,6 @@ struct Srcpos
     Srcpos() {}
 };
 
-// ignoring function dmd.backend.cc.Srcpos_print because it's extern
 typedef uint32_t stflags_t;
 
 BEGIN_ANON_ENUM()
@@ -8708,10 +7631,6 @@ struct Symbol
 
 extern void symbol_debug(const Symbol* const s);
 
-// ignoring function dmd.backend.cc.Symbol_Salignsize because it's extern
-// ignoring function dmd.backend.cc.Symbol_Sisdead because it's extern
-// ignoring function dmd.backend.cc.Symbol_needThis because it's extern
-// ignoring function dmd.backend.cc.Symbol_isAffected because it's extern
 extern bool isclassmember(const Symbol* const s);
 
 typedef Symbol Classsym;
@@ -8752,12 +7671,6 @@ struct param_t
     param_t() {}
 };
 
-// ignoring function dmd.backend.cc.param_t_print because it's extern
-// ignoring function dmd.backend.cc.param_t_print_list because it's extern
-// ignoring function dmd.backend.cc.param_t_length because it's extern
-// ignoring function dmd.backend.cc.param_t_createTal because it's extern
-// ignoring function dmd.backend.cc.param_t_search because it's extern
-// ignoring function dmd.backend.cc.param_t_searchn because it's extern
 extern void param_debug(const param_t* const p);
 
 typedef int32_t FL;
@@ -8896,7 +7809,6 @@ ENUM_CONSTANT(const char*, VERSIONHEX, "0x900")
 
 ENUM_CONSTANT_NUMERIC(int32_t, VERSIONINT, 2304)
 
-// ignoring extern () block because of linkage
 ENUM_CONSTANT_NUMERIC(bool, TARGET_LINUX, true)
 
 ENUM_CONSTANT_NUMERIC(bool, TARGET_OSX, false)
@@ -8971,7 +7883,6 @@ typedef float targ_float;
 
 typedef double targ_double;
 
-// ignoring function dmd.backend.cdef.REGSIZE because it's extern
 extern uint64_t MSREG(uint64_t p);
 
 typedef int32_t targ_int;
@@ -9473,12 +8384,6 @@ typedef LIST* symlist_t;
 
 extern char* ftdbname;
 
-// ignoring function dmd.backend.cgcv.cv_init because it's extern
-// ignoring function dmd.backend.cgcv.cv_typidx because it's extern
-// ignoring function dmd.backend.cgcv.cv_outsym because it's extern
-// ignoring function dmd.backend.cgcv.cv_func because it's extern
-// ignoring function dmd.backend.cgcv.cv_term because it's extern
-// ignoring function dmd.backend.cgcv.cv4_struct because it's extern
 typedef uint32_t idx_t;
 
 struct debtyp_t
@@ -9506,18 +8411,6 @@ struct Cgcv
 
 extern Cgcv cgcv;
 
-// ignoring function dmd.backend.cgcv.debtyp_alloc because it's extern
-// ignoring function dmd.backend.cgcv.cv_stringbytes because it's extern
-// ignoring function dmd.backend.cgcv.cv4_numericbytes because it's extern
-// ignoring function dmd.backend.cgcv.cv4_storenumeric because it's extern
-// ignoring function dmd.backend.cgcv.cv4_signednumericbytes because it's extern
-// ignoring function dmd.backend.cgcv.cv4_storesignednumeric because it's extern
-// ignoring function dmd.backend.cgcv.cv_debtyp because it's extern
-// ignoring function dmd.backend.cgcv.cv_namestring because it's extern
-// ignoring function dmd.backend.cgcv.cv4_typidx because it's extern
-// ignoring function dmd.backend.cgcv.cv4_arglist because it's extern
-// ignoring function dmd.backend.cgcv.cv4_callconv because it's extern
-// ignoring function dmd.backend.cgcv.cv_numdebtypes because it's extern
 extern void TOWORD(uint8_t* a, uint32_t b);
 
 extern void TOLONG(uint8_t* a, uint32_t b);
@@ -9528,19 +8421,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, DEBSYM, 5)
 
 ENUM_CONSTANT_NUMERIC(int32_t, DEBTYP, 6)
 
-// ignoring function dmd.backend.cgcv.cv8_initfile because it's extern
-// ignoring function dmd.backend.cgcv.cv8_termfile because it's extern
-// ignoring function dmd.backend.cgcv.cv8_initmodule because it's extern
-// ignoring function dmd.backend.cgcv.cv8_termmodule because it's extern
-// ignoring function dmd.backend.cgcv.cv8_func_start because it's extern
-// ignoring function dmd.backend.cgcv.cv8_func_term because it's extern
-// ignoring function dmd.backend.cgcv.cv8_outsym because it's extern
-// ignoring function dmd.backend.cgcv.cv8_udt because it's extern
-// ignoring function dmd.backend.cgcv.cv8_regnum because it's extern
-// ignoring function dmd.backend.cgcv.cv8_fwdref because it's extern
-// ignoring function dmd.backend.cgcv.cv8_darray because it's extern
-// ignoring function dmd.backend.cgcv.cv8_ddelegate because it's extern
-// ignoring function dmd.backend.cgcv.cv8_daarray because it's extern
 typedef int32_t segidx_t;
 
 struct _Declaration;
@@ -9587,12 +8467,8 @@ union evc
     evc() : Vint(), Vuns(), Vlong(), Vllong(), Vsize_t(), Vsrcpos(), Vtor(), Vswitch(), Vcode(), Vblock() {}
 };
 
-// ignoring function dmd.backend.code.code_calloc because it's extern
-// ignoring function dmd.backend.code.code_free because it's extern
-// ignoring function dmd.backend.code.code_term because it's extern
 extern code* code_next(code* c);
 
-// ignoring function dmd.backend.code.code_chunk_alloc because it's extern
 extern code* code_list;
 
 extern code* code_malloc();
@@ -9611,8 +8487,6 @@ struct REGSAVE
     REGSAVE() : off(), top(), idx(), alignment() {}
 };
 
-// ignoring function dmd.backend.code.REGSAVE_save because it's extern
-// ignoring function dmd.backend.code.REGSAVE_restore because it's extern
 extern REGSAVE regsave;
 
 struct LocalSection
@@ -9648,47 +8522,8 @@ struct CGstate
     CGstate() : stackclean(), funcarg(), funcargtos(), accessedTLS() {}
 };
 
-// ignoring function dmd.backend.code.nteh_prolog because it's extern
-// ignoring function dmd.backend.code.nteh_epilog because it's extern
-// ignoring function dmd.backend.code.nteh_usevars because it's extern
-// ignoring function dmd.backend.code.nteh_filltables because it's extern
-// ignoring function dmd.backend.code.nteh_gentables because it's extern
-// ignoring function dmd.backend.code.nteh_setsp because it's extern
-// ignoring function dmd.backend.code.nteh_filter because it's extern
-// ignoring function dmd.backend.code.nteh_framehandler because it's extern
-// ignoring function dmd.backend.code.nteh_gensindex because it's extern
 ENUM_CONSTANT_NUMERIC(int32_t, GENSINDEXSIZE, 7)
 
-// ignoring function dmd.backend.code.nteh_monitor_prolog because it's extern
-// ignoring function dmd.backend.code.nteh_monitor_epilog because it's extern
-// ignoring function dmd.backend.code.nteh_patchindex because it's extern
-// ignoring function dmd.backend.code.nteh_unwind because it's extern
-// ignoring function dmd.backend.code.code_last because it's extern
-// ignoring function dmd.backend.code.code_orflag because it's extern
-// ignoring function dmd.backend.code.code_orrex because it's extern
-// ignoring function dmd.backend.code.setOpcode because it's extern
-// ignoring function dmd.backend.code.cat because it's extern
-// ignoring function dmd.backend.code.gen because it's extern
-// ignoring function dmd.backend.code.gen1 because it's extern
-// ignoring function dmd.backend.code.gen2 because it's extern
-// ignoring function dmd.backend.code.gen2sib because it's extern
-// ignoring function dmd.backend.code.genc2 because it's extern
-// ignoring function dmd.backend.code.genc because it's extern
-// ignoring function dmd.backend.code.genlinnum because it's extern
-// ignoring function dmd.backend.code.cgen_prelinnum because it's extern
-// ignoring function dmd.backend.code.gennop because it's extern
-// ignoring function dmd.backend.code.gencodelem because it's extern
-// ignoring function dmd.backend.code.reghasvalue because it's extern
-// ignoring function dmd.backend.code.regwithvalue because it's extern
-// ignoring function dmd.backend.code.cgreg_init because it's extern
-// ignoring function dmd.backend.code.cgreg_term because it's extern
-// ignoring function dmd.backend.code.cgreg_reset because it's extern
-// ignoring function dmd.backend.code.cgreg_used because it's extern
-// ignoring function dmd.backend.code.cgreg_spillreg_prolog because it's extern
-// ignoring function dmd.backend.code.cgreg_spillreg_epilog because it's extern
-// ignoring function dmd.backend.code.cgreg_assign because it's extern
-// ignoring function dmd.backend.code.cgreg_unregister because it's extern
-// ignoring function dmd.backend.code.cgsched_block because it's extern
 typedef uint32_t IDXSTR;
 
 typedef uint32_t IDXSEC;
@@ -9716,7 +8551,6 @@ struct seg_data
     seg_data() : SDseg(), SDoffset(), SDalignment(), SDshtidx(), SDbuf(), SDrel(), SDsymidx(), SDrelidx(), SDrelmaxoff(), SDrelindex(), SDrelcnt(), SDshtidxout(), SDsym(), SDassocseg(), SDaranges_offset(), SDlinnum_data() {}
 };
 
-// ignoring function dmd.backend.code.seg_data_isCode because it's extern
 struct linnum_data
 {
     const char* filename;
@@ -9755,8 +8589,6 @@ struct FuncParamRegs
     FuncParamRegs() {}
 };
 
-// ignoring function dmd.backend.code.FuncParamRegs_create because it's extern
-// ignoring function dmd.backend.code.FuncParamRegs_alloc because it's extern
 extern uint32_t msavereg;
 
 extern uint32_t mfuncreg;
@@ -9831,183 +8663,14 @@ extern char calledafunc;
 
 extern bool calledFinally;
 
-// ignoring function dmd.backend.code.stackoffsets because it's extern
-// ignoring function dmd.backend.code.codgen because it's extern
-// ignoring function dmd.backend.code.findreg because it's extern
 extern uint8_t findregmsw(uint32_t regm);
 
 extern uint8_t findreglsw(uint32_t regm);
 
-// ignoring function dmd.backend.code.freenode because it's extern
-// ignoring function dmd.backend.code.isregvar because it's extern
-// ignoring function dmd.backend.code.allocreg because it's extern
-// ignoring function dmd.backend.code.allocreg because it's extern
-// ignoring function dmd.backend.code.allocScratchReg because it's extern
-// ignoring function dmd.backend.code.lpadregs because it's extern
-// ignoring function dmd.backend.code.useregs because it's extern
-// ignoring function dmd.backend.code.getregs because it's extern
-// ignoring function dmd.backend.code.getregsNoSave because it's extern
-// ignoring function dmd.backend.code.getregs_imm because it's extern
-// ignoring function dmd.backend.code.cse_flush because it's extern
-// ignoring function dmd.backend.code.cse_simple because it's extern
-// ignoring function dmd.backend.code.cssave because it's extern
-// ignoring function dmd.backend.code.evalinregister because it's extern
-// ignoring function dmd.backend.code.getscratch because it's extern
-// ignoring function dmd.backend.code.codelem because it's extern
-// ignoring function dmd.backend.code.scodelem because it's extern
-// ignoring function dmd.backend.code.regm_str because it's extern
-// ignoring function dmd.backend.code.numbitsset because it's extern
-// ignoring function dmd.backend.code.cdabs because it's extern
-// ignoring function dmd.backend.code.cdaddass because it's extern
-// ignoring function dmd.backend.code.cdasm because it's extern
-// ignoring function dmd.backend.code.cdbscan because it's extern
-// ignoring function dmd.backend.code.cdbswap because it's extern
-// ignoring function dmd.backend.code.cdbt because it's extern
-// ignoring function dmd.backend.code.cdbtst because it's extern
-// ignoring function dmd.backend.code.cdbyteint because it's extern
-// ignoring function dmd.backend.code.cdcmp because it's extern
-// ignoring function dmd.backend.code.cdcmpxchg because it's extern
-// ignoring function dmd.backend.code.cdcnvt because it's extern
-// ignoring function dmd.backend.code.cdcom because it's extern
-// ignoring function dmd.backend.code.cdcomma because it's extern
-// ignoring function dmd.backend.code.cdcond because it's extern
-// ignoring function dmd.backend.code.cdconvt87 because it's extern
-// ignoring function dmd.backend.code.cdctor because it's extern
-// ignoring function dmd.backend.code.cddctor because it's extern
-// ignoring function dmd.backend.code.cdddtor because it's extern
-// ignoring function dmd.backend.code.cddtor because it's extern
-// ignoring function dmd.backend.code.cdeq because it's extern
-// ignoring function dmd.backend.code.cderr because it's extern
-// ignoring function dmd.backend.code.cdfar16 because it's extern
-// ignoring function dmd.backend.code.cdframeptr because it's extern
-// ignoring function dmd.backend.code.cdfunc because it's extern
-// ignoring function dmd.backend.code.cdgot because it's extern
-// ignoring function dmd.backend.code.cdhalt because it's extern
-// ignoring function dmd.backend.code.cdind because it's extern
-// ignoring function dmd.backend.code.cdinfo because it's extern
-// ignoring function dmd.backend.code.cdlngsht because it's extern
-// ignoring function dmd.backend.code.cdloglog because it's extern
-// ignoring function dmd.backend.code.cdmark because it's extern
-// ignoring function dmd.backend.code.cdmemcmp because it's extern
-// ignoring function dmd.backend.code.cdmemcpy because it's extern
-// ignoring function dmd.backend.code.cdmemset because it's extern
-// ignoring function dmd.backend.code.cdmsw because it's extern
-// ignoring function dmd.backend.code.cdmul because it's extern
-// ignoring function dmd.backend.code.cddiv because it's extern
-// ignoring function dmd.backend.code.cdmulass because it's extern
-// ignoring function dmd.backend.code.cddivass because it's extern
-// ignoring function dmd.backend.code.cdneg because it's extern
-// ignoring function dmd.backend.code.cdnot because it's extern
-// ignoring function dmd.backend.code.cdorth because it's extern
-// ignoring function dmd.backend.code.cdpair because it's extern
-// ignoring function dmd.backend.code.cdpopcnt because it's extern
-// ignoring function dmd.backend.code.cdport because it's extern
-// ignoring function dmd.backend.code.cdpost because it's extern
-// ignoring function dmd.backend.code.cdprefetch because it's extern
-// ignoring function dmd.backend.code.cdrelconst because it's extern
-// ignoring function dmd.backend.code.cdrndtol because it's extern
-// ignoring function dmd.backend.code.cdscale because it's extern
-// ignoring function dmd.backend.code.cdsetjmp because it's extern
-// ignoring function dmd.backend.code.cdshass because it's extern
-// ignoring function dmd.backend.code.cdshift because it's extern
-// ignoring function dmd.backend.code.cdshtlng because it's extern
-// ignoring function dmd.backend.code.cdstrcmp because it's extern
-// ignoring function dmd.backend.code.cdstrcpy because it's extern
-// ignoring function dmd.backend.code.cdstreq because it's extern
-// ignoring function dmd.backend.code.cdstrlen because it's extern
-// ignoring function dmd.backend.code.cdstrthis because it's extern
-// ignoring function dmd.backend.code.cdtoprec because it's extern
-// ignoring function dmd.backend.code.cdvecfill because it's extern
-// ignoring function dmd.backend.code.cdvecsto because it's extern
-// ignoring function dmd.backend.code.cdvector because it's extern
-// ignoring function dmd.backend.code.cdvoid because it's extern
-// ignoring function dmd.backend.code.loaddata because it's extern
 extern int32_t clib_inited;
 
-// ignoring function dmd.backend.code.regParamInPreg because it's extern
-// ignoring function dmd.backend.code.isscaledindex because it's extern
-// ignoring function dmd.backend.code.ssindex because it's extern
-// ignoring function dmd.backend.code.buildEA because it's extern
-// ignoring function dmd.backend.code.buildModregrm because it's extern
-// ignoring function dmd.backend.code.andregcon because it's extern
-// ignoring function dmd.backend.code.genEEcode because it's extern
-// ignoring function dmd.backend.code.docommas because it's extern
-// ignoring function dmd.backend.code.gensaverestore because it's extern
-// ignoring function dmd.backend.code.genstackclean because it's extern
-// ignoring function dmd.backend.code.logexp because it's extern
-// ignoring function dmd.backend.code.getaddrmode because it's extern
-// ignoring function dmd.backend.code.setaddrmode because it's extern
-// ignoring function dmd.backend.code.fltregs because it's extern
-// ignoring function dmd.backend.code.tstresult because it's extern
-// ignoring function dmd.backend.code.fixresult because it's extern
-// ignoring function dmd.backend.code.callclib because it's extern
-// ignoring function dmd.backend.code.pushParams because it's extern
-// ignoring function dmd.backend.code.offsetinreg because it's extern
-// ignoring function dmd.backend.code.argtypes because it's extern
-// ignoring function dmd.backend.code.movOnly because it's extern
-// ignoring function dmd.backend.code.idxregm because it's extern
-// ignoring function dmd.backend.code.opdouble because it's extern
-// ignoring function dmd.backend.code.WRcodlst because it's extern
-// ignoring function dmd.backend.code.getoffset because it's extern
-// ignoring function dmd.backend.code.cod3_EA because it's extern
-// ignoring function dmd.backend.code.cod3_useBP because it's extern
-// ignoring function dmd.backend.code.cod3_initregs because it's extern
-// ignoring function dmd.backend.code.cod3_setdefault because it's extern
-// ignoring function dmd.backend.code.cod3_set32 because it's extern
-// ignoring function dmd.backend.code.cod3_set64 because it's extern
-// ignoring function dmd.backend.code.cod3_align_bytes because it's extern
-// ignoring function dmd.backend.code.cod3_align because it's extern
-// ignoring function dmd.backend.code.cod3_buildmodulector because it's extern
-// ignoring function dmd.backend.code.cod3_stackadj because it's extern
-// ignoring function dmd.backend.code.cod3_stackalign because it's extern
-// ignoring function dmd.backend.code.regmask because it's extern
-// ignoring function dmd.backend.code.cgreg_dst_regs because it's extern
-// ignoring function dmd.backend.code.cgreg_set_priorities because it's extern
-// ignoring function dmd.backend.code.outblkexitcode because it's extern
-// ignoring function dmd.backend.code.outjmptab because it's extern
-// ignoring function dmd.backend.code.outswitab because it's extern
-// ignoring function dmd.backend.code.jmpopcode because it's extern
-// ignoring function dmd.backend.code.cod3_ptrchk because it's extern
-// ignoring function dmd.backend.code.genregs because it's extern
-// ignoring function dmd.backend.code.gentstreg because it's extern
-// ignoring function dmd.backend.code.genpush because it's extern
-// ignoring function dmd.backend.code.genpop because it's extern
-// ignoring function dmd.backend.code.gen_storecse because it's extern
-// ignoring function dmd.backend.code.gen_testcse because it's extern
-// ignoring function dmd.backend.code.gen_loadcse because it's extern
-// ignoring function dmd.backend.code.genmovreg because it's extern
-// ignoring function dmd.backend.code.genmovreg because it's extern
-// ignoring function dmd.backend.code.genmovreg because it's extern
-// ignoring function dmd.backend.code.genmulimm because it's extern
-// ignoring function dmd.backend.code.genshift because it's extern
-// ignoring function dmd.backend.code.movregconst because it's extern
-// ignoring function dmd.backend.code.genjmp because it's extern
-// ignoring function dmd.backend.code.prolog because it's extern
-// ignoring function dmd.backend.code.epilog because it's extern
-// ignoring function dmd.backend.code.gen_spill_reg because it's extern
-// ignoring function dmd.backend.code.load_localgot because it's extern
-// ignoring function dmd.backend.code.cod3_spoff because it's extern
-// ignoring function dmd.backend.code.makeitextern because it's extern
-// ignoring function dmd.backend.code.fltused because it's extern
-// ignoring function dmd.backend.code.branch because it's extern
-// ignoring function dmd.backend.code.cod3_adjSymOffsets because it's extern
-// ignoring function dmd.backend.code.assignaddr because it's extern
-// ignoring function dmd.backend.code.assignaddrc because it's extern
-// ignoring function dmd.backend.code.cod3_bpoffset because it's extern
-// ignoring function dmd.backend.code.pinholeopt because it's extern
-// ignoring function dmd.backend.code.simplify_code because it's extern
-// ignoring function dmd.backend.code.jmpaddr because it's extern
-// ignoring function dmd.backend.code.code_match because it's extern
-// ignoring function dmd.backend.code.calcblksize because it's extern
-// ignoring function dmd.backend.code.calccodsize because it's extern
-// ignoring function dmd.backend.code.codout because it's extern
-// ignoring function dmd.backend.code.addtofixlist because it's extern
 extern void searchfixlist(Symbol* s);
 
-// ignoring function dmd.backend.code.outfixlist because it's extern
-// ignoring function dmd.backend.code.code_hydrate because it's extern
-// ignoring function dmd.backend.code.code_dehydrate because it's extern
-// ignoring function dmd.backend.code.allocretregs because it's extern
 extern int32_t hasframe;
 
 extern bool enforcealign;
@@ -10028,69 +8691,10 @@ extern int32_t BPoff;
 
 extern int32_t EBPtoESP;
 
-// ignoring function dmd.backend.code.prolog_ifunc because it's extern
-// ignoring function dmd.backend.code.prolog_ifunc2 because it's extern
-// ignoring function dmd.backend.code.prolog_16bit_windows_farfunc because it's extern
-// ignoring function dmd.backend.code.prolog_frame because it's extern
-// ignoring function dmd.backend.code.prolog_frameadj because it's extern
-// ignoring function dmd.backend.code.prolog_frameadj2 because it's extern
-// ignoring function dmd.backend.code.prolog_setupalloca because it's extern
-// ignoring function dmd.backend.code.prolog_saveregs because it's extern
-// ignoring function dmd.backend.code.prolog_stackalign because it's extern
-// ignoring function dmd.backend.code.prolog_trace because it's extern
-// ignoring function dmd.backend.code.prolog_gen_win64_varargs because it's extern
-// ignoring function dmd.backend.code.prolog_genvarargs because it's extern
-// ignoring function dmd.backend.code.prolog_loadparams because it's extern
 extern const uint8_t dblreg[4LLU];
 
 extern int32_t cdcmp_flag;
 
-// ignoring function dmd.backend.code.doinreg because it's extern
-// ignoring function dmd.backend.code.modEA because it's extern
-// ignoring function dmd.backend.code.longcmp because it's extern
-// ignoring function dmd.backend.code.cod5_prol_epi because it's extern
-// ignoring function dmd.backend.code.cod5_noprol because it's extern
-// ignoring function dmd.backend.code.isXMMstore because it's extern
-// ignoring function dmd.backend.code.orthxmm because it's extern
-// ignoring function dmd.backend.code.xmmeq because it's extern
-// ignoring function dmd.backend.code.xmmcnvt because it's extern
-// ignoring function dmd.backend.code.xmmopass because it's extern
-// ignoring function dmd.backend.code.xmmpost because it's extern
-// ignoring function dmd.backend.code.xmmneg because it's extern
-// ignoring function dmd.backend.code.xmmabs because it's extern
-// ignoring function dmd.backend.code.xmmload because it's extern
-// ignoring function dmd.backend.code.xmmstore because it's extern
-// ignoring function dmd.backend.code.xmmIsAligned because it's extern
-// ignoring function dmd.backend.code.checkSetVex3 because it's extern
-// ignoring function dmd.backend.code.checkSetVex because it's extern
-// ignoring function dmd.backend.code.note87 because it's extern
-// ignoring function dmd.backend.code.pop87 because it's extern
-// ignoring function dmd.backend.code.pop87 because it's extern
-// ignoring function dmd.backend.code.push87 because it's extern
-// ignoring function dmd.backend.code.save87 because it's extern
-// ignoring function dmd.backend.code.save87regs because it's extern
-// ignoring function dmd.backend.code.gensaverestore87 because it's extern
-// ignoring function dmd.backend.code.genfwait because it's extern
-// ignoring function dmd.backend.code.comsub87 because it's extern
-// ignoring function dmd.backend.code.fixresult87 because it's extern
-// ignoring function dmd.backend.code.fixresult_complex87 because it's extern
-// ignoring function dmd.backend.code.orth87 because it's extern
-// ignoring function dmd.backend.code.load87 because it's extern
-// ignoring function dmd.backend.code.cmporder87 because it's extern
-// ignoring function dmd.backend.code.eq87 because it's extern
-// ignoring function dmd.backend.code.complex_eq87 because it's extern
-// ignoring function dmd.backend.code.opass87 because it's extern
-// ignoring function dmd.backend.code.cdnegass87 because it's extern
-// ignoring function dmd.backend.code.post87 because it's extern
-// ignoring function dmd.backend.code.cnvt87 because it's extern
-// ignoring function dmd.backend.code.neg87 because it's extern
-// ignoring function dmd.backend.code.neg_complex87 because it's extern
-// ignoring function dmd.backend.code.cdind87 because it's extern
-// ignoring function dmd.backend.code.cload87 because it's extern
-// ignoring function dmd.backend.code.cdd_u64 because it's extern
-// ignoring function dmd.backend.code.cdd_u32 because it's extern
-// ignoring function dmd.backend.code.loadPair87 because it's extern
-// ignoring function dmd.backend.code.iasm_regs because it's extern
 extern void regimmed_set(int32_t reg, targ_size_t e);
 
 ENUM_CONSTANT_NUMERIC(int32_t, OEM, 66)
@@ -10414,80 +9018,6 @@ extern elem* list_elem(LIST* list);
 
 extern void list_setelem(LIST* list, void* ptr);
 
-// ignoring function dmd.backend.el.el_init because it's extern
-// ignoring function dmd.backend.el.el_reset because it's extern
-// ignoring function dmd.backend.el.el_term because it's extern
-// ignoring function dmd.backend.el.el_calloc because it's extern
-// ignoring function dmd.backend.el.el_free because it's extern
-// ignoring function dmd.backend.el.el_combine because it's extern
-// ignoring function dmd.backend.el.el_param because it's extern
-// ignoring function dmd.backend.el.el_params because it's extern
-// ignoring function dmd.backend.el.el_params because it's extern
-// ignoring function dmd.backend.el.el_combines because it's extern
-// ignoring function dmd.backend.el.el_nparams because it's extern
-// ignoring function dmd.backend.el.el_paramArray because it's extern
-// ignoring function dmd.backend.el.el_pair because it's extern
-// ignoring function dmd.backend.el.el_copy because it's extern
-// ignoring function dmd.backend.el.el_alloctmp because it's extern
-// ignoring function dmd.backend.el.el_selecte1 because it's extern
-// ignoring function dmd.backend.el.el_selecte2 because it's extern
-// ignoring function dmd.backend.el.el_copytree because it's extern
-// ignoring function dmd.backend.el.el_replace_sym because it's extern
-// ignoring function dmd.backend.el.el_scancommas because it's extern
-// ignoring function dmd.backend.el.el_countCommas because it's extern
-// ignoring function dmd.backend.el.el_sideeffect because it's extern
-// ignoring function dmd.backend.el.el_depends because it's extern
-// ignoring function dmd.backend.el.el_tolongt because it's extern
-// ignoring function dmd.backend.el.el_tolong because it's extern
-// ignoring function dmd.backend.el.el_allbits because it's extern
-// ignoring function dmd.backend.el.el_signx32 because it's extern
-// ignoring function dmd.backend.el.el_toldouble because it's extern
-// ignoring function dmd.backend.el.el_toconst because it's extern
-// ignoring function dmd.backend.el.el_same because it's extern
-// ignoring function dmd.backend.el.el_copytotmp because it's extern
-// ignoring function dmd.backend.el.el_match because it's extern
-// ignoring function dmd.backend.el.el_match2 because it's extern
-// ignoring function dmd.backend.el.el_match3 because it's extern
-// ignoring function dmd.backend.el.el_match4 because it's extern
-// ignoring function dmd.backend.el.el_match5 because it's extern
-// ignoring function dmd.backend.el.el_appears because it's extern
-// ignoring function dmd.backend.el.el_basesym because it's extern
-// ignoring function dmd.backend.el.el_anydef because it's extern
-// ignoring function dmd.backend.el.el_bint because it's extern
-// ignoring function dmd.backend.el.el_unat because it's extern
-// ignoring function dmd.backend.el.el_bin because it's extern
-// ignoring function dmd.backend.el.el_una because it's extern
-// ignoring function dmd.backend.el.el_longt because it's extern
-// ignoring function dmd.backend.el.el_settype because it's extern
-// ignoring function dmd.backend.el.el_typesize because it's extern
-// ignoring function dmd.backend.el.el_ptr_offset because it's extern
-// ignoring function dmd.backend.el.el_replacesym because it's extern
-// ignoring function dmd.backend.el.el_nelems because it's extern
-// ignoring function dmd.backend.el.el_long because it's extern
-// ignoring function dmd.backend.el.ERTOL because it's extern
-// ignoring function dmd.backend.el.el_returns because it's extern
-// ignoring function dmd.backend.el.el_ctor_dtor because it's extern
-// ignoring function dmd.backend.el.el_ctor because it's extern
-// ignoring function dmd.backend.el.el_dtor because it's extern
-// ignoring function dmd.backend.el.el_zero because it's extern
-// ignoring function dmd.backend.el.el_const because it's extern
-// ignoring function dmd.backend.el.el_test because it's extern
-// ignoring function dmd.backend.el.el_parent because it's extern
-// ignoring function dmd.backend.el.el_convfloat because it's extern
-// ignoring function dmd.backend.el.el_convstring because it's extern
-// ignoring function dmd.backend.el.el_convert because it's extern
-// ignoring function dmd.backend.el.el_isdependent because it's extern
-// ignoring function dmd.backend.el.el_alignsize because it's extern
-// ignoring function dmd.backend.el.el_opN because it's extern
-// ignoring function dmd.backend.el.el_opArray because it's extern
-// ignoring function dmd.backend.el.el_opFree because it's extern
-// ignoring function dmd.backend.el.el_opCombine because it's extern
-// ignoring function dmd.backend.el.elem_print because it's extern
-// ignoring function dmd.backend.el.elem_print_const because it's extern
-// ignoring function dmd.backend.el.el_hydrate because it's extern
-// ignoring function dmd.backend.el.el_dehydrate because it's extern
-// ignoring function dmd.backend.el.el_var because it's extern
-// ignoring function dmd.backend.el.el_ptr because it's extern
 extern char debuga;
 
 extern char debugb;
@@ -10572,20 +9102,6 @@ extern Symbol* tls_get_addr_sym;
 
 extern Configv configv;
 
-// ignoring function dmd.backend.global.asm_define_label because it's extern
-// ignoring function dmd.backend.global.cpp_mangle because it's extern
-// ignoring function dmd.backend.global.eecontext_convs because it's extern
-// ignoring function dmd.backend.global.eecontext_parse because it's extern
-// ignoring function dmd.backend.global.exp2_setstrthis because it's extern
-// ignoring function dmd.backend.global.exp2_qualified_lookup because it's extern
-// ignoring function dmd.backend.global.exp2_copytotemp because it's extern
-// ignoring function dmd.backend.global.util_exit because it's extern
-// ignoring function dmd.backend.global.util_assert because it's extern
-// ignoring function dmd.backend.global.util_progress because it's extern
-// ignoring function dmd.backend.global.util_set16 because it's extern
-// ignoring function dmd.backend.global.util_set32 because it's extern
-// ignoring function dmd.backend.global.util_set64 because it's extern
-// ignoring function dmd.backend.global.ispow2 because it's extern
 extern void* util_malloc(uint32_t n, uint32_t size);
 
 extern void* util_calloc(uint32_t n, uint32_t size);
@@ -10594,322 +9110,18 @@ extern void util_free(void* p);
 
 extern void* util_realloc(void* oldp, uint32_t n, uint32_t size);
 
-// ignoring function dmd.backend.global.swap because it's extern
-// ignoring function dmd.backend.global.unsstr because it's extern
-// ignoring function dmd.backend.global.isignore because it's extern
-// ignoring function dmd.backend.global.isillegal because it's extern
-// ignoring function dmd.backend.global.ishex because it's extern
-// ignoring function dmd.backend.global.comsubs because it's extern
-// ignoring function dmd.backend.global.cgcs_term because it's extern
-// ignoring function dmd.backend.global.dlcmsgs because it's extern
-// ignoring function dmd.backend.global.errmsgs_term because it's extern
-// ignoring function dmd.backend.global.boolres because it's extern
-// ignoring function dmd.backend.global.iftrue because it's extern
-// ignoring function dmd.backend.global.iffalse because it's extern
-// ignoring function dmd.backend.global.poptelem because it's extern
-// ignoring function dmd.backend.global.poptelem2 because it's extern
-// ignoring function dmd.backend.global.poptelem3 because it's extern
-// ignoring function dmd.backend.global.poptelem4 because it's extern
-// ignoring function dmd.backend.global.selecte1 because it's extern
-// ignoring function dmd.backend.global.err_message because it's extern
-// ignoring function dmd.backend.global.dll_printf because it's extern
-// ignoring function dmd.backend.global.cmderr because it's extern
-// ignoring function dmd.backend.global.synerr because it's extern
-// ignoring function dmd.backend.global.preerr because it's extern
-// ignoring function dmd.backend.global.err_exit because it's extern
-// ignoring function dmd.backend.global.err_nomem because it's extern
-// ignoring function dmd.backend.global.err_fatal because it's extern
-// ignoring function dmd.backend.global.cpperr because it's extern
-// ignoring function dmd.backend.global.tx86err because it's extern
 extern int32_t errmsgs_tx86idx;
 
-// ignoring function dmd.backend.global.warerr because it's extern
-// ignoring function dmd.backend.global.err_warning_enable because it's extern
-// ignoring function dmd.backend.global.lexerr because it's extern
-// ignoring function dmd.backend.global.typerr because it's extern
-// ignoring function dmd.backend.global.err_noctor because it's extern
-// ignoring function dmd.backend.global.err_nomatch because it's extern
-// ignoring function dmd.backend.global.err_ambiguous because it's extern
-// ignoring function dmd.backend.global.err_noinstance because it's extern
-// ignoring function dmd.backend.global.err_redeclar because it's extern
-// ignoring function dmd.backend.global.err_override because it's extern
-// ignoring function dmd.backend.global.err_notamember because it's extern
-// ignoring function dmd.backend.global.expression because it's extern
-// ignoring function dmd.backend.global.const_exp because it's extern
-// ignoring function dmd.backend.global.assign_exp because it's extern
-// ignoring function dmd.backend.global.exp_simplecast because it's extern
-// ignoring function dmd.backend.global.file_getsource because it's extern
-// ignoring function dmd.backend.global.file_isdir because it's extern
-// ignoring function dmd.backend.global.file_progress because it's extern
-// ignoring function dmd.backend.global.file_remove because it's extern
-// ignoring function dmd.backend.global.file_exists because it's extern
-// ignoring function dmd.backend.global.file_size because it's extern
-// ignoring function dmd.backend.global.file_term because it's extern
-// ignoring function dmd.backend.global.file_unique because it's extern
-// ignoring function dmd.backend.global.newpointer because it's extern
-// ignoring function dmd.backend.global.newpointer_share because it's extern
-// ignoring function dmd.backend.global.reftoptr because it's extern
-// ignoring function dmd.backend.global.newref because it's extern
-// ignoring function dmd.backend.global.topointer because it's extern
-// ignoring function dmd.backend.global.type_ptr because it's extern
-// ignoring function dmd.backend.global.type_chksize because it's extern
-// ignoring function dmd.backend.global.tym_conv because it's extern
-// ignoring function dmd.backend.global.type_arrayroot because it's extern
-// ignoring function dmd.backend.global.chklvalue because it's extern
-// ignoring function dmd.backend.global.tolvalue because it's extern
-// ignoring function dmd.backend.global.chkassign because it's extern
-// ignoring function dmd.backend.global.chknosu because it's extern
-// ignoring function dmd.backend.global.chkunass because it's extern
-// ignoring function dmd.backend.global.chknoabstract because it's extern
-// ignoring function dmd.backend.global.msc_getnum because it's extern
-// ignoring function dmd.backend.global.alignmember because it's extern
-// ignoring function dmd.backend.global._align because it's extern
-// ignoring function dmd.backend.global.nteh_context_string because it's extern
-// ignoring function dmd.backend.global.nteh_declarvars because it's extern
-// ignoring function dmd.backend.global.nteh_setScopeTableIndex because it's extern
-// ignoring function dmd.backend.global.nteh_contextsym because it's extern
-// ignoring function dmd.backend.global.nteh_contextsym_size because it's extern
-// ignoring function dmd.backend.global.nteh_ecodesym because it's extern
-// ignoring function dmd.backend.global.nteh_unwind because it's extern
-// ignoring function dmd.backend.global.linux_unwind because it's extern
-// ignoring function dmd.backend.global.nteh_offset_sindex because it's extern
-// ignoring function dmd.backend.global.nteh_offset_sindex_seh because it's extern
-// ignoring function dmd.backend.global.nteh_offset_info because it's extern
-// ignoring function dmd.backend.global.globalrealloc because it's extern
-// ignoring function dmd.backend.global.vmem_baseaddr because it's extern
-// ignoring function dmd.backend.global.vmem_reservesize because it's extern
-// ignoring function dmd.backend.global.vmem_physmem because it's extern
-// ignoring function dmd.backend.global.vmem_reserve because it's extern
-// ignoring function dmd.backend.global.vmem_commit because it's extern
-// ignoring function dmd.backend.global.vmem_decommit because it's extern
-// ignoring function dmd.backend.global.vmem_release because it's extern
-// ignoring function dmd.backend.global.vmem_mapfile because it's extern
-// ignoring function dmd.backend.global.vmem_setfilesize because it's extern
-// ignoring function dmd.backend.global.vmem_unmapfile because it's extern
-// ignoring function dmd.backend.global.os_loadlibrary because it's extern
-// ignoring function dmd.backend.global.os_freelibrary because it's extern
-// ignoring function dmd.backend.global.os_getprocaddress because it's extern
-// ignoring function dmd.backend.global.os_heapinit because it's extern
-// ignoring function dmd.backend.global.os_heapterm because it's extern
-// ignoring function dmd.backend.global.os_term because it's extern
-// ignoring function dmd.backend.global.os_unique because it's extern
-// ignoring function dmd.backend.global.os_file_exists because it's extern
-// ignoring function dmd.backend.global.os_file_mtime because it's extern
-// ignoring function dmd.backend.global.os_file_size because it's extern
-// ignoring function dmd.backend.global.os_file_size because it's extern
-// ignoring function dmd.backend.global.file_8dot3name because it's extern
-// ignoring function dmd.backend.global.file_write because it's extern
-// ignoring function dmd.backend.global.file_createdirs because it's extern
-// ignoring function dmd.backend.global.pseudo_declar because it's extern
 extern uint8_t pseudoreg[24LLU];
 
 extern uint32_t pseudomask[24LLU];
 
-// ignoring function dmd.backend.global.symtab_realloc because it's extern
-// ignoring function dmd.backend.global.symtab_malloc because it's extern
-// ignoring function dmd.backend.global.symtab_calloc because it's extern
-// ignoring function dmd.backend.global.symtab_free because it's extern
 extern void symbol_keep(Symbol* s);
 
-// ignoring function dmd.backend.global.symbol_print because it's extern
-// ignoring function dmd.backend.global.symbol_term because it's extern
-// ignoring function dmd.backend.global.symbol_ident because it's extern
-// ignoring function dmd.backend.global.symbol_calloc because it's extern
-// ignoring function dmd.backend.global.symbol_calloc because it's extern
-// ignoring function dmd.backend.global.symbol_name because it's extern
-// ignoring function dmd.backend.global.symbol_name because it's extern
-// ignoring function dmd.backend.global.symbol_generate because it's extern
-// ignoring function dmd.backend.global.symbol_genauto because it's extern
-// ignoring function dmd.backend.global.symbol_genauto because it's extern
-// ignoring function dmd.backend.global.symbol_genauto because it's extern
-// ignoring function dmd.backend.global.symbol_func because it's extern
-// ignoring function dmd.backend.global.symbol_funcalias because it's extern
-// ignoring function dmd.backend.global.defsy because it's extern
-// ignoring function dmd.backend.global.symbol_addtotree because it's extern
-// ignoring function dmd.backend.global.findsy because it's extern
-// ignoring function dmd.backend.global.createglobalsymtab because it's extern
-// ignoring function dmd.backend.global.createlocalsymtab because it's extern
-// ignoring function dmd.backend.global.deletesymtab because it's extern
-// ignoring function dmd.backend.global.meminit_free because it's extern
-// ignoring function dmd.backend.global.baseclass_find because it's extern
-// ignoring function dmd.backend.global.baseclass_find_nest because it's extern
-// ignoring function dmd.backend.global.baseclass_nitems because it's extern
-// ignoring function dmd.backend.global.symbol_free because it's extern
-// ignoring function dmd.backend.global.symbol_add because it's extern
-// ignoring function dmd.backend.global.symbol_add because it's extern
-// ignoring function dmd.backend.global.symbol_insert because it's extern
-// ignoring function dmd.backend.global.freesymtab because it's extern
-// ignoring function dmd.backend.global.symbol_copy because it's extern
-// ignoring function dmd.backend.global.symbol_searchlist because it's extern
-// ignoring function dmd.backend.global.symbol_reset because it's extern
-// ignoring function dmd.backend.global.symbol_pointerType because it's extern
-// ignoring function dmd.backend.global.cg87_reset because it's extern
-// ignoring function dmd.backend.global.loadconst because it's extern
-// ignoring function dmd.backend.global.opt because it's extern
-// ignoring function dmd.backend.global.objfile_open because it's extern
-// ignoring function dmd.backend.global.objfile_close because it's extern
-// ignoring function dmd.backend.global.objfile_delete because it's extern
-// ignoring function dmd.backend.global.objfile_term because it's extern
-// ignoring function dmd.backend.global.cod3_thunk because it's extern
-// ignoring function dmd.backend.global.outfilename because it's extern
-// ignoring function dmd.backend.global.outcsegname because it's extern
-// ignoring function dmd.backend.global.outthunk because it's extern
-// ignoring function dmd.backend.global.outdata because it's extern
-// ignoring function dmd.backend.global.outcommon because it's extern
-// ignoring function dmd.backend.global.out_readonly because it's extern
-// ignoring function dmd.backend.global.out_readonly_comdat because it's extern
-// ignoring function dmd.backend.global.out_regcand because it's extern
-// ignoring function dmd.backend.global.writefunc because it's extern
-// ignoring function dmd.backend.global.alignOffset because it's extern
-// ignoring function dmd.backend.global.out_reset because it's extern
-// ignoring function dmd.backend.global.out_readonly_sym because it's extern
-// ignoring function dmd.backend.global.out_string_literal because it's extern
 extern uint32_t bc_goal[20LLU];
 
-// ignoring function dmd.backend.global.block_calloc because it's extern
-// ignoring function dmd.backend.global.block_init because it's extern
-// ignoring function dmd.backend.global.block_term because it's extern
-// ignoring function dmd.backend.global.block_next because it's extern
-// ignoring function dmd.backend.global.block_next because it's extern
-// ignoring function dmd.backend.global.block_goto because it's extern
-// ignoring function dmd.backend.global.block_setlabel because it's extern
-// ignoring function dmd.backend.global.block_goto because it's extern
-// ignoring function dmd.backend.global.block_goto because it's extern
-// ignoring function dmd.backend.global.block_goto because it's extern
-// ignoring function dmd.backend.global.block_ptr because it's extern
-// ignoring function dmd.backend.global.block_pred because it's extern
-// ignoring function dmd.backend.global.block_clearvisit because it's extern
-// ignoring function dmd.backend.global.block_visit because it's extern
-// ignoring function dmd.backend.global.block_compbcount because it's extern
-// ignoring function dmd.backend.global.blocklist_free because it's extern
-// ignoring function dmd.backend.global.block_optimizer_free because it's extern
-// ignoring function dmd.backend.global.block_free because it's extern
-// ignoring function dmd.backend.global.blocklist_hydrate because it's extern
-// ignoring function dmd.backend.global.blocklist_dehydrate because it's extern
-// ignoring function dmd.backend.global.block_appendexp because it's extern
-// ignoring function dmd.backend.global.block_initvar because it's extern
-// ignoring function dmd.backend.global.block_endfunc because it's extern
-// ignoring function dmd.backend.global.brcombine because it's extern
-// ignoring function dmd.backend.global.blockopt because it's extern
-// ignoring function dmd.backend.global.compdfo because it's extern
 extern const char* regstring[32LLU];
 
-// ignoring function dmd.backend.global.WRclass because it's extern
-// ignoring function dmd.backend.global.WRTYxx because it's extern
-// ignoring function dmd.backend.global.WROP because it's extern
-// ignoring function dmd.backend.global.WRBC because it's extern
-// ignoring function dmd.backend.global.WRarglst because it's extern
-// ignoring function dmd.backend.global.WRblock because it's extern
-// ignoring function dmd.backend.global.WRblocklist because it's extern
-// ignoring function dmd.backend.global.WReqn because it's extern
-// ignoring function dmd.backend.global.numberBlocks because it's extern
-// ignoring function dmd.backend.global.WRfunc because it's extern
-// ignoring function dmd.backend.global.WRdefnod because it's extern
-// ignoring function dmd.backend.global.WRFL because it's extern
-// ignoring function dmd.backend.global.sym_ident because it's extern
-// ignoring function dmd.backend.global.doptelem because it's extern
-// ignoring function dmd.backend.global.postoptelem because it's extern
-// ignoring function dmd.backend.global.elemisone because it's extern
-// ignoring function dmd.backend.global.size because it's extern
-// ignoring function dmd.backend.global.symboldata because it's extern
-// ignoring function dmd.backend.global.dom because it's extern
-// ignoring function dmd.backend.global.revop because it's extern
-// ignoring function dmd.backend.global.invrel because it's extern
-// ignoring function dmd.backend.global.binary because it's extern
-// ignoring function dmd.backend.global.binary because it's extern
-// ignoring function dmd.backend.global.go_term because it's extern
-// ignoring function dmd.backend.global.go_flag because it's extern
-// ignoring function dmd.backend.global.optfunc because it's extern
-// ignoring function dmd.backend.global.tdb_gettimestamp because it's extern
-// ignoring function dmd.backend.global.tdb_write because it's extern
-// ignoring function dmd.backend.global.tdb_typidx because it's extern
-// ignoring function dmd.backend.global.tdb_term because it's extern
-// ignoring function dmd.backend.global.rtlsym_init because it's extern
-// ignoring function dmd.backend.global.rtlsym_reset because it's extern
-// ignoring function dmd.backend.global.rtlsym_term because it's extern
-// ignoring function dmd.backend.global.id_compress because it's extern
-// ignoring function dmd.backend.global.dwarf_CFA_set_loc because it's extern
-// ignoring function dmd.backend.global.dwarf_CFA_set_reg_offset because it's extern
-// ignoring function dmd.backend.global.dwarf_CFA_offset because it's extern
-// ignoring function dmd.backend.global.dwarf_CFA_args_size because it's extern
-// ignoring function dmd.backend.global.exp_isconst because it's extern
-// ignoring function dmd.backend.global.lnx_builtin_next_arg because it's extern
-// ignoring function dmd.backend.global.lnx_redirect_funcname because it's extern
-// ignoring function dmd.backend.global.lnx_funcdecl because it's extern
-// ignoring function dmd.backend.global.lnx_attributes because it's extern
-// ignoring function dmd.backend.obj.Obj_init because it's extern
-// ignoring function dmd.backend.obj.Obj_initfile because it's extern
-// ignoring function dmd.backend.obj.Obj_termfile because it's extern
-// ignoring function dmd.backend.obj.Obj_term because it's extern
-// ignoring function dmd.backend.obj.Obj_compiler because it's extern
-// ignoring function dmd.backend.obj.Obj_exestr because it's extern
-// ignoring function dmd.backend.obj.Obj_dosseg because it's extern
-// ignoring function dmd.backend.obj.Obj_startaddress because it's extern
-// ignoring function dmd.backend.obj.Obj_includelib because it's extern
-// ignoring function dmd.backend.obj.Obj_linkerdirective because it's extern
-// ignoring function dmd.backend.obj.Obj_mangle because it's extern
-// ignoring function dmd.backend.obj.Obj_alias because it's extern
-// ignoring function dmd.backend.obj.Obj_user because it's extern
-// ignoring function dmd.backend.obj.Obj_import because it's extern
-// ignoring function dmd.backend.obj.Obj_linnum because it's extern
-// ignoring function dmd.backend.obj.Obj_codeseg because it's extern
-// ignoring function dmd.backend.obj.Obj_allowZeroSize because it's extern
-// ignoring function dmd.backend.obj.Obj_wkext because it's extern
-// ignoring function dmd.backend.obj.Obj_lzext because it's extern
-// ignoring function dmd.backend.obj.Obj_theadr because it's extern
-// ignoring function dmd.backend.obj.Obj_segment_group because it's extern
-// ignoring function dmd.backend.obj.Obj_staticctor because it's extern
-// ignoring function dmd.backend.obj.Obj_staticdtor because it's extern
-// ignoring function dmd.backend.obj.Obj_setModuleCtorDtor because it's extern
-// ignoring function dmd.backend.obj.Obj_ehtables because it's extern
-// ignoring function dmd.backend.obj.Obj_ehsections because it's extern
-// ignoring function dmd.backend.obj.Obj_moduleinfo because it's extern
-// ignoring function dmd.backend.obj.Obj_comdat because it's extern
-// ignoring function dmd.backend.obj.Obj_comdatsize because it's extern
-// ignoring function dmd.backend.obj.Obj_readonly_comdat because it's extern
-// ignoring function dmd.backend.obj.Obj_setcodeseg because it's extern
-// ignoring function dmd.backend.obj.Obj_tlsseg because it's extern
-// ignoring function dmd.backend.obj.Obj_tlsseg_bss because it's extern
-// ignoring function dmd.backend.obj.Obj_tlsseg_data because it's extern
-// ignoring function dmd.backend.obj.Obj_fardata because it's extern
-// ignoring function dmd.backend.obj.Obj_export_symbol because it's extern
-// ignoring function dmd.backend.obj.Obj_pubdef because it's extern
-// ignoring function dmd.backend.obj.Obj_pubdefsize because it's extern
-// ignoring function dmd.backend.obj.Obj_external_def because it's extern
-// ignoring function dmd.backend.obj.Obj_data_start because it's extern
-// ignoring function dmd.backend.obj.Obj_external because it's extern
-// ignoring function dmd.backend.obj.Obj_common_block because it's extern
-// ignoring function dmd.backend.obj.Obj_common_block because it's extern
-// ignoring function dmd.backend.obj.Obj_lidata because it's extern
-// ignoring function dmd.backend.obj.Obj_write_zeros because it's extern
-// ignoring function dmd.backend.obj.Obj_write_byte because it's extern
-// ignoring function dmd.backend.obj.Obj_write_bytes because it's extern
-// ignoring function dmd.backend.obj.Obj_byte because it's extern
-// ignoring function dmd.backend.obj.Obj_bytes because it's extern
-// ignoring function dmd.backend.obj.Obj_ledata because it's extern
-// ignoring function dmd.backend.obj.Obj_write_long because it's extern
-// ignoring function dmd.backend.obj.Obj_reftodatseg because it's extern
-// ignoring function dmd.backend.obj.Obj_reftofarseg because it's extern
-// ignoring function dmd.backend.obj.Obj_reftocodeseg because it's extern
-// ignoring function dmd.backend.obj.Obj_reftoident because it's extern
-// ignoring function dmd.backend.obj.Obj_far16thunk because it's extern
-// ignoring function dmd.backend.obj.Obj_fltused because it's extern
-// ignoring function dmd.backend.obj.Obj_data_readonly because it's extern
-// ignoring function dmd.backend.obj.Obj_data_readonly because it's extern
-// ignoring function dmd.backend.obj.Obj_string_literal_segment because it's extern
-// ignoring function dmd.backend.obj.Obj_sym_cdata because it's extern
-// ignoring function dmd.backend.obj.Obj_func_start because it's extern
-// ignoring function dmd.backend.obj.Obj_func_term because it's extern
-// ignoring function dmd.backend.obj.Obj_write_pointerRef because it's extern
-// ignoring function dmd.backend.obj.Obj_jmpTableSegment because it's extern
-// ignoring function dmd.backend.obj.Obj_tlv_bootstrap because it's extern
-// ignoring function dmd.backend.obj.Obj_gotref because it's extern
-// ignoring function dmd.backend.obj.Obj_addstr because it's extern
-// ignoring function dmd.backend.obj.Obj_getGOTsym because it's extern
-// ignoring function dmd.backend.obj.Obj_refGOTsym because it's extern
-// ignoring function dmd.backend.obj.Obj_getsegment because it's extern
-// ignoring function dmd.backend.obj.Obj_addrel because it's extern
-// ignoring function dmd.backend.obj.Obj_writerel because it's extern
 class Obj
 {
 public:
@@ -11261,8 +9473,6 @@ extern int32_t opeqtoop(int32_t opx);
 
 extern int32_t optoopeq(int32_t opx);
 
-// ignoring function dmd.backend.oper.swaprel because it's extern
-// ignoring extern () block because of linkage
 struct Outbuffer
 {
     uint8_t* buf;
@@ -11271,15 +9481,11 @@ struct Outbuffer
     Outbuffer(size_t initialSize);
     void dtor();
     void reset();
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void reserve(size_t nbytes);
     void enlarge(size_t nbytes);
     void* writezeros(size_t n);
     void position(size_t offset, size_t nbytes);
     void writen(const void* const b, size_t len);
-    // ignoring extern () block because of linkage
     void write(const void* b, size_t len);
     void writeByten(uint8_t v);
     void writeByte(int32_t v);
@@ -11291,8 +9497,6 @@ struct Outbuffer
     void writeDouble(double v);
     void write(const char* s);
     void writeString(const char* s);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     void prependBytes(const char* s);
     void prepend(const void* b, size_t len);
     void bracket(char c1, char c2);
@@ -11451,8 +9655,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, RTLSYM_MAX, 144)
 END_ANON_ENUM()
 
-// ignoring function dmd.backend.rtlsym.getRtlsym because it's extern
-// ignoring function dmd.backend.rtlsym.getRtlsymPersonality because it's extern
 typedef uint32_t opcode_t;
 
 ENUM_CONSTANT_NUMERIC(uint32_t, NoOpcode, 65535u)
@@ -11485,7 +9687,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, XMM15, 31)
 END_ANON_ENUM()
 
-// ignoring function dmd.backend.code_x86.isXMMreg because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, PICREG, 3)
 
 ENUM_CONSTANT_NUMERIC(int32_t, ES, 24)
@@ -11599,8 +9800,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, mMSW, 16777222)
 
 ENUM_CONSTANT_NUMERIC(int32_t, mLSW, 201)
 
-// ignoring function dmd.backend.code_x86.issib because of linkage
-// ignoring function dmd.backend.code_x86.is32bitaddr because of linkage
 BEGIN_ENUM(CLIB, CLIB, clib)
     ENUM_KEY(int32_t, lcmp, 0, CLIB, CLIB, clib, CLIB)
     ENUM_KEY(int32_t, lmul, 1, CLIB, CLIB, clib, CLIB)
@@ -11695,8 +9894,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, CFPREFIX, 4001)
 END_ANON_ENUM()
 
-// ignoring non-cpp struct code because of linkage
-// ignoring function dmd.backend.code_x86.code_print because it's extern
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, SEGES, 38)
     ANON_ENUM_KEY(int32_t, SEGCS, 46)
@@ -11769,13 +9966,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, ESCfixesp, 3584)
 END_ANON_ENUM()
 
-// ignoring function dmd.backend.code_x86.modregrm because of linkage
-// ignoring function dmd.backend.code_x86.modregxrm because of linkage
-// ignoring function dmd.backend.code_x86.modregrmx because of linkage
-// ignoring function dmd.backend.code_x86.modregxrmx because of linkage
-// ignoring function dmd.backend.code_x86.NEWREXR because of linkage
-// ignoring function dmd.backend.code_x86.NEWREG because of linkage
-// ignoring function dmd.backend.code_x86.code_newreg because of linkage
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, REX, 64)
     ANON_ENUM_KEY(int32_t, REX_W, 8)
@@ -11784,10 +9974,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, REX_B, 1)
 END_ANON_ENUM()
 
-// ignoring function dmd.backend.code_x86.VEX2_B1 because of linkage
-// ignoring function dmd.backend.code_x86.VEX3_B1 because of linkage
-// ignoring function dmd.backend.code_x86.VEX3_B2 because of linkage
-// ignoring function dmd.backend.code_x86.ADDFWAIT because of linkage
 struct NDP
 {
     elem* e;
@@ -11805,10 +9991,6 @@ struct Globals87
 
 extern Globals87 global87;
 
-// ignoring function dmd.backend.code_x86.getlvalue_msw because it's extern
-// ignoring function dmd.backend.code_x86.getlvalue_lsw because it's extern
-// ignoring function dmd.backend.code_x86.getlvalue because it's extern
-// ignoring function dmd.backend.code_x86.loadea because it's extern
 ENUM_CONSTANT_NUMERIC(int32_t, _modrm, 16)
 
 BEGIN_ANON_ENUM()
@@ -12131,8 +10313,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, OPdt, 6)
 END_ANON_ENUM()
 
-// ignoring function dmd.backend.iasm.asm_state because it's extern
-// ignoring function dmd.backend.iasm.asm_process_fixup because it's extern
 struct PTRNTAB4
 {
     uint32_t opcode;
@@ -12338,7 +10518,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, TYMAX, 96)
 END_ANON_ENUM()
 
-// ignored enum member dmd.backend.ty.TYint
 extern int32_t TYaarray;
 
 extern int32_t TYdelegate;
@@ -12467,7 +10646,6 @@ extern uint32_t tyrevfunc(uint32_t ty);
 
 extern uint32_t tyuns(uint32_t ty);
 
-// ignored enum member dmd.backend.ty.TYuint
 extern uint32_t typfunc(uint32_t ty);
 
 extern uint32_t tytouns[256LLU];
@@ -12527,9 +10705,6 @@ END_ANON_ENUM()
 
 typedef TYPE type;
 
-// ignoring function dmd.backend.type.type_incCount because it's extern
-// ignoring function dmd.backend.type.type_setIdent because it's extern
-// ignoring function dmd.backend.type.symbol_struct_addField because it's extern
 extern bool type_struct(const TYPE* const t);
 
 struct TYPE
@@ -12591,49 +10766,6 @@ extern TYPE* tssize;
 
 extern TYPE* tstrace;
 
-// ignoring function dmd.backend.type.type_print because it's extern
-// ignoring function dmd.backend.type.type_free because it's extern
-// ignoring function dmd.backend.type.type_init because it's extern
-// ignoring function dmd.backend.type.type_term because it's extern
-// ignoring function dmd.backend.type.type_copy because it's extern
-// ignoring function dmd.backend.type.type_vla_fix because it's extern
-// ignoring function dmd.backend.type.type_setdim because it's extern
-// ignoring function dmd.backend.type.type_setdependent because it's extern
-// ignoring function dmd.backend.type.type_isdependent because it's extern
-// ignoring function dmd.backend.type.type_hydrate because it's extern
-// ignoring function dmd.backend.type.type_dehydrate because it's extern
-// ignoring function dmd.backend.type.type_size because it's extern
-// ignoring function dmd.backend.type.type_alignsize because it's extern
-// ignoring function dmd.backend.type.type_zeroSize because it's extern
-// ignoring function dmd.backend.type.type_parameterSize because it's extern
-// ignoring function dmd.backend.type.type_paramsize because it's extern
-// ignoring function dmd.backend.type.type_alloc because it's extern
-// ignoring function dmd.backend.type.type_alloc_template because it's extern
-// ignoring function dmd.backend.type.type_allocn because it's extern
-// ignoring function dmd.backend.type.type_allocmemptr because it's extern
-// ignoring function dmd.backend.type.type_fake because it's extern
-// ignoring function dmd.backend.type.type_setty because it's extern
-// ignoring function dmd.backend.type.type_settype because it's extern
-// ignoring function dmd.backend.type.type_setmangle because it's extern
-// ignoring function dmd.backend.type.type_setcv because it's extern
-// ignoring function dmd.backend.type.type_embed because it's extern
-// ignoring function dmd.backend.type.type_isvla because it's extern
-// ignoring function dmd.backend.type.param_calloc because it's extern
-// ignoring function dmd.backend.type.param_append_type because it's extern
-// ignoring function dmd.backend.type.param_free_l because it's extern
-// ignoring function dmd.backend.type.param_free because it's extern
-// ignoring function dmd.backend.type.param_search because it's extern
-// ignoring function dmd.backend.type.param_hydrate because it's extern
-// ignoring function dmd.backend.type.param_dehydrate because it's extern
-// ignoring function dmd.backend.type.typematch because it's extern
-// ignoring function dmd.backend.type.type_pointer because it's extern
-// ignoring function dmd.backend.type.type_dyn_array because it's extern
-// ignoring function dmd.backend.type.type_static_array because it's extern
-// ignoring function dmd.backend.type.type_assoc_array because it's extern
-// ignoring function dmd.backend.type.type_delegate because it's extern
-// ignoring function dmd.backend.type.type_function because it's extern
-// ignoring function dmd.backend.type.type_enum because it's extern
-// ignoring function dmd.backend.type.type_struct_class because it's extern
 struct Aobject
 {
     Symbol* AOsym;
@@ -12642,26 +10774,6 @@ struct Aobject
     Aobject() : AOsym(), AOoffset(), AOfunc() {}
 };
 
-// ignoring function dmd.backend.exh.except_init because it's extern
-// ignoring function dmd.backend.exh.except_term because it's extern
-// ignoring function dmd.backend.exh.except_obj_ctor because it's extern
-// ignoring function dmd.backend.exh.except_obj_dtor because it's extern
-// ignoring function dmd.backend.exh.except_throw_expression because it's extern
-// ignoring function dmd.backend.exh.except_declaration because it's extern
-// ignoring function dmd.backend.exh.except_exception_spec because it's extern
-// ignoring function dmd.backend.exh.except_index_set because it's extern
-// ignoring function dmd.backend.exh.except_index_get because it's extern
-// ignoring function dmd.backend.exh.except_pair_setoffset because it's extern
-// ignoring function dmd.backend.exh.except_pair_append because it's extern
-// ignoring function dmd.backend.exh.except_push because it's extern
-// ignoring function dmd.backend.exh.except_pop because it's extern
-// ignoring function dmd.backend.exh.except_mark because it's extern
-// ignoring function dmd.backend.exh.except_release because it's extern
-// ignoring function dmd.backend.exh.except_gensym because it's extern
-// ignoring function dmd.backend.exh.except_gentables because it's extern
-// ignoring function dmd.backend.exh.except_fillInEHTable because it's extern
-// ignoring function dmd.backend.exh.except_reset because it's extern
-// ignoring function dmd.backend.exh.win64_pdata because it's extern
 typedef int32_t cpu_type_t;
 
 typedef int32_t cpu_subtype_t;
@@ -12700,13 +10812,11 @@ ENUM_CONSTANT_NUMERIC(int32_t, MH_SUBSECTIONS_VIA_SYMBOLS, 8192)
 ENUM_CONSTANT_NUMERIC(int32_t, MH_NOMULTIDEFS, 512)
 
 
-// ignoring non-cpp struct mach_header because of linkage
 BEGIN_ANON_ENUM_NUMERIC(uint32_t)
     ANON_ENUM_KEY_NUMERIC(uint32_t, MH_MAGIC_64, 4277009103u)
     ANON_ENUM_KEY_NUMERIC(uint32_t, MH_CIGAM_64, 3489328638u)
 END_ANON_ENUM_NUMERIC(uint32_t)
 
-// ignoring non-cpp struct mach_header_64 because of linkage
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, LC_SEGMENT, 1)
     ANON_ENUM_KEY(int32_t, LC_SYMTAB, 2)
@@ -12714,8 +10824,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, LC_SEGMENT_64, 25)
 END_ANON_ENUM()
 
-// ignoring non-cpp struct load_command because of linkage
-// ignoring non-cpp struct uuid_command because of linkage
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, SG_HIGHVM, 1)
     ANON_ENUM_KEY(int32_t, SG_FVMLIB, 2)
@@ -12723,8 +10831,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, SG_PROTECTED_VERSION_1, 8)
 END_ANON_ENUM()
 
-// ignoring non-cpp struct segment_command because of linkage
-// ignoring non-cpp struct segment_command_64 because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, SECTION_TYPE, 255)
 ENUM_CONSTANT_NUMERIC(uint32_t, SECTION_ATTRIBUTES, 4294967040u)
 ENUM_CONSTANT_NUMERIC(int32_t, S_REGULAR, 0)
@@ -12760,11 +10866,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, S_ATTR_EXT_RELOC, 512)
 ENUM_CONSTANT_NUMERIC(int32_t, S_ATTR_LOC_RELOC, 256)
 
 
-// ignoring non-cpp struct section because of linkage
-// ignoring non-cpp struct section_64 because of linkage
-// ignoring non-cpp struct twolevel_hints_command because of linkage
-// ignoring non-cpp struct twolevel_hint because of linkage
-// ignoring non-cpp struct symtab_command because of linkage
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, N_EXT, 1)
     ANON_ENUM_KEY(int32_t, N_STAB, 224)
@@ -12796,9 +10897,6 @@ BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, REFERENCE_FLAG_PRIVATE_UNDEFINED_LAZY, 5)
 END_ANON_ENUM()
 
-// ignoring non-cpp struct nlist because of linkage
-// ignoring non-cpp struct nlist_64 because of linkage
-// ignoring non-cpp struct dysymtab_command because of linkage
 ENUM_CONSTANT_NUMERIC(uint32_t, R_SCATTERED, 2147483648u)
 ENUM_CONSTANT_NUMERIC(int32_t, GENERIC_RELOC_VANILLA, 0)
 ENUM_CONSTANT_NUMERIC(int32_t, GENERIC_RELOC_PAIR, 1)
@@ -12817,24 +10915,8 @@ ENUM_CONSTANT_NUMERIC(int32_t, X86_64_RELOC_SIGNED_4, 8)
 ENUM_CONSTANT_NUMERIC(int32_t, X86_64_RELOC_TLV, 9)
 
 
-// ignoring non-cpp struct relocation_info because of linkage
-// ignoring non-cpp struct scattered_relocation_info because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, DWARF_VERSION, 3)
 
-// ignoring function dmd.backend.dwarf.dwarf_initfile because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_termfile because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_initmodule because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_termmodule because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_func_start because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_func_term because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_typidx because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_abbrev_code because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_regno because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_addrel because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_reftoident because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_except_gentables because it's extern
-// ignoring function dmd.backend.dwarf.genDwarfEh because it's extern
-// ignoring function dmd.backend.dwarf.dwarf_eh_frame_fixup because it's extern
 BEGIN_ANON_ENUM()
     ANON_ENUM_KEY(int32_t, DW_TAG_array_type, 1)
     ANON_ENUM_KEY(int32_t, DW_TAG_class_type, 2)
@@ -13607,7 +11689,6 @@ typedef LIST* list_t;
 
 typedef void(*list_free_fp)(void* );
 
-// ignoring enum `dmd.backend.dlist.FPNULL` because type `extern (C++) void function(void*) nothrow @nogc` is currently not supported for enum constants.
 extern LIST* list_next(LIST* list);
 
 extern void* list_ptr(LIST* list);
@@ -13756,7 +11837,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, EH_PHTENT_SIZE, 32)
 
 ENUM_CONSTANT_NUMERIC(int32_t, EH_SHTENT_SIZE, 40)
 
-// ignoring non-cpp struct Elf32_Ehdr because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, SHT_NULL, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, SHT_PROGBITS, 1)
@@ -13813,7 +11893,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, SHF_TLS, 1024)
 
 ENUM_CONSTANT_NUMERIC(uint32_t, SHF_MASKPROC, 4026531840u)
 
-// ignoring non-cpp struct Elf32_Shdr because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, SHN_UNDEF, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, SHN_LORESERVE, 65280)
@@ -13834,9 +11913,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, SHN_XINDEX, 65535)
 
 ENUM_CONSTANT_NUMERIC(int32_t, SHN_HIRESERVE, 65535)
 
-// ignoring function dmd.backend.melf.ELF32_ST_BIND because of linkage
-// ignoring function dmd.backend.melf.ELF32_ST_TYPE because of linkage
-// ignoring function dmd.backend.melf.ELF32_ST_INFO because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, STB_LOCAL, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, STB_GLOBAL, 1)
@@ -13885,10 +11961,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, STV_HIDDEN, 2)
 
 ENUM_CONSTANT_NUMERIC(int32_t, STV_PROTECTED, 3)
 
-// ignoring non-cpp struct Elf32_Sym because of linkage
-// ignoring function dmd.backend.melf.ELF32_R_SYM because of linkage
-// ignoring function dmd.backend.melf.ELF32_R_TYPE because of linkage
-// ignoring function dmd.backend.melf.ELF32_R_INFO because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, R_386_NONE, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, R_386_32, 1)
@@ -13951,7 +12023,6 @@ ENUM_CONSTANT_NUMERIC(int32_t, R_386_TLS_DTPOFF32, 36)
 
 ENUM_CONSTANT_NUMERIC(int32_t, R_386_TLS_TPOFF32, 37)
 
-// ignoring non-cpp struct Elf32_Rel because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, DBT_UNDEF, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, DBT_EXT, 1)
@@ -14018,10 +12089,8 @@ ENUM_CONSTANT_NUMERIC(int32_t, DBT_PARAM, 160)
 
 ENUM_CONSTANT_NUMERIC(int32_t, DBT_INCE, 162)
 
-// ignoring non-cpp struct elf_stab because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, PHT_NULL, 0)
 
-// ignoring non-cpp struct Elf32_Phdr because of linkage
 typedef uint64_t Elf64_Addr;
 
 typedef uint64_t Elf64_Off;
@@ -14036,16 +12105,6 @@ typedef uint32_t Elf64_Word;
 
 typedef uint16_t Elf64_Half;
 
-// ignoring non-cpp struct Elf64_Ehdr because of linkage
-// ignoring non-cpp struct Elf64_Shdr because of linkage
-// ignoring non-cpp struct Elf64_Phdr because of linkage
-// ignoring non-cpp struct Elf64_Sym because of linkage
-// ignoring function dmd.backend.melf.ELF64_ST_BIND because of linkage
-// ignoring function dmd.backend.melf.ELF64_ST_TYPE because of linkage
-// ignoring function dmd.backend.melf.ELF64_ST_INFO because of linkage
-// ignoring function dmd.backend.melf.ELF64_R_SYM because of linkage
-// ignoring function dmd.backend.melf.ELF64_R_TYPE because of linkage
-// ignoring function dmd.backend.melf.ELF64_R_INFO because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, R_X86_64_NONE, 0)
 
 ENUM_CONSTANT_NUMERIC(int32_t, R_X86_64_64, 1)
@@ -14104,37 +12163,22 @@ ENUM_CONSTANT_NUMERIC(int32_t, R_X86_64_GNU_VTINHERIT, 250)
 
 ENUM_CONSTANT_NUMERIC(int32_t, R_X86_64_GNU_VTENTRY, 251)
 
-// ignoring non-cpp struct Elf64_Rel because of linkage
-// ignoring non-cpp struct Elf64_Rela because of linkage
 ENUM_CONSTANT_NUMERIC(int32_t, GRP_COMDAT, 1)
 
 ENUM_CONSTANT_NUMERIC(int32_t, GRP_MASKOS, 267386880)
 
 ENUM_CONSTANT_NUMERIC(uint32_t, GRP_MASKPROC, 4026531840u)
 
-// ignoring template dmd.root.aav.KeyValueTemplate(K, V) because of linkage
 typedef void* Key;
 
 typedef void* Value;
 
 typedef KeyValueTemplate<void*, void*> KeyValue;
 
-// ignoring non-cpp struct aaA because of linkage
-// ignoring non-cpp struct AA because of linkage
-// ignoring function dmd.root.aav.asRange because of linkage
-// ignoring template dmd.root.aav.AssocArray(K, V) because of linkage
 typedef _d_real longdouble;
 
 extern void browse(const char* url);
 
-// ignored function dmd.root.response.responseExpandFrom!(lookupInEnvironment).responseExpandFrom
-// ignoring function dmd.root.response.insertArgumentsFromResponse because of linkage
-// ignoring variable dmd.root.speller.idchars because of linkage
-// ignoring function dmd.root.string.toDString because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dmd.root.string.stripLeadingLineTerminator because of linkage
-// ignoring function dmd.root.string.startsWith because of linkage
-// ignoring function dmd.console.isatty because it's extern
 BEGIN_ENUM(Color, COLOR, color)
     ENUM_KEY(int32_t, black, 0, Color, COLOR, color, C)
     ENUM_KEY(int32_t, red, 1, Color, COLOR, color, C)
@@ -14155,8 +12199,6 @@ BEGIN_ENUM(Color, COLOR, color)
     ENUM_KEY(int32_t, white, 15, Color, COLOR, color, C)
 END_ENUM(Color, COLOR, color)
 
-// ignoring non-cpp struct Console because of linkage
-// ignoring function dmd.entity.HtmlNamedEntity because of linkage
 BEGIN_ENUM_TYPE(Color, Classification, CLASSIFICATION, classification)
     ENUM_KEY_TYPE(Color, error, (Classification)(Color)9, Classification, CLASSIFICATION, classification, C)
     ENUM_KEY_TYPE(Color, gagged, (Classification)(Color)12, Classification, CLASSIFICATION, classification, C)
@@ -14183,7 +12225,6 @@ extern void message(const Loc& loc, const char* format, ...);
 
 extern void message(const char* format, ...);
 
-// ignoring variable dmd.errors.diagnosticHandler because of linkage
 extern void tip(const char* format, ...);
 
 extern void verror(const Loc& loc, const char* format, va_list ap, const char* p1, const char* p2, const char* header = "Error: ");
@@ -14216,8 +12257,6 @@ BEGIN_ENUM_NUMERIC(uint8_t, HIGHLIGHT, HIGHLIGHT, highlight)
     ENUM_KEY_NUMERIC(uint8_t, Other, 6u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
 END_ENUM_NUMERIC(uint8_t, HIGHLIGHT, HIGHLIGHT, highlight)
 
-// ignoring non-cpp class FileAndLines
-// ignoring non-cpp struct FileCache because of linkage
 BEGIN_ENUM_NUMERIC(bool, TARGET, TARGET, target)
     ENUM_KEY_NUMERIC(bool, Linux, true, TARGET, TARGET, target, TARGET)
     ENUM_KEY_NUMERIC(bool, OSX, false, TARGET, TARGET, target, TARGET)
@@ -14281,6 +12320,12 @@ BEGIN_ENUM_NUMERIC(uint32_t, CppStdRevision, CPPSTDREVISION, cppstdrevision)
     ENUM_KEY_NUMERIC(uint32_t, cpp14, 201402u, CppStdRevision, CPPSTDREVISION, cppstdrevision, CSR)
     ENUM_KEY_NUMERIC(uint32_t, cpp17, 201703u, CppStdRevision, CPPSTDREVISION, cppstdrevision, CSR)
 END_ENUM_NUMERIC(uint32_t, CppStdRevision, CPPSTDREVISION, cppstdrevision)
+
+BEGIN_ENUM_NUMERIC(uint32_t, CxxHeaderMode, CXXHEADERMODE, cxxheadermode)
+    ENUM_KEY_NUMERIC(uint32_t, none, 0u, CxxHeaderMode, CXXHEADERMODE, cxxheadermode, CHM)
+    ENUM_KEY_NUMERIC(uint32_t, silent, 1u, CxxHeaderMode, CXXHEADERMODE, cxxheadermode, CHM)
+    ENUM_KEY_NUMERIC(uint32_t, verbose, 2u, CxxHeaderMode, CXXHEADERMODE, cxxheadermode, CHM)
+END_ENUM_NUMERIC(uint32_t, CxxHeaderMode, CXXHEADERMODE, cxxheadermode)
 
 struct Param
 {
@@ -14363,6 +12408,7 @@ struct Param
     bool revertUsage;
     bool previewUsage;
     bool externStdUsage;
+    bool hcUsage;
     bool logo;
     CPU cpu;
     CHECKENABLE useInvariants;
@@ -14389,7 +12435,7 @@ struct Param
     DArray< const char > hdrdir;
     DArray< const char > hdrname;
     bool hdrStripPlainFunctions;
-    bool doCxxHdrGeneration;
+    CxxHeaderMode doCxxHdrGeneration;
     DArray< const char > cxxhdrdir;
     DArray< const char > cxxhdrname;
     bool doJsonGeneration;
@@ -14426,10 +12472,7 @@ struct Param
     DArray< const char > exefile;
     DArray< const char > mapfile;
     ~Param();
-    // ignoring function dmd.globals.Param.__fieldPostblit because of linkage
-    // ignored generated function dmd.globals.Param.__fieldPostblit
-    // ignoring function dmd.globals.Param.opAssign because of linkage
-    Param() : obj(true), link(true), dll(), lib(), multiobj(), oneobj(), trace(), tracegc(), verbose(), vcg_ast(), showColumns(), vtls(), vtemplates(), vtemplatesListInstances(), vgc(), vfield(), vcomplex(), symdebug(), symdebugref(), alwaysframe(), optimize(), map(), is64bit(true), isLP64(), isLinux(), isOSX(), isWindows(), isFreeBSD(), isOpenBSD(), isDragonFlyBSD(), isSolaris(), hasObjectiveC(), mscoff(false), useDeprecated((DiagnosticReporting)1u), stackstomp(), useUnitTests(), useInline(false), useDIP25(), noDIP25(), useDIP1021(), release(), preservePaths(), warnings((DiagnosticReporting)2u), pic((PIC)0u), color(), cov(), covPercent(), ctfe_cov(false), nofloat(), ignoreUnsupportedPragmas(), useModuleInfo(true), useTypeInfo(true), useExceptions(true), noSharedAccess(), previewIn(), betterC(), addMain(), allInst(), fix16997(), fixAliasThis(), vsafe(), ehnogc(), dtorFields(), fieldwise(), rvalueRefParam(), cplusplus((CppStdRevision)199711u), markdown(), vmarkdown(), showGaggedErrors(), printErrorContext(), manual(), usage(), mcpuUsage(), transitionUsage(), checkUsage(), checkActionUsage(), revertUsage(), previewUsage(), externStdUsage(), logo(), cpu((CPU)11), useInvariants((CHECKENABLE)0u), useIn((CHECKENABLE)0u), useOut((CHECKENABLE)0u), useArrayBounds((CHECKENABLE)0u), useAssert((CHECKENABLE)0u), useSwitchError((CHECKENABLE)0u), boundscheck((CHECKENABLE)0u), checkAction((CHECKACTION)0u), errorLimit(20u), argv0(), modFileAliasStrings(), imppath(), fileImppath(), objdir(), objname(), libname(), doDocComments(), docdir(), docname(), ddocfiles(), doHdrGeneration(), hdrdir(), hdrname(), hdrStripPlainFunctions(true), doCxxHdrGeneration(), cxxhdrdir(), cxxhdrname(), doJsonGeneration(), jsonfilename(), mixinOut(), mixinFile(), mixinLines(), debuglevel(), debugids(), versionlevel(), versionids(), defaultlibname(), debuglibname(), mscrtlib(), moduleDepsFile(), moduleDeps(), messageStyle((MessageStyle)0u), debugb(), debugc(), debugf(), debugr(), debugx(), debugy(), run(), runargs(), objfiles(), linkswitches(), linkswitchIsForCC(), libfiles(), dllfiles(), deffile(), resfile(), exefile(), mapfile() {}
+    Param() : obj(true), link(true), dll(), lib(), multiobj(), oneobj(), trace(), tracegc(), verbose(), vcg_ast(), showColumns(), vtls(), vtemplates(), vtemplatesListInstances(), vgc(), vfield(), vcomplex(), symdebug(), symdebugref(), alwaysframe(), optimize(), map(), is64bit(true), isLP64(), isLinux(), isOSX(), isWindows(), isFreeBSD(), isOpenBSD(), isDragonFlyBSD(), isSolaris(), hasObjectiveC(), mscoff(false), useDeprecated((DiagnosticReporting)1u), stackstomp(), useUnitTests(), useInline(false), useDIP25(), noDIP25(), useDIP1021(), release(), preservePaths(), warnings((DiagnosticReporting)2u), pic((PIC)0u), color(), cov(), covPercent(), ctfe_cov(false), nofloat(), ignoreUnsupportedPragmas(), useModuleInfo(true), useTypeInfo(true), useExceptions(true), noSharedAccess(), previewIn(), betterC(), addMain(), allInst(), fix16997(), fixAliasThis(), vsafe(), ehnogc(), dtorFields(), fieldwise(), rvalueRefParam(), cplusplus((CppStdRevision)199711u), markdown(), vmarkdown(), showGaggedErrors(), printErrorContext(), manual(), usage(), mcpuUsage(), transitionUsage(), checkUsage(), checkActionUsage(), revertUsage(), previewUsage(), externStdUsage(), hcUsage(), logo(), cpu((CPU)11), useInvariants((CHECKENABLE)0u), useIn((CHECKENABLE)0u), useOut((CHECKENABLE)0u), useArrayBounds((CHECKENABLE)0u), useAssert((CHECKENABLE)0u), useSwitchError((CHECKENABLE)0u), boundscheck((CHECKENABLE)0u), checkAction((CHECKACTION)0u), errorLimit(20u), argv0(), modFileAliasStrings(), imppath(), fileImppath(), objdir(), objname(), libname(), doDocComments(), docdir(), docname(), ddocfiles(), doHdrGeneration(), hdrdir(), hdrname(), hdrStripPlainFunctions(true), cxxhdrdir(), cxxhdrname(), doJsonGeneration(), jsonfilename(), mixinOut(), mixinFile(), mixinLines(), debuglevel(), debugids(), versionlevel(), versionids(), defaultlibname(), debuglibname(), mscrtlib(), moduleDepsFile(), moduleDeps(), messageStyle((MessageStyle)0u), debugb(), debugc(), debugf(), debugr(), debugx(), debugy(), run(), runargs(), objfiles(), linkswitches(), linkswitchIsForCC(), libfiles(), dllfiles(), deffile(), resfile(), exefile(), mapfile() {}
 };
 
 typedef uint32_t structalign_t;
@@ -14471,13 +12514,8 @@ struct Global
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
     void _init();
-    // ignoring extern () block because of linkage
     uint32_t versionNumber();
-    // ignoring extern () block because of linkage
     ~Global();
-    // ignoring function dmd.globals.Global.__fieldPostblit because of linkage
-    // ignored generated function dmd.globals.Global.__fieldPostblit
-    // ignoring function dmd.globals.Global.opAssign because of linkage
     Global() : inifilename(), mars_ext("d"), obj_ext(), lib_ext(), dll_ext(), doc_ext("html"), ddoc_ext("ddoc"), hdr_ext("di"), cxxhdr_ext("h"), json_ext("json"), map_ext("map"), run_noext(), copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"), written("written by Walter Bright"), path(), filePath(), _version(), vendor(), params(), errors(), warnings(), gag(), gaggedErrors(), gaggedWarnings(), console(), versionids(), debugids() {}
 };
 
@@ -14904,7 +12942,6 @@ struct Id
     static Identifier* unsigned;
     static Identifier* wchar_t;
     static void initialize();
-    // ignoring extern () block because of linkage
     Id() {}
 };
 
@@ -14914,39 +12951,17 @@ public:
     int32_t value;
     bool isAnonymous_;
     DArray< char > name;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static Identifier* create(const char* name);
     const char* toChars() const;
-    // ignoring extern () block because of linkage
     int32_t getValue() const;
     bool isAnonymous() const;
     const char* toHChars2() const;
     DYNCAST dyncast() const;
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static Identifier* generateId(const char* prefix, size_t length, size_t suffix);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static Identifier* idPool(const char* s, uint32_t len);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     static bool isValidIdentifier(const char* str);
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
 };
 
-// ignoring non-cpp class Lexer
-// ignoring function dmd.tokens._sharedStaticCtor_L426_C1 because of linkage
 struct Token
 {
     Token* next;
@@ -14968,27 +12983,15 @@ struct Token
         };
         Identifier* ident;
     };
-    // ignoring extern () block because of linkage
     int32_t isKeyword() const;
     void setString(const char* ptr, size_t length);
     void setString(const OutBuffer& buf);
     void setString();
     const char* toChars() const;
     static const char* toChars(uint8_t value);
-    // ignoring extern () block because of linkage
     Token() : next(), loc(), ptr(), blockComment(), lineComment() {}
 };
 
-// ignoring function dmd.utf.utf_isValidDchar because of linkage
-// ignoring function dmd.utf.isUniAlpha because of linkage
-// ignoring function dmd.utf.utf_codeLengthChar because of linkage
-// ignoring function dmd.utf.utf_codeLengthWchar because of linkage
-// ignoring function dmd.utf.utf_codeLength because of linkage
-// ignoring function dmd.utf.utf_encodeChar because of linkage
-// ignoring function dmd.utf.utf_encodeWchar because of linkage
-// ignoring function dmd.utf.utf_encode because of linkage
-// ignoring function dmd.utf.utf_decodeChar because of linkage
-// ignoring function dmd.utf.utf_decodeWchar because of linkage
 template <typename T>
 struct Array
 {
@@ -14999,31 +13002,6 @@ struct Array
     // Ignoring var SMALLARRAYCAP alignment 0
     // Ignoring var smallarray alignment 0
     void* smallarray;
-    // ignoring function this because semantic hasn't been run
-    // ignoring function __postblit because semantic hasn't been run
-    // ignoring function ~this because semantic hasn't been run
-    // ignoring extern () block because of linkage
-    // ignoring function toChars because semantic hasn't been run
-    // ignoring function push because semantic hasn't been run
-    // ignoring extern () block because of linkage
-    // ignoring function append because semantic hasn't been run
-    // ignoring function reserve because semantic hasn't been run
-    // ignoring function remove because semantic hasn't been run
-    // ignoring function insert because semantic hasn't been run
-    // ignoring function insert because semantic hasn't been run
-    // ignoring function setDim because semantic hasn't been run
-    // ignoring function find because semantic hasn't been run
-    // ignoring function contains because semantic hasn't been run
-    // ignoring function opIndex because semantic hasn't been run
-    // ignoring function tdata because semantic hasn't been run
-    // ignoring function copy because semantic hasn't been run
-    // ignoring function shift because semantic hasn't been run
-    // ignoring function zero because semantic hasn't been run
-    // ignoring function pop because semantic hasn't been run
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
-    // ignoring extern () block because of linkage
     typedef length opDollar;
     typedef length dim;
 };
@@ -15072,15 +13050,8 @@ struct CTFloat
     CTFloat() {}
 };
 
-// ignoring non-cpp struct FileBuffer because of linkage
-// ignoring non-cpp struct File because of linkage
-// ignoring function dmd.root.filename.canonicalize_file_name because it's extern
 typedef Array<const char*> Strings;
 
-// ignoring function dmd.root.hash.calcHash because of linkage
-// ignoring function dmd.root.hash.calcHash because of linkage
-// ignoring function dmd.root.hash.mixHash because of linkage
-// ignoring non-cpp struct OutBuffer because of linkage
 struct Port
 {
     static int32_t memicmp(const char* const s1, const char* const s2, size_t n);
@@ -15097,7 +13068,6 @@ struct Port
     Port() {}
 };
 
-// ignoring non-cpp struct Region because of linkage
 ENUM_CONSTANT_NUMERIC(bool, isGCAvailable, true)
 
 struct Mem
@@ -15113,8 +13083,7 @@ struct Mem
     static void* error();
     static void* check(void* p);
     static bool _isGCEnabled;
-    // ignoring enum `dmd.root.rmem.Mem._pIsGCEnabled` because type `immutable(bool*)` is currently not supported for enum constants.
-static bool isGCEnabled();
+    static bool isGCEnabled();
     static void disableGC();
     static void addRange(const void* p, size_t size);
     static void removeRange(const void* p);
@@ -15125,27 +13094,13 @@ extern const Mem mem;
 
 ENUM_CONSTANT_NUMERIC(int32_t, CHUNK_SIZE, 1048512)
 
-// ignoring variable dmd.root.rmem.heapleft because of linkage
-// ignoring variable dmd.root.rmem.heapp because of linkage
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
 ENUM_CONSTANT_NUMERIC(bool, OVERRIDE_MEMALLOC, true)
 
 extern "C" void* _d_allocmemory(size_t m_size);
 
-// ignoring function dmd.root.rmem._d_newitemU because it's extern
 extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
 
-// ignoring function dmd.root.rmem.pureMalloc because it's extern
-// ignoring function dmd.root.rmem.pureCalloc because it's extern
-// ignoring function dmd.root.rmem.pureRealloc because it's extern
-// ignoring function dmd.root.rmem.pureFree because it's extern
-// ignoring extern () block because of linkage
-// ignoring extern () block because of linkage
-// ignoring template dmd.root.rmem.Pool(T) if (is(T == class)) because of linkage
-// ignoring template dmd.root.stringtable.StringValue(T) because of linkage
-// ignoring template dmd.root.stringtable.StringTable(T) because of linkage

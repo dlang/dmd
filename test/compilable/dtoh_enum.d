@@ -98,7 +98,6 @@ END_ENUM(STC, STC, stc)
 
 ENUM_CONSTANT(STC, STC_D, (STC)3)
 
-// ignoring non-cpp struct Foo because of linkage
 BEGIN_ENUM_TYPE(Foo, MyEnum, MYENUM, myenum)
     ENUM_KEY_TYPE(Foo, A, Foo(42), MyEnum, MYENUM, myenum, ME)
     ENUM_KEY_TYPE(Foo, B, Foo(84), MyEnum, MYENUM, myenum, ME)
@@ -119,12 +118,6 @@ END_ENUM_TYPE(FooCpp, MyEnumCpp, MYENUMCPP, myenumcpp)
 
 ENUM_CONSTANT(MyEnum, testCpp, Foo(42))
 
-// ignoring enum `dtoh_enum.b` because type `int[]` is currently not supported for enum constants.
-// ignoring enum `dtoh_enum.c` because type `int[int]` is currently not supported for enum constants.
-// ignoring function dtoh_enum.foo because it's extern
-// ignoring enum `dtoh_enum.d` because type `extern (C) void function()` is currently not supported for enum constants.
-// ignoring variable dtoh_enum.e_b because of linkage
-// ignoring enum `dtoh_enum.e` because type `immutable(bool)*` is currently not supported for enum constants.
 ---
 */
 

@@ -64,7 +64,6 @@ struct A
 {
     int32_t a;
     S s;
-    // ignoring extern () block because of linkage
     extern "C" void bar();
     void baz(int32_t x = 42);
     struct

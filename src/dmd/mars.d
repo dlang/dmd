@@ -295,7 +295,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     import dmd.cli : CLIUsage;
     mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
-        "preview", "revert", "externStd"]));
+        "preview", "revert", "externStd", "hc"]));
 
     if (params.manual)
     {
@@ -2165,7 +2165,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
-            params.doCxxHdrGeneration = true;
+            params.doCxxHdrGeneration = CxxHeaderMode.silent;
             switch (p[3])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-HCd
@@ -2177,6 +2177,24 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (!p[4])
                     goto Lnoarg;
                 params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
+                break;
+            case '=':
+                enum len = "-HC=".length;
+                mixin(checkOptionsMixin("hcUsage", "`-HC=<mode>` requires a valid mode"));
+                const mode = arg[len .. $];
+                switch (mode)
+                {
+                    case "silent":
+                        /* already set above */
+                        break;
+                    case "verbose":
+                        params.doCxxHdrGeneration = CxxHeaderMode.verbose;
+                        break;
+                    default:
+                        errorInvalidSwitch(p);
+                        params.hcUsage = true;
+                        return false;
+                }
                 break;
             case 0:
                 break;

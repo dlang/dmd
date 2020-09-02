@@ -418,6 +418,7 @@ public:
     bool hasAnonNumericEnum;
     bool hasNumericConstant;
     bool hasTypedConstant;
+    const bool printIgnored;
 
     this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
     {
@@ -425,6 +426,7 @@ public:
         this.fwdbuf = fwdbuf;
         this.donebuf = donebuf;
         this.buf = buf;
+        this.printIgnored = global.params.doCxxHdrGeneration == CxxHeaderMode.verbose;
     }
 
     private EnumKind getEnumKind(AST.Type type)
@@ -487,8 +489,11 @@ public:
 
         if (isBuildingCompiler && s.getModule() && s.getModule().isFrontendModule())
         {
-            buf.printf("// ignored %s %s", s.kind(), s.toPrettyChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignored %s %s", s.kind(), s.toPrettyChars());
+                buf.writenl();
+            }
         }
     }
 
@@ -530,8 +535,11 @@ public:
         linkage = ld.linkage;
         if (ld.linkage != LINK.c && ld.linkage != LINK.cpp)
         {
-            buf.printf("// ignoring %s block because of linkage", ld.toPrettyChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignoring %s block because of linkage", ld.toPrettyChars());
+                buf.writenl();
+            }
         }
         else
         {
@@ -573,20 +581,29 @@ public:
         auto tf = cast(AST.TypeFunction)fd.type;
         if (!tf || !tf.deco)
         {
-            buf.printf("// ignoring function %s because semantic hasn't been run", fd.toPrettyChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignoring function %s because semantic hasn't been run", fd.toPrettyChars());
+                buf.writenl();
+            }
             return;
         }
         if (tf.linkage != LINK.c && tf.linkage != LINK.cpp)
         {
-            buf.printf("// ignoring function %s because of linkage", fd.toPrettyChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignoring function %s because of linkage", fd.toPrettyChars());
+                buf.writenl();
+            }
             return;
         }
         if (!adparent && !fd.fbody)
         {
-            buf.printf("// ignoring function %s because it's extern", fd.toPrettyChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignoring function %s because it's extern", fd.toPrettyChars());
+                buf.writenl();
+            }
             return;
         }
 
@@ -699,7 +716,8 @@ public:
                     break;
 
                 case EnumKind.Other:
-                    buf.printf("// ignoring enum `%s` because type `%s` is currently not supported for enum constants.\n", vd.toPrettyChars(), type.toChars());
+                    if (printIgnored)
+                        buf.printf("// ignoring enum `%s` because type `%s` is currently not supported for enum constants.\n", vd.toPrettyChars(), type.toChars());
                     return;
             }
             writeEnumTypeName(type);
@@ -725,8 +743,11 @@ public:
         {
             if (linkage != LINK.c && linkage != LINK.cpp)
             {
-                buf.printf("// ignoring variable %s because of linkage", vd.toPrettyChars());
-                buf.writenl();
+                if (printIgnored)
+                {
+                    buf.printf("// ignoring variable %s because of linkage", vd.toPrettyChars());
+                    buf.writenl();
+                }
                 return;
             }
             typeToBuffer(vd.type, vd.ident);
@@ -739,14 +760,20 @@ public:
         {
             if (vd.linkage != LINK.c && vd.linkage != LINK.cpp)
             {
-                buf.printf("// ignoring variable %s because of linkage", vd.toPrettyChars());
-                buf.writenl();
+                if (printIgnored)
+                {
+                    buf.printf("// ignoring variable %s because of linkage", vd.toPrettyChars());
+                    buf.writenl();
+                }
                 return;
             }
             if (vd.storage_class & AST.STC.tls)
             {
-                buf.printf("// ignoring variable %s because of thread-local storage", vd.toPrettyChars());
-                buf.writenl();
+                if (printIgnored)
+                {
+                    buf.printf("// ignoring variable %s because of thread-local storage", vd.toPrettyChars());
+                    buf.writenl();
+                }
                 return;
             }
             if (vd.linkage == LINK.c)
@@ -848,8 +875,12 @@ public:
             // Ignore. It's taken care of while visiting FuncDeclaration
             return;
         }
-        buf.printf("// ignored %s %s", ad.aliassym.kind(), ad.aliassym.toPrettyChars());
-        buf.writenl();
+
+        if (printIgnored)
+        {
+            buf.printf("// ignored %s %s", ad.aliassym.kind(), ad.aliassym.toPrettyChars());
+            buf.writenl();
+        }
     }
 
     override void visit(AST.Nspace ns)
@@ -929,8 +960,11 @@ public:
         visited[cast(void*)sd] = true;
         if (linkage != LINK.c && linkage != LINK.cpp)
         {
-            buf.printf("// ignoring non-cpp struct %s because of linkage", sd.toChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignoring non-cpp struct %s because of linkage", sd.toChars());
+                buf.writenl();
+            }
             return;
         }
 
@@ -1112,7 +1146,8 @@ public:
         visited[cast(void*)cd] = true;
         if (!cd.isCPPclass())
         {
-            buf.printf("// ignoring non-cpp class %s\n", cd.toChars());
+            if (printIgnored)
+                buf.printf("// ignoring non-cpp class %s\n", cd.toChars());
             return;
         }
 
@@ -1174,7 +1209,8 @@ public:
 
         //if (linkage != LINK.c && linkage != LINK.cpp)
         //{
-            //buf.printf("// ignoring non-cpp enum %s because of linkage\n", ed.toChars());
+            //if (printIgnored)
+                //buf.printf("// ignoring non-cpp enum %s because of linkage\n", ed.toChars());
             //return;
         //}
 
@@ -1692,8 +1728,11 @@ public:
 
         if (linkage != LINK.c && linkage != LINK.cpp)
         {
-            buf.printf("// ignoring template %s because of linkage", td.toPrettyChars());
-            buf.writenl();
+            if (printIgnored)
+            {
+                buf.printf("// ignoring template %s because of linkage", td.toPrettyChars());
+                buf.writenl();
+            }
             return;
         }
 

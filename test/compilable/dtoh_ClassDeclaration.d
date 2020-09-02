@@ -32,7 +32,6 @@ public:
     C2(int32_t a);
 };
 
-// ignoring non-cpp class C3
 class Aligned
 {
 public:

@@ -16,7 +16,6 @@ struct A
 {
     // Ignoring var x alignment 0
     T x;
-    // ignoring function foo because semantic hasn't been run
 };
 
 struct B

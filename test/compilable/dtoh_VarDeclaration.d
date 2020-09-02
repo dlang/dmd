@@ -11,8 +11,6 @@ TEST_OUTPUT:
 #include <stdint.h>
 
 
-// ignoring variable dtoh_VarDeclaration.x because of linkage
-// ignoring variable dtoh_VarDeclaration.y because of linkage
 extern "C" int32_t z;
 
 extern int32_t t;
@@ -21,7 +19,6 @@ struct S;
 
 struct S2;
 
-// ignoring non-cpp class C
 class C2;
 
 union U;

@@ -369,8 +369,16 @@ dmd -cov -unittest myprog.d
         Option("Hf=<filename>",
             "write 'header' file to filename"
         ),
-        Option("HC",
-            "generate C++ 'header' file"
+        Option("HC[=[silent|verbose]]",
+            "generate C++ 'header' file",
+            `Generate C++ 'header' files using the given configuration:",
+            $(DL
+            $(DT silent)$(DD only list extern(C[++]) declarations (default))
+            $(DT verbose)$(DD also add comments for ignored declarations (e.g. extern(D)))
+            )`,
+        ),
+        Option("HC=[?|h|help]",
+            "list available modes for C++ 'header' file generation"
         ),
         Option("HCd=<directory>",
             "write C++ 'header' file to directory"
@@ -881,5 +889,12 @@ struct CLIUsage
   =c++11                Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`
   =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
   =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
+";
+
+    /// Options supported by -HC
+    enum hcUsage = "Available header generation modes:
+  =[h|help|?]           List information on all available choices
+  =silent               Silently ignore non-exern(C[++]) declarations
+  =verbose              Add a comment for ignored non-exern(C[++]) declarations
 ";
 }
