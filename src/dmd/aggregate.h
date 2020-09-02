@@ -185,6 +185,9 @@ public:
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple *argTypes;
 
+    VarExp* wasMovedBy;         // `VarExp` this was moved by
+    uint vrefCount;             // total number of references in `VarExp`s
+
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semanticTypeInfoMembers();

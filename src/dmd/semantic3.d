@@ -573,6 +573,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (!funcdecl.fbody)
                     funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
 
+                inferStatementRvalues(sc, funcdecl.fbody);
+
                 if (funcdecl.naked)
                 {
                     fpreinv = null;         // can't accommodate with no stack frame
