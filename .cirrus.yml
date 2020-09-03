@@ -55,49 +55,27 @@ environment:
   OS_NAME: linux
   FULL_BUILD: false
 
+# Linux
 task:
-  name: Ubuntu 16.04 x86, DMD host compiler
+  name: Ubuntu 16.04 $TASK_NAME_SUFFIX
   container:
     image: ubuntu:16.04
     cpu: 4
     memory: 8G
   timeout_in: 60m
   environment:
-    MODEL: 32
+    matrix:
+      - TASK_NAME_SUFFIX: x86, DMD host compiler
+        MODEL: 32
+      - TASK_NAME_SUFFIX: x64, DMD host compiler
+      - TASK_NAME_SUFFIX: x64, LDC host compiler
+        DMD: ldc
+      - TASK_NAME_SUFFIX: x64, GDC host compiler
+        GDC_VERSION: 9
+        DMD: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
-task:
-  name: Ubuntu 16.04 x64, DMD host compiler
-  container:
-    image: ubuntu:16.04
-    cpu: 4
-    memory: 8G
-  timeout_in: 60m
-  << : *COMMON_STEPS_TEMPLATE
-
-task:
-  name: Ubuntu 16.04 x64, LDC host compiler
-  container:
-    image: ubuntu:16.04
-    cpu: 4
-    memory: 8G
-  timeout_in: 60m
-  environment:
-    DMD: ldc
-  << : *COMMON_STEPS_TEMPLATE
-
-task:
-  name: Ubuntu 16.04 x64, GDC host compiler
-  container:
-    image: ubuntu:16.04
-    cpu: 4
-    memory: 8G
-  timeout_in: 60m
-  environment:
-    GDC_VERSION: 9
-    DMD: gdmd-9
-  << : *COMMON_STEPS_TEMPLATE
-
+# Mac
 task:
   name: macOS 10.15 x64, DMD host compiler
   osx_instance:
@@ -109,6 +87,7 @@ task:
     OS: osx
   << : *COMMON_STEPS_TEMPLATE
 
+# FreeBSD
 task:
   name: FreeBSD 12.1 x64, DMD host compiler
   freebsd_instance:
