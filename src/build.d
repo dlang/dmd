@@ -480,7 +480,7 @@ alias runCxxHeadersTest = makeRule!((builder, rule) {
             const generatedHeader = cxxHeaderGeneratedPath.readText;
             const referenceHeader = cxxHeaderReferencePath.readText;
             if (generatedHeader != referenceHeader) {
-                if (env.getDefault("AUTO_UPDATE", "0") == "1")
+                if (env.getNumberedBool("AUTO_UPDATE"))
                 {
                     generatedHeader.toFile(cxxHeaderReferencePath);
                     writeln("NOTICE: Reference header file (" ~ cxxHeaderReferencePath ~
@@ -618,7 +618,7 @@ alias style = makeRule!((builder, rule)
             .target(dscannerDir.buildPath("dsc".exeName))
             .command([
                 // debug build is faster but disable trace output
-                env.get("MAKE", "make"), "-C", dscannerDir, "debug",
+                env["MAKE"], "-C", dscannerDir, "debug",
                 "DEBUG_VERSIONS=-version=StdLoggerDisableWarning"
             ]);
     });
@@ -771,9 +771,9 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
         else
             show("SYSTEM", ["uname", "-a"]);
 
-        show("MAKE", [env.get("MAKE", "make"), "--version"]);
+        show("MAKE", [env["MAKE"], "--version"]);
         version (Posix)
-            show("SHELL", [env.get("SHELL", nativeShell), "--version"]);  // cmd.exe --version hangs
+            show("SHELL", [env.getDefault("SHELL", nativeShell), "--version"]);  // cmd.exe --version hangs
         show("HOST_DMD", [env["HOST_DMD_RUN"], "--version"]);
         version (Posix)
             show("HOST_CXX", [env["CXX"], "--version"]);
@@ -946,15 +946,15 @@ void parseEnvironment()
         const os = env["OS"] = "windows";
     }
     else
-        const os = env.getDefault("OS", detectOS);
-    auto build = env.getDefault("BUILD", "release");
+        const os = env.setDefault("OS", detectOS);
+    auto build = env.setDefault("BUILD", "release");
     enforce(build.among("release", "debug"), "BUILD must be 'debug' or 'release'");
 
     if (build == "debug")
-        env.getDefault("ENABLE_DEBUG", "1");
+        env.setDefault("ENABLE_DEBUG", "1");
 
     // detect Model
-    auto model = env.getDefault("MODEL", detectModel);
+    auto model = env.setDefault("MODEL", detectModel);
     env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
 
     // detect PIC
@@ -977,23 +977,23 @@ void parseEnvironment()
         env["PIC_FLAG"] = "";
     }
 
-    env.getDefault("GIT", "git");
-    env.getDefault("GIT_HOME", "https://github.com/dlang");
-    env.getDefault("SYSCONFDIR", "/etc");
-    env.getDefault("TMP", tempDir);
-    env.getDefault("RES", dmdRepo.buildPath("src/dmd/res"));
+    env.setDefault("GIT", "git");
+    env.setDefault("GIT_HOME", "https://github.com/dlang");
+    env.setDefault("SYSCONFDIR", "/etc");
+    env.setDefault("TMP", tempDir);
+    env.setDefault("RES", dmdRepo.buildPath("src/dmd/res"));
+    env.setDefault("MAKE", "make");
 
     version (Windows)
         enum installPref = "";
     else
         enum installPref = "..";
 
-    env.getDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
+    env.setDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
 
-    env.getDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
-    if (env.get("DOCDIR", null).length == 0)
-        env["DOCDIR"] = srcDir;
-    env.getDefault("DOC_OUTPUT_DIR", env["DOCDIR"]);
+    env.setDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
+    env.setDefault("DOCDIR", srcDir);
+    env.setDefault("DOC_OUTPUT_DIR", env["DOCDIR"]);
 
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
@@ -1002,11 +1002,11 @@ void parseEnvironment()
     auto generated = env["GENERATED"] = dmdRepo.buildPath("generated");
     auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
-    env.getDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
+    env.setDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
 
-    if (env.get("HOST_DMD", null).length == 0)
+    if (env.getDefault("HOST_DMD", null).length == 0)
     {
-        const hostDmd = env.get("HOST_DC", null);
+        const hostDmd = env.getDefault("HOST_DC", null);
         env["HOST_DMD"] = hostDmd.length ? hostDmd : "dmd";
     }
 
@@ -1090,16 +1090,12 @@ void processEnvironment()
     }
 
     env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
-    env.getDefault("DETAB", "detab");
-    env.getDefault("TOLF", "tolf");
+    env.setDefault("DETAB", "detab");
+    env.setDefault("TOLF", "tolf");
     version (Windows)
-        env.getDefault("ZIP", "zip32");
+        env.setDefault("ZIP", "zip32");
     else
-        env.getDefault("ZIP", "zip");
-
-    // TODO: this isn't being used for anything yet...
-    env.getNumberedBool("ENABLE_WARNINGS");
-    string[] warnings;
+        env.setDefault("ZIP", "zip");
 
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
     if (env["HOST_DMD_KIND"] != "gdc")
@@ -1142,9 +1138,10 @@ void processEnvironment()
     {
         dflags ~= ["-cov"];
     }
-    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
+    const sanitizers = env.getDefault("ENABLE_SANITIZERS", "");
+    if (!sanitizers.empty)
     {
-        dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
+        dflags ~= ["-fsanitize="~sanitizers];
     }
 
     // Retain user-defined flags
@@ -1173,8 +1170,9 @@ void processEnvironmentCxx()
     if (env.getNumberedBool("ENABLE_COVERAGE"))
         cxxFlags ~= "--coverage";
 
-    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
-        cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
+    const sanitizers = env.getDefault("ENABLE_SANITIZERS", "");
+    if (!sanitizers.empty)
+        cxxFlags ~= "-fsanitize=" ~ sanitizers;
 
     // Enable a temporary workaround in globals.h and rmem.h concerning
     // wrong name mangling using DMD.
@@ -1196,7 +1194,8 @@ string detectHostCxx()
 {
     import std.meta: AliasSeq;
 
-    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
+    env.setDefault("CXX", "c++");
+    const cxxVersion = [env["CXX"], "--version"].execute.output;
 
     alias GCC = AliasSeq!("g++", "gcc", "Free Software");
     alias CLANG = AliasSeq!("clang");
@@ -1503,14 +1502,14 @@ void args2Environment(ref string[] args)
 }
 
 /**
-Ensures that env contains a mapping for key and returns the associated value.
-Searches the process environment if it is missing and creates an appropriate
-entry in env using either the found value or `default_` as a fallback.
+Ensures that `env` contains a mapping for `key` and returns the associated value.
+Searches the process environment if it is missing and uses `default_` as a
+last fallback.
 
 Params:
-    env = environment to write the check to
-    key = key to check for existence and write into the new env
-    default_ = fallback value if the key doesn't exist in the global environment
+    env = environment to check for `key`
+    key = key to check for existence
+    default_ = fallback value if `key` doesn't exist in the global environment
 
 Returns: the value associated to key
 */
@@ -1520,11 +1519,28 @@ auto getDefault(ref string[string] env, string key, string default_)
         return *ex;
 
     if (key in environment)
-        env[key] = environment[key];
+        return environment[key];
     else
-        env[key] = default_;
+        return default_;
+}
 
-    return env[key];
+/**
+Ensures that `env` contains a mapping for `key` and returns the associated value.
+Searches the process environment if it is missing and creates an appropriate
+entry in `env` using either the found value or `default_` as a fallback.
+
+Params:
+    env = environment to write the check to
+    key = key to check for existence and write into the new env
+    default_ = fallback value if `key` doesn't exist in the global environment
+
+Returns: the value associated to key
+*/
+auto setDefault(ref string[string] env, string key, string default_)
+{
+    auto v = getDefault(env, key, default_);
+    env[key] = v;
+    return v;
 }
 
 /**
