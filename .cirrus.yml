@@ -16,7 +16,11 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
       # required for install.sh
       brew install gnupg
     elif [ "$OS_NAME" == "freebsd" ]; then
-      pkg install -y git gmake bash
+      packages="git gmake bash"
+      if [ "${D_VERSION:-x}" == "2.079.0" ] ; then
+        packages="$packages lang/gcc9"
+      fi
+      pkg install -y $packages
       rm /usr/bin/make
       ln -s /usr/local/bin/gmake /usr/bin/make
     fi
@@ -26,7 +30,7 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
     source ci.sh
     # kludge
     if [ "${DMD:0:4}" == "gdmd" ]; then export DMD="gdmd"; fi
-    install_d "$DMD"
+    if [ -z "${D_VERSION+x}" ]; then install_d "$DMD"; else install_d "$DMD-$D_VERSION"; fi
   setup_repos_script: |
     export BRANCH=${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}
     source ci.sh
@@ -64,19 +68,24 @@ task:
   timeout_in: 60m
   environment:
     matrix:
-      - TASK_NAME_SUFFIX: x86, DMD host compiler
+      - TASK_NAME_SUFFIX: x86, DMD (latest)
         MODEL: 32
-      - TASK_NAME_SUFFIX: x64, DMD host compiler
-      - TASK_NAME_SUFFIX: x64, LDC host compiler
+      - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
+        MODEL: 32
+        D_VERSION: 2.079.0
+      - TASK_NAME_SUFFIX: x64, DMD (latest)
+      - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
+        D_VERSION: 2.079.0
+      - TASK_NAME_SUFFIX: x64, LDC
         DMD: ldc
-      - TASK_NAME_SUFFIX: x64, GDC host compiler
+      - TASK_NAME_SUFFIX: x64, GDC
         GDC_VERSION: 9
         DMD: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
 task:
-  name: macOS 10.15 x64, DMD host compiler
+  name: macOS 10.15 x64, $TASK_NAME_SUFFIX
   osx_instance:
     image: catalina-xcode
   timeout_in: 60m
@@ -84,11 +93,17 @@ task:
     OS_NAME: darwin
     # override Cirrus default OS (`darwin`)
     OS: osx
+    matrix:
+      - TASK_NAME_SUFFIX: DMD (latest)
+      - TASK_NAME_SUFFIX: DMD (bootstrap)
+        # de-facto bootstrap version on OSX
+        # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
+        D_VERSION: 2.088.0
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
 task:
-  name: FreeBSD 12.1 x64, DMD host compiler
+  name: FreeBSD 12.1 x64, DMD (latest)
   freebsd_instance:
     image_family: freebsd-12-1
     cpu: 4
@@ -96,4 +111,16 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: FreeBSD 11.4 x64, DMD (bootstrap)
+  freebsd_instance:
+    image_family: freebsd-11-4
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+    D_VERSION: 2.079.0
   << : *COMMON_STEPS_TEMPLATE
