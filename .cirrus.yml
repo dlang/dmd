@@ -1,0 +1,121 @@
+common_steps_template: &COMMON_STEPS_TEMPLATE
+  install_prerequisites_script: |
+    set -uexo pipefail
+    if [ "$OS_NAME" == "linux" ]; then
+      packages="git-core make g++ gdb curl libcurl3 tzdata zip unzip xz-utils"
+      if [ "$MODEL" == "32" ]; then
+        dpkg --add-architecture i386
+        packages="$packages g++-multilib libcurl3-gnutls:i386"
+      fi
+      if [ "${DMD:0:4}" == "gdmd" ]; then
+        packages="$packages sudo software-properties-common wget"
+      fi
+      apt-get -q update
+      apt-get install -yq $packages
+    elif [ "$OS_NAME" == "darwin" ]; then
+      # required for install.sh
+      brew install gnupg
+    elif [ "$OS_NAME" == "freebsd" ]; then
+      pkg install -y git gmake bash
+      rm /usr/bin/make
+      ln -s /usr/local/bin/gmake /usr/bin/make
+    fi
+    # create a `dmd` symlink to the repo dir, necessary for druntime/Phobos
+    ln -s $CIRRUS_WORKING_DIR ../dmd
+  install_host_compiler_script: |
+    source ci.sh
+    # kludge
+    if [ "${DMD:0:4}" == "gdmd" ]; then export DMD="gdmd"; fi
+    install_d "$DMD"
+  setup_repos_script: |
+    export BRANCH=${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}
+    source ci.sh
+    setup_repos
+  build_script: |
+    source ci.sh
+    build
+  test_dmd_script: |
+    if [ -z "$CIRRUS_PR" ]; then export FULL_BUILD="true"; fi
+    source ci.sh
+    test_dmd
+  test_druntime_script: |
+    set -uexo pipefail
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
+  test_phobos_script: |
+    set -uexo pipefail
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+
+environment:
+  CIRRUS_CLONE_DEPTH: 50
+  # for ci.sh:
+  MODEL: 64
+  DMD: dmd
+  N: 4
+  BRANCH: master
+  OS_NAME: linux
+  FULL_BUILD: false
+
+task:
+  name: Ubuntu 16.04 x86, DMD host compiler
+  container:
+    image: ubuntu:16.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    MODEL: 32
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: Ubuntu 16.04 x64, DMD host compiler
+  container:
+    image: ubuntu:16.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: Ubuntu 16.04 x64, LDC host compiler
+  container:
+    image: ubuntu:16.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    DMD: ldc
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: Ubuntu 16.04 x64, GDC host compiler
+  container:
+    image: ubuntu:16.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    GDC_VERSION: 9
+    DMD: gdmd-9
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: macOS 10.15 x64, DMD host compiler
+  osx_instance:
+    image: catalina-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: FreeBSD 12.1 x64, DMD host compiler
+  freebsd_instance:
+    image_family: freebsd-12-1
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+  << : *COMMON_STEPS_TEMPLATE
