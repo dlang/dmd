@@ -48,6 +48,7 @@ HOST_DMD_BASENAME=dmd.${HOST_DMD_VER}.${OS}
 # http://downloads.dlang.org/releases/2.x/2.088.0/dmd.2.088.0.linux.tar.xz
 HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/${HOST_DMD_VER}/${HOST_DMD_BASENAME}
 HOST_RDMD="${HOST_DMD_ROOT}/dmd2/${OS}/${MODEL_PATH}/rdmd"
+HOST_DMD="${HOST_DMD_ROOT}/dmd2/${OS}/${MODEL_PATH}/dmd" # required by build.d
 
 # Download bootstrap compiler if it does not exist yet
 if [ ! -e "${HOST_RDMD}" ] ; then
@@ -76,4 +77,4 @@ if [ ! -e "${HOST_RDMD}" ] ; then
 fi
 
 # Call build.d with all arguments forwarded
-"$HOST_RDMD" "$DIR/build.d" "$@"
+"$HOST_RDMD" "$DIR/build.d" "$@" HOST_DMD="$HOST_DMD"
