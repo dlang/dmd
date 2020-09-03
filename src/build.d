@@ -1004,11 +1004,15 @@ void parseEnvironment()
     mkdirRecurse(g);
     env.setDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
 
-    if (env.getDefault("HOST_DMD", null).length == 0)
+    auto hostDmdDef = env.getDefault("HOST_DMD", null);
+    if (hostDmdDef.length == 0)
     {
         const hostDmd = env.getDefault("HOST_DC", null);
         env["HOST_DMD"] = hostDmd.length ? hostDmd : "dmd";
     }
+    else
+        // HOST_DMD may be defined in the environment
+        env["HOST_DMD"] = hostDmdDef;
 
     // Auto-bootstrapping of a specific host compiler
     if (env.getNumberedBool("AUTO_BOOTSTRAP"))
