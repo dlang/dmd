@@ -706,6 +706,15 @@ public:
         {
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
+            enum ProtPublic = AST.Prot(AST.Prot.Kind.public_);
+            if (vd.protection.isMoreRestrictiveThan(ProtPublic)) {
+                if (printIgnored)
+                {
+                    buf.printf("// ignoring enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.protectionToChars(vd.protection.kind));
+                    buf.writenl;
+                }
+                return;
+            }
 
             final switch (kind)
             {
@@ -721,7 +730,10 @@ public:
 
                 case EnumKind.Other:
                     if (printIgnored)
-                        buf.printf("// ignoring enum `%s` because type `%s` is currently not supported for enum constants.\n", vd.toPrettyChars(), type.toChars());
+                    {
+                        buf.printf("// ignoring enum `%s` because type `%s` is currently not supported for enum constants.", vd.toPrettyChars(), type.toChars());
+                        buf.writenl;
+                    }
                     return;
             }
             writeEnumTypeName(type);
