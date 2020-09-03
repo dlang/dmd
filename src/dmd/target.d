@@ -703,6 +703,16 @@ extern (C++) struct Target
             else
                 return true;
         }
+        else if (global.params.isWindows &&
+                 !global.params.is64bit &&
+                 (tf.linkage == LINK.cpp || tf.linkage == LINK.pascal) &&
+                 tf.isfloating())
+        {
+            /* See DMC++ function exp2_retmethod()
+             * https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dexp2.d#L149
+             */
+            return true;
+        }
         else
         {
             //assert(sz <= 16);
