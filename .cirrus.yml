@@ -35,7 +35,6 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
     source ci.sh
     build
   test_dmd_script: |
-    if [ -z "$CIRRUS_PR" ]; then export FULL_BUILD="true"; fi
     source ci.sh
     test_dmd
   test_druntime_script: |
@@ -53,7 +52,7 @@ environment:
   N: 4
   BRANCH: master
   OS_NAME: linux
-  FULL_BUILD: false
+  FULL_BUILD: true
 
 # Linux
 task:
