@@ -745,6 +745,7 @@ dmd -cov -unittest myprog.d
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
     ];
 
     /// Returns all available previews
@@ -758,7 +759,6 @@ dmd -cov -unittest myprog.d
         Feature("dip1021", "useDIP1021",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md (Mutable function arguments)"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
-        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc"),
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes"),
         Feature("intpromote", "fix16997",
@@ -771,6 +771,9 @@ dmd -cov -unittest myprog.d
             "disable access to shared memory objects"),
         Feature("in", "previewIn",
             "`in` on parameters means `scope const [ref]` and accepts rvalues"),
+        // DEPRECATED previews
+        // trigger deprecation message once D repositories don't use this flag anymore
+        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc", false, false),
     ];
 }
 

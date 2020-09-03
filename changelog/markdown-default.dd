@@ -1,0 +1,9 @@
+DDoc Markdown support has been enabled by default
+
+Ddoc's [Markdown](https://daringfireball.net/projects/markdown/syntax) has now been enabled by default.
+The full list of supported Markdown features (headings, emphasized text, links, and more) is described in [the Ddoc documentation page](https://dlang.org/spec/ddoc.html#highlighting).
+
+For the more cautious, a list of all instances of Markdown features can be logged with `-transition=vmarkdown`.
+If you encounter issues with this transition, you can temporarily disable the processing of the Markdown features with `-revert=markdown` and report an issue.
+
+A huge thanks goes to David Gileadi for championing this issue!
