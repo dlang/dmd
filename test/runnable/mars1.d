@@ -2212,6 +2212,24 @@ void test19846()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=16268
+
+void test16268()
+{
+    static void f(byte x)
+    {
+	for (byte i = 0; i <= x && i >= 0; ++i)
+	{
+	    assert(i >= 0);
+	    assert(i != -1);
+	    //printf("%d\n", i);
+	}
+    }
+
+    f(byte.max);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2301,6 +2319,7 @@ int main()
     testMulAssPair();
     test21038();
     test19846();
+    test16268();
 
     printf("Success\n");
     return 0;
