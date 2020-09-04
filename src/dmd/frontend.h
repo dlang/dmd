@@ -3536,6 +3536,7 @@ public:
     void visit(Import* i);
     void visit(AttribDeclaration* pd);
     void visit(LinkDeclaration* ld);
+    void visit(CPPMangleDeclaration* md);
     void visit(Module* m);
     void visit(FuncDeclaration* fd);
     void visit(UnitTestDeclaration* utd);

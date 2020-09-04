@@ -552,6 +552,14 @@ public:
         linkage = save;
     }
 
+    override void visit(AST.CPPMangleDeclaration md)
+    {
+        const oldLinkage = this.linkage;
+        this.linkage = LINK.cpp;
+        visit(cast(AST.AttribDeclaration) md);
+        this.linkage = oldLinkage;
+    }
+
     override void visit(AST.Module m)
     {
         debug (Debug_DtoH)
@@ -985,7 +993,13 @@ public:
         }
 
         pushAlignToBuffer(sd.alignment);
-        buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
+
+        const structAsClass = sd.cppmangle == CPPMANGLE.asClass;
+        if (sd.isUnionDeclaration())
+            buf.writestring("union ");
+        else
+            buf.writestring(structAsClass ? "class " : "struct ");
+
         buf.writestring(sd.ident.toChars());
         if (!sd.members)
         {
@@ -996,6 +1010,13 @@ public:
 
         buf.writenl();
         buf.writestring("{");
+
+        if (structAsClass)
+        {
+            buf.writenl();
+            buf.writestring("public:");
+        }
+
         buf.level++;
         buf.writenl();
         auto save = adparent;
@@ -1167,7 +1188,8 @@ public:
             return;
         }
 
-        buf.writestring("class ");
+        const classAsStruct = cd.cppmangle == CPPMANGLE.asStruct;
+        buf.writestring(classAsStruct ? "struct " : "class ");
         buf.writestring(cd.ident.toChars());
         if (cd.baseClass)
         {
@@ -1186,7 +1208,8 @@ public:
 
         buf.writenl();
         buf.writestringln("{");
-        buf.writestringln("public:");
+        if (!classAsStruct)
+            buf.writestringln("public:");
 
         auto save = adparent;
         adparent = cd;
