@@ -994,6 +994,31 @@ private struct Map(alias callable, Range)
     }
 }
 
+/// Returns: the length of the given range.
+auto walkLength(Range)(Range range)
+if (isInputRange!Range )
+{
+    static if (hasLength!Range)
+        return range.length;
+    else
+    {
+        size_t result;
+        for (; !range.empty; range.popFront())
+            ++result;
+        return result;
+    }
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    enum a = [1, 2, 3, 4].staticArray;
+    static assert(a[].walkLength == 4);
+
+    enum c = a[].filter!(e => e > 2);
+    static assert(c.walkLength == 2);
+}
+
 /// Evaluates to the element type of `R`.
 template ElementType(R)
 {
@@ -1011,9 +1036,9 @@ enum isInputRange(R) =
     && !is(ReturnType!(typeof((R r) => r.front)) == void)
     && is(typeof((R r) => r.popFront));
 
-/// Evaluates to `true` if `func` can be called with a value of `T` and returns `bool`.
-enum isPredicateOf(alias func, T) =
-    is(ReturnType!(typeof((T t) => func(t))) == bool);
+/// Evaluates to `true` if `func` can be called with a value of `T` and returns
+/// a value that is convertible to `bool`.
+enum isPredicateOf(alias func, T) = is(typeof((T t) => !func(t)));
 
 /// Evaluates to `true` if `func` be called withl a value of `T`.
 enum isCallableWith(alias func, T) =
@@ -1078,8 +1103,8 @@ pure nothrow @safe unittest
 }
 
 /// Implements the range interface primitive `popFront` for built-in arrays.
-void popFront(T)(scope ref inout(T)[] array) pure nothrow @nogc @safe
-{
+void popFront(T)(/*scope*/ ref inout(T)[] array) pure nothrow @nogc @safe
+{                // does not compile with GDC 9 if this is `scope`
     assert(array.length, "Attempting to popFront() past the end of an array of " ~ T.stringof);
     array = array[1 .. $];
 }

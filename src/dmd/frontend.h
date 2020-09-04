@@ -1137,7 +1137,7 @@ struct ObjcClassDeclaration
     Identifier* identifier;
     ClassDeclaration* classDeclaration;
     ClassDeclaration* metaclass;
-    Array<FuncDeclaration* >* methodList;
+    _d_dynamicArray< FuncDeclaration* > methodList;
     bool isRootClass() const;
     ObjcClassDeclaration() :
         isMeta(false),
@@ -1725,9 +1725,11 @@ struct ObjcFuncDeclaration
 {
     ObjcSelector* selector;
     VarDeclaration* selectorParameter;
+    bool isOptional;
     ObjcFuncDeclaration() :
         selector(),
-        selectorParameter()
+        selectorParameter(),
+        isOptional()
     {
     }
 };
@@ -5704,6 +5706,8 @@ public:
     virtual void validateSelector(FuncDeclaration* fd) = 0;
     virtual void checkLinkage(FuncDeclaration* fd) = 0;
     virtual bool isVirtual(const FuncDeclaration* const fd) const = 0;
+    virtual void setAsOptional(FuncDeclaration* functionDeclaration, Scope* sc) const = 0;
+    virtual void validateOptional(FuncDeclaration* functionDeclaration) const = 0;
     virtual ClassDeclaration* getParent(FuncDeclaration* fd, ClassDeclaration* cd) const = 0;
     virtual void addToClassMethodList(FuncDeclaration* fd, ClassDeclaration* cd) const = 0;
     virtual AggregateDeclaration* isThis(FuncDeclaration* funcDeclaration) const = 0;
@@ -7724,6 +7728,7 @@ struct Id
     static Identifier* char_traits;
     static Identifier* udaGNUAbiTag;
     static Identifier* udaSelector;
+    static Identifier* udaOptional;
     static Identifier* NULL;
     static Identifier* TRUE;
     static Identifier* FALSE;

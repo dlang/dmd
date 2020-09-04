@@ -1104,48 +1104,28 @@ private:
      */
     Symbol* getMethodList()
     {
-        /**
-         * Returns the number of methods that should be added to the binary.
-         *
-         * Only methods with a body should be added.
-         *
-         * Params:
-         *  members = the members of the class declaration
-         */
-        static int methodCount(FuncDeclarations* methods)
-        {
-            int count;
-
-            methods.each!((method) {
-                if (method.fbody)
-                    count++;
-            });
-
-            return count;
-        }
-
         auto methods = isMeta ? classDeclaration.objc.metaclass.objc.methodList :
             classDeclaration.objc.methodList;
 
-        const count = methodCount(methods);
+        auto methodsWithBody = methods.filter!(m => m.fbody);
+        const methodCount = methodsWithBody.walkLength;
 
-        if (count == 0)
+        if (methodCount == 0)
             return null;
 
         auto dtb = DtBuilder(0);
 
         dtb.dword(24); // _objc_method.sizeof
-        dtb.dword(count); // method count
+        dtb.dword(cast(int) methodCount); // method count
 
-        methods.each!((func) {
-            if (func.fbody)
-            {
-                assert(func.objc.selector);
-                dtb.xoff(func.objc.selector.toNameSymbol(), 0); // method name
-                dtb.xoff(Symbols.getMethVarType(func), 0); // method type string
-                dtb.xoff(func.toSymbol(), 0); // function implementation
-            }
-        });
+        foreach (func; methodsWithBody)
+        {
+            assert(func.objc.selector);
+
+            dtb.xoff(func.objc.selector.toNameSymbol(), 0); // method name
+            dtb.xoff(Symbols.getMethVarType(func), 0); // method type string
+            dtb.xoff(func.toSymbol(), 0); // function implementation
+        }
 
         const prefix = isMeta ? "l_OBJC_$_CLASS_METHODS_" : "l_OBJC_$_INSTANCE_METHODS_";
         const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
@@ -1374,8 +1354,8 @@ private:
 
         dtb.xoffOrNull(instanceMethodList); // instance methods
         dtb.xoffOrNull(classMethodList); // class methods
-        dtb.size(0); // optional instance methods
-        dtb.size(0); // optional class methods
+        dtb.xoffOrNull(optionalInstanceMethodList); // optional instance methods
+        dtb.xoffOrNull(optionalClassMethodList); // optional class methods
 
         dtb.size(0); // instance properties
         dtb.dword(96); // the size of _protocol_t, always 96
@@ -1398,7 +1378,12 @@ private:
     Symbol* instanceMethodList()
     {
         enum symbolNamePrefix = "__OBJC_$_PROTOCOL_INSTANCE_METHODS_";
-        return methodList(symbolNamePrefix, interfaceDeclaration.objc.methodList);
+        auto methods = interfaceDeclaration
+            .objc
+            .methodList
+            .filter!(m => !m.objc.isOptional);
+
+        return methodList(symbolNamePrefix, methods);
     }
 
     /**
@@ -1412,7 +1397,54 @@ private:
     Symbol* classMethodList()
     {
         enum symbolNamePrefix = "__OBJC_$_PROTOCOL_CLASS_METHODS_";
-        auto methods = interfaceDeclaration.objc.metaclass.objc.methodList;
+        auto methods = interfaceDeclaration
+            .objc
+            .metaclass
+            .objc
+            .methodList
+            .filter!(m => !m.objc.isOptional);
+
+        return methodList(symbolNamePrefix, methods);
+    }
+
+    /**
+     * Returns optional instance method list for this protocol declaration.
+     *
+     * This is a list of all optional instance methods declared in this protocol
+     * declaration.
+     *
+     * Returns: the symbol for the method list, `l_OBJC_$_PROTOCOL_INSTANCE_METHODS_`
+     */
+    Symbol* optionalInstanceMethodList()
+    {
+        enum symbolNamePrefix = "l_OBJC_$_PROTOCOL_INSTANCE_METHODS_OPT_";
+
+        auto methods = interfaceDeclaration
+            .objc
+            .methodList
+            .filter!(m => m.objc.isOptional);
+
+        return methodList(symbolNamePrefix, methods);
+    }
+
+    /**
+     * Returns optional class method list for this protocol declaration.
+     *
+     * This is a list of all optional class methods declared in this protocol
+     * declaration.
+     *
+     * Returns: the symbol for the method list, `l_OBJC_$_PROTOCOL_INSTANCE_METHODS_`
+     */
+    Symbol* optionalClassMethodList()
+    {
+        enum symbolNamePrefix = "l_OBJC_$_PROTOCOL_CLASS_METHODS_OPT_";
+        auto methods = interfaceDeclaration
+            .objc
+            .metaclass
+            .objc
+            .methodList
+            .filter!(m => m.objc.isOptional);
+
         return methodList(symbolNamePrefix, methods);
     }
 
@@ -1421,23 +1453,25 @@ private:
      *
      * Returns: the symbol for the method list
      */
-    Symbol* methodList(string symbolNamePrefix, FuncDeclarations* methods)
+    Symbol* methodList(Range)(string symbolNamePrefix, Range methods)
+    if (isInputRange!Range && is(ElementType!Range == FuncDeclaration))
     {
-        if (methods.length == 0)
+        const methodCount = methods.walkLength;
+
+        if (methodCount == 0)
             return null;
 
         auto dtb = DtBuilder(0);
 
         dtb.dword(24); // _objc_method.sizeof
-        dtb.dword(cast(int) methods.length); // method count
+        dtb.dword(cast(int) methodCount); // method count
 
-        methods.each!((method) {
-            auto func = method.isFuncDeclaration;
-
+        foreach (func; methods)
+        {
             dtb.xoff(func.objc.selector.toNameSymbol(), 0); // method name
             dtb.xoff(Symbols.getMethVarType(func), 0); // method type string
             dtb.size(0); // NULL, protocol methods have no implementation
-        });
+        }
 
         const symbolName = symbolNamePrefix ~ interfaceDeclaration.objc.identifier.toString();
         auto symbol = Symbols.getStatic(symbolName);

@@ -618,6 +618,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     auto ifd = m.isFuncDeclaration;
                     assert(ifd);
 
+                    if (ifd.objc.isOptional)
+                        continue;
+
                     auto type = ifd.type.toTypeFunction();
                     auto fd = cd.findFunc(ifd.ident, type);
 

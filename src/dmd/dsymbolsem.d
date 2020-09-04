@@ -3999,6 +3999,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             objc.setSelector(funcdecl, sc);
             objc.checkLinkage(funcdecl);
             objc.addToClassMethodList(funcdecl, cd);
+            objc.setAsOptional(funcdecl, sc);
 
             /* Go through all the interface bases.
              * Disallow overriding any final functions in the interface(s).
@@ -4038,9 +4039,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.error("`override` only applies to class member functions");
 
         if (auto ti = parent.isTemplateInstance)
+        {
             objc.setSelector(funcdecl, sc);
+            objc.setAsOptional(funcdecl, sc);
+        }
 
         objc.validateSelector(funcdecl);
+        objc.validateOptional(funcdecl);
         // Reflect this.type to f because it could be changed by findVtblIndex
         f = funcdecl.type.toTypeFunction();
 
