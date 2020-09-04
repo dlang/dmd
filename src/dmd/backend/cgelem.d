@@ -3700,8 +3700,15 @@ static if (0)  // Doesn't work too well, removed
         {
             tym_t ty;
 
+            version (MARS)
+                enum side = false; // don't allow side effects in e2.EV.E2 because of
+                                   // D order-of-evaluation rules
+            else
+                enum side = true;  // ok in C and C++
+
             // Replace (e1 = e1 op e) with (e1 op= e)
-            if (el_match(e1,e2.EV.E1))
+            if (el_match(e1,e2.EV.E1) &&
+                (side || !el_sideeffect(e2.EV.E2)))
             {
                 ty = e2.EV.E2.Ety;
                 e.EV.E2 = el_selecte2(e2);
