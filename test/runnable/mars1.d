@@ -1910,6 +1910,28 @@ void testNegConst()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16317
+
+int add8ret3(ref int s)
+{
+    s += 8;
+    return 3;
+}
+
+int binAdd(int val)
+{
+    val = val + add8ret3(val);
+    return val;
+}
+
+void test16317()
+{
+    assert(binAdd(1) == (1 + 3));
+    static assert(binAdd(1) == (1 + 3));
+}
+
+////////////////////////////////////////////////////////////////////////
+
 // https://issues.dlang.org/show_bug.cgi?id=20050
 
 int test20050_g = 0;
@@ -2048,12 +2070,12 @@ void testsbbrex()
     // special code is generated for these two cases
     static long foolt(dchar c)
     {
-	return c < 0x10000 ? 1 : 2;
+        return c < 0x10000 ? 1 : 2;
     }
 
     static long fooge(uint c)
     {
-	return c >= 0x10000 ? 1L : 2L;
+        return c >= 0x10000 ? 1L : 2L;
     }
 
     assert(foolt(0) == 1);
@@ -2218,12 +2240,12 @@ void test16268()
 {
     static void f(byte x)
     {
-	for (byte i = 0; i <= x && i >= 0; ++i)
-	{
-	    assert(i >= 0);
-	    assert(i != -1);
-	    //printf("%d\n", i);
-	}
+        for (byte i = 0; i <= x && i >= 0; ++i)
+        {
+            assert(i >= 0);
+            assert(i != -1);
+            //printf("%d\n", i);
+        }
     }
 
     f(byte.max);
@@ -2307,6 +2329,7 @@ int main()
     testfastpar();
     test20363();
     testNegConst();
+    test16317();
     test20050();
     testCpStatic();
     test7();
