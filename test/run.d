@@ -464,7 +464,7 @@ Params:
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
 */
-auto getDefault(string[string] env, string key, string default_)
+auto setDefault(string[string] env, string key, string default_)
 {
     if (key in environment)
         env[key] = environment[key];
@@ -486,13 +486,13 @@ string[string] getEnvironment()
     env["BUILD"] = build;
     env["EXE"] = exeExtension;
     env["DMD"] = dmdPath;
-    env.getDefault("DMD_TEST_COVERAGE", "0");
+    env.setDefault("DMD_TEST_COVERAGE", "0");
 
     const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
 
     version(Windows)
     {
-        env.getDefault("ARGS", "-inline -release -g -O");
+        env.setDefault("ARGS", "-inline -release -g -O");
         env["OBJ"] = ".obj";
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
@@ -503,7 +503,7 @@ string[string] getEnvironment()
     }
     else
     {
-        env.getDefault("ARGS", "-inline -release -g -O -fPIC");
+        env.setDefault("ARGS", "-inline -release -g -O -fPIC");
         env["OBJ"] = ".o";
         env["DSEP"] = "/";
         env["SEP"] = "/";

@@ -10,7 +10,6 @@ CIRCLE_STAGE=${CIRCLE_STAGE:-pic}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
 BUILD="debug"
 DMD=dmd
-PIC=1
 
 case $CIRCLE_NODE_INDEX in
     0) MODEL=64 ;;
@@ -106,16 +105,20 @@ coverage()
 {
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    RDMD="$(type -p rdmd)"
+
+    local build_path=generated/linux/$BUILD/$MODEL
 
     # build dmd, druntime, and phobos
-    if [ "$MODEL" == "64" ] ; then
-        "$RDMD" ./src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
-    else
-        make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
-    fi
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
+    src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+
+    # save the built dmd as host compiler this time
+    # `generated` gets removed in 'clean', so we create another _generated
+    mkdir -p _${build_path}
+    cp $build_path/dmd _${build_path}/host_dmd
+    cp $build_path/dmd.conf _${build_path}
+    src/build.d clean MODEL=$MODEL BUILD=$BUILD
 
     # FIXME
     # Building d_do_test currently uses the host library for linking
@@ -127,20 +130,11 @@ coverage()
     rm -rf test/compilable/issue17167.sh
 
     # rebuild dmd with coverage enabled
-    # use the just build dmd as host compiler this time
-    local build_path=generated/linux/$BUILD/$MODEL
-    # `generated` gets cleaned in the next step, so we create another _generated
-    # The nested folder hierarchy is needed to conform to those specified in
-    # the generate dmd.conf
-    mkdir -p _${build_path}
-    cp $build_path/dmd _${build_path}/host_dmd
-    cp $build_path/dmd.conf _${build_path}
-    make -j$N -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd PIC="$PIC" clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1 ENABLE_WARNINGS=1 PIC="$PIC"
+    _${build_path}/host_dmd -run src/build.d MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
-    make -j1 -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
-    make -j1 -C test start_all_tests MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC" N=3
+    _${build_path}/host_dmd -run ./src/build.d MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1 unittest
+    _${build_path}/host_dmd -Itest -i -run ./test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -187,8 +181,8 @@ test_cxx()
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     echo "Test CXX frontend.h header generation"
     ./src/build.d
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
     ./src/build.d cxx-headers-test
     deactivate
 }
