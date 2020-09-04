@@ -107,9 +107,11 @@ coverage()
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
     local build_path=generated/linux/$BUILD/$MODEL
+    local builder=generated/build
 
+    dmd -g -od=generated -of=$builder src/build
     # build dmd, druntime, and phobos
-    src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
+    $builder MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
 
@@ -118,7 +120,7 @@ coverage()
     mkdir -p _${build_path}
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
-    src/build.d clean MODEL=$MODEL BUILD=$BUILD
+    $builder clean MODEL=$MODEL BUILD=$BUILD
 
     # FIXME
     # Building d_do_test currently uses the host library for linking
@@ -130,10 +132,10 @@ coverage()
     rm -rf test/compilable/issue17167.sh
 
     # rebuild dmd with coverage enabled
-    _${build_path}/host_dmd -run src/build.d MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1
+    $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
-    _${build_path}/host_dmd -run ./src/build.d MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1 unittest
+    $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1 unittest
     _${build_path}/host_dmd -Itest -i -run ./test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
 }
 
