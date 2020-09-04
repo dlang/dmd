@@ -836,33 +836,8 @@ public:
         property("size_t", size_t.sizeof);
         propertyStart("platforms");
         arrayStart();
-        if (global.params.isWindows)
-        {
-            item("windows");
-        }
-        else
-        {
-            item("posix");
-            if (global.params.isLinux)
-                item("linux");
-            else if (global.params.isOSX)
-                item("osx");
-            else if (global.params.isFreeBSD)
-            {
-                item("freebsd");
-                item("bsd");
-            }
-            else if (global.params.isOpenBSD)
-            {
-                item("openbsd");
-                item("bsd");
-            }
-            else if (global.params.isSolaris)
-            {
-                item("solaris");
-                item("bsd");
-            }
-        }
+        foreach (const p; target.platformNames)
+            item(p);
         arrayEnd();
 
         propertyStart("architectures");

@@ -731,6 +731,16 @@ struct ObNode;
 class StoppableVisitor;
 struct Token;
 struct code;
+BEGIN_ENUM(Platform, PLATFORM, platform)
+ENUM_KEY(int32_t, Linux, 0, Platform, PLATFORM, platform, P)
+ENUM_KEY(int32_t, OSX, 1, Platform, PLATFORM, platform, P)
+ENUM_KEY(int32_t, FreeBSD, 2, Platform, PLATFORM, platform, P)
+ENUM_KEY(int32_t, OpenBSD, 3, Platform, PLATFORM, platform, P)
+ENUM_KEY(int32_t, Solaris, 4, Platform, PLATFORM, platform, P)
+ENUM_KEY(int32_t, Windows, 5, Platform, PLATFORM, platform, P)
+ENUM_KEY(int32_t, DragonFlyBSD, 6, Platform, PLATFORM, platform, P)
+END_ENUM(Platform, PLATFORM, platform)
+
 struct TargetC;
 struct TargetCPP;
 struct TargetObjC;
@@ -6425,10 +6435,12 @@ struct Target
     uint32_t realalignsize;
     uint32_t classinfosize;
     uint64_t maxStaticDataSize;
+    Platform platform;
     TargetC c;
     TargetCPP cpp;
     TargetObjC objc;
     DArray< const char > architectureName;
+    DArray< DArray< char > > platformNames;
     template <typename T>
     struct FPTypeProperties
     {
@@ -6493,6 +6505,7 @@ struct Target
         cpp(),
         objc(),
         architectureName(),
+        platformNames(),
         FloatProperties(),
         DoubleProperties(),
         RealProperties()
@@ -6620,16 +6633,6 @@ BEGIN_ENUM_NUMERIC(uint8_t, HIGHLIGHT, HIGHLIGHT, highlight)
     ENUM_KEY_NUMERIC(uint8_t, Comment, 8u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
     ENUM_KEY_NUMERIC(uint8_t, Other, 6u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
 END_ENUM_NUMERIC(uint8_t, HIGHLIGHT, HIGHLIGHT, highlight)
-
-BEGIN_ENUM_NUMERIC(bool, TARGET, TARGET, target)
-    ENUM_KEY_NUMERIC(bool, Linux, true, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, OSX, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, FreeBSD, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, OpenBSD, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, Solaris, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, Windows, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, DragonFlyBSD, false, TARGET, TARGET, target, TARGET)
-END_ENUM_NUMERIC(bool, TARGET, TARGET, target)
 
 BEGIN_ENUM_NUMERIC(uint8_t, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting)
     ENUM_KEY_NUMERIC(uint8_t, error, 0u, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting, DR)

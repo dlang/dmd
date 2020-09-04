@@ -17,22 +17,6 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.identifier;
 
-template xversion(string s)
-{
-    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-}
-
-enum TARGET : bool
-{
-    Linux        = xversion!`linux`,
-    OSX          = xversion!`OSX`,
-    FreeBSD      = xversion!`FreeBSD`,
-    OpenBSD      = xversion!`OpenBSD`,
-    Solaris      = xversion!`Solaris`,
-    Windows      = xversion!`Windows`,
-    DragonFlyBSD = xversion!`DragonFlyBSD`,
-}
-
 enum DiagnosticReporting : ubyte
 {
     error,        // generate an error
@@ -384,61 +368,49 @@ extern (C++) struct Global
     {
         version (MARS)
         {
+            import dmd.target_platform : Platform, platform;
             vendor = "Digital Mars D";
-            static if (TARGET.Windows)
+
+            with (Platform)
+            final switch (platform)
             {
-                obj_ext = "obj";
+                case Windows:
+                    obj_ext = "obj";
+                    lib_ext = "lib";
+                    break;
+                case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                    obj_ext = "o";
+                    lib_ext = "a";
+                    break;
             }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+
+            with (Platform)
+            final switch (platform)
             {
-                obj_ext = "o";
+                case Windows:
+                    dll_ext = "dll";
+                    break;
+                case Linux, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                    dll_ext = "so";
+                    break;
+                case OSX:
+                    dll_ext = "dylib";
+                    break;
             }
-            else
+
+            with (Platform)
+            final switch (platform)
             {
-                static assert(0, "fix this");
+                case Windows:
+                    run_noext = false;
+                    break;
+                case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                    // Allow 'script' D source files to have no extension.
+                    run_noext = true;
+                    break;
             }
-            static if (TARGET.Windows)
-            {
-                lib_ext = "lib";
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                lib_ext = "a";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                dll_ext = "dll";
-            }
-            else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                dll_ext = "so";
-            }
-            else static if (TARGET.OSX)
-            {
-                dll_ext = "dylib";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                run_noext = false;
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                // Allow 'script' D source files to have no extension.
-                run_noext = true;
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
+
+            if (platform == Platform.Windows)
             {
                 params.mscoff = params.is64bit;
             }

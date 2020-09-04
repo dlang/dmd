@@ -24,23 +24,10 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.string;
 
-static if (TARGET.Windows)
-{
-    import dmd.libomf;
-    import dmd.libmscoff;
-}
-else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-{
-    import dmd.libelf;
-}
-else static if (TARGET.OSX)
-{
-    import dmd.libmach;
-}
-else
-{
-    static assert(0, "unsupported system");
-}
+import dmd.libomf;
+import dmd.libmscoff;
+import dmd.libelf;
+import dmd.libmach;
 
 private enum LOG = false;
 
@@ -48,17 +35,23 @@ class Library
 {
     static Library factory()
     {
-        static if (TARGET.Windows)
+        import dmd.target : Platform, target;
+        with (Platform)
+        final switch (target.platform)
         {
-            return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
-        }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
-            return LibElf_factory();
-        }
-        else static if (TARGET.OSX)
-        {
-            return LibMach_factory();
+            case Windows:
+                version (Windows)
+                    return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
+                else assert(0);
+
+            case Linux, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                version(Windows) assert(0);
+                else version(OSX) assert(0);
+                else return LibElf_factory();
+
+            case OSX:
+                version (OSX) return LibMach_factory();
+                else assert(0);
         }
     }
 
