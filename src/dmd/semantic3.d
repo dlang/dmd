@@ -1356,7 +1356,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (ctor.fbody && ad && ad.fieldDtor && global.params.dtorFields)
+        if (ctor.fbody && ad && ad.fieldDtor && global.params.dtorFields && !ctor.type.toTypeFunction.isnothrow)
         {
             /* Generate:
              *   this.fieldDtor()

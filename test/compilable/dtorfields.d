@@ -32,3 +32,18 @@ class Child : Parent
 {
     HasDtor member;
 }
+
+/******************************************
+ * https://issues.dlang.org/show_bug.cgi?id=21225
+ */
+
+struct NothrowConstructed
+{
+    ~this() {}
+}
+
+struct NothrowConstructor
+{
+    NothrowConstructed member;
+    this(int) pure nothrow {}
+}
