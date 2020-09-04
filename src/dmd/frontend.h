@@ -6460,6 +6460,7 @@ struct Target
     FPTypeProperties<double> DoubleProperties;
     FPTypeProperties<_d_real> RealProperties;
     Type* tvalist;
+    const Param* params;
     void _init(const Param& params);
     void deinitialize();
     uint32_t alignsize(Type* type);
