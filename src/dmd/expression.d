@@ -1184,6 +1184,12 @@ extern (C++) abstract class Expression : ASTNode
             if (fieldSd.dtor && !check(fieldSd.dtor))
             {
                 field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
+
+                if (fieldSd.dtor.generated)
+                    checkOverridenDtor(sc, fieldSd.dtor, check, checkName);
+                else
+                    fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
+                                            cast(int) checkName.length, checkName.ptr, fieldSd.toChars());
             }
         }
     }
