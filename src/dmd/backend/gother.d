@@ -750,6 +750,14 @@ private void intranges()
     targ_llong initial,increment,final_;
 
     if (debugc) printf("intranges()\n");
+    static if (0)
+    {
+        foreach (int i, ref rel; rellist)
+        {
+            printf("[%d] rel.pelem: ", i); WReqn(rel.pelem); printf("\n");
+        }
+    }
+
     foreach (ref rel; rellist)
     {
         rb = rel.pblock;
@@ -841,7 +849,13 @@ private void intranges()
         /* Determine if we can make the relational an unsigned  */
         if (initial >= 0)
         {
-            if (final_ >= initial)
+            if (final_ == 0 && relatop == OPge)
+            {
+                /* if the relation is (i >= 0) there is likely some dependency
+                 * on switching sign, so do not make it unsigned
+                 */
+            }
+            else if (final_ >= initial)
             {
                 if (increment > 0 && ((final_ - initial) % increment) == 0)
                     goto makeuns;
