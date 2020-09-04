@@ -77,6 +77,9 @@ extern (C++) struct Target
     /// Objective-C ABI
     TargetObjC objc;
 
+    /// Architecture name
+    const(char)[] architectureName;
+
     /**
      * Values representing all properties for floating point types
      */
@@ -178,6 +181,11 @@ extern (C++) struct Target
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
+
+        if (global.params.is64bit)
+            architectureName = "X86_64";
+        else
+            architectureName = "X86";
     }
 
     /**

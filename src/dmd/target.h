@@ -68,6 +68,8 @@ struct Target
     // Objective-C ABI
     TargetObjC objc;
 
+    DString architectureName;    // name of the platform architecture (e.g. X86_64)
+
     template <typename T>
     struct FPTypeProperties
     {

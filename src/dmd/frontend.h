@@ -6478,6 +6478,7 @@ struct Target
     TargetC c;
     TargetCPP cpp;
     TargetObjC objc;
+    DArray< const char > architectureName;
     template <typename T>
     struct FPTypeProperties
     {
@@ -6530,7 +6531,7 @@ struct Target
     END_ENUM(TargetInfoKeys, TARGETINFOKEYS, targetinfokeys)
 
     Expression* getTargetInfo(const char* name, const Loc& loc);
-    Target() : ptrsize(), realsize(), realpad(), realalignsize(), classinfosize(), maxStaticDataSize(), c(), cpp(), objc(), FloatProperties(), DoubleProperties(), RealProperties() {}
+    Target() : ptrsize(), realsize(), realpad(), realalignsize(), classinfosize(), maxStaticDataSize(), c(), cpp(), objc(), architectureName(), FloatProperties(), DoubleProperties(), RealProperties() {}
 };
 
 extern Target target;
