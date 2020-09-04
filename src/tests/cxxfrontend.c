@@ -111,6 +111,9 @@ void test_compiler_globals()
     assert(strncmp(global.versionChars(), "v2.", 3) == 0);
     unsigned versionNumber = global.versionNumber();
     assert(versionNumber >= 2060 && versionNumber <= 3000);
+
+    assert(strcmp(target.architectureName.ptr, "X86_64") == 0 ||
+           strcmp(target.architectureName.ptr, "X86") == 0);
 }
 
 /**********************************/
