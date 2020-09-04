@@ -93,6 +93,7 @@ struct Target
 
 private:
     Type *tvalist;
+    const Param *params;
 
 public:
     void _init(const Param& params);
