@@ -1395,9 +1395,39 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Expression e = new ThisExp(ctor.loc);
             e.type = ad.type.mutableOf();
             e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
-            e = new CallExp(ctor.loc, e);
-            auto sexp = new ExpStatement(ctor.loc, e);
+            auto ce = new CallExp(ctor.loc, e);
+            auto sexp = new ExpStatement(ctor.loc, ce);
             auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+
+            // @@@DEPRECATED_2096@@@
+            // Allow negligible attribute violations to allow for a smooth
+            // transition. Remove this after the usual deprecation period
+            // after 2.106.
+            if (global.params.dtorFields == FeatureState.default_)
+            {
+                auto ctf = cast(TypeFunction) ctor.type;
+                auto dtf = cast(TypeFunction) ad.fieldDtor.type;
+
+                const ngErr = ctf.isnogc && !dtf.isnogc;
+                const puErr = ctf.purity && !dtf.purity;
+                const saErr = ctf.trust == TRUST.safe && dtf.trust <= TRUST.system;
+
+                if (ngErr || puErr || saErr)
+                {
+                    // storage_class is apparently not set for dtor & ctor
+                    OutBuffer ob;
+                    stcToBuffer(&ob,
+                        (ngErr ? STC.nogc : 0) |
+                        (puErr ? STC.pure_ : 0) |
+                        (saErr ? STC.system : 0)
+                    );
+                    ctor.loc.deprecation("`%s` has stricter attributes than its destructor (`%s`)", ctor.toPrettyChars(), ob.peekChars());
+                    ctor.loc.deprecationSupplemental("The destructor will be called if an exception is thrown");
+                    ctor.loc.deprecationSupplemental("Either make the constructor `nothrow` or adjust the field destructors");
+
+                    ce.ignoreAttributes = true;
+                }
+            }
 
             version (all)
             {
