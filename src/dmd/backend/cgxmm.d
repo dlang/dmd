@@ -1755,4 +1755,38 @@ void checkSetVex(code *c, tym_t ty)
     }
 }
 
+/**************************************
+ * Load complex operand into XMM registers or flags or both.
+ */
+
+void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //elem_print(e);
+    assert(*pretregs & (XMMREGS | mPSW));
+    if (*pretregs == (mXMM0 | mXMM1) &&
+        e.Eoper != OPconst)
+    {
+        code cs = void;
+        tym_t tym = tybasic(e.Ety);
+        tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
+        opcode_t opmv = xmmload(tym, xmmIsAligned(e));
+
+        regm_t retregs0 = mXMM0;
+        reg_t reg0;
+        allocreg(cdb, &retregs0, &reg0, ty);
+        loadea(cdb, e, &cs, opmv, reg0, 0, RMload, 0);  // MOVSS/MOVSD XMM0,data
+        checkSetVex(cdb.last(), ty);
+
+        regm_t retregs1 = mXMM1;
+        reg_t reg1;
+        allocreg(cdb, &retregs1, &reg1, ty);
+        loadea(cdb, e, &cs, opmv, reg1, tysize(ty), RMload, mXMM0); // MOVSS/MOVSD XMM1,data+offset
+        checkSetVex(cdb.last(), ty);
+
+        return;
+    }
+    cload87(cdb, e, pretregs);
+}
+
 }
