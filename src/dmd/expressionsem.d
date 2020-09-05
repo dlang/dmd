@@ -1350,7 +1350,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         if (!v || !v.type || (v.type.ty != Talias && (!v.type.nextOf() || v.type.nextOf().ty != Talias)))
         {
             if (v && ve.checkPurity(sc, v))
-                return new ErrorExp().get;
+                return ErrorExp.get();
         }
     }
     if (e2)

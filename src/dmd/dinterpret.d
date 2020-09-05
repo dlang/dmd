@@ -2924,7 +2924,7 @@ public:
         else
         {
             die.error("identifier: %s could not be resolved for an alias variable", die.ident.toChars());
-            result = new ErrorExp();
+            result = ErrorExp.get();
             result.type = Type.terror;
         }
     }
@@ -3063,7 +3063,7 @@ public:
             if (o.dyncast() != DYNCAST.expression || !(cast(Expression)o).isVarExp())
             {
                 e.error("VarExp expected!");
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return ;
             }
             // we've got a var exp;
@@ -3088,7 +3088,7 @@ public:
             else
             {
                 e.error("first argument is not a symbol");
-                result = new ErrorExp();
+                result = ErrorExp.get();
                 return ;
             }
 
