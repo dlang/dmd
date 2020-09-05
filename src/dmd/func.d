@@ -398,7 +398,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (tf.nextOf && (tf.nextOf.ty == Talias || isAliasType(tf.nextOf)))
             hasAliasInDecl = true;
 
-        if (!hasAliasInDecl && tf.parameterList) foreach(p;*tf.parameterList)
+        if (!hasAliasInDecl && tf.parameterList.parameters) foreach(p;*tf.parameterList.parameters)
         {
             if (p.type.ty == Talias || isAliasType(p.type))
             {
