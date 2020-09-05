@@ -5187,7 +5187,15 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     if (tyfloating(tym))
     {
         objmod.fltused();
-        if (config.inline8087)
+        if (config.fpxmmregs &&
+            (tym == TYcfloat || tym == TYcdouble) &&
+            (*pretregs & (XMMREGS | mPSW))
+           )
+        {
+            cloadxmm(cdb, e, pretregs);
+            return;
+        }
+        else if (config.inline8087)
         {
             if (*pretregs & mST0)
             {

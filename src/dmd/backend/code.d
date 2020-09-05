@@ -615,6 +615,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
 void xmmpost(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void xmmneg(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
 void xmmabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
+void cloadxmm(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
 uint xmmload(tym_t tym, bool aligned = true);
 uint xmmstore(tym_t tym, bool aligned = true);
 bool xmmIsAligned(elem *e);

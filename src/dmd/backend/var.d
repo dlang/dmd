@@ -999,6 +999,7 @@ enum TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
 enum TXaggregate  = [ TYstruct,TYarray ];
 enum TXxmmreg     = [
                      TYfloat,TYdouble,TYifloat,TYidouble,
+                     //TYcfloat,TYcdouble,
                      TYfloat4,TYdouble2,
                      TYschar16,TYuchar16,TYshort8,TYushort8,
                      TYlong4,TYulong4,TYllong2,TYullong2,
