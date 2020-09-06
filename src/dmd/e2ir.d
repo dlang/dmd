@@ -2163,7 +2163,7 @@ elem *toElem(Expression e, IRState *irs)
                          * msg is not evaluated at all. so should use
                          * toElemDtor(msg, irs) instead of toElem(msg, irs).
                          */
-                        elem *emsg = toElemDtor(ae.msg, irs);
+                        elem *emsg = toElemDtor(ae.msg, irs, false);
                         emsg = array_toDarray(ae.msg.type, emsg);
                         if (config.exe == EX_WIN64)
                             emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
@@ -3513,7 +3513,7 @@ elem *toElem(Expression e, IRState *irs)
             tym_t tym = totym(aae.type);
 
             elem *el = toElem(aae.e1, irs);
-            elem *er = toElemDtor(aae.e2, irs);
+            elem *er = toElemDtor(aae.e2, irs, false);
             elem *e = el_bin(aae.op == TOK.andAnd ? OPandand : OPoror,tym,el,er);
 
             elem_setLoc(e, aae.loc);
@@ -5922,13 +5922,14 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
  *      er = elem to append destructors to
  *      starti = starting index in varsInScope[]
  *      endi = ending index in varsInScope[]
+ *      refFunc = does function return a reference
  * Returns:
  *      er with destructors appended
  */
 
-private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
+private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi, bool refFunc)
 {
-    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    //printf("appendDtors(%ld .. %ld)\n", starti, endi);
 
     /* Code gen can be improved by determining if no exceptions can be thrown
      * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
@@ -5977,7 +5978,9 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 *pe = el_combine(edtors, erx);
             }
-            else if (elemIsLvalue(erx))
+            else if (refFunc && elemIsLvalue(erx) ||
+                     (!refFunc && (tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
+                     !(erx.ET && type_size(erx.ET) <= 16)) )
             {
                 /* Lvalue, take a pointer to it
                  */
@@ -6007,11 +6010,12 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
  * Params:
  *      e = Expression to convert
  *      irs = context
+ *      refFunc = does function return a reference
  * Returns:
  *      generated elem tree
  */
 
-elem *toElemDtor(Expression e, IRState *irs)
+elem *toElemDtor(Expression e, IRState *irs, bool refFunc)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
 
@@ -6035,10 +6039,9 @@ elem *toElemDtor(Expression e, IRState *irs)
     irs.mayThrow = mayThrowSave;
 
     // Add destructors
-    elem* ex = appendDtors(irs, er, starti, endi);
+    elem* ex = appendDtors(irs, er, starti, endi, refFunc);
     return ex;
 }
-
 
 /*******************************************************
  * Write read-only string to object file, create a local symbol for it.
@@ -6337,7 +6340,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     if (emsg)
     {
         // Assuming here that emsg generates a 0 terminated string
-        auto e = toElemDtor(emsg, irs);
+        auto e = toElemDtor(emsg, irs, false);
         elmsg = array_toPtr(Type.tvoid.arrayOf(), e);
     }
     else if (exp)

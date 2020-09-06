@@ -167,7 +167,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc();
 
         incUsage(irs, s.loc);
-        e = toElemDtor(s.condition, irs);
+        e = toElemDtor(s.condition, irs, false);
         block_appendexp(blx.curblock, e);
         block *bcond = blx.curblock;
         block_next(blx, BCiftrue, null);
@@ -241,7 +241,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         block_next(blx, BCgoto, mystate.contBlock);
         incUsage(irs, s.condition.loc);
-        block_appendexp(mystate.contBlock, toElemDtor(s.condition, irs));
+        block_appendexp(mystate.contBlock, toElemDtor(s.condition, irs, false));
         block_next(blx, BCiftrue, mystate.breakBlock);
 
     }
@@ -268,7 +268,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.condition)
         {
             incUsage(irs, s.condition.loc);
-            block_appendexp(bcond, toElemDtor(s.condition, irs));
+            block_appendexp(bcond, toElemDtor(s.condition, irs, false));
             block_next(blx,BCiftrue,null);
             bcond.appendSucc(blx.curblock);
             bcond.appendSucc(mystate.breakBlock);
@@ -291,7 +291,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.increment)
         {
             incUsage(irs, s.increment.loc);
-            block_appendexp(mystate.contBlock, toElemDtor(s.increment, irs));
+            block_appendexp(mystate.contBlock, toElemDtor(s.increment, irs, false));
         }
 
         /* The 'break' block follows the for statement.
@@ -447,7 +447,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
 
         incUsage(irs, s.loc);
-        elem *econd = toElemDtor(s.condition, irs);
+        elem *econd = toElemDtor(s.condition, irs, false);
         if (s.hasVars)
         {   /* Generate a sequence of if-then-else blocks for the cases.
              */
@@ -461,7 +461,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (numcases)
                 foreach (cs; *s.cases)
                 {
-                    elem *ecase = toElemDtor(cs.exp, irs);
+                    elem *ecase = toElemDtor(cs.exp, irs, false);
                     elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                     block *b = blx.curblock;
                     block_appendexp(b, e);
@@ -586,7 +586,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         //printf("SwitchErrorStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
         incUsage(irs, s.loc);
-        block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+        block_appendexp(blx.curblock, toElemDtor(s.exp, irs, false));
     }
 
     /**************************************
@@ -635,7 +635,7 @@ private extern (C++) class S2irVisitor : Visitor
                         if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, ce.f && ce.f.needThis()) == RET.stack)
                         {
                             irs.ehidden = el_var(irs.shidden);
-                            e = toElemDtor(s.exp, irs);
+                            e = toElemDtor(s.exp, irs, false);
                             e = el_una(OPaddr, TYnptr, e);
                             goto L1;
                         }
@@ -657,13 +657,13 @@ private extern (C++) class S2irVisitor : Visitor
                         if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
                         {
                             irs.ehidden = el_var(irs.shidden);
-                            e = toElemDtor(s.exp, irs);
+                            e = toElemDtor(s.exp, irs, false);
                             e = el_una(OPaddr, TYnptr, e);
                             goto L1;
                         }
                     }
                 }
-                e = toElemDtor(s.exp, irs);
+                e = toElemDtor(s.exp, irs, false);
                 assert(e);
 
                 if (writetohp ||
@@ -686,12 +686,12 @@ private extern (C++) class S2irVisitor : Visitor
             else if (tf.isref)
             {
                 // Reference return, so convert to a pointer
-                e = toElemDtor(s.exp, irs);
+                e = toElemDtor(s.exp, irs, true);
                 e = addressElem(e, s.exp.type.pointerTo());
             }
             else
             {
-                e = toElemDtor(s.exp, irs);
+                e = toElemDtor(s.exp, irs, false);
                 assert(e);
             }
         L1:
@@ -729,7 +729,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (s.exp.hasCode)
                 incUsage(irs, s.loc);
 
-            block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+            block_appendexp(blx.curblock, toElemDtor(s.exp, irs, false));
         }
     }
 
@@ -825,7 +825,7 @@ private extern (C++) class S2irVisitor : Visitor
             // Perform initialization of with handle
             auto ie = s.wthis._init.isExpInitializer();
             assert(ie);
-            auto ei = toElemDtor(ie.exp, irs);
+            auto ei = toElemDtor(ie.exp, irs, false);
             auto e = el_var(sp);
             e = el_bin(OPeq,e.Ety, e, ei);
             elem_setLoc(e, s.loc);
@@ -848,7 +848,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         incUsage(irs, s.loc);
-        elem *e = toElemDtor(s.exp, irs);
+        elem *e = toElemDtor(s.exp, irs, false);
         const int rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM_THROWDWARF : RTLSYM_THROWC;
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtlthrow)),e);
         block_appendexp(blx.curblock, e);
