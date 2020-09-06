@@ -7243,6 +7243,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (!tob.iscomplex() && !t1b.iscomplex() &&
+            tob.isimaginary() != t1b.isimaginary())
+        {
+            exp.deprecation("cast from `%s` to `%s` will produce zero result",
+                            exp.e1.type.toChars(),
+                            exp.to.toChars());
+        }
+
         Expression ex = exp.e1.castTo(sc, exp.to);
         if (ex.op == TOK.error)
         {
