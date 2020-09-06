@@ -4071,7 +4071,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         Symbol *s = globsym.tab[si];
         if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
         {
-            printf("symbol '%s' is fastpar in register [%s,%s]\n", s.Sident.ptr,
+            printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
                 regm_str(mask(s.Spreg)),
                 (s.Spreg2 == NOREG ? "NOREG" : regm_str(mask(s.Spreg2))));
             if (s.Sfl == FLreg)
@@ -5424,6 +5424,7 @@ void assignaddrc(code *c)
                 break;
 
             case FLpara:
+//printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d\n", s.Sident.ptr, s.Soffset, Para.size, BPoff, EBPtoESP);
                 soff = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
@@ -6451,6 +6452,7 @@ uint calccodsize(code *c)
 
     iflags = c.Iflags;
     opcode_t op = c.Iop;
+    //printf("calccodsize(x%08x), Iflags = x%x\n", op, iflags);
     if (iflags & CFvex && c.Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
@@ -6801,7 +6803,7 @@ uint codout(int seg, code *c)
     {
         debug
         {
-        if (debugc) { printf("off=%02u, sz=%u, ", ggen.getOffset(), calccodsize(c)); code_print(c); }
+        if (debugc) { printf("off=%02x, sz=%d, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
         uint startoffset = ggen.getOffset();
         }
 
@@ -8093,7 +8095,7 @@ extern (C) void code_print(code* c)
                     break;
 
                 case FLdatseg:
-                    printf(" %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
+                    printf(" FLdatseg %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
                     break;
 
                 case FLauto:
@@ -8104,11 +8106,12 @@ extern (C) void code_print(code* c)
                 case FLpara:
                 case FLbprel:
                 case FLtlsdata:
-                    printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
-                    break;
-
                 case FLextern:
-                    printf(" FLextern offset = %4d",cast(int)c.IEV1.Voffset);
+                    printf(" ");
+                    WRFL(cast(FL)c.IFL1);
+                    printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
+                    if (c.IEV1.Voffset)
+                        printf(".%d", cast(int)c.IEV1.Voffset);
                     break;
 
                 default:
