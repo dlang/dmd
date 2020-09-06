@@ -1,12 +1,13 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Generate code instructions
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cgen.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgen.d
  */
 
 module dmd.backend.cgen;
@@ -23,6 +24,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -362,38 +364,7 @@ static if (TARGET_OSX)
 }
 }
 
-struct FixupArray
-{
-nothrow:
-    Fixup *ptr;
-    size_t dim, cap;
-
-    void push(ref Fixup e)
-    {
-        if (dim == cap)
-        {
-            // 0x800 determined experimentally to minimize reallocations
-            cap = cap
-                ? (3 * cap) / 2 // use 'Tau' of 1.5
-                : 0x800;
-            ptr = cast(Fixup *)mem_realloc(ptr, cap * Fixup.sizeof);
-        }
-        ptr[dim++] = e;
-    }
-
-    ref Fixup opIndex(size_t idx)
-    {
-        assert(idx < dim);
-        return ptr[idx];
-    }
-
-    void clear()
-    {
-        dim = 0;
-    }
-}
-
-private __gshared FixupArray fixups;
+private __gshared Barray!Fixup fixups;
 
 /****************************
  * Add to the fix list.
@@ -403,9 +374,9 @@ size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
 {
         static immutable ubyte[8] zeros = 0;
 
-        //printf("addtofixlist(%p '%s')\n",s,s.Sident);
+        //printf("addtofixlist(%p '%s')\n",s,s.Sident.ptr);
         assert(I32 || flags);
-        Fixup f;
+        Fixup* f = fixups.push();
         f.sym = s;
         f.offset = offset;
         f.seg = seg;
@@ -415,7 +386,6 @@ static if (TARGET_OSX)
 {
         f.funcsym = funcsym_p;
 }
-        fixups.push(f);
 
         size_t numbytes;
 static if (TARGET_SEGMENTED)
@@ -535,9 +505,9 @@ else
  */
 void outfixlist()
 {
-    for (size_t i = 0; i < fixups.dim; ++i)
-        outfixup(fixups[i]);
-    fixups.clear();
+    foreach (ref f; fixups)
+        outfixup(f);
+    fixups.reset();
 }
 
 }
