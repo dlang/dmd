@@ -5307,7 +5307,7 @@ void assignaddrc(code *c)
         switch (c.IFL1)
         {
             case FLdata:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SCcomdat)
+                if (config.objfmt == OBJ_OMF && s.Sclass != SCcomdat && s.Sclass != SCextern)
                 {
                     version (MARS)
                     {
