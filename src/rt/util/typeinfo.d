@@ -10,7 +10,7 @@ module rt.util.typeinfo;
 import rt.util.utility : d_cfloat, d_cdouble, d_creal, isComplex;
 static import core.internal.hash;
 
-// Three-way compare for integrals: negative if lhs < rhs, positive if lhs > rhs, 0 otherwise.
+// Three-way compare for integrals: negative if `lhs < rhs`, positive if `lhs > rhs`, 0 otherwise.
 pragma(inline, true)
 private int cmp3(T)(const T lhs, const T rhs)
 if (__traits(isIntegral, T))
@@ -22,16 +22,16 @@ if (__traits(isIntegral, T))
         return (lhs > rhs) - (lhs < rhs);
 }
 
-// Three-way compare for real fp types.
+// Three-way compare for real fp types. NaN is smaller than all valid numbers.
+// Code is small and fast, see https://godbolt.org/z/fzb877
 pragma(inline, true)
 private int cmp3(T)(const T d1, const T d2)
 if (is(T == float) || is(T == double) || is(T == real))
 {
-    if (int result = (d1 == d1) - (d2 == d2))
-        // Exactly one is NaN
-        return result;
-    // If both numbers are NaN, the two comparisons will be false so we get 0, as needed.
-    return (d1 > d2) - (d1 < d2);
+    if (d2 != d2)
+        return d1 == d1; // 0 if both ar NaN, 1 if d1 is valid and d2 is NaN.
+    // If d1 is NaN, both comparisons are false so we get -1, as needed.
+    return (d1 > d2) - !(d1 >= d2);
 }
 
 // Three-way compare for complex types.
