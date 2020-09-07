@@ -5168,7 +5168,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (!sc.insert(s))
             {
+                auto conflict = sc.search(Loc.initial, s.ident, null);
                 e.error("declaration `%s` is already defined", s.toPrettyChars());
+                errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                                  conflict.kind(), conflict.toChars());
                 return setError();
             }
             else if (sc.func)
@@ -5367,7 +5370,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * More investigation is needed.
              */
             if (!tup && !sc.insert(s))
-                e.error("declaration `%s` is already defined", s.toChars());
+            {
+                auto conflict = sc.search(Loc.initial, s.ident, null);
+                e.error("declaration `%s` is already defined", s.toPrettyChars());
+                errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                                  conflict.kind(), conflict.toChars());
+            }
 
             unSpeculative(sc, s);
 
@@ -5678,7 +5686,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return no();
                     s.dsymbolSemantic(sc);
                     if (!sc.insert(s))
-                        e.error("declaration `%s` is already defined", s.toChars());
+                    {
+                        auto conflict = sc.search(Loc.initial, s.ident, null);
+                        e.error("declaration `%s` is already defined", s.toPrettyChars());
+                        errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                                          conflict.kind(), conflict.toChars());
+                    }
 
                     unSpeculative(sc, s);
                 }
