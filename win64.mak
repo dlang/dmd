@@ -2,6 +2,10 @@
 
 MODEL=64
 
+# Visual Studio 2019
+#VCDIR=\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.27.29110
+#SDKDIR=\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0
+# Visual Studio 2015 and before
 VCDIR=\Program Files (x86)\Microsoft Visual Studio 10.0\VC
 SDKDIR=\Program Files (x86)\Microsoft SDKs\Windows\v7.0A
 
@@ -10,9 +14,14 @@ BUILD=release
 OS=windows
 DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
 
-CC=$(VCDIR)\bin\amd64\cl
-LD=$(VCDIR)\bin\amd64\link
-AR=$(VCDIR)\bin\amd64\lib
+# Visual Studio 2017/2019
+#BINDIR=$(VCDIR)\bin\Hostx64\x64
+# Visual Studio 2015 and before
+BINDIR=$(VCDIR)\bin\amd64
+
+CC=$(BINDIR)\cl
+LD=$(BINDIR)\link
+AR=$(BINDIR)\lib
 CP=cp
 
 DOCDIR=doc
@@ -29,6 +38,8 @@ UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
 
 #CFLAGS=/O2 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
+# Visual Studio 2019
+#CFLAGS=/Z7 /I"$(VCDIR)"\include /I"$(SDKDIR)"\ucrt
 
 DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
