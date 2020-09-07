@@ -763,7 +763,7 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available reverts
     static immutable reverts = [
-        Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
         Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
     ];
 
