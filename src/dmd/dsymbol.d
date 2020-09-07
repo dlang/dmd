@@ -322,38 +322,77 @@ extern (C++) class Dsymbol : ASTNode
         return '`' ~ cstr.toDString() ~ "`\0";
     }
 
-    final void error(const ref Loc loc, const(char)* format, ...)
+    static if (__VERSION__ < 2092)
     {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
-    }
+        final void error(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
 
-    final void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        const loc = getLoc();
-        .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
-    }
+        final void error(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
 
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
-    }
+        final void deprecation(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
 
-    final void deprecation(const(char)* format, ...)
+        final void deprecation(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+    }
+    else
     {
-        va_list ap;
-        va_start(ap, format);
-        const loc = getLoc();
-        .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
+        pragma(printf) final void error(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+
+        pragma(printf) final void error(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+
+        pragma(printf) final void deprecation(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+
+        pragma(printf) final void deprecation(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
     }
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)

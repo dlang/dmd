@@ -730,47 +730,96 @@ extern (C++) abstract class Expression : ASTNode
         return buf.extractChars();
     }
 
-    final void error(const(char)* format, ...) const
+    static if (__VERSION__ < 2092)
     {
-        if (type != Type.terror)
+        final void error(const(char)* format, ...) const
         {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .verror(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        final void errorSupplemental(const(char)* format, ...)
+        {
+            if (type == Type.terror)
+                return;
+
             va_list ap;
             va_start(ap, format);
-            .verror(loc, format, ap);
+            .verrorSupplemental(loc, format, ap);
             va_end(ap);
         }
-    }
 
-    final void errorSupplemental(const(char)* format, ...)
-    {
-        if (type == Type.terror)
-            return;
-
-        va_list ap;
-        va_start(ap, format);
-        .verrorSupplemental(loc, format, ap);
-        va_end(ap);
-    }
-
-    final void warning(const(char)* format, ...) const
-    {
-        if (type != Type.terror)
+        final void warning(const(char)* format, ...) const
         {
-            va_list ap;
-            va_start(ap, format);
-            .vwarning(loc, format, ap);
-            va_end(ap);
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vwarning(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        final void deprecation(const(char)* format, ...) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vdeprecation(loc, format, ap);
+                va_end(ap);
+            }
         }
     }
-
-    final void deprecation(const(char)* format, ...) const
+    else
     {
-        if (type != Type.terror)
+        pragma(printf) final void error(const(char)* format, ...) const
         {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .verror(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        pragma(printf) final void errorSupplemental(const(char)* format, ...)
+        {
+            if (type == Type.terror)
+                return;
+
             va_list ap;
             va_start(ap, format);
-            .vdeprecation(loc, format, ap);
+            .verrorSupplemental(loc, format, ap);
             va_end(ap);
+        }
+
+        pragma(printf) final void warning(const(char)* format, ...) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vwarning(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        pragma(printf) final void deprecation(const(char)* format, ...) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vdeprecation(loc, format, ap);
+                va_end(ap);
+            }
         }
     }
 

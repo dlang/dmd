@@ -453,7 +453,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
                 }
-                .error(loc, "more initializers than fields (%llu) of `%s`", cast(ulong) nfields, toChars());
+                .error(loc, "more initializers than fields (%zu) of `%s`", nfields, toChars());
                 return false;
             }
             VarDeclaration v = fields[i];

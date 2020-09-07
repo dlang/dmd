@@ -151,7 +151,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
     const(uinteger_t) d = eindex.toUInteger();
     if (d >= tup.objects.dim)
     {
-        .error(loc, "tuple index `%llu` exceeds length %llu", d, cast(ulong) tup.objects.dim);
+        .error(loc, "tuple index `%llu` exceeds length %zu", d, tup.objects.dim);
         *pt = Type.terror;
         return;
     }

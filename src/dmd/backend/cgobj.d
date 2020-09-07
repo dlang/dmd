@@ -93,7 +93,10 @@ struct Loc
     }
 }
 
-void error(Loc loc, const(char)* format, ...);
+static if (__VERSION__ < 2092)
+    void error(Loc loc, const(char)* format, ...);
+else
+    pragma(printf) void error(Loc loc, const(char)* format, ...);
 }
 
 version (MARS)
