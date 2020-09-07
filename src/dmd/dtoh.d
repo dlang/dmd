@@ -231,7 +231,7 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     decl.doindent = true;
     decl.spaces = true;
     check.doindent = true;
-    decl.spaces = true;
+    check.spaces = true;
 
     scope v = new ToCppBuffer(&check, &fwd, &done, &decl);
 
@@ -1156,6 +1156,8 @@ public:
             return;
 
         OutBuffer decl;
+        decl.doindent = true;
+        decl.spaces = true;
         auto save = buf;
         buf = &decl;
         ds.accept(this);
