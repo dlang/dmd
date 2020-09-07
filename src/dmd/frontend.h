@@ -765,7 +765,12 @@ struct Loc
     uint32_t charnum;
     const char* toChars(bool showColumns, uint8_t messageStyle) const;
     bool equals(const Loc& loc) const;
-    Loc() : filename(), linnum(), charnum() {}
+    Loc() :
+        filename(),
+        linnum(),
+        charnum()
+    {
+    }
 };
 
 class Dsymbol : public ASTNode
@@ -909,7 +914,9 @@ struct BitArray
 
     size_t len;
     uint64_t* ptr;
-    BitArray() {}
+    BitArray()
+    {
+    }
 };
 
 class ScopeDsymbol : public Dsymbol
@@ -945,7 +952,10 @@ struct Prot
     bool isMoreRestrictiveThan(const Prot other) const;
     bool opEquals(const Prot& other) const;
     bool isSubsetOf(const Prot& parent) const;
-    Prot() : pkg() {}
+    Prot() :
+        pkg()
+    {
+    }
 };
 
 class Expression : public ASTNode
@@ -1111,7 +1121,15 @@ struct ObjcClassDeclaration
     ClassDeclaration* metaclass;
     Array<FuncDeclaration*>* methodList;
     bool isRootClass() const;
-    ObjcClassDeclaration() : isMeta(false), isExtern(false), identifier(), classDeclaration(), metaclass(), methodList() {}
+    ObjcClassDeclaration() :
+        isMeta(false),
+        isExtern(false),
+        identifier(),
+        classDeclaration(),
+        metaclass(),
+        methodList()
+    {
+    }
 };
 
 struct FileName
@@ -1139,7 +1157,9 @@ struct FileName
     static const char* canonicalName(const char* name);
     static void free(const char* str);
     const char* toChars() const;
-    FileName() {}
+    FileName()
+    {
+    }
 };
 
 class Type : public ASTNode
@@ -1158,7 +1178,17 @@ public:
         Type* wcto;
         Type* swto;
         Type* swcto;
-        Mcache() : cto(), ito(), sto(), scto(), wto(), wcto(), swto(), swcto() {}
+        Mcache() :
+            cto(),
+            ito(),
+            sto(),
+            scto(),
+            wto(),
+            wcto(),
+            swto(),
+            swcto()
+        {
+        }
     };
 
     Mcache* mcache;
@@ -1674,7 +1704,11 @@ struct ObjcFuncDeclaration
 {
     ObjcSelector* selector;
     VarDeclaration* selectorParameter;
-    ObjcFuncDeclaration() : selector(), selectorParameter() {}
+    ObjcFuncDeclaration() :
+        selector(),
+        selectorParameter()
+    {
+    }
 };
 
 struct ParameterList
@@ -1685,7 +1719,12 @@ struct ParameterList
     ParameterList(Array<Parameter*>* parameters, VarArg varargs = cast(VarArg)cast(ubyte)0u, StorageClass stc = 0);
     size_t length();
     Parameter* opIndex(size_t i);
-    ParameterList() : parameters(), stc(), varargs((VarArg)0u) {}
+    ParameterList() :
+        parameters(),
+        stc(),
+        varargs((VarArg)0u)
+    {
+    }
 };
 
 class StoppableVisitor : public Visitor
@@ -1699,7 +1738,12 @@ struct TargetC
     uint32_t longsize;
     uint32_t long_doublesize;
     uint32_t criticalSectionSize;
-    TargetC() : longsize(), long_doublesize(), criticalSectionSize() {}
+    TargetC() :
+        longsize(),
+        long_doublesize(),
+        criticalSectionSize()
+    {
+    }
 };
 
 struct TargetCPP
@@ -1712,13 +1756,21 @@ struct TargetCPP
     const char* typeMangle(Type* t);
     Type* parameterType(Parameter* p);
     bool fundamentalType(const Type* const t, bool& isFundamental);
-    TargetCPP() : reverseOverloads(), exceptions(), twoDtorInVtable() {}
+    TargetCPP() :
+        reverseOverloads(),
+        exceptions(),
+        twoDtorInVtable()
+    {
+    }
 };
 
 struct TargetObjC
 {
     bool supported;
-    TargetObjC() : supported() {}
+    TargetObjC() :
+        supported()
+    {
+    }
 };
 
 BEGIN_ENUM(Sizeok, SIZEOK, sizeok)
@@ -2126,7 +2178,9 @@ struct Compiler
     static Expression* paintAsType(UnionExp* pue, Expression* e, Type* type);
     static void onParseModule(Module* m);
     static bool onImport(Module* m);
-    Compiler() {}
+    Compiler()
+    {
+    }
 };
 
 struct complex_t
@@ -2288,7 +2342,14 @@ struct BaseClass
     DArray< BaseClass > baseInterfaces;
     bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration*>* vtbl, int32_t newinstance);
     ~BaseClass();
-    BaseClass() : type(), sym(), offset(), vtbl(), baseInterfaces() {}
+    BaseClass() :
+        type(),
+        sym(),
+        offset(),
+        vtbl(),
+        baseInterfaces()
+    {
+    }
 };
 
 BEGIN_ENUM(ClassFlags, CLASSFLAGS, classflags)
@@ -2828,7 +2889,9 @@ extern void printCtfePerformanceStats();
 struct MacroTable
 {
     Macro* mactab;
-    MacroTable() {}
+    MacroTable()
+    {
+    }
 };
 
 extern const char* mangleExact(FuncDeclaration* fd);
@@ -2958,7 +3021,14 @@ struct ModuleDeclaration
     bool isdeprecated;
     Expression* msg;
     const char* toChars() const;
-    ModuleDeclaration() : loc(), id(), packages(), isdeprecated(), msg() {}
+    ModuleDeclaration() :
+        loc(),
+        id(),
+        packages(),
+        isdeprecated(),
+        msg()
+    {
+    }
 };
 
 extern void gendocfile(Module* m);
@@ -3505,13 +3575,17 @@ struct UnionExp
         char indexexp[82LLU];
         char sliceexp[83LLU];
         char vectorexp[69LLU];
-        __AnonStruct__u() {}
+        __AnonStruct__u()
+        {
+        }
     };
     #pragma pack(pop)
 
     // Ignoring var u alignment 8
     __AnonStruct__u u;
-    UnionExp() {}
+    UnionExp()
+    {
+    }
 };
 
 BEGIN_ENUM_NUMERIC(uint8_t, OwnedBy, OWNEDBY, ownedby)
@@ -4576,7 +4650,11 @@ struct Ensure
     Statement* ensure;
     Ensure syntaxCopy();
     static Array<Ensure>* arraySyntaxCopy(Array<Ensure>* a);
-    Ensure() : id(), ensure() {}
+    Ensure() :
+        id(),
+        ensure()
+    {
+    }
 };
 
 class FuncDeclaration : public Declaration
@@ -6403,7 +6481,22 @@ struct Target
     END_ENUM(TargetInfoKeys, TARGETINFOKEYS, targetinfokeys)
 
     Expression* getTargetInfo(const char* name, const Loc& loc);
-    Target() : ptrsize(), realsize(), realpad(), realalignsize(), classinfosize(), maxStaticDataSize(), c(), cpp(), objc(), architectureName(), FloatProperties(), DoubleProperties(), RealProperties() {}
+    Target() :
+        ptrsize(),
+        realsize(),
+        realpad(),
+        realalignsize(),
+        classinfosize(),
+        maxStaticDataSize(),
+        c(),
+        cpp(),
+        objc(),
+        architectureName(),
+        FloatProperties(),
+        DoubleProperties(),
+        RealProperties()
+    {
+    }
 };
 
 extern Target target;
@@ -6742,7 +6835,149 @@ struct Param
     DArray< const char > exefile;
     DArray< const char > mapfile;
     ~Param();
-    Param() : obj(true), link(true), dll(), lib(), multiobj(), oneobj(), trace(), tracegc(), verbose(), vcg_ast(), showColumns(), vtls(), vtemplates(), vtemplatesListInstances(), vgc(), vfield(), vcomplex(), symdebug(), symdebugref(), alwaysframe(), optimize(), map(), is64bit(true), isLP64(), isLinux(), isOSX(), isWindows(), isFreeBSD(), isOpenBSD(), isDragonFlyBSD(), isSolaris(), hasObjectiveC(), mscoff(false), useDeprecated((DiagnosticReporting)1u), stackstomp(), useUnitTests(), useInline(false), useDIP25(), noDIP25(), useDIP1021(), release(), preservePaths(), warnings((DiagnosticReporting)2u), pic((PIC)0u), color(), cov(), covPercent(), ctfe_cov(false), nofloat(), ignoreUnsupportedPragmas(), useModuleInfo(true), useTypeInfo(true), useExceptions(true), noSharedAccess(), previewIn(), betterC(), addMain(), allInst(), fix16997(), fixAliasThis(), vsafe(), ehnogc(), dtorFields(), fieldwise(), rvalueRefParam(), cplusplus((CppStdRevision)199711u), markdown(true), vmarkdown(), showGaggedErrors(), printErrorContext(), manual(), usage(), mcpuUsage(), transitionUsage(), checkUsage(), checkActionUsage(), revertUsage(), previewUsage(), externStdUsage(), hcUsage(), logo(), cpu((CPU)11), useInvariants((CHECKENABLE)0u), useIn((CHECKENABLE)0u), useOut((CHECKENABLE)0u), useArrayBounds((CHECKENABLE)0u), useAssert((CHECKENABLE)0u), useSwitchError((CHECKENABLE)0u), boundscheck((CHECKENABLE)0u), checkAction((CHECKACTION)0u), errorLimit(20u), argv0(), modFileAliasStrings(), imppath(), fileImppath(), objdir(), objname(), libname(), doDocComments(), docdir(), docname(), ddocfiles(), doHdrGeneration(), hdrdir(), hdrname(), hdrStripPlainFunctions(true), cxxhdrdir(), cxxhdrname(), doJsonGeneration(), jsonfilename(), mixinOut(), mixinFile(), mixinLines(), debuglevel(), debugids(), versionlevel(), versionids(), defaultlibname(), debuglibname(), mscrtlib(), moduleDepsFile(), moduleDeps(), messageStyle((MessageStyle)0u), debugb(), debugc(), debugf(), debugr(), debugx(), debugy(), run(), runargs(), objfiles(), linkswitches(), linkswitchIsForCC(), libfiles(), dllfiles(), deffile(), resfile(), exefile(), mapfile() {}
+    Param() :
+        obj(true),
+        link(true),
+        dll(),
+        lib(),
+        multiobj(),
+        oneobj(),
+        trace(),
+        tracegc(),
+        verbose(),
+        vcg_ast(),
+        showColumns(),
+        vtls(),
+        vtemplates(),
+        vtemplatesListInstances(),
+        vgc(),
+        vfield(),
+        vcomplex(),
+        symdebug(),
+        symdebugref(),
+        alwaysframe(),
+        optimize(),
+        map(),
+        is64bit(true),
+        isLP64(),
+        isLinux(),
+        isOSX(),
+        isWindows(),
+        isFreeBSD(),
+        isOpenBSD(),
+        isDragonFlyBSD(),
+        isSolaris(),
+        hasObjectiveC(),
+        mscoff(false),
+        useDeprecated((DiagnosticReporting)1u),
+        stackstomp(),
+        useUnitTests(),
+        useInline(false),
+        useDIP25(),
+        noDIP25(),
+        useDIP1021(),
+        release(),
+        preservePaths(),
+        warnings((DiagnosticReporting)2u),
+        pic((PIC)0u),
+        color(),
+        cov(),
+        covPercent(),
+        ctfe_cov(false),
+        nofloat(),
+        ignoreUnsupportedPragmas(),
+        useModuleInfo(true),
+        useTypeInfo(true),
+        useExceptions(true),
+        noSharedAccess(),
+        previewIn(),
+        betterC(),
+        addMain(),
+        allInst(),
+        fix16997(),
+        fixAliasThis(),
+        vsafe(),
+        ehnogc(),
+        dtorFields(),
+        fieldwise(),
+        rvalueRefParam(),
+        cplusplus((CppStdRevision)199711u),
+        markdown(true),
+        vmarkdown(),
+        showGaggedErrors(),
+        printErrorContext(),
+        manual(),
+        usage(),
+        mcpuUsage(),
+        transitionUsage(),
+        checkUsage(),
+        checkActionUsage(),
+        revertUsage(),
+        previewUsage(),
+        externStdUsage(),
+        hcUsage(),
+        logo(),
+        cpu((CPU)11),
+        useInvariants((CHECKENABLE)0u),
+        useIn((CHECKENABLE)0u),
+        useOut((CHECKENABLE)0u),
+        useArrayBounds((CHECKENABLE)0u),
+        useAssert((CHECKENABLE)0u),
+        useSwitchError((CHECKENABLE)0u),
+        boundscheck((CHECKENABLE)0u),
+        checkAction((CHECKACTION)0u),
+        errorLimit(20u),
+        argv0(),
+        modFileAliasStrings(),
+        imppath(),
+        fileImppath(),
+        objdir(),
+        objname(),
+        libname(),
+        doDocComments(),
+        docdir(),
+        docname(),
+        ddocfiles(),
+        doHdrGeneration(),
+        hdrdir(),
+        hdrname(),
+        hdrStripPlainFunctions(true),
+        cxxhdrdir(),
+        cxxhdrname(),
+        doJsonGeneration(),
+        jsonfilename(),
+        mixinOut(),
+        mixinFile(),
+        mixinLines(),
+        debuglevel(),
+        debugids(),
+        versionlevel(),
+        versionids(),
+        defaultlibname(),
+        debuglibname(),
+        mscrtlib(),
+        moduleDepsFile(),
+        moduleDeps(),
+        messageStyle((MessageStyle)0u),
+        debugb(),
+        debugc(),
+        debugf(),
+        debugr(),
+        debugx(),
+        debugy(),
+        run(),
+        runargs(),
+        objfiles(),
+        linkswitches(),
+        linkswitchIsForCC(),
+        libfiles(),
+        dllfiles(),
+        deffile(),
+        resfile(),
+        exefile(),
+        mapfile()
+    {
+    }
 };
 
 typedef uint32_t structalign_t;
@@ -6786,7 +7021,35 @@ struct Global
     uint32_t versionNumber();
     const char* const versionChars();
     ~Global();
-    Global() : inifilename(), mars_ext("d"), obj_ext(), lib_ext(), dll_ext(), doc_ext("html"), ddoc_ext("ddoc"), hdr_ext("di"), cxxhdr_ext("h"), json_ext("json"), map_ext("map"), run_noext(), copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"), written("written by Walter Bright"), path(), filePath(), vendor(), params(), errors(), warnings(), gag(), gaggedErrors(), gaggedWarnings(), console(), versionids(), debugids() {}
+    Global() :
+        inifilename(),
+        mars_ext("d"),
+        obj_ext(),
+        lib_ext(),
+        dll_ext(),
+        doc_ext("html"),
+        ddoc_ext("ddoc"),
+        hdr_ext("di"),
+        cxxhdr_ext("h"),
+        json_ext("json"),
+        map_ext("map"),
+        run_noext(),
+        copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
+        written("written by Walter Bright"),
+        path(),
+        filePath(),
+        vendor(),
+        params(),
+        errors(),
+        warnings(),
+        gag(),
+        gaggedErrors(),
+        gaggedWarnings(),
+        console(),
+        versionids(),
+        debugids()
+    {
+    }
 };
 
 typedef uint64_t dinteger_t;
@@ -7212,7 +7475,9 @@ struct Id
     static Identifier* unsigned;
     static Identifier* wchar_t;
     static void initialize();
-    Id() {}
+    Id()
+    {
+    }
 };
 
 class Identifier : public RootObject
@@ -7259,7 +7524,14 @@ struct Token
     void setString();
     const char* toChars() const;
     static const char* toChars(uint8_t value);
-    Token() : next(), loc(), ptr(), blockComment(), lineComment() {}
+    Token() :
+        next(),
+        loc(),
+        ptr(),
+        blockComment(),
+        lineComment()
+    {
+    }
 };
 
 template <typename T>
@@ -7317,7 +7589,9 @@ struct CTFloat
     static _d_real minusone;
     static _d_real half;
     static void initialize();
-    CTFloat() {}
+    CTFloat()
+    {
+    }
 };
 
 typedef Array<const char*> Strings;
@@ -7335,7 +7609,9 @@ struct Port
     static uint32_t readwordLE(const void* const buffer);
     static uint32_t readwordBE(const void* const buffer);
     static void valcpy(void* dst, uint64_t val, size_t size);
-    Port() {}
+    Port()
+    {
+    }
 };
 
 ENUM_CONSTANT_NUMERIC(bool, isGCAvailable, true)
@@ -7357,7 +7633,9 @@ struct Mem
     static void disableGC();
     static void addRange(const void* p, size_t size);
     static void removeRange(const void* p);
-    Mem() {}
+    Mem()
+    {
+    }
 };
 
 extern const Mem mem;

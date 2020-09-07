@@ -16,7 +16,9 @@ class ClassFromStruct
 {
 public:
     void foo();
-    ClassFromStruct() {}
+    ClassFromStruct()
+    {
+    }
 };
 
 class ClassFromClass
@@ -28,7 +30,9 @@ public:
 struct StructFromStruct
 {
     void foo();
-    StructFromStruct() {}
+    StructFromStruct()
+    {
+    }
 };
 
 struct StructFromClass

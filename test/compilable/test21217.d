@@ -37,7 +37,10 @@ struct Foo
     END_ENUM(Bar, BAR, bar)
 
     // ignoring enum `test21217.Foo.h` because it is `private`.
-    Foo() : a(1) {}
+    Foo() :
+        a(1)
+    {
+    }
 };
 
 ---

@@ -108,7 +108,10 @@ ENUM_CONSTANT(MyEnum, test, Foo(42))
 struct FooCpp
 {
     int32_t i;
-    FooCpp() : i() {}
+    FooCpp() :
+        i()
+    {
+    }
 };
 
 BEGIN_ENUM_TYPE(FooCpp, MyEnumCpp, MYENUMCPP, myenumcpp)
