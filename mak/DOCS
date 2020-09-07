@@ -129,44 +129,6 @@ DOCS=\
 	$(DOCDIR)\rt_trace.html \
 	$(DOCDIR)\rt_tracegc.html \
 	\
-	$(DOCDIR)\rt_typeinfo_ti_Acdouble.html \
-	$(DOCDIR)\rt_typeinfo_ti_Acfloat.html \
-	$(DOCDIR)\rt_typeinfo_ti_Acreal.html \
-	$(DOCDIR)\rt_typeinfo_ti_Adouble.html \
-	$(DOCDIR)\rt_typeinfo_ti_Afloat.html \
-	$(DOCDIR)\rt_typeinfo_ti_Ag.html \
-	$(DOCDIR)\rt_typeinfo_ti_Aint.html \
-	$(DOCDIR)\rt_typeinfo_ti_Along.html \
-	$(DOCDIR)\rt_typeinfo_ti_Areal.html \
-	$(DOCDIR)\rt_typeinfo_ti_Ashort.html \
-	$(DOCDIR)\rt_typeinfo_ti_byte.html \
-	$(DOCDIR)\rt_typeinfo_ti_C.html \
-	$(DOCDIR)\rt_typeinfo_ti_cdouble.html \
-	$(DOCDIR)\rt_typeinfo_ti_cent.html \
-	$(DOCDIR)\rt_typeinfo_ti_cfloat.html \
-	$(DOCDIR)\rt_typeinfo_ti_char.html \
-	$(DOCDIR)\rt_typeinfo_ti_creal.html \
-	$(DOCDIR)\rt_typeinfo_ti_dchar.html \
-	$(DOCDIR)\rt_typeinfo_ti_delegate.html \
-	$(DOCDIR)\rt_typeinfo_ti_double.html \
-	$(DOCDIR)\rt_typeinfo_ti_float.html \
-	$(DOCDIR)\rt_typeinfo_ti_idouble.html \
-	$(DOCDIR)\rt_typeinfo_ti_ifloat.html \
-	$(DOCDIR)\rt_typeinfo_ti_int.html \
-	$(DOCDIR)\rt_typeinfo_ti_ireal.html \
-	$(DOCDIR)\rt_typeinfo_ti_long.html \
-	$(DOCDIR)\rt_typeinfo_ti_n.html \
-	$(DOCDIR)\rt_typeinfo_ti_ptr.html \
-	$(DOCDIR)\rt_typeinfo_ti_real.html \
-	$(DOCDIR)\rt_typeinfo_ti_short.html \
-	$(DOCDIR)\rt_typeinfo_ti_ubyte.html \
-	$(DOCDIR)\rt_typeinfo_ti_ucent.html \
-	$(DOCDIR)\rt_typeinfo_ti_uint.html \
-	$(DOCDIR)\rt_typeinfo_ti_ulong.html \
-	$(DOCDIR)\rt_typeinfo_ti_ushort.html \
-	$(DOCDIR)\rt_typeinfo_ti_void.html \
-	$(DOCDIR)\rt_typeinfo_ti_wchar.html \
-	\
 	$(DOCDIR)\rt_unwind.html \
 	\
 	$(DOCDIR)\rt_util_container_array.html \

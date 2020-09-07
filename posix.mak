@@ -276,7 +276,6 @@ endif
 .PHONY : unittest
 ifeq (1,$(BUILD_WAS_SPECIFIED))
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
-	@echo done
 else
 unittest : unittest-debug unittest-release
 unittest-%: target

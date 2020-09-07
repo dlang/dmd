@@ -228,7 +228,6 @@ else
 
     version (X86_64) unittest
     {
-        pragma(msg, vectorizeable!(double[], const(double)[], double[], "+", "="));
         static assert(vectorizeable!(double[], const(double)[], double[], "+", "="));
         static assert(!vectorizeable!(double[], const(ulong)[], double[], "+", "="));
         // Vector type are (atm.) not implicitly convertible and would require
