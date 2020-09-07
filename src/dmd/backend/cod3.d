@@ -4720,6 +4720,8 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         p += I32 ? 8 : tysize(TYfptr);          // far function
     else
         p += tysize(TYnptr);
+    if (tybasic(sfunc.ty()) == TYhfunc)
+        p += tysize(TYnptr);                    // skip over hidden pointer
 
     CodeBuilder cdb; cdb.ctor();
     if (!I16)
@@ -4751,7 +4753,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
             if (config.exe == EX_WIN64)
                 rm = CX;
             else if (I64)
-                rm = DI;
+                rm = (thunkty == TYnfunc && (sfunc.Sfunc.Fflags3 & F3hiddenPtr)) ? SI : DI;
             if (d)
                 cdb.genc2(0x81,modregrm(3,reg,rm),d);
         }

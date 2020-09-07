@@ -41,6 +41,7 @@ import dmd.mtype;
 import dmd.target;
 import dmd.toctype;
 import dmd.todt;
+import dmd.toir;
 import dmd.tokens;
 import dmd.typinf;
 import dmd.visitor;
@@ -543,6 +544,9 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     Symbol *s = toSymbol(fd);
     if (!offset)
         return s;
+
+    if (retStyle(fd.type.isTypeFunction(), fd.needThis()) == RET.stack)
+        s.Sfunc.Fflags3 |= F3hiddenPtr;
 
     __gshared int tmpnum;
     char[6 + tmpnum.sizeof * 3 + 1] name = void;
