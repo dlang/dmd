@@ -138,6 +138,14 @@ enum CxxHeaderMode : uint
     verbose /// Generate headers and add comments for hidden declarations
 }
 
+/// Trivalent boolean to represent the state of a `revert`able change
+enum FeatureState : byte
+{
+    default_ = -1, /// Not specified by the user
+    disabled = 0,  /// Specified as `-revert=`
+    enabled = 1    /// Specified as `-preview=`
+}
+
 // Put command line switches in here
 extern (C++) struct Param
 {
@@ -170,8 +178,7 @@ extern (C++) struct Param
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
-    bool useDIP25;          // implement http://wiki.dlang.org/DIP25
-    bool noDIP25;           // revert to pre-DIP25 behavior
+    FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25
     bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file

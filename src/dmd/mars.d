@@ -1581,7 +1581,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     if (t.deprecated_)
                         continue;
 
-                    buf ~= `params.`~t.paramName~` = true;`;
+                    buf ~= `setFlagFor!name(params.`~t.paramName~`);`;
                 }
                 buf ~= "return true;\n";
 
@@ -1590,7 +1590,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     buf ~= `case "`~t.name~`":`;
                     if (t.deprecated_)
                         buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
-                    buf ~= `params.`~t.paramName~` = true; return true;`;
+                    buf ~= `setFlagFor!name(params.`~t.paramName~`); return true;`;
                 }
                 return buf;
             }
@@ -2104,7 +2104,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             // copy previously standalone flags from -transition
             // -preview=dip1000 implies -preview=dip25 too
             if (params.vsafe)
-                params.useDIP25 = true;
+                params.useDIP25 = FeatureState.enabled;
         }
         else if (startsWith(p + 1, "revert") ) // https://dlang.org/dmd.html#switch-revert
         {
@@ -2120,9 +2120,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.revertUsage = true;
                 return false;
             }
-
-            if (params.noDIP25)
-                params.useDIP25 = false;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
             params.warnings = DiagnosticReporting.error;
@@ -2323,10 +2320,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
-            params.useDIP25 = true;
+            params.useDIP25 =  FeatureState.enabled;
         else if (arg == "-dip1000")
         {
-            params.useDIP25 = true;
+            params.useDIP25 = FeatureState.enabled;
             params.vsafe = true;
         }
         else if (arg == "-dip1008")
@@ -2723,9 +2720,18 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
 
     if (params.makeDeps && !params.oneobj)
         error(Loc.initial, "-makedeps switch is not compatible with multiple objects mode");
+}
 
-    if (params.noDIP25)
-        params.useDIP25 = false;
+/// Sets the boolean for a flag with the given name
+private static void setFlagFor(string name)(ref bool b)
+{
+    b = name != "revert";
+}
+
+/// Sets the FeatureState for a flag with the given name
+private static void setFlagFor(string name)(ref FeatureState s)
+{
+    s = name != "revert" ? FeatureState.enabled : FeatureState.disabled;
 }
 
 /**
