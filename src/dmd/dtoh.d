@@ -1120,7 +1120,7 @@ public:
         checkbuf.level++;
         const sn = sd.ident.toChars();
         const sz = sd.size(Loc.initial);
-        checkbuf.printf("assert(sizeof(%s) == %d);", sn, sz);
+        checkbuf.printf("assert(sizeof(%s) == %llu);", sn, sz);
         checkbuf.writenl();
         checkbuf.level--;
     }
@@ -2019,7 +2019,7 @@ public:
         }
 
         // TODO: Needs to implemented, properly switching on the e.type
-        buf.printf("%ff", e.value);
+        buf.printf("%ff", cast(double)e.value);
     }
 
     override void visit(AST.IntegerExp e)

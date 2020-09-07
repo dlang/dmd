@@ -295,7 +295,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 const uinteger_t idxvalue = idx.toInteger();
                 if (idxvalue >= amax)
                 {
-                    error(i.loc, "array index %llu overflow", ulong(idxvalue));
+                    error(i.loc, "array index %llu overflow", idxvalue);
                     errors = true;
                 }
                 length = cast(uint)idxvalue;

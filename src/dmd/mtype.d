@@ -4942,8 +4942,8 @@ extern (C++) final class TypeFunction : TypeNext
                             if (!global.gag || global.params.showGaggedErrors)
                             {
                                 OutBuffer buf;
-                                buf.printf("expected %d variadic argument(s)", sz);
-                                buf.printf(", not %d", nargs - u);
+                                buf.printf("expected %llu variadic argument(s)", sz);
+                                buf.printf(", not %zu", nargs - u);
                                 *pMessage = buf.extractChars();
                             }
                             goto Nomatch;

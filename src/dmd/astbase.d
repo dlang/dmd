@@ -417,14 +417,24 @@ struct ASTBase
             return "symbol";
         }
 
-        final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            // last parameter : toPrettyChars
-            verror(loc, format, ap, kind(), "");
-            va_end(ap);
-        }
+        static if (__VERSION__ < 2092)
+            final void error(const(char)* format, ...)
+            {
+                va_list ap;
+                va_start(ap, format);
+                // last parameter : toPrettyChars
+                verror(loc, format, ap, kind(), "");
+                va_end(ap);
+            }
+        else
+            pragma(printf) final void error(const(char)* format, ...)
+            {
+                va_list ap;
+                va_start(ap, format);
+                // last parameter : toPrettyChars
+                verror(loc, format, ap, kind(), "");
+                va_end(ap);
+            }
 
         inout(AttribDeclaration) isAttribDeclaration() inout
         {
