@@ -454,7 +454,7 @@ BuildRule to run the DMD frontend header generation
 For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean before)
 */
 alias buildFrontendHeaders = makeRule!((builder, rule) {
-    const dmdSources = sources.dmd.all ~ sources.root ~ sources.lexer;
+    const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.lexer;
     const dmdExeFile = dmdDefault.deps[0].target;
     builder
         .name("cxx-headers")
