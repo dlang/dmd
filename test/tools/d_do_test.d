@@ -306,10 +306,6 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
                 result ~= multiLineDelimiter ~ result2;
         }
     }
-
-    // fix-up separators
-    result = result.unifyDirSep(envData.sep);
-
     return true;
 }
 
@@ -367,7 +363,6 @@ bool findOutputParameter(string file, string token, out string result, string se
     if (found)
     {
         result = std.string.strip(result);
-        result = result.unifyNewLine().unifyDirSep(sep);
         result = result ? result : ""; // keep non-null
     }
     return found;
@@ -564,7 +559,6 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         // Don't require tests to specify the test directory
         testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
         testArgs.compileOutput = readText(testArgs.compileOutputFile)
-                                    .unifyNewLine() // Avoid CRLF issues
                                     .strip();
     }
     else
@@ -667,138 +661,6 @@ string quoteSpaces(string str)
     return str;
 }
 
-/// Replaces non-Unix line endings in `str` with `\n`
-string unifyNewLine(string str)
-{
-    // On Windows, Outbuffer.writenl() puts `\r\n` into the buffer,
-    // then fprintf() adds another `\r` when formatting the message.
-    // This is why there's a match for `\r\r\n` in this regex.
-    static re = regex(`\r\r\n|\r\n|\r|\n`, "g");
-    return std.regex.replace(str, re, "\n");
-}
-
-/**
-Unifies a text `str` with words that could be DMD path references to a common
-separator `sep`. This normalizes the text and allows comparing path output
-results between different operating systems.
-
-Params:
-    str = text to be unified
-    sep = unification separator to use
-Returns: Text with path separator standardized to `sep`.
-*/
-string unifyDirSep(string str, string sep)
-{
-    static void unifyWordFromBack(char[] r, char sep)
-    {
-        foreach_reverse(ref ch; r)
-        {
-            // stop at common word boundaries
-            if (ch == '\n' || ch == '\r' || ch == ' ')
-                break;
-            // normalize path characters
-            if (ch == '\\' || ch == '/')
-                ch = sep;
-        }
-    }
-    auto mStr = str.dup;
-    auto remaining = mStr;
-    alias needles = AliasSeq!(".d", ".di", ".mixin");
-    enum needlesArray = [needles];
-    // simple multi-delimiter word identification
-    while (!remaining.empty)
-    {
-        auto res = remaining.find(needles);
-        if (res[0].empty) break;
-
-        auto currentWord = remaining[0 .. res[0].ptr-remaining.ptr];
-        // skip over current word and matched delimiter
-        const needleLength = res[1] > 0 ? needlesArray[res[1] - 1].length : 0;
-        remaining = remaining[currentWord.length + needleLength .. $];
-
-        if (remaining.empty ||
-            remaining.startsWith(" ", "\n", "\r", "-mixin",
-                                 "(", ":", "'", "`", "\"", ".", ","))
-            unifyWordFromBack(currentWord, sep[0]);
-    }
-    return mStr.assumeUnique;
-}
-
-unittest
-{
-    assert(`fail_compilation/test.d(1) Error: dummy error message for 'test'`.unifyDirSep(`\`)
-        == `fail_compilation\test.d(1) Error: dummy error message for 'test'`);
-    assert(`fail_compilation/test.d(1) Error: at fail_compilation/test.d(2)`.unifyDirSep(`\`)
-        == `fail_compilation\test.d(1) Error: at fail_compilation\test.d(2)`);
-
-    assert(`fail_compilation/test.d(1) Error: at fail_compilation/imports/test.d(2)`.unifyDirSep(`\`)
-        == `fail_compilation\test.d(1) Error: at fail_compilation\imports\test.d(2)`);
-    assert(`fail_compilation/diag.d(2): Error: fail_compilation/imports/fail.d must be imported`.unifyDirSep(`\`)
-        == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
-
-    assert(`{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin(7): Error:`.unifyDirSep(`\`)
-        == `{{RESULTS_DIR}}\fail_compilation\mixin_test.mixin(7): Error:`);
-
-    assert(`{{RESULTS_DIR}}/fail_compilation/mixin_test.d-mixin-50(7): Error:`.unifyDirSep(`\`)
-        == `{{RESULTS_DIR}}\fail_compilation\mixin_test.d-mixin-50(7): Error:`);
-    assert("runnable\\xtest46_gc.d-mixin-37(187): Error".unifyDirSep("/") == "runnable/xtest46_gc.d-mixin-37(187): Error");
-
-    // optional columns
-    assert(`{{RESULTS_DIR}}/fail_compilation/cols.d(12,7): Error:`.unifyDirSep(`\`)
-        == `{{RESULTS_DIR}}\fail_compilation\cols.d(12,7): Error:`);
-
-    // gnu style
-    assert(`fail_compilation/test.d:1: Error: dummy error message for 'test'`.unifyDirSep(`\`)
-        == `fail_compilation\test.d:1: Error: dummy error message for 'test'`);
-
-    // in quotes as well
-    assert("'imports\\foo.d'".unifyDirSep("/") == "'imports/foo.d'");
-    assert("`imports\\foo.d`".unifyDirSep("/") == "`imports/foo.d`");
-    assert("\"imports\\foo.d\"".unifyDirSep("/") == "\"imports/foo.d\"");
-
-    assert("fail_compilation\\foo.d: Error:".unifyDirSep("/") == "fail_compilation/foo.d: Error:");
-
-    // at the end of a sentence
-    assert("fail_compilation\\foo.d. A".unifyDirSep("/") == "fail_compilation/foo.d. A");
-    assert("fail_compilation\\foo.d(2). A".unifyDirSep("/") == "fail_compilation/foo.d(2). A");
-    assert("fail_compilation\\foo.d, A".unifyDirSep("/") == "fail_compilation/foo.d, A");
-    assert("fail_compilation\\foo.d(2), A".unifyDirSep("/") == "fail_compilation/foo.d(2), A");
-    assert("fail_compilation\\foo.d".unifyDirSep("/") == "fail_compilation/foo.d");
-    assert("fail_compilation\\foo.d\n".unifyDirSep("/") == "fail_compilation/foo.d\n");
-    assert("fail_compilation\\foo.d\r\n".unifyDirSep("/") == "fail_compilation/foo.d\r\n");
-    assert("\nfail_compilation\\foo.d".unifyDirSep("/") == "\nfail_compilation/foo.d");
-    assert("\r\nfail_compilation\\foo.d".unifyDirSep("/") == "\r\nfail_compilation/foo.d");
-    assert(("runnable\\xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
-            "runnable\\xtest46_gc.d-mixin-37(222): Deprecation: `opDot` is deprecated. Use `alias this`").unifyDirSep("/") ==
-           "runnable/xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
-           "runnable/xtest46_gc.d-mixin-37(222): Deprecation: `opDot` is deprecated. Use `alias this`");
-
-    assert("".unifyDirSep("/") == "");
-    assert(" \n ".unifyDirSep("/") == " \n ");
-    assert("runnable/xtest46_gc.d-mixin-$n$(222): ".unifyDirSep("\\") ==
-           "runnable\\xtest46_gc.d-mixin-$n$(222): ");
-
-    assert(`S('\xff').this(1)`.unifyDirSep("/") == `S('\xff').this(1)`);
-    assert(`invalid UTF character \U80000000`.unifyDirSep("/") == `invalid UTF character \U80000000`);
-    assert("https://code.dlang.org".unifyDirSep("\\") == "https://code.dlang.org");
-}
-
-/**
- * Compiles all non-D sources using their respective compiler and flags
- * and appends the generated objects to `sources`.
- *
- * Params:
- *   input_dir    = test directory (e.g. `runnable`)
- *   output_dir   = directory for intermediate files
- *   extraSources = sources to compile
- *   sources      = list of D sources to extend with object files
- *   envData      = environment configuration
- *   compiler     = external compiler (E.g. clang)
- *   cxxflags     = external compiler flags
- *   logfile      = the logfile
- *
- * Returns: false if a compilation error occurred
- */
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
                           ref string[] sources, in EnvData envData, in string compiler,
                           const(char)[] cxxflags, ref File logfile)
@@ -1022,12 +884,12 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
         // Simple equality check if no special tokens remain
         if (special.id == 0)
-            return refoutput == output;
+            return compare(refoutput, output);
 
         const expected = refoutput[0 .. $ - special.remainder.length];
 
         // Check until the special token
-        if (!output.skipOver(expected))
+        if (!compare(expected, output))
             return false;
 
         // Discard the special token and progress output appropriately
@@ -1168,6 +1030,90 @@ unittest
 
     string msg = collectExceptionMsg(compareOutput("12345", `$r:\d*$$n$`, ed));
     assert(msg == "Another sequence following $r:...$ is not supported!");
+}
+
+/**
+Checks whether `output` starts with `expected` and advances `output` if successful.
+
+This method is aware of platform-specific path separators, line breaks, etc. (e.g.
+`/` is equal to `\`).
+
+Params:
+  expected = text that `output` should start with
+  output   = the actual output (advanced by `expected` on success)
+Returns:
+  true if the comparison was successful.
+**/
+bool compare(const string expected, ref string output)
+{
+    version (Windows)
+    {
+        size_t idx = 0;
+
+        foreach (const char exp; expected)
+        {
+            if (idx == output.length)
+                return false;
+
+            char act = output[idx++];
+            // writefln!`'%c' - '%c'`(exp, act);
+
+            if (exp == act) {}
+                // Fine
+
+            else if (exp == '/')
+            {
+                if (act != '\\' && act != '/')
+                    return false;
+
+                // TODO: DMD sometimes generates double backslash \\?
+            }
+
+            else if (exp == '\n')
+            {
+                // The old search replaced the following patterns:
+                // \r\r\n | \r\n | \r | \n`
+                if (act == '\n')
+                    continue;
+                if (act != '\r')
+                    return false;
+                if (idx < output.length && output[idx] == '\r')
+                    idx++;
+                if (idx < output.length && output[idx] == '\n')
+                    idx++;
+            }
+
+            else
+                return false;
+        }
+
+        output = output[idx .. $];
+        return true;
+    }
+    else
+    {
+        return output.skipOver(expected);
+    }
+
+}
+
+version (Windows)
+unittest
+{
+    static void test(const string expected, string output)
+    {
+        assert(compare(expected, output));
+        assert(output == "");
+    }
+
+    test("/", `/`);
+    test("/", `\`);
+    // test("/", `\\`); // Requrired?
+
+    test("\n_AB", "\n_AB");
+    test("\n_AB", "\r\n_AB");
+    test("\n_AB", "\r\r\n_AB");
+    test("\n_AB", "\r_AB");
 }
 
 /++
@@ -1311,8 +1257,8 @@ int tryMain(string[] args)
     }
 
     // envData.sep is required as the results_dir path can be `generated`
-    const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
-    const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
+    const absoluteResultDirPath = envData.results_dir.absolutePath;
+    const resultsDirReplacement = "{{RESULTS_DIR}}";
     const test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     auto stopWatch = StopWatch(AutoStart.no);
@@ -1447,7 +1393,6 @@ int tryMain(string[] args)
                 if (compile_output.empty)
                     return;
 
-                compile_output = compile_output.unifyNewLine();
                 compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
                 compile_output = std.string.strip(compile_output);
                 // replace test_result path with fixed ones
@@ -1516,8 +1461,7 @@ int tryMain(string[] args)
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
                     const output = execute(fThisRun, command, true)
-                                    .strip()
-                                    .unifyNewLine();
+                                    .strip();
 
                     if (testArgs.runOutput && !compareOutput(output, testArgs.runOutput, envData))
                     {
