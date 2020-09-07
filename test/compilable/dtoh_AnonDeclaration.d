@@ -25,7 +25,9 @@ struct S
         extern "C" void foo();
         void bar();
     };
-    S() {}
+    S()
+    {
+    }
 };
 ---
 */

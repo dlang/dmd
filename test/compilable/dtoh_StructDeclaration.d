@@ -19,7 +19,12 @@ struct S
     int8_t a;
     int32_t b;
     int64_t c;
-    S() : a(), b(), c() {}
+    S() :
+        a(),
+        b(),
+        c()
+    {
+    }
 };
 
 struct S2
@@ -28,7 +33,12 @@ struct S2
     int32_t b;
     int64_t c;
     S2(int32_t a);
-    S2() : a(42), b(), c() {}
+    S2() :
+        a(42),
+        b(),
+        c()
+    {
+    }
 };
 
 struct S3
@@ -37,7 +47,12 @@ struct S3
     int32_t b;
     int64_t c;
     extern "C" S3(int32_t a);
-    S3() : a(42), b(), c() {}
+    S3() :
+        a(42),
+        b(),
+        c()
+    {
+    }
 };
 
 struct S4
@@ -46,7 +61,13 @@ struct S4
     int64_t b;
     int32_t c;
     int8_t d;
-    S4() : a(), b(), c(), d() {}
+    S4() :
+        a(),
+        b(),
+        c(),
+        d()
+    {
+    }
 };
 
 #pragma pack(push, 1)
@@ -56,7 +77,12 @@ struct Aligned
     int32_t b;
     int64_t c;
     Aligned(int32_t a);
-    Aligned() : a(), b(), c() {}
+    Aligned() :
+        a(),
+        b(),
+        c()
+    {
+    }
 };
 #pragma pack(pop)
 
@@ -79,13 +105,20 @@ struct A
     struct Inner
     {
         int32_t x;
-        Inner() : x() {}
+        Inner() :
+            x()
+        {
+        }
     };
 
     typedef Inner I;
     class C;
 
-    A() : a(), s() {}
+    A() :
+        a(),
+        s()
+    {
+    }
 };
 ---
 */

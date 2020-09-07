@@ -21,7 +21,10 @@ struct A
 struct B
 {
     A<int32_t> x;
-    B() : x() {}
+    B() :
+        x()
+    {
+    }
 };
 ---
 */

@@ -1035,6 +1035,7 @@ public:
             buf.printf("%s()", sd.ident.toChars());
             size_t varCount;
             bool first = true;
+            buf.level++;
             foreach (m; *sd.members)
             {
                 if (auto vd = m.isVarDeclaration())
@@ -1053,12 +1054,12 @@ public:
 
                     if (first)
                     {
-                        buf.printf(" : ");
+                        buf.writestringln(" :");
                         first = false;
                     }
                     else
                     {
-                        buf.printf(", ");
+                        buf.writestringln(",");
                     }
                     buf.printf("%s(", vd.ident.toChars());
 
@@ -1069,7 +1070,10 @@ public:
                     buf.printf(")");
                 }
             }
-            buf.writestringln(" {}");
+            buf.level--;
+            buf.writenl();
+            buf.writestringln("{");
+            buf.writestringln("}");
             buf.level--;
         }
 

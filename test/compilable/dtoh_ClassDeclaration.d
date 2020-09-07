@@ -62,7 +62,10 @@ public:
     struct Inner
     {
         int32_t x;
-        Inner() : x() {}
+        Inner() :
+            x()
+        {
+        }
     };
 
     class InnerC
