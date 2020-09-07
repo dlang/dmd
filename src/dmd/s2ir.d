@@ -687,7 +687,22 @@ private extern (C++) class S2irVisitor : Visitor
             {
                 // Reference return, so convert to a pointer
                 e = toElemDtor(s.exp, irs);
+
+                /* already taken care of for vresult in buildResultVar() and semantic3.d
+                 * https://issues.dlang.org/show_bug.cgi?id=19384
+                 */
+                if (func.vresult)
+                    if (BlitExp be = s.exp.isBlitExp())
+                    {
+                         if (VarExp ve = be.e1.isVarExp())
+                         {
+                            if (ve.var == func.vresult)
+                                goto Lskip;
+                         }
+                    }
+
                 e = addressElem(e, s.exp.type.pointerTo());
+             Lskip:
             }
             else
             {
