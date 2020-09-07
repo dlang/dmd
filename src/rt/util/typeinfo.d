@@ -1,8 +1,8 @@
 /**
- * This module contains utilities for TypeInfo implementation.
+ * A few predefined implementations for primitive types and arrays thereof. Also a couple of helpers.
  *
  * Copyright: Copyright Kenji Hara 2014-.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   <a href="https://boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Kenji Hara
  * Source: $(DRUNTIMESRC rt/util/_typeinfo.d)
  */
@@ -10,100 +10,38 @@ module rt.util.typeinfo;
 import rt.util.utility : d_cfloat, d_cdouble, d_creal, isComplex;
 static import core.internal.hash;
 
-template Floating(T)
-if (is(T == float) || is(T == double) || is(T == real))
+// Three-way compare for integrals: negative if lhs < rhs, positive if lhs > rhs, 0 otherwise.
+pragma(inline, true)
+private int cmp3(T)(const T lhs, const T rhs)
+if (__traits(isIntegral, T))
 {
-  pure nothrow @safe:
-
-    bool equals(T f1, T f2)
-    {
-        return f1 == f2;
-    }
-
-    int compare(T d1, T d2)
-    {
-        if (d1 != d1 || d2 != d2) // if either are NaN
-        {
-            if (d1 != d1)
-            {
-                if (d2 != d2)
-                    return 0;
-                return -1;
-            }
-            return 1;
-        }
-        return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
-    }
-
-    public alias hashOf = core.internal.hash.hashOf;
+    static if (T.sizeof < int.sizeof)
+        // Taking the difference will always fit in an int.
+        return int(lhs) - int(rhs);
+    else
+        return (lhs > rhs) - (lhs < rhs);
 }
 
-// @@@DEPRECATED_2.105@@@
-template Floating(T)
-if (isComplex!T)
+// Three-way compare for real fp types.
+pragma(inline, true)
+private int cmp3(T)(const T d1, const T d2)
+if (is(T == float) || is(T == double) || is(T == real))
 {
-  pure nothrow @safe:
-
-    bool equals(T f1, T f2)
-    {
-        return f1.re == f2.re && f1.im == f2.im;
-    }
-
-    int compare(T f1, T f2)
-    {
-        int result;
-
-        if (f1.re < f2.re)
-            result = -1;
-        else if (f1.re > f2.re)
-            result = 1;
-        else if (f1.im < f2.im)
-            result = -1;
-        else if (f1.im > f2.im)
-            result = 1;
-        else
-            result = 0;
+    if (int result = (d1 == d1) - (d2 == d2))
+        // Exactly one is NaN
         return result;
-    }
-
-    size_t hashOf(scope const T val)
-    {
-        return core.internal.hash.hashOf(val.re, core.internal.hash.hashOf(val.im));
-    }
+    // If both numbers are NaN, the two comparisons will be false so we get 0, as needed.
+    return (d1 > d2) - (d1 < d2);
 }
 
-template Array(T)
-if (is(T == float) || is(T == double) || is(T == real))
+// Three-way compare for complex types.
+pragma(inline, true)
+private int cmp3(T)(const T f1, const T f2)
+if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
 {
-  pure nothrow @safe:
-
-    bool equals(T[] s1, T[] s2)
-    {
-        size_t len = s1.length;
-        if (len != s2.length)
-            return false;
-        for (size_t u = 0; u < len; u++)
-        {
-            if (!Floating!T.equals(s1[u], s2[u]))
-                return false;
-        }
-        return true;
-    }
-
-    int compare(T[] s1, T[] s2)
-    {
-        size_t len = s1.length;
-        if (s2.length < len)
-            len = s2.length;
-        for (size_t u = 0; u < len; u++)
-        {
-            if (int c = Floating!T.compare(s1[u], s2[u]))
-                return c;
-        }
-        return (s1.length > s2.length) - (s1.length < s2.length);
-    }
-
-    public alias hashOf = core.internal.hash.hashOf;
+    if (int result = cmp3(f1.re, f2.re))
+        return result;
+    return cmp3(f1.im, f2.im);
 }
 
 // @@@DEPRECATED_2.105@@@
@@ -209,7 +147,7 @@ unittest
     }();
 }
 
-// Reduces to `T` if `cond` is `true` or `U` otherwise.
+// Reduces to `T` if `cond` is `true` or `U` otherwise. Consider moving elsewhere if useful.
 private template Select(bool cond, T, U)
 {
     static if (cond) alias Select = T;
@@ -238,57 +176,38 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
     static if (is(T == Base))
         override size_t getHash(scope const void* p)
         {
-            static if (__traits(isFloating, T) || isComplex!T)
-                return Floating!T.hashOf(*cast(T*)p);
-            else
-                return hashOf(*cast(const T *)p);
+            return hashOf(*cast(const T *)p);
         }
 
     // `equals` is the same for `Base` and `T`, introduce it just once.
     static if (is(T == Base))
         override bool equals(in void* p1, in void* p2)
         {
-            static if (__traits(isFloating, T) || isComplex!T)
-                return Floating!T.equals(*cast(T*)p1, *cast(T*)p2);
-            else
-                return *cast(T *)p1 == *cast(T *)p2;
+            return *cast(const T *)p1 == *cast(const T *)p2;
         }
 
     // `T` and `Base` may have different signedness, so this function is introduced conditionally.
     static if (is(T == Base) || (__traits(isIntegral, T) && T.max != Base.max))
         override int compare(in void* p1, in void* p2)
         {
-            static if (__traits(isFloating, T) || isComplex!T)
-            {
-                return Floating!T.compare(*cast(T*)p1, *cast(T*)p2);
-            }
-            else static if (T.sizeof < int.sizeof)
-            {
-                // Taking the difference will always fit in an int.
-                return int(*cast(T *) p1) - int(*cast(T *) p2);
-            }
-            else
-            {
-                auto lhs = *cast(T *) p1, rhs = *cast(T *) p2;
-                return (lhs > rhs) - (lhs < rhs);
-            }
+            return cmp3(*cast(const T*) p1, *cast(const T*) p2);
         }
 
     static if (is(T == Base))
-        override @property size_t tsize() nothrow pure
+        override @property size_t tsize()
         {
             return T.sizeof;
         }
 
     static if (is(T == Base))
-        override @property size_t talign() nothrow pure
+        override @property size_t talign()
         {
             return T.alignof;
         }
 
     // Override initializer only if necessary.
     static if (is(T == Base) || T.init != Base.init)
-        override const(void)[] initializer() @trusted
+        override const(void)[] initializer()
         {
             static if (__traits(isZeroInit, T))
             {
@@ -311,7 +230,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
         }
 
     static if (is(T == Base) || RTInfo!T != RTInfo!Base)
-        override @property immutable(void)* rtInfo() nothrow pure const @safe
+        override @property immutable(void)* rtInfo()
         {
             return RTInfo!T;
         }
@@ -377,51 +296,47 @@ private class TypeInfoArrayGeneric(T, Base = T) : Select!(is(T == Base), TypeInf
     static if (is(T == Base))
         override size_t getHash(scope const void* p) @trusted const
         {
-            static if (__traits(isFloating, T) || isComplex!T)
-                return Array!T.hashOf(*cast(T[]*)p);
-            else
-                return hashOf(*cast(const T[]*) p);
+            return hashOf(*cast(const T[]*) p);
         }
 
     static if (is(T == Base))
         override bool equals(in void* p1, in void* p2) const
         {
-            static if (__traits(isFloating, T) || isComplex!T)
+            auto lhs = *cast(const(T)[]*) p1;
+            auto rhs = *cast(const(T)[]*) p2;
+            if (lhs.length != rhs.length)
+                return false;
+            static if (__traits(isFloating, T))
             {
-                return Array!T.equals(*cast(T[]*)p1, *cast(T[]*)p2);
+                // FP arrays can't be compared with memcmp
+                for (size_t u = 0; u < lhs.length; u++)
+                {
+                    if (lhs.ptr[u] != rhs.ptr[u])
+                        return false;
+                }
+                return true;
             }
             else
             {
                 import core.stdc.string;
-                auto s1 = *cast(T[]*)p1;
-                auto s2 = *cast(T[]*)p2;
-                return s1.length == s2.length &&
-                    memcmp(s1.ptr, s2.ptr, s1.length) == 0;
+                return memcmp(lhs.ptr, rhs.ptr, lhs.length) == 0;
             }
         }
 
     static if (is(T == Base) || (__traits(isIntegral, T) && T.max != Base.max))
         override int compare(in void* p1, in void* p2) const
         {
-            static if (__traits(isFloating, T) || isComplex!T)
+            auto lhs = *cast(const T[]*) p1;
+            auto rhs = *cast(const T[]*) p2;
+            size_t len = lhs.length;
+            if (rhs.length < len)
+                len = rhs.length;
+            for (size_t u = 0; u < len; u++)
             {
-                return Array!T.compare(*cast(T[]*)p1, *cast(T[]*)p2);
+                if (int result = cmp3(lhs.ptr[u], rhs.ptr[u]))
+                    return result;
             }
-            else
-            {
-                auto s1 = *cast(T[]*)p1;
-                auto s2 = *cast(T[]*)p2;
-                auto len = s1.length;
-
-                if (s2.length < len)
-                    len = s2.length;
-                for (size_t u = 0; u < len; u++)
-                {
-                    if (int result = (s1[u] > s2[u]) - (s1[u] < s2[u]))
-                        return result;
-                }
-                return (s1.length > s2.length) - (s1.length < s2.length);
-            }
+            return cmp3(lhs.length, rhs.length);
         }
 
     override @property inout(TypeInfo) next() inout
@@ -694,17 +609,17 @@ class TypeInfo_n : TypeInfo
 {
     override string toString() const @safe { return "typeof(null)"; }
 
-    override size_t getHash(scope const void* p) const
+    override size_t getHash(scope const void*) const
     {
         return 0;
     }
 
-    override bool equals(in void* p1, in void* p2) const @trusted
+    override bool equals(in void*, in void*) const @trusted
     {
         return true;
     }
 
-    override int compare(in void* p1, in void* p2) const @trusted
+    override int compare(in void*, in void*) const @trusted
     {
         return 0;
     }
@@ -716,11 +631,10 @@ class TypeInfo_n : TypeInfo
 
     override const(void)[] initializer() const @trusted
     {
-        __gshared immutable void[typeof(null).sizeof] init;
-        return init;
+        return (cast(void *)null)[0 .. typeof(null).sizeof];
     }
 
-    override void swap(void *p1, void *p2) const @trusted
+    override void swap(void*, void*) const @trusted
     {
     }
 
@@ -735,7 +649,8 @@ class TypeInfo_n : TypeInfo
             assert(equals(null, null));
             assert(compare(null, null) == 0);
             assert(tsize == typeof(null).sizeof);
-            assert(initializer == new ubyte[(void*).sizeof]);
+            assert(initializer.ptr is null);
+            assert(initializer.length == typeof(null).sizeof);
             assert(rtInfo == rtinfoNoPointers);
         }
     }
