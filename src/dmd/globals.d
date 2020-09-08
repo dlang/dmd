@@ -191,7 +191,7 @@ extern (C++) struct Param
     bool ehnogc;            // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
-    bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
+    bool fieldwise = true;  // do struct equality testing field-wise rather than by memcmp()
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
                             // http://dconf.org/2019/talks/alexandrescu.html
                             // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a

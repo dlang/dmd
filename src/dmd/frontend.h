@@ -6899,7 +6899,7 @@ struct Param
         vsafe(),
         ehnogc(),
         dtorFields(),
-        fieldwise(),
+        fieldwise(true),
         rvalueRefParam(),
         cplusplus((CppStdRevision)199711u),
         markdown(true),
