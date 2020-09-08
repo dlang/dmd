@@ -319,30 +319,16 @@ private class TypeInfoArrayGeneric(T, Base = T) : Select!(is(T == Base), TypeInf
     static if (is(T == Base))
         override bool equals(in void* p1, in void* p2) const
         {
-            auto lhs = *cast(const(T)[]*) p1;
-            auto rhs = *cast(const(T)[]*) p2;
-            if (lhs.length != rhs.length)
-                return false;
-            static if (__traits(isFloating, T))
-            {
-                // FP arrays can't be compared with memcmp
-                for (size_t u = 0; u < lhs.length; u++)
-                {
-                    if (lhs.ptr[u] != rhs.ptr[u])
-                        return false;
-                }
-                return true;
-            }
-            else
-            {
-                import core.stdc.string;
-                return memcmp(lhs.ptr, rhs.ptr, lhs.length) == 0;
-            }
+            // Just reuse the builtin.
+            return *cast(const(T)[]*) p1 == *cast(const(T)[]*) p2;
         }
 
     static if (is(T == Base) || (__traits(isIntegral, T) && T.max != Base.max))
         override int compare(in void* p1, in void* p2) const
         {
+            // Can't reuse __cmp in object.d because that handles NaN differently.
+            // (Q: would it make sense to unify behaviors?)
+            // return __cmp(*cast(const T[]*) p1, *cast(const T[]*) p2);
             auto lhs = *cast(const T[]*) p1;
             auto rhs = *cast(const T[]*) p2;
             size_t len = lhs.length;
@@ -353,8 +339,7 @@ private class TypeInfoArrayGeneric(T, Base = T) : Select!(is(T == Base), TypeInf
                 if (int result = cmp3(lhs.ptr[u], rhs.ptr[u]))
                     return result;
             }
-            return cmp3(lhs.length, rhs.length);
-        }
+            return cmp3(lhs.length, rhs.length);        }
 
     override @property inout(TypeInfo) next() inout
     {
@@ -624,52 +609,37 @@ unittest
 // typeof(null)
 class TypeInfo_n : TypeInfo
 {
-    override string toString() const @safe { return "typeof(null)"; }
+    const: pure: @nogc: nothrow: @safe:
 
-    override size_t getHash(scope const void*) const
+    override string toString() { return "typeof(null)"; }
+
+    override size_t getHash(scope const void*) { return 0; }
+
+    override bool equals(in void*, in void*) { return true; }
+
+    override int compare(in void*, in void*) { return 0; }
+
+    override @property size_t tsize() { return typeof(null).sizeof; }
+
+    override const(void)[] initializer() @trusted { return (cast(void *)null)[0 .. size_t.sizeof]; }
+
+    override void swap(void*, void*) {}
+
+    override @property immutable(void)* rtInfo() { return rtinfoNoPointers; }
+}
+
+unittest
+{
+    with (typeid(typeof(null)))
     {
-        return 0;
-    }
-
-    override bool equals(in void*, in void*) const @trusted
-    {
-        return true;
-    }
-
-    override int compare(in void*, in void*) const @trusted
-    {
-        return 0;
-    }
-
-    override @property size_t tsize() const
-    {
-        return typeof(null).sizeof;
-    }
-
-    override const(void)[] initializer() const @trusted
-    {
-        return (cast(void *)null)[0 .. typeof(null).sizeof];
-    }
-
-    override void swap(void*, void*) const @trusted
-    {
-    }
-
-    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
-
-    unittest
-    {
-        with (typeid(typeof(null)))
-        {
-            assert(toString == "typeof(null)");
-            assert(getHash(null) == 0);
-            assert(equals(null, null));
-            assert(compare(null, null) == 0);
-            assert(tsize == typeof(null).sizeof);
-            assert(initializer.ptr is null);
-            assert(initializer.length == typeof(null).sizeof);
-            assert(rtInfo == rtinfoNoPointers);
-        }
+        assert(toString == "typeof(null)");
+        assert(getHash(null) == 0);
+        assert(equals(null, null));
+        assert(compare(null, null) == 0);
+        assert(tsize == typeof(null).sizeof);
+        assert(initializer.ptr is null);
+        assert(initializer.length == typeof(null).sizeof);
+        assert(rtInfo == rtinfoNoPointers);
     }
 }
 
