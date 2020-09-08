@@ -498,7 +498,7 @@ string[string] getEnvironment()
         env["SEP"] = `\`;
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\phobos`));
-        env["DFLAGS"] = `-I%s\import -I%s`.format(druntimePath, phobosPath);
+        env["DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
         env["LIB"] = phobosPath ~ ";" ~ environment.get("LIB");
     }
     else
