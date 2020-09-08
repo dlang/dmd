@@ -34,9 +34,22 @@ if (is(T == float) || is(T == double) || is(T == real))
     return (d1 > d2) - !(d1 >= d2);
 }
 
+// Three-way compare for complex types.
+pragma(inline, true)
+private int cmp3(T)(const T f1, const T f2)
+if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
+{
+    if (int result = cmp3(f1.re, f2.re))
+        return result;
+    return cmp3(f1.im, f2.im);
+}
+
 unittest
 {
+    assert(cmp3(short.max, short.min) > 0);
+    assert(cmp3(42, 42) == 0);
     assert(cmp3(int.max, int.min) > 0);
+
     double x, y;
     assert(cmp3(x, y) == 0);
     assert(cmp3(y, x) == 0);
@@ -49,16 +62,22 @@ unittest
     y = 42;
     assert(cmp3(x, y) == 0);
     assert(cmp3(y, x) == 0);
-}
 
-// Three-way compare for complex types.
-pragma(inline, true)
-private int cmp3(T)(const T f1, const T f2)
-if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
-{
-    if (int result = cmp3(f1.re, f2.re))
-        return result;
-    return cmp3(f1.im, f2.im);
+    cdouble u, v;
+    assert(cmp3(u, v) == 0);
+    assert(cmp3(v, u) == 0);
+    u = 42 + 42i;
+    assert(cmp3(u, v) > 0);
+    assert(cmp3(v, u) < 0);
+    v = 43 + 42i;
+    assert(cmp3(u, v) < 0);
+    assert(cmp3(v, u) > 0);
+    v = 42 + 43i;
+    assert(cmp3(u, v) < 0);
+    assert(cmp3(v, u) > 0);
+    v = 42 + 42i;
+    assert(cmp3(u, v) == 0);
+    assert(cmp3(v, u) == 0);
 }
 
 // @@@DEPRECATED_2.105@@@
