@@ -34,6 +34,23 @@ if (is(T == float) || is(T == double) || is(T == real))
     return (d1 > d2) - !(d1 >= d2);
 }
 
+unittest
+{
+    assert(cmp3(int.max, int.min) > 0);
+    double x, y;
+    assert(cmp3(x, y) == 0);
+    assert(cmp3(y, x) == 0);
+    x = 42;
+    assert(cmp3(x, y) > 0);
+    assert(cmp3(y, x) < 0);
+    y = 43;
+    assert(cmp3(x, y) < 0);
+    assert(cmp3(y, x) > 0);
+    y = 42;
+    assert(cmp3(x, y) == 0);
+    assert(cmp3(y, x) == 0);
+}
+
 // Three-way compare for complex types.
 pragma(inline, true)
 private int cmp3(T)(const T f1, const T f2)
