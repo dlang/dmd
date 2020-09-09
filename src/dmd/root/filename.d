@@ -718,6 +718,92 @@ nothrow:
         return null;
     }
 
+    /************************************
+     * Determine if path is safe.
+     * Params:
+     *  name = path
+     * Returns:
+     *  true if path is safe.
+     */
+    private extern (D) static bool safePath(const(char)* name) pure @nogc
+    {
+        version (Windows)
+        {
+            // don't allow leading / because it might be an absolute
+            // path or UNC path or something we'd prefer to just not deal with
+            if (*name == '/')
+            {
+                return false;
+            }
+            /* Disallow % \ : and .. in name characters
+             * We allow / for compatibility with subdirectories which is allowed
+             * on dmd/posix. With the leading / blocked above and the rest of these
+             * conservative restrictions, we should be OK.
+             */
+            for (const(char)* p = name; *p; p++)
+            {
+                char c = *p;
+                if (c == '\\' || c == ':' || c == '%' || (c == '.' && p[1] == '.') || (c == '/' && p[1] == '/'))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else version (Posix)
+        {
+            /* Even with realpath(), we must check for // and disallow it
+             */
+            for (const(char)* p = name; *p; p++)
+            {
+                char c = *p;
+                if (c == '/' && p[1] == '/')
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            assert(0);
+        }
+    }
+    unittest
+    {
+        assert(safePath(r""));
+        assert(safePath(r"foo.bar"));
+        assert(safePath(r"foo.bar"));
+        assert(safePath(r"foo.bar.boo"));
+        assert(safePath(r"foo/bar.boo"));
+        assert(safePath(r"foo/bar/boo"));
+        assert(!safePath(r"foo/bar//boo"));       // repeated directory separator
+
+        version (Windows)
+        {
+            assert(!safePath(r"\foo"));           // absolute path
+            assert(!safePath(r"\\foo"));          // UNC path
+            assert(!safePath(r"c:foo"));          // drive letter + relative path
+            assert(!safePath(r"c:\foo"));         // drive letter + absolute path
+
+            // Backslash as directory separator
+            assert(!safePath(r"foo\bar.boo"));
+            assert(!safePath(r"foo\bar\boo"));
+            assert(!safePath(r"foo\bar\\boo"));   // repeated directory separator
+
+            // Different behavior comparing to Posix
+            assert(!safePath(r"/"));
+            assert(!safePath(r"foo/../../boo"));
+            assert(!safePath(r"foo..boo"));
+        }
+        else version (Posix)
+        {
+            assert(safePath(r"/"));
+            assert(safePath(r"foo/../../boo"));
+            assert(safePath(r"foo..boo"));
+        }
+    }
+
     /*************************************
      * Search Path for file in a safe manner.
      *
@@ -732,41 +818,17 @@ nothrow:
      */
     extern (C++) static const(char)* safeSearchPath(Strings* path, const(char)* name)
     {
+        if (!safePath(name))
+        {
+            return null;
+        }
+
         version (Windows)
         {
-            // don't allow leading / because it might be an absolute
-            // path or UNC path or something we'd prefer to just not deal with
-            if (*name == '/')
-            {
-                return null;
-            }
-            /* Disallow % \ : and .. in name characters
-             * We allow / for compatibility with subdirectories which is allowed
-             * on dmd/posix. With the leading / blocked above and the rest of these
-             * conservative restrictions, we should be OK.
-             */
-            for (const(char)* p = name; *p; p++)
-            {
-                char c = *p;
-                if (c == '\\' || c == ':' || c == '%' || (c == '.' && p[1] == '.') || (c == '/' && p[1] == '/'))
-                {
-                    return null;
-                }
-            }
             return FileName.searchPath(path, name, false);
         }
         else version (Posix)
         {
-            /* Even with realpath(), we must check for // and disallow it
-             */
-            for (const(char)* p = name; *p; p++)
-            {
-                char c = *p;
-                if (c == '/' && p[1] == '/')
-                {
-                    return null;
-                }
-            }
             if (path)
             {
                 /* Each path is converted to a cannonical name and then a check is done to see
