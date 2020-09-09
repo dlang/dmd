@@ -6,17 +6,17 @@ $(HEADERNAV_TOC)
 
 $(P The lexical analysis is independent of the syntax parsing and the semantic
 analysis. The lexical analyzer splits the source text up into tokens. The
-lexical grammar describes the syntax of those tokens. The grammar is designed to
+lexical grammar describes the syntax of these tokens. The grammar is designed to
 be suitable for high speed scanning and to make it easy to write a correct
-scanner for it. It has a minimum of special case rules and there is only one
+scanner. It has a minimum of special case rules and there is only one
 phase of translation.)
 
 $(H2 $(LNAME2 source_text, Source Text))
 
-$(P Source text can be in one of the following formats:)
+$(P Source text can be in any one of the following encodings:)
 
         $(LIST
-        ASCII,
+        ASCII (strictly, 7-bit ASCII),
         UTF-8,
         UTF-16BE,
         UTF-16LE,
@@ -43,10 +43,10 @@ be less than or equal to U+0000007F.)
 $(P The source text is decoded from its source representation into Unicode
 $(GLINK Character)s. The $(GLINK Character)s are further divided into: $(GLINK
 WhiteSpace), $(GLINK EndOfLine), $(GLINK Comment)s, $(GLINK
-SpecialTokenSequence)s, $(GLINK Token)s, all followed by $(GLINK EndOfFile).)
+SpecialTokenSequence)s, and $(GLINK Token)s, with the source terminated by an $(GLINK EndOfFile).)
 
-$(P The source text is split into tokens using the maximal munch technique,
-i.e., the lexical analyzer makes the longest token it can. For example
+$(P The source text is split into tokens using the maximal munch algorithm,
+i.e., the lexical analyzer makes the longest possible token. For example
 $(D >>) is a right shift token, not two greater than tokens. There are two
 exceptions to this rule:)
 
@@ -355,7 +355,12 @@ $(GNAME TokenString):
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 
         $(P
-        Wysiwyg ("what you see is what you get") quoted strings are enclosed by `r"` and `"`.
+        Wysiwyg ("what you see is what you get") quoted strings can be defined
+        using either of two syntaxes.
+        )
+
+        $(P
+        In the first form, they are enclosed between `r"` and `"`.
         All characters between
         the `r"` and `"` are part of the string.
         There are no escape sequences inside wysiwyg strings.
@@ -369,8 +374,8 @@ $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
         ---
 
         $(P
-        An alternate form of wysiwyg strings are enclosed by backquotes,
-        the $(BACKTICK) character.
+        Alternatively, wysiwyg strings can be enclosed by backquotes,
+        using the $(BACKTICK) character.
         )
 
         ---
@@ -384,7 +389,7 @@ $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
 
         $(P Double quoted strings are enclosed by "". $(GLINK EscapeSequence)s can be
-        embedded into them.)
+        embedded in them.)
 
         ---
         "Who are you?"
@@ -439,7 +444,7 @@ q"[foo{]"       // "foo{"
 
         $(P If the delimiter is an identifier, the identifier must
         be immediately followed by a newline, and the matching
-        delimiter is the same identifier starting at the beginning
+        delimiter must be the same identifier starting at the beginning
         of the line:
         )
 ---
@@ -492,7 +497,7 @@ $(H3 $(LNAME2 string_postfix, String Postfix))
 
 
         $(TABLE2 String Literal Postfix Characters,
-        $(THEAD Postfix, Type, Aka)
+        $(THEAD Postfix, Type, Alias)
         $(TROW $(B c), $(D immutable(char)[]), $(D string))
         $(TROW $(B w), $(D immutable(wchar)[]), $(D wstring))
         $(TROW $(B d), $(D immutable(dchar)[]), $(D dstring))
@@ -542,7 +547,8 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
         $(D \U0001F603) represents the Unicode character U+1F603 (SMILING FACE
         WITH OPEN MOUTH).)
     $(TROW $(D \)$(I name), Named character entity from the HTML5
-        specification. See $(GLINK2 entity, NamedCharacterEntity).)
+        specification. These names begin with $(CODE_AMP) and end with $(D ;), e.g., $(CODE_AMP)$D(euro;).
+        See $(GLINK2 entity, NamedCharacterEntity).)
     )
 
 $(H2 $(LNAME2 characterliteral, Character Literals))
@@ -721,7 +727,7 @@ $(GNAME HexLetter):
         by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
         )
 
-        $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters, which are ignored.
+        $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters to improve readability, and which are ignored.
         )
 
         ---
@@ -764,9 +770,9 @@ $(GNAME HexLetter):
         $(TROW $(D 0x0UL .. 0xFFFF_FFFF_FFFF_FFFFUL), $(D ulong))
         )
 
-        $(P An integer literal may not exceed those values.)
+        $(P An integer literal may not exceed these values.)
 
-        $(BEST_PRACTICE Octal integer notation is not supported in integer literals.
+        $(BEST_PRACTICE Octal integer notation is not supported for integer literals.
         However, octal integer literals can be interpreted at compile time through
         the $(REF octal, std,conv) template, as in $(D octal!167).)
 
@@ -856,7 +862,7 @@ $(GNAME LeadingDecimal):
         the exponent of 2.
         )
 
-        $(P Floating literals can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters, which are ignored.
+        $(P Floating literals can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters to improve readability, and which are ignored.
         )
 
         ---
@@ -867,10 +873,8 @@ $(GNAME LeadingDecimal):
         ---
 
         $(P Floating literals with no suffix are of type `double`.
-        They can be followed by one $(B f), $(B F),
-        or $(B L) suffix.
-        The $(B f) or $(B F) suffix types it is a
-        `float`, and $(B L) types it is a `real`.
+        Floating literals followed by $(B f) or $(B F) are of type `float`,
+        and those followed by $(B L) are of type `real`.
         )
 
         $(P If a floating literal is followed by $(B i), then it is an
@@ -1054,7 +1058,7 @@ $(H2 $(LNAME2 specialtokens, Special Tokens))
         $(THEAD Special Token, Replaced with)
 
         $(TROW $(D __DATE__), string literal of the date of compilation "$(I mmm dd yyyy)")
-        $(TROW $(D __EOF__), sets the scanner to the end of the file)
+        $(TROW $(D __EOF__), tells the scanner to ignore everything after this token)
 
         $(TROW $(D __TIME__), string literal of the time of compilation "$(I hh:mm:ss)")
         $(TROW $(D __TIMESTAMP__), string literal of the date and time of compilation "$(I www mmm dd hh:mm:ss yyyy)")
@@ -1098,8 +1102,8 @@ $(GNAME Filespec):
         )
 
 -----------------
-int #line 6 "foo\bar"
-x;  // this is now line 6 of file foo\bar
+int #line 6 "pkg/mod.d"
+x;  // this is now line 6 of file pkg/mod.d
 -----------------
 
         $(IMPLEMENTATION_DEFINED

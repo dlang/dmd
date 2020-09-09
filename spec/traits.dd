@@ -66,6 +66,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getVirtualMethods)
     $(GLINK getUnitTests)
     $(GLINK parent)
+    $(GLINK child)
     $(GLINK classInstanceSize)
     $(GLINK getVirtualIndex)
     $(GLINK allMembers)
@@ -1326,6 +1327,54 @@ $(H2 $(GNAME parent))
         The result is the symbol that is the parent of it.
         )
 
+$(H2 $(GNAME child))
+
+        $(P Takes two arguments.
+        The first must be a symbol or expression.
+        The second is a symbol, such as an alias to a member of the first
+        argument.
+        The result is the second argument interpreted with its $(D this)
+        context set to the value of the first argument.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct A
+{
+    int i;
+    int foo(int j) {
+        return i * j;
+    }
+    T bar(T)(T t) {
+        return i + t;
+    }
+}
+
+alias Ai = A.i;
+alias Abar = A.bar!int;
+
+void main()
+{
+    A a;
+
+    __traits(child, a, Ai) = 3;
+    writeln(a.i);
+    writeln(__traits(child, a, A.foo)(2));
+    writeln(__traits(child, a, Abar)(5));
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+3
+6
+7
+)
+
 $(H2 $(GNAME classInstanceSize))
 
         $(P Takes a single argument, which must evaluate to either
@@ -1511,6 +1560,29 @@ void main()
     // lambdas with different data types are considered incomparable,
     // even if the memory layout is the same
     static assert(!__traits(isSame, (A a) => ++a.a, (B a) => ++a.a));
+}
+---
+)
+
+        $(P If the two arguments are tuples then `isSame` returns `true` if the
+        two tuples, after expansion, have the same length and if each pair
+        of nth argument respects the constraints previously specified.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+import std.meta;
+
+struct S { }
+
+void main()
+{
+    // true, like __traits(isSame(0,0)) && __traits(isSame(1,1))
+    writeln(__traits(isSame, AliasSeq!(0,1), AliasSeq!(0,1)));
+    // false, like __traits(isSame(S,std.meta)) && __traits(isSame(1,1))
+    writeln(__traits(isSame, AliasSeq!(S,1), AliasSeq!(std.meta,1)));
+    // false, the length of the sequences is different
+    writeln(__traits(isSame, AliasSeq!(1), AliasSeq!(1,2)));
 }
 ---
 )

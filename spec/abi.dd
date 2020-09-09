@@ -583,6 +583,7 @@ $(GNAME Parameter):
 
 $(GNAME Parameter2):
     $(GLINK Type)
+    $(B I) $(GLINK Type)     $(GREEN // in)
     $(B J) $(GLINK Type)     $(GREEN // out)
     $(B K) $(GLINK Type)     $(GREEN // ref)
     $(B L) $(GLINK Type)     $(GREEN // lazy)

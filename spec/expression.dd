@@ -835,7 +835,21 @@ $(GNAME MulExpression):
     $(P For integral operands of the $(D /) and $(D %) operators,
         the quotient rounds towards zero and the remainder has the
         same sign as the dividend.
-        If the divisor is zero, an Exception is thrown.
+    )
+
+    $(P The following divide or modulus integral operands:)
+
+    $(UL
+    $(LI denominator is 0)
+    $(LI signed `int.min` is the numerator and `-1` is the denominator)
+    $(LI signed `long.min` is the numerator and `-1L` is the denominator)
+    )
+
+    $(P are illegal if encountered during Compile Time Execution.)
+
+    $(UNDEFINED_BEHAVIOR is exhibited if they are encountered during run time.
+        $(LINK2 https://dlang.org/phobos/core_checkedint.html, `core.checkedint`)
+        can be used to check for them and select a defined behavior.
     )
 
     $(P For floating point operands, the * and / operations correspond

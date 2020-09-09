@@ -33,7 +33,7 @@ $(GNAME Parameters):
 $(GNAME ParameterList):
     $(GLINK Parameter)
     $(GLINK Parameter) $(D ,) $(I ParameterList)
-    $(D ...)
+    $(I VariadicArgumentsAttributes) $(D ...)
 
 $(GNAME Parameter):
     $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
@@ -59,6 +59,17 @@ $(GNAME InOut):
     $(D ref)
     $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
     $(D scope)
+
+$(GNAME VariadicArgumentsAttributes):
+    $(GLINK VariadicArgumentsAttribute)
+    $(GLINK VariadicArgumentsAttribute) $(GLINK VariadicArgumentsAttributes)
+
+$(GNAME VariadicArgumentsAttribute):
+    $(D const)
+    $(D immutable)
+    $(D return)
+    $(D scope)
+    $(D shared)
 )
 
 $(H3 Function attributes)
@@ -153,7 +164,7 @@ $(H2 $(LNAME2 contracts, Contracts))
 
 $(H2 $(LNAME2 function-return-values, Function Return Values))
 
-        $(P Function return values are considered to be rvalues.
+        $(P Function return values not marked as $(D ref) are considered to be rvalues.
         This means they cannot be passed by reference to other functions.
         )
 
@@ -1238,13 +1249,15 @@ int foo(in int x, out int y, ref int z, int q);
     implemented so it's current implementation is equivalent to $(D const).  It is recommended
     to avoid using $(D in) until it is properly defined and implemented.  Use $(D scope const)
     or $(D const) explicitly instead.)
-    $(TROW $(D out), parameter is initialized upon function entry with the default value
+    $(TROW $(D ref), parameter is passed by reference)
+    $(TROW $(D out), parameter is passed by reference and initialized upon function entry with the default value
     for its type)
 
-    $(TROW $(D ref),   parameter is passed by reference)
-    $(TROW $(D scope), references in the parameter
-    cannot be escaped (e.g. assigned to a global variable).
-    Ignored for parameters with no references)
+    $(TROW $(D scope), $(ARGS
+    The parameter must not escape the function call
+    (e.g. by being assigned to a global variable).
+    Ignored for any parameter that is not a reference type.
+    ))
     $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
     but otherwise does not escape from the function.
     Such copies are required not to outlive the argument(s) they were derived from.
@@ -1257,17 +1270,40 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D inout), argument is implicitly converted to an inout type)
     )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(H3 $(LNAME2 ref-params, Ref and Out Parameters))
+
+    $(P By default, parameters take rvalue arguments.
+    A ref parameter takes an lvalue argument, so changes to its value will operate
+    on the caller's argument.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+void inc(ref int x)
+{
+    x += 1;
+}
+
+int z = 3;
+inc(z);
+assert(z == 4);
+------------
+)
+    $(P A ref parameter can also be returned by reference - see:
+    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref) parameters.))
+
+    $(P An out parameter `x` is similar to a ref parameter, except it is initialized
+    with `x.init` upon function invocation.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 void foo(out int x)
 {
-    // x is set to int.init,
-    // which is 0, at start of foo()
+    assert(x == 0);
 }
 
 int a = 3;
 foo(a);
-// a is now 0
+assert(a == 0);
 
 void abc(out int x)
 {
@@ -1276,20 +1312,11 @@ void abc(out int x)
 
 int y = 3;
 abc(y);
-// y is now 2
-
-void def(ref int x)
-{
-    x += 1;
-}
-
-int z = 3;
-def(z);
-// z is now 4
-------------
+assert(y == 2);
+---
 )
 
-        $(P For dynamic array and object parameters, which are passed
+        $(P For dynamic array and object parameters, which are always passed
         by reference, in/out/ref
         apply only to the reference and not the contents.
         )
@@ -1408,10 +1435,6 @@ pure void f()
 
 $(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
 
-        $(P Note: The `return` attribute is currently only enforced by `dmd`
-        when the `-dip25` switch is passed.
-        )
-
         $(P Return ref parameters are used with
         $(RELATIVE_LINK2 ref-functions, ref functions) to ensure that the
         returned reference will not outlive the matching argument's lifetime.
@@ -1525,7 +1548,43 @@ inout(int)* neptune(inout ref int i)
 }
 ---
 
-$(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
+$(H3 $(LNAME2 scope-parameters, Scope Parameters))
+
+    $(P A `scope` parameter of reference type must not escape the function call
+    (e.g. by being assigned to a global variable). It has no effect for non-reference types.
+    `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
+    semantics must be manually enforced.)
+    $(P $(B Note): `scope` escape analysis is currently only done by `dmd`
+    when the `-dip1000` switch is passed.)
+
+---
+@safe:
+
+int* gp;
+void thorin(scope int*);
+void gloin(int*);
+int* balin(scope int* q, int* r)
+{
+     gp = q; // error, q escapes to global gp
+     gp = r; // ok
+
+     thorin(q); // ok, q does not escape thorin()
+     thorin(r); // ok
+
+     gloin(q); // error, gloin() escapes q
+     gloin(r); // ok that gloin() escapes r
+
+     return q; // error, cannot return 'scope' q
+     return r; // ok
+}
+---
+
+    $(P As a `scope` parameter must not escape, the compiler can potentially avoid heap-allocating a
+    unique argument to a `scope` parameter. Due to this, passing an array literal, delegate
+    literal or a $(GLINK2 expression, NewExpression) to a scope parameter may be allowed in a
+    `@nogc` context, depending on the compiler implementation.)
+
+$(H4 $(LNAME2 return-scope-parameters, Return Scope Parameters))
 
         $(P Parameters marked as `return scope` that contain indirections
         can only escape those indirections via the function's return value.)
@@ -1536,23 +1595,12 @@ $(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
 int* gp;
 void thorin(scope int*);
 void gloin(int*);
-int* balin(return scope int* p, scope int* q, int* r)
+int* balin(return scope int* p)
 {
      gp = p; // error, p escapes to global gp
-     gp = q; // error, q escapes to global gp
-     gp = r; // ok
-
      thorin(p); // ok, p does not escape thorin()
-     thorin(q); // ok
-     thorin(r); // ok
-
      gloin(p); // error, gloin() escapes p
-     gloin(q); // error, gloin() escapes q
-     gloin(r); // ok that gloin() escapes r
-
      return p; // ok
-     return q; // error, cannot return 'scope' q
-     return r; // ok
 }
 ---
 
@@ -1597,10 +1645,7 @@ class C
         $(P Template functions, auto functions, nested functions and lambdas can deduce
         the `return scope` attribute.)
 
-        $(P $(B Note:) Checks for `scope` parameters are currently enabled
-        only for $(D @safe) functions when compiled with the $(D -dip1000) flag.)
-
-$(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
+$(H4 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
 
         $(P Parameters marked as `ref return scope` come in two forms:)
 
