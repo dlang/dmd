@@ -194,7 +194,7 @@ enum StructPOD : int
     fwd,   // POD not yet computed
 }
 
-private enum ZeroInit : int
+private enum ZeroInit : byte
 {
     unknown = -1,  // not computed yet
     no = 0,        // struct is not all zeroes

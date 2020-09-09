@@ -9133,10 +9133,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             Expression ce = new CallExp(ale.loc, id, arguments);
             auto res = ce.expressionSemantic(sc);
+            genTypeInfo(ale.loc, ale.e1.type.toBasetype(), sc);
             // if (global.params.verbose)
             //     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
             return setResult(res);
-            ale.e1.type.toBasetype().genTypeInfo(sc);
         }
         else if (auto se = exp.e1.isSliceExp())
         {
@@ -9673,7 +9673,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         if (tb1.ty == Tarray)
-            tb1.genTypeInfo(sc);
+            genTypeInfo(exp.e1.loc, tb1, sc);
 
         exp.type = exp.e1.type;
         auto res = exp.reorderSettingAAElem(sc);

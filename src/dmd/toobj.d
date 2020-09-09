@@ -1364,6 +1364,9 @@ Louter:
     else
         dtb.size(0);
 
+    if (!cd.getRTInfo)
+        error(cd.loc, "ICE: RTInfo not evaluated for %s", cd.toChars());
+
     // m_RTInfo
     if (cd.getRTInfo)
         Expression_toDt(cd.getRTInfo, dtb);
@@ -1557,6 +1560,9 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
 
     // xgetMembers
     //dtb.size(0);
+
+    if (!id.getRTInfo)
+        error(id.loc, "ICE: RTInfo not evaluated for %s", id.toChars());
 
     // m_RTInfo
     if (id.getRTInfo)

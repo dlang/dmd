@@ -3328,9 +3328,7 @@ extern (C++) final class StructLiteralExp : Expression
                     auto z = new Expressions(length);
                     foreach (ref q; *z)
                         q = e.copy();
-                    e = new ArrayLiteralExp(loc, type, z);
-                    ArrayLiteralExp ae = new ArrayLiteralExp(loc, z);
-                    ae.type = type;
+                    ArrayLiteralExp ae = new ArrayLiteralExp(loc, type, z);
                     ae.verifyTypeInfo(null); // no Scope available here, will use rootModule
                     e = ae;
                 }
