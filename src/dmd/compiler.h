@@ -35,6 +35,6 @@ struct Compiler
     // CTFE support for cross-compilation.
     static Expression *paintAsType(UnionExp *, Expression *, Type *);
     // Backend
-    static void loadModule(Module *);
     static bool onImport(Module *);
+    static void onParseModule(Module *);
 };

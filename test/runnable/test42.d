@@ -4355,12 +4355,6 @@ void test240() {
     double a = void;
     double b = void;
     double x = void;
-    version (D_SIMD)
-    {
-//	assert((cast(size_t)&a & 7) == 0);
-//	assert((cast(size_t)&b & 7) == 0);
-//	assert((cast(size_t)&x & 7) == 0);
-    }
     a = foo240();
     b = foo240();
     x = a*a + a*a + a*a + a*a + a*a + a*a + a*a +

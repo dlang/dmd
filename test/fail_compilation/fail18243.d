@@ -1,7 +1,8 @@
 /*
+EXTRA_FILES: imports/a18243.d
 TEST_OUTPUT:
 ---
-fail_compilation/fail18243.d(14): Error: none of the overloads of `isNaN` are callable using argument types `!()(float)`
+fail_compilation/fail18243.d(15): Error: none of the overloads of `isNaN` are callable using argument types `!()(float)`
 ---
 */
 

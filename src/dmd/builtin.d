@@ -438,3 +438,14 @@ Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
     Expression arg0 = (*arguments)[0];
     return new RealExp(loc, arg0.toReal(), Type.tfloat80);
 }
+
+// These built-ins are reserved for GDC and LDC.
+Expression eval_gcc(Loc, FuncDeclaration, Expressions*)
+{
+    assert(0);
+}
+
+Expression eval_llvm(Loc, FuncDeclaration, Expressions*)
+{
+    assert(0);
+}

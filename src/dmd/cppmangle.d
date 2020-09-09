@@ -1051,7 +1051,7 @@ private final class CppMangleVisitor : Visitor
 
             // Template args accept extern "C" symbols with special mangling
             if (tf.linkage == LINK.cpp)
-                mangleFunctionParameters(tf.parameterList.parameters, tf.parameterList.varargs);
+                mangleFunctionParameters(tf.parameterList);
 
             if (!tf.next.isTypeBasic())
                 this.writeRemainingTags(off, tf);
@@ -1130,7 +1130,7 @@ private final class CppMangleVisitor : Visitor
             else
                 source_name(ti, false);
             this.mangleReturnType(preSemantic);
-            this.mangleFunctionParameters(preSemantic.parameterList.parameters, tf.parameterList.varargs);
+            this.mangleFunctionParameters(ParameterList(preSemantic.parameterList.parameters, tf.parameterList.varargs));
             return;
         }
 
@@ -1255,7 +1255,7 @@ private final class CppMangleVisitor : Visitor
             if (appendReturnType)
                 headOfType(tf.nextOf());  // mangle return type
         }
-        mangleFunctionParameters(tf.parameterList.parameters, tf.parameterList.varargs);
+        mangleFunctionParameters(tf.parameterList);
     }
 
     /**
@@ -1267,11 +1267,11 @@ private final class CppMangleVisitor : Visitor
      *   parameters = Array of `Parameter` to mangle
      *   varargs = if != 0, this function has varargs parameters
      */
-    void mangleFunctionParameters(Parameters* parameters, VarArg varargs)
+    void mangleFunctionParameters(ParameterList parameterList)
     {
         int numparams = 0;
 
-        int paramsCppMangleDg(size_t n, Parameter fparam)
+        foreach (n, fparam; parameterList)
         {
             Type t = target.cpp.parameterType(fparam);
             if (t.ty == Tsarray)
@@ -1293,12 +1293,9 @@ private final class CppMangleVisitor : Visitor
             scope (exit) this.context.pop(prev);
             headOfType(t);
             ++numparams;
-            return 0;
         }
 
-        if (parameters)
-            Parameter._foreach(parameters, &paramsCppMangleDg);
-        if (varargs == VarArg.variadic)
+        if (parameterList.varargs == VarArg.variadic)
             buf.writeByte('z');
         else if (!numparams)
             buf.writeByte('v'); // encode (void) parameters
@@ -1781,7 +1778,7 @@ extern(C++):
         if (t.isref)
             tn = tn.referenceTo();
         tn.accept(this);
-        mangleFunctionParameters(t.parameterList.parameters, t.parameterList.varargs);
+        mangleFunctionParameters(t.parameterList);
         buf.writeByte('E');
         append(t);
     }

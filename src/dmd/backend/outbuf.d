@@ -54,7 +54,7 @@ struct Outbuffer
         @trusted pure nothrow @nogc
     {
         assert(this.buf, "Attempt to dereference a null pointer");
-        assert(from < to, "First index must be <= to second one");
+        assert(from < to, "First index must be smaller than the second one");
         assert(this.length() <= (to - from), "Out of bound access");
         return this.buf[from .. to];
     }
@@ -72,9 +72,23 @@ struct Outbuffer
         return ret;
     }
 
-    // Make sure we have at least `nbyte` available for writting
+    /********************
+     * Make sure we have at least `nbytes` available for writing,
+     * allocate more if necessary.
+     * This is the inlinable fast path. Prefer `enlarge` if allocation
+     * will always happen.
+     */
     void reserve(size_t nbytes)
     {
+        // Keep small so it is inlined
+        if (pend - p < nbytes)
+            enlarge(nbytes);
+    }
+
+    // Reserve nbytes in buffer
+    void enlarge(size_t nbytes)
+    {
+        pragma(inline, false);  // do not inline slow path
         const size_t oldlen = pend - buf;
         const size_t used = p - buf;
 

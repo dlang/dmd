@@ -257,6 +257,9 @@ enum STC : ulong
     // Group members are mutually exclusive (there can be only one)
     safeGroup = STC.safe | STC.trusted | STC.system,
 
+    /// Group for `in` / `out` / `ref` storage classes on parameter
+    IOR  = STC.in_ | STC.ref_ | STC.out_,
+
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 STC.safeGroup),
@@ -708,7 +711,6 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
-    bool wasTemplateParameter; /// indicates wether the alias was created to make a template parameter visible in the scope, i.e as a member.
 
     extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
@@ -957,6 +959,13 @@ extern (C++) final class AliasDeclaration : Declaration
         return this;
     }
 
+    /** Returns: `true` if this instance was created to make a template parameter
+    visible in the scope of a template body, `false` otherwise */
+    extern (D) bool isAliasedTemplateParameter() const
+    {
+        return !!(storage_class & STC.templateparameter);
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1098,7 +1107,7 @@ extern (C++) class VarDeclaration : Declaration
     bool onstack;                   // it is a class that was allocated on the stack
     bool mynew;                     // it is a class new'd with custom operator new
 
-    int canassign;                  // it can be assigned to
+    byte canassign;                  // it can be assigned to
     bool overlapped;                // if it is a field and has overlapping
     bool overlapUnsafe;             // if it is an overlapping field and the overlaps are unsafe
     bool doNotInferScope;           // do not infer 'scope' for this variable
@@ -1118,17 +1127,14 @@ extern (C++) class VarDeclaration : Declaration
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
 
-    private bool _isAnonymous;
-
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
+    in
     {
-        if (ident is Identifier.anonymous)
-        {
-            ident = Identifier.generateId("__anonvar");
-            _isAnonymous = true;
-        }
-        //printf("VarDeclaration('%s')\n", ident.toChars());
         assert(ident);
+    }
+    do
+    {
+        //printf("VarDeclaration('%s')\n", ident.toChars());
         super(loc, ident);
         debug
         {
@@ -1275,11 +1281,6 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
         return isField();
-    }
-
-    override final bool isAnonymous()
-    {
-        return _isAnonymous;
     }
 
     override final bool isExport() const
@@ -1531,7 +1532,7 @@ extern (C++) class VarDeclaration : Declaration
         if (!e)
         {
             .error(loc, "cannot make expression out of initializer for `%s`", toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
 
         e = e.copy();
@@ -1588,7 +1589,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("\tfdthis = %s\n", fdthis.toChars());
         if (loc.isValid())
         {
-            if (fdthis.getLevelAndCheck(loc, sc, fdv) == fdthis.LevelError)
+            if (fdthis.getLevelAndCheck(loc, sc, fdv, this) == fdthis.LevelError)
                 return true;
         }
 

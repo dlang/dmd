@@ -25,7 +25,8 @@
 
 module dmd.target;
 
-import dmd.argtypes;
+import dmd.argtypes_x86;
+import dmd.argtypes_sysv_x64;
 import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
@@ -40,6 +41,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.root.rmem;
 import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
@@ -74,6 +76,9 @@ extern (C++) struct Target
 
     /// Objective-C ABI
     TargetObjC objc;
+
+    /// Architecture name
+    const(char)[] architectureName;
 
     /**
      * Values representing all properties for floating point types
@@ -176,6 +181,11 @@ extern (C++) struct Target
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
+
+        if (global.params.is64bit)
+            architectureName = "X86_64";
+        else
+            architectureName = "X86";
     }
 
     /**
@@ -274,7 +284,7 @@ extern (C++) struct Target
         {
             if (global.params.is64bit)
             {
-                tvalist = new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag")).pointerTo();
+                tvalist = Pool!TypeIdentifier.make(Loc.initial, Identifier.idPool("__va_list_tag")).pointerTo();
                 tvalist = typeSemantic(tvalist, loc, sc);
             }
             else
@@ -323,8 +333,40 @@ extern (C++) struct Target
         default:
             return 2; // wrong base type
         }
-        if (sz != 16 && !(global.params.cpu >= CPU.avx && sz == 32))
+
+        // Whether a vector is really supported depends on the CPU being targeted.
+        if (sz == 16)
+        {
+            final switch (type.ty)
+            {
+            case Tint32:
+            case Tuns32:
+            case Tfloat32:
+                if (global.params.cpu < CPU.sse)
+                    return 3; // no SSE vector support
+                break;
+
+            case Tvoid:
+            case Tint8:
+            case Tuns8:
+            case Tint16:
+            case Tuns16:
+            case Tint64:
+            case Tuns64:
+            case Tfloat64:
+                if (global.params.cpu < CPU.sse2)
+                    return 3; // no SSE2 vector support
+                break;
+            }
+        }
+        else if (sz == 32)
+        {
+            if (global.params.cpu < CPU.avx)
+                return 3; // no AVX vector support
+        }
+        else
             return 3; // wrong size
+
         return 0;
     }
 
@@ -344,12 +386,43 @@ extern (C++) struct Target
         if (type.ty != Tvector)
             return true; // not a vector op
         auto tvec = cast(TypeVector) type;
+        const vecsize = cast(int)tvec.basetype.size();
+        const elemty = cast(int)tvec.elementType().ty;
 
-        bool supported;
+        // Only operations on these sizes are supported (see isVectorTypeSupported)
+        if (vecsize != 16 && vecsize != 32)
+            return false;
+
+        bool supported = false;
         switch (op)
         {
-        case TOK.negate, TOK.uadd:
+        case TOK.uadd:
+            // Expression is a no-op, supported everywhere.
             supported = tvec.isscalar();
+            break;
+
+        case TOK.negate:
+            if (vecsize == 16)
+            {
+                // float[4] negate needs SSE support ({V}SUBPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] negate needs SSE2 support ({V}SUBPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)byte[16]/short[8]/int[4]/long[2] negate needs SSE2 support ({V}PSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] negate needs AVX support (VSUBP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+                // (u)byte[32]/short[16]/int[8]/long[4] negate needs AVX2 support (VPSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case TOK.lessThan, TOK.greaterThan, TOK.lessOrEqual, TOK.greaterOrEqual, TOK.equal, TOK.notEqual, TOK.identity, TOK.notIdentity:
@@ -361,21 +434,75 @@ extern (C++) struct Target
             break;
 
         case TOK.add, TOK.addAssign, TOK.min, TOK.minAssign:
-            supported = tvec.isscalar();
+            if (vecsize == 16)
+            {
+                // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] add/sub needs SSE2 support ({V}ADDPD, {V}SUBPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)byte[16]/short[8]/int[4]/long[2] add/sub needs SSE2 support ({V}PADD[BWDQ], {V}PSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] add/sub needs AVX support (VADDP[SD], VSUBP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+                // (u)byte[32]/short[16]/int[8]/long[4] add/sub needs AVX2 support (VPADD[BWDQ], VPSUB[BWDQ])
+                else if (tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case TOK.mul, TOK.mulAssign:
-            // only floats and short[8]/ushort[8] (PMULLW)
-            if (tvec.isfloating() || tvec.elementType().size(Loc.initial) == 2 ||
-                // int[4]/uint[4] with SSE4.1 (PMULLD)
-                global.params.cpu >= CPU.sse4_1 && tvec.elementType().size(Loc.initial) == 4)
-                supported = true;
-            else
-                supported = false;
+            if (vecsize == 16)
+            {
+                // float[4] multiply needs SSE support ({V}MULPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] multiply needs SSE2 support ({V}MULPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)short[8] multiply needs SSE2 support ({V}PMULLW)
+                else if ((elemty == Tint16 || elemty == Tuns16) && global.params.cpu >= CPU.sse2)
+                    supported = true;
+                // (u)int[4] multiply needs SSE4.1 support ({V}PMULLD)
+                else if ((elemty == Tint32 || elemty == Tuns32) && global.params.cpu >= CPU.sse4_1)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] multiply needs AVX support (VMULP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+                // (u)short[16] multiply needs AVX2 support (VPMULLW)
+                else if ((elemty == Tint16 || elemty == Tuns16) && global.params.cpu >= CPU.avx2)
+                    supported = true;
+                // (u)int[8] multiply needs AVX2 support (VPMULLD)
+                else if ((elemty == Tint32 || elemty == Tuns32) && global.params.cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case TOK.div, TOK.divAssign:
-            supported = tvec.isfloating();
+            if (vecsize == 16)
+            {
+                // float[4] divide needs SSE support ({V}DIVPS)
+                if (elemty == Tfloat32 && global.params.cpu >= CPU.sse)
+                    supported = true;
+                // double[2] divide needs SSE2 support ({V}DIVPD)
+                else if (elemty == Tfloat64 && global.params.cpu >= CPU.sse2)
+                    supported = true;
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] multiply needs AVX support (VDIVP[SD])
+                if (tvec.isfloating() && global.params.cpu >= CPU.avx)
+                    supported = true;
+            }
             break;
 
         case TOK.mod, TOK.modAssign:
@@ -383,7 +510,12 @@ extern (C++) struct Target
             break;
 
         case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
-            supported = tvec.isintegral();
+            // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
+            if (vecsize == 16 && tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                supported = true;
+            // (u)byte[32]/short[16]/int[8]/long[4] bitwise ops needs AVX2 support (VPAND, VPOR, VPXOR)
+            else if (vecsize == 32 && tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                supported = true;
             break;
 
         case TOK.not:
@@ -391,7 +523,12 @@ extern (C++) struct Target
             break;
 
         case TOK.tilde:
-            supported = tvec.isintegral();
+            // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
+            if (vecsize == 16 && tvec.isintegral() && global.params.cpu >= CPU.sse2)
+                supported = true;
+            // (u)byte[32]/short[16]/int[8]/long[4] logical exclusive needs AVX2 support (VPXOR)
+            else if (vecsize == 32 && tvec.isintegral() && global.params.cpu >= CPU.avx2)
+                supported = true;
             break;
 
         case TOK.pow, TOK.powAssign:
@@ -427,9 +564,12 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
-        if (global.params.is64bit && global.params.isWindows)
-            return null;
-        return .toArgTypes(t);
+        if (global.params.is64bit)
+        {
+            // no argTypes for Win64 yet
+            return isPOSIX ? toArgTypes_sysv_x64(t) : null;
+        }
+        return toArgTypes_x86(t);
     }
 
     /**
@@ -485,6 +625,14 @@ extern (C++) struct Target
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
             }
+        }
+        else if (global.params.is64bit && isPOSIX)
+        {
+            TypeTuple tt = .toArgTypes_sysv_x64(tn);
+            if (!tt)
+                return false; // void
+            else
+                return !tt.arguments.dim;
         }
 
     Lagain:
@@ -575,6 +723,16 @@ extern (C++) struct Target
             else
                 return true;
         }
+        else if (global.params.isWindows &&
+                 !global.params.is64bit &&
+                 (tf.linkage == LINK.cpp || tf.linkage == LINK.pascal) &&
+                 tf.isfloating())
+        {
+            /* See DMC++ function exp2_retmethod()
+             * https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dexp2.d#L149
+             */
+            return true;
+        }
         else
         {
             //assert(sz <= 16);
@@ -611,6 +769,63 @@ extern (C++) struct Target
         }
         const sz = t.size(loc);
         return global.params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
+    }
+
+    /**
+     * Determine which `in` parameters needs to be passed by `ref`
+     *
+     * Called from `TypeFunction` semantic with the full function type.
+     * This routine must iterate over parameters, and may set `STC.ref_`
+     * for any parameter which already have `STC.in_`.
+     * This hook must never set `STC.ref_` if the parameter is not `STC.in_`,
+     * nor should it ever change anything else.
+     *
+     * This hook will not be called when `-preview=in` wasn't passed to the
+     * frontend, hence it needs not care about `global.params.previewIn`.
+     *
+     * Params:
+     *   tf    = Type of the function to inspect. The type will have its
+     *           parameter types semantically resolved, however other attributes
+     *           (return type, `@safe` / `nothrow`, etc...) must not be used.
+     */
+    extern(C++) void applyInRefParams (TypeFunction tf)
+    {
+        foreach (_idx, p; tf.parameterList)
+        {
+            // Ignore non-`in` or already-`ref` parameters
+            if ((p.storageClass & (STC.in_ | STC.ref_)) != STC.in_)
+                continue;
+
+            assert(p.type !is null);
+            // If it has a copy constructor / destructor / postblit,
+            // it is always by ref
+            if (p.type.needsDestruction() || p.type.needsCopyOrPostblit())
+                p.storageClass |= STC.ref_;
+            // If the type can't be copied, always by `ref`
+            else if (!p.type.isCopyable())
+                p.storageClass |= STC.ref_;
+            // The Win64 ABI requires x87 real to be passed by ref
+            else if (global.params.isWindows && global.params.is64bit &&
+                     p.type.ty == Tfloat80)
+                p.storageClass |= STC.ref_;
+
+            // If it's a dynamic array, use the value type as it
+            // allows covariance between `in char[]` and `scope const(char)[]`
+            // The same reasoning applies to pointers and classes,
+            // but that is handled by the `(sz > 8)` below.
+            else if (p.type.ty == Tarray)
+                continue;
+            // Pass delegates by value to allow covariance
+            // Function pointers are a single pointers and handled below.
+            else if (p.type.ty == Tdelegate)
+                continue;
+            else
+            {
+                const sz = p.type.size();
+                if (global.params.is64bit ? (sz > 16) : (sz > 8))
+                    p.storageClass |= STC.ref_;
+            }
+        }
     }
 
     // this guarantees `getTargetInfo` and `allTargetInfos` remain in sync
@@ -657,7 +872,7 @@ extern (C++) struct Target
                 }
                 return stringExp("");
             case cppStd.stringof:
-                return new IntegerExp(cast(uint)global.params.cplusplus);
+                return new IntegerExp(global.params.cplusplus);
 
             default:
                 return null;
@@ -856,7 +1071,7 @@ struct TargetCPP
     extern (C++) Type parameterType(Parameter p)
     {
         Type t = p.type.merge2();
-        if (p.storageClass & (STC.out_ | STC.ref_))
+        if (p.isReference())
             t = t.referenceTo();
         else if (p.storageClass & STC.lazy_)
         {

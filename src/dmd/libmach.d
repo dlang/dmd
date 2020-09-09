@@ -64,7 +64,7 @@ final class LibMach : Library
 
     extern (D) this()
     {
-        tab._init(14000);
+        tab._init(14_000);
     }
 
     /***************************************
@@ -497,12 +497,12 @@ extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
     len = sprintf(h.file_time.ptr, "%llu", cast(long)om.file_time);
     assert(len <= 12);
     memset(h.file_time.ptr + len, ' ', 12 - len);
-    if (om.user_id > 999999) // yes, it happens
+    if (om.user_id > 999_999) // yes, it happens
         om.user_id = 0; // don't really know what to do here
     len = sprintf(h.user_id.ptr, "%u", om.user_id);
     assert(len <= 6);
     memset(h.user_id.ptr + len, ' ', 6 - len);
-    if (om.group_id > 999999) // yes, it happens
+    if (om.group_id > 999_999) // yes, it happens
         om.group_id = 0; // don't really know what to do here
     len = sprintf(h.group_id.ptr, "%u", om.group_id);
     assert(len <= 6);

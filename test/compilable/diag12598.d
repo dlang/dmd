@@ -1,5 +1,6 @@
 /*
 REQUIRED_ARGS:
+EXTRA_FILES: imports/diag12598a.d
 TEST_OUTPUT:
 ---
 ---

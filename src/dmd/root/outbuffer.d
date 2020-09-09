@@ -366,12 +366,25 @@ struct OutBuffer
             memset(data.ptr + offset, 0xff, psize - count);
     }
 
-    extern (C++) void printf(const(char)* format, ...) nothrow
+    static if (__VERSION__ < 2092)
     {
-        va_list ap;
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
+        extern (C++) void printf(const(char)* format, ...) nothrow
+        {
+            va_list ap;
+            va_start(ap, format);
+            vprintf(format, ap);
+            va_end(ap);
+        }
+    }
+    else
+    {
+        pragma(printf) extern (C++) void printf(const(char)* format, ...) nothrow
+        {
+            va_list ap;
+            va_start(ap, format);
+            vprintf(format, ap);
+            va_end(ap);
+        }
     }
 
     /**************************************

@@ -2,12 +2,17 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Does strength reduction optimizations on the elem trees,
+ * i.e. rewriting trees to less expensive trees.
+ *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cgelem.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgelem.d
+ *              Add coverage tests to https://github.com/dlang/dmd/blob/master/test/runnable/testcgelem.d
  */
 
 module dmd.backend.cgelem;
@@ -23,6 +28,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
+import dmd.backend.code;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
 import dmd.backend.oper;
@@ -30,6 +36,7 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -345,6 +352,7 @@ private int fcost(const elem *e)
 
         case OPneg:
         case OPabs:
+        case OPtoprec:
             return fcost(e.EV.E1);
 
         case OPvar:
@@ -798,6 +806,11 @@ private elem * elmemset(elem *e, goal_t goal)
 
 /****************************
  * For OPmemcpy
+ *  OPmemcpy
+ *   /   \
+ * s1   OPparam
+ *       /   \
+ *      s2    n
  */
 
 private elem * elmemcpy(elem *e, goal_t goal)
@@ -840,6 +853,18 @@ private elem * elmemcpy(elem *e, goal_t goal)
                 fixside(&e.EV.E1.EV.E1.EV.E1,&e.EV.E2);
             return optelem(e,GOALvalue);
         }
+
+        /+ The following fails the autotester for Linux32 and FreeBSD32
+         + for unknown reasons I cannot reproduce
+        // Convert to memcpy(s1, s2, n)
+        elem* ep = el_params(e.EV.E2.EV.E2, e.EV.E2.EV.E1, e.EV.E1, null);
+        const ty = e.Ety;
+        e.EV.E1 = null;
+        e.EV.E2.EV.E1 = null;
+        e.EV.E2.EV.E2 = null;
+        el_free(e);
+        e = el_bin(OPcall, ty, el_var(getRtlsym(RTLSYM_MEMCPY)), ep);
+         +/
     }
     return e;
 }
@@ -1170,6 +1195,27 @@ private elem * elmin(elem *e, goal_t goal)
             return e;
         }
 
+        // Replace ((e1 + c) - e2) with ((e1 - e2) + c), but not
+        // for floating or far or huge pointers!
+        if (e1.Eoper == OPadd &&
+            cnst(e1.EV.E2) &&
+            (tyintegral(tym) ||
+             tybasic(tym) == TYnptr ||
+             tybasic(tym) == TYsptr ||
+             tybasic(tym) == TYfgPtr ||
+             tybasic(tym) == TYimmutPtr ||
+             tybasic(tym) == TYrestrictPtr ||
+             tybasic(tym) == TYsharePtr)
+           )
+        {
+            e.Eoper = OPadd;
+            e1.Eoper = OPmin;
+            elem* c = e1.EV.E2;
+            e1.EV.E2 = e2;
+            e.EV.E2 = c;
+            return optelem(e,GOALvalue);
+        }
+
         // Replace (e1 + c1) - (e2 + c2) with (e1 - e2) + (c1 - c2), but not
         // for floating or far or huge pointers!
         if (e1.Eoper == OPadd && e2.Eoper == OPadd &&
@@ -1471,7 +1517,8 @@ private elem * elbitwise(elem *e, goal_t goal)
                 e.Eoper == OPand &&
                 ul == 1 &&
                 (e.EV.E1.Eoper == OPshr || e.EV.E1.Eoper == OPashr) &&
-                sz <= REGSIZE
+                sz <= REGSIZE &&
+                tysize(e1.Ety) >= 2     // BT doesn't work on byte operands
                )
             {
                 e.EV.E1.Eoper = OPbtst;
@@ -1619,13 +1666,14 @@ bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
 
 private elem *elor(elem *e, goal_t goal)
 {
+    //printf("elor()\n");
     /* ROL:     (a << shift) | (a >> (sizeof(a) * 8 - shift))
      * ROR:     (a >> shift) | (a << (sizeof(a) * 8 - shift))
      */
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
     uint sz = tysize(e.Ety);
-    if (sz <= _tysize[TYint])
+    if (sz <= REGSIZE)
     {
         if (e1.Eoper == OPshl && e2.Eoper == OPshr &&
             tyuns(e2.EV.E1.Ety) && e2.EV.E2.Eoper == OPmin &&
@@ -1676,6 +1724,82 @@ private elem *elor(elem *e, goal_t goal)
         {
             e1.Eoper = OPror;
             return el_selecte1(e);
+        }
+    }
+
+    /* Recognize the following function and replace it with OPbswap:
+        ushort byteswap(ushort x) { return cast(ushort)(((x >> 8) & 0xFF) | ((x << 8) & 0xFF00)); }
+
+         |  TYunsigned short
+          &  TYshort
+           32_16  TYshort
+            >>  TYint
+             u16_32  TYint
+              var  TYunsigned short  x
+             const  TYint 8L
+           const  TYshort 255
+          &  TYshort
+           <<  TYshort
+            var  TYshort  x
+            const  TYshort 8
+           const  TYshort 0xFF00
+     */
+    if (sz == 2 && OPTIMIZER)
+    {
+        if (e.Eoper == OPor &&
+            e1.Eoper == OPand &&
+            e2.Eoper == OPand)
+        {
+            elem* evar;
+            elem* evar2;
+            auto e11 = e1.EV.E1;
+            auto e12 = e1.EV.E2;
+            if (e11.Eoper == OP32_16 &&
+                e12.Eoper == OPconst && el_tolong(e12) == 0xFF)
+            {
+                auto e111 = e11.EV.E1;
+                if (e111.Eoper == OPshr || e111.Eoper == OPashr)
+                {
+                    auto e1111 = e111.EV.E1;
+                    auto e1112 = e111.EV.E2;
+                    if (e1112.Eoper == OPconst && el_tolong(e1112) == 8 &&
+                        e1111.Eoper == OPu16_32)
+                        evar = e1111.EV.E1;
+                }
+            }
+
+            if (evar)
+            {
+                auto e22 = e2.EV.E2;
+                if (e22.Eoper == OPconst && el_tolong(e22) == 0xFF00)
+                {
+                    auto e21 = e2.EV.E1;
+                    if (e21.Eoper == OPshl)
+                    {
+                        auto e211 = e21.EV.E1;
+                        auto e212 = e21.EV.E2;
+                        if (e212.Eoper == OPconst && el_tolong(e212) == 8)
+                        {
+                            if (el_match5(evar, e211) && !el_sideeffect(e211))
+                            {
+                                evar2 = e211;
+                                e21.EV.E1 = null;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (evar2)
+            {
+                el_free(e1);
+                el_free(e2);
+                e.Eoper = OPbswap;
+                e.EV.E1 = evar2;
+                e.EV.E2 = null;
+                //printf("Matched byteswap(ushort)\n");
+                return e;
+            }
         }
     }
 
@@ -3282,14 +3406,6 @@ elem * elstruct(elem *e, goal_t goal)
 
     uint sz = (e.Eoper == OPstrpar && type_zeroSize(t, global_tyf)) ? 0 : cast(uint)type_size(t);
     //printf("\tsz = %d\n", (int)sz);
-    if (sz == 16)
-    {
-        while (ty == TYarray && t.Tdim == 1)
-        {
-            t = t.Tnext;
-            ty = tybasic(t.Tty);
-        }
-    }
 
     type *targ1 = null;
     type *targ2 = null;
@@ -3299,6 +3415,13 @@ elem * elstruct(elem *e, goal_t goal)
         targ2 = t.Ttag.Sstruct.Sarg2type;
     }
 
+    if (ty == TYarray && sz && config.exe != EX_WIN64)
+    {
+        argtypes(t, targ1, targ2);
+        if (!targ1)
+            goto Ldefault;
+        goto L1;
+    }
     //if (targ1) { printf("targ1\n"); type_print(targ1); }
     //if (targ2) { printf("targ2\n"); type_print(targ2); }
     switch (cast(int)sz)
@@ -3319,7 +3442,7 @@ elem * elstruct(elem *e, goal_t goal)
             {
                  goto L1;
             }
-            if (e.Eoper == OPstrpar && I64 && ty == TYstruct)
+            if (I64 && config.exe != EX_WIN64)
             {
                 goto L1;
             }
@@ -3340,7 +3463,7 @@ elem * elstruct(elem *e, goal_t goal)
         case 13:
         case 14:
         case 15:
-            if (e.Eoper == OPstrpar && I64 && ty == TYstruct && config.exe != EX_WIN64)
+            if (I64 && config.exe != EX_WIN64)
             {
                 goto L1;
             }
@@ -3359,8 +3482,9 @@ elem * elstruct(elem *e, goal_t goal)
             goto Ldefault;
 
         L1:
-            if (ty == TYstruct)
-            {   // This needs to match what TypeFunction::retStyle() does
+            if (ty == TYstruct || ty == TYarray)
+            {
+                // This needs to match what TypeFunction::retStyle() does
                 if (config.exe == EX_WIN64)
                 {
                     //if (t.Ttag.Sstruct.Sflags & STRnotpod)
@@ -3385,13 +3509,38 @@ elem * elstruct(elem *e, goal_t goal)
                         tym = TYcdouble;
                     else
                         tym = TYucent;
+                    if ((0 == tyfloating(targ1.Tty)) ^ (0 == tyfloating(targ2.Tty)))
+                    {
+                        tym |= tyfloating(targ1.Tty) ? mTYxmmgpr : mTYgprxmm;
+                    }
                 }
+                else if (I32 && targ1 && targ2)
+                    tym = TYllong;
                 assert(tym != TYstruct);
             }
             assert(tym != ~0);
             switch (e.Eoper)
             {
                 case OPstreq:
+                    if (sz != tysize(tym))
+                    {
+                        // we can't optimize OPstreq in this case,
+                        // there will be memory corruption in the assignment
+                        elem *e2 = e.EV.E2;
+                        if (e2.Eoper != OPvar && e2.Eoper != OPind)
+                        {
+                            // the source may come in registers. ex: returned from a function.
+                            assert(tyaggregate(e2.Ety));
+                            e2 = optelem(e2, GOALvalue);
+                            e2 = elstruct(e2, GOALvalue);
+                            e2 = exp2_copytotemp(e2); // (tmp = e2, tmp)
+                            e2.EV.E2.EV.Vsym.Sfl = FLauto;
+                            e2.Ety = e2.EV.E2.Ety = e.Ety;
+                            e2.ET = e2.EV.E2.ET = e.ET;
+                            e.EV.E2 = e2;
+                        }
+                        break;
+                    }
                     e.Eoper = OPeq;
                     e.Ety = (e.Ety & ~mTYbasic) | tym;
                     elstructwalk(e.EV.E1,tym);
@@ -3551,8 +3700,15 @@ static if (0)  // Doesn't work too well, removed
         {
             tym_t ty;
 
+            version (MARS)
+                enum side = false; // don't allow side effects in e2.EV.E2 because of
+                                   // D order-of-evaluation rules
+            else
+                enum side = true;  // ok in C and C++
+
             // Replace (e1 = e1 op e) with (e1 op= e)
-            if (el_match(e1,e2.EV.E1))
+            if (el_match(e1,e2.EV.E1) &&
+                (side || !el_sideeffect(e2.EV.E2)))
             {
                 ty = e2.EV.E2.Ety;
                 e.EV.E2 = el_selecte2(e2);
@@ -4054,7 +4210,7 @@ private elem * elcmp(elem *e, goal_t goal)
     elem *e2 = e.EV.E2;
     elem *e1 = e.EV.E1;
 
-  //printf("elcmp(%p)\n",e); elem_print(e);
+    //printf("elcmp(%p)\n",e); elem_print(e);
 
     if (OPTIMIZER)
     {
@@ -4247,6 +4403,19 @@ private elem * elcmp(elem *e, goal_t goal)
                         e2.Ety = TYint;
                         e.Eoper = OPcomma;
                         e = optelem(e,GOALvalue);
+                    }
+                    else
+                    {
+                        if (tyintegral(e1.Ety) && sz == 2 * REGSIZE)
+                        {
+                            // Only need to examine MSW
+                            tym_t ty = sz == 4 ? TYint :
+                                       sz == 8 ? TYint :
+                                                 TYlong;        // for TYcent's
+                            e.EV.E1 = el_una(OPmsw, ty, e1);
+                            e2.Ety = ty;
+                            return optelem(e, GOALvalue);
+                        }
                     }
                     break;
 
@@ -4705,6 +4874,23 @@ private elem * el64_32(elem *e, goal_t goal)
         }
         break;
 
+    case OPmul:
+        static if (TARGET_OSX) // https://issues.dlang.org/show_bug.cgi?id=21047
+            break;
+        else
+            goto case;
+
+    case OPadd:
+    case OPmin:
+    case OPor:
+    case OPand:
+    case OPxor:
+        // OP64_32(a op b) => (OP64_32(a) op OP64_32(b))
+        e1.EV.E1 = el_una(e.Eoper, ty, e1.EV.E1);
+        e1.EV.E2 = el_una(e.Eoper, ty, e1.EV.E2);
+        e = el_selecte1(e);
+        break;
+
     default:
         break;
     }
@@ -4784,17 +4970,42 @@ private elem * el32_64(elem *e, goal_t goal)
 }
 
 /****************************
- * Handle OPu64_d
+ * Handle OPu64_d,
+ *      OPd_ld OPu64_d,
+ *      OPd_f OPu64_d
  */
 
 private elem *elu64_d(elem *e, goal_t goal)
 {
-    if (e.EV.E1.Eoper != OPconst && (I64 || (I32 && config.inline8087)))
+    tym_t ty;
+    elem** pu;
+    if (e.Eoper == OPu64_d)
     {
-        /* Rewrite as:
-         *    u >= 0 ? OPi64_d(u) : OPi64_d(u & 0x7FFF_FFFF_FFFF_FFFF) + 0x8000_0000_0000_0000
+        pu = &e.EV.E1;
+        ty = TYdouble;
+    }
+    else if (e.Eoper == OPd_ld && e.EV.E1.Eoper == OPu64_d)
+    {
+        pu = &e.EV.E1.EV.E1;
+        *pu = optelem(*pu, GOALvalue);
+        ty = TYldouble;
+    }
+    else if (e.Eoper == OPd_f && e.EV.E1.Eoper == OPu64_d)
+    {
+        pu = &e.EV.E1.EV.E1;
+        *pu = optelem(*pu, GOALvalue);
+        ty = TYfloat;
+    }
+
+    if (!pu || (*pu).Eoper == OPconst)
+        return evalu8(e, goal);
+
+    elem* u = *pu;
+    if (config.fpxmmregs && I64 && (ty == TYfloat || ty == TYdouble))
+    {
+        /* Rewrite for SIMD as:
+         *    u >= 0 ? OPs64_d(u) : OPs64_d((u >> 1) | (u & 1)) * 2
          */
-        elem *u = e.EV.E1;
         u.Ety = TYllong;
         elem *u1 = el_copytree(u);
         if (!OTleaf(u.Eoper))
@@ -4803,20 +5014,64 @@ private elem *elu64_d(elem *e, goal_t goal)
 
         u = el_bin(OPge, TYint, u, el_long(TYllong, 0));
 
-        u1 = el_una(OPs64_d, e.Ety, u1);
+        u1 = el_una(OPs64_d, TYdouble, u1);
+        if (ty == TYfloat)
+            u1 = el_una(OPd_f, TYfloat, u1);
 
-        u2 = el_bin(OPand, TYllong, u2, el_long(TYllong, 0x7FFFFFFFFFFFFFFFL));
-        u2 = el_una(OPs64_d, e.Ety, u2);
-        elem *eadjust = el_una(OPu64_d, e.Ety, el_long(TYullong, 0x8000000000000000L));
-        u2 = el_bin(OPadd, e.Ety, u2, eadjust);
+        elem* u3 = el_copytree(u2);
+        u2 = el_bin(OPshr, TYullong, u2, el_long(TYullong, 1));
+        u3 = el_bin(OPand, TYullong, u3, el_long(TYullong, 1));
+        u2 = el_bin(OPor, TYllong, u2, u3);
 
-        e.Eoper = OPcond;
-        e.EV.E1 = u;
-        e.EV.E2 = el_bin(OPcolon, e.Ety, u1, u2);
-        return optelem(e, GOALvalue);
+        u2 = el_una(OPs64_d, TYdouble, u2);
+        if (ty == TYfloat)
+            u2 = el_una(OPd_f, TYfloat, u2);
+
+        u2 = el_bin(OPmul, ty, u2, el_long(ty, 2));
+
+        elem* r = el_bin(OPcond, e.Ety, u, el_bin(OPcolon, e.Ety, u1, u2));
+        *pu = null;
+        el_free(e);
+        return optelem(r, GOALvalue);
     }
-    else
-        return evalu8(e, goal);
+    if (config.inline8087)
+    {
+        /* Rewrite for x87 as:
+         *  u < 0 ? OPs64_d(u) : OPs64_d(u) + 0x1p+64
+         */
+        u.Ety = TYllong;
+        elem *u1 = el_copytree(u);
+        if (!OTleaf(u.Eoper))
+            fixside(&u, &u1);
+
+        elem* eop1 = el_una(OPs64_d, TYdouble, u1);
+        eop1 = el_una(OPd_ld, TYldouble, eop1);
+
+        elem* eoff = el_calloc();
+        eoff.Eoper = OPconst;
+        eoff.Ety = TYldouble;
+        eoff.EV.Vldouble = 0x1p+64;
+
+        elem* u2 = el_copytree(u1);
+        u2 = el_una(OPs64_d, TYdouble, u2);
+        u2 = el_una(OPd_ld, TYldouble, u2);
+
+        elem* eop2 = el_bin(OPadd, TYldouble, u2, eoff);
+
+        elem* r = el_bin(OPcond, TYldouble,
+                        el_bin(OPge, OPbool, u, el_long(TYllong, 0)),
+                        el_bin(OPcolon, TYldouble, eop1, eop2));
+
+        if (ty != TYldouble)
+            r = el_una(OPtoprec, e.Ety, r);
+
+        *pu = null;
+        el_free(e);
+
+        return optelem(r, GOALvalue);
+    }
+
+    return evalu8(e, goal);
 }
 
 
@@ -5676,6 +5931,11 @@ beg:
             return optelem(e,GOALnone);
         }
 
+        if ((op == OPd_f || op == OPd_ld) && e.EV.E1.Eoper == OPu64_d)
+        {
+            return elu64_d(e, goal);
+        }
+
         elem *e1 = e.EV.E1 = optelem(e.EV.E1, (op == OPddtor)
                                                  ? GOALnone
                                                  : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
@@ -5813,6 +6073,8 @@ private elem *elToPair(elem *e)
              */
             tym_t ty0;
             tym_t ty = e.Ety;
+            if (ty & (mTYxmmgpr | mTYgprxmm))
+                break; // register allocation doesn't support it yet.
             switch (tybasic(ty))
             {
                 case TYcfloat:      ty0 = TYfloat  | (ty & ~mTYbasic); goto L1;
@@ -5839,6 +6101,8 @@ private elem *elToPair(elem *e)
              */
             tym_t ty0;
             tym_t ty = e.Ety;
+            if (ty & (mTYxmmgpr | mTYgprxmm))
+                break; // register allocation doesn't support it yet.
             switch (tybasic(ty))
             {
                 case TYcfloat:      ty0 = TYfloat  | (ty & ~mTYbasic); goto L2;
@@ -5966,6 +6230,7 @@ private extern (D) immutable elfp_t[OPMAX] elxxx =
     OPyl2x:    &elzot,
     OPyl2xp1:  &elzot,
     OPcmpxchg:     &elzot,
+    OPtoprec:  &elzot,
     OPrint:    &evalu8,
     OPrndtol:  &evalu8,
     OPstrlen:  &elzot,

@@ -146,8 +146,8 @@ else version (SCPP)
 
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
-enum STRMAX = 65000;           // max length of string (determined by
-                               // max ph size)
+enum STRMAX = 65_000;           // max length of string (determined by
+                                // max ph size)
 
 //enum SC;
 struct Thunk
@@ -820,8 +820,12 @@ struct func_t
 
     char *Fredirect;            // redirect function name to this name in object
 
-    // Array of catch types for EH_DWARF Types Table generation
-    Barray!(Symbol*) typesTable;
+version (SPP) { } else
+{
+    version (MARS)
+        // Array of catch types for EH_DWARF Types Table generation
+        Barray!(Symbol*) typesTable;
+}
 
     union
     {
@@ -1810,6 +1814,7 @@ struct dt_t
     char dt;                            // type (DTxxxx)
     ubyte Dty;                          // pointer type
     ubyte DTn;                          // DTibytes: number of bytes
+    ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
     union
     {
         struct                          // DTibytes

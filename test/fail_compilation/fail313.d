@@ -1,9 +1,10 @@
 /*
+EXTRA_FILES: imports/a313.d imports/b313.d imports/pkg313/package.d
 TEST_OUTPUT:
 ---
-fail_compilation/fail313.d(15): Error: undefined identifier `b313` in package `imports`, perhaps add `static import imports.b313;`
-fail_compilation/fail313.d(22): Error: undefined identifier `core`
-fail_compilation/fail313.d(27): Error: undefined identifier `pkg313` in package `imports`, perhaps add `static import imports.pkg313;`
+fail_compilation/fail313.d(16): Error: undefined identifier `b313` in package `imports`, perhaps add `static import imports.b313;`
+fail_compilation/fail313.d(23): Error: undefined identifier `core`
+fail_compilation/fail313.d(28): Error: undefined identifier `pkg313` in package `imports`, perhaps add `static import imports.pkg313;`
 ---
 */
 module test313;

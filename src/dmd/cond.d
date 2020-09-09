@@ -16,6 +16,7 @@ module dmd.cond;
 import core.stdc.string;
 import dmd.arraytypes;
 import dmd.ast_node;
+import dmd.dcast;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -25,6 +26,7 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
@@ -151,13 +153,22 @@ extern (C++) final class StaticForeach : RootObject
         el = el.ctfeInterpret();
         if (el.op == TOK.int64)
         {
-            dinteger_t length = el.toInteger();
-            auto es = new Expressions();
-            foreach (i; 0 .. length)
+            Expressions *es = void;
+            if (auto ale = aggr.isArrayLiteralExp())
             {
-                auto index = new IntegerExp(loc, i, Type.tsize_t);
-                auto value = new IndexExp(aggr.loc, aggr, index);
-                es.push(value);
+                // Directly use the elements of the array for the TupleExp creation
+                es = ale.elements;
+            }
+            else
+            {
+                const length = cast(size_t)el.toInteger();
+                es = new Expressions(length);
+                foreach (i; 0 .. length)
+                {
+                    auto index = new IntegerExp(loc, i, Type.tsize_t);
+                    auto value = new IndexExp(aggr.loc, aggr, index);
+                    (*es)[i] = value;
+                }
             }
             aggrfe.aggr = new TupleExp(aggr.loc, es);
             aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
@@ -165,7 +176,7 @@ extern (C++) final class StaticForeach : RootObject
         }
         else
         {
-            aggrfe.aggr = new ErrorExp();
+            aggrfe.aggr = ErrorExp.get();
         }
     }
 
@@ -362,13 +373,49 @@ extern (C++) final class StaticForeach : RootObject
         auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
         s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
         s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
-        auto aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
-        sc = sc.startCTFE();
-        aggr = aggr.expressionSemantic(sc);
-        aggr = resolveProperties(sc, aggr);
-        sc = sc.endCTFE();
-        aggr = aggr.optimize(WANTvalue);
-        aggr = aggr.ctfeInterpret();
+
+        Expression aggr = void;
+        Type indexty = void;
+
+        if (rangefe && (indexty = ety.typeSemantic(aloc, sc)).isintegral())
+        {
+            rangefe.lwr.type = indexty;
+            rangefe.upr.type = indexty;
+            auto lwrRange = getIntRange(rangefe.lwr);
+            auto uprRange = getIntRange(rangefe.upr);
+
+            const lwr = rangefe.lwr.toInteger();
+            auto  upr = rangefe.upr.toInteger();
+            size_t length = 0;
+
+            if (lwrRange.imin <= uprRange.imax)
+                    length = cast(size_t) (upr - lwr);
+
+            auto exps = new Expressions(length);
+
+            if (rangefe.op == TOK.foreach_)
+            {
+                foreach (i; 0 .. length)
+                    (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
+            }
+            else
+            {
+                --upr;
+                foreach (i; 0 .. length)
+                    (*exps)[i] = new IntegerExp(aloc, upr - i, indexty);
+            }
+            aggr = new ArrayLiteralExp(aloc, indexty.arrayOf(), exps);
+        }
+        else
+        {
+            aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+            sc = sc.startCTFE();
+            aggr = aggr.expressionSemantic(sc);
+            aggr = resolveProperties(sc, aggr);
+            sc = sc.endCTFE();
+            aggr = aggr.optimize(WANTvalue);
+            aggr = aggr.ctfeInterpret();
+        }
 
         assert(!!aggrfe ^ !!rangefe);
         aggrfe = new ForeachStatement(loc, TOK.foreach_, pparams[2], aggr,

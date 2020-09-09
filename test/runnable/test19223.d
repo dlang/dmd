@@ -1,6 +1,7 @@
-version (D_SIMD)
+
+static if (__traits(compiles, __vector(int[4])))
 {
-    import core.simd;
+    alias int4 = __vector(int[4]);
 
     int fn(const int[4] x)
     {

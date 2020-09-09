@@ -1,4 +1,4 @@
-// EXTRA_SOURCES:
+// EXTRA_FILES: imports/b19762.d imports/c19762.d
 // PERMUTE_ARGS: -g
 
 /*

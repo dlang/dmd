@@ -1,4 +1,5 @@
 /*
+EXTRA_FILES: imports/test15777a.d imports/test15777b.d
 TEST_OUTPUT:
 ---
 int

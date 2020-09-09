@@ -960,7 +960,8 @@ version (SCPP_HTOD)
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
-                f.typesTable.dtor();
+                version (MARS)
+                    f.typesTable.dtor();
                 func_free(f);
             }
             switch (s.Sclass)

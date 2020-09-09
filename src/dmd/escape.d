@@ -89,6 +89,8 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         escapeBy = newPtr[0 .. len];
         escapeByStorage = escapeBy;
     }
+    else
+        escapeBy = escapeBy[0 .. len];
 
     const paramLength = tf.parameterList.length;
 
@@ -103,7 +105,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             if (i < paramLength)
             {
                 eb.param = tf.parameterList[i];
-                refs = (eb.param.storageClass & (STC.out_ | STC.ref_)) != 0;
+                refs = eb.param.isReference();
                 eb.isMutable = eb.param.isReferenceToMutable(arg.type);
             }
             else
@@ -1289,15 +1291,32 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         {
             if (!gag)
             {
-                const(char)* msg;
-                if (v.storage_class & STC.parameter)
-                    msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
+                const(char)* msg, supplemental;
+                if (v.storage_class & STC.parameter &&
+                    (v.type.hasPointers() || v.storage_class & STC.ref_))
+                {
+                    msg = "returning `%s` escapes a reference to parameter `%s`";
+                    supplemental = "perhaps annotate the parameter with `return`";
+                }
                 else
+                {
                     msg = "returning `%s` escapes a reference to local variable `%s`";
+                    if (v.ident is Id.This)
+                        supplemental = "perhaps annotate the function with `return`";
+                }
+
                 if (emitError)
-                    error(e.loc, msg, e.toChars(), v.toChars());
+                {
+                    e.error(msg, e.toChars(), v.toChars());
+                    if (supplemental)
+                        e.errorSupplemental(supplemental);
+                }
                 else
-                    deprecation(e.loc, msg, e.toChars(), v.toChars());
+                {
+                    e.deprecation(msg, e.toChars(), v.toChars());
+                    if (supplemental)
+                        deprecationSupplemental(e.loc, supplemental);
+                }
             }
             result = true;
         }
@@ -1425,10 +1444,8 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
         // Perform 'return' inference on parameter
         if (tf.ty == Tfunction)
         {
-            const dim = tf.parameterList.length;
-            foreach (const i; 0 .. dim)
+            foreach (i, p; tf.parameterList)
             {
-                Parameter p = tf.parameterList[i];
                 if (p.ident == v.ident)
                 {
                     p.storageClass |= STC.return_ | STC.returninferred;
@@ -1731,7 +1748,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 AggregateDeclaration ad;
                 if (global.params.vsafe && tf.isreturn && fd && (ad = fd.isThis()) !is null)
                 {
-                    if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
+                    if (ad.isClassDeclaration() || tf.isScopeQual)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
                     {
@@ -1758,7 +1775,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 // If it's also a nested function that is 'return scope'
                 if (fd && fd.isNested())
                 {
-                    if (tf.isreturn && tf.isscope)
+                    if (tf.isreturn && tf.isScopeQual)
                         er.byexp.push(e);
                 }
             }
@@ -1780,7 +1797,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 FuncDeclaration fd = ve.var.isFuncDeclaration();
                 if (fd && fd.isNested())
                 {
-                    if (tf.isreturn && tf.isscope)
+                    if (tf.isreturn && tf.isScopeQual)
                         er.byexp.push(e);
                 }
             }
@@ -1996,7 +2013,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                     {
                         if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
-                        else if (dve.var.storage_class & STC.scope_ || tf.isscope)
+                        else if (dve.var.storage_class & STC.scope_ || tf.isScopeQual)
                             escapeByValue(dve.e1, er, live);
                     }
                     // If it's also a nested function that is 'return ref'
@@ -2234,7 +2251,7 @@ bool isReferenceToMutable(Type t)
  */
 bool isReferenceToMutable(Parameter p, Type t)
 {
-    if (p.storageClass & (STC.ref_ | STC.out_))
+    if (p.isReference())
     {
         if (p.type.isConst() || p.type.isImmutable())
             return false;

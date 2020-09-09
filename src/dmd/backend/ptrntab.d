@@ -1,11 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/ptrntab.d
  */
 
 module dmd.backend.ptrntab;
@@ -190,7 +191,7 @@ PTRNTAB1[3] aptb1INT= /* INT */ [
         { ASM_END }
 ];
 PTRNTAB1[2] aptb1INVLPG = /* INVLPG */ [         // 486 only instruction
-        { 0x0f01,       _I386|_7, _m8 | _m16 | _m32 | _m48 },
+        { 0x0f01,       _I386|_7, _m48_32_16_8 },
         { ASM_END }
 ];
 
@@ -414,13 +415,13 @@ PTRNTAB1[3]  aptb1XLAT = /* XLAT */ [
         { 0xd7, _modax, _m8 },
         { ASM_END }
 ];
-PTRNTAB1[2]  aptb1CMPXCH8B = /* CMPXCH8B */ [
+PTRNTAB1[2]  aptb1CMPXCHG8B = /* CMPXCHG8B */ [
     { 0x0fc7, _1 | _modaxdx | _I386, _m64 },
         { ASM_END }
 ];
 
-PTRNTAB1[2]  aptb1CMPXCH16B = /* CMPXCH16B */ [
-    { 0x0fc7, _1 | _modaxdx | _64_bit, _m64 },
+PTRNTAB1[2]  aptb1CMPXCHG16B = /* CMPXCHG16B */ [
+    { 0x0fc7, _1 | _modaxdx | _64_bit, _m128 },
         { ASM_END }
 ];
 
@@ -587,9 +588,9 @@ PTRNTAB2[3]  aptb2LDS = /* LDS */ [
 ];
 
 PTRNTAB2[7]  aptb2LEA = /* LEA */ [
-        { 0x8d, _r|_16_bit,             _r16,   _m8 | _m16 | _m32 | _m48 },
-        { 0x8d, _r|_32_bit,             _r32,   _m8 | _m16 | _m32 | _m48 },
-        { 0x8d, _r|_64_bit,             _r64,   _m8 | _m16 | _m32 | _m48 | _m64 },
+        { 0x8d, _r|_16_bit,             _r16,   _m48_32_16_8 },
+        { 0x8d, _r|_32_bit,             _r32,   _m48_32_16_8 },
+        { 0x8d, _r|_64_bit,             _r64,   _m64_48_32_16_8 },
         { 0x8d, _r|_16_bit,             _r16,   _rel16 },
         { 0x8d, _r|_32_bit,             _r32,   _rel32 },
         { 0x8d, _r|_64_bit,             _r64,   _rel32 },
@@ -670,12 +671,12 @@ PTRNTAB2[4]  aptb2MOVS = /* MOVS */ [
         { ASM_END }
 ];
 PTRNTAB2[7]  aptb2MOVSX = /* MOVSX */ [
-        { 0x0fbe,       _r|_16_bit,             _r16,   _rm8 },
-        { 0x0fbe,       _r|_32_bit,             _r32,   _rm8 },
-        { 0x0fbe,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
-        { 0x0fbf,       _r|_16_bit,             _r16,   _rm16 },
-        { 0x0fbf,       _r|_32_bit,             _r32,   _rm16 },
-        { 0x0fbf,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
+        { MOVSXb,       _r|_16_bit,             _r16,   _rm8 },
+        { MOVSXb,       _r|_32_bit,             _r32,   _rm8 },
+        { MOVSXb,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
+        { MOVSXw,       _r|_16_bit,             _r16,   _rm16 },
+        { MOVSXw,       _r|_32_bit,             _r32,   _rm16 },
+        { MOVSXw,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
         { ASM_END }
 ];
 PTRNTAB2[2]  aptb2MOVSXD = /* MOVSXD */ [
@@ -683,12 +684,12 @@ PTRNTAB2[2]  aptb2MOVSXD = /* MOVSXD */ [
         { ASM_END }
 ];
 PTRNTAB2[7]  aptb2MOVZX = /* MOVZX */ [
-        { 0x0fb6,       _r|_16_bit,             _r16,   _rm8 },
-        { 0x0fb6,       _r|_32_bit,             _r32,   _rm8 },
-        { 0x0fb6,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
-        { 0x0fb7,       _r|_16_bit,             _r16,   _rm16 },
-        { 0x0fb7,       _r|_32_bit,             _r32,   _rm16 },
-        { 0x0fb7,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
+        { MOVZXb,       _r|_16_bit,             _r16,   _rm8 },
+        { MOVZXb,       _r|_32_bit,             _r32,   _rm8 },
+        { MOVZXb,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
+        { MOVZXw,       _r|_16_bit,             _r16,   _rm16 },
+        { MOVZXw,       _r|_32_bit,             _r32,   _rm16 },
+        { MOVZXw,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
         { ASM_END }
 ];
 PTRNTAB2[9]  aptb2MUL = /* MUL */ [
@@ -1751,12 +1752,9 @@ PTRNTAB3[2] aptb3VPXOR = /* VPXOR */ [
 
 ////////////////////// New Opcodes /////////////////////////////
 
-static if (0) // Use REP NOP instead
-{
 PTRNTAB0[1] aptb0PAUSE =  /* PAUSE */ [
-        { 0xf390, 0 }
+        { PAUSE, 0 }            // same as REP NOP sequene
 ];
-}
 
 PTRNTAB0[1] aptb0SYSCALL =  /* SYSCALL */ [
         { 0x0f05, _modcxr11 }
@@ -4802,6 +4800,7 @@ PTRNTAB2[2] aptb2SHA256MSG2 = /* SHA256MSG2 */ [
 
 immutable OP[] optab =
 [
+//      opcode string, number of operators, reference to PTRNTAB
         { "__emit",     ITdata | OPdb,  { null } },
         { "_emit",      ITdata | OPdb,  { null } },
         { "aaa",        0,              { aptb0AAA.ptr } },
@@ -4891,8 +4890,8 @@ immutable OP[] optab =
         { "cmpss",      3,              { aptb3CMPSS.ptr } },
         { "cmpsw",      0,              { aptb0CMPSW.ptr } },
         { "cmpxchg",    2,              { aptb2CMPXCHG.ptr } },
-        { "cmpxchg16b", 1,              { aptb1CMPXCH16B.ptr } },
-        { "cmpxchg8b",  1,              { aptb1CMPXCH8B.ptr } },
+        { "cmpxchg16b", 1,              { aptb1CMPXCHG16B.ptr } },
+        { "cmpxchg8b",  1,              { aptb1CMPXCHG8B.ptr } },
         { "comisd",     2,              { aptb2COMISD.ptr } },
         { "comiss",     2,              { aptb2COMISS.ptr } },
         { "cpuid",      0,              { aptb0CPUID.ptr } },
@@ -5215,12 +5214,13 @@ immutable OP[] optab =
         { "palignr",        3,              { aptb3PALIGNR.ptr } },
         { "pand",           2,              { aptb2PAND.ptr } },
         { "pandn",          2,              { aptb2PANDN.ptr } },
-        /* { "pause",       0,              { aptb0PAUSE.ptr } }, */
+        { "pause",          0,              { aptb0PAUSE.ptr } },
         { "pavgb",          2,              { aptb2PAVGB.ptr } },
         { "pavgusb",        2,              { aptb2PAVGUSB.ptr } },
         { "pavgw",          2,              { aptb2PAVGW.ptr } },
         { "pblendvb",       3,              { aptb3PBLENDVB.ptr } },
         { "pblendw",        3,              { aptb3PBLENDW.ptr } },
+        { "pclmulqdq",      3,              { aptb3PCLMULQDQ.ptr } },
         { "pcmpeqb",        2,              { aptb2PCMPEQB.ptr } },
         { "pcmpeqd",        2,              { aptb2PCMPEQD.ptr } },
         { "pcmpeqq",        2,              { aptb2PCMPEQQ.ptr } },

@@ -1,4 +1,5 @@
 // PERMUTE_ARGS: -version=A
+// EXTRA_FILES: imports/link10920a.d
 
 // It's imported but won't be linked.
 import imports.link10920a;

@@ -777,7 +777,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
     //printf("fixresult87(e = %p, retregs = %s, *pretregs = %s)\n", e,regm_str(retregs),regm_str(*pretregs));
     assert(!*pretregs || retregs);
 
-    if (*pretregs & mST01)
+    if ((*pretregs | retregs) & mST01)
     {
         fixresult_complex87(cdb, e, retregs, pretregs);
         return;
@@ -3860,6 +3860,34 @@ void loadPair87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cdb.genf2(0xD9, 0xC8 + 1);   // FXCH ST(1)
     retregs = mST01;
     fixresult_complex87(cdb, e, retregs, pretregs);
+}
+
+/**********************************************
+ * Round 80 bit precision to 32 or 64 bits.
+ * OPtoprec
+ */
+void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+{
+    //printf("cdtoprec: *pretregs = %s\n", regm_str(*pretregs));
+    if (!*pretregs)
+    {
+        codelem(cdb,e.EV.E1,pretregs,false);
+        return;
+    }
+
+    assert(config.inline8087);
+    regm_t retregs = mST0;
+    codelem(cdb,e.EV.E1, &retregs, false);
+    if (*pretregs & mST0)
+    {
+        const tym = tybasic(e.Ety);
+        const sz = _tysize[tym];
+        uint mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
+        cdb.genfltreg(ESC(mf,1),3,0);   // FSTP float/double ptr fltreg
+        genfwait(cdb);
+        cdb.genfltreg(ESC(mf,1),0,0);   // FLD float/double ptr fltreg
+    }
+    fixresult87(cdb, e, retregs, pretregs);
 }
 
 }

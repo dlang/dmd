@@ -914,7 +914,7 @@ void test49()
 {
     int i = void;
     //printf("i = %d\n", i);
-    int[10] a = void;
+    int[10] a;
     foreach (int x; a)
     {
         printf("\tx = %d\n", x);

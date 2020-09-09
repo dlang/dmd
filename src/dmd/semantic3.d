@@ -414,17 +414,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Declare all the function parameters as variables
              * and install them in parameters[]
              */
-            size_t nparams = f.parameterList.length;
-            if (nparams)
+            if (const nparams = f.parameterList.length)
             {
                 /* parameters[] has all the tuples removed, as the back end
                  * doesn't know about tuples
                  */
                 funcdecl.parameters = new VarDeclarations();
                 funcdecl.parameters.reserve(nparams);
-                for (size_t i = 0; i < nparams; i++)
+                foreach (i, fparam; f.parameterList)
                 {
-                    Parameter fparam = f.parameterList[i];
                     Identifier id = fparam.ident;
                     StorageClass stc = 0;
                     if (!id)
@@ -455,7 +453,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if ((funcdecl.flags & FUNCFLAG.inferScope) && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
 
-                    stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                    stc |= fparam.storageClass & (STC.IOR | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
@@ -508,7 +506,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpreinv = null;
             if (funcdecl.addPreInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpreinv = new ExpStatement(Loc.initial, e);
             }
@@ -517,7 +515,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpostinv = null;
             if (funcdecl.addPostInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpostinv = new ExpStatement(Loc.initial, e);
             }
@@ -568,9 +566,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         v.ctorinit = 0;
                     }
                 }
-
-                if (!funcdecl.inferRetType && !target.isReturnOnStack(f, funcdecl.needThis()))
-                    funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
 
@@ -1287,14 +1282,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
-            size_t nfparams = f.parameterList.length;
-            assert(nfparams == funcdecl.parameters.dim);
-            foreach (u, v; *funcdecl.parameters)
+            assert(f.parameterList.length == funcdecl.parameters.dim);
+            foreach (u, p; f.parameterList)
             {
+                auto v = (*funcdecl.parameters)[u];
                 if (v.storage_class & STC.maybescope)
                 {
                     //printf("Inferring scope for %s\n", v.toChars());
-                    Parameter p = f.parameterList[u];
                     notMaybeScope(v);
                     v.storage_class |= STC.scope_ | STC.scopeinferred;
                     p.storageClass |= STC.scope_ | STC.scopeinferred;
@@ -1307,7 +1301,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             notMaybeScope(funcdecl.vthis);
             funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
-            f.isscope = true;
+            f.isScopeQual = true;
             f.isscopeinferred = true;
         }
 
@@ -1354,13 +1348,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         /* If any of the fields of the aggregate have a destructor, add
          *   scope (failure) { this.fieldDtor(); }
-         * as the first statement. It is not necessary to add it after
+         * as the first statement of the constructor (unless the constructor
+         * doesn't define a body - @disable, extern)
+         *.It is not necessary to add it after
          * each initialization of a field, because destruction of .init constructed
          * structs should be benign.
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (ad && ad.fieldDtor && global.params.dtorFields)
+        if (ctor.fbody && ad && ad.fieldDtor && global.params.dtorFields && !ctor.type.toTypeFunction.isnothrow)
         {
             /* Generate:
              *   this.fieldDtor()
@@ -1476,7 +1472,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Evaluate: RTinfo!type
             auto tiargs = new Objects();
             tiargs.push(ad.type);
-            auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
+            auto ti = Pool!TemplateInstance.make(ad.loc, Type.rtinfo, tiargs);
 
             Scope* sc3 = ti.tempdecl._scope.startCTFE();
             sc3.tinst = sc.tinst;

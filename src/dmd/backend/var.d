@@ -184,27 +184,6 @@ int level = 0;                  /* declaration level                    */
 param_t *paramlst = null;       /* function parameter list              */
 tym_t pointertype = TYnptr;     /* default data pointer type            */
 
-/************************
- * Bit masks
- */
-
-const uint[32] mask =
-        [1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,
-         0x10000,0x20000,0x40000,0x80000,0x100000,0x200000,0x400000,0x800000,
-         0x1000000,0x2000000,0x4000000,0x8000000,
-         0x10000000,0x20000000,0x40000000,0x80000000];
-
-static if (0)
-{
-const uint[32] maskl =
-        [1,2,4,8,0x10,0x20,0x40,0x80,
-         0x100,0x200,0x400,0x800,0x1000,0x2000,0x4000,0x8000,
-         0x10000,0x20000,0x40000,0x80000,0x100000,0x200000,0x400000,0x800000,
-         0x1000000,0x2000000,0x4000000,0x8000000,
-         0x10000000,0x20000000,0x40000000,0x80000000];
-}
-
-
 /* From util.c */
 
 /*****************************
@@ -1020,6 +999,7 @@ enum TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
 enum TXaggregate  = [ TYstruct,TYarray ];
 enum TXxmmreg     = [
                      TYfloat,TYdouble,TYifloat,TYidouble,
+                     //TYcfloat,TYcdouble,
                      TYfloat4,TYdouble2,
                      TYschar16,TYuchar16,TYshort8,TYushort8,
                      TYlong4,TYulong4,TYllong2,TYullong2,
@@ -1041,4 +1021,3 @@ enum TXsimd       = [
                      TYlong16,TYulong16,TYllong8,TYullong8,
                      TYfloat16,TYdouble8,
                     ];
-

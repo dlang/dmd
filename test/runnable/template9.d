@@ -1,6 +1,7 @@
 /*
 REQUIRED_ARGS: -preview=rvaluerefparam
 PERMUTE_ARGS:
+EXTRA_FILES: imports/testmangle.d
 TEST_OUTPUT:
 ---
 func

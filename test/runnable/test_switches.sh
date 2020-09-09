@@ -17,7 +17,7 @@ src_file=${OUTPUT_BASE}/src.d
 
 clean()
 {
-    rm -rf ${OUTPUT_BASE}
+    rm_retry -r ${OUTPUT_BASE}
 }
 
 prepare()

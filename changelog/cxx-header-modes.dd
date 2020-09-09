@@ -1,0 +1,22 @@
+C++ header generation omits `Ignored ...` comments by default
+
+The C++ header generated used to write comments when it encountered
+non-`extern(C++)` declarations, e.g.
+
+---
+// test.d
+void foo() {}
+---
+---
+// test.h
+[...]
+// ignoring function test.foo because of linkage
+---
+
+This caused a lot of bloat in the generated header file and is now
+customizable via the `-HC=<mode> switch which accepts either
+`verbose` (write comments) and `silent` (omit comments). The default
+was changed to `silent`.
+
+Note: The header generator is still considerer experimental, so please
+      submit any bugs encountered to [the bug tracker](https://issues.dlang.org).

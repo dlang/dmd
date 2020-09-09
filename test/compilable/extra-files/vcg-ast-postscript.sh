@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-rm -f "${TEST_DIR}/${TEST_NAME}.d.cg"
+source tools/common_funcs.sh
+
+rm_retry "${TEST_DIR}/${TEST_NAME}.d.cg"

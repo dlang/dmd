@@ -40,7 +40,7 @@ fail_compilation/diag14875.d(47): Deprecation: class `diag14875.Dep` is deprecat
 fail_compilation/diag14875.d(51): Deprecation: variable `diag14875.depVar` is deprecated
 4: Dep
 fail_compilation/diag14875.d(58): Deprecation: variable `diag14875.depVar` is deprecated
-fail_compilation/diag14875.d(59): Deprecation: variable `diag14875.Vaz!(Dep).Vaz` is deprecated
+fail_compilation/diag14875.d(59): Deprecation: template `diag14875.Vaz(T)` is deprecated
 ---
 */
 

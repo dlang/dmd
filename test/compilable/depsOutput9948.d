@@ -1,6 +1,7 @@
 /*
 PERMUTE_ARGS:
 REQUIRED_ARGS: -deps
+EXTRA_SOURCES: imports/depsOutput9948a.d imports/depsOutput9948b.d
 TRANSFORM_OUTPUT: remove_lines("druntime")
 TEST_OUTPUT:
 ---

@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// EXTRA_FILES: imports/test15785.d
 /*
 TEST_OUTPUT:
 ---

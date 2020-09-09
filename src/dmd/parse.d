@@ -1347,41 +1347,81 @@ final class Parser(AST) : Lexer
         return a;
     }
 
-    /*********************************************
-     * Give error on redundant/conflicting storage class.
+    /**
+     * Provide an error message if `added` contains storage classes which are
+     * redundant with those in `orig`; otherwise, return the combination.
+     *
+     * Params:
+     *   orig = The already applied storage class.
+     *   added = The new storage class to add to `orig`.
+     *
+     * Returns:
+     *   The combination of both storage classes (`orig | added`).
      */
-    private StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
+    private StorageClass appendStorageClass(StorageClass orig, StorageClass added)
     {
-        if ((storageClass & stc) || (storageClass & STC.in_ && stc & (STC.const_ | STC.scope_)) || (stc & STC.in_ && storageClass & (STC.const_ | STC.scope_)))
+        if (orig & added)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, stc);
+            AST.stcToBuffer(&buf, added);
             error("redundant attribute `%s`", buf.peekChars());
-            return storageClass | stc;
+            return orig | added;
         }
 
-        storageClass |= stc;
+        const Redundant = (STC.const_ | STC.scope_ |
+                           (global.params.previewIn ? STC.ref_ : 0));
+        orig |= added;
 
-        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
+        if ((orig & STC.in_) && (added & Redundant))
         {
-            StorageClass u = storageClass & (STC.const_ | STC.immutable_ | STC.manifest);
+            if (added & STC.const_)
+                error("attribute `const` is redundant with previously-applied `in`");
+            else if (global.params.previewIn)
+            {
+                error("attribute `%s` is redundant with previously-applied `in`",
+                      (orig & STC.scope_) ? "scope".ptr : "ref".ptr);
+            }
+            else
+                error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
+            return orig;
+        }
+
+        if ((added & STC.in_) && (orig & Redundant))
+        {
+            if (orig & STC.const_)
+                error("attribute `in` cannot be added after `const`: remove `const`");
+            else if (global.params.previewIn)
+            {
+                // Windows `printf` does not support `%1$s`
+                const(char*) stc_str = (orig & STC.scope_) ? "scope".ptr : "ref".ptr;
+                error("attribute `in` cannot be added after `%s`: remove `%s`",
+                      stc_str, stc_str);
+            }
+            else
+                error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
+            return orig;
+        }
+
+        if (added & (STC.const_ | STC.immutable_ | STC.manifest))
+        {
+            StorageClass u = orig & (STC.const_ | STC.immutable_ | STC.manifest);
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & (STC.gshared | STC.shared_ | STC.tls))
+        if (added & (STC.gshared | STC.shared_ | STC.tls))
         {
-            StorageClass u = storageClass & (STC.gshared | STC.shared_ | STC.tls);
+            StorageClass u = orig & (STC.gshared | STC.shared_ | STC.tls);
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & STC.safeGroup)
+        if (added & STC.safeGroup)
         {
-            StorageClass u = storageClass & STC.safeGroup;
+            StorageClass u = orig & STC.safeGroup;
             if (u & (u - 1))
                 error("conflicting attribute `@%s`", token.toChars());
         }
 
-        return storageClass;
+        return orig;
     }
 
     /***********************************************
@@ -2889,14 +2929,7 @@ final class Parser(AST) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    if (global.params.inMeansScopeConst)
-                    {
-                        // `in` now means `const scope` as originally intented
-                        stc = STC.const_ | STC.scope_;
-                    }
-                    else
-                        stc = STC.in_;
-
+                    stc = STC.in_;
                     goto L2;
 
                 case TOK.out_:
@@ -2969,7 +3002,7 @@ final class Parser(AST) : Lexer
                     }
                 default:
                     {
-                        stc = storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_);
+                        stc = storageClass & (STC.IOR | STC.lazy_);
                         // if stc is not a power of 2
                         if (stc & (stc - 1) && !(stc == (STC.in_ | STC.ref_)))
                             error("incompatible parameter storage classes");
@@ -3011,7 +3044,7 @@ final class Parser(AST) : Lexer
                             if (hasdefault)
                                 error("default argument expected for `%s`", ai ? ai.toChars() : at.toChars());
                         }
-                        auto param = new AST.Parameter(storageClass, at, ai, ae, null);
+                        auto param = new AST.Parameter(storageClass | STC.parameter, at, ai, ae, null);
                         if (udas)
                         {
                             auto a = new AST.Dsymbols();
@@ -4518,11 +4551,31 @@ final class Parser(AST) : Lexer
                     else
                     {
                         parseAttributes();
-                        // StorageClasses type
+                        // type
                         if (udas)
                             error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
 
                         auto t = parseType();
+
+                        // Disallow meaningless storage classes on type aliases
+                        if (storage_class)
+                        {
+                            // Don't raise errors for STC that are part of a function/delegate type, e.g.
+                            // `alias F = ref pure nothrow @nogc @safe int function();`
+                            auto tp = t.isTypePointer;
+                            const isFuncType = (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
+                            const remStc = isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
+
+                            if (remStc)
+                            {
+                                OutBuffer buf;
+                                AST.stcToBuffer(&buf, remStc);
+                                // @@@DEPRECATED_2.093@@@
+                                // Deprecated in 2020-07, can be made an error in 2.103
+                                deprecation("storage class `%s` has no effect in type aliases", buf.peekChars());
+                            }
+                        }
+
                         v = new AST.AliasDeclaration(loc, ident, t);
                     }
                     if (!attributesAppended)
@@ -4972,7 +5025,7 @@ final class Parser(AST) : Lexer
                 parameterList.parameters = new AST.Parameters();
                 Identifier id = Identifier.generateId("__T");
                 AST.Type t = new AST.TypeIdentifier(loc, id);
-                parameterList.parameters.push(new AST.Parameter(0, t, token.ident, null, null));
+                parameterList.parameters.push(new AST.Parameter(STC.parameter, t, token.ident, null, null));
 
                 tpl = new AST.TemplateParameters();
                 AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
@@ -5530,7 +5583,18 @@ final class Parser(AST) : Lexer
         Lexp:
             {
                 AST.Expression exp = parseExpression();
-                check(TOK.semicolon, "statement");
+                /* https://issues.dlang.org/show_bug.cgi?id=15103
+                 * Improve declaration / initialization syntax error message
+                 * Error: found 'foo' when expecting ';' following statement
+                 * becomes Error: found `(` when expecting `;` or `=`, did you mean `Foo foo = 42`?
+                 */
+                if (token.value == TOK.identifier && exp.op == TOK.identifier)
+                {
+                    error("found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
+                    nextToken();
+                }
+                else
+                    check(TOK.semicolon, "statement");
                 s = new AST.ExpStatement(loc, exp);
                 break;
             }
@@ -7724,12 +7788,12 @@ final class Parser(AST) : Lexer
             break;
 
         case TOK.int32Literal:
-            e = new AST.IntegerExp(loc, cast(d_int32)token.intvalue, AST.Type.tint32);
+            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint32);
             nextToken();
             break;
 
         case TOK.uns32Literal:
-            e = new AST.IntegerExp(loc, cast(d_uns32)token.unsvalue, AST.Type.tuns32);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns32);
             nextToken();
             break;
 
@@ -7827,17 +7891,17 @@ final class Parser(AST) : Lexer
             break;
 
         case TOK.charLiteral:
-            e = new AST.IntegerExp(loc, cast(d_uns8)token.unsvalue, AST.Type.tchar);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tchar);
             nextToken();
             break;
 
         case TOK.wcharLiteral:
-            e = new AST.IntegerExp(loc, cast(d_uns16)token.unsvalue, AST.Type.twchar);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.twchar);
             nextToken();
             break;
 
         case TOK.dcharLiteral:
-            e = new AST.IntegerExp(loc, cast(d_uns32)token.unsvalue, AST.Type.tdchar);
+            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tdchar);
             nextToken();
             break;
 
@@ -7861,8 +7925,10 @@ final class Parser(AST) : Lexer
                             postfix = token.postfix;
                         }
 
-                        error("Implicit string concatenation is deprecated, use %s ~ %s instead",
-                                    prev.toChars(), token.toChars());
+                        error("Implicit string concatenation is error-prone and disallowed in D");
+                        errorSupplemental(token.loc, "Use the explicit syntax instead " ~
+                             "(concatenating literals is `@nogc`): %s ~ %s",
+                             prev.toChars(), token.toChars());
 
                         const len1 = len;
                         const len2 = token.len;

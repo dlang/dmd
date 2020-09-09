@@ -68,6 +68,8 @@ struct Target
     // Objective-C ABI
     TargetObjC objc;
 
+    DString architectureName;    // name of the platform architecture (e.g. X86_64)
+
     template <typename T>
     struct FPTypeProperties
     {
@@ -106,6 +108,7 @@ public:
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     d_uns64 parameterSize(const Loc& loc, Type *t);
+    void applyInRefParams(TypeFunction *tf);
     Expression *getTargetInfo(const char* name, const Loc& loc);
 };
 

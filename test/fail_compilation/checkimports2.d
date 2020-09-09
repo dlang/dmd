@@ -1,4 +1,4 @@
-// REQUIRED_ARGS:
+// EXTRA_FILES: imports/imp1.d imports/imp2.d
 /*
 TEST_OUTPUT:
 ---

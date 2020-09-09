@@ -1227,10 +1227,10 @@ private:
         }
         else
         {
-            int mangleParameterDg(size_t n, Parameter p)
+            foreach (n, p; type.parameterList)
             {
                 Type t = p.type;
-                if (p.storageClass & (STC.out_ | STC.ref_))
+                if (p.isReference())
                 {
                     t = t.referenceTo();
                 }
@@ -1250,10 +1250,8 @@ private:
                 tmp.flags &= ~IS_NOT_TOP_TYPE;
                 tmp.flags &= ~IGNORE_CONST;
                 t.accept(tmp);
-                return 0;
             }
 
-            Parameter._foreach(type.parameterList.parameters, &mangleParameterDg);
             if (type.parameterList.varargs == VarArg.variadic)
             {
                 tmp.buf.writeByte('Z');

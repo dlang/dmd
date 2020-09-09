@@ -5,6 +5,9 @@ DFLAGS=-m$(MODEL)
 EXAMPLES = hello d2html dhry pi sieve wc wc2 \
 	winsamp dserver$(MODEL) mydll$(MODEL) htmlget listener
 
+auto-tester-test:
+	echo "Windows builds have been disabled"
+
 all: $(EXAMPLES)
 	echo done
 

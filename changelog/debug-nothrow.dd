@@ -1,0 +1,14 @@
+Exception-throwing code can now be used in debug blocks
+
+When writing debug code, one isn't interested statically ensuring that a function block doesn't `throw`,
+but a pleasant debugging experience as e.g. writing to the console or logfiles typically can't be `nothrow`.
+DMD already allowed to escape `pure` and `@nogc` within `debug` statement.
+With this release, exception-throwing code can be called from `debug` statements too:
+
+---
+import std.stdio;
+void main() nothrow
+{
+    debug writeln("Your throwing log statement.");
+}
+---

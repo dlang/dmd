@@ -10,7 +10,7 @@ import std.format : format;
 import std.getopt : getopt;
 import std.path : absolutePath, buildPath, dirSeparator, stripExtension,
     setExtension;
-import std.process : environment, spawnProcess, spawnShell, wait;
+import std.process : environment, execute;
 import std.range : empty;
 import std.stdio;
 import std.string : join, outdent;
@@ -288,18 +288,6 @@ bool missingTestFiles(Range)(Range givenFiles)
     return false;
 }
 
-void execute(const string[] args ...)
-{
-    try
-    {
-        enforce(spawnProcess(args).wait() == 0);
-    }
-    catch(Exception e)
-    {
-        throw new Exception("Failed to execute command: " ~ args.join(" "), e);
-    }
-}
-
 bool usesOptlink()
 {
     version (DigitalMars)
@@ -331,7 +319,32 @@ int main(string[] args)
     const outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
     writeCmdfile(cmdfilePath, runnerPath, outputPath, testFiles);
 
-    execute(dmdPath, "@" ~ cmdfilePath);
+    scope const compile = [ dmdPath, "@" ~ cmdfilePath ];
+    const dmd = execute(compile);
+    if (dmd.status)
+    {
+        enum msg = "Failed to compile the `unit` test executable! (exit code %d)
 
-    return spawnProcess(outputPath).wait();
+> %-(%s %)
+%s";
+        // Build the string in advance to avoid cluttering
+        writeln(format(msg, dmd.status, compile, dmd.output));
+        return 1;
+    }
+
+    const test = execute(outputPath);
+    if (test.status)
+    {
+        enum msg = "Failed to execute the `unit` test executable! (exit code %d)
+
+> %-(%s %)
+%s
+> %s
+%s";
+        // Build the string in advance to avoid cluttering
+        writeln(format(msg, test.status, compile, dmd.output, outputPath, test.output));
+        return 1;
+    }
+
+    return 0;
 }

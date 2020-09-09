@@ -267,6 +267,7 @@ void obj_start(const(char)* srcfile)
     el_reset();
     cg87_reset();
     out_reset();
+    objc.reset();
 }
 
 
@@ -374,7 +375,37 @@ void genObjFile(Module m, bool multiobj)
         m.cov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
-        dtb.nzeros(4 * m.numlines);
+
+        if (m.ctfe_cov)
+        {
+            // initalize the uint[] __coverage symbol with data from ctfe.
+            static extern (C) int comp_uints (const scope void* a, const scope void* b)
+                { return (*cast(uint*) a) - (*cast(uint*) b); }
+
+            uint[] sorted_lines = m.ctfe_cov.keys;
+            qsort(sorted_lines.ptr, sorted_lines.length, sorted_lines[0].sizeof,
+                &comp_uints);
+
+            uint lastLine = 0;
+            foreach (line;sorted_lines)
+            {
+                // zero fill from last line to line.
+                if (line)
+                {
+                    assert(line > lastLine);
+                    dtb.nzeros((line - lastLine - 1) * 4);
+                }
+                dtb.dword(m.ctfe_cov[line]);
+                lastLine = line;
+            }
+            // zero fill from last line to end
+            if (m.numlines > lastLine)
+                dtb.nzeros((m.numlines - lastLine) * 4);
+        }
+        else
+        {
+            dtb.nzeros(4 * m.numlines);
+        }
         m.cov.Sdt = dtb.finish();
 
         outdata(m.cov);
@@ -494,194 +525,6 @@ void genObjFile(Module m, bool multiobj)
 
 
 
-/**************************************
- * Search for a druntime array op
- */
-private bool isDruntimeArrayOp(Identifier ident)
-{
-    /* Some of the array op functions are written as library functions,
-     * presumably to optimize them with special CPU vector instructions.
-     * List those library functions here, in alpha order.
-     */
-    __gshared const(char)*[143] libArrayopFuncs =
-    [
-        "_arrayExpSliceAddass_a",
-        "_arrayExpSliceAddass_d",
-        "_arrayExpSliceAddass_f",           // T[]+=T
-        "_arrayExpSliceAddass_g",
-        "_arrayExpSliceAddass_h",
-        "_arrayExpSliceAddass_i",
-        "_arrayExpSliceAddass_k",
-        "_arrayExpSliceAddass_s",
-        "_arrayExpSliceAddass_t",
-        "_arrayExpSliceAddass_u",
-        "_arrayExpSliceAddass_w",
-
-        "_arrayExpSliceDivass_d",           // T[]/=T
-        "_arrayExpSliceDivass_f",           // T[]/=T
-
-        "_arrayExpSliceMinSliceAssign_a",
-        "_arrayExpSliceMinSliceAssign_d",   // T[]=T-T[]
-        "_arrayExpSliceMinSliceAssign_f",   // T[]=T-T[]
-        "_arrayExpSliceMinSliceAssign_g",
-        "_arrayExpSliceMinSliceAssign_h",
-        "_arrayExpSliceMinSliceAssign_i",
-        "_arrayExpSliceMinSliceAssign_k",
-        "_arrayExpSliceMinSliceAssign_s",
-        "_arrayExpSliceMinSliceAssign_t",
-        "_arrayExpSliceMinSliceAssign_u",
-        "_arrayExpSliceMinSliceAssign_w",
-
-        "_arrayExpSliceMinass_a",
-        "_arrayExpSliceMinass_d",           // T[]-=T
-        "_arrayExpSliceMinass_f",           // T[]-=T
-        "_arrayExpSliceMinass_g",
-        "_arrayExpSliceMinass_h",
-        "_arrayExpSliceMinass_i",
-        "_arrayExpSliceMinass_k",
-        "_arrayExpSliceMinass_s",
-        "_arrayExpSliceMinass_t",
-        "_arrayExpSliceMinass_u",
-        "_arrayExpSliceMinass_w",
-
-        "_arrayExpSliceMulass_d",           // T[]*=T
-        "_arrayExpSliceMulass_f",           // T[]*=T
-        "_arrayExpSliceMulass_i",
-        "_arrayExpSliceMulass_k",
-        "_arrayExpSliceMulass_s",
-        "_arrayExpSliceMulass_t",
-        "_arrayExpSliceMulass_u",
-        "_arrayExpSliceMulass_w",
-
-        "_arraySliceExpAddSliceAssign_a",
-        "_arraySliceExpAddSliceAssign_d",   // T[]=T[]+T
-        "_arraySliceExpAddSliceAssign_f",   // T[]=T[]+T
-        "_arraySliceExpAddSliceAssign_g",
-        "_arraySliceExpAddSliceAssign_h",
-        "_arraySliceExpAddSliceAssign_i",
-        "_arraySliceExpAddSliceAssign_k",
-        "_arraySliceExpAddSliceAssign_s",
-        "_arraySliceExpAddSliceAssign_t",
-        "_arraySliceExpAddSliceAssign_u",
-        "_arraySliceExpAddSliceAssign_w",
-
-        "_arraySliceExpDivSliceAssign_d",   // T[]=T[]/T
-        "_arraySliceExpDivSliceAssign_f",   // T[]=T[]/T
-
-        "_arraySliceExpMinSliceAssign_a",
-        "_arraySliceExpMinSliceAssign_d",   // T[]=T[]-T
-        "_arraySliceExpMinSliceAssign_f",   // T[]=T[]-T
-        "_arraySliceExpMinSliceAssign_g",
-        "_arraySliceExpMinSliceAssign_h",
-        "_arraySliceExpMinSliceAssign_i",
-        "_arraySliceExpMinSliceAssign_k",
-        "_arraySliceExpMinSliceAssign_s",
-        "_arraySliceExpMinSliceAssign_t",
-        "_arraySliceExpMinSliceAssign_u",
-        "_arraySliceExpMinSliceAssign_w",
-
-        "_arraySliceExpMulSliceAddass_d",   // T[] += T[]*T
-        "_arraySliceExpMulSliceAddass_f",
-        "_arraySliceExpMulSliceAddass_r",
-
-        "_arraySliceExpMulSliceAssign_d",   // T[]=T[]*T
-        "_arraySliceExpMulSliceAssign_f",   // T[]=T[]*T
-        "_arraySliceExpMulSliceAssign_i",
-        "_arraySliceExpMulSliceAssign_k",
-        "_arraySliceExpMulSliceAssign_s",
-        "_arraySliceExpMulSliceAssign_t",
-        "_arraySliceExpMulSliceAssign_u",
-        "_arraySliceExpMulSliceAssign_w",
-
-        "_arraySliceExpMulSliceMinass_d",   // T[] -= T[]*T
-        "_arraySliceExpMulSliceMinass_f",
-        "_arraySliceExpMulSliceMinass_r",
-
-        "_arraySliceSliceAddSliceAssign_a",
-        "_arraySliceSliceAddSliceAssign_d", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_f", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_g",
-        "_arraySliceSliceAddSliceAssign_h",
-        "_arraySliceSliceAddSliceAssign_i",
-        "_arraySliceSliceAddSliceAssign_k",
-        "_arraySliceSliceAddSliceAssign_r", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_s",
-        "_arraySliceSliceAddSliceAssign_t",
-        "_arraySliceSliceAddSliceAssign_u",
-        "_arraySliceSliceAddSliceAssign_w",
-
-        "_arraySliceSliceAddass_a",
-        "_arraySliceSliceAddass_d",         // T[]+=T[]
-        "_arraySliceSliceAddass_f",         // T[]+=T[]
-        "_arraySliceSliceAddass_g",
-        "_arraySliceSliceAddass_h",
-        "_arraySliceSliceAddass_i",
-        "_arraySliceSliceAddass_k",
-        "_arraySliceSliceAddass_s",
-        "_arraySliceSliceAddass_t",
-        "_arraySliceSliceAddass_u",
-        "_arraySliceSliceAddass_w",
-
-        "_arraySliceSliceMinSliceAssign_a",
-        "_arraySliceSliceMinSliceAssign_d", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_f", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_g",
-        "_arraySliceSliceMinSliceAssign_h",
-        "_arraySliceSliceMinSliceAssign_i",
-        "_arraySliceSliceMinSliceAssign_k",
-        "_arraySliceSliceMinSliceAssign_r", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_s",
-        "_arraySliceSliceMinSliceAssign_t",
-        "_arraySliceSliceMinSliceAssign_u",
-        "_arraySliceSliceMinSliceAssign_w",
-
-        "_arraySliceSliceMinass_a",
-        "_arraySliceSliceMinass_d",         // T[]-=T[]
-        "_arraySliceSliceMinass_f",         // T[]-=T[]
-        "_arraySliceSliceMinass_g",
-        "_arraySliceSliceMinass_h",
-        "_arraySliceSliceMinass_i",
-        "_arraySliceSliceMinass_k",
-        "_arraySliceSliceMinass_s",
-        "_arraySliceSliceMinass_t",
-        "_arraySliceSliceMinass_u",
-        "_arraySliceSliceMinass_w",
-
-        "_arraySliceSliceMulSliceAssign_d", // T[]=T[]*T[]
-        "_arraySliceSliceMulSliceAssign_f", // T[]=T[]*T[]
-        "_arraySliceSliceMulSliceAssign_i",
-        "_arraySliceSliceMulSliceAssign_k",
-        "_arraySliceSliceMulSliceAssign_s",
-        "_arraySliceSliceMulSliceAssign_t",
-        "_arraySliceSliceMulSliceAssign_u",
-        "_arraySliceSliceMulSliceAssign_w",
-
-        "_arraySliceSliceMulass_d",         // T[]*=T[]
-        "_arraySliceSliceMulass_f",         // T[]*=T[]
-        "_arraySliceSliceMulass_i",
-        "_arraySliceSliceMulass_k",
-        "_arraySliceSliceMulass_s",
-        "_arraySliceSliceMulass_t",
-        "_arraySliceSliceMulass_u",
-        "_arraySliceSliceMulass_w",
-    ];
-    const(char)* name = ident.toChars();
-    int i = binary(name, libArrayopFuncs.ptr, libArrayopFuncs.length);
-    if (i != -1)
-        return true;
-
-    debug    // Make sure our array is alphabetized
-    {
-        foreach (s; libArrayopFuncs)
-        {
-            if (strcmp(name, s) == 0)
-                assert(0);
-        }
-    }
-    return false;
-}
-
-
 /* ================================================================== */
 
 private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
@@ -781,12 +624,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    if (fd.isArrayOp && isDruntimeArrayOp(fd.ident))
-    {
-        // Implementation is in druntime
-        return;
-    }
-
     // start code generation
     fd.semanticRun = PASS.obj;
 
@@ -838,11 +675,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             break;
         }
     }
-
-    /* Vector operations should be comdat's
-     */
-    if (fd.isArrayOp)
-        s.Sclass = SCcomdat;
 
     if (fd.inlinedNestedCallees)
     {
@@ -952,7 +784,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
         pi += fd.parameters.dim;
-    if (fd.selector)
+    if (fd.objc.selector)
         pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
     Symbol*[10] paramsbuf = void;
@@ -1092,7 +924,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * 2. impact on function inlining
      * 3. what to do when writing out .di files, or other pretty printing
      */
-    if (global.params.trace && !fd.isCMain() && !fd.naked)
+    if (global.params.trace && !fd.isCMain() && !fd.naked && !(fd.hasReturnExp & 8))
     {
         /* The profiler requires TLS, and TLS may not be set up yet when C main()
          * gets control (i.e. OSX), leading to a crash.

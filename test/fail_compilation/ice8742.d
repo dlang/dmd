@@ -1,8 +1,7 @@
-// PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice8742.d(16): Error: class `ice8742.main.__anonclass1` is nested within `main`, but super class `D` is nested within `C`
+fail_compilation/ice8742.d(15): Error: class `ice8742.main.__anonclass1` is nested within `main`, but super class `D` is nested within `C`
 ---
 */
 class C

@@ -704,7 +704,7 @@ extern (C++) abstract class Expression : ASTNode
         }
 
         // memory never freed, so can use the faster bump-pointer-allocation
-        e = cast(Expression)_d_allocmemory(size);
+        e = cast(Expression)allocmemory(size);
         //printf("Expression::copy(op = %d) e = %p\n", op, e);
         return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
     }
@@ -730,47 +730,96 @@ extern (C++) abstract class Expression : ASTNode
         return buf.extractChars();
     }
 
-    final void error(const(char)* format, ...) const
+    static if (__VERSION__ < 2092)
     {
-        if (type != Type.terror)
+        final void error(const(char)* format, ...) const
         {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .verror(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        final void errorSupplemental(const(char)* format, ...)
+        {
+            if (type == Type.terror)
+                return;
+
             va_list ap;
             va_start(ap, format);
-            .verror(loc, format, ap);
+            .verrorSupplemental(loc, format, ap);
             va_end(ap);
         }
-    }
 
-    final void errorSupplemental(const(char)* format, ...)
-    {
-        if (type == Type.terror)
-            return;
-
-        va_list ap;
-        va_start(ap, format);
-        .verrorSupplemental(loc, format, ap);
-        va_end(ap);
-    }
-
-    final void warning(const(char)* format, ...) const
-    {
-        if (type != Type.terror)
+        final void warning(const(char)* format, ...) const
         {
-            va_list ap;
-            va_start(ap, format);
-            .vwarning(loc, format, ap);
-            va_end(ap);
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vwarning(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        final void deprecation(const(char)* format, ...) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vdeprecation(loc, format, ap);
+                va_end(ap);
+            }
         }
     }
-
-    final void deprecation(const(char)* format, ...) const
+    else
     {
-        if (type != Type.terror)
+        pragma(printf) final void error(const(char)* format, ...) const
         {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .verror(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        pragma(printf) final void errorSupplemental(const(char)* format, ...)
+        {
+            if (type == Type.terror)
+                return;
+
             va_list ap;
             va_start(ap, format);
-            .vdeprecation(loc, format, ap);
+            .verrorSupplemental(loc, format, ap);
             va_end(ap);
+        }
+
+        pragma(printf) final void warning(const(char)* format, ...) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vwarning(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        pragma(printf) final void deprecation(const(char)* format, ...) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .vdeprecation(loc, format, ap);
+                va_end(ap);
+            }
         }
     }
 
@@ -917,7 +966,7 @@ extern (C++) abstract class Expression : ASTNode
         else
             error("`%s` is not an lvalue and cannot be modified", e.toChars());
 
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     Expression modifiableLvalue(Scope* sc, Expression e)
@@ -940,18 +989,18 @@ extern (C++) abstract class Expression : ASTNode
                         if (!ff.type.isMutable)
                         {
                             error("cannot modify `%s` in `%s` function", toChars(), MODtoChars(type.mod));
-                            return new ErrorExp();
+                            return ErrorExp.get();
                         }
                     }
                 }
                 error("cannot modify `%s` expression `%s`", MODtoChars(type.mod), toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             else if (!type.isAssignable())
             {
                 error("cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
                     toChars(), type.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
         }
         return toLvalue(sc, e);
@@ -1107,9 +1156,91 @@ extern (C++) abstract class Expression : ASTNode
             error("`pure` %s `%s` cannot call impure %s `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 f.toPrettyChars());
+
+            checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
             return true;
         }
         return false;
+    }
+
+    /**
+     * Checks whether `f` is a generated `DtorDeclaration` that hides a user-defined one
+     * which passes `check` while `f` doesn't (e.g. when the user defined dtor is pure but
+     * the generated dtor is not).
+     * In that case the method will identify and print all members causing the attribute
+     * missmatch.
+     *
+     * Params:
+     *   sc = scope
+     *   f  = potential `DtorDeclaration`
+     *   check = current check (e.g. whether it's pure)
+     *   checkName = the kind of check (e.g. `"pure"`)
+     */
+    extern (D) void checkOverridenDtor(Scope* sc, FuncDeclaration f,
+                scope bool function(DtorDeclaration) check, const string checkName
+    ) {
+        auto dd = f.isDtorDeclaration();
+        if (!dd || !dd.generated)
+            return;
+
+        // DtorDeclaration without parents should fail at an earlier stage
+        auto ad = cast(AggregateDeclaration) f.toParent2();
+        assert(ad);
+        assert(ad.dtors.length);
+
+        // Search for the user-defined destructor (if any)
+        foreach(dtor; ad.dtors)
+        {
+            if (dtor.generated)
+                continue;
+
+            if (!check(dtor)) // doesn't match check (e.g. is impure as well)
+                return;
+
+            // Sanity check
+            assert(!check(cast(DtorDeclaration) ad.fieldDtor));
+            break;
+        }
+
+        dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
+                            dd.generated ? "generated " : "".ptr,
+                            ad.toChars,
+                            cast(int) checkName.length, checkName.ptr);
+
+        // Search for the offending fields
+        foreach (field; ad.fields)
+        {
+            // Only structs may define automatically called destructors
+            auto ts = field.type.isTypeStruct();
+            if (!ts)
+            {
+                // But they might be part of a static array
+                auto ta = field.type.isTypeSArray();
+                if (!ta)
+                    continue;
+
+                ts = ta.baseElemOf().isTypeStruct();
+                if (!ts)
+                    continue;
+            }
+
+            auto fieldSym = ts.toDsymbol(sc);
+            assert(fieldSym); // Resolving ts must succeed because missing defs. should error before
+
+            auto fieldSd = fieldSym.isStructDeclaration();
+            assert(fieldSd); // ts is a TypeStruct, this would imply a malformed ASR
+
+            if (fieldSd.dtor && !check(fieldSd.dtor))
+            {
+                field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
+
+                if (fieldSd.dtor.generated)
+                    checkOverridenDtor(sc, fieldSd.dtor, check, checkName);
+                else
+                    fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
+                                            cast(int) checkName.length, checkName.ptr, fieldSd.toChars());
+            }
+        }
     }
 
     /*******************************************
@@ -1266,6 +1397,9 @@ extern (C++) abstract class Expression : ASTNode
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                     prettyChars);
                 .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+
+                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
+
                 return true;
             }
         }
@@ -1301,6 +1435,9 @@ extern (C++) abstract class Expression : ASTNode
                 if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT))
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+
+                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+
                 return true;
             }
         }
@@ -1383,9 +1520,10 @@ extern (C++) abstract class Expression : ASTNode
             break;
         }
 
-        error("read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead.", Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
-
-         return true;
+        error("read-modify-write operations are not allowed for `shared` variables");
+        errorSupplemental("Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
+                          Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
+        return true;
     }
 
     /***************************************
@@ -1447,7 +1585,7 @@ extern (C++) abstract class Expression : ASTNode
         {
             if (tb != Type.terror)
                 error("expression `%s` of type `%s` does not have a boolean value", toChars(), t.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         return e;
     }
@@ -1635,8 +1773,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(EqualExp)    isEqualExp() { return (op == TOK.equal || op == TOK.notEqual) ? cast(typeof(return))this : null; }
         inout(IdentityExp) isIdentityExp() { return (op == TOK.identity || op == TOK.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == TOK.question ? cast(typeof(return))this : null; }
-
-        inout(DefaultInitExp)    isDefaultInitExp() { return op == TOK.default_ ? cast(typeof(return))this : null; }
+        inout(DefaultInitExp)    isDefaultInitExp() { return isDefaultInitOp(op) ? cast(typeof(return))this: null; }
         inout(FileInitExp)       isFileInitExp() { return (op == TOK.file || op == TOK.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == TOK.line ? cast(typeof(return))this : null; }
         inout(ModuleInitExp)     isModuleInitExp() { return op == TOK.moduleString ? cast(typeof(return))this : null; }
@@ -1745,7 +1882,7 @@ extern (C++) final class IntegerExp : Expression
         else if (!loc.isValid())
             loc = e.loc;
         e.error("cannot modify constant `%s`", e.toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     override void accept(Visitor v)
@@ -1872,19 +2009,27 @@ extern (C++) final class IntegerExp : Expression
  */
 extern (C++) final class ErrorExp : Expression
 {
-    extern (D) this()
+    private extern (D) this()
     {
+        super(Loc.initial, TOK.error, __traits(classInstanceSize, ErrorExp));
+        type = Type.terror;
+    }
+
+    static ErrorExp get ()
+    {
+        if (errorexp is null)
+            errorexp = new ErrorExp();
+
         if (global.errors == 0 && global.gaggedErrors == 0)
         {
-             /* Unfortunately, errors can still leak out of gagged errors,
+            /* Unfortunately, errors can still leak out of gagged errors,
               * and we need to set the error count to prevent bogus code
               * generation. At least give a message.
               */
-             error("unknown, please file report on issues.dlang.org");
+            .error(Loc.initial, "unknown, please file report on issues.dlang.org");
         }
 
-        super(Loc.initial, TOK.error, __traits(classInstanceSize, ErrorExp));
-        type = Type.terror;
+        return errorexp;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
@@ -2237,8 +2382,6 @@ extern (C++) final class SuperExp : ThisExp
  */
 extern (C++) final class NullExp : Expression
 {
-    ubyte committed;    // !=0 if type is committed
-
     extern (D) this(const ref Loc loc, Type type = null)
     {
         super(loc, TOK.null_, __traits(classInstanceSize, NullExp));
@@ -2602,7 +2745,7 @@ extern (C++) final class StringExp : Expression
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         error("cannot modify string literal `%s`", toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     uint charAt(uinteger_t i) const
@@ -3451,8 +3594,8 @@ extern (C++) final class NewAnonClassExp : Expression
 extern (C++) class SymbolExp : Expression
 {
     Declaration var;
-    bool hasOverloads;
     Dsymbol originalScope; // original scope before inlining
+    bool hasOverloads;
 
     extern (D) this(const ref Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
     {
@@ -3555,22 +3698,22 @@ extern (C++) final class VarExp : SymbolExp
         if (var.storage_class & STC.manifest)
         {
             error("manifest constant `%s` cannot be modified", var.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (var.storage_class & STC.lazy_ && !delegateWasExtracted)
         {
             error("lazy variable `%s` cannot be modified", var.toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (var.ident == Id.ctfe)
         {
             error("cannot modify compiler-generated variable `__ctfe`");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
             error("cannot modify operator `$`");
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         return this;
     }
@@ -3581,7 +3724,7 @@ extern (C++) final class VarExp : SymbolExp
         if (var.storage_class & STC.manifest)
         {
             error("cannot modify manifest constant `%s`", toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         // See if this expression is a modifiable lvalue (i.e. not const)
         return Expression.modifiableLvalue(sc, e);
@@ -3773,7 +3916,7 @@ extern (C++) final class FuncExp : Expression
             TypeFunction tf = fd.type.isTypeFunction();
             //printf("\ttof = %s\n", tof.toChars());
             //printf("\ttf  = %s\n", tf.toChars());
-            size_t dim = tf.parameterList.length;
+            const dim = tf.parameterList.length;
 
             if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
                 return cannotInfer(this, to, flag);
@@ -3784,14 +3927,13 @@ extern (C++) final class FuncExp : Expression
             foreach (tp; *td.parameters)
             {
                 size_t u = 0;
-                for (; u < dim; u++)
+                foreach (i, p; tf.parameterList)
                 {
-                    Parameter p = tf.parameterList[u];
                     if (auto ti = p.type.isTypeIdentifier())
                         if (ti && ti.ident == tp.ident)
-                        {
                             break;
-                        }
+
+                    ++u;
                 }
                 assert(u < dim);
                 Parameter pto = tof.parameterList[u];
@@ -3805,7 +3947,7 @@ extern (C++) final class FuncExp : Expression
             if (!tf.next && tof.next)
                 fd.treq = to;
 
-            auto ti = new TemplateInstance(loc, td, tiargs);
+            auto ti = Pool!TemplateInstance.make(loc, td, tiargs);
             Expression ex = (new ScopeExp(loc, ti)).expressionSemantic(td._scope);
 
             // Reset inference target for the later re-semantic
@@ -3848,7 +3990,8 @@ extern (C++) final class FuncExp : Expression
             tfy.purity = tfx.purity;
             tfy.isproperty = tfx.isproperty;
             tfy.isref = tfx.isref;
-            tfy.iswild = tfx.iswild;
+            tfy.isInOutParam = tfx.isInOutParam;
+            tfy.isInOutQual = tfx.isInOutQual;
             tfy.deco = tfy.merge().deco;
 
             tfx = tfy;
@@ -4111,7 +4254,7 @@ extern (C++) abstract class UnaExp : Expression
         {
             error("incompatible type for `%s(%s)`: `%s`", Token.toChars(op), e1.toChars(), e1.type.toChars());
         }
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     /*********************
@@ -4197,7 +4340,7 @@ extern (C++) abstract class BinExp : Expression
             error("incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
                 e1.toChars(), Token.toChars(thisOp), e2.toChars(), ts[0], ts[1]);
         }
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     extern (D) final Expression checkOpAssignTypes(Scope* sc)
@@ -4228,17 +4371,17 @@ extern (C++) abstract class BinExp : Expression
             if (t1.isreal() && t2.iscomplex())
             {
                 error("`%s %s %s` is undefined. Did you mean `%s %s %s.re`?", t1.toChars(), opstr, t2.toChars(), t1.toChars(), opstr, t2.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             else if (t1.isimaginary() && t2.iscomplex())
             {
                 error("`%s %s %s` is undefined. Did you mean `%s %s %s.im`?", t1.toChars(), opstr, t2.toChars(), t1.toChars(), opstr, t2.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             else if ((t1.isreal() || t1.isimaginary()) && t2.isimaginary())
             {
                 error("`%s %s %s` is an undefined operation", t1.toChars(), opstr, t2.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
         }
 
@@ -4250,7 +4393,7 @@ extern (C++) abstract class BinExp : Expression
             if ((t1.isreal() && (t2.isimaginary() || t2.iscomplex())) || (t1.isimaginary() && (t2.isreal() || t2.iscomplex())))
             {
                 error("`%s %s %s` is undefined (result is complex)", t1.toChars(), Token.toChars(op), t2.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             if (type.isreal() || type.isimaginary())
             {
@@ -4341,7 +4484,7 @@ extern (C++) abstract class BinExp : Expression
             if (t2.iscomplex())
             {
                 error("cannot perform modulo complex arithmetic");
-                return new ErrorExp();
+                return ErrorExp.get();
             }
         }
         return this;
@@ -4732,7 +4875,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
     {
         super(loc, TOK.dotTemplateInstance, __traits(classInstanceSize, DotTemplateInstanceExp), e);
         //printf("DotTemplateInstanceExp()\n");
-        this.ti = new TemplateInstance(loc, name, tiargs);
+        this.ti = Pool!TemplateInstance.make(loc, name, tiargs);
     }
 
     extern (D) this(const ref Loc loc, Expression e, TemplateInstance ti)
@@ -4842,6 +4985,7 @@ extern (C++) final class CallExp : UnaExp
     Expressions* arguments; // function arguments
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
+    bool inDebugStatement;  /// true if this was in a debug statement
     VarDeclaration vthis2;  // container for multi-context
 
     extern (D) this(const ref Loc loc, Expression e, Expressions* exps)
@@ -5162,7 +5306,7 @@ extern (C++) final class DeleteExp : UnaExp
     override Expression toBoolean(Scope* sc)
     {
         error("`delete` does not give a boolean result");
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     override void accept(Visitor v)
@@ -5578,7 +5722,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
         if (sc.func.setUnsafe())
         {
             error("cannot modify delegate pointer in `@safe` code `%s`", toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         return Expression.modifiableLvalue(sc, e);
     }
@@ -5614,7 +5758,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
         if (sc.func.setUnsafe())
         {
             error("cannot modify delegate function pointer in `@safe` code `%s`", toChars());
-            return new ErrorExp();
+            return ErrorExp.get();
         }
         return Expression.modifiableLvalue(sc, e);
     }
@@ -5687,7 +5831,7 @@ extern (C++) final class IndexExp : BinExp
             if (t2b.ty == Tarray && t2b.nextOf().isMutable())
             {
                 error("associative arrays can only be assigned values with immutable keys, not `%s`", e2.type.toChars());
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             modifiable = true;
 
@@ -5744,6 +5888,7 @@ extern (C++) final class PreExp : UnaExp
 
 enum MemorySet
 {
+    none            = 0,    // simple assignment
     blockAssign     = 1,    // setting the contents of an array
     referenceInit   = 2,    // setting the reference of STC.ref_ variable
 }
@@ -5752,7 +5897,7 @@ enum MemorySet
  */
 extern (C++) class AssignExp : BinExp
 {
-    int memset;         // combination of MemorySet flags
+    MemorySet memset;
 
     /************************************************************/
     /* op can be TOK.assign, TOK.construct, or TOK.blit */
@@ -5798,7 +5943,7 @@ extern (C++) class AssignExp : BinExp
         // are usually mistakes.
 
         error("assignment cannot be used as a condition, perhaps `==` was meant?");
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     override void accept(Visitor v)
@@ -5826,7 +5971,7 @@ extern (C++) final class ConstructExp : AssignExp
         super(loc, TOK.construct, ve, e2);
 
         if (v.storage_class & (STC.ref_ | STC.out_))
-            memset |= MemorySet.referenceInit;
+            memset = MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)
@@ -5854,7 +5999,7 @@ extern (C++) final class BlitExp : AssignExp
         super(loc, TOK.blit, ve, e2);
 
         if (v.storage_class & (STC.ref_ | STC.out_))
-            memset |= MemorySet.referenceInit;
+            memset = MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)
@@ -6572,16 +6717,21 @@ extern (C++) final class CondExp : BinExp
     }
 }
 
+/// Returns: if this token is the `op` for a derived `DefaultInitExp` class.
+bool isDefaultInitOp(TOK op) pure nothrow @safe @nogc
+{
+    return  op == TOK.prettyFunction    || op == TOK.functionString ||
+            op == TOK.line              || op == TOK.moduleString   ||
+            op == TOK.file              || op == TOK.fileFullPath   ;
+}
+
 /***********************************************************
  */
 extern (C++) class DefaultInitExp : Expression
 {
-    TOK subop;      // which of the derived classes this is
-
-    extern (D) this(const ref Loc loc, TOK subop, int size)
+    extern (D) this(const ref Loc loc, TOK op, int size)
     {
-        super(loc, TOK.default_, size);
-        this.subop = subop;
+        super(loc, op, size);
     }
 
     override void accept(Visitor v)
@@ -6603,7 +6753,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s;
-        if (subop == TOK.fileFullPath)
+        if (op == TOK.fileFullPath)
             s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();

@@ -38,6 +38,8 @@ immutable rootRules = [
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
+    &buildFrontendHeaders,
+    &runCxxHeadersTest,
     &runCxxUnittest,
     &detab,
     &tolf,
@@ -58,9 +60,12 @@ int main(string[] args)
     }
     catch (BuildException e)
     {
-        // Ensure paths are relative to the root directory
-        // s.t. error messages are clickable in most IDE's
-        writeln(e.msg.replace(buildPath("dmd", ""), buildPath("src", "dmd", "")));
+        writeln(e.msg);
+        if (e.details)
+        {
+            writeln("DETAILS:\n");
+            writeln(e.details);
+        }
         return 1;
     }
 }
@@ -101,8 +106,9 @@ BUILD: release (default) | debug (enabled a build with debug instructions)
 
 Opt-in build features:
 
-ENABLE_RELEASE:       Optimized release built
+ENABLE_RELEASE:       Optimized release build
 ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
+ENABLE_ASSERTS:       Don't use -release if ENABLE_RELEASE is set
 ENABLE_LTO:           Enable link-time optimizations
 ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
@@ -275,7 +281,7 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
             extraFlags,
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(srcDir))
+            rule.sources.map!(e => e.relativePath(dmdRepo))
         ).array
     )
 );
@@ -338,8 +344,17 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            extraFlags.canFind("-unittest") ? [] : ["-betterC"],
-            flags["DFLAGS"], extraFlags, rule.sources).array)
+            (
+                // Only use -betterC when it doesn't break other features
+                extraFlags.canFind("-unittest", "-cov") ||
+                flags["DFLAGS"].canFind("-unittest", "-cov")
+            ) ? [] : ["-betterC"],
+            flags["DFLAGS"], extraFlags,
+
+            // source files need to have relative paths in order for the code coverage
+            // .lst files to be named properly for CodeCov to find them
+            rule.sources.map!(e => e.relativePath(dmdRepo))
+        ).array)
 );
 
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
@@ -413,7 +428,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
             ].chain(extraFlags, platformArgs, flags["DFLAGS"],
                 // source files need to have relative paths in order for the code coverage
                 // .lst files to be named properly for CodeCov to find them
-                rule.sources.map!(e => e.relativePath(srcDir))
+                rule.sources.map!(e => e.relativePath(dmdRepo))
             ).array);
 });
 
@@ -434,6 +449,56 @@ auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-mai
         .command(dmdUnittestExe.targets);
 });
 
+/**
+BuildRule to run the DMD frontend header generation
+For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean before)
+*/
+alias buildFrontendHeaders = makeRule!((builder, rule) {
+    const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.lexer;
+    const dmdExeFile = dmdDefault.deps[0].target;
+    builder
+        .name("cxx-headers")
+        .description("Build the C++ frontend headers ")
+        .msg("(DC) CXX-HEADERS")
+        .deps([dmdDefault])
+        .target(env["G"].buildPath("frontend.h"))
+        .command([dmdExeFile] ~ flags["DFLAGS"] ~
+            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target] ~ dmdSources);
+});
+
+alias runCxxHeadersTest = makeRule!((builder, rule) {
+    builder
+        .name("cxx-headers-test")
+        .description("Test the C++ frontend headers ")
+        .msg("(TEST) CXX-HEADERS")
+        .deps([buildFrontendHeaders])
+        .commandFunction(() {
+            const cxxHeaderGeneratedPath = buildFrontendHeaders.target;
+            const cxxHeaderReferencePath = env["D"].buildPath("frontend.h");
+            log("Comparing referenceHeader(%s) <-> generatedHeader(%s)",
+                cxxHeaderReferencePath, cxxHeaderGeneratedPath);
+            const generatedHeader = cxxHeaderGeneratedPath.readText;
+            const referenceHeader = cxxHeaderReferencePath.readText;
+            if (generatedHeader != referenceHeader) {
+                if (env.getNumberedBool("AUTO_UPDATE"))
+                {
+                    generatedHeader.toFile(cxxHeaderReferencePath);
+                    writeln("NOTICE: Reference header file (" ~ cxxHeaderReferencePath ~
+                     ") has been auto-updated.");
+                }
+                else
+                {
+                    string message = "ERROR: Newly generated header file (" ~ cxxHeaderGeneratedPath ~
+                        ") doesn't match with the reference header file (" ~
+                        cxxHeaderReferencePath ~ ")\n";
+                    auto diff = tryRun(["git", "diff", "--no-index", cxxHeaderReferencePath, cxxHeaderGeneratedPath], runDir).output;
+                    diff ~= "\n===============\nNOTE: You can rerun with AUTO_UPDATE=1 to automatically update the reference header file.";
+                    abortBuild(message, diff);
+                }
+            }
+        });
+});
+
 /// Runs the C++ unittest executable
 alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
 
@@ -442,10 +507,10 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.frontend ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
-        .command([ env["CXX"], env["CXX_KIND"] == "g++" ? "-std=c++11" : "-xc++",
+        .command([ env["CXX"], "-xc++", "-std=c++11",
                    "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
 
@@ -453,11 +518,11 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
-        .deps([lexer(null, null), backend(null, null), cxxFrontend])
-        .sources(sources.dmd.all ~ sources.root)
+        .deps([lexer(null, null), cxxFrontend])
+        .sources(sources.dmd.frontend ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
-                    "-L-lstdc++", "-version=NoMain"
+                    "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
             ].chain(
                 flags["DFLAGS"], exeRule.sources, exeRule.deps.map!(d => d.target)
             ).array)
@@ -493,7 +558,7 @@ alias toolsRepo = makeRule!((builder, rule) => builder
         auto toolsDir = env["TOOLS_DIR"];
         version(Win32)
             // Win32-git seems to confuse C:\... as a relative path
-            toolsDir = toolsDir.relativePath(srcDir);
+            toolsDir = toolsDir.relativePath(dmdRepo);
         run([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
     })
 );
@@ -528,8 +593,8 @@ alias style = makeRule!((builder, rule)
             // FIXME: Omitted --shallow-submodules because it requires a more recent
             //        git version which is not available on buildkite
             env["GIT"], "clone", "--depth=1", "--recurse-submodules",
-            "--branch=v0.9.0",
-            "https://github.com/dlang-community/Dscanner", dscannerDir
+            "--branch=v0.11.0",
+            "https://github.com/dlang-community/D-Scanner", dscannerDir
         ])
     );
 
@@ -553,7 +618,7 @@ alias style = makeRule!((builder, rule)
             .target(dscannerDir.buildPath("dsc".exeName))
             .command([
                 // debug build is faster but disable trace output
-                env.get("MAKE", "make"), "-C", dscannerDir, "debug",
+                env["MAKE"], "-C", dscannerDir, "debug",
                 "DEBUG_VERSIONS=-version=StdLoggerDisableWarning"
             ]);
     });
@@ -706,9 +771,9 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
         else
             show("SYSTEM", ["uname", "-a"]);
 
-        show("MAKE", [env.get("MAKE", "make"), "--version"]);
+        show("MAKE", [env["MAKE"], "--version"]);
         version (Posix)
-            show("SHELL", [env.get("SHELL", nativeShell), "--version"]);  // cmd.exe --version hangs
+            show("SHELL", [env.getDefault("SHELL", nativeShell), "--version"]);  // cmd.exe --version hangs
         show("HOST_DMD", [env["HOST_DMD_RUN"], "--version"]);
         version (Posix)
             show("HOST_CXX", [env["CXX"], "--version"]);
@@ -730,7 +795,7 @@ alias installCopy = makeRule!((builder, rule) => builder
 alias install = makeRule!((builder, rule) {
     const dmdExeFile = dmdDefault.deps[0].target;
     auto sourceFiles = allBuildSources ~ [
-        env["D"].buildPath("readme.txt"),
+        env["D"].buildPath("README.md"),
         env["D"].buildPath("boostlicense.txt"),
     ];
     builder
@@ -881,15 +946,15 @@ void parseEnvironment()
         const os = env["OS"] = "windows";
     }
     else
-        const os = env.getDefault("OS", detectOS);
-    auto build = env.getDefault("BUILD", "release");
+        const os = env.setDefault("OS", detectOS);
+    auto build = env.setDefault("BUILD", "release");
     enforce(build.among("release", "debug"), "BUILD must be 'debug' or 'release'");
 
     if (build == "debug")
-        env.getDefault("ENABLE_DEBUG", "1");
+        env.setDefault("ENABLE_DEBUG", "1");
 
     // detect Model
-    auto model = env.getDefault("MODEL", detectModel);
+    auto model = env.setDefault("MODEL", detectModel);
     env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
 
     // detect PIC
@@ -912,23 +977,23 @@ void parseEnvironment()
         env["PIC_FLAG"] = "";
     }
 
-    env.getDefault("GIT", "git");
-    env.getDefault("GIT_HOME", "https://github.com/dlang");
-    env.getDefault("SYSCONFDIR", "/etc");
-    env.getDefault("TMP", tempDir);
-    env.getDefault("RES", dmdRepo.buildPath("src/dmd/res"));
+    env.setDefault("GIT", "git");
+    env.setDefault("GIT_HOME", "https://github.com/dlang");
+    env.setDefault("SYSCONFDIR", "/etc");
+    env.setDefault("TMP", tempDir);
+    env.setDefault("RES", dmdRepo.buildPath("src/dmd/res"));
+    env.setDefault("MAKE", "make");
 
     version (Windows)
         enum installPref = "";
     else
         enum installPref = "..";
 
-    env.getDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
+    env.setDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
 
-    env.getDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
-    if (env.get("DOCDIR", null).length == 0)
-        env["DOCDIR"] = srcDir;
-    env.getDefault("DOC_OUTPUT_DIR", env["DOCDIR"]);
+    env.setDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
+    env.setDefault("DOCDIR", srcDir);
+    env.setDefault("DOC_OUTPUT_DIR", env["DOCDIR"]);
 
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
@@ -937,13 +1002,17 @@ void parseEnvironment()
     auto generated = env["GENERATED"] = dmdRepo.buildPath("generated");
     auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
-    env.getDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
+    env.setDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
 
-    if (env.get("HOST_DMD", null).length == 0)
+    auto hostDmdDef = env.getDefault("HOST_DMD", null);
+    if (hostDmdDef.length == 0)
     {
-        const hostDmd = env.get("HOST_DC", null);
+        const hostDmd = env.getDefault("HOST_DC", null);
         env["HOST_DMD"] = hostDmd.length ? hostDmd : "dmd";
     }
+    else
+        // HOST_DMD may be defined in the environment
+        env["HOST_DMD"] = hostDmdDef;
 
     // Auto-bootstrapping of a specific host compiler
     if (env.getNumberedBool("AUTO_BOOTSTRAP"))
@@ -984,35 +1053,55 @@ void processEnvironment()
 
     const os = env["OS"];
 
-    const hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
+    // Detect the host compiler kind and version
+    const hostDmdInfo = [env["HOST_DMD_RUN"], `-Xi=compilerInfo`, `-Xf=-`].execute();
 
-    alias DMD = AliasSeq!("DMD");
-    alias LDC = AliasSeq!("LDC");
-    alias GDC = AliasSeq!("GDC", "gdmd", "gdc");
-    const kindIdx = hostDMDVersion.canFind(DMD, LDC, GDC);
-
-    enforce(kindIdx, "Invalid Host DMD found: " ~ hostDMDVersion);
-
-    if (kindIdx <= DMD.length)
-        env["HOST_DMD_KIND"] = "dmd";
-    else if (kindIdx <= LDC.length + DMD.length)
-        env["HOST_DMD_KIND"] = "ldc";
-    else
+    if (hostDmdInfo.status) // Failed, JSON output currently not supported for GDC
+    {
         env["HOST_DMD_KIND"] = "gdc";
+        env["HOST_DMD_VERSION"] = "v2.076";
+    }
+    else
+    {
+        /// Reads the content of a single field without parsing the entire JSON
+        alias get = field => hostDmdInfo.output
+            .findSplitAfter(field ~ `" : "`)[1]
+            .findSplitBefore(`"`)[0];
+
+        const ver = env["HOST_DMD_VERSION"] = get(`version`)[1 .. "vX.XXX.X".length];
+
+        // Vendor was introduced in 2.080
+        if (ver < "2.080.1")
+        {
+            auto name = get("binary").baseName().stripExtension();
+            if (name == "ldmd2")
+                name = "ldc";
+            else if (name == "gdmd")
+                name = "gdc";
+            else
+                enforce(name == "dmd", "Unknown compiler: " ~ name);
+
+            env["HOST_DMD_KIND"] = name;
+        }
+        else
+        {
+            env["HOST_DMD_KIND"] = [
+                "Digital Mars D": "dmd",
+                "LDC": "ldc",
+                "GNU D": "gdc"
+            ][get(`vendor`)];
+        }
+    }
 
     env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
-    env.getDefault("DETAB", "detab");
-    env.getDefault("TOLF", "tolf");
+    env.setDefault("DETAB", "detab");
+    env.setDefault("TOLF", "tolf");
     version (Windows)
-        env.getDefault("ZIP", "zip32");
+        env.setDefault("ZIP", "zip32");
     else
-        env.getDefault("ZIP", "zip");
+        env.setDefault("ZIP", "zip");
 
-    // TODO: this isn't being used for anything yet...
-    env.getNumberedBool("ENABLE_WARNINGS");
-    string[] warnings;
-
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
     if (env["HOST_DMD_KIND"] != "gdc")
         dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
@@ -1027,7 +1116,9 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_RELEASE"))
     {
-        dflags ~= ["-O", "-release", "-inline"];
+        dflags ~= ["-O", "-inline"];
+        if (!env.getNumberedBool("ENABLE_ASSERTS"))
+            dflags ~= ["-release"];
     }
     else
     {
@@ -1051,9 +1142,10 @@ void processEnvironment()
     {
         dflags ~= ["-cov"];
     }
-    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
+    const sanitizers = env.getDefault("ENABLE_SANITIZERS", "");
+    if (!sanitizers.empty)
     {
-        dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
+        dflags ~= ["-fsanitize="~sanitizers];
     }
 
     // Retain user-defined flags
@@ -1082,8 +1174,9 @@ void processEnvironmentCxx()
     if (env.getNumberedBool("ENABLE_COVERAGE"))
         cxxFlags ~= "--coverage";
 
-    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
-        cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
+    const sanitizers = env.getDefault("ENABLE_SANITIZERS", "");
+    if (!sanitizers.empty)
+        cxxFlags ~= "-fsanitize=" ~ sanitizers;
 
     // Enable a temporary workaround in globals.h and rmem.h concerning
     // wrong name mangling using DMD.
@@ -1105,7 +1198,8 @@ string detectHostCxx()
 {
     import std.meta: AliasSeq;
 
-    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
+    env.setDefault("CXX", "c++");
+    const cxxVersion = [env["CXX"], "--version"].execute.output;
 
     alias GCC = AliasSeq!("g++", "gcc", "Free Software");
     alias CLANG = AliasSeq!("clang");
@@ -1133,6 +1227,7 @@ alias allBuildSources = memoize!(() => buildFiles
     ~ sources.backend
     ~ sources.root
     ~ sources.frontendHeaders
+    ~ sources.rootHeaders
 );
 
 /// Returns: all source files for the compiler
@@ -1145,7 +1240,7 @@ auto sourceFiles()
     static struct Sources
     {
         DmdSources dmd;
-        string[] lexer, root, backend, frontendHeaders;
+        string[] lexer, root, backend, frontendHeaders, rootHeaders;
     }
     static string[] fileArray(string dir, string files)
     {
@@ -1153,21 +1248,21 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            stmtstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
-            tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
+            dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
+            s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         frontend: fileArray(env["D"], "
-            access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
+            access.d aggregate.d aliasthis.d apply.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
             arraytypes.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dtoh.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            dtemplate.d dtoh.d dversion.d env.d escape.d expression.d expressionsem.d func.d gluelayer.d hdrgen.d impcnvtab.d
             imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
             libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
-            statementsem.d staticassert.d staticcond.d target.d templateparamsem.d traits.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d
         "),
         backendHeaders: fileArray(env["C"], "
@@ -1197,6 +1292,10 @@ auto sourceFiles()
         "),
         root: fileArray(env["ROOT"], "
             aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+        "),
+        rootHeaders: fileArray(env["ROOT"], "
+            array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
+            object.h outbuffer.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
@@ -1407,14 +1506,14 @@ void args2Environment(ref string[] args)
 }
 
 /**
-Ensures that env contains a mapping for key and returns the associated value.
-Searches the process environment if it is missing and creates an appropriate
-entry in env using either the found value or `default_` as a fallback.
+Ensures that `env` contains a mapping for `key` and returns the associated value.
+Searches the process environment if it is missing and uses `default_` as a
+last fallback.
 
 Params:
-    env = environment to write the check to
-    key = key to check for existence and write into the new env
-    default_ = fallback value if the key doesn't exist in the global environment
+    env = environment to check for `key`
+    key = key to check for existence
+    default_ = fallback value if `key` doesn't exist in the global environment
 
 Returns: the value associated to key
 */
@@ -1424,11 +1523,28 @@ auto getDefault(ref string[string] env, string key, string default_)
         return *ex;
 
     if (key in environment)
-        env[key] = environment[key];
+        return environment[key];
     else
-        env[key] = default_;
+        return default_;
+}
 
-    return env[key];
+/**
+Ensures that `env` contains a mapping for `key` and returns the associated value.
+Searches the process environment if it is missing and creates an appropriate
+entry in `env` using either the found value or `default_` as a fallback.
+
+Params:
+    env = environment to write the check to
+    key = key to check for existence and write into the new env
+    default_ = fallback value if `key` doesn't exist in the global environment
+
+Returns: the value associated to key
+*/
+auto setDefault(ref string[string] env, string key, string default_)
+{
+    auto v = getDefault(env, key, default_);
+    env[key] = v;
+    return v;
 }
 
 /**
@@ -1542,7 +1658,8 @@ class BuildRule
         if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
-                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
+                log("Skipping build of %-('%s' %)' because %s is newer than each of %-('%s' %)'",
+                    targets, targets.length > 1 ? "each of them" : "it", this.sources);
             return false;
         }
 
@@ -1789,31 +1906,30 @@ auto log(T...)(string spec, T args)
 /**
 Aborts the current build
 
-TODO:
-    - Display detailed error messages
-
 Params:
     msg = error message to display
+    details = extra error details to display (e.g. a error diff)
 
 Throws: BuildException with the supplied message
 
 Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
 */
-BuildException abortBuild(string msg = "Build failed!")
+BuildException abortBuild(string msg = "Build failed!", string details = "")
 {
-    throw new BuildException(msg);
+    throw new BuildException(msg, details);
 }
 
 class BuildException : Exception
 {
-    this(string msg) { super(msg); }
+    string details = "";
+    this(string msg, string details) { super(msg); this.details = details; }
 }
 
 /**
 The directory where all run commands are executed from.  All relative file paths
 in a `run` command must be relative to `runDir`.
 */
-alias runDir = srcDir;
+alias runDir = dmdRepo;
 
 /**
 Run a command which may not succeed and optionally log the invocation.

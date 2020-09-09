@@ -337,8 +337,6 @@ public:
 class NullExp : public Expression
 {
 public:
-    unsigned char committed;    // !=0 if type is committed
-
     bool equals(const RootObject *o) const;
     bool isBool(bool result);
     StringExp *toStringExp();
@@ -542,8 +540,8 @@ class SymbolExp : public Expression
 {
 public:
     Declaration *var;
-    bool hasOverloads;
     Dsymbol *originalScope;
+    bool hasOverloads;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -797,6 +795,7 @@ public:
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
     bool directcall;            // true if a virtual call is devirtualized
+    bool inDebugStatement;      // true if this was in a debug statement
     VarDeclaration *vthis2;     // container for multi-context
 
     static CallExp *create(Loc loc, Expression *e, Expressions *exps);
@@ -1019,8 +1018,9 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-enum MemorySet
+enum class MemorySet
 {
+    none            = 0,    // simple assignment
     blockAssign     = 1,    // setting the contents of an array
     referenceInit   = 2     // setting the reference of STCref variable
 };
@@ -1028,7 +1028,7 @@ enum MemorySet
 class AssignExp : public BinExp
 {
 public:
-    int memset;         // combination of MemorySet flags
+    MemorySet memset;
 
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
@@ -1269,8 +1269,6 @@ public:
 class DefaultInitExp : public Expression
 {
 public:
-    TOK subop;             // which of the derived classes this is
-
     void accept(Visitor *v) { v->visit(this); }
 };
 

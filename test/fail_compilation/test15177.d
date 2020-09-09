@@ -1,11 +1,10 @@
 // REQUIRED_ARGS: -o-
-// PERMUTE_ARGS:
 // COMPILED_IMPORTS: imports/test15117a.d
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15177.d-mixin-20(20): Error: `imports.test15117a.object` is not visible from module `test15177`
-fail_compilation/test15177.d(29): Error: template instance `test15177.RunApiTest!()` error instantiating
+fail_compilation/test15177.d-mixin-19(19): Error: `imports.test15117a.object` is not visible from module `test15177`
+fail_compilation/test15177.d(28): Error: template instance `test15177.RunApiTest!()` error instantiating
 ---
 */
 

@@ -135,17 +135,16 @@ public:
         static if (LOG)
             printf("FuncLiteralDeclaration: %s\n", fld.toChars());
 
-        TypeFunction tf = cast(TypeFunction)fld.type;
-        uint dim = cast(uint)Parameter.dim(tf.parameterList.parameters);
+        TypeFunction tf = cast(TypeFunction) fld.type;
+        const dim = cast(uint) tf.parameterList.length;
         // Start the serialization by printing the number of
         // arguments the lambda has.
         buf.printf("%d:", dim);
 
         arg_hash._init(dim + 1);
         // For each argument
-        foreach (i; 0 .. dim)
+        foreach (i, fparam; tf.parameterList)
         {
-            auto fparam = tf.parameterList[i];
             if (fparam.ident !is null)
             {
                 // the variable name is introduced into a hashtable

@@ -1,4 +1,5 @@
 /*
+EXTRA_FILES: imports/a9741.d
 TEST_OUTPUT:
 ---
 tuple(3, 4, 7, (SSS))
@@ -685,6 +686,14 @@ void test20()
         return a + 2;
     });
 }
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20831
+
+void foo20831(int f, float, @("test") string s = "test") {}
+
+static if(is(typeof(foo20831) Params20831 == __parameters))
+    static assert([__traits(getAttributes, Params20831[1..2])] == []);
 
 /************************************************/
 

@@ -15,8 +15,9 @@
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:       Optimized release built
+# ENABLE_RELEASE:       Optimized release build
 # ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
+# ENABLE_ASSERTS:       Don't use -release if ENABLE_RELEASE is set
 # ENABLE_LTO:           Enable link-time optimizations
 # ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 # ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
@@ -37,6 +38,18 @@
 # gitzip                Packs all sources into a ZIP archive
 # install               Installs dmd into $(INSTALL_DIR)
 ################################################################################
+
+$(warning ===== DEPRECATION NOTICE ===== )
+$(warning ===== DEPRECATION: posix.mak is deprecated. Please use src/build.d instead.)
+$(warning ============================== )
+
+# Forward D compiler bootstrapping to bootstrap.sh
+ifneq (,$(AUTO_BOOTSTRAP))
+default:
+	@./bootstrap.sh
+.DEFAULT:
+	@./bootstrap.sh "$@"
+else
 
 # get OS and MODEL
 include osmodel.mak
@@ -76,31 +89,15 @@ ifneq (,$(HOST_DC))
   HOST_DMD=$(HOST_DC)
 endif
 
-# Host D compiler for bootstrapping
-ifeq (,$(AUTO_BOOTSTRAP))
-  # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DMD?=dmd
-  HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
-  ifeq (,$(HOST_DMD_PATH))
-    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
-  endif
-  HOST_DMD_RUN:=$(HOST_DMD)
-else
-  # Auto-bootstrapping, will download dmd automatically
-  # Keep var below in sync with other occurrences of that variable, e.g. in circleci.sh
-  HOST_DMD_VER=2.088.0
-  HOST_DMD_ROOT=$(GENERATED)/host_dmd-$(HOST_DMD_VER)
-  # dmd.2.088.0.osx.zip or dmd.2.088.0.linux.tar.xz
-  HOST_DMD_BASENAME=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),)
-  # http://downloads.dlang.org/releases/2.x/2.088.0/dmd.2.088.0.linux.tar.xz
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_BASENAME)
-  HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
-  HOST_DMD_PATH=$(HOST_DMD)
-  HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
+# No bootstrap, a $(HOST_DMD) installation must be available
+HOST_DMD?=dmd
+HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
+ifeq (,$(HOST_DMD_PATH))
+  $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
 endif
+HOST_DMD_RUN:=$(HOST_DMD)
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)" --called-from-make
-
+RUN_BUILD = $(GENERATED)/build OS="$(OS)" BUILD="$(BUILD)" MODEL="$(MODEL)" HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)" VERBOSE="$(VERBOSE)" ENABLE_RELEASE="$(ENABLE_RELEASE)" ENABLE_DEBUG="$(ENABLE_DEBUG)" ENABLE_ASSERTS="$(ENABLE_ASSERTS)" ENABLE_UNITTEST="$(ENABLE_UNITTEST)" ENABLE_PROFILE="$(ENABLE_PROFILE)" ENABLE_COVERAGE="$(ENABLE_COVERAGE)" DFLAGS="$(DFLAGS)"
 ######## Begin build targets
 
 all: dmd
@@ -121,6 +118,14 @@ auto-tester-build: $(GENERATED)/build
 toolchain-info: $(GENERATED)/build
 	$(RUN_BUILD) $@
 
+# Run header test on linux
+ifeq ($(OS)$(MODEL),linux64)
+  HEADER_TEST=cxx-headers-test
+endif
+
+auto-tester-test: $(GENERATED)/build
+	$(RUN_BUILD) unittest $(HEADER_TEST)
+
 unittest: $G/dmd-unittest
 	$<
 
@@ -128,20 +133,6 @@ unittest: $G/dmd-unittest
 
 clean:
 	rm -Rf $(GENERATED)
-
-######## Download and install the last dmd buildable without dmd
-
-ifneq (,$(AUTO_BOOTSTRAP))
-CURL_FLAGS:=-fsSL --retry 5 --retry-max-time 120 --connect-timeout 5 --speed-time 30 --speed-limit 1024
-$(HOST_DMD_PATH):
-	mkdir -p ${HOST_DMD_ROOT}
-ifneq (,$(shell which xz 2>/dev/null))
-	curl ${CURL_FLAGS} ${HOST_DMD_URL}.tar.xz | tar -C ${HOST_DMD_ROOT} -Jxf - || rm -rf ${HOST_DMD_ROOT}
-else
-	TMPFILE=$$(mktemp deleteme.XXXXXXXX) &&	curl ${CURL_FLAGS} ${HOST_DMD_URL}.zip > $${TMPFILE}.zip && \
-		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip;
-endif
-endif
 
 FORCE: ;
 
@@ -220,3 +211,10 @@ endif
 ######################################################
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
+
+# Dont run targets in parallel because this makefile is just a thin wrapper
+# for build.d and multiple invocations might stomp on each other.
+# (build.d employs it's own parallelization)
+.NOTPARALLEL:
+
+endif

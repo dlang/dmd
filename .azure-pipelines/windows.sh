@@ -61,15 +61,12 @@ clone_repos
 ################################################################################
 
 if [ "$MODEL" == "64" ] ; then
-    export MODEL_FLAG="-m64"
     MAKE_FILE="win64.mak"
     LIBNAME=phobos64.lib
 elif [ "$MODEL" == "32mscoff" ] ; then
-    export MODEL_FLAG="-m32mscoff"
     MAKE_FILE="win64.mak"
     LIBNAME=phobos32mscoff.lib
 else
-    export MODEL_FLAG="-m32"
     export LIB="$PWD/dmd2/windows/lib"
     MAKE_FILE="win32.mak"
     LIBNAME=phobos.lib
@@ -82,7 +79,7 @@ fi
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/${MODEL}/dmd"
 
 cd "${DMD_DIR}/src"
-"${DM_MAKE}" -f "${MAKE_FILE}" reldmd DMD="$DMD_BIN_PATH"
+"${DM_MAKE}" -f "${MAKE_FILE}" reldmd-asserts DMD="$DMD_BIN_PATH"
 
 ################################################################################
 # WORKAROUND: Build zlib separately with DigitalMars make
@@ -114,11 +111,29 @@ cd "${DMD_DIR}/../druntime"
 ################################################################################
 cd "${DMD_DIR}/test"
 
-# WORKAROUND: Copy the built Phobos library in the path
-# REASON: LIB argument doesn't seem to work
-cp "${DMD_DIR}/../phobos/$LIBNAME" .
+if [ "$MODEL" == "32" ] ; then
+    # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
+    # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and
+    # `-conf=` for DMD apparently doesn't prevent that).
+    # There's apparently no sane way to specify a libdir for Optlink in the DMD
+    # cmdline, so remove the sc.ini file and set the DFLAGS and LIB env variables
+    # manually for the host compiler. These 2 variables are adapted for the
+    # actual tests with the tested compiler (by run.d).
+    HOST_DMD_DIR="$(cygpath -w "$DMD_DIR/tools/dmd2")"
+    rm "$HOST_DMD_DIR/windows/bin/sc.ini"
+    export DFLAGS="-I$HOST_DMD_DIR/src/phobos -I$HOST_DMD_DIR/src/druntime/import"
+    export LIB="$HOST_DMD_DIR/windows/lib"
+fi
 
-"${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL"  MODEL_FLAG="$MODEL_FLAG" N="$N"
+"$HOST_DC" -m$MODEL -g -i run.d
+targets=("all")
+args=('ARGS=-O -inline -g') # no -release for faster builds
+if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
+    # do not run runnable_cxx or unit_tests with older bootstrap compilers
+    targets=("compilable" "fail_compilation" "runnable"  "dshell")
+    args=() # use default set of args
+fi
+./run --environment --jobs=$N "${targets[@]}" "${args[@]}" MODEL="$MODEL"
 
 ################################################################################
 # Prepare artifacts

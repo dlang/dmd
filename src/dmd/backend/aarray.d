@@ -17,6 +17,9 @@ import core.stdc.string;
 
 alias hash_t = size_t;
 
+version (MARS)
+    import dmd.root.hash;
+
 nothrow:
 
 /*********************
@@ -359,13 +362,13 @@ size_t aligntsize(size_t tsize)
 
 immutable uint[14] prime_list =
 [
-    97U,         389U,
-    1543U,       6151U,
-    24593U,      98317U,
-    393241U,     1572869U,
-    6291469U,    25165843U,
-    100663319U,  402653189U,
-    1610612741U, 4294967291U
+               97,           389,
+             1543,          6151,
+           24_593,        98_317,
+          393_241,     1_572_869,
+        6_291_469,    25_165_843,
+      100_663_319,   402_653_189,
+    1_610_612_741, 4_294_967_291U,
 ];
 
 /***************************************************************/
@@ -403,11 +406,19 @@ nothrow:
 
     static hash_t getHash(Key* pk)
     {
-        auto buf = *pk;
-        hash_t hash = 0;
-        foreach (v; buf)
-            hash = hash * 11 + v;
-        return hash;
+        version (MARS)
+        {
+            auto buf = *pk;
+            return calcHash(cast(const(ubyte[]))buf);
+        }
+        else
+        {
+            auto buf = *pk;
+            hash_t hash = 0;
+            foreach (v; buf)
+                hash = hash * 11 + v;
+            return hash;
+        }
     }
 
     static bool equals(Key* pk1, Key* pk2)
@@ -454,7 +465,7 @@ nothrow:
 
 // Key is the slice specified by (*TinfoPair.pbase)[Pair.start .. Pair.end]
 
-struct Pair { uint start, end; }
+public struct Pair { uint start, end; }
 
 public struct TinfoPair
 {
@@ -465,11 +476,19 @@ nothrow:
 
     hash_t getHash(Key* pk)
     {
-        auto buf = (*pbase)[pk.start .. pk.end];
-        hash_t hash = 0;
-        foreach (v; buf)
-            hash = hash * 11 + v;
-        return hash;
+        version (MARS)
+        {
+            auto buf = (*pbase)[pk.start .. pk.end];
+            return calcHash(buf);
+        }
+        else
+        {
+            auto buf = (*pbase)[pk.start .. pk.end];
+            hash_t hash = 0;
+            foreach (v; buf)
+                hash = hash * 11 + v;
+            return hash;
+        }
     }
 
     bool equals(Key* pk1, Key* pk2)
@@ -506,6 +525,39 @@ nothrow:
     }
 
     uint* get(uint start, uint end)
+    {
+        auto p = Pair(start, end);
+        return aa.get(&p);
+    }
+
+    uint length()
+    {
+        return cast(uint)aa.length();
+    }
+}
+
+// Interface for C++ code
+public extern (C++) struct AApair2
+{
+nothrow:
+    alias AA = AArray!(TinfoPair, Pair);
+    AA aa;
+
+    static AApair2* create(ubyte** pbase)
+    {
+        auto a = cast(AApair2*)calloc(1, AApair2.sizeof);
+        assert(a);
+        a.aa.tkey.pbase = pbase;
+        return a;
+    }
+
+    static void destroy(AApair2* aap)
+    {
+        aap.aa.destroy();
+        free(aap);
+    }
+
+    Pair* get(uint start, uint end)
     {
         auto p = Pair(start, end);
         return aa.get(&p);

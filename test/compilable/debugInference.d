@@ -7,8 +7,8 @@ compilable/debugInference.d(35): Deprecation: The `delete` keyword has been depr
 https://issues.dlang.org/show_bug.cgi?id=20507
 */
 
-// Nothrow is not excluded in debug statements yet
-void main() pure  /* nothrow */ @safe @nogc
+
+void main() pure  nothrow @safe @nogc
 {
     debug foo();
     bar!()();

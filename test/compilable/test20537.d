@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -Icompilable/imports
+// EXTRA_FILES: imports/pkg20537/package.d
 import pkg20537;
 
 static assert(is(pkg20537 == module));

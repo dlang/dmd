@@ -12,8 +12,6 @@ a[2] = 23
 a[] = 21
 a[] = 22
 a[] = 23
-a[foo] = 3
-a[bar] = 4
 a = 63, b = 47, c = 83
 a = 63, b = 48, c = 83
 Success
@@ -230,16 +228,26 @@ void test7()
 
     a["foo"] = 3;
     a["bar"] = 4;
+    bool sawBar, sawFoo;
     foreach (string s, uint v; a)
     {
-        printf("a[%.*s] = %d\n", cast(int)s.length, s.ptr, v);
         if (s == "bar")
+        {
             assert(v == 4);
+            assert(!sawBar);
+            sawBar = true;
+        }
         else if (s == "foo")
+        {
             assert(v == 3);
+            assert(!sawFoo);
+            sawFoo = true;
+        }
         else
             assert(0);
     }
+    assert(sawBar);
+    assert(sawFoo);
 }
 
 

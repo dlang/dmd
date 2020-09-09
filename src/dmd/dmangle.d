@@ -79,7 +79,7 @@ private immutable char[TMAX] mangleChar =
     Tfunction    : 'F', // D function
     Tsarray      : 'G',
     Taarray      : 'H',
-    Tident       : 'I',
+    //              I   // in
     //              J   // out
     //              K   // ref
     //              L   // lazy
@@ -99,6 +99,7 @@ private immutable char[TMAX] mangleChar =
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
+    Tident       : '@',
     Tinstance    : '@',
     Terror       : '@',
     Ttypeof      : '@',
@@ -393,7 +394,7 @@ public:
 
         if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
-        else if (ta.isscope && !ta.isscopeinferred)
+        else if (ta.isScopeQual && !ta.isscopeinferred)
             buf.writestring("Nl");
 
         if (ta.islive)
@@ -412,7 +413,8 @@ public:
         }
 
         // Write argument types
-        paramsToDecoBuffer(t.parameterList.parameters);
+        foreach (idx, param; t.parameterList)
+            param.accept(this);
         //if (buf.data[buf.length - 1] == '@') assert(0);
         buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
@@ -452,7 +454,10 @@ public:
     {
         //printf("TypeTuple.toDecoBuffer() t = %p, %s\n", t, t.toChars());
         visit(cast(Type)t);
-        paramsToDecoBuffer(t.arguments);
+        Parameter._foreach(t.arguments, (idx, param) {
+                param.accept(this);
+                return 0;
+        });
         buf.writeByte('Z');
     }
 
@@ -1085,18 +1090,6 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    void paramsToDecoBuffer(Parameters* parameters)
-    {
-        //printf("Parameter.paramsToDecoBuffer()\n");
-
-        int paramsToDecoBufferDg(size_t n, Parameter p)
-        {
-            p.accept(this);
-            return 0;
-        }
-
-        Parameter._foreach(parameters, &paramsToDecoBufferDg);
-    }
 
     override void visit(Parameter p)
     {
@@ -1107,10 +1100,15 @@ public:
         if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_ &&
             !(p.storageClass & STC.returninferred))
             buf.writestring("Nk");
-        switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
+        switch (p.storageClass & (STC.IOR | STC.lazy_))
         {
         case 0:
+            break;
         case STC.in_:
+            buf.writeByte('I');
+            break;
+        case STC.in_ | STC.ref_:
+            buf.writestring("IK");
             break;
         case STC.out_:
             buf.writeByte('J');
@@ -1124,11 +1122,11 @@ public:
         default:
             debug
             {
-                printf("storageClass = x%llx\n", p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_));
+                printf("storageClass = x%llx\n", p.storageClass & (STC.IOR | STC.lazy_));
             }
             assert(0);
         }
-        visitWithMask(p.type, 0);
+        visitWithMask(p.type, (p.storageClass & STC.in_) ? MODFlags.const_ : 0);
     }
 }
 
@@ -1223,6 +1221,7 @@ void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
     scope Mangler v = new Mangler(&buf);
 
     MODtoDecoBuffer(&buf, tf.mod);
-    v.paramsToDecoBuffer(tf.parameterList.parameters);
+    foreach (idx, param; tf.parameterList)
+        param.accept(v);
     buf.writeByte('Z' - tf.parameterList.varargs);
 }

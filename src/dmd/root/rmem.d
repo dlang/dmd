@@ -170,7 +170,7 @@ enum CHUNK_SIZE = (256 * 4096 - 64);
 __gshared size_t heapleft = 0;
 __gshared void* heapp;
 
-extern (C) void* allocmemory(size_t m_size) nothrow @nogc
+extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
 {
     // 16 byte alignment is better (and sometimes needed) for doubles
     m_size = (m_size + 15) & ~15;
@@ -193,6 +193,15 @@ extern (C) void* allocmemory(size_t m_size) nothrow @nogc
     heapleft = CHUNK_SIZE;
     heapp = Mem.check(malloc(CHUNK_SIZE));
     goto L1;
+}
+
+extern (D) void* allocmemory(size_t m_size) nothrow
+{
+    version (GC)
+        if (mem.isGCEnabled)
+            return GC.malloc(m_size);
+
+    return allocmemoryNoFree(m_size);
 }
 
 version (DigitalMars)
@@ -220,16 +229,12 @@ else
 static if (OVERRIDE_MEMALLOC)
 {
     // Override the host druntime allocation functions in order to use the bump-
-    // pointer allocation scheme (`allocmemory()` above) if the GC is disabled.
+    // pointer allocation scheme (`allocmemoryNoFree()` above) if the GC is disabled.
     // That scheme is faster and comes with less memory overhead than using a
     // disabled GC alone.
 
     extern (C) void* _d_allocmemory(size_t m_size) nothrow
     {
-        version (GC)
-            if (mem.isGCEnabled)
-                return GC.malloc(m_size);
-
         return allocmemory(m_size);
     }
 
@@ -258,9 +263,9 @@ static if (OVERRIDE_MEMALLOC)
         const initializer = ci.initializer;
 
         version (GC)
-            auto p = mem.isGCEnabled ? allocClass(ci) : allocmemory(initializer.length);
+            auto p = mem.isGCEnabled ? allocClass(ci) : allocmemoryNoFree(initializer.length);
         else
-            auto p = allocmemory(initializer.length);
+            auto p = allocmemoryNoFree(initializer.length);
 
         memcpy(p, initializer.ptr, initializer.length);
         return cast(Object) p;
@@ -274,16 +279,16 @@ static if (OVERRIDE_MEMALLOC)
                 if (mem.isGCEnabled)
                     return cast(Object) allocClass(ci);
 
-            return cast(Object) allocmemory(ci.initializer.length);
+            return cast(Object) allocmemoryNoFree(ci.initializer.length);
         }
     }
 
     extern (C) void* _d_newitemT(TypeInfo ti) nothrow
     {
         version (GC)
-            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
+            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemoryNoFree(ti.tsize);
         else
-            auto p = allocmemory(ti.tsize);
+            auto p = allocmemoryNoFree(ti.tsize);
 
         memset(p, 0, ti.tsize);
         return p;
@@ -292,9 +297,9 @@ static if (OVERRIDE_MEMALLOC)
     extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
     {
         version (GC)
-            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
+            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemoryNoFree(ti.tsize);
         else
-            auto p = allocmemory(ti.tsize);
+            auto p = allocmemoryNoFree(ti.tsize);
 
         const initializer = ti.initializer;
         memcpy(p, initializer.ptr, initializer.length);
@@ -404,4 +409,97 @@ pure nothrow unittest
     assert(s2 == [4, 1, 2]);
     string sEmpty;
     assert(sEmpty.arraydup is null);
+}
+
+// Define this to have Pool emit traces of objects allocated and disposed
+//debug = Pool;
+// Define this in addition to Pool to emit per-call traces (otherwise summaries are printed at the end).
+//debug = PoolVerbose;
+
+/**
+Defines a pool for class objects. Objects can be fetched from the pool with make() and returned to the pool with
+dispose(). Using a reference that has been dispose()d has undefined behavior. make() may return memory that has been
+previously dispose()d.
+
+Currently the pool has effect only if the GC is NOT used (i.e. either `version(GC)` or `mem.isGCEnabled` is false).
+Otherwise `make` just forwards to `new` and `dispose` does nothing.
+
+Internally the implementation uses a singly-linked freelist with a global root. The "next" pointer is stored in the
+first word of each disposed object.
+*/
+struct Pool(T)
+if (is(T == class))
+{
+    /// The freelist's root
+    private static T root;
+
+    private static void trace(string fun, string f, uint l)()
+    {
+        debug(Pool)
+        {
+            debug(PoolVerbose)
+            {
+                fprintf(stderr, "%.*s(%u): bytes: %lu Pool!(%.*s)."~fun~"()\n",
+                    cast(int) f.length, f.ptr, l, T.classinfo.initializer.length,
+                    cast(int) T.stringof.length, T.stringof.ptr);
+            }
+            else
+            {
+                static ulong calls;
+                if (calls == 0)
+                {
+                    // Plant summary printer
+                    static extern(C) void summarize()
+                    {
+                        fprintf(stderr, "%.*s(%u): bytes: %lu calls: %lu Pool!(%.*s)."~fun~"()\n",
+                            cast(int) f.length, f.ptr, l, ((T.classinfo.initializer.length + 15) & ~15) * calls,
+                            calls, cast(int) T.stringof.length, T.stringof.ptr);
+                    }
+                    atexit(&summarize);
+                }
+                ++calls;
+            }
+        }
+    }
+
+    /**
+    Returns a reference to a new object in the same state as if created with new T(args).
+    */
+    static T make(string f = __FILE__, uint l = __LINE__, A...)(auto ref A args)
+    {
+        if (!root)
+        {
+            trace!("makeNew", f, l)();
+            return new T(args);
+        }
+        else
+        {
+            trace!("makeReuse", f, l)();
+            auto result = root;
+            root = *(cast(T*) root);
+            memcpy(cast(void*) result, T.classinfo.initializer.ptr, T.classinfo.initializer.length);
+            result.__ctor(args);
+            return result;
+        }
+    }
+
+    /**
+    Signals to the pool that this object is no longer used, so it can recycle its memory.
+    */
+    static void dispose(string f = __FILE__, uint l = __LINE__, A...)(T goner)
+    {
+        version(GC)
+        {
+            if (mem.isGCEnabled) return;
+        }
+        trace!("dispose", f, l)();
+        debug
+        {
+            // Stomp the memory so as to maximize the chance of quick failure if used after dispose().
+            auto p = cast(ulong*) goner;
+            p[0 .. T.classinfo.initializer.length / ulong.sizeof] = 0xdeadbeef;
+        }
+        *(cast(T*) goner) = root;
+        root = goner;
+    }
 }

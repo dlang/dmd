@@ -1108,6 +1108,7 @@ private void markinvar(elem *n,vec_t rd)
         case OPu64_128:
 
         case OPabs:
+        case OPtoprec:
         case OPrndtol:
         case OPrint:
         case OPsetjmp:
@@ -3610,28 +3611,29 @@ private void elimspecwalk(elem **pn)
   }
 }
 
-/*********************************
- * Unroll loop if possible.
+/********
+ * Walk e in execution order.
+ * When eincrement is found, remove it.
+ * Continue, replacing instances of `v` with `v+increment`
+ * When second eincrement is found, stop.
  * Params:
- *      l = loop to unroll
- * Returns:
- *      true if loop was unrolled
+ *      e = expression to walk
+ *      defnum = index of eincrement
+ *      v = increment variable
+ *      increment = amount to increment v
+ *      unrolls = number of times loop has been unrolled
  */
 
-struct UnrollWalker
+private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment, int unrolls) nothrow
 {
-nothrow:
-    uint defnum;
-    int state;
-    Symbol *v;
-    targ_llong increment;
+    int state = 0;
 
     /***********************************
      * Walk e in execution order, fixing it according to state.
-     * state == 0: when rdinc is found, remove it, advance to state 1
-     * state == 1: continue, replacing instances of v with v+increment,
-     *             when second rdinc is found, advance to state 2
-     * state == 2: continue
+     * state == 0..unrolls-1: when eincrement is found, remove it, advance to next state
+     * state == 1..unrolls-1: replacing instances of v with v+(state*increment),
+     * state == unrolls-1: leave eincrement alone, advance to next state
+     * state == unrolls: done
      */
 
     void walker(elem *e)
@@ -3660,7 +3662,7 @@ nothrow:
             walker(e.EV.E1);
         }
         else if (op == OPvar &&
-                 state == 1 &&
+                 state &&
                  e.EV.Vsym == v)
         {
             // overwrite e with (v+increment)
@@ -3668,31 +3670,34 @@ nothrow:
             el_copy(e1,e);
             e.Eoper = OPadd;
             e.EV.E1 = e1;
-            e.EV.E2 = el_long(e.Ety, increment);
+            e.EV.E2 = el_long(e.Ety, increment * state);
         }
         if (OTdef(op) && e.Edef == defnum)
         {
-            switch (state)
+            // found the increment elem; neuter all but the last one
+            if (state + 1 < unrolls)
             {
-                case 0:
-                    el_free(e.EV.E1);
-                    el_free(e.EV.E2);
-                    e.Eoper = OPconst;
-                    e.EV.Vllong = 0;
-                    break;
-
-                case 1:
-                    break;
-
-                default:
-                    assert(0);
+                el_free(e.EV.E1);
+                el_free(e.EV.E2);
+                e.Eoper = OPconst;
+                e.EV.Vllong = 0;
             }
             ++state;
         }
     }
+
+    walker(e);
+    assert(state == unrolls);
 }
 
 
+/*********************************
+ * Unroll loop if possible.
+ * Params:
+ *      l = loop to unroll
+ * Returns:
+ *      true if loop was unrolled
+ */
 bool loopunroll(ref loop l)
 {
     const bool log = false;
@@ -3704,17 +3709,20 @@ bool loopunroll(ref loop l)
     if (l.Lhead.Bflags & BFLnounroll)
         return false;
     l.Lhead.Bflags |= BFLnounroll;
+    if (log) WRfunc();
+
+    if (l.Lhead.Btry || l.Ltail.Btry)
+        return false;
 
     /* For simplification, only unroll loops that consist only
      * of a head and tail, and the tail is the exit block.
      */
     int numblocks = 0;
-    int i;
-    for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
+    for (int i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
         ++numblocks;
     if (numblocks != 2)
     {
-        if (log) printf("\tnot 2 blocks\n");
+        if (log) printf("\tnot 2 blocks, but %d\n", numblocks);
         return false;
     }
     assert(l.Lhead != l.Ltail);
@@ -3734,13 +3742,13 @@ bool loopunroll(ref loop l)
     if (log)
     {
         printf("Unroll candidate:\n");
-        printf("  head:\t"); WReqn(l.Lhead.Belem); printf("\n");
-        printf("  tail:\t"); WReqn(l.Ltail.Belem); printf("\n");
+        printf("  head B%d:\t", l.Lhead.Bdfoidx); WReqn(l.Lhead.Belem); printf("\n");
+        printf("  tail B%d:\t", l.Ltail.Bdfoidx); WReqn(l.Ltail.Belem); printf("\n");
     }
 
-    /* Tail must be of the form: (v < c) where v is an unsigned integer
+    /* Tail must be of the form: (v < c) or (v <= c) where v is an unsigned integer
      */
-    if (etail.Eoper != OPlt ||
+    if ((etail.Eoper != OPlt && etail.Eoper != OPle) ||
         etail.EV.E1.Eoper != OPvar ||
         etail.EV.E2.Eoper != OPconst)
     {
@@ -3759,7 +3767,6 @@ bool loopunroll(ref loop l)
         return false;
     }
 
-//    extern int el_length(elem *e);
     int cost = el_length(ehead);
     //printf("test4 cost: %d\n", cost);
 
@@ -3768,6 +3775,7 @@ bool loopunroll(ref loop l)
         if (log) printf("\tcost %d\n", cost);
         return false;
     }
+    if (log) printf("cost %d\n", cost);
 
     Symbol* v = e1.EV.Vsym;
 
@@ -3796,6 +3804,9 @@ bool loopunroll(ref loop l)
 
     if (log) printf("initial = %lld, increment = %lld, final = %lld\n",cast(long)initial,cast(long)increment,cast(long)final_);
 
+    if (etail.Eoper == OPle)
+        ++final_;
+
     if (initial < 0 ||
         final_ < initial ||
         increment <= 0 ||
@@ -3816,43 +3827,43 @@ bool loopunroll(ref loop l)
         return false;
     }
 
-    /* Unroll once
+    /* number of times the loop is unrolled
      */
-    if ((final_ - initial) % 2)
+    targ_ullong numIterations = (final_ - initial) / increment;
+    const int unrolls = (numIterations < 1000 / cost)
+        ? cast(int)numIterations
+        : 2;
+
+    if (unrolls == 0 || (final_ - initial) % unrolls)
     {
-        if (log) printf("\tnot (divisible by 2)\n");
+        if (log) printf("\tnot (divisible by %d)\n", unrolls);
         return false;
     }
 
     if (log) printf("Unrolling starting\n");
 
     // Double the increment
-    eincrement.EV.E2.EV.Vllong *= 2;
+    eincrement.EV.E2.EV.Vllong *= unrolls;
     //printf("  4head:\t"); WReqn(l.Lhead.Belem); printf("\n");
 
-    elem *esecond = el_copytree(ehead);
-    elem *e = el_combine(ehead, esecond);
+    elem* e = null;
+    foreach (i; 0 .. unrolls)
+        e = el_combine(e, el_copytree(ehead));
 
     /* Walk e in execution order.
      * When eincrement is found, remove it.
      * Continue, replacing instances of `v` with `v+increment`
-     * When second eincrement is found, stop.
+     * When last eincrement is found, stop.
      */
-    UnrollWalker uw;
-    uw.defnum = eincrement.Edef;
-    uw.state = 0;
-    uw.v = v;
-    uw.increment = increment;
-    uw.walker(e);
-    assert(uw.state == 2);
+    unrollWalker(e, eincrement.Edef, v, increment, unrolls);
 
     l.Lhead.Belem = e;
 
     /* If unrolled loop would only execute once anyway, just remove the test at the end
      */
-    if (initial + 2 * increment == final_)
+    if (initial + unrolls * increment == final_)
     {
-        if (log) printf("\tjust twice\n");
+        if (log) printf("\tcompletely unrolled\n");
         etail.Eoper = OPcomma;
         e2.EV.Vllong = 0;
         e2.Ety = etail.Ety;
@@ -3877,6 +3888,8 @@ int el_length(elem *e)
         n += 1;
         if (!OTleaf(e.Eoper))
         {
+            if (e.Eoper == OPctor || e.Eoper == OPdtor)
+                return 10_000;
             n += el_length(e.EV.E2);
             e = e.EV.E1;
         }

@@ -4,7 +4,7 @@ call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
 @echo on
 
 set DMD_DIR=%cd%
-if "%CONFIGURATION%" == "" set CONFIGURATION=Release
+if "%CONFIGURATION%" == "" set CONFIGURATION=RelWithAsserts
 set PLATFORM=Win32
 set MODEL=32mscoff
 if "%ARCH%"=="x64" set PLATFORM=x64
@@ -92,6 +92,11 @@ set OS=windows
 set CC=cl.exe
 set DMD_MODEL=%PLATFORM%
 set BUILD=%CONFIGURATION%
+if "%BUILD%" == "RelWithAsserts" (
+    set BUILD=Release
+    mkdir %DMD_DIR%\generated\Windows\Release\%PLATFORM%
+    xcopy %DMD_DIR%\generated\Windows\RelWithAsserts\%PLATFORM% %DMD_DIR%\generated\Windows\Release\%PLATFORM% /s
+)
 set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
 del phobos%MODEL%.lib
 

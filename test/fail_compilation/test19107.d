@@ -1,5 +1,5 @@
-// REQUIRED_ARGS:
 /*
+EXTRA_FILES: imports/imp19661.d imports/test19107a.d imports/test19107b.d
 TEST_OUTPUT:
 ---
 fail_compilation/test19107.d(24): Error: template `test19107.all` cannot deduce function from argument types `!((c) => c)(string[])`, candidates are:

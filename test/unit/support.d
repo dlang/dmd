@@ -1,3 +1,5 @@
+// See ../README.md for information about DMD unit tests.
+
 module support;
 
 import core.stdc.stdarg : va_list;

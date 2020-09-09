@@ -204,6 +204,10 @@ version (SCPP)
                 }
                 else
                 {
+                    version (SCPP)
+                        alignOffset(DATA, 2 << dt.DTalign);
+                    version (MARS)
+                        alignOffset(CDATA, 2 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;
@@ -1400,7 +1404,7 @@ version (SCPP)
     }
 }
     assert(funcsym_p == sfunc);
-    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
+    const int CSEGSAVE_DEFAULT = -10_000;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {

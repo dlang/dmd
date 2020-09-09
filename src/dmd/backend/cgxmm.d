@@ -274,8 +274,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     if (!(regvar && reg == XMM0 + ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0))))
     {
         cdb.gen(&cs);         // MOV EA+offset,reg
-        if (op == OPeq)
-            checkSetVex(cdb.last(), tyml);
+        checkSetVex(cdb.last(), tyml);
     }
 
     if (e1.Ecount ||                     // if lvalue is a CSE or
@@ -658,6 +657,44 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
+    cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    fixresult(cdb,e,retregs,pretregs);
+}
+
+/******************
+ * Absolute value operator OPabs
+ */
+
+void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+{
+    //printf("xmmabs()\n");
+    //elem_print(e);
+    assert(*pretregs);
+    tym_t tyml = tybasic(e.EV.E1.Ety);
+    int sz = _tysize[tyml];
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+
+    /* Generate:
+     *    MOV reg,e1
+     *    MOV rreg,mask
+     *    AND reg,rreg
+     */
+    codelem(cdb,e.EV.E1,&retregs,false);
+    getregs(cdb,retregs);
+    const reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    reg_t rreg;
+    allocreg(cdb,&rretregs,&rreg,tyml);
+    targ_size_t mask = 0x7FFF_FFFF;
+    if (sz == 8)
+        mask = cast(targ_size_t)0x7FFF_FFFF_FFFF_FFFFL;
+    movxmmconst(cdb,rreg, sz, mask, 0);
+
+    getregs(cdb,retregs);
+    const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     fixresult(cdb,e,retregs,pretregs);
 }
@@ -1716,6 +1753,40 @@ void checkSetVex(code *c, tym_t ty)
         c.Iflags |= CFvex;
         checkSetVex3(c);
     }
+}
+
+/**************************************
+ * Load complex operand into XMM registers or flags or both.
+ */
+
+void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //elem_print(e);
+    assert(*pretregs & (XMMREGS | mPSW));
+    if (*pretregs == (mXMM0 | mXMM1) &&
+        e.Eoper != OPconst)
+    {
+        code cs = void;
+        tym_t tym = tybasic(e.Ety);
+        tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
+        opcode_t opmv = xmmload(tym, xmmIsAligned(e));
+
+        regm_t retregs0 = mXMM0;
+        reg_t reg0;
+        allocreg(cdb, &retregs0, &reg0, ty);
+        loadea(cdb, e, &cs, opmv, reg0, 0, RMload, 0);  // MOVSS/MOVSD XMM0,data
+        checkSetVex(cdb.last(), ty);
+
+        regm_t retregs1 = mXMM1;
+        reg_t reg1;
+        allocreg(cdb, &retregs1, &reg1, ty);
+        loadea(cdb, e, &cs, opmv, reg1, tysize(ty), RMload, mXMM0); // MOVSS/MOVSD XMM1,data+offset
+        checkSetVex(cdb.last(), ty);
+
+        return;
+    }
+    cload87(cdb, e, pretregs);
 }
 
 }

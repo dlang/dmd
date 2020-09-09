@@ -93,7 +93,10 @@ struct Loc
     }
 }
 
-void error(Loc loc, const(char)* format, ...);
+static if (__VERSION__ < 2092)
+    void error(Loc loc, const(char)* format, ...);
+else
+    pragma(printf) void error(Loc loc, const(char)* format, ...);
 }
 
 version (MARS)
@@ -301,8 +304,6 @@ enum
  * Line number support.
  */
 
-enum LINNUMMAX = 512;
-
 struct Linnum
 {
 version (MARS)
@@ -312,8 +313,21 @@ else
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
-        int i;                  // used in data[]
-        ubyte[LINNUMMAX] data;  // linnum/offset data
+        Outbuffer data;         // linnum/offset data
+
+        void reset() nothrow
+        {
+            data.reset();
+        }
+}
+
+/*****************************
+ */
+struct PtrRef
+{
+  align(4):
+    Symbol* sym;
+    uint offset;
 }
 
 enum LINRECMAX = 2 + 255 * 2;   // room for 255 line numbers
@@ -345,24 +359,17 @@ struct Objstate
     int segidx;                 // index of next SEGDEF record
     int extidx;                 // index of next EXTDEF record
     int pubnamidx;              // index of COMDAT public name index
-    Outbuffer *reset_symbuf;    // Keep pointers to reset symbols
 
     Symbol *startaddress;       // if !null, then Symbol is start address
 
     debug
     int fixup_count;
 
-    Ledatarec **ledatas;
-    size_t ledatamax;           // index of allocated size
-    size_t ledatai;             // max index used in ledatas[]
-
     // Line numbers
-    list_t linnum_list;
     char *linrec;               // line number record
     uint linreci;               // index of next avail in linrec[]
     uint linrecheader;          // size of line record header
     uint linrecnum;             // number of line record entries
-    list_t linreclist;          // list of line records
     int mlinnum;
     int recseg;
     int term;
@@ -379,8 +386,6 @@ version (MARS)
     int fmsegi;                 // SegData[] of FM segment
     int datrefsegi;             // SegData[] of DATA pointer ref segment
     int tlsrefsegi;             // SegData[] of TLS pointer ref segment
-
-    Outbuffer *ptrref_buf;      // buffer for pointer references
 }
 
     int tlssegi;                // SegData[] of tls segment
@@ -398,17 +403,22 @@ version (MARS)
 
     int fltused;
     int nullext;
+
+    // The rest don't get re-zeroed for each object file, they get reset
+
+    Rarray!(Ledatarec*) ledatas;
+    Barray!(Symbol*) resetSymbols;  // reset symbols
+    Rarray!(Linnum) linnum_list;
+    Barray!(char*) linreclist;  // array of line records
+version (MARS)
+{
+    Barray!PtrRef ptrrefs;      // buffer for pointer references
+}
 }
 
 __gshared
 {
-public seg_data **SegData;
-
-    int seg_length;
-    int seg_max;
-
-    Rarray!(seg_data*) SegDataR;
-
+    Rarray!(seg_data*) SegData;
     Objstate obj;
 }
 
@@ -589,10 +599,8 @@ private int obj_namestring(char *p,const(char)* name)
 
 seg_data *getsegment()
 {
-    const int seg = cast(int)SegDataR.length;
-    seg_data** ppseg = SegDataR.push();
-    SegData = SegDataR[].ptr;
-    seg_length = cast(int)SegDataR[].length;
+    const int seg = cast(int)SegData.length;
+    seg_data** ppseg = SegData.push();
 
     seg_data* pseg = *ppseg;
     if (!pseg)
@@ -692,28 +700,17 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         //printf("OmfObj_init()\n");
         Obj mobj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
-        Outbuffer *reset_symbuf = obj.reset_symbuf;
-        if (reset_symbuf)
-        {
-            Symbol **p = cast(Symbol **)reset_symbuf.buf;
-            const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
-            for (size_t i = 0; i < n; ++i)
-                symbol_reset(p[i]);
-            reset_symbuf.reset();
-        }
-        else
-        {
-            reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-            assert(reset_symbuf);
-            reset_symbuf.reserve(50 * (Symbol*).sizeof);
-        }
+        // Zero obj up to ledatas
+        memset(&obj,0,obj.ledatas.offsetof);
 
-        memset(&obj,0,obj.sizeof);
+        obj.ledatas.reset();    // recycle the memory used by ledatas
+
+        foreach (s; obj.resetSymbols)
+            symbol_reset(s);
+        obj.resetSymbols.reset();
 
         obj.buf = objbuf;
-        obj.buf.reserve(40000);
-
-        obj.reset_symbuf = reset_symbuf; // reuse buffer
+        obj.buf.reserve(40_000);
 
         obj.lastfardatasegi = -1;
 
@@ -756,7 +753,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             obj.csegattr  = I32 ? SEG_ATTR(SEG_ALIGN16, SEG_C_PUBLIC,0,USE32)
                                 : SEG_ATTR(SEG_ALIGN16, SEG_C_PUBLIC,0,USE16);
 
-        SegDataR.reset();       // recycle memory
+        SegData.reset();       // recycle memory
         getsegment();           // element 0 is reserved
 
         getsegment();
@@ -764,26 +761,26 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         getsegment();
         getsegment();
 
-        SegDataR[CODE].SDseg = CODE;
-        SegDataR[DATA].SDseg = DATA;
-        SegDataR[CDATA].SDseg = CDATA;
-        SegDataR[UDATA].SDseg = UDATA;
+        SegData[CODE].SDseg = CODE;
+        SegData[DATA].SDseg = DATA;
+        SegData[CDATA].SDseg = CDATA;
+        SegData[UDATA].SDseg = UDATA;
 
-        SegDataR[CODE].segidx = CODE;
-        SegDataR[DATA].segidx = DATA;
-        SegDataR[CDATA].segidx = CDATA;
-        SegDataR[UDATA].segidx = UDATA;
+        SegData[CODE].segidx = CODE;
+        SegData[DATA].segidx = DATA;
+        SegData[CDATA].segidx = CDATA;
+        SegData[UDATA].segidx = UDATA;
 
         if (config.fulltypes)
         {
             getsegment();
             getsegment();
 
-            SegDataR[DEBSYM].SDseg = DEBSYM;
-            SegDataR[DEBTYP].SDseg = DEBTYP;
+            SegData[DEBSYM].SDseg = DEBSYM;
+            SegData[DEBTYP].SDseg = DEBTYP;
 
-            SegDataR[DEBSYM].segidx = DEBSYM;
-            SegDataR[DEBTYP].segidx = DEBTYP;
+            SegData[DEBSYM].segidx = DEBSYM;
+            SegData[DEBTYP].segidx = DEBTYP;
         }
 
         OmfObj_theadr(filename);
@@ -850,14 +847,14 @@ else
         outpubdata();                   // finish writing PUBDEFs
 
         // Put out LEDATA records and associated fixups
-        for (size_t i = 0; i < obj.ledatai; i++)
+        for (size_t i = 0; i < obj.ledatas.length; i++)
         {   Ledatarec *d = obj.ledatas[i];
 
             if (d.i)                   // if any data in this record
             {   // Fill in header
                 int headersize;
                 int rectyp;
-                assert(d.lseg > 0 && d.lseg < seg_length);
+                assert(d.lseg > 0 && d.lseg < SegData.length);
                 int lseg = SegData[d.lseg].segidx;
                 char[(d.header).sizeof] header = void;
 
@@ -926,7 +923,7 @@ static if (TERMCODE)
         OmfObj_segment_group(SegData[CODE].SDoffset, SegData[DATA].SDoffset, SegData[CDATA].SDoffset, SegData[UDATA].SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
-        for (size_t i = 0; i < seg_length; i++)
+        for (size_t i = 0; i < SegData.length; i++)
         {
             seg_data* f = SegData[i];
             if (f.isfarseg && f.origsize != f.SDoffset)
@@ -936,7 +933,7 @@ static if (TERMCODE)
         }
         //mem_free(obj.farseg);
 
-        //printf("Ledata max = %d\n", obj.ledatai);
+        //printf("Ledata max = %d\n", obj.ledatas.length);
         //printf("Max # of fixups = %d\n",obj.fixup_count);
 
         obj.buf.setsize(size);
@@ -991,45 +988,43 @@ else
         // It is done this way because presumably 99% of the lines
         // will be in the original source file, so we wish to minimize
         // memory consumption and maximize speed.
-        list_t ll;
-        Linnum *ln;
 
         if (linos2)
             return;             // BUG: not supported under OS/2
-        for (ll = obj.linnum_list; 1; ll = list_next(ll))
-        {
-            if (!ll)
-            {
-                ln = cast(Linnum *) mem_calloc(Linnum.sizeof);
-version (MARS)
-{
-                ln.filename = srcpos.Sfilename;
-}
-else
-{
-                ln.filptr = *srcpos.Sfilptr;
-}
-                ln.cseg = seg;
-                ln.seg = obj.pubnamidx;
-                list_prepend(&obj.linnum_list,ln);
-                break;
-            }
-            ln = cast(Linnum *)list_ptr(ll);
 
-version (MARS)
-            bool cond2 = ln.filename == srcpos.Sfilename;
-else version (SCPP)
-            bool cond2 = ln.filptr == *srcpos.Sfilptr;
+        Linnum* ln;
+        foreach (ref rln; obj.linnum_list)
+        {
+            version (MARS)
+                bool cond2 = rln.filename == srcpos.Sfilename;
+            else version (SCPP)
+                bool cond2 = rln.filptr == *srcpos.Sfilptr;
 
             if (cond2 &&
-                ln.cseg == seg &&
-                ln.i < LINNUMMAX - 6)
-                break;
+                rln.cseg == seg)
+            {
+                ln = &rln;      // found existing entry with room
+                goto L1;
+            }
         }
+        // Create new entry
+        ln = obj.linnum_list.push();
+        version (MARS)
+            ln.filename = srcpos.Sfilename;
+        else
+            ln.filptr = *srcpos.Sfilptr;
+
+        ln.cseg = seg;
+        ln.seg = obj.pubnamidx;
+        ln.reset();
+
+    L1:
         //printf("offset = x%x, line = %d\n", (int)offset, linnum);
-        TOWORD(&ln.data[ln.i],linnum);
-        TOOFFSET(&ln.data[ln.i + 2],offset);
-        ln.i += 2 + _tysize[TYint];
+        ln.data.write16(linnum);
+        if (_tysize[TYint] == 2)
+            ln.data.write16(cast(int)offset);
+        else
+            ln.data.write32(cast(int)offset);
     }
     else
     {
@@ -1055,9 +1050,9 @@ static if (MULTISCOPE)
 }
             if (linos2)
             {
-                if (!obj.linreclist)        // if first line number record
+                if (obj.linreclist.length == 0)  // if first line number record
                     obj.linreci += 8;       // leave room for header
-                list_append(&obj.linreclist,obj.linrec);
+                obj.linreclist.push(obj.linrec);
             }
 
             // Select record type to use
@@ -1122,37 +1117,26 @@ static if (MULTISCOPE)
 
 private void linnum_flush()
 {
-    if (obj.linreclist)
+    if (obj.linreclist.length)
     {
-        list_t list;
-        size_t len;
-
-        obj.linrec = cast(char *) list_ptr(obj.linreclist);
+        obj.linrec = obj.linreclist[0];
         TOWORD(obj.linrec + 6,obj.linrecnum);
-        list = obj.linreclist;
-        while (1)
-        {
-            obj.linrec = cast(char *) list_ptr(list);
 
-            list = list_next(list);
-            if (list)
-            {
-                objrecord(obj.mlinnum,obj.linrec,LINRECMAX);
-                mem_free(obj.linrec);
-            }
-            else
-            {
-                objrecord(obj.mlinnum,obj.linrec,obj.linreci);
-                break;
-            }
+        foreach (i; 0 .. obj.linreclist.length - 1)
+        {
+            obj.linrec = obj.linreclist[i];
+            objrecord(obj.mlinnum, obj.linrec, LINRECMAX);
+            mem_free(obj.linrec);
         }
-        list_free(&obj.linreclist,FPNULL);
+        obj.linrec = obj.linreclist[obj.linreclist.length - 1];
+        objrecord(obj.mlinnum,obj.linrec,obj.linreci);
+        obj.linreclist.reset();
 
         // Put out File Names Table
         TOLONG(obj.linrec + 2,0);               // record no. of start of source (???)
         TOLONG(obj.linrec + 6,obj.linrecnum);   // number of primary source records
         TOLONG(obj.linrec + 10,1);              // number of source and listing files
-        len = obj_namestring(obj.linrec + 14,obj.modname);
+        const len = obj_namestring(obj.linrec + 14,obj.modname);
         assert(14 + len <= LINRECMAX);
         objrecord(obj.mlinnum,obj.linrec,cast(uint)(14 + len));
 
@@ -1178,97 +1162,72 @@ static if (MULTISCOPE)
 
 private void linnum_term()
 {
-    list_t ll;
-
 version (SCPP)
     Sfile *lastfilptr = null;
 
 version (MARS)
     const(char)* lastfilename = null;
 
-    int csegsave = cseg;
+    const csegsave = cseg;
 
     linnum_flush();
     obj.term = 1;
-    while (obj.linnum_list)
-    {
-        Linnum *ln;
-        uint u;
-        Srcpos srcpos;
-        targ_size_t offset;
 
-        ll = obj.linnum_list;
-        ln = cast(Linnum *) list_ptr(ll);
-version (SCPP)
-{
-        Sfile *filptr = ln.filptr;
-        if (filptr != lastfilptr)
+    foreach (ref ln; obj.linnum_list)
+    {
+        version (SCPP)
         {
-            if (lastfilptr == null && strcmp(filptr.SFname,obj.modname))
+            Sfile *filptr = ln.filptr;
+            if (filptr != lastfilptr)
             {
-                OmfObj_theadr(filptr.SFname);
+                if (lastfilptr == null && strcmp(filptr.SFname,obj.modname))
+                    OmfObj_theadr(filptr.SFname);
+                lastfilptr = filptr;
             }
-            lastfilptr = filptr;
         }
-}
-version (MARS)
-{
-        const(char)* filename = ln.filename;
-        if (filename != lastfilename)
+        version (MARS)
         {
-            if (filename)
-                objmod.theadr(filename);
-            lastfilename = filename;
+            const(char)* filename = ln.filename;
+            if (filename != lastfilename)
+            {
+                if (filename)
+                    objmod.theadr(filename);
+                lastfilename = filename;
+            }
         }
-}
-        while (1)
-        {
-            cseg = ln.cseg;
-            assert(cseg > 0);
-            obj.pubnamidx = ln.seg;
-version (MARS)
-{
+        cseg = ln.cseg;
+        assert(cseg > 0);
+        obj.pubnamidx = ln.seg;
+
+        Srcpos srcpos;
+        version (MARS)
             srcpos.Sfilename = ln.filename;
-}
-else
-{
+        else
             srcpos.Sfilptr = &ln.filptr;
-}
-            for (u = 0; u < ln.i; )
+
+        const slice = ln.data[];
+        const pend = slice.ptr + slice.length;
+        for (const(ubyte)* p = slice.ptr; p < pend; )
+        {
+            srcpos.Slinnum = *cast(ushort *)p;
+            p += 2;
+            targ_size_t offset;
+            if (I32)
             {
-                srcpos.Slinnum = *cast(ushort *)&ln.data[u];
-                u += 2;
-                if (I32)
-                    offset = *cast(uint *)&ln.data[u];
-                else
-                    offset = *cast(ushort *)&ln.data[u];
-                OmfObj_linnum(srcpos,cseg,offset);
-                u += _tysize[TYint];
+                offset = *cast(uint *)p;
+                p += 4;
             }
-            linnum_flush();
-            ll = list_next(ll);
-            list_subtract(&obj.linnum_list,ln);
-            mem_free(ln);
-        L1:
-            if (!ll)
-                break;
-            ln = cast(Linnum *) list_ptr(ll);
-version (SCPP)
-{
-            if (filptr != ln.filptr)
-            {   ll = list_next(ll);
-                goto L1;
+            else
+            {
+                offset = *cast(ushort *)p;
+                p += 2;
             }
-}
-else
-{
-            if (filename != ln.filename)
-            {   ll = list_next(ll);
-                goto L1;
-            }
-}
+            OmfObj_linnum(srcpos,cseg,offset);
         }
+        linnum_flush();
     }
+
+    obj.linnum_list.reset();
     cseg = csegsave;
     assert(cseg > 0);
 static if (MULTISCOPE)
@@ -2092,7 +2051,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     tym_t ty;
 
     symbol_debug(s);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     ty = s.ty();
     isfunc = tyfunc(ty) != 0 || is_readonly_comdat;
 
@@ -2123,13 +2082,13 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
             lr.alloctyp = 0x10 | 0x00; // pick any instance | explicit allocation
         if (is_readonly_comdat)
         {
-            assert(lr.lseg > 0 && lr.lseg < seg_length);
+            assert(lr.lseg > 0 && lr.lseg < SegData.length);
             lr.flags |= 0x08;      // data in code seg
         }
         else
         {
             cseg = lr.lseg;
-            assert(cseg > 0 && cseg < seg_length);
+            assert(cseg > 0 && cseg < SegData.length);
             obj.pubnamidx = obj.lnameidx - 1;
             Offset(cseg) = 0;
             if (tyfarfunc(ty) && strcmp(s.Sident.ptr,"main") == 0)
@@ -2189,7 +2148,7 @@ int OmfObj_jmpTableSegment(Symbol *s)
 
 void OmfObj_setcodeseg(int seg)
 {
-    assert(0 < seg && seg < seg_length);
+    assert(0 < seg && seg < SegData.length);
     cseg = seg;
 }
 
@@ -2714,8 +2673,8 @@ void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
     char* p;
     uint ti;
 
-    assert(offset < 100000000);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    assert(offset < 100_000_000);
+    obj.resetSymbols.push(s);
 
     int idx = SegData[seg].segidx;
     if (obj.pubdatai + 1 + (IDMAX + IDOHD) + 4 + 2 > obj.pubdata.sizeof ||
@@ -2790,7 +2749,7 @@ int OmfObj_external(Symbol *s)
 {
     //printf("OmfObj_external('%s', %d)\n",s.Sident.ptr, obj.extidx + 1);
     symbol_debug(s);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     if (obj.extdatai + (IDMAX + IDOHD) + 3 > obj.extdata.sizeof)
         outextdata();
 
@@ -2857,7 +2816,7 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   uint ti;
 
     //printf("OmfObj_common_block('%s',%d,%d,%d, %d)\n",s.Sident.ptr,flag,size,count, obj.extidx + 1);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     outextdata();               // borrow the extdata[] storage
     i = cast(uint)OmfObj_mangle(s,obj.extdata.ptr);
 
@@ -2993,7 +2952,7 @@ private void obj_modend()
         // Turn startaddress into a fixup.
         // Borrow heavilly from OmfObj_reftoident()
 
-        obj.reset_symbuf.write((&s)[0 .. 1]);
+        obj.resetSymbols.push(s);
         symbol_debug(s);
         offset = 0;
         ty = s.ty();
@@ -3164,7 +3123,7 @@ static if (1)   // store in one record
         }
         //printf("[%d]: %02x %02x %02x\n", k, data[k + 0] & 0xFF, data[k + 1] & 0xFF, data[k + 2] & 0xFF);
         fn = f.FUnext;
-        mem_ffree(f);
+        free(f);
   }
   assert(i <= data.sizeof);
   if (i)
@@ -3204,7 +3163,7 @@ debug
     assert(targetdatum <= 0x7FFF);
     assert(framedatum <= 0x7FFF);
 }
-    f = cast(FIXUP *) mem_fmalloc(FIXUP.sizeof);
+    f = cast(FIXUP *) malloc(FIXUP.sizeof);
     //printf("f = %p, offset = x%x\n",f,offset);
     f.FUoffset = offset;
     f.FUlcfd = cast(ushort)lcfd;
@@ -3228,23 +3187,16 @@ private Ledatarec *ledata_new(int seg,targ_size_t offset)
 {
 
     //printf("ledata_new(seg = %d, offset = x%lx)\n",seg,offset);
-    assert(seg > 0 && seg < seg_length);
+    assert(seg > 0 && seg < SegData.length);
 
-    if (obj.ledatai == obj.ledatamax)
-    {
-        size_t o = obj.ledatamax;
-        obj.ledatamax = o * 2 + 100;
-        obj.ledatas = cast(Ledatarec **)mem_realloc(obj.ledatas, obj.ledatamax * (Ledatarec *).sizeof);
-        memset(obj.ledatas + o, 0, (obj.ledatamax - o) * (Ledatarec *).sizeof);
-    }
-    Ledatarec *lr = obj.ledatas[obj.ledatai];
+    Ledatarec** p = obj.ledatas.push();
+    Ledatarec* lr = *p;
     if (!lr)
-    {   lr = cast(Ledatarec *) mem_malloc(Ledatarec.sizeof);
-        obj.ledatas[obj.ledatai] = lr;
+    {
+        lr = cast(Ledatarec *) mem_malloc(Ledatarec.sizeof);
+        *p = lr;
     }
     memset(lr, 0, Ledatarec.sizeof);
-    obj.ledatas[obj.ledatai] = lr;
-    obj.ledatai++;
 
     lr.lseg = seg;
     lr.offset = offset;
@@ -3295,7 +3247,7 @@ void OmfObj_byte(int seg,targ_size_t offset,uint _byte)
      )
     {
         // Try to find an existing ledata
-        for (size_t i = obj.ledatai; i; )
+        for (size_t i = obj.ledatas.length; i; )
         {   Ledatarec *d = obj.ledatas[--i];
             if (seg == d.lseg &&       // segments match
                 offset >= d.offset &&
@@ -3359,6 +3311,19 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
             lr = cast(Ledatarec*)SegData[seg].ledata;
             if (lr.i + nbytes <= LEDATAMAX)
                 goto L1;
+            if (lr.i == LEDATAMAX)
+            {
+                while (nbytes > LEDATAMAX)  // start writing full ledatas
+                {
+                    lr = ledata_new(seg, offset);
+                    memcpy(lr.data.ptr, p, LEDATAMAX);
+                    p = (cast(char *)p) + LEDATAMAX;
+                    nbytes -= LEDATAMAX;
+                    offset += LEDATAMAX;
+                    lr.i = LEDATAMAX;
+                }
+                goto L1;
+            }
         }
     }
     else
@@ -3411,7 +3376,7 @@ void OmfObj_ledata(int seg,targ_size_t offset,targ_size_t data,
     {
         // Try to find an existing ledata
 //dbg_printf("seg = %d, offset = x%lx, size = %d\n",seg,offset,size);
-        for (size_t i = obj.ledatai; i; )
+        for (size_t i = obj.ledatas.length; i; )
         {   Ledatarec *d = obj.ledatas[--i];
 
 //dbg_printf("d: seg = %d, offset = x%lx, i = x%x\n",d.lseg,d.offset,d.i);
@@ -3998,15 +3963,8 @@ void OmfObj_write_pointerRef(Symbol* s, uint soff)
 {
 version (MARS)
 {
-    if (!obj.ptrref_buf)
-    {
-        obj.ptrref_buf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-        assert(obj.ptrref_buf);
-    }
-
     // defer writing pointer references until the symbols are written out
-    obj.ptrref_buf.write(&s, s.sizeof);
-    obj.ptrref_buf.write32(soff);
+    obj.ptrrefs.push(PtrRef(s, soff));
 }
 }
 
@@ -4069,20 +4027,9 @@ private void objflush_pointerRefs()
 {
 version (MARS)
 {
-    if (!obj.ptrref_buf)
-        return;
-
-    ubyte *p = obj.ptrref_buf.buf;
-    ubyte *end = obj.ptrref_buf.buf + obj.ptrref_buf.length();
-    while (p < end)
-    {
-        Symbol* s = *cast(Symbol**)p;
-        p += s.sizeof;
-        uint soff = *cast(uint*)p;
-        p += soff.sizeof;
-        objflush_pointerRef(s, soff);
-    }
-    obj.ptrref_buf.reset();
+    foreach (ref pr; obj.ptrrefs)
+        objflush_pointerRef(pr.sym, pr.offset);
+    obj.ptrrefs.reset();
 }
 }
 

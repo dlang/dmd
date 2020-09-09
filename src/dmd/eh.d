@@ -1,4 +1,5 @@
 /**
+ * Support for exception handling for EH_DM and EH_WIN32.
  * Generate exception handling tables.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
@@ -21,6 +22,7 @@ import dmd.errors;
 
 import dmd.root.rmem;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -34,7 +36,6 @@ import dmd.backend.type;
 
 extern (C++):
 
-// Support for D exception handling
 
 package(dmd) @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 
@@ -237,20 +238,16 @@ void except_fillInEHTable(Symbol *s)
      * within a single expression. These are marked by the special instruction pairs
      * (ESCAPE | ESCdctor) and (ESCAPE | ESCddtor).
      */
-    enum STACKINC = 16;
     if (usednteh & EHcleanup)
     {
-        int[STACKINC] stackbuf;
-        int *stack = stackbuf.ptr;
-        int stackmax = STACKINC;
+        Barray!int stack;
 
     int scopeindex = guarddim;
     foreach (b; BlockRange(startblock))
     {
         /* Set up stack of scope indices
          */
-        stack[0] = b.Btry ? b.Btry.Bscope_index : -1;
-        int stacki = 1;
+        stack.push(b.Btry ? b.Btry.Bscope_index : -1);
 
         uint boffset = cast(uint)b.Boffset;
         for (code *c = b.Bcode; c; c = code_next(c))
@@ -283,7 +280,7 @@ void except_fillInEHTable(Symbol *s)
                             code *cf = code_next(c2);
                             if (config.ehmethod == EHmethod.EH_WIN32)
                             {
-                                nteh_patchindex(cf, stack[stacki - 1]);
+                                nteh_patchindex(cf, stack[stack.length - 1]);
                                 foffset += calccodsize(cf);
                                 cf = code_next(cf);
                             }
@@ -309,7 +306,7 @@ void except_fillInEHTable(Symbol *s)
                         eoffset += calccodsize(c2);
                 }
                 //printf("boffset = %x, eoffset = %x, foffset = %x\n", boffset, eoffset, foffset);
-                dtb.dword(stack[stacki - 1]);   // parent index
+                dtb.dword(stack[stack.length - 1]);   // parent index
                 dtb.dword(0);           // no catch offset
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
@@ -318,30 +315,20 @@ void except_fillInEHTable(Symbol *s)
                 }
                 else
                     dtb.coff(foffset);  // finally handler address
-                if (stacki == stackmax)
-                {   // stack[] is out of space; enlarge it
-                    int *pi = cast(int *)Mem.check(malloc((stackmax + STACKINC) * int.sizeof));
-                    memcpy(pi, stack, stackmax * int.sizeof);
-                    if (stack != stackbuf.ptr)
-                        free(stack);
-                    stack = pi;
-                    stackmax += STACKINC;
-                }
-                stack[stacki++] = scopeindex;
+                stack.push(scopeindex);
                 ++scopeindex;
                 sz += GUARD_SIZE;
             }
             else if (c.Iop == (ESCAPE | ESCddtor))
             {
-                stacki--;
-                assert(stacki != 0);
+                stack.setLength(stack.length - 1);
+                assert(stack.length != 0);
             }
         Lnodtor:
             boffset += calccodsize(c);
         }
     }
-        if (stack != stackbuf.ptr)
-            free(stack);
+        stack.dtor();
     }
 
     // Generate catch[]

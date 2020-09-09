@@ -104,10 +104,18 @@ enum JsonFieldFlags : uint
 
 enum CppStdRevision : uint
 {
-    cpp98 = 199711,
-    cpp11 = 201103,
-    cpp14 = 201402,
-    cpp17 = 201703
+    cpp98 = 1997_11,
+    cpp11 = 2011_03,
+    cpp14 = 2014_02,
+    cpp17 = 2017_03
+}
+
+/// Configuration for the C++ header generator
+enum CxxHeaderMode : uint
+{
+    none,   /// Don't generate headers
+    silent, /// Generate headers
+    verbose /// Generate headers and add comments for hidden declarations
 }
 
 // Put command line switches in here
@@ -126,6 +134,7 @@ extern (C++) struct Param
     bool showColumns;       // print character (column) numbers in diagnostics
     bool vtls;              // identify thread local variables
     bool vtemplates;        // collect and list statistics on template instantiations
+    bool vtemplatesListInstances; // collect and list statistics on template instantiations origins. TODO: make this an enum when we want to list other kinds of instances
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
     bool vcomplex;          // identify complex/imaginary type usage
@@ -159,13 +168,14 @@ extern (C++) struct Param
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
+    bool ctfe_cov = false;  // generate coverage data for ctfe
     bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
     bool useExceptions = true;   // support exception handling
     bool noSharedAccess;         // read/write access to shared memory objects
-    bool inMeansScopeConst; // `in` means `scope const`
+    bool previewIn;         // `in` means `[ref] scope const`, accepts rvalues
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
@@ -190,7 +200,7 @@ extern (C++) struct Param
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 
-    bool markdown;          // enable Markdown replacements in Ddoc
+    bool markdown = true;   // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
@@ -204,6 +214,7 @@ extern (C++) struct Param
     bool revertUsage;       // print help on -revert switch
     bool previewUsage;      // print help on -preview switch
     bool externStdUsage;    // print help on -extern-std switch
+    bool hcUsage;           // print help on -HC switch
     bool logo;              // print compiler logo
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
@@ -238,7 +249,7 @@ extern (C++) struct Param
     const(char)[] hdrname;               // write 'header' file to docname
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
 
-    bool doCxxHdrGeneration;            // write 'Cxx header' file
+    CxxHeaderMode doCxxHdrGeneration;      /// Generate 'Cxx header' file
     const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
     const(char)[] cxxhdrname;           // write 'header' file to docname
 
@@ -314,7 +325,9 @@ extern (C++) struct Global
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
-    string _version;
+    private enum string _version = import("VERSION");
+    private enum uint _versionNumber = parseVersionNumber(_version);
+
     const(char)[] vendor;    // Compiler backend name
 
     Param params;
@@ -369,8 +382,6 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
-        _version = import("VERSION") ~ '\0';
-
         version (MARS)
         {
             vendor = "Digital Mars D";
@@ -458,41 +469,59 @@ extern (C++) struct Global
     }
 
     /**
+     * Computes the version number __VERSION__ from the compiler version string.
+     */
+    extern (D) private static uint parseVersionNumber(string version_)
+    {
+        //
+        // parse _version
+        //
+        uint major = 0;
+        uint minor = 0;
+        bool point = false;
+        // skip initial 'v'
+        foreach (const c; version_[1..$])
+        {
+            if ('0' <= c && c <= '9') // isdigit
+            {
+                minor = minor * 10 + c - '0';
+            }
+            else if (c == '.')
+            {
+                if (point)
+                    break; // ignore everything after second '.'
+                point = true;
+                major = minor;
+                minor = 0;
+            }
+            else
+                break;
+        }
+        return major * 1000 + minor;
+    }
+
+    /**
     Returns: the version as the number that would be returned for __VERSION__
     */
     extern(C++) uint versionNumber()
     {
-        import core.stdc.ctype;
-        __gshared uint cached = 0;
-        if (cached == 0)
-        {
-            //
-            // parse _version
-            //
-            uint major = 0;
-            uint minor = 0;
-            bool point = false;
-            for (const(char)* p = _version.ptr + 1;; p++)
-            {
-                const c = *p;
-                if (isdigit(cast(char)c))
-                {
-                    minor = minor * 10 + c - '0';
-                }
-                else if (c == '.')
-                {
-                    if (point)
-                        break; // ignore everything after second '.'
-                    point = true;
-                    major = minor;
-                    minor = 0;
-                }
-                else
-                    break;
-            }
-            cached = major * 1000 + minor;
-        }
-        return cached;
+        return _versionNumber;
+    }
+
+    /**
+    Returns: compiler version string.
+    */
+    extern(D) string versionString()
+    {
+        return _version;
+    }
+
+    /**
+    Returns: compiler version as char string.
+    */
+    extern(C++) const(char*) versionChars()
+    {
+        return _version.ptr;
     }
 
     /**

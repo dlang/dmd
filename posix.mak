@@ -12,7 +12,7 @@ auto-tester-build:
 	echo "Darwin_64_32_disabled"
 else
 auto-tester-build:
-	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
+	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1 ENABLE_ASSERTS=1
 endif
 
 ifneq (,$(findstring Darwin_64_32, $(PWD)))
@@ -24,7 +24,7 @@ auto-tester-test: test
 else # POSIX
 # Like test, but without runnable_cxx
 auto-tester-test:
-	$(QUIET)$(MAKE) -C src -f posix.mak unittest
+	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-test
 	$(QUIET)$(MAKE) -C test -f Makefile auto-tester-test
 endif
 endif
@@ -76,3 +76,8 @@ style:
 	$(QUIET)$(MAKE) -C src -f posix.mak style
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
+
+# Dont run targets in parallel because this makefile is just a thin wrapper
+# for build.d and multiple invocations might stomp on each other.
+# (build.d employs it's own parallelization)
+.NOTPARALLEL:

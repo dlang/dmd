@@ -73,7 +73,7 @@ private void logo()
 {
     printf("DMD%llu D Compiler %.*s\n%.*s %.*s\n",
         cast(ulong)size_t.sizeof * 8,
-        cast(int) global._version.length - 1, global._version.ptr,
+        cast(int) global.versionString().length, global.versionString().ptr,
         cast(int)global.copyright.length, global.copyright.ptr,
         cast(int)global.written.length, global.written.ptr
     );
@@ -93,7 +93,7 @@ extern(C) void printInternalFailure(FILE* stream)
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
     "---\n").ptr, stream);
-    stream.fprintf("DMD %.*s\n", cast(int) global._version.length - 1, global._version.ptr);
+    stream.fprintf("DMD %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
     stream.printPredefinedVersions;
     stream.printGlobalConfigs();
     fputs("---\n".ptr, stream);
@@ -122,24 +122,6 @@ Where:
 <option>:
   @<cmdfile>       read arguments from cmdfile
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
-}
-
-/**
- * Remove generated .di files on error and exit
- */
-private void removeHdrFilesAndFail(ref Param params, ref Modules modules)
-{
-    if (params.doHdrGeneration)
-    {
-        foreach (m; modules)
-        {
-            if (m.isHdrFile)
-                continue;
-            File.remove(m.hdrfile.toChars());
-        }
-    }
-
-    fatal();
 }
 
 /**
@@ -313,7 +295,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     import dmd.cli : CLIUsage;
     mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
-        "preview", "revert", "externStd"]));
+        "preview", "revert", "externStd", "hc"]));
 
     if (params.manual)
     {
@@ -615,15 +597,16 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
-    if (params.useInline)
+    foreach (m; modules)
     {
-        foreach (m; modules)
+        if (params.useInline || m.hasAlwaysInlines)
         {
             if (params.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
     }
+
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
@@ -853,12 +836,43 @@ extern (C++) void generateJson(Modules* modules)
     }
 }
 
+version (DigitalMars)
+{
+    private void installMemErrHandler()
+    {
+        // (only available on some platforms on DMD)
+        const shouldDoMemoryError = getenv("DMD_INSTALL_MEMERR_HANDLER");
+        if (shouldDoMemoryError !is null && *shouldDoMemoryError == '1')
+        {
+            import etc.linux.memoryerror;
+            static if (is(typeof(registerMemoryErrorHandler())))
+            {
+                registerMemoryErrorHandler();
+            }
+            else
+            {
+                printf("**WARNING** Memory error handler not supported on this platform!\n");
+            }
+        }
+    }
+}
 
-version (NoMain) {} else
+version (NoMain)
+{
+    version (DigitalMars)
+    {
+        shared static this()
+        {
+            installMemErrHandler();
+        }
+    }
+}
+else
 {
     // in druntime:
     alias MainFunc = extern(C) int function(char[][] args);
     extern (C) int _d_run_main(int argc, char** argv, MainFunc dMain);
+
 
     // When using a C main, host DMD may not link against host druntime by default.
     version (DigitalMars)
@@ -919,6 +933,12 @@ version (NoMain) {} else
      */
     extern (C) int _Dmain(char[][])
     {
+        // possibly install memory error handler
+        version (DigitalMars)
+        {
+            installMemErrHandler();
+        }
+
         import core.runtime;
         import core.memory;
         static if (!isGCAvailable)
@@ -937,9 +957,9 @@ version (NoMain) {} else
                 return path;
             }
             version (Windows)
-                enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\');
+                enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\'), '\\');
             else
-                enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '/'), '/');
+                enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '/'), '/'), '/');
 
             dmd_coverSourcePath(sourcePath);
             dmd_coverDestPath(sourcePath);
@@ -1327,7 +1347,7 @@ private void printPredefinedVersions(FILE* stream)
 extern(C) void printGlobalConfigs(FILE* stream)
 {
     stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
-    stream.fprintf("version   %.*s\n", cast(int) global._version.length - 1, global._version.ptr);
+    stream.fprintf("version   %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
     const iniOutput = global.inifilename ? global.inifilename : "(none)";
     stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
@@ -1702,8 +1722,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.cov = true;
             // Parse:
             //      -cov
+            //      -cov=ctfe
             //      -cov=nnn
-            if (p[4] == '=')
+            if (arg == "-cov=ctfe")
+            {
+                params.ctfe_cov = true;
+            }
+            else if (p[4] == '=')
             {
                 if (!params.covPercent.parseDigits(p.toDString()[5 .. $], 100))
                 {
@@ -1843,8 +1868,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.vcg_ast = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
-        else if (arg == "-vtemplates") // https://dlang.org/dmd.html#switch-vtemplates
+        else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
+        {
             params.vtemplates = true;
+            if (p[1 + "vtemplates".length] == '=')
+            {
+                const(char)[] style = arg[1 + "vtemplates=".length .. $];
+                switch (style)
+                {
+                case "list-instances":
+                    params.vtemplatesListInstances = true;
+                    break;
+                default:
+                    error("unknown vtemplates style '%.*s', must be 'list-instances'", cast(int) style.length, style.ptr);
+                }
+            }
+        }
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
@@ -1976,13 +2015,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 3449:
                             params.vfield = true;
                             break;
-                        case 14246:
+                        case 14_246:
                             params.dtorFields = true;
                             break;
-                        case 14488:
+                        case 14_488:
                             params.vcomplex = true;
                             break;
-                        case 16997:
+                        case 16_997:
                             params.fix16997 = true;
                             break;
                         default:
@@ -2126,7 +2165,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
-            params.doCxxHdrGeneration = true;
+            params.doCxxHdrGeneration = CxxHeaderMode.silent;
             switch (p[3])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-HCd
@@ -2138,6 +2177,24 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (!p[4])
                     goto Lnoarg;
                 params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
+                break;
+            case '=':
+                enum len = "-HC=".length;
+                mixin(checkOptionsMixin("hcUsage", "`-HC=<mode>` requires a valid mode"));
+                const mode = arg[len .. $];
+                switch (mode)
+                {
+                    case "silent":
+                        /* already set above */
+                        break;
+                    case "verbose":
+                        params.doCxxHdrGeneration = CxxHeaderMode.verbose;
+                        break;
+                    default:
+                        errorInvalidSwitch(p);
+                        params.hcUsage = true;
+                        return false;
+                }
                 break;
             case 0:
                 break;

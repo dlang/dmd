@@ -66,7 +66,7 @@ Expression expandVar(int result, VarDeclaration v)
 
     static Expression errorReturn()
     {
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     if (!v)
@@ -281,7 +281,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         void error()
         {
-            ret = new ErrorExp();
+            ret = ErrorExp.get();
         }
 
         bool expOptimize(ref Expression e, int flags, bool keepLvalue = false)
@@ -609,7 +609,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
                     Parameter p = tf.parameterList[i];
-                    bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+                    bool keep = p && p.isReference();
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
             }

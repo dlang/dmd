@@ -14,8 +14,3 @@ steps:
       bash --version
       sh --login .azure-pipelines/windows.sh
     displayName: Build DMD
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: windows-$(ARCH)
-      targetPath: artifacts
-    displayName: Publish artifacts

@@ -1078,21 +1078,14 @@ private bool finishVtbl(ClassDeclaration cd)
             if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
                 continue;
             // Hiding detected: same name, overlapping specializations
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            if (tf.ty == Tfunction)
-            {
-                cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
-                    fd.toPrettyChars(),
-                    parametersTypeToChars(tf.parameterList),
-                    cd.toChars(),
-                    fd.toChars(),
-                    fd.parent.toChars(),
-                    fd.toChars());
-            }
-            else
-            {
-                cd.error("use of `%s` is hidden by `%s`", fd.toPrettyChars(), cd.toChars());
-            }
+            TypeFunction tf = fd.type.toTypeFunction();
+            cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
+                fd.toPrettyChars(),
+                parametersTypeToChars(tf.parameterList),
+                cd.toChars(),
+                fd.toChars(),
+                fd.parent.toChars(),
+                fd.toChars());
             hasError = true;
             break;
         }

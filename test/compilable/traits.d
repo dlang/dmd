@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -extern-std=c++98
+// EXTRA_FILES: imports/plainpackage/plainmodule.d imports/pkgmodule/package.d imports/pkgmodule/plainmodule.d
 
 // This file is intended to contain all compilable traits-related tests in an
 // effort to keep the number of files in the `compilable` folder to a minimum.
@@ -37,6 +38,7 @@ static assert(__traits(getTargetInfo, "cppStd") == 199711);
 import imports.plainpackage.plainmodule;
 import imports.pkgmodule.plainmodule;
 
+#line 40
 struct MyStruct;
 
 alias a = imports.plainpackage;
@@ -204,3 +206,33 @@ enum m20884 = "x";
 static assert(is(typeof(__traits(getMember, T20884, m20884)) == immutable(int))); // OK now
 static assert(is(          typeof(mixin("T20884." ~ m20884)) == immutable(int)));
 static assert(is(                           typeof(T20884.x) == immutable(int)));
+
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20761
+
+alias Seq(T...) = T;
+
+static assert(__traits(isSame, Seq!(1, 2), Seq!(1, 2)));
+static assert(!__traits(isSame, Seq!(1, 1), Seq!(2, 2)));
+static assert(!__traits(isSame, Seq!(1, 1, 2), Seq!(1, 1)));
+static assert(!__traits(isSame, Seq!(1, 1), Seq!(1, 1, 2)));
+
+static assert(__traits(isSame,
+    Seq!(string, wstring),
+    Seq!(immutable(char)[], immutable(wchar)[]))
+);
+
+static assert(__traits(isSame,
+    Seq!(i => i.value, (a, b) => a + b),
+    Seq!(a => a.value, (x, y) => x + y)
+));
+
+static assert(__traits(isSame,
+    Seq!(float, Seq!(double, Seq!real)),
+    Seq!(Seq!(Seq!float, double), real)
+));
+
+static assert(!__traits(isSame,
+    Seq!(int, Seq!(a => a + a)),
+    Seq!(int, Seq!(a => a * a))
+));

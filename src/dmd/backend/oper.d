@@ -47,6 +47,7 @@ enum
         OPuadd,                 // unary +
         OPvoid,                 // where casting to void is not a no-op
         OPabs,                  // absolute value
+        OPtoprec,               // round to precision (for 80 bit reals)
         OPrndtol,               // round to short, long, long long (inline 8087 only)
         OPrint,                 // round to int
 
@@ -678,6 +679,7 @@ extern (C++) __gshared const(char)*[OPMAX] debtab =
     OPnullptr: "nullptr",
     OPpair:    "pair",
     OPrpair:   "rpair",
+    OPtoprec:  "toprec",
 
     OPor:      "|",
     OPoror:    "||",
@@ -877,7 +879,7 @@ enum Eunary =
         OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
         OP128_64,OPs64_128,OPu64_128,
         OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
-        OParrow,OPnegass,
+        OParrow,OPnegass,OPtoprec,
         OPctor,OPdtor,OPsetjmp,OPvoid,
         OPbsf,OPbsr,OPbswap,OPpopcnt,
         OPddtor,
@@ -981,7 +983,7 @@ enum Eae =
         OPu32_64,OPs32_64,OP64_32,OPmsw,
         OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
         OP128_64,OPs64_128,OPu64_128,
-        OPsizeof,
+        OPsizeof,OPtoprec,
         OPcallns,OPucallns,OPpair,OPrpair,
         OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,OPpopcnt,
         OPgot,OPremquo,

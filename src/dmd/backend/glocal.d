@@ -161,6 +161,7 @@ Loop:
 
         case OPeq:
         case OPstreq:
+        case OPvecsto:
             e1 = e.EV.E1;
             local_exp(lt,e.EV.E2,1);
             if (e1.Eoper == OPvar)

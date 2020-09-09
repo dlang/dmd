@@ -1,3 +1,5 @@
+// See ../README.md for information about DMD unit tests.
+
 module frontend;
 
 import support : afterEach, defaultImportPaths;

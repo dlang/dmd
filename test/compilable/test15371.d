@@ -1,4 +1,5 @@
 /*
+EXTRA_FILES: imports/test15371.d
 TEST_OUTPUT:
 ---
 ---

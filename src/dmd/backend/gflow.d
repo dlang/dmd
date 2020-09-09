@@ -1,12 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Code to do the Data Flow Analysis (doesn't act on the data).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.d, backend/gflow.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_gflow.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gflow.d
  */
 
@@ -500,6 +500,20 @@ private void flowaecp(int flowxx)
             }
             assert(!first);     // it must have had predecessors
 
+            if (b.BC == BCjcatch)
+            {
+                /* Set Bin to 0 to account for:
+                    void* pstart = p;
+                    try
+                    {
+                        p = null; // account for this
+                        throw;
+                    }
+                    catch (Throwable o) { assert(p != pstart); }
+                */
+                vec_clear(b.Bin);
+            }
+
             if (anychng)
             {
                 vec_sub(b.Bout,b.Bin,b.Bkill);
@@ -581,14 +595,19 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                     asgcpelems(n.EV.E2);
                 }
 
-                /* look for elem of the form OPvar=OPvar, where they aren't the */
-                /* same variable.                                               */
+                /* look for elem of the form OPvar=OPvar, where they aren't the
+                 * same variable.
+                 * Don't mix XMM and integer registers.
+                 */
+                elem* e1;
+                elem* e2;
                 if ((op == OPeq || op == OPstreq) &&
-                    n.EV.E1.Eoper == OPvar &&
-                    n.EV.E2.Eoper == OPvar &&
-                    !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
-                    !((n.EV.E1.EV.Vsym.Sflags | n.EV.E2.EV.Vsym.Sflags) & SFLlivexit) &&
-                    n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
+                    (e1 = n.EV.E1).Eoper == OPvar &&
+                    (e2 = n.EV.E2).Eoper == OPvar &&
+                    !((e1.Ety | e2.Ety) & (mTYvolatile | mTYshared)) &&
+                    (!config.fpxmmregs ||
+                     (!tyfloating(e1.EV.Vsym.Stype.Tty) == !tyfloating(e2.EV.Vsym.Stype.Tty))) &&
+                    e1.EV.Vsym != e2.EV.Vsym)
                 {
                     n.Eexp = cast(uint)go.expnod.length;
                     go.expnod.push(n);

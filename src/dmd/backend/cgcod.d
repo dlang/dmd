@@ -1,12 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cgcod.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcod.d
  */
 
@@ -741,7 +741,7 @@ void prolog(ref CodeBuilder cdb)
 {
     bool enter;
 
-    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident, needframe, Auto.alignment);
+    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, Auto.alignment);
     debug debugw && printf("funcstart()\n");
     regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
@@ -754,7 +754,7 @@ void prolog(ref CodeBuilder cdb)
     bool pushalloc = false;
     tym_t tyf = funcsym_p.ty();
     tym_t tym = tybasic(tyf);
-    uint farfunc = tyfarfunc(tym);
+    const farfunc = tyfarfunc(tym) != 0;
 
     // Special Intel 64 bit ABI prolog setup for variadic functions
     Symbol *sv64 = null;                        // set to __va_argsave
@@ -942,7 +942,17 @@ else
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    cgstate.funcarg.alignment = cgstate.funcarg.size ? STACKALIGN : REGSIZE;
+    cgstate.funcarg.alignment = STACKALIGN;
+    /* If the function doesn't need the extra alignment, don't do it.
+     * Can expand on this by allowing for locals that don't need extra alignment
+     * and calling functions that don't need it.
+     */
+    if (pushoff == 0 && !calledafunc && config.fpxmmregs && (I32 || I64))
+    {
+        cgstate.funcarg.alignment = I64 ? 8 : 4;
+    }
+
+    //printf("pushoff = %d, size = %d, alignment = %d, bias = %d\n", cast(int)pushoff, cast(int)cgstate.funcarg.size, cast(int)cgstate.funcarg.alignment, cast(int)bias);
     cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
 
     localsize = -cgstate.funcarg.offset;
@@ -1041,7 +1051,7 @@ else
     }
     else if (needframe)                 // if variables or parameters
     {
-        prolog_frame(cdbx, farfunc, &xlocalsize, &enter, &cfa_offset);
+        prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
         hasframe = 1;
     }
 
@@ -1125,7 +1135,7 @@ else
             }
 
             uint regsaved;
-            prolog_trace(cdbx, farfunc != 0, &regsaved);
+            prolog_trace(cdbx, farfunc, &regsaved);
 
             if (spalign)
                 cod3_stackadj(cdbx, -spalign);
@@ -2193,6 +2203,23 @@ L3:
         getregs(cdb, retregs);
 }
 
+
+/*****************************************
+ * Allocate a scratch register.
+ * Params:
+ *      cdb = where to write any generated code to
+ *      regm = mask of registers to pick one from
+ * Returns:
+ *      selected register
+ */
+reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
+{
+    reg_t r;
+    allocreg(cdb, &regm, &r, TYoffset);
+    return r;
+}
+
+
 /******************************
  * Determine registers that should be destroyed upon arrival
  * to code entry point for exception handling.
@@ -2794,9 +2821,9 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPcom:     &cdcom,
     OPcond:    &cdcond,
     OPcomma:   &cdcomma,
-    OPremquo:  &cdmul,
-    OPdiv:     &cdmul,
-    OPmod:     &cdmul,
+    OPremquo:  &cddiv,
+    OPdiv:     &cddiv,
+    OPmod:     &cddiv,
     OPxor:     &cdorth,
     OPstring:  &cderr,
     OPrelconst: &cdrelconst,
@@ -2829,6 +2856,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPneg:     &cdneg,
     OPuadd:    &cderr,
     OPabs:     &cdabs,
+    OPtoprec:  &cdtoprec,
     OPsqrt:    &cdneg,
     OPsin:     &cdneg,
     OPcos:     &cdneg,
@@ -2856,8 +2884,8 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPaddass:  &cdaddass,
     OPminass:  &cdaddass,
     OPmulass:  &cdmulass,
-    OPdivass:  &cdmulass,
-    OPmodass:  &cdmulass,
+    OPdivass:  &cddivass,
+    OPmodass:  &cddivass,
     OPshrass:  &cdshass,
     OPashrass: &cdshass,
     OPshlass:  &cdshass,

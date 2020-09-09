@@ -244,7 +244,7 @@ private elem *callfunc(const ref Loc loc,
 
             if (i - j < tf.parameterList.length &&
                 i >= j &&
-                tf.parameterList[i - j].storageClass & (STC.out_ | STC.ref_))
+                tf.parameterList[i - j].isReference())
             {
                 /* `ref` and `out` parameters mean convert
                  * corresponding argument to a pointer
@@ -272,11 +272,7 @@ private elem *callfunc(const ref Loc loc,
         }
         if (!left_to_right)
         {
-            /* Avoid 'fixing' side effects of _array... functions as
-             * they were already working right from the olden days before this fix
-             */
-            if (!(ec.Eoper == OPvar && fd.isArrayOp))
-                eside = fixArgumentEvaluationOrder(elems);
+            eside = fixArgumentEvaluationOrder(elems);
         }
 
         foreach (ref e; elems)
@@ -557,9 +553,13 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     else if (retmethod == RET.stack)
     {
         if (irs.params.isOSX && eresult)
+        {
             /* ABI quirk: hidden pointer is not returned in registers
              */
+            if (tyaggregate(tyret))
+                e.ET = Type_toCtype(tret);
             e = el_combine(e, el_copytree(eresult));
+        }
         e.Ety = TYnptr;
         e = el_una(OPind, tyret, e);
     }
@@ -972,10 +972,11 @@ private elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *ev
 {
     assert(op == TOK.blit || op == TOK.assign || op == TOK.construct);
     const sz = cast(uint)tb.size();
+    Type tb2 = tb;
 
 Lagain:
     int r;
-    switch (tb.ty)
+    switch (tb2.ty)
     {
         case Tfloat80:
         case Timaginary80:
@@ -1005,11 +1006,11 @@ Lagain:
             if (!irs.params.is64bit)
                 goto default;
 
-            TypeStruct tc = cast(TypeStruct)tb;
+            TypeStruct tc = cast(TypeStruct)tb2;
             StructDeclaration sd = tc.sym;
             if (sd.numArgTypes() == 1)
             {
-                tb = sd.argType(0);
+                tb2 = sd.argType(0);
                 goto Lagain;
             }
             goto default;
@@ -2742,7 +2743,7 @@ elem *toElem(Expression e, IRState *irs)
                 Type ta = are.e1.type.toBasetype();
 
                 // which we do if the 'next' types match
-                if (ae.memset & MemorySet.blockAssign)
+                if (ae.memset == MemorySet.blockAssign)
                 {
                     // Do a memset for array[]=v
                     //printf("Lpair %s\n", ae.toChars());
@@ -2930,8 +2931,9 @@ elem *toElem(Expression e, IRState *irs)
                         /* Construct:
                          *   memcpy(ex.ptr, ey.ptr, nbytes)[0..elen]
                          */
-                        elem* e = el_params(nbytes, epfr, epto, null);
-                        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
+                        elem* e = el_bin(OPmemcpy, TYnptr, epto, el_param(epfr, nbytes));
+                        //elem* e = el_params(nbytes, epfr, epto, null);
+                        //e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
                         e = el_pair(eto.Ety, el_copytree(elen), e);
 
                         /* Combine: eto, efrom, echeck, e
@@ -2978,7 +2980,7 @@ elem *toElem(Expression e, IRState *irs)
 
             /* Look for initialization of an `out` or `ref` variable
              */
-            if (ae.memset & MemorySet.referenceInit)
+            if (ae.memset == MemorySet.referenceInit)
             {
                 assert(ae.op == TOK.construct || ae.op == TOK.blit);
                 auto ve = ae.e1.isVarExp();
@@ -3657,7 +3659,7 @@ elem *toElem(Expression e, IRState *irs)
             assert(txb.ty == tyb.ty);
 
             // https://issues.dlang.org/show_bug.cgi?id=14730
-            if (irs.params.useInline && v.offset == 0)
+            if (v.offset == 0)
             {
                 FuncDeclaration fd = v.parent.isFuncDeclaration();
                 if (fd && fd.semanticRun < PASS.obj)

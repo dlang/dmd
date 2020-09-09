@@ -70,6 +70,7 @@ static void frontend_init()
     global.params.isLinux = true;
     global.vendor = "Front-End Tester";
     global.params.objname = NULL;
+    global.params.cpu = CPU::native;
 
     Type::_init();
     Id::initialize();
@@ -102,6 +103,17 @@ void test_tokens()
     // Last valid TOK value
     assert(TOKvectorarray == TOKMAX - 1);
     assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
+}
+
+void test_compiler_globals()
+{
+    // only check constant prefix of version
+    assert(strncmp(global.versionChars(), "v2.", 3) == 0);
+    unsigned versionNumber = global.versionNumber();
+    assert(versionNumber >= 2060 && versionNumber <= 3000);
+
+    assert(strcmp(target.architectureName.ptr, "X86_64") == 0 ||
+           strcmp(target.architectureName.ptr, "X86") == 0);
 }
 
 /**********************************/
@@ -273,7 +285,7 @@ void test_semantic()
     Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
-    assert(ad && ad->ctor);
+    assert(ad && ad->ctor && ad->sizeok == SIZEOKdone);
     CtorDeclaration *ctor = ad->ctor->isCtorDeclaration();
     assert(ctor->isMember() && !ctor->isNested());
     assert(0 == strcmp(ctor->type->toChars(), "Error(string)"));
@@ -350,17 +362,19 @@ void test_types()
     StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
     TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKd, stc);
 
-    assert(tfunction->isnothrow);
-    assert(!tfunction->isnogc);
-    assert(tfunction->isproperty);
-    assert(!tfunction->isref);
-    assert(tfunction->isreturn);
-    assert(!tfunction->isscope);
-    assert(tfunction->isreturninferred);
-    assert(!tfunction->isscopeinferred);
+    assert(tfunction->isnothrow());
+    assert(!tfunction->isnogc());
+    assert(tfunction->isproperty());
+    assert(!tfunction->isref());
+    tfunction->isref(true);
+    assert(tfunction->isref());
+    assert(tfunction->isreturn());
+    assert(!tfunction->isScopeQual());
+    assert(tfunction->isreturninferred());
+    assert(!tfunction->isscopeinferred());
     assert(tfunction->linkage == LINKd);
-    assert(tfunction->trust == TRUSTtrusted);
-    assert(tfunction->purity == PUREimpure);
+    assert(tfunction->trust == TRUST::trusted);
+    assert(tfunction->purity == PURE::impure);
 }
 
 /**********************************/
@@ -454,6 +468,7 @@ int main(int argc, char **argv)
     frontend_init();
 
     test_tokens();
+    test_compiler_globals();
     test_visitors();
     test_semantic();
     test_expression();

@@ -99,7 +99,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     if (cost >= COST_MAX)
     {
         e.error("cannot inline default argument `%s`", e.toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
     scope ids = new InlineDoState(sc.parent, null);
     return doInlineAs!Expression(e, ids);
@@ -1543,6 +1543,8 @@ public:
         {
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
+        if (!(global.params.useInline || fd.hasAlwaysInlines))
+            return;
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
             fd.flags & FUNCFLAG.inlineScanned)
             return;
@@ -1683,6 +1685,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     final switch (fd.inlining)
     {
     case PINLINE.default_:
+        if (!global.params.useInline)
+            return false;
         break;
     case PINLINE.always:
         break;
@@ -1728,7 +1732,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
          */
         if (tf.next && tf.next.ty != Tvoid &&
             (!(fd.hasReturnExp & 1) ||
-             statementsToo && (fd.isArrayOp || hasDtor(tf.next))) &&
+             statementsToo && hasDtor(tf.next)) &&
             !hdrscan)
         {
             static if (CANINLINE_LOG)
@@ -1832,8 +1836,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     return true;
 
 Lno:
-    if (fd.inlining == PINLINE.always)
-        fd.error("cannot inline function");
+    if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
+        warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan
     {
@@ -2015,7 +2019,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
             auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
-            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.in_ | STC.out_ | STC.lazy_ | STC.ref_);
+            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_);
             vto.linkage = vfrom.linkage;
             vto.parent = parent;
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);

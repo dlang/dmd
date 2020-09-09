@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-
+// EXTRA_FILES: imports/test66a.d
 import imports.test66a;
 
 alias int TOK;

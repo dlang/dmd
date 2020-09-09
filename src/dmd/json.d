@@ -827,9 +827,10 @@ public:
     */
     private void generateCompilerInfo()
     {
+        import dmd.target : target;
         objectStart();
         requiredProperty("vendor", global.vendor);
-        requiredProperty("version", global._version);
+        requiredProperty("version", global.versionString());
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
         property("size_t", size_t.sizeof);
@@ -866,10 +867,7 @@ public:
 
         propertyStart("architectures");
         arrayStart();
-        if (global.params.is64bit)
-            item("x86_64");
-        else
-            version(X86) item("x86");
+        item(target.architectureName);
         arrayEnd();
 
         propertyStart("predefinedVersions");

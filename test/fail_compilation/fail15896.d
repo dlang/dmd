@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
 // REQUIRED_ARGS: -de
+// EXTRA_FILES: imports/imp15896.d
 /*
 TEST_OUTPUT:
 ---

@@ -142,6 +142,24 @@ void semantic3OnDependencies(Module m)
 }
 
 /**
+ * Remove generated .di files on error and exit
+ */
+void removeHdrFilesAndFail(ref Param params, ref Modules modules)
+{
+    if (params.doHdrGeneration)
+    {
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            File.remove(m.hdrfile.toChars());
+        }
+    }
+
+    fatal();
+}
+
+/**
  * Converts a chain of identifiers to the filename of the module
  *
  * Params:
@@ -422,6 +440,7 @@ extern (C++) final class Module : Package
     uint numlines;              // number of lines in source file
     bool isHdrFile;             // if it is a header (.di) file
     bool isDocFile;             // if it is a documentation input file, not D source
+    bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
@@ -596,8 +615,6 @@ extern (C++) final class Module : Package
             m.importedFrom = m;
             assert(m.isRoot());
         }
-
-        Compiler.loadModule(m);
         return m;
     }
 
@@ -706,8 +723,11 @@ extern (C++) final class Module : Package
                     fprintf(stderr, "import path[%llu] = %s\n", cast(ulong)i, p);
             }
             else
+            {
                 fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile.toChars());
-            // fatal();
+            }
+
+            removeHdrFilesAndFail(global.params, Module.amodules);
         }
         return false;
     }
@@ -1115,6 +1135,7 @@ extern (C++) final class Module : Package
             // Add to global array of all modules
             amodules.push(this);
         }
+        Compiler.onParseModule(this);
         return this;
     }
 
@@ -1451,6 +1472,8 @@ extern (C++) final class Module : Package
     Symbol* sshareddtor; // module shared destructor
     Symbol* stest; // module unit test
     Symbol* sfilename; // symbol for filename
+
+    uint[uint] ctfe_cov; /// coverage information from ctfe execution_count[line]
 
     override inout(Module) isModule() inout
     {

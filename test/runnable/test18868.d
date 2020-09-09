@@ -1,6 +1,6 @@
 /*
-COMPILE_SEPARATELY: runnable/imports/test18868_fls.d
-EXTRA_SOURCES: imports/test18868_a.d
+COMPILE_SEPARATELY
+EXTRA_SOURCES: imports/test18868_a.d imports/test18868_fls.d
 PERMUTE_ARGS:
 */
 

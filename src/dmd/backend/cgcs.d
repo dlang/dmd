@@ -154,7 +154,7 @@ __gshared
     // Use a bit vector for quick check if expression is possibly in hcstab[].
     // This results in much faster compiles when hcstab[] gets big.
     vec_t csvec;                 // vector of used entries
-    enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+    enum CSVECDIM = 16_001; //8009 //3001     // dimension of csvec (should be prime)
 }
 
 
@@ -395,7 +395,7 @@ void ecom(elem **pe)
         case OPld_u64:
         case OPsqrt: case OPsin: case OPcos:
         case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
-        case OPvecfill:
+        case OPvecfill: case OPtoprec:
             ecom(&e.EV.E1);
             break;
 

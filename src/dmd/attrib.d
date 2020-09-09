@@ -47,10 +47,13 @@ import dmd.tokens;
 import dmd.visitor;
 
 /***********************************************************
+ * Abstract attribute applied to Dsymbol's used as a common
+ * ancestor for storage classes (StorageClassDeclaration),
+ * linkage (LinkageDeclaration) and others.
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
-    Dsymbols* decl;     // array of Dsymbol's
+    Dsymbols* decl;     /// Dsymbol's affected by this AttribDeclaration
 
     extern (D) this(Dsymbols* decl)
     {
@@ -214,6 +217,9 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 }
 
 /***********************************************************
+ * Storage classes applied to Dsymbols, e.g. `const int i;`
+ *
+ * <stc> <decl...>
  */
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
@@ -320,11 +326,17 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * Deprecation with an additional message applied to Dsymbols,
+ * e.g. `deprecated("Superseeded by foo") int bar;`.
+ * (Note that `deprecated int bar;` is currently represented as a
+ * StorageClassDeclaration with STC.deprecated_)
+ *
+ * `deprecated(<msg>) <decl...>`
  */
 extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 {
-    Expression msg;
-    const(char)* msgstr;
+    Expression msg;         /// deprecation message
+    const(char)* msgstr;    /// cached string representation of msg
 
     extern (D) this(Expression msg, Dsymbols* decl)
     {
@@ -372,10 +384,14 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 }
 
 /***********************************************************
+ * Linkage attribute applied to Dsymbols, e.g.
+ * `extern(C) void foo()`.
+ *
+ * `extern(<linkage>) <decl...>`
  */
 extern (C++) final class LinkDeclaration : AttribDeclaration
 {
-    LINK linkage;
+    LINK linkage; /// either explicitly set or `default_`
 
     extern (D) this(LINK linkage, Dsymbols* decl)
     {
@@ -418,6 +434,12 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * Attribute declaring whether an external aggregate should be mangled as
+ * a struct or class in C++, e.g. `extern(C++, struct) class C { ... }`.
+ * This is required for correct name mangling on MSVC targets,
+ * see cppmanglewin.d for details.
+ *
+ * `extern(C++, <cppmangle>) <decl...>`
  */
 extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 {
@@ -552,11 +574,15 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * Visibility declaration for Dsymbols, e.g. `public int i;`
+ *
+ * `<protection> <decl...>` or
+ * `package(<pkg_identifiers>) <decl...>` if `pkg_identifiers !is null`
  */
 extern (C++) final class ProtDeclaration : AttribDeclaration
 {
-    Prot protection;
-    Identifiers* pkg_identifiers;
+    Prot protection;                /// the visibility
+    Identifiers* pkg_identifiers;   /// identifiers for `package(foo.bar)` or null
 
     /**
      * Params:
@@ -661,13 +687,21 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * Alignment attribute for aggregates, members and variables.
+ *
+ * `align(<ealign>) <decl...>` or
+ * `align <decl...>` if `ealign` is null
  */
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
-    Expression ealign;
-    enum structalign_t UNKNOWN = 0;
+    Expression ealign;                              /// expression yielding the actual alignment
+    enum structalign_t UNKNOWN = 0;                 /// alignment not yet computed
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
+
+    /// the actual alignment, `UNKNOWN` until it's either set to the value of `ealign`
+    /// or `STRUCTALIGN_DEFAULT` if `ealign` is null ( / an error ocurred)
     structalign_t salign = UNKNOWN;
+
 
     extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
     {
@@ -695,14 +729,15 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * An anonymous struct/union (defined by `isunion`).
  */
 extern (C++) final class AnonDeclaration : AttribDeclaration
 {
-    bool isunion;
-    int sem;                // 1 if successful semantic()
-    uint anonoffset;        // offset of anonymous struct
-    uint anonstructsize;    // size of anonymous struct
-    uint anonalignsize;     // size of anonymous struct for alignment purposes
+    bool isunion;           /// whether it's a union
+    int sem;                /// 1 if successful semantic()
+    uint anonoffset;        /// offset of anonymous struct
+    uint anonstructsize;    /// size of anonymous struct
+    uint anonalignsize;     /// size of anonymous struct for alignment purposes
 
     extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
     {
@@ -815,10 +850,14 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * Pragma applied to Dsymbols, e.g. `pragma(inline, true) void foo`,
+ * but not PragmaStatement's like `pragma(msg, "hello");`.
+ *
+ * pragma(<ident>, <args>)
  */
 extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
-    Expressions* args;      // array of Expression's
+    Expressions* args;      /// parameters of this pragma
 
     extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
@@ -844,7 +883,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             {
                 error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.dim);
                 args.setDim(1);
-                (*args)[0] = new ErrorExp();
+                (*args)[0] = ErrorExp.get();
             }
             else
             {
@@ -854,7 +893,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                     if (e.op != TOK.error)
                     {
                         error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
-                        (*args)[0] = new ErrorExp();
+                        (*args)[0] = ErrorExp.get();
                     }
                 }
                 else if (e.isBool(true))
@@ -891,11 +930,15 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * A conditional compilation declaration, used for `version`
+ * / `debug` and specialized for `static if`.
+ *
+ * <condition> { <decl...> } else { <elsedecl> }
  */
 extern (C++) class ConditionalDeclaration : AttribDeclaration
 {
-    Condition condition;
-    Dsymbols* elsedecl;     // array of Dsymbol's for else block
+    Condition condition;    /// condition deciding whether decl or elsedecl applies
+    Dsymbols* elsedecl;     /// array of Dsymbol's for else block
 
     extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
@@ -965,12 +1008,15 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 }
 
 /***********************************************************
+ * `<scopesym> {
+ *      static if (<condition>) { <decl> } else { <elsedecl> }
+ * }`
  */
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
-    ScopeDsymbol scopesym;
-    private bool addisdone = false; // true if members have been added to scope
-    private bool onStack = false;   // true if a call to `include` is currently active
+    ScopeDsymbol scopesym;          /// enclosing symbol (e.g. module) where symbols will be inserted
+    private bool addisdone = false; /// true if members have been added to scope
+    private bool onStack = false;   /// true if a call to `include` is currently active
 
     extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {

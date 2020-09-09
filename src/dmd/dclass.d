@@ -188,10 +188,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// to prevent recursive attempts
     private bool inuse;
 
-    /// true if this class has an identifier, but was originally declared anonymous
-    /// used in support of https://issues.dlang.org/show_bug.cgi?id=17371
-    private bool isActuallyAnonymous;
-
     Abstract isabstract;
 
     /// set the progress of base classes resolving
@@ -210,11 +206,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         objc = ObjcClassDeclaration(this);
 
         if (!id)
-        {
-            isActuallyAnonymous = true;
-        }
+            id = Identifier.generateAnonymousId("class");
 
-        super(loc, id ? id : Identifier.generateId("__anonclass"));
+        super(loc, id);
 
         __gshared const(char)* msg = "only object.d can define this reserved class name";
 
@@ -673,11 +667,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool hasMonitor()
     {
         return classKind == ClassKind.d;
-    }
-
-    override bool isAnonymous()
-    {
-        return isActuallyAnonymous;
     }
 
     final bool isFuncHidden(FuncDeclaration fd)

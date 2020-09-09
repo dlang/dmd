@@ -67,7 +67,7 @@ final class LibOMF : Library
 
     extern (D) this()
     {
-        tab._init(14000);
+        tab._init(14_000);
     }
 
     /***************************************

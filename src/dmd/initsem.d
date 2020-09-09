@@ -74,7 +74,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     return e;
 Lno:
     error(ai.loc, "not an associative array initializer");
-    return new ErrorExp();
+    return ErrorExp.get();
 }
 
 /******************************************
@@ -295,7 +295,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 const uinteger_t idxvalue = idx.toInteger();
                 if (idxvalue >= amax)
                 {
-                    error(i.loc, "array index %llu overflow", ulong(idxvalue));
+                    error(i.loc, "array index %llu overflow", idxvalue);
                     errors = true;
                 }
                 length = cast(uint)idxvalue;
@@ -517,7 +517,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 if (dim1 != dim2)
                 {
                     i.exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
-                    i.exp = new ErrorExp();
+                    i.exp = ErrorExp.get();
                 }
             }
             i.exp = i.exp.implicitCastTo(sc, t);
@@ -720,7 +720,7 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
 
     Expression visitError(ErrorInitializer)
     {
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     /***************************************
@@ -750,7 +750,7 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
         {
             if (init.type == Type.terror)
             {
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             t = init.type.toBasetype();
             switch (t.ty)

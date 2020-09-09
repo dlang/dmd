@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS:
+EXTRA_FILES: imports/dip22a.d
 TEST_OUTPUT:
 ---
 fail_compilation/dip22a.d(16): Error: no property `bar` for type `imports.dip22a.Klass`

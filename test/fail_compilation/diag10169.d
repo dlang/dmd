@@ -1,7 +1,8 @@
 /*
+EXTRA_FILES: imports/a10169.d
 TEST_OUTPUT:
 ---
-fail_compilation/diag10169.d(11): Error: no property `x` for type `imports.a10169.B`
+fail_compilation/diag10169.d(12): Error: no property `x` for type `imports.a10169.B`
 ---
 */
 import imports.a10169;

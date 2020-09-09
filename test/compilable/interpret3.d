@@ -3,7 +3,7 @@
 TEST_OUTPUT:
 ---
 compilable/interpret3.d(2914): Deprecation: `case` variables have to be `const` or `immutable`
-compilable/interpret3.d(6313): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6351): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -3224,6 +3224,44 @@ int ctfeSort6250()
 }
 
 static assert(ctfeSort6250() == 57);
+
+/**************************************************/
+
+long[]* simple6250b(long[]* x) { return x; }
+
+void swap6250b(long[]* lhs, long[]* rhs)
+{
+    long[] kk = *lhs;
+    assert(simple6250b(lhs) == lhs);
+    lhs = simple6250b(lhs);
+    assert(kk[0] == 18);
+    assert((*lhs)[0] == 18);
+    assert((*rhs)[0] == 19);
+    *lhs = *rhs;
+    assert((*lhs)[0] == 19);
+    *rhs = kk;
+    assert(*rhs == kk);
+    assert(kk[0] == 18);
+    assert((*rhs)[0] == 18);
+}
+
+long ctfeSort6250b()
+{
+     long[][2] x;
+     long[3] a = [17, 18, 19];
+     x[0] = a[1 .. 2];
+     x[1] = a[2 .. $];
+     assert(x[0][0] == 18);
+     assert(x[0][1] == 19);
+     swap6250b(&x[0], &x[1]);
+     assert(x[0][0] == 19);
+     assert(x[1][0] == 18);
+     a[1] = 57;
+     assert(x[0][0] == 19);
+     return x[1][0];
+}
+
+static assert(ctfeSort6250b() == 57);
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6672
@@ -7639,7 +7677,7 @@ int test15251()
 {
     for (ubyte lwr = 19;
         lwr != 20;
-        cast(void)++lwr)    // have to to be evaluated with ctfeNeedNothing
+        cast(void)++lwr)    // have to to be evaluated with CTFEGoal.Nothing
     {}
     return 1;
 }

@@ -71,7 +71,7 @@ public Expression ctfeInterpret(Expression e)
         case TOK.type:
         case TOK.typeid_:
              if (e.type.ty == Terror)
-                return new ErrorExp();
+                return ErrorExp.get();
             goto case TOK.error;
 
         case TOK.error:
@@ -84,7 +84,7 @@ public Expression ctfeInterpret(Expression e)
     assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
     //assert(e.type.ty != Terror);    // FIXME
     if (e.type.ty == Terror)
-        return new ErrorExp();
+        return ErrorExp.get();
 
     auto rgnpos = ctfeGlobals.region.savePos();
 
@@ -95,7 +95,7 @@ public Expression ctfeInterpret(Expression e)
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
     if (CTFEExp.isCantExp(result))
-        result = new ErrorExp();
+        result = ErrorExp.get();
 
     ctfeGlobals.region.release(rgnpos);
 
@@ -214,16 +214,12 @@ struct CtfeGlobals
 
 __gshared CtfeGlobals ctfeGlobals;
 
-enum CtfeGoal : int
+enum CTFEGoal : int
 {
-    ctfeNeedRvalue,     // Must return an Rvalue (== CTFE value)
-    ctfeNeedLvalue,     // Must return an Lvalue (== CTFE reference)
-    ctfeNeedNothing,    // The return value is not required
+    RValue,     /// Must return an Rvalue (== CTFE value)
+    LValue,     /// Must return an Lvalue (== CTFE reference)
+    Nothing,    /// The return value is not required
 }
-
-alias ctfeNeedRvalue = CtfeGoal.ctfeNeedRvalue;
-alias ctfeNeedLvalue = CtfeGoal.ctfeNeedLvalue;
-alias ctfeNeedNothing = CtfeGoal.ctfeNeedNothing;
 
 //debug = LOG;
 //debug = LOGASSIGN;
@@ -462,7 +458,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         Expression earg = (*arguments)[i];
         Parameter fparam = tf.parameterList[i];
 
-        if (fparam.storageClass & (STC.out_ | STC.ref_))
+        if (fparam.isReference())
         {
             if (!istate && (fparam.storageClass & STC.out_))
             {
@@ -471,7 +467,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
                 return CTFEExp.cantexp;
             }
             // Convert all reference arguments into lvalue references
-            earg = interpretRegion(earg, istate, ctfeNeedLvalue);
+            earg = interpretRegion(earg, istate, CTFEGoal.LValue);
             if (CTFEExp.isCantExp(earg))
                 return earg;
         }
@@ -551,11 +547,11 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         VarDeclaration v = (*fd.parameters)[i];
         debug (LOG)
         {
-            printf("arg[%d] = %s\n", i, earg.toChars());
+            printf("arg[%zu] = %s\n", i, earg.toChars());
         }
         ctfeGlobals.stack.push(v);
 
-        if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOK.variable &&
+        if (fparam.isReference() && earg.op == TOK.variable &&
             (cast(VarExp)earg).var.toParent2() == fd)
         {
             VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
@@ -595,12 +591,12 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         debug (LOG)
         {
-            printf("interpreted arg[%d] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
             showCtfeExpr(earg);
         }
         debug (LOGASSIGN)
         {
-            printf("interpreted arg[%d] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
             showCtfeExpr(earg);
         }
     }
@@ -698,16 +694,28 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     return e;
 }
 
+/// used to collect coverage information in ctfe
+void incUsageCtfe(InterState* istate, const ref Loc loc)
+{
+    if (global.params.ctfe_cov && istate)
+    {
+        auto line = loc.linnum;
+        auto mod = istate.fd.getModule();
+
+        ++mod.ctfe_cov[line];
+    }
+}
+
 private extern (C++) final class Interpreter : Visitor
 {
     alias visit = Visitor.visit;
 public:
     InterState* istate;
-    CtfeGoal goal;
+    CTFEGoal goal;
     Expression result;
     UnionExp* pue;              // storage for `result`
 
-    extern (D) this(UnionExp* pue, InterState* istate, CtfeGoal goal)
+    extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal)
     {
         this.pue = pue;
         this.istate = istate;
@@ -771,8 +779,10 @@ public:
                 return;
             istate.start = null;
         }
+        if (s.exp && s.exp.hasCode)
+            incUsageCtfe(istate, s.loc);
 
-        Expression e = interpret(pue, s.exp, istate, ctfeNeedNothing);
+        Expression e = interpret(pue, s.exp, istate, CTFEGoal.Nothing);
         if (exceptionOrCant(e))
             return;
     }
@@ -852,6 +862,7 @@ public:
         {
             printf("%s IfStatement::interpret(%s)\n", s.loc.toChars(), s.condition.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
         if (istate.start)
@@ -980,6 +991,7 @@ public:
             return;
         }
 
+        incUsageCtfe(istate, s.loc);
         assert(istate && istate.fd && istate.fd.type && istate.fd.type.ty == Tfunction);
         TypeFunction tf = cast(TypeFunction)istate.fd.type;
 
@@ -988,7 +1000,7 @@ public:
          */
         if (tf.isref)
         {
-            result = interpret(pue, s.exp, istate, ctfeNeedLvalue);
+            result = interpret(pue, s.exp, istate, CTFEGoal.LValue);
             return;
         }
         if (tf.next && tf.next.ty == Tdelegate && istate.fd.closureVars.dim > 0)
@@ -1042,6 +1054,7 @@ public:
         {
             printf("%s BreakStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start)
         {
             if (istate.start != s)
@@ -1059,6 +1072,7 @@ public:
         {
             printf("%s ContinueStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start)
         {
             if (istate.start != s)
@@ -1124,6 +1138,7 @@ public:
             }
 
             UnionExp ue = void;
+            incUsageCtfe(istate, s.condition.loc);
             e = interpret(&ue, s.condition, istate);
             if (exceptionOrCant(e))
                 return;
@@ -1159,6 +1174,7 @@ public:
             if (s.condition && !istate.start)
             {
                 UnionExp ue = void;
+                incUsageCtfe(istate, s.condition.loc);
                 Expression e = interpret(&ue, s.condition, istate);
                 if (exceptionOrCant(e))
                     return;
@@ -1201,7 +1217,9 @@ public:
             }
 
             UnionExp uei = void;
-            e = interpret(&uei, s.increment, istate, ctfeNeedNothing);
+            if (s.increment)
+                incUsageCtfe(istate, s.increment.loc);
+            e = interpret(&uei, s.increment, istate, CTFEGoal.Nothing);
             if (exceptionOrCant(e))
                 return;
         }
@@ -1224,6 +1242,7 @@ public:
         {
             printf("%s SwitchStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
         if (istate.start)
@@ -1299,6 +1318,7 @@ public:
         {
             printf("%s CaseStatement::interpret(%s) this = %p\n", s.loc.toChars(), s.exp.toChars(), s);
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
 
@@ -1311,6 +1331,7 @@ public:
         {
             printf("%s DefaultStatement::interpret()\n", s.loc.toChars());
         }
+        incUsageCtfe(istate, s.loc);
         if (istate.start == s)
             istate.start = null;
 
@@ -1329,6 +1350,7 @@ public:
                 return;
             istate.start = null;
         }
+        incUsageCtfe(istate, s.loc);
 
         assert(s.label && s.label.statement);
         istate.gotoTarget = s.label.statement;
@@ -1347,6 +1369,7 @@ public:
                 return;
             istate.start = null;
         }
+        incUsageCtfe(istate, s.loc);
 
         assert(s.cs);
         istate.gotoTarget = s.cs;
@@ -1365,6 +1388,7 @@ public:
                 return;
             istate.start = null;
         }
+        incUsageCtfe(istate, s.loc);
 
         assert(s.sw && s.sw.sdefault);
         istate.gotoTarget = s.sw.sdefault;
@@ -1565,6 +1589,8 @@ public:
             istate.start = null;
         }
 
+        incUsageCtfe(istate, s.loc);
+
         Expression e = interpretRegion(s.exp, istate);
         if (exceptionOrCant(e))
             return;
@@ -1598,6 +1624,8 @@ public:
             result = interpret(pue, s._body, istate);
             return;
         }
+
+        incUsageCtfe(istate, s.loc);
 
         Expression e = interpret(s.exp, istate);
         if (exceptionOrCant(e))
@@ -1691,7 +1719,7 @@ public:
         {
             printf("%s ThisExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (goal == ctfeNeedLvalue)
+        if (goal == CTFEGoal.LValue)
         {
             // We might end up here with istate being zero
             // https://issues.dlang.org/show_bug.cgi?id=16382
@@ -1834,14 +1862,6 @@ public:
             Type elemtype = (cast(TypeArray)val.type).next;
             d_uns64 elemsize = elemtype.size();
 
-            // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
-            if (val.type.ty == Tsarray && pointee.ty == Tarray && elemsize == pointee.nextOf().size())
-            {
-                emplaceExp!(AddrExp)(pue, e.loc, val, e.type);
-                result = pue.exp();
-                return;
-            }
-
             // It's OK to cast from fixed length to fixed length array, eg &int[n] to int[d]*.
             if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
             {
@@ -1940,7 +1960,7 @@ public:
                 return;
             }
         }
-        auto er = interpret(e.e1, istate, ctfeNeedLvalue);
+        auto er = interpret(e.e1, istate, CTFEGoal.LValue);
         if (auto ve = er.isVarExp())
             if (ve.var == istate.fd.vthis)
                 er = interpret(er, istate);
@@ -1988,7 +2008,7 @@ public:
         }
     }
 
-    static Expression getVarExp(const ref Loc loc, InterState* istate, Declaration d, CtfeGoal goal)
+    static Expression getVarExp(const ref Loc loc, InterState* istate, Declaration d, CTFEGoal goal)
     {
         Expression e = CTFEExp.cantexp;
         if (VarDeclaration v = d.isVarDeclaration())
@@ -2096,7 +2116,7 @@ public:
                     errorSupplemental(vie.var.loc, "`%s` was uninitialized and used before set", vie.var.toChars());
                     return CTFEExp.cantexp;
                 }
-                if (goal != ctfeNeedLvalue && (v.isRef() || v.isOut()))
+                if (goal != CTFEGoal.LValue && (v.isRef() || v.isOut()))
                     e = interpret(e, istate, goal);
             }
             if (!e)
@@ -2139,36 +2159,38 @@ public:
         // This fix is a crude solution to get it to work. A more proper
         // approach would be to resolve the forward reference, but that is
         // much more involved.
-        if (goal == ctfeNeedLvalue && e.var.type.isMutable())
+        if (goal == CTFEGoal.LValue && e.var.type.isMutable())
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v && !v.isDataseg() && !v.isCTFE() && !istate)
+            if (auto v = e.var.isVarDeclaration())
             {
-                e.error("variable `%s` cannot be read at compile time", v.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-            if (v && !hasValue(v))
-            {
-                if (!v.isCTFE() && v.isDataseg())
-                    e.error("static variable `%s` cannot be read at compile time", v.toChars());
-                else // CTFE initiated from inside a function
-                    e.error("variable `%s` cannot be read at compile time", v.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-
-            if (v && (v.storage_class & (STC.out_ | STC.ref_)) && hasValue(v))
-            {
-                // Strip off the nest of ref variables
-                Expression ev = getValue(v);
-                if (ev.op == TOK.variable ||
-                    ev.op == TOK.index ||
-                    ev.op == TOK.slice ||
-                    ev.op == TOK.dotVariable)
+                if (!v.isDataseg() && !v.isCTFE() && !istate)
                 {
-                    result = interpret(pue, ev, istate, goal);
+                    e.error("variable `%s` cannot be read at compile time", v.toChars());
+                    result = CTFEExp.cantexp;
                     return;
+                }
+                if (!hasValue(v))
+                {
+                    if (!v.isCTFE() && v.isDataseg())
+                        e.error("static variable `%s` cannot be read at compile time", v.toChars());
+                    else // CTFE initiated from inside a function
+                        e.error("variable `%s` cannot be read at compile time", v.toChars());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                if (v.storage_class & (STC.out_ | STC.ref_))
+                {
+                    // Strip off the nest of ref variables
+                    Expression ev = getValue(v);
+                    if (ev.op == TOK.variable ||
+                        ev.op == TOK.index ||
+                        ev.op == TOK.slice ||
+                        ev.op == TOK.dotVariable)
+                    {
+                        result = interpret(pue, ev, istate, goal);
+                        return;
+                    }
                 }
             }
             result = e;
@@ -2356,7 +2378,7 @@ public:
         {
             printf("%s TupleExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (exceptionOrCant(interpretRegion(e.e0, istate, ctfeNeedNothing)))
+        if (exceptionOrCant(interpretRegion(e.e0, istate, CTFEGoal.Nothing)))
             return;
 
         auto expsx = e.exps;
@@ -2367,7 +2389,7 @@ public:
                 return;
 
             // A tuple of assignments can contain void (Bug 5676).
-            if (goal == ctfeNeedNothing)
+            if (goal == CTFEGoal.Nothing)
                 continue;
             if (ex.op == TOK.voidExpression)
             {
@@ -2708,7 +2730,7 @@ public:
             return;
         }
 
-        Expression epre = interpret(pue, e.argprefix, istate, ctfeNeedNothing);
+        Expression epre = interpret(pue, e.argprefix, istate, CTFEGoal.Nothing);
         if (exceptionOrCant(epre))
             return;
 
@@ -3227,11 +3249,11 @@ public:
         // ---------------------------------------
         // If it is a construction of a ref variable, it is a ref assignment
         if ((e.op == TOK.construct || e.op == TOK.blit) &&
-            ((cast(AssignExp)e).memset & MemorySet.referenceInit))
+            ((cast(AssignExp)e).memset == MemorySet.referenceInit))
         {
             assert(!fp);
 
-            Expression newval = interpretRegion(e.e2, istate, ctfeNeedLvalue);
+            Expression newval = interpretRegion(e.e2, istate, CTFEGoal.LValue);
             if (exceptionOrCant(newval))
                 return;
 
@@ -3240,7 +3262,7 @@ public:
 
             // Get the value to return. Note that 'newval' is an Lvalue,
             // so if we need an Rvalue, we have to interpret again.
-            if (goal == ctfeNeedRvalue)
+            if (goal == CTFEGoal.RValue)
                 result = interpretRegion(newval, istate);
             else
                 result = e1; // VarExp is a CTFE reference
@@ -3375,7 +3397,7 @@ public:
                 }
 
                 // We must set to aggregate with newaae
-                e1 = interpretRegion(e1, istate, ctfeNeedLvalue);
+                e1 = interpretRegion(e1, istate, CTFEGoal.LValue);
                 if (exceptionOrCant(e1))
                     return;
                 e1 = assignToLvalue(e, e1, newaae);
@@ -3417,7 +3439,7 @@ public:
         else
         {
         L1:
-            e1 = interpretRegion(e1, istate, ctfeNeedLvalue);
+            e1 = interpretRegion(e1, istate, CTFEGoal.LValue);
             if (exceptionOrCant(e1))
                 return;
 
@@ -3563,7 +3585,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            e1 = interpretRegion(e1, istate, ctfeNeedLvalue);
+            e1 = interpretRegion(e1, istate, CTFEGoal.LValue);
             if (exceptionOrCant(e1))
                 return;
 
@@ -3590,7 +3612,7 @@ public:
                 newval = pue.copy();
 
             // Determine the return value
-            if (goal == ctfeNeedLvalue) // https://issues.dlang.org/show_bug.cgi?id=14371
+            if (goal == CTFEGoal.LValue) // https://issues.dlang.org/show_bug.cgi?id=14371
                 result = e1;
             else
             {
@@ -3625,7 +3647,7 @@ public:
                 return;
             if (auto se = e.e1.isSliceExp())
             {
-                Expression e1x = interpretRegion(se.e1, istate, ctfeNeedLvalue);
+                Expression e1x = interpretRegion(se.e1, istate, CTFEGoal.LValue);
                 if (auto dve = e1x.isDotVarExp())
                 {
                     auto ex = dve.e1;
@@ -3848,7 +3870,7 @@ public:
      *
      * Returns TOK.cantExpression on failure. If there are no errors,
      * it returns aggregate[low..upp], except that as an optimisation,
-     * if goal == ctfeNeedNothing, it will return NULL
+     * if goal == CTFEGoal.Nothing, it will return NULL
      */
     private Expression interpretAssignToSlice(UnionExp* pue, BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
     {
@@ -4018,7 +4040,7 @@ public:
             {
                 existingSE.setCodeUnit(cast(size_t)(i + firstIndex), value);
             }
-            if (goal == ctfeNeedNothing)
+            if (goal == CTFEGoal.Nothing)
                 return null; // avoid creating an unused literal
             auto retslice = ctfeEmplaceExp!SliceExp(e.loc, existingSE,
                         ctfeEmplaceExp!IntegerExp(e.loc, firstIndex, Type.tsize_t),
@@ -4224,7 +4246,7 @@ public:
             if (Expression ex = rb.assignTo(existingAE, cast(size_t)lowerbound, cast(size_t)upperbound))
                 return ex;
 
-            if (goal == ctfeNeedNothing)
+            if (goal == CTFEGoal.Nothing)
                 return null; // avoid creating an unused literal
             auto retslice = ctfeEmplaceExp!SliceExp(e.loc, existingAE,
                 ctfeEmplaceExp!IntegerExp(e.loc, firstIndex, Type.tsize_t),
@@ -4565,7 +4587,9 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        if (goal != ctfeNeedNothing)
+        incUsageCtfe(istate, e.e2.loc);
+
+        if (goal != CTFEGoal.Nothing)
         {
             if (e.type.equals(Type.tbool))
                 result = IntegerExp.createBool(res);
@@ -4670,7 +4694,7 @@ public:
 
                 // printf("2 ea = %s, %s %s\n", ea.type.toChars(), Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOK.variable || ea.op == TOK.symbolOffset)
-                    result = getVarExp(e.loc, istate, (cast(SymbolExp)ea).var, ctfeNeedRvalue);
+                    result = getVarExp(e.loc, istate, (cast(SymbolExp)ea).var, CTFEGoal.RValue);
                 else if (auto ae = ea.isAddrExp())
                     result = interpretRegion(ae.e1, istate);
 
@@ -4810,7 +4834,7 @@ public:
             return;
         if (!exceptionOrCantInterpret(result))
         {
-            if (goal != ctfeNeedLvalue) // Peel off CTFE reference if it's unnecessary
+            if (goal != CTFEGoal.LValue) // Peel off CTFE reference if it's unnecessary
             {
                 if (result == pue.exp())
                     result = pue.copy();
@@ -4884,7 +4908,7 @@ public:
         else
         {
             UnionExp ue = void;
-            auto e1 = interpret(&ue, e.e1, istate, ctfeNeedNothing);
+            auto e1 = interpret(&ue, e.e1, istate, CTFEGoal.Nothing);
             if (exceptionOrCant(e1))
                 return endTempStackFrame();
         }
@@ -4913,9 +4937,15 @@ public:
         }
 
         if (isTrueBool(econd))
+        {
             result = interpret(pue, e.e1, istate, goal);
+            incUsageCtfe(istate, e.e1.loc);
+        }
         else if (econd.isBool(false))
+        {
             result = interpret(pue, e.e2, istate, goal);
+            incUsageCtfe(istate, e.e2.loc);
+        }
         else
         {
             e.error("`%s` does not evaluate to boolean result at compile time", e.econd.toChars());
@@ -5200,7 +5230,7 @@ public:
             }
             if (agg.op == TOK.arrayLiteral || agg.op == TOK.string_)
             {
-                if (goal == ctfeNeedLvalue)
+                if (goal == CTFEGoal.LValue)
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
@@ -5230,7 +5260,7 @@ public:
                 return;
             if (e1.op == TOK.null_)
             {
-                if (goal == ctfeNeedLvalue && e1.type.ty == Taarray && e.modifiable)
+                if (goal == CTFEGoal.LValue && e1.type.ty == Taarray && e.modifiable)
                 {
                     assert(0); // does not reach here?
                 }
@@ -5242,7 +5272,7 @@ public:
             if (exceptionOrCant(e2))
                 return;
 
-            if (goal == ctfeNeedLvalue)
+            if (goal == CTFEGoal.LValue)
             {
                 // Pointer or reference of a scalar type
                 if (e1 == e.e1 && e2 == e.e2)
@@ -5276,7 +5306,7 @@ public:
             return;
         }
 
-        if (goal == ctfeNeedLvalue)
+        if (goal == CTFEGoal.LValue)
         {
             Expression e2 = ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, Type.tsize_t);
             emplaceExp!(IndexExp)(pue, e.loc, agg, e2);
@@ -5377,14 +5407,14 @@ public:
             return;
         }
 
-        CtfeGoal goal1 = ctfeNeedRvalue;
-        if (goal == ctfeNeedLvalue)
+        CTFEGoal goal1 = CTFEGoal.RValue;
+        if (goal == CTFEGoal.LValue)
         {
             if (e.e1.type.toBasetype().ty == Tsarray)
                 if (auto ve = e.e1.isVarExp())
                     if (auto vd = ve.var.isVarDeclaration())
                         if (vd.storage_class & STC.ref_)
-                            goal1 = ctfeNeedLvalue;
+                            goal1 = CTFEGoal.LValue;
         }
         Expression e1 = interpret(e.e1, istate, goal1);
         if (exceptionOrCant(e1))
@@ -5963,7 +5993,7 @@ public:
             if (soe1.offset == 0 && soe1.var.isVarDeclaration() && isFloatIntPaint(e.type, soe1.var.type))
             {
                 // *(cast(int*)&v), where v is a float variable
-                result = paintFloatInt(pue, getVarExp(e.loc, istate, soe1.var, ctfeNeedRvalue), e.type);
+                result = paintFloatInt(pue, getVarExp(e.loc, istate, soe1.var, CTFEGoal.RValue), e.type);
                 return;
             }
 
@@ -6144,7 +6174,7 @@ public:
         if ((*se.elements)[i] is null)
             (*se.elements)[i] = voidInitLiteral(e.type, v).copy();
 
-        if (goal == ctfeNeedLvalue)
+        if (goal == CTFEGoal.LValue)
         {
             // just return the (simplified) dotvar expression as a CTFE reference
             if (e.e1 == ex)
@@ -6265,19 +6295,19 @@ public:
  *    resulting expression
  */
 
-Expression interpret(UnionExp* pue, Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
+Expression interpret(UnionExp* pue, Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue)
 {
     if (!e)
         return null;
     scope Interpreter v = new Interpreter(pue, istate, goal);
     e.accept(v);
     Expression ex = v.result;
-    assert(goal == ctfeNeedNothing || ex !is null);
+    assert(goal == CTFEGoal.Nothing || ex !is null);
     return ex;
 }
 
 ///
-Expression interpret(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
+Expression interpret(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue)
 {
     UnionExp ue = void;
     auto result = interpret(&ue, e, istate, goal);
@@ -6295,7 +6325,7 @@ Expression interpret(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedR
  * Returns:
  *    resulting expression
  */
-Expression interpretRegion(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
+Expression interpretRegion(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue)
 {
     UnionExp ue = void;
     auto result = interpret(&ue, e, istate, goal);
@@ -6334,7 +6364,7 @@ Expression interpret(UnionExp* pue, Statement s, InterState* istate)
 {
     if (!s)
         return null;
-    scope Interpreter v = new Interpreter(pue, istate, ctfeNeedNothing);
+    scope Interpreter v = new Interpreter(pue, istate, CTFEGoal.Nothing);
     s.accept(v);
     return v.result;
 }
@@ -6442,7 +6472,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
     else if (auto vie = e.isVoidInitExp())
     {
         error(loc, "uninitialized variable `%s` cannot be returned from CTFE", vie.var.toChars());
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     e = resolveSlice(e);
@@ -6830,7 +6860,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
     assert(numParams == 1 || numParams == 2);
 
     Parameter fparam = fd.type.isTypeFunction().parameterList[numParams - 1];
-    bool wantRefValue = 0 != (fparam.storageClass & (STC.out_ | STC.ref_));
+    const wantRefValue = fparam.isReference();
 
     Expressions args = Expressions(numParams);
 

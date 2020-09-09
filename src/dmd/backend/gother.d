@@ -1,14 +1,14 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Other data flow analysis based optimizations.
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.c
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.c
+ * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.d
+ * Documentation: https://dlang.org/phobos/dmd_backend_gother.html
  */
 
 module dmd.backend.gother;
@@ -129,8 +129,8 @@ private __gshared
 void constprop()
 {
     rd_compute();
-    intranges();                // compute integer ranges
-    eqeqranges();               // see if we can eliminate some relationals
+    intranges(rellist, inclist); // compute integer ranges
+    eqeqranges(eqeqlist);        // see if we can eliminate some relationals
     elemdatafree(eqeqlist);
     elemdatafree(rellist);
     elemdatafree(inclist);
@@ -675,9 +675,11 @@ void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
  * Look at reaching defs for expressions of the form (v == c) and (v != c).
  * If all definitions of v are c or are not c, then we can replace the
  * expression with 1 or 0.
+ * Params:
+ *      eqeqlist = array of == and != expressions
  */
 
-private void eqeqranges()
+private void eqeqranges(ref Elemdatas eqeqlist)
 {
     Symbol *v;
     int sz;
@@ -735,11 +737,12 @@ private void eqeqranges()
 /******************************
  * Examine rellist and inclist to determine if any of the signed compare
  * elems in rellist can be replace by unsigned compares.
- * rellist is list of relationals in function.
- * inclist is list of increment elems in function.
+ * Params:
+ *      rellist = array of relationals in function
+ *      inclist = array of increment elems in function
  */
 
-private void intranges()
+private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
 {
     block *rb;
     block *ib;
@@ -750,6 +753,14 @@ private void intranges()
     targ_llong initial,increment,final_;
 
     if (debugc) printf("intranges()\n");
+    static if (0)
+    {
+        foreach (int i, ref rel; rellist)
+        {
+            printf("[%d] rel.pelem: ", i); WReqn(rel.pelem); printf("\n");
+        }
+    }
+
     foreach (ref rel; rellist)
     {
         rb = rel.pblock;
@@ -841,7 +852,13 @@ private void intranges()
         /* Determine if we can make the relational an unsigned  */
         if (initial >= 0)
         {
-            if (final_ >= initial)
+            if (final_ == 0 && relatop == OPge)
+            {
+                /* if the relation is (i >= 0) there is likely some dependency
+                 * on switching sign, so do not make it unsigned
+                 */
+            }
+            else if (final_ >= initial)
             {
                 if (increment > 0 && ((final_ - initial) % increment) == 0)
                     goto makeuns;
@@ -1399,6 +1416,20 @@ void rmdeadass()
             /* volatile/shared variables are not dead              */
             if ((v.ty() | nv.Ety) & (mTYvolatile | mTYshared))
                 continue;
+
+            /* Do not mix up floating and integer variables
+             * https://issues.dlang.org/show_bug.cgi?id=20363
+             */
+            if (OTbinary(n.Eoper))
+            {
+                elem* e2 = n.EV.E2;
+                if (e2.Eoper == OPvar &&
+                    config.fpxmmregs &&
+                    !tyfloating(v.Stype.Tty) != !tyfloating(e2.EV.Vsym.Stype.Tty)
+                   )
+                    continue;
+            }
+
             debug if (debugc)
             {
                 printf("dead assignment (");

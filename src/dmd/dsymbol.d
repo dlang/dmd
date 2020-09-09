@@ -61,6 +61,8 @@ import dmd.visitor;
  *    dg = delegate to call for each Dsymbol
  * Returns:
  *    last value returned by dg()
+ *
+ * See_Also: $(REF each, dmd, root, array)
  */
 int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
 {
@@ -85,6 +87,8 @@ int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
  * Params:
  *    symbols = Dsymbols
  *    dg = delegate to call for each Dsymbol
+ *
+ * See_Also: $(REF each, dmd, root, array)
  */
 void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
 {
@@ -307,9 +311,9 @@ extern (C++) class Dsymbol : ASTNode
         return false;
     }
 
-    bool isAnonymous()
+    final bool isAnonymous() const
     {
-        return ident is null;
+        return ident is null || ident.isAnonymous;
     }
 
     extern(D) private const(char)[] prettyFormatHelper()
@@ -318,38 +322,77 @@ extern (C++) class Dsymbol : ASTNode
         return '`' ~ cstr.toDString() ~ "`\0";
     }
 
-    final void error(const ref Loc loc, const(char)* format, ...)
+    static if (__VERSION__ < 2092)
     {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
-    }
+        final void error(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
 
-    final void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        const loc = getLoc();
-        .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
-    }
+        final void error(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
 
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
-    }
+        final void deprecation(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
 
-    final void deprecation(const(char)* format, ...)
+        final void deprecation(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+    }
+    else
     {
-        va_list ap;
-        va_start(ap, format);
-        const loc = getLoc();
-        .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
-        va_end(ap);
+        pragma(printf) final void error(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+
+        pragma(printf) final void error(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+
+        pragma(printf) final void deprecation(const ref Loc loc, const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
+
+        pragma(printf) final void deprecation(const(char)* format, ...)
+        {
+            va_list ap;
+            va_start(ap, format);
+            const loc = getLoc();
+            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            va_end(ap);
+        }
     }
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
@@ -461,6 +504,7 @@ extern (C++) class Dsymbol : ASTNode
      * if a template declaration is non-local i.e. global or static.
      *
      * Examples:
+     * ---
      *  module mod;
      *  template Foo(alias a) { mixin Bar!(); }
      *  mixin template Bar() {
@@ -481,6 +525,7 @@ extern (C++) class Dsymbol : ASTNode
      *  // s.toParent2() == FuncDeclaration('mod.test')
      *  // s.toParentDecl() == Module('mod')
      *  // s.toParentLocal() == FuncDeclaration('mod.test')
+     * ---
      */
     final inout(Dsymbol) toParent() inout
     {
@@ -1731,31 +1776,32 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
  */
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
-    Expression exp;         // IndexExp or SliceExp
-    TypeTuple type;         // for tuple[length]
-    TupleDeclaration td;    // for tuples of objects
+    // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
+    // Discriminated using DYNCAST and, for expressions, also TOK
+    private RootObject arrayContent;
     Scope* sc;
 
     extern (D) this(Scope* sc, Expression exp)
     {
         super(exp.loc, null);
         assert(exp.op == TOK.index || exp.op == TOK.slice || exp.op == TOK.array);
-        this.exp = exp;
         this.sc = sc;
+        this.arrayContent = exp;
     }
 
     extern (D) this(Scope* sc, TypeTuple type)
     {
-        this.type = type;
         this.sc = sc;
+        this.arrayContent = type;
     }
 
     extern (D) this(Scope* sc, TupleDeclaration td)
     {
-        this.td = td;
         this.sc = sc;
+        this.arrayContent = td;
     }
 
+    /// This override is used to solve `$`
     override Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident.toChars(), flags);
@@ -1764,9 +1810,24 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 
         VarDeclaration* pvar;
         Expression ce;
-    L1:
-        if (td)
+
+        static Dsymbol dollarFromTypeTuple(const ref Loc loc, TypeTuple tt, Scope* sc)
         {
+
+            /* $ gives the number of type entries in the type tuple
+             */
+            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
+            Expression e = new IntegerExp(Loc.initial, tt.arguments.dim, Type.tsize_t);
+            v._init = new ExpInitializer(Loc.initial, e);
+            v.storage_class |= STC.temp | STC.static_ | STC.const_;
+            v.dsymbolSemantic(sc);
+            return v;
+        }
+
+        const DYNCAST kind = arrayContent.dyncast();
+        if (kind == DYNCAST.dsymbol)
+        {
+            TupleDeclaration td = cast(TupleDeclaration) arrayContent;
             /* $ gives the number of elements in the tuple
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
@@ -1776,17 +1837,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             v.dsymbolSemantic(sc);
             return v;
         }
-        if (type)
+        if (kind == DYNCAST.type)
         {
-            /* $ gives the number of type entries in the type tuple
-             */
-            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
-            v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(sc);
-            return v;
+            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
         }
+        Expression exp = cast(Expression) arrayContent;
         if (auto ie = exp.isIndexExp())
         {
             /* array[index] where index is some function of $
@@ -1823,10 +1878,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         if (auto te = ce.isTypeExp())
         {
             if (auto ttp = te.type.isTypeTuple())
-            {
-                type = ttp;
-                goto L1;
-            }
+                return dollarFromTypeTuple(loc, ttp, sc);
         }
         /* *pvar is lazily initialized, so if we refer to $
          * multiple times, it gets set only once.

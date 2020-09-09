@@ -1,6 +1,5 @@
 /*
 REQUIRED_ARGS: -preview=dip1000
-PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
 fail_compilation/retscope2.d(102): Error: scope variable `s` assigned to `p` with longer lifetime

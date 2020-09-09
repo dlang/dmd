@@ -57,7 +57,7 @@ Expression toDelegate(Expression e, Type t, Scope* sc)
     bool r = lambdaCheckForNestedRef(e, sc);
     sc = sc.pop();
     if (r)
-        return new ErrorExp();
+        return ErrorExp.get();
 
     Statement s;
     if (t.ty == Tvoid)

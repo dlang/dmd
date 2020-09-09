@@ -51,11 +51,8 @@ T func7(T a, int) { return a; }
 // _Z5func87Tagged1B4tag110Tagged1TooB4tag1
 void func8 (Tagged1, Tagged1Too) {}
 
-void instantiateTemplates ()
-{
-    func7<Tagged1_2>(Tagged1_2(), 42);
-    inst2.Tagged4();
-}
+// Explicitly instantiate the above templates.
+template Tagged1_2 func7<Tagged1_2>(Tagged1_2, int);
 
 struct [[gnu::abi_tag("foo", "bar")]] S
 {
@@ -139,13 +136,11 @@ template<int>
 E0 fei() { return E0a; }
 #endif
 
-void instatiate()
-{
-    gt<S>(1);
-    gtt<S>(S(1), 1);
-    ft<S>(1);
-    ftt<S>(S(1), 1);
+// Explicitly instantiate the above templates.
+template S gt<S>(int);
+template S gtt<S>(S, int);
+template S ft<S>(int);
+template S ftt<S>(S, int);
 #if __GNUC__ >= 6
-    fei<0>();
+template E0 fei<0>();
 #endif
-}

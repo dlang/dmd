@@ -138,6 +138,7 @@ struct ASTBase
         live                = (1L << 53),   // function @live attribute
 
         safeGroup = STC.safe | STC.trusted | STC.system,
+        IOR  = STC.in_ | STC.ref_ | STC.out_,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
         FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                     safeGroup),
@@ -201,6 +202,7 @@ struct ASTBase
         Tvector,
         Tint128,
         Tuns128,
+        Ttraits,
         Tmixin,
         TMAX
     }
@@ -249,6 +251,7 @@ struct ASTBase
     alias Tvector = ENUMTY.Tvector;
     alias Tint128 = ENUMTY.Tint128;
     alias Tuns128 = ENUMTY.Tuns128;
+    alias Ttraits = ENUMTY.Ttraits;
     alias Tmixin = ENUMTY.Tmixin;
     alias TMAX = ENUMTY.TMAX;
 
@@ -278,7 +281,7 @@ struct ASTBase
         fwd,   // POD not yet computed
     }
 
-    enum TRUST : int
+    enum TRUST : ubyte
     {
         default_   = 0,
         system     = 1,    // @system (same as TRUST.default)
@@ -287,7 +290,7 @@ struct ASTBase
         live       = 4,    // @live
     }
 
-    enum PURE : int
+    enum PURE : ubyte
     {
         impure      = 0,    // not pure at all
         fwdref      = 1,    // it's pure, but not known which level yet
@@ -414,14 +417,24 @@ struct ASTBase
             return "symbol";
         }
 
-        final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            // last parameter : toPrettyChars
-            verror(loc, format, ap, kind(), "");
-            va_end(ap);
-        }
+        static if (__VERSION__ < 2092)
+            final void error(const(char)* format, ...)
+            {
+                va_list ap;
+                va_start(ap, format);
+                // last parameter : toPrettyChars
+                verror(loc, format, ap, kind(), "");
+                va_end(ap);
+            }
+        else
+            pragma(printf) final void error(const(char)* format, ...)
+            {
+                va_list ap;
+                va_start(ap, format);
+                // last parameter : toPrettyChars
+                verror(loc, format, ap, kind(), "");
+                va_end(ap);
+            }
 
         inout(AttribDeclaration) isAttribDeclaration() inout
         {
@@ -2745,14 +2758,18 @@ struct ASTBase
                 return sizeTy;
             }();
 
-        Type cto;
-        Type ito;
-        Type sto;
-        Type scto;
-        Type wto;
-        Type wcto;
-        Type swto;
-        Type swcto;
+        static struct Mcache
+        {
+            Type cto;       // MODFlags.const_
+            Type ito;       // MODFlags.immutable_
+            Type sto;       // MODFlags.shared_
+            Type scto;      // MODFlags.shared_ | MODFlags.const_
+            Type wto;       // MODFlags.wild
+            Type wcto;      // MODFlags.wildconst
+            Type swto;      // MODFlags.shared_ | MODFlags.wild
+            Type swcto;     // MODFlags.shared_ | MODFlags.wildconst
+        }
+        private Mcache* mcache;
 
         Type pto;
         Type rto;
@@ -2774,7 +2791,7 @@ struct ASTBase
 
         static void _init()
         {
-            stringtable._init(14000);
+            stringtable._init(14_000);
 
             // Set basic types
             __gshared TY* basetab =
@@ -2860,6 +2877,14 @@ struct ASTBase
             thash_t = tsize_t;
         }
 
+        extern (D)
+        final Mcache* getMcache()
+        {
+            if (!mcache)
+                mcache = cast(Mcache*) mem.xcalloc(Mcache.sizeof, 1);
+            return mcache;
+        }
+
         final Type pointerTo()
         {
             if (ty == Terror)
@@ -2905,14 +2930,7 @@ struct ASTBase
             t.arrayof = null;
             t.pto = null;
             t.rto = null;
-            t.cto = null;
-            t.ito = null;
-            t.sto = null;
-            t.scto = null;
-            t.wto = null;
-            t.wcto = null;
-            t.swto = null;
-            t.swcto = null;
+            t.mcache = null;
             //t.vtinfo = null; these aren't used in parsing
             //t.ctype = null;
             if (t.ty == Tstruct)
@@ -2924,8 +2942,8 @@ struct ASTBase
 
         Type makeConst()
         {
-            if (cto)
-                return cto;
+            if (mcache && mcache.cto)
+                return mcache.cto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.const_;
             return t;
@@ -2933,8 +2951,8 @@ struct ASTBase
 
         Type makeWildConst()
         {
-            if (wcto)
-                return wcto;
+            if (mcache && mcache.wcto)
+                return mcache.wcto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.wildconst;
             return t;
@@ -2942,8 +2960,8 @@ struct ASTBase
 
         Type makeShared()
         {
-            if (sto)
-                return sto;
+            if (mcache && mcache.sto)
+                return mcache.sto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_;
             return t;
@@ -2951,8 +2969,8 @@ struct ASTBase
 
         Type makeSharedConst()
         {
-            if (scto)
-                return scto;
+            if (mcache && mcache.scto)
+                return mcache.scto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.const_;
             return t;
@@ -2960,8 +2978,8 @@ struct ASTBase
 
         Type makeImmutable()
         {
-            if (ito)
-                return ito;
+            if (mcache && mcache.ito)
+                return mcache.ito;
             Type t = this.nullAttributes();
             t.mod = MODFlags.immutable_;
             return t;
@@ -2969,8 +2987,8 @@ struct ASTBase
 
         Type makeWild()
         {
-            if (wto)
-                return wto;
+            if (mcache && mcache.wto)
+                return mcache.wto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.wild;
             return t;
@@ -2978,8 +2996,8 @@ struct ASTBase
 
         Type makeSharedWildConst()
         {
-            if (swcto)
-                return swcto;
+            if (mcache && mcache.swcto)
+                return mcache.swcto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.wildconst;
             return t;
@@ -2987,8 +3005,8 @@ struct ASTBase
 
         Type makeSharedWild()
         {
-            if (swto)
-                return swto;
+            if (mcache && mcache.swto)
+                return mcache.swto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.wild;
             return t;
@@ -3098,10 +3116,10 @@ struct ASTBase
         {
             if (mod == (MODFlags.shared_ | MODFlags.wildconst))
                 return this;
-            if (swcto)
+            if (mcache.swcto)
             {
-                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
-                return swcto;
+                assert(mcache.swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+                return mcache.swcto;
             }
             Type t = makeSharedWildConst();
             t = t.merge();
@@ -3113,10 +3131,10 @@ struct ASTBase
         {
             if (mod == (MODFlags.shared_ | MODFlags.const_))
                 return this;
-            if (scto)
+            if (mcache.scto)
             {
-                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
-                return scto;
+                assert(mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
+                return mcache.scto;
             }
             Type t = makeSharedConst();
             t = t.merge();
@@ -3128,10 +3146,10 @@ struct ASTBase
         {
             if (mod == MODFlags.wildconst)
                 return this;
-            if (wcto)
+            if (mcache && mcache.wcto)
             {
-                assert(wcto.mod == MODFlags.wildconst);
-                return wcto;
+                assert(mcache.wcto.mod == MODFlags.wildconst);
+                return mcache.wcto;
             }
             Type t = makeWildConst();
             t = t.merge();
@@ -3143,10 +3161,10 @@ struct ASTBase
         {
             if (mod == MODFlags.const_)
                 return this;
-            if (cto)
+            if (mcache && mcache.cto)
             {
-                assert(cto.mod == MODFlags.const_);
-                return cto;
+                assert(mcache.cto.mod == MODFlags.const_);
+                return mcache.cto;
             }
             Type t = makeConst();
             t = t.merge();
@@ -3158,10 +3176,10 @@ struct ASTBase
         {
             if (mod == (MODFlags.shared_ | MODFlags.wild))
                 return this;
-            if (swto)
+            if (mcache && mcache.swto)
             {
-                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
-                return swto;
+                assert(mcache.swto.mod == (MODFlags.shared_ | MODFlags.wild));
+                return mcache.swto;
             }
             Type t = makeSharedWild();
             t = t.merge();
@@ -3173,10 +3191,10 @@ struct ASTBase
         {
             if (mod == MODFlags.wild)
                 return this;
-            if (wto)
+            if (mcache && mcache.wto)
             {
-                assert(wto.mod == MODFlags.wild);
-                return wto;
+                assert(mcache.wto.mod == MODFlags.wild);
+                return mcache.wto;
             }
             Type t = makeWild();
             t = t.merge();
@@ -3188,10 +3206,10 @@ struct ASTBase
         {
             if (mod == MODFlags.shared_)
                 return this;
-            if (sto)
+            if (mcache && mcache.sto)
             {
-                assert(sto.mod == MODFlags.shared_);
-                return sto;
+                assert(mcache.sto.mod == MODFlags.shared_);
+                return mcache.sto;
             }
             Type t = makeShared();
             t = t.merge();
@@ -3203,10 +3221,10 @@ struct ASTBase
         {
             if (isImmutable())
                 return this;
-            if (ito)
+            if (mcache && mcache.ito)
             {
-                assert(ito.isImmutable());
-                return ito;
+                assert(mcache.ito.isImmutable());
+                return mcache.ito;
             }
             Type t = makeImmutable();
             t = t.merge();
@@ -3227,35 +3245,43 @@ struct ASTBase
                     break;
 
                 case MODFlags.const_:
-                    cto = t;
+                    getMcache();
+                    mcache.cto = t;
                     break;
 
                 case MODFlags.wild:
-                    wto = t;
+                    getMcache();
+                    mcache.wto = t;
                     break;
 
                 case MODFlags.wildconst:
-                    wcto = t;
+                    getMcache();
+                    mcache.wcto = t;
                     break;
 
                 case MODFlags.shared_:
-                    sto = t;
+                    getMcache();
+                    mcache.sto = t;
                     break;
 
                 case MODFlags.shared_ | MODFlags.const_:
-                    scto = t;
+                    getMcache();
+                    mcache.scto = t;
                     break;
 
                 case MODFlags.shared_ | MODFlags.wild:
-                    swto = t;
+                    getMcache();
+                    mcache.swto = t;
                     break;
 
                 case MODFlags.shared_ | MODFlags.wildconst:
-                    swcto = t;
+                    getMcache();
+                    mcache.swcto = t;
                     break;
 
                 case MODFlags.immutable_:
-                    ito = t;
+                    getMcache();
+                    mcache.ito = t;
                     break;
 
                 default:
@@ -3264,67 +3290,67 @@ struct ASTBase
             }
             assert(mod != t.mod);
 
-            auto X(T, U)(T m, U n)
+            if (mod)
             {
-                return ((m << 4) | n);
+                getMcache();
+                t.getMcache();
             }
-
             switch (mod)
             {
             case 0:
                 break;
 
             case MODFlags.const_:
-                cto = mto;
-                t.cto = this;
+                mcache.cto = mto;
+                t.mcache.cto = this;
                 break;
 
             case MODFlags.wild:
-                wto = mto;
-                t.wto = this;
+                mcache.wto = mto;
+                t.mcache.wto = this;
                 break;
 
             case MODFlags.wildconst:
-                wcto = mto;
-                t.wcto = this;
+                mcache.wcto = mto;
+                t.mcache.wcto = this;
                 break;
 
             case MODFlags.shared_:
-                sto = mto;
-                t.sto = this;
+                mcache.sto = mto;
+                t.mcache.sto = this;
                 break;
 
             case MODFlags.shared_ | MODFlags.const_:
-                scto = mto;
-                t.scto = this;
+                mcache.scto = mto;
+                t.mcache.scto = this;
                 break;
 
             case MODFlags.shared_ | MODFlags.wild:
-                swto = mto;
-                t.swto = this;
+                mcache.swto = mto;
+                t.mcache.swto = this;
                 break;
 
             case MODFlags.shared_ | MODFlags.wildconst:
-                swcto = mto;
-                t.swcto = this;
+                mcache.swcto = mto;
+                t.mcache.swcto = this;
                 break;
 
             case MODFlags.immutable_:
-                t.ito = this;
-                if (t.cto)
-                    t.cto.ito = this;
-                if (t.sto)
-                    t.sto.ito = this;
-                if (t.scto)
-                    t.scto.ito = this;
-                if (t.wto)
-                    t.wto.ito = this;
-                if (t.wcto)
-                    t.wcto.ito = this;
-                if (t.swto)
-                    t.swto.ito = this;
-                if (t.swcto)
-                    t.swcto.ito = this;
+                t.mcache.ito = this;
+                if (t.mcache.cto)
+                    t.mcache.cto.getMcache().ito = this;
+                if (t.mcache.sto)
+                    t.mcache.sto.getMcache().ito = this;
+                if (t.mcache.scto)
+                    t.mcache.scto.getMcache().ito = this;
+                if (t.mcache.wto)
+                    t.mcache.wto.getMcache().ito = this;
+                if (t.mcache.wcto)
+                    t.mcache.wcto.getMcache().ito = this;
+                if (t.mcache.swto)
+                    t.mcache.swto.getMcache().ito = this;
+                if (t.mcache.swcto)
+                    t.mcache.swcto.getMcache().ito = this;
                 break;
 
             default:
@@ -3465,6 +3491,31 @@ struct ASTBase
         Dsymbol toDsymbol(Scope* sc)
         {
             return null;
+        }
+
+        final pure inout nothrow @nogc
+        {
+            inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
+            inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
+            inout(TypeSArray)     isTypeSArray()     { return ty == Tsarray    ? cast(typeof(return))this : null; }
+            inout(TypeDArray)     isTypeDArray()     { return ty == Tarray     ? cast(typeof(return))this : null; }
+            inout(TypeAArray)     isTypeAArray()     { return ty == Taarray    ? cast(typeof(return))this : null; }
+            inout(TypePointer)    isTypePointer()    { return ty == Tpointer   ? cast(typeof(return))this : null; }
+            inout(TypeReference)  isTypeReference()  { return ty == Treference ? cast(typeof(return))this : null; }
+            inout(TypeFunction)   isTypeFunction()   { return ty == Tfunction  ? cast(typeof(return))this : null; }
+            inout(TypeDelegate)   isTypeDelegate()   { return ty == Tdelegate  ? cast(typeof(return))this : null; }
+            inout(TypeIdentifier) isTypeIdentifier() { return ty == Tident     ? cast(typeof(return))this : null; }
+            inout(TypeInstance)   isTypeInstance()   { return ty == Tinstance  ? cast(typeof(return))this : null; }
+            inout(TypeTypeof)     isTypeTypeof()     { return ty == Ttypeof    ? cast(typeof(return))this : null; }
+            inout(TypeReturn)     isTypeReturn()     { return ty == Treturn    ? cast(typeof(return))this : null; }
+            inout(TypeStruct)     isTypeStruct()     { return ty == Tstruct    ? cast(typeof(return))this : null; }
+            inout(TypeEnum)       isTypeEnum()       { return ty == Tenum      ? cast(typeof(return))this : null; }
+            inout(TypeClass)      isTypeClass()      { return ty == Tclass     ? cast(typeof(return))this : null; }
+            inout(TypeTuple)      isTypeTuple()      { return ty == Ttuple     ? cast(typeof(return))this : null; }
+            inout(TypeSlice)      isTypeSlice()      { return ty == Tslice     ? cast(typeof(return))this : null; }
+            inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
+            inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
+            inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         }
 
         override void accept(Visitor v)
@@ -3666,7 +3717,7 @@ struct ASTBase
     {
         Type basetype;
 
-        extern (D) this(Type baseType)
+        extern (D) this(Type basetype)
         {
             super(Tvector);
             this.basetype = basetype;
@@ -3920,21 +3971,33 @@ struct ASTBase
 
     extern (C++) class TypeFunction : TypeNext
     {
-        ParameterList parameterList;  // function parameters
+        // .next is the return type
 
-        bool isnothrow;             // true: nothrow
-        bool isnogc;                // true: is @nogc
-        bool isproperty;            // can be called without parentheses
-        bool isref;                 // true: returns a reference
-        bool isreturn;              // true: 'this' is returned by ref
-        bool isscope;               // true: 'this' is scope
-        bool islive;                // true: function is @live
+        ParameterList parameterList;   // function parameters
+
+        private enum FunctionFlag : uint
+        {
+            none            = 0,
+            isnothrow       = 0x0001, // nothrow
+            isnogc          = 0x0002, // is @nogc
+            isproperty      = 0x0004, // can be called without parentheses
+            isref           = 0x0008, // returns a reference
+            isreturn        = 0x0010, // 'this' is returned by ref
+            isscope         = 0x0020, // 'this' is scope
+            isreturninferred= 0x0040, // 'this' is return from inference
+            isscopeinferred = 0x0080, // 'this' is scope from inference
+            islive          = 0x0100, // is @live
+            incomplete      = 0x0200, // return type or default arguments removed
+            inoutParam      = 0x0400, // inout on the parameters
+            inoutQual       = 0x0800, // inout on the qualifier
+        }
+
         LINK linkage;               // calling convention
+        FunctionFlag funcFlags;
         TRUST trust;                // level of trust
         PURE purity = PURE.impure;
-
-        ubyte iswild;
-        Expressions* fargs;
+        byte inuse;
+        Expressions* fargs;         // function arguments
 
         extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {
@@ -3959,7 +4022,7 @@ struct ASTBase
             if (stc & STC.return_)
                 this.isreturn = true;
             if (stc & STC.scope_)
-                this.isscope = true;
+                this.isScopeQual = true;
 
             this.trust = TRUST.default_;
             if (stc & STC.safe)
@@ -3982,11 +4045,163 @@ struct ASTBase
             t.isproperty = isproperty;
             t.isref = isref;
             t.isreturn = isreturn;
-            t.isscope = isscope;
-            t.iswild = iswild;
+            t.isScopeQual = isScopeQual;
+            t.isreturninferred = isreturninferred;
+            t.isscopeinferred = isscopeinferred;
+            t.isInOutParam = isInOutParam;
+            t.isInOutQual = isInOutQual;
             t.trust = trust;
             t.fargs = fargs;
             return t;
+        }
+
+        /// set or get if the function has the `nothrow` attribute
+        bool isnothrow() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isnothrow) != 0;
+        }
+        /// ditto
+        void isnothrow(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isnothrow;
+            else funcFlags &= ~FunctionFlag.isnothrow;
+        }
+
+        /// set or get if the function has the `@nogc` attribute
+        bool isnogc() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isnogc) != 0;
+        }
+        /// ditto
+        void isnogc(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isnogc;
+            else funcFlags &= ~FunctionFlag.isnogc;
+        }
+
+        /// set or get if the function has the `@property` attribute
+        bool isproperty() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isproperty) != 0;
+        }
+        /// ditto
+        void isproperty(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isproperty;
+            else funcFlags &= ~FunctionFlag.isproperty;
+        }
+
+        /// set or get if the function has the `ref` attribute
+        bool isref() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isref) != 0;
+        }
+        /// ditto
+        void isref(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isref;
+            else funcFlags &= ~FunctionFlag.isref;
+        }
+
+        /// set or get if the function has the `return` attribute
+        bool isreturn() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isreturn) != 0;
+        }
+        /// ditto
+        void isreturn(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isreturn;
+            else funcFlags &= ~FunctionFlag.isreturn;
+        }
+
+        /// set or get if the function has the `scope` attribute
+        bool isScopeQual() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isscope) != 0;
+        }
+        /// ditto
+        void isScopeQual(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isscope;
+            else funcFlags &= ~FunctionFlag.isscope;
+        }
+
+        /// set or get if the function has the `return` attribute inferred
+        bool isreturninferred() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isreturninferred) != 0;
+        }
+        /// ditto
+        void isreturninferred(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isreturninferred;
+            else funcFlags &= ~FunctionFlag.isreturninferred;
+        }
+
+        /// set or get if the function has the `scope` attribute inferred
+        bool isscopeinferred() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isscopeinferred) != 0;
+        }
+        /// ditoo
+        void isscopeinferred(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isscopeinferred;
+            else funcFlags &= ~FunctionFlag.isscopeinferred;
+        }
+
+        /// set or get if the function has the `@live` attribute
+        bool islive() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.islive) != 0;
+        }
+        /// ditto
+        void islive(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.islive;
+            else funcFlags &= ~FunctionFlag.islive;
+        }
+
+        /// set or get if the return type or the default arguments are removed
+        bool incomplete() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.incomplete) != 0;
+        }
+        /// ditto
+        void incomplete(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.incomplete;
+            else funcFlags &= ~FunctionFlag.incomplete;
+        }
+
+        /// set or get if the function has the `inout` on the parameters
+        bool isInOutParam() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.inoutParam) != 0;
+        }
+        /// ditto
+        void isInOutParam(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.inoutParam;
+            else funcFlags &= ~FunctionFlag.inoutParam;
+        }
+
+        /// set or get if the function has the `inout` on the parameters
+        bool isInOutQual() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.inoutQual) != 0;
+        }
+        /// ditto
+        void isInOutQual(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.inoutQual;
+            else funcFlags &= ~FunctionFlag.inoutQual;
+        }
+        /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
+        bool iswild() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & (FunctionFlag.inoutParam | FunctionFlag.inoutQual)) != 0;
         }
 
         override void accept(Visitor v)
@@ -4895,12 +5110,9 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        TOK subop;      // which of the derived classes this is
-
-        final extern (D) this(const ref Loc loc, TOK subop, int size)
+        final extern (D) this(const ref Loc loc, TOK op, int size)
         {
-            super(loc, TOK.default_, size);
-            this.subop = subop;
+            super(loc, op, size);
         }
 
         override void accept(Visitor v)

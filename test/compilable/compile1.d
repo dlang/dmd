@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// EXTRA_FILES: imports/a12506.d
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=1748
@@ -972,3 +973,16 @@ struct B21163
 B21163 b21163 = {
     (scope int x){}
 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11624
+
+interface I11624
+{
+    void foo();
+}
+
+static assert(!__traits(compiles,
+{
+    static class C11624 : I11624 { }
+}));

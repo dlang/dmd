@@ -1,0 +1,91 @@
+Usage of vector types and operations on an unsupported `-mcpu=` will now error
+
+Previously, the compiler accepted the following code as being supported by all
+`-mcpu=` types on both OSX 32-bit and all 64-bit targets.
+
+---
+__vector(long[4]) x;    // AVX type
+x += 1;                 // AVX2 operation
+---
+
+In this release, all `__vector` types and operations now check the current CPU
+being targeted for, and will issue an error if there is insufficient support.
+
+This also allows for conditional compilation using `__traits(compiles)` to
+probe which operations are supported at compile-time.
+
+---
+static if (__traits(compiles, long4))
+{
+    // Compiled in if `-mcpu=avx` or higher
+}
+
+static if (__traits(compiles, { int4 x; x += 1; }))
+{
+    // Compiled in if `-mcpu=baseline` or higher
+}
+
+static if (__traits(compiles, { int4 x; x *= 1; }))
+{
+    // Compiled in if `-mcpu=avx` or higher
+}
+
+static if (__traits(compiles, { int8 x; x += 1; }))
+{
+    // Compiled in if `-mcpu=avx2` or higher
+}
+---
+
+The following tables describe what minimum `-mcpu=` level is required.
+
+$(TABLE2 Minimum Required `-mcpu=` for 128-bit Vector Types
+$(THEAD void16,byte16,ubyte16,short8,ushort8,int4,uint4,long2,ulong2,float4,double2)
+$(TROW baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+)
+
+$(TABLE2 Minimum Required `-mcpu=` for 128-bit Vector Operators,
+$(THEAD Operator,byte16,ubyte16,short8,ushort8,int4,uint4,long2,ulong2,float4,double2)
+$(TROW +,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+$(TROW -,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+$(TROW *,$(NDASH),$(NDASH),baseline,baseline,avx,avx,$(NDASH),$(NDASH),baseline,baseline)
+$(TROW /,$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),baseline,baseline)
+$(TROW $(CODE_AMP),baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW |,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW $(D ^),baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW +=,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+$(TROW -=,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+$(TROW *=,$(NDASH),$(NDASH),baseline,baseline,avx,avx,$(NDASH),$(NDASH),baseline,baseline)
+$(TROW /=,$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),baseline,baseline)
+$(TROW $(CODE_AMP)=,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW |=,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW $(D ^=),baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW $(I unary)$(D ~),baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,$(NDASH),$(NDASH))
+$(TROW $(I unary)+,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+$(TROW $(I unary)-,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+)
+
+$(TABLE2 Minimum Required `-mcpu=` for 256-bit Vector Types
+$(THEAD void32,byte32,ubyte32,short16,ushort16,int8,uint8,long4,ulong4,float8,double4)
+$(TROW avx,avx,avx,avx,avx,avx,avx,avx,avx,avx,avx)
+)
+
+$(TABLE2 Minimum Required `-mcpu=` for 256-bit Vector Operators,
+$(THEAD Operator,byte32,ubyte32,short16,ushort16,int8,uint8,long4,ulong4,float8,double4)
+$(TROW +,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx,avx)
+$(TROW -,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx,avx)
+$(TROW *,$(NDASH),$(NDASH),avx2,avx2,avx2,avx2,$(NDASH),$(NDASH),avx,avx)
+$(TROW /,$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),avx,avx)
+$(TROW $(CODE_AMP),avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW |,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW $(D ^),avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW +=,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx,avx)
+$(TROW -=,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx,avx)
+$(TROW *=,$(NDASH),$(NDASH),avx2,avx2,avx2,avx2,$(NDASH),$(NDASH),avx,avx)
+$(TROW /=,$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),$(NDASH),avx,avx)
+$(TROW $(CODE_AMP)=,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW |=,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW $(D ^=),avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW $(I unary)$(D ~),avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,$(NDASH),$(NDASH))
+$(TROW $(I unary)+,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline,baseline)
+$(TROW $(I unary)-,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx2,avx,avx)
+)

@@ -1,4 +1,4 @@
-// REQUIRED_ARGS:
+// EXTRA_FILES: imports/imp18979.d
 /*
 TEST_OUTPUT:
 ---

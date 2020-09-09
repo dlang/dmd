@@ -1,4 +1,5 @@
 // REQUIRED_ARGS:
+// EXTRA_FILES: imports/test15857a.d imports/test15857b.d imports/test15857c.d
 /*
 TEST_OUTPUT:
 ---

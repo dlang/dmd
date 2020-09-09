@@ -4,7 +4,6 @@
 // ARG_SETS: -i=imports.pkgmod313,-imports.pkgmod313.mod
 // ARG_SETS: -i=imports.pkgmod313.package,-imports.pkgmod313.mod
 // REQUIRED_ARGS: -Icompilable
-// PERMUTE_ARGS:
 // LINK:
 /*
 TEST_OUTPUT:

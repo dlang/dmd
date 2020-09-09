@@ -48,6 +48,12 @@ struct ObjcClassDeclaration
     bool isRootClass() const;
 };
 
+struct ObjcFuncDeclaration
+{
+    ObjcSelector* selector;
+    VarDeclaration* selectorParameter;
+};
+
 class Objc
 {
 public:
