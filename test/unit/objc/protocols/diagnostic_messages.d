@@ -46,3 +46,27 @@ unittest
     const diagnostics = compiles(code, filename);
     assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
 }
+
+@("when a static interface method has a body")
+@("it should report an error")
+unittest
+{
+    enum filename = "test.d";
+
+    enum code = q{
+        extern (Objective-C)
+        interface Foo
+        {
+            static void foo() { }
+        }
+
+        extern (Objective-C)
+        class Bar : Foo { }
+    }.stripDelimited;
+
+    enum message = "Error: function test.Foo.foo function body only allowed in final functions in interface Foo";
+    enum expected = Diagnostic(Loc(filename, 4, 17), message);
+
+    const diagnostics = compiles(code, filename);
+    assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
+}
