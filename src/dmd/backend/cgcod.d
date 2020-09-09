@@ -647,7 +647,7 @@ tryagain:
                 // Do this before code is emitted because we patch some instructions
                 nteh_gentables(sfunc);
             }
-            if (usednteh & EHtry &&             // saw BCtry or BC_try (test EHcleanup too?)
+            if (usednteh & (EHtry | EHcleanup) &&   // saw BCtry or BC_try or OPddtor
                 config.ehmethod == EHmethod.EH_DM)
             {
                 except_gentables();
