@@ -363,20 +363,35 @@ template hasIndirections(T)
 
 template hasUnsharedIndirections(T)
 {
-    static if (is(T == struct) || is(T == union))
+    static if (is(T == immutable))
+        enum hasUnsharedIndirections = false;
+    else static if (is(T == struct) || is(T == union))
         enum hasUnsharedIndirections = anySatisfy!(.hasUnsharedIndirections, Fields!T);
     else static if (is(T : E[N], E, size_t N))
         enum hasUnsharedIndirections = is(E == void) ? false : hasUnsharedIndirections!E;
     else static if (isFunctionPointer!T)
         enum hasUnsharedIndirections = false;
     else static if (isPointer!T)
-        enum hasUnsharedIndirections = !is(T : shared(U)*, U);
+        enum hasUnsharedIndirections = !is(T : shared(U)*, U) && !is(T : immutable(U)*, U);
     else static if (isDynamicArray!T)
-        enum hasUnsharedIndirections = !is(T : shared(V)[], V);
+        enum hasUnsharedIndirections = !is(T : shared(V)[], V) && !is(T : immutable(V)[], V);
     else static if (is(T == class) || is(T == interface))
         enum hasUnsharedIndirections = !is(T : shared(W), W);
     else
         enum hasUnsharedIndirections = isDelegate!T || __traits(isAssociativeArray, T); // TODO: how to handle these?
+}
+
+unittest
+{
+    static struct Foo { shared(int)* val; }
+
+    static assert(!hasUnsharedIndirections!(immutable(char)*));
+    static assert(!hasUnsharedIndirections!(string));
+
+    static assert(!hasUnsharedIndirections!(Foo));
+    static assert( hasUnsharedIndirections!(Foo*));
+    static assert(!hasUnsharedIndirections!(shared(Foo)*));
+    static assert(!hasUnsharedIndirections!(immutable(Foo)*));
 }
 
 enum bool isAggregateType(T) = is(T == struct) || is(T == union) ||

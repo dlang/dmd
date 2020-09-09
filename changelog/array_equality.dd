@@ -1,0 +1,23 @@
+Equality of arrays of structs is consistent again, as before v2.078
+
+Since v2.078, some array equality comparisons (e.g., if both arrays are
+dynamic arrays) have been wrongly using a `.tupleof` comparison for
+structs without custom `opEquals`, basically enforcing
+`-preview=fieldwise` for these array comparisons.
+
+---
+union U
+{
+    string s;
+}
+
+void main()
+{
+    static immutable from = "from", from2 = "from2";
+    U[] a = [{ s : from }];
+    U[1] b = [{ s : from2[0..4] }];
+    assert(a[0] != b[0]);
+    assert(a != b);
+    assert(a != b[]); // worked before v2.078, been failing since, now working again
+}
+---

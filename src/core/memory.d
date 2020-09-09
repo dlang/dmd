@@ -151,6 +151,7 @@ private
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
     extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
+    extern (C) ulong gc_allocatedInCurrentThread( ) nothrow;
 
     extern (C) void gc_addRoot(const void* p ) nothrow @nogc;
     extern (C) void gc_addRange(const void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
@@ -1045,6 +1046,32 @@ struct GC
         r.destroy;
         assert(Resource.outcome == Outcome.calledManually);
     }
+
+    /**
+     * Returns the number of bytes allocated for the current thread
+     * since program start. It is the same as
+     * GC.stats().allocatedInCurrentThread, but faster.
+     */
+    static ulong allocatedInCurrentThread() nothrow
+    {
+        return gc_allocatedInCurrentThread();
+    }
+
+    /// Using allocatedInCurrentThread
+    nothrow unittest
+    {
+        ulong currentlyAllocated = GC.allocatedInCurrentThread();
+        struct DataStruct
+        {
+            long l1;
+            long l2;
+            long l3;
+            long l4;
+        }
+        DataStruct* unused = new DataStruct;
+        assert(GC.allocatedInCurrentThread() == currentlyAllocated + 32);
+        assert(GC.stats().allocatedInCurrentThread == currentlyAllocated + 32);
+    }
 }
 
 /**
@@ -1483,7 +1510,13 @@ unittest
         set(p, memsize);
         verify(p, memsize);
 
-        int* q = cast(int*) GC.realloc(p + 16, 2 * memsize * int.sizeof);
+        int* q = cast(int*) GC.realloc(p + 4, 2 * memsize * int.sizeof);
+        assert(q == null);
+
+        q = cast(int*) GC.realloc(p + memsize / 2, 2 * memsize * int.sizeof);
+        assert(q == null);
+
+        q = cast(int*) GC.realloc(p + memsize - 1, 2 * memsize * int.sizeof);
         assert(q == null);
 
         int* r = cast(int*) GC.realloc(p, 5 * memsize * int.sizeof);

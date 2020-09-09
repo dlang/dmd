@@ -240,4 +240,9 @@ class ProtoGC : GC
     {
         return false;
     }
+
+    ulong allocatedInCurrentThread() nothrow
+    {
+        return stats().allocatedInCurrentThread;
+    }
 }

@@ -272,4 +272,9 @@ class ManualGC : GC
     {
         return false;
     }
+
+    ulong allocatedInCurrentThread() nothrow
+    {
+        return typeof(return).init;
+    }
 }

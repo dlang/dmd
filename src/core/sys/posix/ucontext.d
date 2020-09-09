@@ -135,6 +135,7 @@ version (CRuntime_Glibc)
             mcontext_t      uc_mcontext;
             sigset_t        uc_sigmask;
             _libc_fpstate   __fpregs_mem;
+            c_ulong[4]      __ssp;
         }
     }
     else version (X86)
@@ -206,6 +207,7 @@ version (CRuntime_Glibc)
             mcontext_t      uc_mcontext;
             sigset_t        uc_sigmask;
             _libc_fpstate   __fpregs_mem;
+            c_ulong[4]      __ssp;
         }
     }
     else version (HPPA)

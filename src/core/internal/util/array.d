@@ -41,9 +41,9 @@ private void _enforceSameLength(const char[] action,
     string msg = "Array lengths don't match for ";
     msg ~= action;
     msg ~= ": ";
-    msg ~= length1.unsignedToTempString(tmpBuff, 10);
+    msg ~= length1.unsignedToTempString(tmpBuff);
     msg ~= " != ";
-    msg ~= length2.unsignedToTempString(tmpBuff, 10);
+    msg ~= length2.unsignedToTempString(tmpBuff);
     assert(0, msg);
 }
 
@@ -59,9 +59,9 @@ private void _enforceNoOverlap(const char[] action,
     string msg = "Overlapping arrays in ";
     msg ~= action;
     msg ~= ": ";
-    msg ~= overlappedBytes.unsignedToTempString(tmpBuff, 10);
+    msg ~= overlappedBytes.unsignedToTempString(tmpBuff);
     msg ~= " byte(s) overlap of ";
-    msg ~= bytes.unsignedToTempString(tmpBuff, 10);
+    msg ~= bytes.unsignedToTempString(tmpBuff);
     assert(0, msg);
 }
 

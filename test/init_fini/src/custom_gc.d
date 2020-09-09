@@ -173,6 +173,11 @@ nothrow @nogc:
         return false;
     }
 
+    ulong allocatedInCurrentThread() nothrow
+    {
+        return stats().allocatedInCurrentThread;
+    }
+
 private:
     // doesn't care for alignment
     static void* sentinelAdd(void* p, size_t value)

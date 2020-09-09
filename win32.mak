@@ -14,7 +14,7 @@ HOST_DMD=dmd
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -inline -w -Isrc -Iimport
+DFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -preview=dtorfields -inline -w -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -w -Isrc -Iimport
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
@@ -154,6 +154,8 @@ clean:
 	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
 
-auto-tester-build: target
+auto-tester-build:
+	echo "Windows builds have been disabled on auto-tester"
 
-auto-tester-test: unittest test_all
+auto-tester-test:
+	echo "Windows builds have been disabled on auto-tester"

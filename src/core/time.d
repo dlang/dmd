@@ -68,7 +68,6 @@ module core.time;
 import core.exception;
 import core.stdc.time;
 import core.stdc.stdio;
-import core.internal.traits : _Unqual = Unqual;
 import core.internal.string;
 
 version (Windows)
@@ -620,12 +619,12 @@ public:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
     Duration opBinary(string op, D)(D rhs) const nothrow @nogc
-        if (((op == "+" || op == "-" || op == "%") && is(_Unqual!D == Duration)) ||
-           ((op == "+" || op == "-") && is(_Unqual!D == TickDuration)))
+        if (((op == "+" || op == "-" || op == "%") && is(immutable D == immutable Duration)) ||
+           ((op == "+" || op == "-") && is(immutable D == immutable TickDuration)))
     {
-        static if (is(_Unqual!D == Duration))
+        static if (is(immutable D == immutable Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
-        else if (is(_Unqual!D == TickDuration))
+        else if (is(immutable D == immutable TickDuration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
@@ -706,7 +705,7 @@ public:
       +/
     Duration opBinaryRight(string op, D)(D lhs) const nothrow @nogc
         if ((op == "+" || op == "-") &&
-            is(_Unqual!D == TickDuration))
+            is(immutable D == immutable TickDuration))
     {
         return Duration(mixin("lhs.hnsecs " ~ op ~ " _hnsecs"));
     }
@@ -759,12 +758,12 @@ public:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
     ref Duration opOpAssign(string op, D)(const scope D rhs) nothrow @nogc
-        if (((op == "+" || op == "-" || op == "%") && is(_Unqual!D == Duration)) ||
-           ((op == "+" || op == "-") && is(_Unqual!D == TickDuration)))
+        if (((op == "+" || op == "-" || op == "%") && is(immutable D == immutable Duration)) ||
+           ((op == "+" || op == "-") && is(immutable D == immutable TickDuration)))
     {
-        static if (is(_Unqual!D == Duration))
+        static if (is(immutable D == immutable Duration))
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
-        else if (is(_Unqual!D == TickDuration))
+        else if (is(immutable D == immutable TickDuration))
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
         return this;
     }
@@ -1107,7 +1106,7 @@ public:
         $(D duration.to!TickDuration())
       +/
     TickDuration opCast(T)() const nothrow @nogc
-        if (is(_Unqual!T == TickDuration))
+        if (is(immutable T == immutable TickDuration))
     {
         return TickDuration.from!"hnsecs"(_hnsecs);
     }
@@ -1161,7 +1160,7 @@ public:
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
     Duration opCast(T)() const nothrow @nogc
-        if (is(_Unqual!T == Duration))
+        if (is(immutable T == immutable Duration))
     {
         return this;
     }
@@ -1584,7 +1583,7 @@ public:
                 unit = "μs";
             else
                 unit = plural ? units : units[0 .. $-1];
-            res ~= signedToTempString(val, 10);
+            res ~= signedToTempString(val);
             res ~= " ";
             res ~= unit;
         }
@@ -1752,7 +1751,7 @@ unittest
         td    = The TickDuration to convert
   +/
 T to(string units, T, D)(D td) @safe pure nothrow @nogc
-    if (is(_Unqual!D == TickDuration) &&
+    if (is(immutable D == immutable TickDuration) &&
        (units == "seconds" ||
         units == "msecs" ||
         units == "usecs" ||
@@ -1789,8 +1788,9 @@ unittest
     long tl = to!("seconds",long)(t);
     assert(tl == 1000);
 
+    import core.stdc.math : fabs;
     double td = to!("seconds",double)(t);
-    assert(_abs(td - 1000) < 0.001);
+    assert(fabs(td - 1000) < 0.001);
 }
 
 unittest
@@ -1805,9 +1805,9 @@ unittest
         auto _str(F)(F val)
         {
             static if (is(F == int) || is(F == long))
-                return signedToTempString(val, 10);
+                return signedToTempString(val);
             else
-                return unsignedToTempString(val, 10);
+                return unsignedToTempString(val);
         }
 
         foreach (F; AliasSeq!(int,uint,long,ulong,float,double,real))
@@ -2404,10 +2404,10 @@ assert(before + timeElapsed == after);
     string toString() const pure nothrow
     {
         static if (clockType == ClockType.normal)
-            return "MonoTime(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~ signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
+            return "MonoTime(" ~ signedToTempString(_ticks) ~ " ticks, " ~ signedToTempString(ticksPerSecond) ~ " ticks per second)";
         else
-            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~
-                   signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
+            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ signedToTempString(_ticks) ~ " ticks, " ~
+                   signedToTempString(ticksPerSecond) ~ " ticks per second)";
     }
 
     version (CoreUnittest) unittest
@@ -2427,9 +2427,9 @@ assert(before + timeElapsed == after);
         else
             eat(str, "MonoTimeImpl!(ClockType."~_clockName~")(");
 
-        eat(str, signedToTempString(mt._ticks, 10));
+        eat(str, signedToTempString(mt._ticks));
         eat(str, " ticks, ");
-        eat(str, signedToTempString(ticksPerSecond, 10));
+        eat(str, signedToTempString(ticksPerSecond));
         eat(str, " ticks per second)");
     }
 
@@ -2958,7 +2958,7 @@ struct TickDuration
         $(D tickDuration.to!Duration())
       +/
     Duration opCast(T)() @safe const pure nothrow @nogc
-        if (is(_Unqual!T == Duration))
+        if (is(immutable T == immutable Duration))
     {
         return Duration(hnsecs);
     }
@@ -2984,7 +2984,7 @@ struct TickDuration
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
     TickDuration opCast(T)() @safe const pure nothrow @nogc
-        if (is(_Unqual!T == TickDuration))
+        if (is(immutable T == immutable TickDuration))
     {
         return this;
     }
@@ -3703,7 +3703,6 @@ long splitUnitsFromHNSecs(string units)(ref long hnsecs) @safe pure nothrow @nog
     return value;
 }
 
-///
 unittest
 {
     auto hnsecs = 2595000000007L;
@@ -3744,7 +3743,6 @@ long getUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
     return convert!("hnsecs", units)(hnsecs);
 }
 
-///
 unittest
 {
     auto hnsecs = 2595000000007L;
@@ -3783,7 +3781,6 @@ long removeUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
     return hnsecs - convert!(units, "hnsecs")(value);
 }
 
-///
 unittest
 {
     auto hnsecs = 2595000000007L;
@@ -3913,7 +3910,6 @@ template nextLargerTimeUnits(string units)
         static assert(0, "Broken template constraint");
 }
 
-///
 unittest
 {
     assert(nextLargerTimeUnits!"minutes" == "hours");
@@ -3973,9 +3969,9 @@ string doubleToString(double value) @safe pure nothrow
     if (value < 0 && cast(long)value == 0)
         result = "-0";
     else
-        result = signedToTempString(cast(long)value, 10).idup;
+        result = signedToTempString(cast(long)value).idup;
     result ~= '.';
-    result ~= unsignedToTempString(cast(ulong)(_abs((value - cast(long)value) * 1_000_000) + .5), 10);
+    result ~= unsignedToTempString(cast(ulong)(_abs((value - cast(long)value) * 1_000_000) + .5));
 
     while (result[$-1] == '0')
         result = result[0 .. $-1];
@@ -3999,7 +3995,7 @@ unittest
 
 version (CoreUnittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 {
-    return (signedToTempString(value, 10) ~ "\0").ptr;
+    return (signedToTempString(value) ~ "\0").ptr;
 }
 
 
@@ -4124,9 +4120,9 @@ version (CoreUnittest) void assertApprox(D, E)(D actual,
 {
     if (actual.length < lower.length || actual.length > upper.length)
     {
-        throw new AssertError(msg ~ (": [" ~ signedToTempString(lower.length, 10) ~ "] [" ~
-                              signedToTempString(actual.length, 10) ~ "] [" ~
-                              signedToTempString(upper.length, 10) ~ "]").idup,
+        throw new AssertError(msg ~ (": [" ~ signedToTempString(lower.length) ~ "] [" ~
+                              signedToTempString(actual.length) ~ "] [" ~
+                              signedToTempString(upper.length) ~ "]").idup,
                               __FILE__, line);
     }
 }
@@ -4148,7 +4144,7 @@ version (CoreUnittest) void assertApprox()(long actual,
                                       size_t line = __LINE__)
 {
     if (actual < lower)
-        throw new AssertError(msg ~ ": lower: " ~ signedToTempString(actual, 10).idup, __FILE__, line);
+        throw new AssertError(msg ~ ": lower: " ~ signedToTempString(actual).idup, __FILE__, line);
     if (actual > upper)
-        throw new AssertError(msg ~ ": upper: " ~ signedToTempString(actual, 10).idup, __FILE__, line);
+        throw new AssertError(msg ~ ": upper: " ~ signedToTempString(actual).idup, __FILE__, line);
 }

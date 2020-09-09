@@ -8,13 +8,12 @@
  * Source: $(DRUNTIMESRC core/internal/_convert.d)
  */
 module core.internal.convert;
-import core.internal.traits : Unqual;
 
 /+
 A @nogc function can allocate memory during CTFE.
 +/
 @nogc nothrow pure @trusted
-private ubyte[] ctfe_alloc()(size_t n)
+private ubyte[] ctfe_alloc(size_t n)
 {
     if (!__ctfe)
     {
@@ -34,8 +33,7 @@ private ubyte[] ctfe_alloc()(size_t n)
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real) ||
-                                        is(Unqual!T == ifloat) || is(Unqual!T == idouble) || is(Unqual!T == ireal))
+const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isFloating, T) && (is(T : real) || is(T : ireal)))
 {
     if (__ctfe)
     {
@@ -84,7 +82,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             ubyte[] buff = ctfe_alloc(T.sizeof);
             enum msbSize = double.sizeof;
 
-            static if (is(Unqual!T == ireal))
+            static if (is(T : ireal))
                 double hi = toPrec!double(val.im);
             else
                 double hi = toPrec!double(val);
@@ -101,7 +99,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             }
             else
             {
-                static if (is(Unqual!T == ireal))
+                static if (is(T : ireal))
                     double low = toPrec!double(val.im - hi);
                 else
                     double low = toPrec!double(val - hi);
@@ -183,7 +181,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
 }
 
 @safe pure nothrow @nogc
-private Float parse(bool is_denormalized = false, T)(T x) if (is(Unqual!T == ifloat) || is(Unqual!T == idouble) || is(Unqual!T == ireal))
+private Float parse(bool is_denormalized = false, T:ireal)(T x)
 {
     return parse(x.im);
 }
@@ -191,6 +189,7 @@ private Float parse(bool is_denormalized = false, T)(T x) if (is(Unqual!T == ifl
 @safe pure nothrow @nogc
 private Float parse(bool is_denormalized = false, T:real)(T x_) if (floatFormat!T != FloatFormat.Real80)
 {
+    import core.internal.traits : Unqual;
     Unqual!T x = x_;
     static assert(floatFormat!T != FloatFormat.DoubleDouble,
            "doubledouble float format not supported in CTFE");
@@ -249,6 +248,7 @@ private Float parse(bool is_denormalized = false, T:real)(T x_) if (floatFormat!
 @safe pure nothrow @nogc
 private Float parse(bool _ = false, T:real)(T x_) if (floatFormat!T == FloatFormat.Real80)
 {
+    import core.internal.traits : Unqual;
     Unqual!T x = x_;
     //HACK @@@3632@@@
 
@@ -698,6 +698,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T 
     }
     else if (__ctfe)
     {
+        import core.internal.traits : Unqual;
         ubyte[] tmp = ctfe_alloc(T.sizeof);
         Unqual!T val_ = val;
         for (size_t i = 0; i < T.sizeof; ++i)
@@ -739,7 +740,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == __vector))
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == cfloat) || is(Unqual!T == cdouble) ||is(Unqual!T == creal))
+const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isFloating, T) && is(T : creal))
 {
     if (__ctfe)
     {

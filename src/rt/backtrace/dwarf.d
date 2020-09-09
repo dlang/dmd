@@ -78,7 +78,7 @@ struct Location
     const(char)[] file = null;
     const(char)[] directory = null;
     int line = -1;
-    size_t address;
+    const(void)* address;
 }
 
 int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
@@ -99,7 +99,7 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
         {
             locations.length = callstack.length;
             foreach (size_t i; 0 .. callstack.length)
-                locations[i].address = cast(size_t) callstack[i];
+                locations[i].address = callstack[i];
 
             resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
         }
@@ -150,7 +150,7 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
                 buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
                 bufferLength = maxBufferLength;
             }
-            appendToBuffer("[0x%zx]", callstack[i]);
+            appendToBuffer("[%p]", callstack[i]);
 
             auto output = buffer[0 .. bufferLength];
             auto pos = i;
@@ -182,16 +182,16 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
         const lp = readLineNumberProgram(dbg);
 
         LocationInfo lastLoc = LocationInfo(-1, -1);
-        size_t lastAddress = 0x0;
+        const(void)* lastAddress;
 
         debug(DwarfDebugMachine) printf("program:\n");
         runStateMachine(lp,
-            (size_t address, LocationInfo locInfo, bool isEndSequence)
+            (const(void)* address, LocationInfo locInfo, bool isEndSequence)
             {
                 // adjust to ASLR offset
                 address += baseAddress;
                 debug (DwarfDebugMachine)
-                    printf("-- offsetting 0x%zx to 0x%zx\n", address - baseAddress, address);
+                    printf("-- offsetting %p to %p\n", address - baseAddress, address);
 
                 foreach (ref loc; locations)
                 {
@@ -208,7 +208,7 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                         const sourceFile = lp.sourceFiles[match.file - 1];
                         debug (DwarfDebugMachine)
                         {
-                            printf("-- found for [0x%zx]:\n", loc.address);
+                            printf("-- found for [%p]:\n", loc.address);
                             printf("--   file: %.*s\n",
                                    cast(int) sourceFile.file.length, sourceFile.file.ptr);
                             printf("--   line: %d\n", match.line);
@@ -244,7 +244,7 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
 
                 if (isEndSequence)
                 {
-                    lastAddress = 0;
+                    lastAddress = null;
                 }
                 else
                 {
@@ -273,7 +273,7 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
  *   isEndSequence = Whether the end of a sequence has been reached
  */
 alias RunStateMachineCallback =
-    bool delegate(size_t address, LocationInfo info, bool isEndSequence)
+    bool delegate(const(void)* address, LocationInfo info, bool isEndSequence)
     @nogc nothrow;
 
 /**
@@ -327,15 +327,15 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
                     {
                         case endSequence:
                             machine.isEndSequence = true;
-                            debug(DwarfDebugMachine) printf("endSequence 0x%zx\n", machine.address);
+                            debug(DwarfDebugMachine) printf("endSequence %p\n", machine.address);
                             if (!callback(machine.address, LocationInfo(machine.fileIndex, machine.line), true)) return true;
                             machine = StateMachine.init;
                             machine.isStatement = lp.defaultIsStatement;
                             break;
 
                         case setAddress:
-                            size_t address = program.read!size_t();
-                            debug(DwarfDebugMachine) printf("setAddress 0x%zx\n", address);
+                            const address = program.read!(void*)();
+                            debug(DwarfDebugMachine) printf("setAddress %p\n", address);
                             machine.address = address;
                             machine.operationIndex = 0;
                             break;
@@ -361,7 +361,7 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
                     break;
 
                 case copy:
-                    debug(DwarfDebugMachine) printf("copy 0x%zx\n", machine.address);
+                    debug(DwarfDebugMachine) printf("copy %p\n", machine.address);
                     if (!callback(machine.address, LocationInfo(machine.fileIndex, machine.line), false)) return true;
                     machine.isBasicBlock = false;
                     machine.isPrologueEnd = false;
@@ -372,7 +372,7 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
                 case advancePC:
                     const operationAdvance = cast(size_t) readULEB128(program);
                     advanceAddressAndOpIndex(operationAdvance);
-                    debug(DwarfDebugMachine) printf("advancePC %d to 0x%zx\n", cast(int) operationAdvance, machine.address);
+                    debug(DwarfDebugMachine) printf("advancePC %d to %p\n", cast(int) operationAdvance, machine.address);
                     break;
 
                 case advanceLine:
@@ -406,14 +406,14 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
                 case constAddPC:
                     const operationAdvance = (255 - lp.opcodeBase) / lp.lineRange;
                     advanceAddressAndOpIndex(operationAdvance);
-                    debug(DwarfDebugMachine) printf("constAddPC 0x%zx\n", machine.address);
+                    debug(DwarfDebugMachine) printf("constAddPC %p\n", machine.address);
                     break;
 
                 case fixedAdvancePC:
                     const add = program.read!ushort();
                     machine.address += add;
                     machine.operationIndex = 0;
-                    debug(DwarfDebugMachine) printf("fixedAdvancePC %d to 0x%zx\n", cast(int) add, machine.address);
+                    debug(DwarfDebugMachine) printf("fixedAdvancePC %d to %p\n", cast(int) add, machine.address);
                     break;
 
                 case setPrologueEnd:
@@ -445,7 +445,7 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
             machine.line += lineIncrement;
 
             debug (DwarfDebugMachine)
-                printf("special %d %d to 0x%zx line %d\n", cast(int) addressIncrement,
+                printf("special %d %d to %p line %d\n", cast(int) addressIncrement,
                        cast(int) lineIncrement, machine.address, machine.line);
 
             if (!callback(machine.address, LocationInfo(machine.fileIndex, machine.line), false)) return true;
@@ -560,7 +560,7 @@ enum ExtendedOpcode : ubyte
 
 struct StateMachine
 {
-    size_t address = 0;
+    const(void)* address;
     uint operationIndex = 0;
     uint fileIndex = 1;
     uint line = 1;
@@ -664,22 +664,21 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
         return result;
     }
 
+    /// Directories are simply a sequence of NUL-terminated strings
     static const(char)[] readIncludeDirectoryEntry(ref const(ubyte)[] data)
     {
-        const length = strlen(cast(char*) data.ptr);
-        auto result = cast(const(char)[]) data[0 .. length];
-        debug(DwarfDebugMachine) printf("dir: %.*s\n", cast(int) length, result.ptr);
-        data = data[length + 1 .. $];
-        return result;
+        const ptr = cast(const(char)*) data.ptr;
+        const dir = ptr[0 .. strlen(ptr)];
+        data = data[dir.length + "\0".length .. $];
+        return dir;
     }
     lp.includeDirectories = readSequence!readIncludeDirectoryEntry(data);
 
     static SourceFile readFileNameEntry(ref const(ubyte)[] data)
     {
-        const length = strlen(cast(char*) data.ptr);
-        auto file = cast(const(char)[]) data[0 .. length];
-        debug(DwarfDebugMachine) printf("file: %.*s\n", cast(int) length, file.ptr);
-        data = data[length + 1 .. $];
+        const ptr = cast(const(char)*) data.ptr;
+        const file = ptr[0 .. strlen(ptr)];
+        data = data[file.length + "\0".length .. $];
 
         auto dirIndex = cast(size_t) data.readULEB128();
 
@@ -692,6 +691,29 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
         );
     }
     lp.sourceFiles = readSequence!readFileNameEntry(data);
+
+    debug (DwarfDebugMachine)
+    {
+        printf("include_directories: (%d)\n", cast(int) lp.includeDirectories.length);
+        foreach (dir; lp.includeDirectories)
+            printf("\t- %.*s\n", cast(int) dir.length, dir.ptr);
+        printf("source_files: (%d)\n", cast(int) lp.sourceFiles.length);
+        foreach (ref sf; lp.sourceFiles)
+        {
+            if (sf.dirIndex > lp.includeDirectories.length)
+                printf("\t- Out of bound directory! (%llu): %.*s\n",
+                       sf.dirIndex, cast(int) sf.file.length, sf.file.ptr);
+            else if (sf.dirIndex > 0)
+            {
+                const dir = lp.includeDirectories[sf.dirIndex - 1];
+                printf("\t- (Dir:%llu:%.*s/)%.*s\n", sf.dirIndex,
+                       cast(int) dir.length, dir.ptr,
+                       cast(int) sf.file.length, sf.file.ptr);
+            }
+            else
+                printf("\t- %.*s\n", cast(int) sf.file.length, sf.file.ptr);
+        }
+    }
 
     const programStart = cast(size_t) (minimumInstructionLengthFieldOffset + lp.headerLength);
     const programEnd = cast(size_t) (dwarfVersionFieldOffset + lp.unitLength);

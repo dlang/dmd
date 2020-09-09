@@ -194,9 +194,7 @@ if (!is(T == enum) && __traits(isStaticArray, T) && !canBitwiseHash!T)
 
 //dynamic array hash
 size_t hashOf(T)(scope const T val, size_t seed = 0)
-if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
-    && !is(T == struct) && !is(T == class) && !is(T == union)
-    && (__traits(isScalar, S) || canBitwiseHash!S))
+if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
     alias ElementType = typeof(val[0]);
     static if (!canBitwiseHash!ElementType)
@@ -222,9 +220,7 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 
 //dynamic array hash
 size_t hashOf(T)(T val, size_t seed = 0)
-if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
-    && !is(T == struct) && !is(T == class) && !is(T == union)
-    && !(__traits(isScalar, S) || canBitwiseHash!S))
+if (is(T == S[], S) && !(__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
     size_t hash = seed;
     foreach (ref o; val)
@@ -235,10 +231,8 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 }
 
 // Indicates if F is a built-in complex number type.
-private enum bool isComplex(F) = is(Unqual!F == cfloat) || is(Unqual!F == cdouble) || is(Unqual!F == creal);
-
 private F coalesceFloat(F)(const F val)
-if (__traits(isFloating, val) && !is(F == __vector) && !isComplex!F)
+if (__traits(isFloating, val) && !is(F == __vector) && !is(F : creal))
 {
     static if (floatCoalesceZeroes)
         if (val == cast(F) 0)
@@ -270,7 +264,7 @@ size_t hashOf(T)(scope const T val) if (__traits(isScalar, T) && !is(T == __vect
         else
             return cast(size_t) (val ^ (val >>> (size_t.sizeof * 8)));
     }
-    else static if (isComplex!T)
+    else static if (is(T : creal))
     {
         return hashOf(coalesceFloat(val.re), hashOf(coalesceFloat(val.im)));
     }
@@ -333,7 +327,7 @@ size_t hashOf(T)(scope const T val, size_t seed) if (__traits(isScalar, T) && !i
             seed = hashOf(cast(size_t) (val >>> (size_t.sizeof * 8 * i)), seed);
         return seed;
     }
-    else static if (isComplex!T)
+    else static if (is(T : creal))
     {
         return hashOf(val.re, hashOf(val.im, seed));
     }
@@ -413,6 +407,12 @@ q{
             pragma(msg, "Warning: struct "~__traits(identifier, T)
                 ~" has method toHash, however it cannot be called with "
                 ~typeof(val).stringof~" this.");
+            static if (__traits(compiles, __traits(getLocation, T.toHash)))
+            {
+                enum file = __traits(getLocation, T.toHash)[0];
+                enum line = __traits(getLocation, T.toHash)[1].stringof;
+                pragma(msg, "  ",__traits(identifier, T),".toHash defined here: ",file,"(",line,")");
+            }
         }
 
         static if (T.tupleof.length == 0)

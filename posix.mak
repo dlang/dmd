@@ -31,7 +31,7 @@ INSTALL_DIR=../install
 DOCDIR=doc
 IMPDIR=import
 
-OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
+OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov=ctfe,)
 
 # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
 # Note that shared libraries and C files are always compiled with PIC.
@@ -65,7 +65,7 @@ LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 
 MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
-DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc -preview=markdown
+DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 # Set CFLAGS
 CFLAGS=$(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H
@@ -79,7 +79,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -de -dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE)
+UDFLAGS:=-conf= -Isrc -Iimport -w -de -dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE) -preview=dtorfields
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
@@ -276,7 +276,6 @@ endif
 .PHONY : unittest
 ifeq (1,$(BUILD_WAS_SPECIFIED))
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
-	@echo done
 else
 unittest : unittest-debug unittest-release
 unittest-%: target
@@ -445,6 +444,24 @@ style_lint:
 
 	@echo "Enforce no whitespace after opening parenthesis"
 	$(GREP) -nrE "\<(version) \( " $$(find src -name '*.d') ; test $$? -eq 1
+
+################################################################################
+# Check for missing imports in public unittest examples.
+################################################################################
+
+PUBLICTESTS_DIR=$(ROOT)/publictests
+publictests: $(addsuffix .publictests, $(basename $(SRCS)))
+
+################################################################################
+# Extract public tests of a module and test them in an separate file (i.e. without its module)
+# This is done to check for potentially missing imports in the examples, e.g.
+# make -f posix.mak src/core/time.publictests
+################################################################################
+%.publictests: %.d $(TESTS_EXTRACTOR) $(DRUNTIME) | $(PUBLICTESTS_DIR)/.directory
+	@$(TESTS_EXTRACTOR) --inputdir  $< --outputdir $(PUBLICTESTS_DIR)
+	@$(DMD) -main $(UDFLAGS) $(UTFLAGS) -defaultlib= -debuglib= -od$(PUBLICTESTS_DIR) $(DRUNTIME) -run $(PUBLICTESTS_DIR)/$(subst /,_,$<)
+
+################################################################################
 
 .PHONY : auto-tester-build
 ifneq (,$(findstring Darwin_64_32, $(PWD)))

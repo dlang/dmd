@@ -188,4 +188,11 @@ interface GC
      *
      */
     bool inFinalizer() nothrow @nogc @safe;
+
+    /**
+     * Returns the number of bytes allocated for the current thread
+     * since program start. It is the same as
+     * GC.stats().allocatedInCurrentThread, but faster.
+     */
+    ulong allocatedInCurrentThread() nothrow;
 }

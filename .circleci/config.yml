@@ -25,3 +25,6 @@ jobs:
       - run:
           command: ./.circleci/run.sh betterc
           name: Run @betterC tests
+      - run:
+          command: ./.circleci/run.sh publictests
+          name: Run public unittests

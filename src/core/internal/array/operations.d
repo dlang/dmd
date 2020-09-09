@@ -103,11 +103,11 @@ version (DigitalMars)
         alias vec = __vector(T[N]);
 
         static if (is(T == float))
-            return __simd(XMM.LODUPS, *cast(const vec*) p);
+            return cast(typeof(return)) __simd(XMM.LODUPS, *cast(const vec*) p);
         else static if (is(T == double))
-            return __simd(XMM.LODUPD, *cast(const vec*) p);
+            return cast(typeof(return)) __simd(XMM.LODUPD, *cast(const vec*) p);
         else
-            return __simd(XMM.LODDQU, *cast(const vec*) p);
+            return cast(typeof(return)) __simd(XMM.LODDQU, *cast(const vec*) p);
     }
 
     __vector(T[N]) binop(string op, T, size_t N)(const scope __vector(T[N]) a, const scope __vector(T[N]) b)
@@ -228,7 +228,6 @@ else
 
     version (X86_64) unittest
     {
-        pragma(msg, vectorizeable!(double[], const(double)[], double[], "+", "="));
         static assert(vectorizeable!(double[], const(double)[], double[], "+", "="));
         static assert(!vectorizeable!(double[], const(ulong)[], double[], "+", "="));
         // Vector type are (atm.) not implicitly convertible and would require
