@@ -725,7 +725,7 @@ nothrow:
      * Returns:
      *  true if path is safe.
      */
-    extern (C++) static bool safePath(const(char)* name) pure @nogc
+    private extern (D) static bool safePath(const(char)* name) pure @nogc
     {
         version (Windows)
         {
