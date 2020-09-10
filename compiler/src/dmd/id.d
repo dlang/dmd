@@ -107,6 +107,7 @@ immutable Msgtable[] msgtable =
     { "outer" },
     { "Exception" },
     { "RTInfo" },
+    { "TypeInfoStructGeneric" },
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },

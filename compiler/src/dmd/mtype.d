@@ -423,6 +423,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared ClassDeclaration typeinfowild;
 
     extern (C++) __gshared TemplateDeclaration rtinfo;
+    extern (C++) __gshared TemplateDeclaration typeinfostructgeneric;
 
     extern (C++) __gshared Type[TMAX] basic;
 
