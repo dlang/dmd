@@ -228,6 +228,8 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     OutBuffer decl;
 
     // enable indent by spaces on buffers
+    fwd.doindent = true;
+    fwd.spaces = true;
     decl.doindent = true;
     decl.spaces = true;
     check.doindent = true;
