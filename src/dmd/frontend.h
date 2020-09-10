@@ -8,46 +8,21 @@
 #if !defined(_d_real)
 # define _d_real long double
 #endif
-#if !defined(BEGIN_ENUM)
-# define BEGIN_ENUM(name, upper, lower) enum class name {
-# define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,
-# define END_ENUM(name, upper, lower) };
-#endif
-#if !defined(BEGIN_ENUM_NUMERIC)
-# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
-# define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,
-# define END_ENUM_NUMERIC(type, name, upper, lower) };
-#endif
-#if !defined(BEGIN_ENUM_TYPE)
-# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
-# define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;
-# define END_ENUM_TYPE(type, name, upper, lower) };
-#endif
-#if !defined(BEGIN_ANON_ENUM)
-# define BEGIN_ANON_ENUM() enum {
-# define ANON_ENUM_KEY(type, name, value) name = value,
-# define END_ANON_ENUM() };
-#endif
-#if !defined(ENUM_CONSTANT_NUMERIC)
-# define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
-#endif
-#if !defined(ENUM_CONSTANT)
-# define ENUM_CONSTANT(type, name, value) static type const name = value;
-#endif
 
 class RootObject;
-BEGIN_ENUM(DYNCAST, DYNCAST, dyncast)
-ENUM_KEY(int32_t, object, 0, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, expression, 1, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, dsymbol, 2, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, type, 3, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, identifier, 4, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, tuple, 5, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, parameter, 6, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, statement, 7, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, condition, 8, DYNCAST, DYNCAST, dyncast, DYNCAST)
-ENUM_KEY(int32_t, templateparameter, 9, DYNCAST, DYNCAST, dyncast, DYNCAST)
-END_ENUM(DYNCAST, DYNCAST, dyncast)
+enum class DYNCAST
+{
+object = 0,
+expression = 1,
+dsymbol = 2,
+type = 3,
+identifier = 4,
+tuple = 5,
+parameter = 6,
+statement = 7,
+condition = 8,
+templateparameter = 9,
+};
 
 class Visitor;
 class Identifier;
@@ -56,18 +31,19 @@ class CPPNamespaceDeclaration;
 struct Symbol;
 struct Loc;
 struct Scope;
-BEGIN_ENUM(PASS, PASS, pass)
-ENUM_KEY(int32_t, init, 0, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, semantic, 1, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, semanticdone, 2, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, semantic2, 3, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, semantic2done, 4, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, semantic3, 5, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, semantic3done, 6, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, inline, 7, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, inlinedone, 8, PASS, PASS, pass, PASS)
-ENUM_KEY(int32_t, obj, 9, PASS, PASS, pass, PASS)
-END_ENUM(PASS, PASS, pass)
+enum class PASS
+{
+init = 0,
+semantic = 1,
+semanticdone = 2,
+semantic2 = 3,
+semantic2done = 4,
+semantic3 = 5,
+semantic3done = 6,
+inline = 7,
+inlinedone = 8,
+obj = 9,
+};
 
 class DeprecatedDeclaration;
 class UserAttributeDeclaration;
@@ -125,22 +101,24 @@ class ProtDeclaration;
 class OverloadSet;
 class CompileDeclaration;
 class DsymbolTable;
-BEGIN_ENUM(Kind, KIND, kind)
-ENUM_KEY(int32_t, undefined, 0, Kind, KIND, kind, K)
-ENUM_KEY(int32_t, none, 1, Kind, KIND, kind, K)
-ENUM_KEY(int32_t, private_, 2, Kind, KIND, kind, K)
-ENUM_KEY(int32_t, package_, 3, Kind, KIND, kind, K)
-ENUM_KEY(int32_t, protected_, 4, Kind, KIND, kind, K)
-ENUM_KEY(int32_t, public_, 5, Kind, KIND, kind, K)
-ENUM_KEY(int32_t, export_, 6, Kind, KIND, kind, K)
-END_ENUM(Kind, KIND, kind)
+enum class Kind
+{
+undefined = 0,
+none = 1,
+private_ = 2,
+package_ = 3,
+protected_ = 4,
+public_ = 5,
+export_ = 6,
+};
 
 struct BitArray;
-BEGIN_ENUM(CPPMANGLE, CPPMANGLE, cppmangle)
-ENUM_KEY(int32_t, def, 0, CPPMANGLE, CPPMANGLE, cppmangle, CPPMANGLE)
-ENUM_KEY(int32_t, asStruct, 1, CPPMANGLE, CPPMANGLE, cppmangle, CPPMANGLE)
-ENUM_KEY(int32_t, asClass, 2, CPPMANGLE, CPPMANGLE, cppmangle, CPPMANGLE)
-END_ENUM(CPPMANGLE, CPPMANGLE, cppmangle)
+enum class CPPMANGLE
+{
+def = 0,
+asStruct = 1,
+asClass = 2,
+};
 
 class AliasThis;
 class Expression;
@@ -157,59 +135,61 @@ class GotoCaseStatement;
 class ReturnStatement;
 class GotoStatement;
 struct Ensure;
-BEGIN_ENUM(LINK, LINK, link)
-ENUM_KEY(int32_t, default_, 0, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, d, 1, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, c, 2, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, cpp, 3, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, windows, 4, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, pascal, 5, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, objc, 6, LINK, LINK, link, LINK)
-ENUM_KEY(int32_t, system, 7, LINK, LINK, link, LINK)
-END_ENUM(LINK, LINK, link)
+enum class LINK
+{
+default_ = 0,
+d = 1,
+c = 2,
+cpp = 3,
+windows = 4,
+pascal = 5,
+objc = 6,
+system = 7,
+};
 
 class LinkDeclaration;
 class Condition;
 class StaticForeach;
-BEGIN_ENUM_NUMERIC(int8_t, BUILTIN, BUILTIN, builtin)
-ENUM_KEY_NUMERIC(int8_t, unknown, -1, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, unimp, 0, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, gcc, 1, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, llvm, 2, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, sin, 3, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, cos, 4, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, tan, 5, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, sqrt, 6, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, fabs, 7, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, ldexp, 8, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, log, 9, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, log2, 10, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, log10, 11, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, exp, 12, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, expm1, 13, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, exp2, 14, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, round, 15, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, floor, 16, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, ceil, 17, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, trunc, 18, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, copysign, 19, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, pow, 20, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, fmin, 21, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, fmax, 22, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, fma, 23, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, isnan, 24, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, isinfinity, 25, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, isfinite, 26, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, bsf, 27, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, bsr, 28, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, bswap, 29, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, popcnt, 30, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, yl2x, 31, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, yl2xp1, 32, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, toPrecFloat, 33, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, toPrecDouble, 34, BUILTIN, BUILTIN, builtin, BUILTIN)
-ENUM_KEY_NUMERIC(int8_t, toPrecReal, 35, BUILTIN, BUILTIN, builtin, BUILTIN)
-END_ENUM_NUMERIC(int8_t, BUILTIN, BUILTIN, builtin)
+enum class BUILTIN : int8_t
+{
+unknown = -1,
+unimp = 0,
+gcc = 1,
+llvm = 2,
+sin = 3,
+cos = 4,
+tan = 5,
+sqrt = 6,
+fabs = 7,
+ldexp = 8,
+log = 9,
+log2 = 10,
+log10 = 11,
+exp = 12,
+expm1 = 13,
+exp2 = 14,
+round = 15,
+floor = 16,
+ceil = 17,
+trunc = 18,
+copysign = 19,
+pow = 20,
+fmin = 21,
+fmax = 22,
+fma = 23,
+isnan = 24,
+isinfinity = 25,
+isfinite = 26,
+bsf = 27,
+bsr = 28,
+bswap = 29,
+popcnt = 30,
+yl2x = 31,
+yl2xp1 = 32,
+toPrecFloat = 33,
+toPrecDouble = 34,
+toPrecReal = 35,
+};
 
 struct UnionExp;
 struct complex_t;
@@ -217,260 +197,263 @@ class DebugCondition;
 class VersionCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
-BEGIN_ENUM_NUMERIC(uint8_t, TOK, TOK, tok)
-ENUM_KEY_NUMERIC(uint8_t, reserved, 0u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, leftParentheses, 1u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, rightParentheses, 2u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, leftBracket, 3u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, rightBracket, 4u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, leftCurly, 5u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, rightCurly, 6u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, colon, 7u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, negate, 8u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, semicolon, 9u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dotDotDot, 10u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, endOfFile, 11u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, cast_, 12u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, null_, 13u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, assert_, 14u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, true_, 15u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, false_, 16u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, array, 17u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, call, 18u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, address, 19u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, type, 20u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, throw_, 21u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, new_, 22u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, delete_, 23u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, star, 24u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, symbolOffset, 25u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, variable, 26u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dotVariable, 27u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dotIdentifier, 28u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dotTemplateInstance, 29u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dotType, 30u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, slice, 31u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, arrayLength, 32u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, version_, 33u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, module_, 34u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dollar, 35u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, template_, 36u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dotTemplateDeclaration, 37u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, declaration, 38u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, typeof_, 39u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, pragma_, 40u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dSymbol, 41u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, typeid_, 42u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uadd, 43u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, remove, 44u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, newAnonymousClass, 45u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, comment, 46u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, arrayLiteral, 47u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, assocArrayLiteral, 48u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, structLiteral, 49u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, classReference, 50u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, thrownException, 51u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, delegatePointer, 52u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, delegateFunctionPointer, 53u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, lessThan, 54u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, greaterThan, 55u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, lessOrEqual, 56u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, greaterOrEqual, 57u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, equal, 58u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, notEqual, 59u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, identity, 60u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, notIdentity, 61u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, index, 62u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, is_, 63u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, leftShift, 64u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, rightShift, 65u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, leftShiftAssign, 66u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, rightShiftAssign, 67u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, unsignedRightShift, 68u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, unsignedRightShiftAssign, 69u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, concatenate, 70u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, concatenateAssign, 71u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, concatenateElemAssign, 72u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, concatenateDcharAssign, 73u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, add, 74u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, min, 75u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, addAssign, 76u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, minAssign, 77u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, mul, 78u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, div, 79u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, mod, 80u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, mulAssign, 81u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, divAssign, 82u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, modAssign, 83u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, and, 84u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, or, 85u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, xor, 86u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, andAssign, 87u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, orAssign, 88u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, xorAssign, 89u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, assign, 90u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, not, 91u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, tilde, 92u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, plusPlus, 93u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, minusMinus, 94u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, construct, 95u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, blit, 96u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dot, 97u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, arrow, 98u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, comma, 99u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, question, 100u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, andAnd, 101u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, orOr, 102u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, prePlusPlus, 103u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, preMinusMinus, 104u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int32Literal, 105u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns32Literal, 106u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int64Literal, 107u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns64Literal, 108u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int128Literal, 109u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns128Literal, 110u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, float32Literal, 111u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, float64Literal, 112u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, float80Literal, 113u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, imaginary32Literal, 114u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, imaginary64Literal, 115u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, imaginary80Literal, 116u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, charLiteral, 117u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, wcharLiteral, 118u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dcharLiteral, 119u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, identifier, 120u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, string_, 121u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, hexadecimalString, 122u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, this_, 123u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, super_, 124u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, halt, 125u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, tuple, 126u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, error, 127u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, void_, 128u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int8, 129u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns8, 130u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int16, 131u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns16, 132u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int32, 133u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns32, 134u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int64, 135u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns64, 136u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, int128, 137u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, uns128, 138u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, float32, 139u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, float64, 140u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, float80, 141u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, imaginary32, 142u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, imaginary64, 143u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, imaginary80, 144u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, complex32, 145u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, complex64, 146u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, complex80, 147u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, char_, 148u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, wchar_, 149u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, dchar_, 150u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, bool_, 151u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, struct_, 152u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, class_, 153u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, interface_, 154u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, union_, 155u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, enum_, 156u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, import_, 157u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, alias_, 158u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, override_, 159u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, delegate_, 160u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, function_, 161u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, mixin_, 162u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, align_, 163u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, extern_, 164u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, private_, 165u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, protected_, 166u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, public_, 167u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, export_, 168u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, static_, 169u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, final_, 170u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, const_, 171u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, abstract_, 172u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, debug_, 173u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, deprecated_, 174u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, in_, 175u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, out_, 176u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, inout_, 177u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, lazy_, 178u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, auto_, 179u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, package_, 180u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, immutable_, 181u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, if_, 182u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, else_, 183u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, while_, 184u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, for_, 185u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, do_, 186u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, switch_, 187u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, case_, 188u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, default_, 189u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, break_, 190u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, continue_, 191u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, with_, 192u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, synchronized_, 193u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, return_, 194u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, goto_, 195u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, try_, 196u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, catch_, 197u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, finally_, 198u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, asm_, 199u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, foreach_, 200u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, foreach_reverse_, 201u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, scope_, 202u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, onScopeExit, 203u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, onScopeFailure, 204u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, onScopeSuccess, 205u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, invariant_, 206u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, unittest_, 207u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, argumentTypes, 208u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, ref_, 209u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, macro_, 210u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, parameters, 211u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, traits, 212u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, overloadSet, 213u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, pure_, 214u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, nothrow_, 215u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, gshared, 216u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, line, 217u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, file, 218u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, fileFullPath, 219u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, moduleString, 220u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, functionString, 221u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, prettyFunction, 222u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, shared_, 223u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, at, 224u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, pow, 225u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, powAssign, 226u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, goesTo, 227u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, vector, 228u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, pound, 229u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, interval, 230u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, voidExpression, 231u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, cantExpression, 232u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, showCtfeContext, 233u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, objcClassReference, 234u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, vectorArray, 235u, TOK, TOK, tok, TOK)
-ENUM_KEY_NUMERIC(uint8_t, max_, 236u, TOK, TOK, tok, TOK)
-END_ENUM_NUMERIC(uint8_t, TOK, TOK, tok)
+enum class TOK : uint8_t
+{
+reserved = 0u,
+leftParentheses = 1u,
+rightParentheses = 2u,
+leftBracket = 3u,
+rightBracket = 4u,
+leftCurly = 5u,
+rightCurly = 6u,
+colon = 7u,
+negate = 8u,
+semicolon = 9u,
+dotDotDot = 10u,
+endOfFile = 11u,
+cast_ = 12u,
+null_ = 13u,
+assert_ = 14u,
+true_ = 15u,
+false_ = 16u,
+array = 17u,
+call = 18u,
+address = 19u,
+type = 20u,
+throw_ = 21u,
+new_ = 22u,
+delete_ = 23u,
+star = 24u,
+symbolOffset = 25u,
+variable = 26u,
+dotVariable = 27u,
+dotIdentifier = 28u,
+dotTemplateInstance = 29u,
+dotType = 30u,
+slice = 31u,
+arrayLength = 32u,
+version_ = 33u,
+module_ = 34u,
+dollar = 35u,
+template_ = 36u,
+dotTemplateDeclaration = 37u,
+declaration = 38u,
+typeof_ = 39u,
+pragma_ = 40u,
+dSymbol = 41u,
+typeid_ = 42u,
+uadd = 43u,
+remove = 44u,
+newAnonymousClass = 45u,
+comment = 46u,
+arrayLiteral = 47u,
+assocArrayLiteral = 48u,
+structLiteral = 49u,
+classReference = 50u,
+thrownException = 51u,
+delegatePointer = 52u,
+delegateFunctionPointer = 53u,
+lessThan = 54u,
+greaterThan = 55u,
+lessOrEqual = 56u,
+greaterOrEqual = 57u,
+equal = 58u,
+notEqual = 59u,
+identity = 60u,
+notIdentity = 61u,
+index = 62u,
+is_ = 63u,
+leftShift = 64u,
+rightShift = 65u,
+leftShiftAssign = 66u,
+rightShiftAssign = 67u,
+unsignedRightShift = 68u,
+unsignedRightShiftAssign = 69u,
+concatenate = 70u,
+concatenateAssign = 71u,
+concatenateElemAssign = 72u,
+concatenateDcharAssign = 73u,
+add = 74u,
+min = 75u,
+addAssign = 76u,
+minAssign = 77u,
+mul = 78u,
+div = 79u,
+mod = 80u,
+mulAssign = 81u,
+divAssign = 82u,
+modAssign = 83u,
+and = 84u,
+or = 85u,
+xor = 86u,
+andAssign = 87u,
+orAssign = 88u,
+xorAssign = 89u,
+assign = 90u,
+not = 91u,
+tilde = 92u,
+plusPlus = 93u,
+minusMinus = 94u,
+construct = 95u,
+blit = 96u,
+dot = 97u,
+arrow = 98u,
+comma = 99u,
+question = 100u,
+andAnd = 101u,
+orOr = 102u,
+prePlusPlus = 103u,
+preMinusMinus = 104u,
+int32Literal = 105u,
+uns32Literal = 106u,
+int64Literal = 107u,
+uns64Literal = 108u,
+int128Literal = 109u,
+uns128Literal = 110u,
+float32Literal = 111u,
+float64Literal = 112u,
+float80Literal = 113u,
+imaginary32Literal = 114u,
+imaginary64Literal = 115u,
+imaginary80Literal = 116u,
+charLiteral = 117u,
+wcharLiteral = 118u,
+dcharLiteral = 119u,
+identifier = 120u,
+string_ = 121u,
+hexadecimalString = 122u,
+this_ = 123u,
+super_ = 124u,
+halt = 125u,
+tuple = 126u,
+error = 127u,
+void_ = 128u,
+int8 = 129u,
+uns8 = 130u,
+int16 = 131u,
+uns16 = 132u,
+int32 = 133u,
+uns32 = 134u,
+int64 = 135u,
+uns64 = 136u,
+int128 = 137u,
+uns128 = 138u,
+float32 = 139u,
+float64 = 140u,
+float80 = 141u,
+imaginary32 = 142u,
+imaginary64 = 143u,
+imaginary80 = 144u,
+complex32 = 145u,
+complex64 = 146u,
+complex80 = 147u,
+char_ = 148u,
+wchar_ = 149u,
+dchar_ = 150u,
+bool_ = 151u,
+struct_ = 152u,
+class_ = 153u,
+interface_ = 154u,
+union_ = 155u,
+enum_ = 156u,
+import_ = 157u,
+alias_ = 158u,
+override_ = 159u,
+delegate_ = 160u,
+function_ = 161u,
+mixin_ = 162u,
+align_ = 163u,
+extern_ = 164u,
+private_ = 165u,
+protected_ = 166u,
+public_ = 167u,
+export_ = 168u,
+static_ = 169u,
+final_ = 170u,
+const_ = 171u,
+abstract_ = 172u,
+debug_ = 173u,
+deprecated_ = 174u,
+in_ = 175u,
+out_ = 176u,
+inout_ = 177u,
+lazy_ = 178u,
+auto_ = 179u,
+package_ = 180u,
+immutable_ = 181u,
+if_ = 182u,
+else_ = 183u,
+while_ = 184u,
+for_ = 185u,
+do_ = 186u,
+switch_ = 187u,
+case_ = 188u,
+default_ = 189u,
+break_ = 190u,
+continue_ = 191u,
+with_ = 192u,
+synchronized_ = 193u,
+return_ = 194u,
+goto_ = 195u,
+try_ = 196u,
+catch_ = 197u,
+finally_ = 198u,
+asm_ = 199u,
+foreach_ = 200u,
+foreach_reverse_ = 201u,
+scope_ = 202u,
+onScopeExit = 203u,
+onScopeFailure = 204u,
+onScopeSuccess = 205u,
+invariant_ = 206u,
+unittest_ = 207u,
+argumentTypes = 208u,
+ref_ = 209u,
+macro_ = 210u,
+parameters = 211u,
+traits = 212u,
+overloadSet = 213u,
+pure_ = 214u,
+nothrow_ = 215u,
+gshared = 216u,
+line = 217u,
+file = 218u,
+fileFullPath = 219u,
+moduleString = 220u,
+functionString = 221u,
+prettyFunction = 222u,
+shared_ = 223u,
+at = 224u,
+pow = 225u,
+powAssign = 226u,
+goesTo = 227u,
+vector = 228u,
+pound = 229u,
+interval = 230u,
+voidExpression = 231u,
+cantExpression = 232u,
+showCtfeContext = 233u,
+objcClassReference = 234u,
+vectorArray = 235u,
+max_ = 236u,
+};
 
 class StringExp;
 class TupleExp;
-BEGIN_ENUM(MATCH, MATCH, match)
-ENUM_KEY(int32_t, nomatch, 0, MATCH, MATCH, match, MATCH)
-ENUM_KEY(int32_t, convert, 1, MATCH, MATCH, match, MATCH)
-ENUM_KEY(int32_t, constant, 2, MATCH, MATCH, match, MATCH)
-ENUM_KEY(int32_t, exact, 3, MATCH, MATCH, match, MATCH)
-END_ENUM(MATCH, MATCH, match)
+enum class MATCH
+{
+nomatch = 0,
+convert = 1,
+constant = 2,
+exact = 3,
+};
 
-BEGIN_ENUM(Modifiable, MODIFIABLE, modifiable)
-ENUM_KEY(int32_t, no, 0, Modifiable, MODIFIABLE, modifiable, M)
-ENUM_KEY(int32_t, yes, 1, Modifiable, MODIFIABLE, modifiable, M)
-ENUM_KEY(int32_t, initialization, 2, Modifiable, MODIFIABLE, modifiable, M)
-END_ENUM(Modifiable, MODIFIABLE, modifiable)
+enum class Modifiable
+{
+no = 0,
+yes = 1,
+initialization = 2,
+};
 
 class IntegerExp;
 class ErrorExp;
@@ -694,36 +677,40 @@ class ObjcClassReferenceExp;
 class ThrownExceptionExp;
 struct ASTCodegen;
 union __AnonStruct__u;
-BEGIN_ENUM(PINLINE, PINLINE, pinline)
-ENUM_KEY(int32_t, default_, 0, PINLINE, PINLINE, pinline, PINLINE)
-ENUM_KEY(int32_t, never, 1, PINLINE, PINLINE, pinline, PINLINE)
-ENUM_KEY(int32_t, always, 2, PINLINE, PINLINE, pinline, PINLINE)
-END_ENUM(PINLINE, PINLINE, pinline)
+enum class PINLINE
+{
+default_ = 0,
+never = 1,
+always = 2,
+};
 
 struct ObjcFuncDeclaration;
 struct ObjcSelector;
-BEGIN_ENUM_NUMERIC(uint8_t, PURE, PURE, pure)
-ENUM_KEY_NUMERIC(uint8_t, impure, 0u, PURE, PURE, pure, PURE)
-ENUM_KEY_NUMERIC(uint8_t, fwdref, 1u, PURE, PURE, pure, PURE)
-ENUM_KEY_NUMERIC(uint8_t, weak, 2u, PURE, PURE, pure, PURE)
-ENUM_KEY_NUMERIC(uint8_t, const_, 3u, PURE, PURE, pure, PURE)
-ENUM_KEY_NUMERIC(uint8_t, strong, 4u, PURE, PURE, pure, PURE)
-END_ENUM_NUMERIC(uint8_t, PURE, PURE, pure)
+enum class PURE : uint8_t
+{
+impure = 0u,
+fwdref = 1u,
+weak = 2u,
+const_ = 3u,
+strong = 4u,
+};
 
 struct ParameterList;
-BEGIN_ENUM_NUMERIC(uint8_t, VarArg, VARARG, vararg)
-ENUM_KEY_NUMERIC(uint8_t, none, 0u, VarArg, VARARG, vararg, VA)
-ENUM_KEY_NUMERIC(uint8_t, variadic, 1u, VarArg, VARARG, vararg, VA)
-ENUM_KEY_NUMERIC(uint8_t, typesafe, 2u, VarArg, VARARG, vararg, VA)
-END_ENUM_NUMERIC(uint8_t, VarArg, VARARG, vararg)
+enum class VarArg : uint8_t
+{
+none = 0u,
+variadic = 1u,
+typesafe = 2u,
+};
 
-BEGIN_ENUM_NUMERIC(uint32_t, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags)
-ENUM_KEY_NUMERIC(uint32_t, none, 0u, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags, JFF)
-ENUM_KEY_NUMERIC(uint32_t, compilerInfo, 1u, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags, JFF)
-ENUM_KEY_NUMERIC(uint32_t, buildInfo, 2u, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags, JFF)
-ENUM_KEY_NUMERIC(uint32_t, modules, 4u, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags, JFF)
-ENUM_KEY_NUMERIC(uint32_t, semantics, 8u, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags, JFF)
-END_ENUM_NUMERIC(uint32_t, JsonFieldFlags, JSONFIELDFLAGS, jsonfieldflags)
+enum class JsonFieldFlags : uint32_t
+{
+none = 0u,
+compilerInfo = 1u,
+buildInfo = 2u,
+modules = 4u,
+semantics = 8u,
+};
 
 class Library;
 struct _IO_FILE;
@@ -908,9 +895,9 @@ public:
 struct BitArray
 {
     typedef uint64_t Chunk_t;
-    ENUM_CONSTANT_NUMERIC(uint64_t, ChunkSize, 8LLU)
+    enum : uint64_t { ChunkSize = 8LLU };
 
-    ENUM_CONSTANT_NUMERIC(uint64_t, BitsPerChunk, 64LLU)
+    enum : uint64_t { BitsPerChunk = 64LLU };
 
     size_t len;
     uint64_t* ptr;
@@ -1773,25 +1760,28 @@ struct TargetObjC
     }
 };
 
-BEGIN_ENUM(Sizeok, SIZEOK, sizeok)
-    ENUM_KEY(int32_t, none, 0, Sizeok, SIZEOK, sizeok, S)
-    ENUM_KEY(int32_t, fwd, 1, Sizeok, SIZEOK, sizeok, S)
-    ENUM_KEY(int32_t, inProcess, 2, Sizeok, SIZEOK, sizeok, S)
-    ENUM_KEY(int32_t, done, 3, Sizeok, SIZEOK, sizeok, S)
-END_ENUM(Sizeok, SIZEOK, sizeok)
+enum class Sizeok
+{
+    none = 0,
+    fwd = 1,
+    inProcess = 2,
+    done = 3,
+};
 
-BEGIN_ENUM(Baseok, BASEOK, baseok)
-    ENUM_KEY(int32_t, none, 0, Baseok, BASEOK, baseok, B)
-    ENUM_KEY(int32_t, start, 1, Baseok, BASEOK, baseok, B)
-    ENUM_KEY(int32_t, done, 2, Baseok, BASEOK, baseok, B)
-    ENUM_KEY(int32_t, semanticdone, 3, Baseok, BASEOK, baseok, B)
-END_ENUM(Baseok, BASEOK, baseok)
+enum class Baseok
+{
+    none = 0,
+    start = 1,
+    done = 2,
+    semanticdone = 3,
+};
 
-BEGIN_ENUM(ClassKind, CLASSKIND, classkind)
-    ENUM_KEY(int32_t, d, 0, ClassKind, CLASSKIND, classkind, CK)
-    ENUM_KEY(int32_t, cpp, 1, ClassKind, CLASSKIND, classkind, CK)
-    ENUM_KEY(int32_t, objc, 2, ClassKind, CLASSKIND, classkind, CK)
-END_ENUM(ClassKind, CLASSKIND, classkind)
+enum class ClassKind
+{
+    d = 0,
+    cpp = 1,
+    objc = 2,
+};
 
 class AggregateDeclaration : public ScopeDsymbol
 {
@@ -2016,7 +2006,7 @@ class AlignDeclaration : public AttribDeclaration
 {
 public:
     Expression* ealign;
-    ENUM_CONSTANT_NUMERIC(uint32_t, UNKNOWN, 0u)
+    enum : uint32_t { UNKNOWN = 0u };
 
     uint32_t salign;
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -2136,18 +2126,19 @@ public:
     static void checkGNUABITag(Dsymbol* sym, LINK linkage);
 };
 
-BEGIN_ENUM(BE, BE, be)
-    ENUM_KEY(int32_t, none, 0, BE, BE, be, BE)
-    ENUM_KEY(int32_t, fallthru, 1, BE, BE, be, BE)
-    ENUM_KEY(int32_t, throw_, 2, BE, BE, be, BE)
-    ENUM_KEY(int32_t, return_, 4, BE, BE, be, BE)
-    ENUM_KEY(int32_t, goto_, 8, BE, BE, be, BE)
-    ENUM_KEY(int32_t, halt, 16, BE, BE, be, BE)
-    ENUM_KEY(int32_t, break_, 32, BE, BE, be, BE)
-    ENUM_KEY(int32_t, continue_, 64, BE, BE, be, BE)
-    ENUM_KEY(int32_t, errthrow, 128, BE, BE, be, BE)
-    ENUM_KEY(int32_t, any, 31, BE, BE, be, BE)
-END_ENUM(BE, BE, be)
+enum class BE
+{
+    none = 0,
+    fallthru = 1,
+    throw_ = 2,
+    return_ = 4,
+    goto_ = 8,
+    halt = 16,
+    break_ = 32,
+    continue_ = 64,
+    errthrow = 128,
+    any = 31,
+};
 
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
@@ -2155,15 +2146,16 @@ extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression*>
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
-BEGIN_ENUM(TargetOS, TARGETOS, targetos)
-    ENUM_KEY(int32_t, all, 2147483647, TargetOS, TARGETOS, targetos, TOS)
-    ENUM_KEY(int32_t, linux, 1, TargetOS, TARGETOS, targetos, TOS)
-    ENUM_KEY(int32_t, windows, 2, TargetOS, TARGETOS, targetos, TOS)
-    ENUM_KEY(int32_t, macOS, 4, TargetOS, TARGETOS, targetos, TOS)
-    ENUM_KEY(int32_t, freeBSD, 8, TargetOS, TARGETOS, targetos, TOS)
-    ENUM_KEY(int32_t, solaris, 16, TargetOS, TARGETOS, targetos, TOS)
-    ENUM_KEY(int32_t, dragonFlyBSD, 32, TargetOS, TARGETOS, targetos, TOS)
-END_ENUM(TargetOS, TARGETOS, targetos)
+enum class TargetOS
+{
+    all = 2147483647,
+    linux = 1,
+    windows = 2,
+    macOS = 4,
+    freeBSD = 8,
+    solaris = 16,
+    dragonFlyBSD = 32,
+};
 
 extern Module* rootHasMain;
 
@@ -2198,11 +2190,12 @@ extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
 
-BEGIN_ENUM(Include, INCLUDE, include)
-    ENUM_KEY(int32_t, notComputed, 0, Include, INCLUDE, include, I)
-    ENUM_KEY(int32_t, yes, 1, Include, INCLUDE, include, I)
-    ENUM_KEY(int32_t, no, 2, Include, INCLUDE, include, I)
-END_ENUM(Include, INCLUDE, include)
+enum class Include
+{
+    notComputed = 0,
+    yes = 1,
+    no = 2,
+};
 
 class Condition : public ASTNode
 {
@@ -2269,17 +2262,18 @@ public:
     const char* toChars() const;
 };
 
-BEGIN_ENUM(CppOperator, CPPOPERATOR, cppoperator)
-    ENUM_KEY(int32_t, Cast, 0, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Assign, 1, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Eq, 2, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Index, 3, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Call, 4, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Unary, 5, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Binary, 6, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, OpAssign, 7, CppOperator, CPPOPERATOR, cppoperator, CO)
-    ENUM_KEY(int32_t, Unknown, 8, CppOperator, CPPOPERATOR, cppoperator, CO)
-END_ENUM(CppOperator, CPPOPERATOR, cppoperator)
+enum class CppOperator
+{
+    Cast = 0,
+    Assign = 1,
+    Eq = 2,
+    Index = 3,
+    Call = 4,
+    Unary = 5,
+    Binary = 6,
+    OpAssign = 7,
+    Unknown = 8,
+};
 
 extern const char* toCppMangleItanium(Dsymbol* s);
 
@@ -2313,25 +2307,27 @@ public:
     const char* toChars() const;
 };
 
-BEGIN_ENUM_NUMERIC(uint16_t, CSX, CSX, csx)
-    ENUM_KEY_NUMERIC(uint16_t, none, 0u, CSX, CSX, csx, CSX)
-    ENUM_KEY_NUMERIC(uint16_t, this_ctor, 1u, CSX, CSX, csx, CSX)
-    ENUM_KEY_NUMERIC(uint16_t, super_ctor, 2u, CSX, CSX, csx, CSX)
-    ENUM_KEY_NUMERIC(uint16_t, label, 4u, CSX, CSX, csx, CSX)
-    ENUM_KEY_NUMERIC(uint16_t, return_, 8u, CSX, CSX, csx, CSX)
-    ENUM_KEY_NUMERIC(uint16_t, any_ctor, 16u, CSX, CSX, csx, CSX)
-    ENUM_KEY_NUMERIC(uint16_t, halt, 32u, CSX, CSX, csx, CSX)
-END_ENUM_NUMERIC(uint16_t, CSX, CSX, csx)
+enum class CSX : uint16_t
+{
+    none = 0u,
+    this_ctor = 1u,
+    super_ctor = 2u,
+    label = 4u,
+    return_ = 8u,
+    any_ctor = 16u,
+    halt = 32u,
+};
 
-ENUM_CONSTANT_NUMERIC(bool, LOG, false)
+enum : bool { LOG = false };
 
 extern bool arrayTypeCompatibleWithoutCasting(Type* t1, Type* t2);
 
-BEGIN_ENUM(Abstract, ABSTRACT, abstract)
-    ENUM_KEY(int32_t, fwdref, 0, Abstract, ABSTRACT, abstract, A)
-    ENUM_KEY(int32_t, yes, 1, Abstract, ABSTRACT, abstract, A)
-    ENUM_KEY(int32_t, no, 2, Abstract, ABSTRACT, abstract, A)
-END_ENUM(Abstract, ABSTRACT, abstract)
+enum class Abstract
+{
+    fwdref = 0,
+    yes = 1,
+    no = 2,
+};
 
 struct BaseClass
 {
@@ -2352,18 +2348,19 @@ struct BaseClass
     }
 };
 
-BEGIN_ENUM(ClassFlags, CLASSFLAGS, classflags)
-    ENUM_KEY(int32_t, none, 0, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, isCOMclass, 1, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, noPointers, 2, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, hasOffTi, 4, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, hasCtor, 8, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, hasGetMembers, 16, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, hasTypeInfo, 32, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, isAbstract, 64, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, isCPPclass, 128, ClassFlags, CLASSFLAGS, classflags, CF)
-    ENUM_KEY(int32_t, hasDtor, 256, ClassFlags, CLASSFLAGS, classflags, CF)
-END_ENUM(ClassFlags, CLASSFLAGS, classflags)
+enum class ClassFlags
+{
+    none = 0,
+    isCOMclass = 1,
+    noPointers = 2,
+    hasOffTi = 4,
+    hasCtor = 8,
+    hasGetMembers = 16,
+    hasTypeInfo = 32,
+    isAbstract = 64,
+    isCPPclass = 128,
+    hasDtor = 256,
+};
 
 class ClassDeclaration : public AggregateDeclaration
 {
@@ -2394,9 +2391,9 @@ public:
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf2(ClassDeclaration* cd);
-    ENUM_CONSTANT_NUMERIC(int32_t, OFFSET_RUNTIME, 1985229328)
+    enum : int32_t { OFFSET_RUNTIME = 1985229328 };
 
-    ENUM_CONSTANT_NUMERIC(int32_t, OFFSET_FWDREF, 1985229329)
+    enum : int32_t { OFFSET_FWDREF = 1985229329 };
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
@@ -2440,72 +2437,73 @@ public:
 
 extern void ObjectNotFound(Identifier* id);
 
-BEGIN_ENUM_NUMERIC(uint64_t, STC, STC, stc)
-    ENUM_KEY_NUMERIC(uint64_t, undefined_, 0LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, static_, 1LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, extern_, 2LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, const_, 4LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, final_, 8LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, abstract_, 16LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, parameter, 32LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, field, 64LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, override_, 128LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, auto_, 256LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, synchronized_, 512LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, deprecated_, 1024LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, in_, 2048LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, out_, 4096LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, lazy_, 8192LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, foreach_, 16384LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, variadic, 65536LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, ctorinit, 131072LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, templateparameter, 262144LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, scope_, 524288LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, immutable_, 1048576LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, ref_, 2097152LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, init, 4194304LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, manifest, 8388608LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, nodtor, 16777216LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, nothrow_, 33554432LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, pure_, 67108864LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, tls, 134217728LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, alias_, 268435456LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, shared_, 536870912LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, gshared, 1073741824LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, wild, 2147483648LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, property, 4294967296LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, safe, 8589934592LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, trusted, 17179869184LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, system, 34359738368LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, ctfe, 68719476736LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, disable, 137438953472LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, result, 274877906944LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, nodefaultctor, 549755813888LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, temp, 1099511627776LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, rvalue, 2199023255552LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, nogc, 4398046511104LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, volatile_, 8796093022208LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, return_, 17592186044416LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, autoref, 35184372088832LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, inference, 70368744177664LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, exptemp, 140737488355328LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, maybescope, 281474976710656LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, scopeinferred, 562949953421312LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, future, 1125899906842624LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, local, 2251799813685248LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, returninferred, 4503599627370496LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, live, 9007199254740992LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, safeGroup, 60129542144LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, IOR, 2103296LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, TYPECTOR, 2685403140LLU, STC, STC, stc, STC)
-    ENUM_KEY_NUMERIC(uint64_t, FUNCATTR, 9011661828521984LLU, STC, STC, stc, STC)
-END_ENUM_NUMERIC(uint64_t, STC, STC, stc)
+enum class STC : uint64_t
+{
+    undefined_ = 0LLU,
+    static_ = 1LLU,
+    extern_ = 2LLU,
+    const_ = 4LLU,
+    final_ = 8LLU,
+    abstract_ = 16LLU,
+    parameter = 32LLU,
+    field = 64LLU,
+    override_ = 128LLU,
+    auto_ = 256LLU,
+    synchronized_ = 512LLU,
+    deprecated_ = 1024LLU,
+    in_ = 2048LLU,
+    out_ = 4096LLU,
+    lazy_ = 8192LLU,
+    foreach_ = 16384LLU,
+    variadic = 65536LLU,
+    ctorinit = 131072LLU,
+    templateparameter = 262144LLU,
+    scope_ = 524288LLU,
+    immutable_ = 1048576LLU,
+    ref_ = 2097152LLU,
+    init = 4194304LLU,
+    manifest = 8388608LLU,
+    nodtor = 16777216LLU,
+    nothrow_ = 33554432LLU,
+    pure_ = 67108864LLU,
+    tls = 134217728LLU,
+    alias_ = 268435456LLU,
+    shared_ = 536870912LLU,
+    gshared = 1073741824LLU,
+    wild = 2147483648LLU,
+    property = 4294967296LLU,
+    safe = 8589934592LLU,
+    trusted = 17179869184LLU,
+    system = 34359738368LLU,
+    ctfe = 68719476736LLU,
+    disable = 137438953472LLU,
+    result = 274877906944LLU,
+    nodefaultctor = 549755813888LLU,
+    temp = 1099511627776LLU,
+    rvalue = 2199023255552LLU,
+    nogc = 4398046511104LLU,
+    volatile_ = 8796093022208LLU,
+    return_ = 17592186044416LLU,
+    autoref = 35184372088832LLU,
+    inference = 70368744177664LLU,
+    exptemp = 140737488355328LLU,
+    maybescope = 281474976710656LLU,
+    scopeinferred = 562949953421312LLU,
+    future = 1125899906842624LLU,
+    local = 2251799813685248LLU,
+    returninferred = 4503599627370496LLU,
+    live = 9007199254740992LLU,
+    safeGroup = 60129542144LLU,
+    IOR = 2103296LLU,
+    TYPECTOR = 2685403140LLU,
+    FUNCATTR = 9011661828521984LLU,
+};
 
-ENUM_CONSTANT(STC, STCStorageClass, (STC)12407095344775071LLU)
+static STC const STCStorageClass = (STC)12407095344775071LLU;
 
-ENUM_CONSTANT(STC, STCFlowThruAggregate, (STC)60129542144LLU)
+static STC const STCFlowThruAggregate = (STC)60129542144LLU;
 
-ENUM_CONSTANT(STC, STCFlowThruFunction, (STC)18446726413102348896LLU)
+static STC const STCFlowThruFunction = (STC)18446726413102348896LLU;
 
 class Declaration : public Dsymbol
 {
@@ -2621,7 +2619,7 @@ public:
     Dsymbol* aliassym;
     VarDeclaration* lastVar;
     uint32_t endlinnum;
-    ENUM_CONSTANT_NUMERIC(uint32_t, AdrOnStackNone, 4294967295u)
+    enum : uint32_t { AdrOnStackNone = 4294967295u };
 
     uint32_t ctfeAdrOnStack;
     Expression* edtor;
@@ -2904,11 +2902,12 @@ extern void mangleToBuffer(Dsymbol* s, OutBuffer* buf);
 
 extern void mangleToBuffer(TemplateInstance* ti, OutBuffer* buf);
 
-BEGIN_ENUM(PKG, PKG, pkg)
-    ENUM_KEY(int32_t, unknown, 0, PKG, PKG, pkg, PKG)
-    ENUM_KEY(int32_t, module_, 1, PKG, PKG, pkg, PKG)
-    ENUM_KEY(int32_t, package_, 2, PKG, PKG, pkg, PKG)
-END_ENUM(PKG, PKG, pkg)
+enum class PKG
+{
+    unknown = 0,
+    module_ = 1,
+    package_ = 2,
+};
 
 class Package : public ScopeDsymbol
 {
@@ -3033,43 +3032,46 @@ struct ModuleDeclaration
 
 extern void gendocfile(Module* m);
 
-BEGIN_ENUM(SCOPE, SCOPE, scope)
-    ENUM_KEY(int32_t, ctor, 1, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, noaccesscheck, 2, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, condition, 4, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, debug_, 8, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, constraint, 16, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, invariant_, 32, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, require, 64, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, ensure, 96, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, contract, 96, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, ctfe, 128, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, compile, 256, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, ignoresymbolvisibility, 512, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, onlysafeaccess, 1024, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, free, 32768, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, fullinst, 65536, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, alias_, 131072, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, printf, 262144, SCOPE, SCOPE, scope, SCOPE)
-    ENUM_KEY(int32_t, scanf, 524288, SCOPE, SCOPE, scope, SCOPE)
-END_ENUM(SCOPE, SCOPE, scope)
+enum class SCOPE
+{
+    ctor = 1,
+    noaccesscheck = 2,
+    condition = 4,
+    debug_ = 8,
+    constraint = 16,
+    invariant_ = 32,
+    require = 64,
+    ensure = 96,
+    contract = 96,
+    ctfe = 128,
+    compile = 256,
+    ignoresymbolvisibility = 512,
+    onlysafeaccess = 1024,
+    free = 32768,
+    fullinst = 65536,
+    alias_ = 131072,
+    printf = 262144,
+    scanf = 524288,
+};
 
-ENUM_CONSTANT(SCOPE, SCOPEpush, (SCOPE)788474)
+static SCOPE const SCOPEpush = (SCOPE)788474;
 
 extern FuncDeclaration* search_toString(StructDeclaration* sd);
 
 extern void semanticTypeInfo(Scope* sc, Type* t);
 
-BEGIN_ENUM(StructFlags, STRUCTFLAGS, structflags)
-    ENUM_KEY(int32_t, none, 0, StructFlags, STRUCTFLAGS, structflags, SF)
-    ENUM_KEY(int32_t, hasPointers, 1, StructFlags, STRUCTFLAGS, structflags, SF)
-END_ENUM(StructFlags, STRUCTFLAGS, structflags)
+enum class StructFlags
+{
+    none = 0,
+    hasPointers = 1,
+};
 
-BEGIN_ENUM(StructPOD, STRUCTPOD, structpod)
-    ENUM_KEY(int32_t, no, 0, StructPOD, STRUCTPOD, structpod, SPOD)
-    ENUM_KEY(int32_t, yes, 1, StructPOD, STRUCTPOD, structpod, SPOD)
-    ENUM_KEY(int32_t, fwd, 2, StructPOD, STRUCTPOD, structpod, SPOD)
-END_ENUM(StructPOD, STRUCTPOD, structpod)
+enum class StructPOD
+{
+    no = 0,
+    yes = 1,
+    fwd = 2,
+};
 
 class StructDeclaration : public AggregateDeclaration
 {
@@ -3117,16 +3119,17 @@ public:
     ~UnionDeclaration();
 };
 
-BEGIN_ANON_ENUM()
-    ANON_ENUM_KEY(int32_t, IgnoreNone, 0)
-    ANON_ENUM_KEY(int32_t, IgnorePrivateImports, 1)
-    ANON_ENUM_KEY(int32_t, IgnoreErrors, 2)
-    ANON_ENUM_KEY(int32_t, IgnoreAmbiguous, 4)
-    ANON_ENUM_KEY(int32_t, SearchLocalsOnly, 8)
-    ANON_ENUM_KEY(int32_t, SearchImportsOnly, 16)
-    ANON_ENUM_KEY(int32_t, SearchUnqualifiedModule, 32)
-    ANON_ENUM_KEY(int32_t, IgnoreSymbolVisibility, 128)
-END_ANON_ENUM()
+enum
+{
+    IgnoreNone = 0,
+    IgnorePrivateImports = 1,
+    IgnoreErrors = 2,
+    IgnoreAmbiguous = 4,
+    SearchLocalsOnly = 8,
+    SearchImportsOnly = 16,
+    SearchUnqualifiedModule = 32,
+    IgnoreSymbolVisibility = 128,
+};
 
 class WithScopeSymbol : public ScopeDsymbol
 {
@@ -3192,11 +3195,11 @@ public:
     DsymbolTable();
 };
 
-ENUM_CONSTANT_NUMERIC(bool, LOG, false)
+enum : bool { LOG = false };
 
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
-ENUM_CONSTANT_NUMERIC(int32_t, IDX_NOTFOUND, 305419896)
+enum : int32_t { IDX_NOTFOUND = 305419896 };
 
 extern Expression* isExpression(RootObject* o);
 
@@ -3393,12 +3396,13 @@ public:
     Module* minst;
     uint16_t _nest;
     uint8_t inuse;
-    BEGIN_ENUM_NUMERIC(uint32_t, Flag, FLAG, flag)
-        ENUM_KEY_NUMERIC(uint32_t, semantictiargsdone, 32768u, Flag, FLAG, flag, F)
-        ENUM_KEY_NUMERIC(uint32_t, havetempdecl, 16384u, Flag, FLAG, flag, F)
-        ENUM_KEY_NUMERIC(uint32_t, gagged, 8192u, Flag, FLAG, flag, F)
-        ENUM_KEY_NUMERIC(uint32_t, available, 8191u, Flag, FLAG, flag, F)
-    END_ENUM_NUMERIC(uint32_t, Flag, FLAG, flag)
+    enum class Flag : uint32_t
+    {
+        semantictiargsdone = 32768u,
+        havetempdecl = 16384u,
+        gagged = 8192u,
+        available = 8191u,
+    };
 
     Dsymbol* syntaxCopy(Dsymbol* s);
     Dsymbol* toAlias();
@@ -3432,20 +3436,21 @@ public:
     ~TemplateMixin();
 };
 
-ENUM_CONSTANT_NUMERIC(bool, isBuildingCompiler, false)
+enum : bool { isBuildingCompiler = false };
 
 extern void genCppHdrFiles(Array<Module*>& ms);
 
 class ToCppBuffer : public Visitor
 {
 public:
-    BEGIN_ENUM(EnumKind, ENUMKIND, enumkind)
-        ENUM_KEY(int32_t, Int, 0, EnumKind, ENUMKIND, enumkind, EK)
-        ENUM_KEY(int32_t, Numeric, 1, EnumKind, ENUMKIND, enumkind, EK)
-        ENUM_KEY(int32_t, String, 2, EnumKind, ENUMKIND, enumkind, EK)
-        ENUM_KEY(int32_t, Enum, 3, EnumKind, ENUMKIND, enumkind, EK)
-        ENUM_KEY(int32_t, Other, 4, EnumKind, ENUMKIND, enumkind, EK)
-    END_ENUM(EnumKind, ENUMKIND, enumkind)
+    enum class EnumKind
+    {
+        Int = 0,
+        Numeric = 1,
+        String = 2,
+        Enum = 3,
+        Other = 4,
+    };
 
     typedef ASTCodegen AST;
     void* visited;
@@ -3462,13 +3467,6 @@ public:
     bool forwardedAA;
     Type** origType;
     bool hasReal;
-    bool hasDefaultEnum;
-    bool hasNumericEnum;
-    bool hasTypedEnum;
-    bool hasAnonEnum;
-    bool hasAnonNumericEnum;
-    bool hasNumericConstant;
-    bool hasTypedConstant;
     bool printIgnored;
     ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
     EnumKind getEnumKind(Type* type);
@@ -3548,7 +3546,7 @@ public:
     void accept(Visitor* v);
 };
 
-ENUM_CONSTANT_NUMERIC(bool, LOGSEMANTIC, false)
+enum : bool { LOGSEMANTIC = false };
 
 extern void expandTuples(Array<Expression*>* exps);
 
@@ -3588,15 +3586,16 @@ struct UnionExp
     }
 };
 
-BEGIN_ENUM_NUMERIC(uint8_t, OwnedBy, OWNEDBY, ownedby)
-    ENUM_KEY_NUMERIC(uint8_t, code, 0u, OwnedBy, OWNEDBY, ownedby, OB)
-    ENUM_KEY_NUMERIC(uint8_t, ctfe, 1u, OwnedBy, OWNEDBY, ownedby, OB)
-    ENUM_KEY_NUMERIC(uint8_t, cache, 2u, OwnedBy, OWNEDBY, ownedby, OB)
-END_ENUM_NUMERIC(uint8_t, OwnedBy, OWNEDBY, ownedby)
+enum class OwnedBy : uint8_t
+{
+    code = 0u,
+    ctfe = 1u,
+    cache = 2u,
+};
 
-ENUM_CONSTANT_NUMERIC(int32_t, WANTvalue, 0)
+enum : int32_t { WANTvalue = 0 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, WANTexpand, 1)
+enum : int32_t { WANTexpand = 1 };
 
 class IntegerExp : public Expression
 {
@@ -3732,7 +3731,7 @@ public:
     size_t len;
     uint8_t sz;
     uint8_t committed;
-    ENUM_CONSTANT_NUMERIC(char, NoPostfix, 0u)
+    enum : char { NoPostfix = 0u };
 
     char postfix;
     OwnedBy ownedByCtfe;
@@ -3796,17 +3795,17 @@ public:
     void accept(Visitor* v);
 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, stageScrub, 1)
+enum : int32_t { stageScrub = 1 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, stageSearchPointers, 2)
+enum : int32_t { stageSearchPointers = 2 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, stageOptimize, 4)
+enum : int32_t { stageOptimize = 4 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, stageApply, 8)
+enum : int32_t { stageApply = 8 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, stageInlineScan, 16)
+enum : int32_t { stageInlineScan = 16 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, stageToCBuffer, 32)
+enum : int32_t { stageToCBuffer = 32 };
 
 class StructLiteralExp : public Expression
 {
@@ -4312,11 +4311,12 @@ public:
     void accept(Visitor* v);
 };
 
-BEGIN_ENUM(MemorySet, MEMORYSET, memoryset)
-    ENUM_KEY(int32_t, none, 0, MemorySet, MEMORYSET, memoryset, MS)
-    ENUM_KEY(int32_t, blockAssign, 1, MemorySet, MEMORYSET, memoryset, MS)
-    ENUM_KEY(int32_t, referenceInit, 2, MemorySet, MEMORYSET, memoryset, MS)
-END_ENUM(MemorySet, MEMORYSET, memoryset)
+enum class MemorySet
+{
+    none = 0,
+    blockAssign = 1,
+    referenceInit = 2,
+};
 
 class AssignExp : public BinExp
 {
@@ -4609,17 +4609,18 @@ public:
     void accept(Visitor* v);
 };
 
-ENUM_CONSTANT_NUMERIC(bool, LOGSEMANTIC, false)
+enum : bool { LOGSEMANTIC = false };
 
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
-BEGIN_ENUM(ILS, ILS, ils)
-    ENUM_KEY(int32_t, uninitialized, 0, ILS, ILS, ils, ILS)
-    ENUM_KEY(int32_t, no, 1, ILS, ILS, ils, ILS)
-    ENUM_KEY(int32_t, yes, 2, ILS, ILS, ils, ILS)
-END_ENUM(ILS, ILS, ils)
+enum class ILS
+{
+    uninitialized = 0,
+    no = 1,
+    yes = 2,
+};
 
 class NrvoWalker : public StatementRewriteWalker
 {
@@ -4630,19 +4631,20 @@ public:
     void visit(TryFinallyStatement* s);
 };
 
-BEGIN_ENUM_NUMERIC(uint32_t, FUNCFLAG, FUNCFLAG, funcflag)
-    ENUM_KEY_NUMERIC(uint32_t, purityInprocess, 1u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, safetyInprocess, 2u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, nothrowInprocess, 4u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, nogcInprocess, 8u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, returnInprocess, 16u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, inlineScanned, 32u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, inferScope, 64u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, hasCatches, 128u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, compileTimeOnly, 256u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, printf, 512u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-    ENUM_KEY_NUMERIC(uint32_t, scanf, 1024u, FUNCFLAG, FUNCFLAG, funcflag, FUNCFLAG)
-END_ENUM_NUMERIC(uint32_t, FUNCFLAG, FUNCFLAG, funcflag)
+enum class FUNCFLAG : uint32_t
+{
+    purityInprocess = 1u,
+    safetyInprocess = 2u,
+    nothrowInprocess = 4u,
+    nogcInprocess = 8u,
+    returnInprocess = 16u,
+    inlineScanned = 32u,
+    inferScope = 64u,
+    hasCatches = 128u,
+    compileTimeOnly = 256u,
+    printf = 512u,
+    scanf = 1024u,
+};
 
 struct Ensure
 {
@@ -4729,7 +4731,7 @@ public:
     LabelDsymbol* searchLabel(Identifier* ident);
     int32_t getLevel(FuncDeclaration* fd, int32_t intypeof);
     int32_t getLevelAndCheck(const Loc& loc, Scope* sc, FuncDeclaration* fd, Declaration* decl);
-    ENUM_CONSTANT_NUMERIC(int32_t, LevelError, -2)
+    enum : int32_t { LevelError = -2 };
 
     const char* toPrettyChars(bool QualifyTypes = false);
     const char* toFullSignature();
@@ -4777,11 +4779,12 @@ public:
     ~FuncDeclaration();
 };
 
-BEGIN_ENUM_NUMERIC(uint8_t, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag)
-    ENUM_KEY_NUMERIC(uint8_t, standard, 0u, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag, FRF)
-    ENUM_KEY_NUMERIC(uint8_t, quiet, 1u, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag, FRF)
-    ENUM_KEY_NUMERIC(uint8_t, overloadOnly, 2u, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag, FRF)
-END_ENUM_NUMERIC(uint8_t, FuncResolveFlag, FUNCRESOLVEFLAG, funcresolveflag)
+enum class FuncResolveFlag : uint8_t
+{
+    standard = 0u,
+    quiet = 1u,
+    overloadOnly = 2u,
+};
 
 class FuncAliasDeclaration : public FuncDeclaration
 {
@@ -4952,7 +4955,7 @@ public:
     static void initialize();
 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, TEST_EMIT_ALL, 0)
+enum : int32_t { TEST_EMIT_ALL = 0 };
 
 extern void genhdrfile(Module* m);
 
@@ -4960,18 +4963,20 @@ extern void moduleToBuffer(OutBuffer* buf, Module* m);
 
 extern const char* parametersTypeToChars(ParameterList pl);
 
-BEGIN_ENUM(NeedInterpret, NEEDINTERPRET, needinterpret)
-    ENUM_KEY(int32_t, INITnointerpret, 0, NeedInterpret, NEEDINTERPRET, needinterpret, NI)
-    ENUM_KEY(int32_t, INITinterpret, 1, NeedInterpret, NEEDINTERPRET, needinterpret, NI)
-END_ENUM(NeedInterpret, NEEDINTERPRET, needinterpret)
+enum class NeedInterpret
+{
+    INITnointerpret = 0,
+    INITinterpret = 1,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, InitKind, INITKIND, initkind)
-    ENUM_KEY_NUMERIC(uint8_t, void_, 0u, InitKind, INITKIND, initkind, IK)
-    ENUM_KEY_NUMERIC(uint8_t, error, 1u, InitKind, INITKIND, initkind, IK)
-    ENUM_KEY_NUMERIC(uint8_t, struct_, 2u, InitKind, INITKIND, initkind, IK)
-    ENUM_KEY_NUMERIC(uint8_t, array, 3u, InitKind, INITKIND, initkind, IK)
-    ENUM_KEY_NUMERIC(uint8_t, exp, 4u, InitKind, INITKIND, initkind, IK)
-END_ENUM_NUMERIC(uint8_t, InitKind, INITKIND, initkind)
+enum class InitKind : uint8_t
+{
+    void_ = 0u,
+    error = 1u,
+    struct_ = 2u,
+    array = 3u,
+    exp = 4u,
+};
 
 class Initializer : public ASTNode
 {
@@ -5036,15 +5041,15 @@ extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type* t, N
 
 extern Expression* initializerToExpression(Initializer* init, Type* itype);
 
-ENUM_CONSTANT_NUMERIC(int32_t, COST_MAX, 250)
+enum : int32_t { COST_MAX = 250 };
 
 extern void json_generate(OutBuffer* buf, Array<Module*>* modules);
 
-ENUM_CONSTANT(const char*, jsonFieldNames, "`compilerInfo`, `buildInfo`, `modules`, `semantics`")
+static const char* const jsonFieldNames = "`compilerInfo`, `buildInfo`, `modules`, `semantics`";
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
 
-ENUM_CONSTANT_NUMERIC(bool, LOG, false)
+enum : bool { LOG = false };
 
 extern Library* LibElf_factory();
 
@@ -5064,79 +5069,82 @@ extern "C" void printGlobalConfigs(_IO_FILE* stream);
 
 extern "C" void flushMixins();
 
-ENUM_CONSTANT_NUMERIC(int32_t, LOGDOTEXP, 0)
+enum : int32_t { LOGDOTEXP = 0 };
 
-ENUM_CONSTANT_NUMERIC(int32_t, LOGDEFAULTINIT, 0)
+enum : int32_t { LOGDEFAULTINIT = 0 };
 
-ENUM_CONSTANT_NUMERIC(uint64_t, SIZE_INVALID, 18446744073709551615LLU)
+enum : uint64_t { SIZE_INVALID = 18446744073709551615LLU };
 
-BEGIN_ENUM(ENUMTY, ENUMTY, enumty)
-    ENUM_KEY(int32_t, Tarray, 0, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tsarray, 1, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Taarray, 2, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tpointer, 3, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Treference, 4, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tfunction, 5, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tident, 6, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tclass, 7, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tstruct, 8, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tenum, 9, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tdelegate, 10, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tnone, 11, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tvoid, 12, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tint8, 13, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tuns8, 14, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tint16, 15, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tuns16, 16, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tint32, 17, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tuns32, 18, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tint64, 19, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tuns64, 20, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tfloat32, 21, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tfloat64, 22, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tfloat80, 23, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Timaginary32, 24, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Timaginary64, 25, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Timaginary80, 26, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tcomplex32, 27, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tcomplex64, 28, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tcomplex80, 29, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tbool, 30, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tchar, 31, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Twchar, 32, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tdchar, 33, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Terror, 34, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tinstance, 35, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Ttypeof, 36, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Ttuple, 37, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tslice, 38, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Treturn, 39, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tnull, 40, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tvector, 41, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tint128, 42, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tuns128, 43, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Ttraits, 44, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, Tmixin, 45, ENUMTY, ENUMTY, enumty, ENUMTY)
-    ENUM_KEY(int32_t, TMAX, 46, ENUMTY, ENUMTY, enumty, ENUMTY)
-END_ENUM(ENUMTY, ENUMTY, enumty)
+enum class ENUMTY
+{
+    Tarray = 0,
+    Tsarray = 1,
+    Taarray = 2,
+    Tpointer = 3,
+    Treference = 4,
+    Tfunction = 5,
+    Tident = 6,
+    Tclass = 7,
+    Tstruct = 8,
+    Tenum = 9,
+    Tdelegate = 10,
+    Tnone = 11,
+    Tvoid = 12,
+    Tint8 = 13,
+    Tuns8 = 14,
+    Tint16 = 15,
+    Tuns16 = 16,
+    Tint32 = 17,
+    Tuns32 = 18,
+    Tint64 = 19,
+    Tuns64 = 20,
+    Tfloat32 = 21,
+    Tfloat64 = 22,
+    Tfloat80 = 23,
+    Timaginary32 = 24,
+    Timaginary64 = 25,
+    Timaginary80 = 26,
+    Tcomplex32 = 27,
+    Tcomplex64 = 28,
+    Tcomplex80 = 29,
+    Tbool = 30,
+    Tchar = 31,
+    Twchar = 32,
+    Tdchar = 33,
+    Terror = 34,
+    Tinstance = 35,
+    Ttypeof = 36,
+    Ttuple = 37,
+    Tslice = 38,
+    Treturn = 39,
+    Tnull = 40,
+    Tvector = 41,
+    Tint128 = 42,
+    Tuns128 = 43,
+    Ttraits = 44,
+    Tmixin = 45,
+    TMAX = 46,
+};
 
 typedef uint8_t TY;
 
-BEGIN_ENUM(MODFlags, MODFLAGS, modflags)
-    ENUM_KEY(int32_t, const_, 1, MODFlags, MODFLAGS, modflags, MODF)
-    ENUM_KEY(int32_t, immutable_, 4, MODFlags, MODFLAGS, modflags, MODF)
-    ENUM_KEY(int32_t, shared_, 2, MODFlags, MODFLAGS, modflags, MODF)
-    ENUM_KEY(int32_t, wild, 8, MODFlags, MODFLAGS, modflags, MODF)
-    ENUM_KEY(int32_t, wildconst, 9, MODFlags, MODFLAGS, modflags, MODF)
-    ENUM_KEY(int32_t, mutable, 16, MODFlags, MODFLAGS, modflags, MODF)
-END_ENUM(MODFlags, MODFLAGS, modflags)
+enum class MODFlags
+{
+    const_ = 1,
+    immutable_ = 4,
+    shared_ = 2,
+    wild = 8,
+    wildconst = 9,
+    mutable = 16,
+};
 
 typedef uint8_t MOD;
 
-BEGIN_ENUM(DotExpFlag, DOTEXPFLAG, dotexpflag)
-    ENUM_KEY(int32_t, gag, 1, DotExpFlag, DOTEXPFLAG, dotexpflag, DEF)
-    ENUM_KEY(int32_t, noDeref, 2, DotExpFlag, DOTEXPFLAG, dotexpflag, DEF)
-END_ENUM(DotExpFlag, DOTEXPFLAG, dotexpflag)
+enum class DotExpFlag
+{
+    gag = 1,
+    noDeref = 2,
+};
 
 class TypeError : public Type
 {
@@ -5297,42 +5305,46 @@ public:
     void accept(Visitor* v);
 };
 
-BEGIN_ENUM(RET, RET, ret)
-    ENUM_KEY(int32_t, regs, 1, RET, RET, ret, RET)
-    ENUM_KEY(int32_t, stack, 2, RET, RET, ret, RET)
-END_ENUM(RET, RET, ret)
+enum class RET
+{
+    regs = 1,
+    stack = 2,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, TRUST, TRUST, trust)
-    ENUM_KEY_NUMERIC(uint8_t, default_, 0u, TRUST, TRUST, trust, TRUST)
-    ENUM_KEY_NUMERIC(uint8_t, system, 1u, TRUST, TRUST, trust, TRUST)
-    ENUM_KEY_NUMERIC(uint8_t, trusted, 2u, TRUST, TRUST, trust, TRUST)
-    ENUM_KEY_NUMERIC(uint8_t, safe, 3u, TRUST, TRUST, trust, TRUST)
-END_ENUM_NUMERIC(uint8_t, TRUST, TRUST, trust)
+enum class TRUST : uint8_t
+{
+    default_ = 0u,
+    system = 1u,
+    trusted = 2u,
+    safe = 3u,
+};
 
-BEGIN_ENUM(TRUSTformat, TRUSTFORMAT, trustformat)
-    ENUM_KEY(int32_t, TRUSTformatDefault, 0, TRUSTformat, TRUSTFORMAT, trustformat, TRUST)
-    ENUM_KEY(int32_t, TRUSTformatSystem, 1, TRUSTformat, TRUSTFORMAT, trustformat, TRUST)
-END_ENUM(TRUSTformat, TRUSTFORMAT, trustformat)
+enum class TRUSTformat
+{
+    TRUSTformatDefault = 0,
+    TRUSTformatSystem = 1,
+};
 
 class TypeFunction : public TypeNext
 {
 public:
     ParameterList parameterList;
-    BEGIN_ENUM_NUMERIC(uint32_t, FunctionFlag, FUNCTIONFLAG, functionflag)
-        ENUM_KEY_NUMERIC(uint32_t, none, 0u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isnothrow, 1u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isnogc, 2u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isproperty, 4u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isref, 8u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isreturn, 16u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isscope, 32u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isreturninferred, 64u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, isscopeinferred, 128u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, islive, 256u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, incomplete, 512u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, inoutParam, 1024u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-        ENUM_KEY_NUMERIC(uint32_t, inoutQual, 2048u, FunctionFlag, FUNCTIONFLAG, functionflag, FF)
-    END_ENUM_NUMERIC(uint32_t, FunctionFlag, FUNCTIONFLAG, functionflag)
+    enum class FunctionFlag : uint32_t
+    {
+        none = 0u,
+        isnothrow = 1u,
+        isnogc = 2u,
+        isproperty = 4u,
+        isref = 8u,
+        isreturn = 16u,
+        isscope = 32u,
+        isreturninferred = 64u,
+        isscopeinferred = 128u,
+        islive = 256u,
+        incomplete = 512u,
+        inoutParam = 1024u,
+        inoutQual = 2048u,
+    };
 
     LINK linkage;
     FunctionFlag funcFlags;
@@ -5479,14 +5491,15 @@ public:
     ~TypeReturn();
 };
 
-BEGIN_ENUM(AliasThisRec, ALIASTHISREC, aliasthisrec)
-    ENUM_KEY(int32_t, no, 0, AliasThisRec, ALIASTHISREC, aliasthisrec, ATR)
-    ENUM_KEY(int32_t, yes, 1, AliasThisRec, ALIASTHISREC, aliasthisrec, ATR)
-    ENUM_KEY(int32_t, fwdref, 2, AliasThisRec, ALIASTHISREC, aliasthisrec, ATR)
-    ENUM_KEY(int32_t, typeMask, 3, AliasThisRec, ALIASTHISREC, aliasthisrec, ATR)
-    ENUM_KEY(int32_t, tracing, 4, AliasThisRec, ALIASTHISREC, aliasthisrec, ATR)
-    ENUM_KEY(int32_t, tracingDT, 8, AliasThisRec, ALIASTHISREC, aliasthisrec, ATR)
-END_ENUM(AliasThisRec, ALIASTHISREC, aliasthisrec)
+enum class AliasThisRec
+{
+    no = 0,
+    yes = 1,
+    fwdref = 2,
+    typeMask = 3,
+    tracing = 4,
+    tracingDT = 8,
+};
 
 class TypeStruct : public Type
 {
@@ -5627,16 +5640,17 @@ public:
     static Parameter* getNth(Array<Parameter*>* parameters, size_t nth);
     const char* toChars() const;
     bool isCovariant(bool returnByRef, const Parameter* const p, bool previewIn) const;
-    BEGIN_ENUM(SR, SR, sr)
-        ENUM_KEY(int32_t, None, 0, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, Scope, 1, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, ReturnScope, 2, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, Ref, 3, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, ReturnRef, 4, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, RefScope, 5, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, ReturnRef_Scope, 6, SR, SR, sr, SR)
-        ENUM_KEY(int32_t, Ref_ReturnScope, 7, SR, SR, sr, SR)
-    END_ENUM(SR, SR, sr)
+    enum class SR
+    {
+        None = 0,
+        Scope = 1,
+        ReturnScope = 2,
+        Ref = 3,
+        ReturnRef = 4,
+        RefScope = 5,
+        ReturnRef_Scope = 6,
+        Ref_ReturnScope = 7,
+    };
 
 };
 
@@ -5681,24 +5695,26 @@ typedef Array<ObNode*> ObNodes;
 
 typedef StmtState<ObNode> StmtState;
 
-BEGIN_ENUM_NUMERIC(uint8_t, ObType, OBTYPE, obtype)
-    ENUM_KEY_NUMERIC(uint8_t, goto_, 0u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, return_, 1u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, retexp, 2u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, throw_, 3u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, exit, 4u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, try_, 5u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, finally_, 6u, ObType, OBTYPE, obtype, OT)
-    ENUM_KEY_NUMERIC(uint8_t, fend, 7u, ObType, OBTYPE, obtype, OT)
-END_ENUM_NUMERIC(uint8_t, ObType, OBTYPE, obtype)
+enum class ObType : uint8_t
+{
+    goto_ = 0u,
+    return_ = 1u,
+    retexp = 2u,
+    throw_ = 3u,
+    exit = 4u,
+    try_ = 5u,
+    finally_ = 6u,
+    fend = 7u,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, PtrState, PTRSTATE, ptrstate)
-    ENUM_KEY_NUMERIC(uint8_t, Initial, 0u, PtrState, PTRSTATE, ptrstate, PS)
-    ENUM_KEY_NUMERIC(uint8_t, Undefined, 1u, PtrState, PTRSTATE, ptrstate, PS)
-    ENUM_KEY_NUMERIC(uint8_t, Owner, 2u, PtrState, PTRSTATE, ptrstate, PS)
-    ENUM_KEY_NUMERIC(uint8_t, Borrowed, 3u, PtrState, PTRSTATE, ptrstate, PS)
-    ENUM_KEY_NUMERIC(uint8_t, Readonly, 4u, PtrState, PTRSTATE, ptrstate, PS)
-END_ENUM_NUMERIC(uint8_t, PtrState, PTRSTATE, ptrstate)
+enum class PtrState : uint8_t
+{
+    Initial = 0u,
+    Undefined = 1u,
+    Owner = 2u,
+    Borrowed = 3u,
+    Readonly = 4u,
+};
 
 class Objc
 {
@@ -5725,33 +5741,35 @@ public:
     virtual void checkTupleof(Expression* expression, TypeClass* type) const = 0;
 };
 
-BEGIN_ENUM(ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags)
-    ENUM_KEY(int32_t, semi, 1, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
-    ENUM_KEY(int32_t, scope_, 2, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
-    ENUM_KEY(int32_t, curly, 4, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
-    ENUM_KEY(int32_t, curlyScope, 8, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
-    ENUM_KEY(int32_t, semiOk, 16, ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags, PSF)
-END_ENUM(ParseStatementFlags, PARSESTATEMENTFLAGS, parsestatementflags)
+enum class ParseStatementFlags
+{
+    semi = 1,
+    scope_ = 2,
+    curly = 4,
+    curlyScope = 8,
+    semiOk = 16,
+};
 
-BEGIN_ENUM(PREC, PREC, prec)
-    ENUM_KEY(int32_t, zero, 0, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, expr, 1, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, assign, 2, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, cond, 3, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, oror, 4, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, andand, 5, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, or, 6, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, xor, 7, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, and, 8, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, equal, 9, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, rel, 10, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, shift, 11, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, add, 12, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, mul, 13, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, pow, 14, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, unary, 15, PREC, PREC, prec, PREC)
-    ENUM_KEY(int32_t, primary, 16, PREC, PREC, prec, PREC)
-END_ENUM(PREC, PREC, prec)
+enum class PREC
+{
+    zero = 0,
+    expr = 1,
+    assign = 2,
+    cond = 3,
+    oror = 4,
+    andand = 5,
+    or = 6,
+    xor = 7,
+    and = 8,
+    equal = 9,
+    rel = 10,
+    shift = 11,
+    add = 12,
+    mul = 13,
+    pow = 14,
+    unary = 15,
+    primary = 16,
+};
 
 class PostorderStatementVisitor : public StoppableVisitor
 {
@@ -5783,13 +5801,13 @@ public:
     void visit(LabelStatement* s);
 };
 
-ENUM_CONSTANT_NUMERIC(bool, LOG, false)
+enum : bool { LOG = false };
 
-ENUM_CONSTANT_NUMERIC(bool, LOG, false)
+enum : bool { LOG = false };
 
 extern void semantic2(Dsymbol* dsym, Scope* sc);
 
-ENUM_CONSTANT_NUMERIC(bool, LOG, false)
+enum : bool { LOG = false };
 
 extern void semantic3(Dsymbol* dsym, Scope* sc);
 
@@ -5797,52 +5815,53 @@ extern bool isTrivialExp(Expression* e);
 
 extern bool hasSideEffect(Expression* e);
 
-BEGIN_ENUM_NUMERIC(uint8_t, STMT, STMT, stmt)
-    ENUM_KEY_NUMERIC(uint8_t, Error, 0u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Peel, 1u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Exp, 2u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, DtorExp, 3u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Compile, 4u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Compound, 5u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, CompoundDeclaration, 6u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, CompoundAsm, 7u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, UnrolledLoop, 8u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Scope, 9u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Forwarding, 10u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, While, 11u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Do, 12u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, For, 13u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Foreach, 14u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, ForeachRange, 15u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, If, 16u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Conditional, 17u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, StaticForeach, 18u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Pragma, 19u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, StaticAssert, 20u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Switch, 21u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Case, 22u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, CaseRange, 23u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Default, 24u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, GotoDefault, 25u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, GotoCase, 26u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, SwitchError, 27u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Return, 28u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Break, 29u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Continue, 30u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Synchronized, 31u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, With, 32u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, TryCatch, 33u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, TryFinally, 34u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, ScopeGuard, 35u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Throw, 36u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Debug, 37u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Goto, 38u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Label, 39u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Asm, 40u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, InlineAsm, 41u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, GccAsm, 42u, STMT, STMT, stmt, STMT)
-    ENUM_KEY_NUMERIC(uint8_t, Import, 43u, STMT, STMT, stmt, STMT)
-END_ENUM_NUMERIC(uint8_t, STMT, STMT, stmt)
+enum class STMT : uint8_t
+{
+    Error = 0u,
+    Peel = 1u,
+    Exp = 2u,
+    DtorExp = 3u,
+    Compile = 4u,
+    Compound = 5u,
+    CompoundDeclaration = 6u,
+    CompoundAsm = 7u,
+    UnrolledLoop = 8u,
+    Scope = 9u,
+    Forwarding = 10u,
+    While = 11u,
+    Do = 12u,
+    For = 13u,
+    Foreach = 14u,
+    ForeachRange = 15u,
+    If = 16u,
+    Conditional = 17u,
+    StaticForeach = 18u,
+    Pragma = 19u,
+    StaticAssert = 20u,
+    Switch = 21u,
+    Case = 22u,
+    CaseRange = 23u,
+    Default = 24u,
+    GotoDefault = 25u,
+    GotoCase = 26u,
+    SwitchError = 27u,
+    Return = 28u,
+    Break = 29u,
+    Continue = 30u,
+    Synchronized = 31u,
+    With = 32u,
+    TryCatch = 33u,
+    TryFinally = 34u,
+    ScopeGuard = 35u,
+    Throw = 36u,
+    Debug = 37u,
+    Goto = 38u,
+    Label = 39u,
+    Asm = 40u,
+    InlineAsm = 41u,
+    GccAsm = 42u,
+    Import = 43u,
+};
 
 class Statement : public ASTNode
 {
@@ -6474,12 +6493,13 @@ struct Target
     bool isReturnOnStack(TypeFunction* tf, bool needsThis);
     uint64_t parameterSize(const Loc& loc, Type* t);
     void applyInRefParams(TypeFunction* tf);
-    BEGIN_ENUM(TargetInfoKeys, TARGETINFOKEYS, targetinfokeys)
-        ENUM_KEY(int32_t, cppRuntimeLibrary, 0, TargetInfoKeys, TARGETINFOKEYS, targetinfokeys, TIK)
-        ENUM_KEY(int32_t, cppStd, 1, TargetInfoKeys, TARGETINFOKEYS, targetinfokeys, TIK)
-        ENUM_KEY(int32_t, floatAbi, 2, TargetInfoKeys, TARGETINFOKEYS, targetinfokeys, TIK)
-        ENUM_KEY(int32_t, objectFormat, 3, TargetInfoKeys, TARGETINFOKEYS, targetinfokeys, TIK)
-    END_ENUM(TargetInfoKeys, TARGETINFOKEYS, targetinfokeys)
+    enum class TargetInfoKeys
+    {
+        cppRuntimeLibrary = 0,
+        cppStd = 1,
+        floatAbi = 2,
+        objectFormat = 3,
+    };
 
     Expression* getTargetInfo(const char* name, const Loc& loc);
     Target() :
@@ -6504,7 +6524,7 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter*>* parameters);
 
-ENUM_CONSTANT_NUMERIC(bool, LOGSEMANTIC, false)
+enum : bool { LOGSEMANTIC = false };
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
@@ -6543,33 +6563,35 @@ typedef _d_real longdouble;
 
 extern void browse(const char* url);
 
-BEGIN_ENUM(Color, COLOR, color)
-    ENUM_KEY(int32_t, black, 0, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, red, 1, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, green, 2, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, blue, 4, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, yellow, 3, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, magenta, 5, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, cyan, 6, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, lightGray, 7, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, bright, 8, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, darkGray, 8, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, brightRed, 9, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, brightGreen, 10, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, brightBlue, 12, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, brightYellow, 11, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, brightMagenta, 13, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, brightCyan, 14, Color, COLOR, color, C)
-    ENUM_KEY(int32_t, white, 15, Color, COLOR, color, C)
-END_ENUM(Color, COLOR, color)
+enum class Color
+{
+    black = 0,
+    red = 1,
+    green = 2,
+    blue = 4,
+    yellow = 3,
+    magenta = 5,
+    cyan = 6,
+    lightGray = 7,
+    bright = 8,
+    darkGray = 8,
+    brightRed = 9,
+    brightGreen = 10,
+    brightBlue = 12,
+    brightYellow = 11,
+    brightMagenta = 13,
+    brightCyan = 14,
+    white = 15,
+};
 
-BEGIN_ENUM_TYPE(Color, Classification, CLASSIFICATION, classification)
-    ENUM_KEY_TYPE(Color, error, (Classification)(Color)9, Classification, CLASSIFICATION, classification, C)
-    ENUM_KEY_TYPE(Color, gagged, (Classification)(Color)12, Classification, CLASSIFICATION, classification, C)
-    ENUM_KEY_TYPE(Color, warning, (Classification)(Color)11, Classification, CLASSIFICATION, classification, C)
-    ENUM_KEY_TYPE(Color, deprecation, (Classification)(Color)14, Classification, CLASSIFICATION, classification, C)
-    ENUM_KEY_TYPE(Color, tip, (Classification)(Color)10, Classification, CLASSIFICATION, classification, C)
-END_ENUM_TYPE(Color, Classification, CLASSIFICATION, classification)
+namespace Classification
+{
+    static Color const error = (Classification)(Color)9;
+    static Color const gagged = (Classification)(Color)12;
+    static Color const warning = (Classification)(Color)11;
+    static Color const deprecation = (Classification)(Color)14;
+    static Color const tip = (Classification)(Color)10;
+};
 
 extern void error(const Loc& loc, const char* format, ...);
 
@@ -6611,85 +6633,95 @@ extern void fatal();
 
 extern void halt();
 
-BEGIN_ENUM_NUMERIC(uint8_t, HIGHLIGHT, HIGHLIGHT, highlight)
-    ENUM_KEY_NUMERIC(uint8_t, Default, 0u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-    ENUM_KEY_NUMERIC(uint8_t, Escape, 255u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-    ENUM_KEY_NUMERIC(uint8_t, Identifier, 15u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-    ENUM_KEY_NUMERIC(uint8_t, Keyword, 15u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-    ENUM_KEY_NUMERIC(uint8_t, Literal, 15u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-    ENUM_KEY_NUMERIC(uint8_t, Comment, 8u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-    ENUM_KEY_NUMERIC(uint8_t, Other, 6u, HIGHLIGHT, HIGHLIGHT, highlight, HIGHLIGHT)
-END_ENUM_NUMERIC(uint8_t, HIGHLIGHT, HIGHLIGHT, highlight)
+enum class HIGHLIGHT : uint8_t
+{
+    Default = 0u,
+    Escape = 255u,
+    Identifier = 15u,
+    Keyword = 15u,
+    Literal = 15u,
+    Comment = 8u,
+    Other = 6u,
+};
 
-BEGIN_ENUM_NUMERIC(bool, TARGET, TARGET, target)
-    ENUM_KEY_NUMERIC(bool, Linux, true, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, OSX, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, FreeBSD, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, OpenBSD, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, Solaris, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, Windows, false, TARGET, TARGET, target, TARGET)
-    ENUM_KEY_NUMERIC(bool, DragonFlyBSD, false, TARGET, TARGET, target, TARGET)
-END_ENUM_NUMERIC(bool, TARGET, TARGET, target)
+enum class TARGET : bool
+{
+    Linux = true,
+    OSX = false,
+    FreeBSD = false,
+    OpenBSD = false,
+    Solaris = false,
+    Windows = false,
+    DragonFlyBSD = false,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting)
-    ENUM_KEY_NUMERIC(uint8_t, error, 0u, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting, DR)
-    ENUM_KEY_NUMERIC(uint8_t, inform, 1u, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting, DR)
-    ENUM_KEY_NUMERIC(uint8_t, off, 2u, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting, DR)
-END_ENUM_NUMERIC(uint8_t, DiagnosticReporting, DIAGNOSTICREPORTING, diagnosticreporting)
+enum class DiagnosticReporting : uint8_t
+{
+    error = 0u,
+    inform = 1u,
+    off = 2u,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, MessageStyle, MESSAGESTYLE, messagestyle)
-    ENUM_KEY_NUMERIC(uint8_t, digitalmars, 0u, MessageStyle, MESSAGESTYLE, messagestyle, MS)
-    ENUM_KEY_NUMERIC(uint8_t, gnu, 1u, MessageStyle, MESSAGESTYLE, messagestyle, MS)
-END_ENUM_NUMERIC(uint8_t, MessageStyle, MESSAGESTYLE, messagestyle)
+enum class MessageStyle : uint8_t
+{
+    digitalmars = 0u,
+    gnu = 1u,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, CHECKENABLE, CHECKENABLE, checkenable)
-    ENUM_KEY_NUMERIC(uint8_t, _default, 0u, CHECKENABLE, CHECKENABLE, checkenable, CHECKENABLE)
-    ENUM_KEY_NUMERIC(uint8_t, off, 1u, CHECKENABLE, CHECKENABLE, checkenable, CHECKENABLE)
-    ENUM_KEY_NUMERIC(uint8_t, on, 2u, CHECKENABLE, CHECKENABLE, checkenable, CHECKENABLE)
-    ENUM_KEY_NUMERIC(uint8_t, safeonly, 3u, CHECKENABLE, CHECKENABLE, checkenable, CHECKENABLE)
-END_ENUM_NUMERIC(uint8_t, CHECKENABLE, CHECKENABLE, checkenable)
+enum class CHECKENABLE : uint8_t
+{
+    _default = 0u,
+    off = 1u,
+    on = 2u,
+    safeonly = 3u,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, CHECKACTION, CHECKACTION, checkaction)
-    ENUM_KEY_NUMERIC(uint8_t, D, 0u, CHECKACTION, CHECKACTION, checkaction, CHECKACTION)
-    ENUM_KEY_NUMERIC(uint8_t, C, 1u, CHECKACTION, CHECKACTION, checkaction, CHECKACTION)
-    ENUM_KEY_NUMERIC(uint8_t, halt, 2u, CHECKACTION, CHECKACTION, checkaction, CHECKACTION)
-    ENUM_KEY_NUMERIC(uint8_t, context, 3u, CHECKACTION, CHECKACTION, checkaction, CHECKACTION)
-END_ENUM_NUMERIC(uint8_t, CHECKACTION, CHECKACTION, checkaction)
+enum class CHECKACTION : uint8_t
+{
+    D = 0u,
+    C = 1u,
+    halt = 2u,
+    context = 3u,
+};
 
-BEGIN_ENUM(CPU, CPU, cpu)
-    ENUM_KEY(int32_t, x87, 0, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, mmx, 1, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, sse, 2, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, sse2, 3, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, sse3, 4, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, ssse3, 5, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, sse4_1, 6, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, sse4_2, 7, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, avx, 8, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, avx2, 9, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, avx512, 10, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, baseline, 11, CPU, CPU, cpu, CPU)
-    ENUM_KEY(int32_t, native, 12, CPU, CPU, cpu, CPU)
-END_ENUM(CPU, CPU, cpu)
+enum class CPU
+{
+    x87 = 0,
+    mmx = 1,
+    sse = 2,
+    sse2 = 3,
+    sse3 = 4,
+    ssse3 = 5,
+    sse4_1 = 6,
+    sse4_2 = 7,
+    avx = 8,
+    avx2 = 9,
+    avx512 = 10,
+    baseline = 11,
+    native = 12,
+};
 
-BEGIN_ENUM_NUMERIC(uint8_t, PIC, PIC, pic)
-    ENUM_KEY_NUMERIC(uint8_t, fixed, 0u, PIC, PIC, pic, PIC)
-    ENUM_KEY_NUMERIC(uint8_t, pic, 1u, PIC, PIC, pic, PIC)
-    ENUM_KEY_NUMERIC(uint8_t, pie, 2u, PIC, PIC, pic, PIC)
-END_ENUM_NUMERIC(uint8_t, PIC, PIC, pic)
+enum class PIC : uint8_t
+{
+    fixed = 0u,
+    pic = 1u,
+    pie = 2u,
+};
 
-BEGIN_ENUM_NUMERIC(uint32_t, CppStdRevision, CPPSTDREVISION, cppstdrevision)
-    ENUM_KEY_NUMERIC(uint32_t, cpp98, 199711u, CppStdRevision, CPPSTDREVISION, cppstdrevision, CSR)
-    ENUM_KEY_NUMERIC(uint32_t, cpp11, 201103u, CppStdRevision, CPPSTDREVISION, cppstdrevision, CSR)
-    ENUM_KEY_NUMERIC(uint32_t, cpp14, 201402u, CppStdRevision, CPPSTDREVISION, cppstdrevision, CSR)
-    ENUM_KEY_NUMERIC(uint32_t, cpp17, 201703u, CppStdRevision, CPPSTDREVISION, cppstdrevision, CSR)
-END_ENUM_NUMERIC(uint32_t, CppStdRevision, CPPSTDREVISION, cppstdrevision)
+enum class CppStdRevision : uint32_t
+{
+    cpp98 = 199711u,
+    cpp11 = 201103u,
+    cpp14 = 201402u,
+    cpp17 = 201703u,
+};
 
-BEGIN_ENUM_NUMERIC(uint32_t, CxxHeaderMode, CXXHEADERMODE, cxxheadermode)
-    ENUM_KEY_NUMERIC(uint32_t, none, 0u, CxxHeaderMode, CXXHEADERMODE, cxxheadermode, CHM)
-    ENUM_KEY_NUMERIC(uint32_t, silent, 1u, CxxHeaderMode, CXXHEADERMODE, cxxheadermode, CHM)
-    ENUM_KEY_NUMERIC(uint32_t, verbose, 2u, CxxHeaderMode, CXXHEADERMODE, cxxheadermode, CHM)
-END_ENUM_NUMERIC(uint32_t, CxxHeaderMode, CXXHEADERMODE, cxxheadermode)
+enum class CxxHeaderMode : uint32_t
+{
+    none = 0u,
+    silent = 1u,
+    verbose = 2u,
+};
 
 struct Param
 {
@@ -6983,7 +7015,7 @@ struct Param
 
 typedef uint32_t structalign_t;
 
-ENUM_CONSTANT_NUMERIC(uint32_t, STRUCTALIGN_DEFAULT, 4294967295u)
+enum : uint32_t { STRUCTALIGN_DEFAULT = 4294967295u };
 
 struct Global
 {
@@ -7013,7 +7045,7 @@ struct Global
     void* console;
     Array<Identifier*>* versionids;
     Array<Identifier*>* debugids;
-    ENUM_CONSTANT_NUMERIC(int32_t, recursionLimit, 500)
+    enum : int32_t { recursionLimit = 500 };
 
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
@@ -7551,9 +7583,9 @@ struct Array
 
 struct CTFloat
 {
-    ENUM_CONSTANT_NUMERIC(bool, yl2x_supported, true)
+    enum : bool { yl2x_supported = true };
 
-    ENUM_CONSTANT_NUMERIC(bool, yl2xp1_supported, true)
+    enum : bool { yl2xp1_supported = true };
 
     static void yl2x(const _d_real* const x, const _d_real* const y, _d_real* res);
     static void yl2xp1(const _d_real* const x, const _d_real* const y, _d_real* res);
@@ -7615,7 +7647,7 @@ struct Port
     }
 };
 
-ENUM_CONSTANT_NUMERIC(bool, isGCAvailable, true)
+enum : bool { isGCAvailable = true };
 
 struct Mem
 {
@@ -7641,9 +7673,9 @@ struct Mem
 
 extern const Mem mem;
 
-ENUM_CONSTANT_NUMERIC(int32_t, CHUNK_SIZE, 1048512)
+enum : int32_t { CHUNK_SIZE = 1048512 };
 
-ENUM_CONSTANT_NUMERIC(bool, OVERRIDE_MEMALLOC, true)
+enum : bool { OVERRIDE_MEMALLOC = true };
 
 extern "C" void* _d_allocmemory(size_t m_size);
 

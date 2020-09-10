@@ -10,31 +10,24 @@ TEST_OUTPUT:
 #include <stddef.h>
 #include <stdint.h>
 
-#if !defined(BEGIN_ENUM)
-# define BEGIN_ENUM(name, upper, lower) enum class name {
-# define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,
-# define END_ENUM(name, upper, lower) };
-#endif
-#if !defined(ENUM_CONSTANT_NUMERIC)
-# define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
-#endif
 
 struct Foo
 {
     int32_t a;
-    ENUM_CONSTANT_NUMERIC(int32_t, b, 2)
+    enum : int32_t { b = 2 };
 
     // ignoring enum `test21217.Foo.c` because it is `private`.
     // ignoring enum `test21217.Foo.d` because it is `protected`.
     // ignoring enum `test21217.Foo.e` because it is `package`.
-    ENUM_CONSTANT_NUMERIC(int32_t, f, 6)
+    enum : int32_t { f = 6 };
 
-    ENUM_CONSTANT_NUMERIC(int32_t, g, 7)
+    enum : int32_t { g = 7 };
 
-    BEGIN_ENUM(Bar, BAR, bar)
-        ENUM_KEY(int32_t, a, 1, Bar, BAR, bar, B)
-        ENUM_KEY(int32_t, b, 2, Bar, BAR, bar, B)
-    END_ENUM(Bar, BAR, bar)
+    enum class Bar
+    {
+        a = 1,
+        b = 2,
+    };
 
     // ignoring enum `test21217.Foo.h` because it is `private`.
     Foo() :

@@ -1,9 +1,5 @@
 // This should be solved by the header generator
 
-#define BEGIN_ENUM(name, upper, lower) enum name {
-#define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) upper##name = value,
-#define END_ENUM(name, upper, lower) };
-
 #include "dcompat.h"
 #include "library.h"
 
@@ -36,12 +32,8 @@ int main()
     assert(3 <= PI && PI <= 4);
     assert(counter = 42);
 
-    // FIXME: Maybe improve naming convention or use enum class (C++11)
-    // assert(Weather::Sun != Weather::Rain);
-    // assert(Weather::Rain != Weather::Storm);
-
-    assert(WEATHERSun != WEATHERRain);
-    assert(WEATHERRain != WEATHERStorm);
+    assert(Weather::Sun != Weather::Rain);
+    assert(Weather::Rain != Weather::Storm);
 
     S2 s2;
     s2.s = c->s;
