@@ -6524,6 +6524,7 @@ final class Parser(AST) : Lexer
         Token* t;
         int braces;
         int brackets;
+        int parens;
 
         switch (token.value)
         {
@@ -6556,6 +6557,18 @@ final class Parser(AST) : Lexer
             {
                 switch (t.value)
                 {
+                case TOK.leftParentheses:
+                    parens++;
+                    continue;
+                case TOK.rightParentheses:
+                    parens--;
+                    continue;
+                // https://issues.dlang.org/show_bug.cgi?id=21163
+                // lambda params can have the `scope` storage class, e.g
+                // `S s = { (scope Type Id){} }`
+                case TOK.scope_:
+                    if (!parens) goto case;
+                    continue;
                 /* Look for a semicolon or keyword of statements which don't
                  * require a semicolon (typically containing BlockStatement).
                  * Tokens like "else", "catch", etc. are omitted where the
@@ -6568,7 +6581,6 @@ final class Parser(AST) : Lexer
                 case TOK.if_:
                 case TOK.interface_:
                 case TOK.pragma_:
-                case TOK.scope_:
                 case TOK.semicolon:
                 case TOK.struct_:
                 case TOK.switch_:
