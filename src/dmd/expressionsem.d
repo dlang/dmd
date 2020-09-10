@@ -2101,6 +2101,13 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             if (!p.isReference())
                 err |= arg.checkSharedAccess(sc);
 
+            // Promote bytes, words, etc., to ints
+            if (!p.isReference() && !(p.storageClass & STC.lazy_) &&
+                target.c.promoteIntArguments(tf))
+            {
+                arg = integralPromotions(arg, sc);
+            }
+
             arg = arg.optimize(WANTvalue, p.isReference());
 
             /* Determine if this parameter is the "first reference" parameter through which

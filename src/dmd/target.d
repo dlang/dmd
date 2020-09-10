@@ -949,6 +949,19 @@ struct TargetC
         criticalSectionSize = getCriticalSectionSize(params);
     }
 
+    /**
+     * Returns true if named 8-bit and 16-bit integer arguments should be
+     * passed as an `int`. This avoids errors in certain cases of mismatch.
+     * Params:
+     *      tf = function type being called
+     * Returns:
+     *      true if integral promotions should be applied
+     */
+    extern (C++) bool promoteIntArguments(TypeFunction tf)
+    {
+        return (tf.linkage != LINK.d);
+    }
+
     private static uint getCriticalSectionSize(ref const Param params) pure
     {
         if (params.isWindows)

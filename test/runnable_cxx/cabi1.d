@@ -238,6 +238,31 @@ void test16()
 }
 
 /******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16274
+
+extern(C) void test16274_c(short a, ushort b, byte c, ubyte d);
+
+void test16274_d(short a, ushort b, byte c, ubyte d)
+{
+    //printf("%d %d %d %d\n", a, b, c, d);
+    assert(a == -1);
+    assert(b == 2);
+    assert(c == -3);
+    assert(d == 4);
+    test16274_c(a, b, c, d);
+}
+
+void test16274()
+{
+    short a = -1;
+    ushort b = 2;
+    byte c = -3;
+    ubyte d = 4;
+    test16274_c(a, b, c, d);
+    test16274_d(a, b, c, d);
+}
+
+/******************************************/
 
 int main()
 {
@@ -257,6 +282,7 @@ else
     test14();
     test15();
     test16();
+    test16274();
 
     return 0;
 }

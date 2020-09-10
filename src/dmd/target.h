@@ -29,6 +29,8 @@ struct TargetC
     unsigned longsize;            // size of a C 'long' or 'unsigned long' type
     unsigned long_doublesize;     // size of a C 'long double'
     unsigned criticalSectionSize; // size of os critical section
+
+    bool promoteIntArguments(TypeFunction *tf);
 };
 
 struct TargetCPP
