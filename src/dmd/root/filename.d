@@ -733,23 +733,27 @@ nothrow:
      */
     private extern (D) static bool safePath(const(char)* name) pure @nogc
     {
+        // Don't allow absolute path
+        if (absolute(name))
+        {
+            return false;
+        }
+        // Don't allow parent directory
+        if (name[0] == '.' && name[1] == '.' && (!name[2] || isDirSeparator(name[2])))
+        {
+            return false;
+        }
+
         version (Windows)
         {
-            // don't allow leading / because it might be an absolute
-            // path or UNC path or something we'd prefer to just not deal with
-            if (*name == '/')
-            {
-                return false;
-            }
-            /* Disallow % \ : and .. in name characters
-             * We allow / for compatibility with subdirectories which is allowed
-             * on dmd/posix. With the leading / blocked above and the rest of these
-             * conservative restrictions, we should be OK.
-             */
+            // According to https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
+            // the following characters are not allowed in path: < > : " | ? *
+            // Additionally we do not allow reference to parent directory ("..") in the path.
             for (const(char)* p = name; *p; p++)
             {
                 char c = *p;
-                if (c == '\\' || c == ':' || c == '%' || (c == '.' && p[1] == '.') || (c == '/' && p[1] == '/'))
+                if (c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' || c == '*' ||
+                   (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3]))))
                 {
                     return false;
                 }
@@ -758,12 +762,11 @@ nothrow:
         }
         else version (Posix)
         {
-            /* Even with realpath(), we must check for // and disallow it
-             */
+            // Do not allow reference to parent directory ("..") in the path.
             for (const(char)* p = name; *p; p++)
             {
                 char c = *p;
-                if (c == '/' && p[1] == '/')
+                if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
                 {
                     return false;
                 }
@@ -783,7 +786,17 @@ nothrow:
         assert(safePath(r"foo.bar.boo"));
         assert(safePath(r"foo/bar.boo"));
         assert(safePath(r"foo/bar/boo"));
-        assert(!safePath(r"foo/bar//boo"));       // repeated directory separator
+        assert(safePath(r"foo/bar//boo"));       // repeated directory separator
+        assert(safePath(r"foo.."));
+        assert(safePath(r"foo..boo"));
+        assert(safePath(r"foo/..boo"));
+        assert(safePath(r"foo../boo"));
+        assert(!safePath(r"/"));
+        assert(!safePath(r".."));
+        assert(!safePath(r"../"));
+        assert(!safePath(r"foo/.."));
+        assert(!safePath(r"foo/../"));
+        assert(!safePath(r"foo/../../boo"));
 
         version (Windows)
         {
@@ -793,20 +806,16 @@ nothrow:
             assert(!safePath(r"c:\foo"));         // drive letter + absolute path
 
             // Backslash as directory separator
-            assert(!safePath(r"foo\bar.boo"));
-            assert(!safePath(r"foo\bar\boo"));
-            assert(!safePath(r"foo\bar\\boo"));   // repeated directory separator
-
-            // Different behavior comparing to Posix
-            assert(!safePath(r"/"));
-            assert(!safePath(r"foo/../../boo"));
-            assert(!safePath(r"foo..boo"));
-        }
-        else version (Posix)
-        {
-            assert(safePath(r"/"));
-            assert(safePath(r"foo/../../boo"));
-            assert(safePath(r"foo..boo"));
+            assert(safePath(r"foo\bar.boo"));
+            assert(safePath(r"foo\bar\boo"));
+            assert(safePath(r"foo\bar\\boo"));   // repeated directory separator
+            assert(safePath(r"foo\..boo"));
+            assert(safePath(r"foo..\boo"));
+            assert(!safePath(r"\"));
+            assert(!safePath(r"..\"));
+            assert(!safePath(r"foo\.."));
+            assert(!safePath(r"foo\..\"));
+            assert(!safePath(r"foo\..\..\boo"));
         }
     }
 
