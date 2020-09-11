@@ -1278,7 +1278,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              *          - any string with '(', ')' and '\' escaped with the '\' character
              */
             OutBuffer* ob = global.params.moduleDeps;
-            Module imod = sc.instantiatingModule();
+            Module imod = sc._module;
             if (!global.params.moduleDepsFile)
                 ob.writestring("depsImport ");
             ob.writestring(imod.toPrettyChars());
@@ -1586,7 +1586,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer* ob = global.params.moduleDeps;
-                    Module imod = sc.instantiatingModule();
+                    Module imod = sc._module;
                     ob.writestring("depsLib ");
                     ob.writestring(imod.toPrettyChars());
                     ob.writestring(" (");
