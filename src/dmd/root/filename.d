@@ -50,6 +50,24 @@ version (CRuntime_Glibc)
 
 alias Strings = Array!(const(char)*);
 
+
+// Check whether character is a directory separator
+private bool isDirSeparator(char c) pure nothrow @nogc
+{
+    version (Windows)
+    {
+        return c == '\\' || c == '/';
+    }
+    else version (Posix)
+    {
+        return c == '/';
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
 /***********************************************************
  * Encapsulate path and file names.
  */
@@ -107,12 +125,12 @@ nothrow:
 
         version (Windows)
         {
-            return (name[0] == '\\') || (name[0] == '/')
+            return isDirSeparator(name[0])
                 || (name.length >= 2 && name[1] == ':');
         }
         else version (Posix)
         {
-            return (name[0] == '/');
+            return isDirSeparator(name[0]);
         }
         else
         {
@@ -314,20 +332,8 @@ nothrow:
         bool hasTrailingSlash;
         if (n.length < str.length)
         {
-            version (Posix)
-            {
-                if (str[$ - n.length - 1] == '/')
-                    hasTrailingSlash = true;
-            }
-            else version (Windows)
-            {
-                if (str[$ - n.length - 1] == '\\' || str[$ - n.length - 1] == '/')
-                    hasTrailingSlash = true;
-            }
-            else
-            {
-                assert(0);
-            }
+            if (isDirSeparator(str[$ - n.length - 1]))
+                hasTrailingSlash = true;
         }
         const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
         char* path = cast(char*)mem.xmalloc(pathlen + 1);
@@ -409,12 +415,12 @@ nothrow:
             const last = p[length - 1];
             version (Posix)
             {
-                if (last != '/')
+                if (!isDirSeparator(last))
                     p[length++] = '/';
             }
             else version (Windows)
             {
-                if (last != '\\' && last != '/' && last != ':')
+                if (!isDirSeparator(last) && last != ':')
                     p[length++] = '\\';
             }
             else
