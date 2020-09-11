@@ -1074,7 +1074,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
                 if (emitError)
                     error(e.loc, msg, e.toChars(), kind, v.toChars());
-                else
+                else if (!sc.isDeprecated())
                     deprecation(e.loc, msg, e.toChars(), kind, v.toChars());
             }
             result |= emitError;

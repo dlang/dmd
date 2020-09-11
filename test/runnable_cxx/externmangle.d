@@ -1,4 +1,5 @@
 // EXTRA_CPP_SOURCES: externmangle.cpp
+// REQUIRED_ARGS: -extern-std=c++11
 
 import core.stdc.config;
 import core.stdc.stdint;
@@ -238,6 +239,31 @@ void test39()
 
 extern(C++, "foo", "bar", "baz") int doStuff(int);
 
+version(CppRuntime_DigitalMars) // DMC doesn't support c++11
+{
+    void test40() {}
+}
+else
+{
+    void test40();
+
+    void foovargs(T...)(T args)
+    {
+        static if (is(T[0] == char*))
+        {
+            assert(*args[0] == 'a');
+        }
+        else
+        {
+            float ret = args[0] + args[1];
+            assert(ret == 3.0f);
+        }
+    }
+
+    alias FooVargs = foovargs!(int, float);
+    alias FooVargs2 = foovargs!(char*);
+}
+
 void main()
 {
     test1(Foo!int());
@@ -329,4 +355,6 @@ void main()
     test39();
 
     assert(doStuff(2) == 4);
+
+    test40();
 }

@@ -3276,7 +3276,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
                     if (fdthis && ad && fdthis.isMemberLocal() == ad && (td._scope.stc & STC.static_) == 0)
                     {
-                        Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti.name, ti.tiargs);
+                        Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti);
                         result = e.expressionSemantic(sc);
                         return;
                     }
@@ -3287,7 +3287,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     AggregateDeclaration ad = os.parent.isAggregateDeclaration();
                     if (fdthis && ad && fdthis.isMemberLocal() == ad)
                     {
-                        Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti.name, ti.tiargs);
+                        Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti);
                         result = e.expressionSemantic(sc);
                         return;
                     }
@@ -11980,7 +11980,17 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
         return ErrorExp.get();
     }
 
-    auto die = new DotIdExp(exp.loc, exp.e1, exp.ti.name);
+    Expression e1 = exp.e1;
+
+    if (exp.ti.tempdecl && exp.ti.tempdecl.parent && exp.ti.tempdecl.parent.isTemplateMixin())
+    {
+        // if 'ti.tempdecl' happens to be found in a mixin template don't lose that info
+        // and do the symbol search in that context (Issue: 19476)
+        auto tm = cast(TemplateMixin)exp.ti.tempdecl.parent;
+        e1 = new DotExp(exp.e1.loc, exp.e1, new ScopeExp(tm.loc, tm));
+    }
+
+    auto die = new DotIdExp(exp.loc, e1, exp.ti.name);
 
     Expression e = die.semanticX(sc);
     if (e == die)

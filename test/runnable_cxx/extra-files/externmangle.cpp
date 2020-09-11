@@ -425,3 +425,14 @@ namespace foo
         }
     }
 }
+
+#ifndef __DMC__ // DMC doesn't support c++11
+template<typename ...T> void foovargs(T... args);
+
+void test40()
+{
+    foovargs<int, float>(1, 2.0f);
+    char c = 'a';
+    foovargs<char*>(&c);
+}
+#endif

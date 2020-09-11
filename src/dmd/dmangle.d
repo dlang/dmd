@@ -177,8 +177,8 @@ private extern (C++) final class Mangler : Visitor
     alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
-    AssocArray!(Type, size_t) types;
-    AssocArray!(Identifier, size_t) idents;
+    AssocArray!(Type, size_t) types;        // Type => (offset+1) in buf
+    AssocArray!(Identifier, size_t) idents; // Identifier => (offset+1) in buf
     OutBuffer* buf;
 
     extern (D) this(OutBuffer* buf)
@@ -230,15 +230,7 @@ public:
     bool backrefType(Type t)
     {
         if (!t.isTypeBasic())
-        {
-            auto p = types.getLvalue(t);
-            if (*p)
-            {
-                writeBackRef(buf.length - *p);
-                return true;
-            }
-            *p = buf.length;
-        }
+            return backrefImpl(types, t);
         return false;
     }
 
@@ -257,13 +249,19 @@ public:
     */
     bool backrefIdentifier(Identifier id)
     {
-        auto p = idents.getLvalue(id);
+        return backrefImpl(idents, id);
+    }
+
+    private extern(D) bool backrefImpl(T)(ref AssocArray!(T, size_t) aa, T key)
+    {
+        auto p = aa.getLvalue(key);
         if (*p)
         {
-            writeBackRef(buf.length - *p);
+            const offset = *p - 1;
+            writeBackRef(buf.length - offset);
             return true;
         }
-        *p = buf.length;
+        *p = buf.length + 1;
         return false;
     }
 

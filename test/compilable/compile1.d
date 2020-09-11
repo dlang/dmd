@@ -963,6 +963,18 @@ interface I15799
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21163
+
+struct B21163
+{
+    void function(scope int) fp;
+}
+
+B21163 b21163 = {
+    (scope int x){}
+};
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11624
 
 interface I11624
