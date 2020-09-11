@@ -892,7 +892,6 @@ extern (C++) abstract class Type : ASTNode
 
         tshiftcnt = tint32;
         terror = basic[Terror];
-        tnull = basic[Tnull];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
 
