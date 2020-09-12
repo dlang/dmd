@@ -17,6 +17,8 @@ import core.stdc.ctype;
 
 import dmd.astcodegen;
 import dmd.arraytypes;
+import dmd.dsymbol;
+import dmd.errors;
 import dmd.globals;
 import dmd.identifier;
 import dmd.root.filename;
@@ -387,6 +389,101 @@ public:
         buf.level++;
     }
 
+    private void warnCxxCompat(Dsymbol s, const(char)* reason)
+    {
+        static bool warned = false;
+        warning(s.loc, "%s `%s` is a %s", s.kind(), s.ident.toChars(), reason);
+
+        if (!warned)
+        {
+            warningSupplemental(s.loc, "The generated C++ header will contain " ~
+                                "identifiers that are keywords in C++");
+            warned = true;
+        }
+    }
+
+    private void writeIdentifier(Dsymbol s)
+    {
+        if (global.params.warnings != DiagnosticReporting.off)
+        {
+            // Warn about identifiers that are keywords in C++.
+            switch (s.ident.toString())
+            {
+                // C++ operators
+                case "and":
+                case "and_eq":
+                case "bitand":
+                case "bitor":
+                case "compl":
+                case "not":
+                case "not_eq":
+                case "or":
+                case "or_eq":
+                case "xor":
+                case "xor_eq":
+                    warnCxxCompat(s, "special operator in C++");
+                    break;
+
+                // C++ keywords
+                case "const_cast":
+                case "delete":
+                case "dynamic_cast":
+                case "explicit":
+                case "friend":
+                case "inline":
+                case "mutable":
+                case "namespace":
+                case "operator":
+                case "register":
+                case "reinterpret_cast":
+                case "signed":
+                case "static_cast":
+                case "typedef":
+                case "typename":
+                case "unsigned":
+                case "using":
+                case "virtual":
+                case "volatile":
+                    warnCxxCompat(s, "keyword in C++");
+                    break;
+
+                // C++11 keywords
+                case "alignas":
+                case "alignof":
+                case "char16_t":
+                case "char32_t":
+                case "constexpr":
+                case "decltype":
+                case "noexcept":
+                case "nullptr":
+                case "static_assert":
+                case "thread_local":
+                    if (global.params.cplusplus >= CppStdRevision.cpp11)
+                        warnCxxCompat(s, "keyword in C++11");
+                    break;
+
+                // C++20 keywords
+                case "char8_t":
+                case "consteval":
+                case "constinit":
+                // Concepts-related keywords
+                case "concept":
+                case "requires":
+                // Coroutines-related keywords
+                case "co_await":
+                case "co_yield":
+                case "co_return":
+                    version (none)
+                        warnCxxCompat(s, "keyword in C++20");
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        buf.writestring(s.ident.toString());
+    }
+
     override void visit(AST.Dsymbol s)
     {
         debug (Debug_DtoH)
@@ -645,7 +742,9 @@ public:
                         goto case;
                     buf.writestring("enum : ");
                     determineEnumType(type).accept(this);
-                    buf.printf(" { %s = ", vd.ident.toChars());
+                    buf.writestring(" { ");
+                    writeIdentifier(vd);
+                    buf.writestring(" = ");
                     auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
                     buf.writestring(" };");
@@ -655,7 +754,9 @@ public:
                     buf.writestring("static ");
                     auto target = determineEnumType(type);
                     target.accept(this);
-                    buf.printf(" const %s = ", vd.ident.toChars());
+                    buf.writestring(" const ");
+                    writeIdentifier(vd);
+                    buf.writestring(" = ");
                     auto e = AST.initializerToExpression(vd._init);
                     printExpressionFor(target, e);
                     buf.writestring(";");
@@ -678,7 +779,7 @@ public:
                 return;
             }
             writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd.ident);
+            typeToBuffer(vd.type, vd);
             buf.writestringln(";");
             return;
         }
@@ -703,7 +804,7 @@ public:
                 buf.writestring("extern ");
             if (adparent)
                 buf.writestring("static ");
-            typeToBuffer(vd.type, vd.ident);
+            typeToBuffer(vd.type, vd);
             writeDeclEnd();
             return;
         }
@@ -711,7 +812,7 @@ public:
         if (adparent && vd.type && vd.type.deco)
         {
             writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd.ident);
+            typeToBuffer(vd.type, vd);
             buf.writestringln(";");
 
             if (auto t = vd.type.isTypeStruct())
@@ -766,7 +867,7 @@ public:
             scope(exit) origType = null;
 
             buf.writestring("typedef ");
-            typeToBuffer(origType ? *origType : t, ad.ident);
+            typeToBuffer(origType ? *origType : t, ad);
             writeDeclEnd();
             return;
         }
@@ -909,7 +1010,7 @@ public:
         else
             buf.writestring(structAsClass ? "class " : "struct ");
 
-        buf.writestring(sd.ident.toChars());
+        writeIdentifier(sd);
         if (!sd.members)
         {
             buf.writestringln(";");
@@ -995,7 +1096,7 @@ public:
                             buf.writestring(", ");
                         assert(vd.type);
                         assert(vd.ident);
-                        typeToBuffer(vd.type, vd.ident);
+                        typeToBuffer(vd.type, vd);
                         // Don't print default value for first parameter to not clash
                         // with the default ctor defined above
                         if (!first)
@@ -1118,7 +1219,7 @@ public:
 
         const classAsStruct = cd.cppmangle == CPPMANGLE.asStruct;
         buf.writestring(classAsStruct ? "struct " : "class ");
-        buf.writestring(cd.ident.toChars());
+        writeIdentifier(cd);
 
         if (cd.storage_class & AST.STC.final_ || (tdparent && this.storageClass & AST.STC.final_))
             buf.writestring(" final");
@@ -1252,7 +1353,7 @@ public:
                     if (!isAnonymous)
                     {
                         buf.writestring(" class ");
-                        buf.writestring(ed.ident.toString());
+                        writeIdentifier(ed);
                     }
                     if (kind == EnumKind.Numeric)
                     {
@@ -1263,7 +1364,7 @@ public:
                 else if (!isAnonymous)
                 {
                     buf.writeByte(' ');
-                    buf.writestring(ed.ident.toString());
+                    writeIdentifier(ed);
                 }
             }
             else
@@ -1272,7 +1373,7 @@ public:
                 if(!isAnonymous)
                 {
                     buf.writeByte(' ');
-                    buf.writestring(ed.ident.toString());
+                    writeIdentifier(ed);
                 }
             }
             // Opaque enums have no members, hence skip the body
@@ -1303,10 +1404,14 @@ public:
                 // C++-98 compatible enums must use the typename as a prefix to avoid
                 // collisions with other identifiers in scope.  For consistency with D,
                 // the enum member `Type.member` is emitted as `Type_member` in C++-98.
-                if (isAnonymous || global.params.cplusplus >= CppStdRevision.cpp11)
-                    buf.printf("%s = ", m.ident.toChars());
-                else
-                    buf.printf("%s_%s = ", ed.ident.toChars(), m.ident.toChars());
+                if (!isAnonymous && global.params.cplusplus < CppStdRevision.cpp11)
+                {
+                    writeIdentifier(ed);
+                    buf.writeByte('_');
+                }
+                writeIdentifier(m);
+                buf.writestring(" = ");
+
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
                 buf.writestring(",");
@@ -1316,7 +1421,10 @@ public:
             {
                 buf.writestring("enum : ");
                 determineEnumType(memberType).accept(this);
-                buf.printf(" { %s = ", m.ident.toChars());
+                buf.writestring(" { ");
+                writeIdentifier(m);
+                buf.writestring(" = ");
+
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
                 buf.writestring(" };");
@@ -1326,7 +1434,9 @@ public:
                 buf.writestring("static ");
                 auto target = determineEnumType(memberType);
                 target.accept(this);
-                buf.printf(" const %s = ", m.ident.toChars());
+                buf.writestring(" const ");
+                writeIdentifier(m);
+                buf.writestring(" = ");
                 printExpressionFor(target, m.origValue);
                 buf.writestring(";");
             }
@@ -1347,20 +1457,20 @@ public:
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
-    private void typeToBuffer(AST.Type t, Identifier ident)
+    private void typeToBuffer(AST.Type t, Dsymbol s)
     {
         debug (Debug_DtoH)
         {
-            printf("[typeToBuffer(AST.Type) enter] %s ident %s\n", t.toChars(), ident.toChars());
-            scope(exit) printf("[typeToBuffer(AST.Type) exit] %s ident %s\n", t.toChars(), ident.toChars());
+            printf("[typeToBuffer(AST.Type) enter] %s sym %s\n", t.toChars(), s.toChars());
+            scope(exit) printf("[typeToBuffer(AST.Type) exit] %s sym %s\n", t.toChars(), s.toChars());
         }
 
-        this.ident = ident;
+        this.ident = s.ident;
         origType ? origType.accept(this) : t.accept(this);
         if (this.ident)
         {
             buf.writeByte(' ');
-            buf.writestring(ident.toChars());
+            writeIdentifier(s);
         }
         this.ident = null;
         if (auto tsa = t.isTypeSArray())

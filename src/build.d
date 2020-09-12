@@ -495,7 +495,8 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
         .deps([dmdDefault])
         .target(env["G"].buildPath("frontend.h"))
         .command([dmdExeFile] ~ flags["DFLAGS"] ~
-            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target] ~ dmdSources);
+            // Ignore warnings because of invalid C++ identifiers in the source code
+            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target] ~ dmdSources);
 });
 
 alias runCxxHeadersTest = makeRule!((builder, rule) {
