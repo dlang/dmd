@@ -996,6 +996,39 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         auto id = Identifier.idPool(se.peekString());
 
+
+        // since 2.094, allMembers return qualified strings for imports
+        // when such a string is used in getMember, it must turned back into several dotted exp.
+        // this is done by doing `mixin("a.b.c")` programatically.
+        bool mustSplit;
+        const(char)[] dottedStr = id.toString();
+        foreach (const i; 0 .. dottedStr.length)
+        {
+            if (dottedStr[i] != '.')
+                continue;
+            mustSplit = true;
+            break;
+        }
+        if (mustSplit)
+        {
+            // printf("splitting qualified string %s\n", id.toChars());
+            Expressions* es = new Expressions;
+            es.push(new StringExp(ex.loc, dottedStr));
+            Expression exs = trySemantic(new CompileExp(ex.loc, es), sc);
+            // take a special path if the mixin gives a scope dsym that is a module
+            if (exs && exs.op == TOK.scope_)
+            {
+                ScopeExp sdsex = cast(ScopeExp) exs;
+                if (sdsex.sds.isModule() || sdsex.sds.isPackage())
+                {
+                    if (e.ident == Id.hasMember)
+                        return True();
+                    if (e.ident == Id.getMember)
+                        return exs;
+                }
+            }
+        }
+
         /* Prefer a Type, because getDsymbol(Type) can lose type modifiers.
            Then a Dsymbol, because it might need some runtime contexts.
          */
