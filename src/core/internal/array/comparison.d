@@ -61,8 +61,7 @@ int __cmp(T)(scope const T[] lhs, scope const T[] rhs) @trusted
         foreach (const u; 0 .. len)
         {
             auto a = lhs.ptr[u], b = rhs.ptr[u];
-            static if (__traits(isFloating, T) && is(T == cfloat) || is(T == cdouble)
-                    || is(T == creal))
+            static if (is(T : creal))
             {
                 // Use rt.cmath2._Ccmp instead ?
                 // Also: if NaN is present, numbers will appear equal.
