@@ -3157,13 +3157,9 @@ else
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
-            // if we are returning to a ref which does not come from auto ref
-            // it's okay to return shared, because it's returing a pointer without
-            // reading the memory itself
-            if(inferRef || !tf.isref)
-            {
-                rs.exp.checkSharedAccess(sc);
-            }
+            // If we're returning by ref, allow the expression to be `shared`
+            const returnSharedRef = (tf.isref && (fd.inferRetType || tret.isShared()));
+            rs.exp.checkSharedAccess(sc, returnSharedRef);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOK.type)
@@ -3261,11 +3257,19 @@ else
                  * https://dlang.org/spec/function.html#auto-ref-functions
                  */
 
-                void turnOffRef()
+                void turnOffRef(scope void delegate() supplemental)
                 {
                     tf.isref = false;    // return by value
                     tf.isreturn = false; // ignore 'return' attribute, whether explicit or inferred
                     fd.storage_class &= ~STC.return_;
+
+                    // If we previously assumed the function could be ref when
+                    // checking for `shared`, make sure we were right
+                    if (global.params.noSharedAccess && rs.exp.type.isShared())
+                    {
+                        fd.error("function returns `shared` but cannot be inferred `ref`");
+                        supplemental();
+                    }
                 }
 
                 if (rs.exp.isLvalue())
@@ -3273,12 +3277,17 @@ else
                     /* May return by ref
                      */
                     if (checkReturnEscapeRef(sc, rs.exp, true))
-                        turnOffRef();
+                        turnOffRef(() { checkReturnEscapeRef(sc, rs.exp, false); });
                     else if (!rs.exp.type.constConv(tf.next))
-                        turnOffRef();
+                        turnOffRef(
+                            () => rs.loc.errorSupplemental("cannot implicitly convert `%s` of type `%s` to `%s`",
+                                      rs.exp.toChars(), rs.exp.type.toChars(), tf.next.toChars())
+                        );
                 }
                 else
-                    turnOffRef();
+                    turnOffRef(
+                        () => rs.loc.errorSupplemental("return value `%s` is not an lvalue", rs.exp.toChars())
+                    );
 
                 /* The "refness" is determined by all of return statements.
                  * This means:
