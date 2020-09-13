@@ -2064,6 +2064,41 @@ void test20162()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=3713
+
+int star1(int i)
+{
+    return i ? star1(i - 1) : 0;
+}
+
+int star2(int i)
+{
+    return i == 0 ? 0 : star2(i - 1);
+}
+
+int star3(int i)
+{
+    if (i == 0)
+        return 0;
+    return i == 2 ? star3(i - 2) : star3(i - 1);
+}
+
+int star4(int i)
+{
+    return (i == 0) ? 0
+          : i != 2  ? star4(i - 1)
+          : star4(i - 2);
+}
+
+void test3713()
+{
+    assert(star1(10) == 0);
+    assert(star2(10) == 0);
+    assert(star3(10) == 0);
+    assert(star4(10) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 void testsbbrex()
 {
@@ -2336,6 +2371,7 @@ int main()
     testbyteswap();
     testrolror();
     test20162();
+    test3713();
     testsbbrex();
     testmemcpy();
     testMulLea();
