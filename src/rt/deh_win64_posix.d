@@ -1,6 +1,9 @@
 /**
- * Written in the D programming language.
- * Implementation of exception handling support routines for Posix and Win64.
+ * Implementation of exception handling support routines for Win64.
+ *
+ * Note that this code also support POSIX, however since v2.070.0,
+ * DWARF exception handling is used instead when possible,
+ * as it provides better compatibility with C++.
  *
  * Copyright: Copyright Digital Mars 2000 - 2013.
  * License: Distributed under the
@@ -8,6 +11,7 @@
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly
  * Source: $(DRUNTIMESRC rt/deh_win64_posix.d)
+ * See_Also: https://docs.microsoft.com/en-us/cpp/build/exception-handling-x64?view=vs-2019
  */
 
 module rt.deh_win64_posix;
