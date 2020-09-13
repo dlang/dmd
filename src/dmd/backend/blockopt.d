@@ -1,12 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Manipulating basic blocks and their edges.
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.d, backend/blockopt.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_blockopt.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/blockopt.d
  */
 
@@ -1956,11 +1956,77 @@ private void brtailrecursion()
             )
            )
         {
-            if (el_anyframeptr(*pe))
+            if (el_anyframeptr(*pe))    // if any OPframeptr's
                 return;
-            while ((*pe).Eoper == OPcomma)
-                pe = &(*pe).EV.E2;
+
+            static elem** skipCommas(elem** pe)
+            {
+                while ((*pe).Eoper == OPcomma)
+                    pe = &(*pe).EV.E2;
+                return pe;
+            }
+
+            pe = skipCommas(pe);
+
             elem *e = *pe;
+
+            static bool isCandidate(elem* e)
+            {
+                e = *skipCommas(&e);
+                if (e.Eoper == OPcond)
+                    return isCandidate(e.EV.E2.EV.E1) || isCandidate(e.EV.E2.EV.E2);
+
+                return OTcall(e.Eoper) &&
+                       e.EV.E1.Eoper == OPvar &&
+                       e.EV.E1.EV.Vsym == funcsym_p;
+            }
+
+            if (e.Eoper == OPcond &&
+                (isCandidate(e.EV.E2.EV.E1) || isCandidate(e.EV.E2.EV.E2)))
+            {
+                /* Split OPcond into a BCiftrue block and two return blocks
+                 */
+                block* b1 = block_calloc();
+                ++numblks;
+                block* b2 = block_calloc();
+                ++numblks;
+                maxblks += 6;
+
+                b1.Belem = e.EV.E2.EV.E1;
+                e.EV.E2.EV.E1 = null;
+
+                b2.Belem = e.EV.E2.EV.E2;
+                e.EV.E2.EV.E2 = null;
+
+                *pe = e.EV.E1;
+                e.EV.E1 = null;
+                el_free(e);
+
+                if (b.BC == BCgoto)
+                {
+                    list_subtract(&b.Bsucc, bn);
+                    list_subtract(&bn.Bpred, b);
+                    list_append(&b1.Bsucc, bn);
+                    list_append(&bn.Bpred, b1);
+                    list_append(&b2.Bsucc, bn);
+                    list_append(&bn.Bpred, b2);
+                }
+
+                list_append(&b.Bsucc, b1);
+                list_append(&b1.Bpred, b);
+                list_append(&b.Bsucc, b2);
+                list_append(&b2.Bpred, b);
+
+                b1.BC = b.BC;
+                b2.BC = b.BC;
+                b.BC = BCiftrue;
+
+                b2.Bnext = b.Bnext;
+                b1.Bnext = b2;
+                b.Bnext = b1;
+                continue;
+            }
+
             if (OTcall(e.Eoper) &&
                 e.EV.E1.Eoper == OPvar &&
                 e.EV.E1.EV.Vsym == funcsym_p)
@@ -2003,7 +2069,6 @@ private void brtailrecursion()
 
                 debug if (debugc) printf("tail recursion\n");
                 go.changes++;
-                return;
             }
         }
     }
