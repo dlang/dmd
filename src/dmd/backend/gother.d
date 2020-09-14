@@ -1780,7 +1780,7 @@ void deadvar()
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)
                 {
-                    s.Srange = vec_realloc(s.Srange, maxblks);
+                    s.Srange = vec_realloc(s.Srange, dfo.length);
                     vec_clear(s.Srange);
                 }
             }
