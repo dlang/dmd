@@ -573,7 +573,6 @@ private int looprotate(ref loop l)
         // generated).
 
         auto head2 = block_calloc(); // create new head block
-        numblks++;                      // number of blocks in existence
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
         head.Bflags = BFLnomerg;       // move flags over to head2
@@ -727,7 +726,6 @@ restart:
             if (debugc) printf("Generating preheader for loop\n");
             addblk = true;              /* add one                       */
             p = block_calloc();         // the preheader
-            numblks++;
             h = l.Lhead;               /* loop header                   */
 
             /* Find parent of h */
@@ -3093,7 +3091,6 @@ private void elimbasivs(ref loop l)
                     {
                         block *bn = block_calloc();
                         bn.Btry = b.Btry;
-                        numblks++;
                         bn.BC = BCgoto;
                         bn.Bnext = dfo[i].Bnext;
                         dfo[i].Bnext = bn;
