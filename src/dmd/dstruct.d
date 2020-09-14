@@ -166,7 +166,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
     /* Note structural similarity of this Type walker to that in isSpeculativeType()
      */
 
-    Type tb = t.toBasetype();
+    Type tb = t.toBasetype().mutableOf().unSharedOf(); // remove modifiers
     switch (tb.ty)
     {
         case Tvector:   visitVector(tb.isTypeVector()); break;

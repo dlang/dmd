@@ -1503,6 +1503,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sd.semanticTypeInfoMembers();
         ad.semanticRun = PASS.semantic3done;
     }
+
+    override void visit(TypeInfoStructDeclaration tid)
+    {
+        StructDeclaration sd = tid.tinfo.isTypeStruct().sym;
+        if (sd.rtInfoScope)
+            generateRTInfo(sd, sd.rtInfoScope);
+    }
 }
 
 private struct FuncDeclSem3
