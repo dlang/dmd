@@ -1348,7 +1348,7 @@ version (MARS)
         eecontext.EEin--;
         eecontext_convs(marksi);
     }
-    maxblks = 3 * numblks;              // allow for increase in # of blocks
+
     // If we took the address of one parameter, assume we took the
     // address of all non-register parameters.
     if (addressOfParam | anyasm)        // if took address of a parameter
