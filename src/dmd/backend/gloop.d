@@ -233,8 +233,6 @@ int blockinit()
             hasasm = true;
                                         /* compute number of blocks     */
     }
-    assert(numblks == i && maxblks);
-    assert(i <= maxblks);
     foreach (j, b; dfo[])
     {
         assert(b.Bdfoidx == j);
@@ -730,7 +728,6 @@ restart:
             addblk = true;              /* add one                       */
             p = block_calloc();         // the preheader
             numblks++;
-            assert (numblks <= maxblks);
             h = l.Lhead;               /* loop header                   */
 
             /* Find parent of h */
@@ -3097,7 +3094,6 @@ private void elimbasivs(ref loop l)
                         block *bn = block_calloc();
                         bn.Btry = b.Btry;
                         numblks++;
-                        assert(numblks <= maxblks);
                         bn.BC = BCgoto;
                         bn.Bnext = dfo[i].Bnext;
                         dfo[i].Bnext = bn;

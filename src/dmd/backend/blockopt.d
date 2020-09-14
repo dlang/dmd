@@ -232,7 +232,7 @@ void block_goto(block *bgoto,block *bnew)
 
 /**********************************
  * Replace block numbers with block pointers.
- * Also compute numblks and maxblks.
+ * Also compute numblks.
  */
 
 void block_ptr()
@@ -245,7 +245,6 @@ void block_ptr()
         b.Bblknum = numblks;
         numblks++;
     }
-    maxblks = 3 * numblks;              /* allow for increase in # of blocks */
 }
 
 /*******************************
@@ -1139,14 +1138,8 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
     debug if (debugc) printf("compdfo()\n");
     assert(OPTIMIZER);
     block_clearvisit();
-    debug
-    {
-        if (maxblks == 0 || maxblks < numblks)
-            printf("maxblks = %d, numblks = %d\n",maxblks,numblks);
-    }
-    assert(maxblks && maxblks >= numblks);
     debug assert(!PARSER);
-    dfo.setLength(maxblks);
+    dfo.setLength(0);
 
     /******************************
      * Add b's successors to dfo[], then b
@@ -1990,7 +1983,6 @@ private void brtailrecursion()
                 ++numblks;
                 block* b2 = block_calloc();
                 ++numblks;
-                maxblks += 6;
 
                 b1.Belem = e.EV.E2.EV.E1;
                 e.EV.E2.EV.E1 = null;
@@ -2359,7 +2351,6 @@ private void blassertsplit()
 
             // Create exit block
             ++numblks;
-            maxblks += 3;
             block *bexit = block_calloc();
             bexit.BC = BCexit;
             bexit.Belem = e.EV.E2;
@@ -2385,7 +2376,6 @@ private void blassertsplit()
             /* Split b into two blocks, [b,b2]
              */
             ++numblks;
-            maxblks += 3;
             block *b2 = block_calloc();
             b2.Bnext = b.Bnext;
             b.Bnext = b2;

@@ -247,10 +247,7 @@ symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
 
-uint
-         maxblks = 0,   /* array max for all block stuff                */
-                        /* dfoblks <= numblks <= maxblks                */
-         numcse;        /* number of common subexpressions              */
+uint numcse;        // number of common subexpressions
 
 GlobalOptimizer go;
 
