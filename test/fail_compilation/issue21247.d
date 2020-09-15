@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue21247.d(14): Error: static assert:  "foo"
+fail_compilation/issue21247.d(12): Error: static assert:  "foo"
 ---
 */
 
