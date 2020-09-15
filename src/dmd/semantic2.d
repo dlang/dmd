@@ -99,7 +99,10 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         import dmd.staticcond;
         bool errors;
-        bool result = evalStaticCondition(sc, sa.exp, sa.exp, errors);
+        Expression msg;
+        bool result = evalStaticCondition(sc, sa.exp, sa.exp, errors,null, &msg);
+        if (msg)
+            sa.msg = msg;
         sc = sc.pop();
         if (errors)
         {
