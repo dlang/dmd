@@ -452,11 +452,6 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (testArgs.mode == TestMode.FAIL_COMPILE)
         testArgs.requiredArgs = "-verrors=0 " ~ testArgs.requiredArgs;
 
-    // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
-    // it also slows down some tests drastically, e.g. runnable/test17338.d
-    if (envData.usingMicrosoftCompiler)
-        testArgs.requiredArgs ~= " -L/OPT:NOICF";
-
     {
         string argSetsStr;
         findTestParameter(envData, file, "ARG_SETS", argSetsStr, ";");
