@@ -3953,7 +3953,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         OutBuffer buf1;
 
-                        if (fd.toChars() == funcdecl.toChars())
+                        if (fd.ident == funcdecl.ident)
                             hgs.fullQual = true;
                         functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
                             new Identifier(fd.toPrettyChars()), &hgs, null);
