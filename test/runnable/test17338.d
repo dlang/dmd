@@ -1,5 +1,8 @@
 // PERMUTE_ARGS:
 
+// COMDAT folding increases runtime by > 80x
+// REQUIRED_ARGS(windows): -L/OPT:NOICF
+
 // Apparently omf or optlink does not support more than 32767 symbols.
 // DISABLED: win32
 
