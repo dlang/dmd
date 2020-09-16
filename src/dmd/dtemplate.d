@@ -6187,7 +6187,20 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        printf(
+            "\n%s minst = %s, enclosing (%s).isNonRoot = %d\n",
+            toPrettyChars(), minst ? minst.toChars() : null,
+            enclosing ? enclosing.toPrettyChars() : null,
+            enclosing && enclosing.inNonRoot()
+        );
+
         if(minst) return true;
+
+        if(!minst) {
+            printf("\nno minst!  tinst: %p needs? %d  tnext: %p needs? %d\n",
+                   tinst, tinst && tinst.needsCodegen, tnext, tnext && tnext.needsCodegen);
+        }
+
 
         if (!minst)
         {
