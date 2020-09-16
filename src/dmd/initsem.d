@@ -15,7 +15,6 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.dcast;
 import dmd.declaration;
