@@ -6197,7 +6197,16 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* up
         return genHalt(loc);
     }
     auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
-    auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
+
+    elem* efile;
+    if (loc.filename)
+    {
+        const len = strlen(loc.filename);
+        Symbol* s = toStringSymbol(loc.filename, len, 1);
+        efile = el_ptr(s);
+    }
+    else
+        efile = toEfilenamePtr(cast(Module)irs.blx._module);
     auto eline = el_long(TYint, loc.linnum);
     if(upr is null)
     {
