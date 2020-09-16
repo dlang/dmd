@@ -844,8 +844,10 @@ public:
             {
             Lsa:
                 sa = sa.toAlias();
-                if (Declaration d = sa.isDeclaration())
+                if (sa.isDeclaration() && !sa.isOverDeclaration())
                 {
+                    Declaration d = sa.isDeclaration();
+
                     if (auto fad = d.isFuncAliasDeclaration())
                         d = fad.toAliasFunc();
                     if (d.mangleOverride)
