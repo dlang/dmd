@@ -6187,20 +6187,47 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
-        printf(
-            "\n%s minst = %s, enclosing (%s).isNonRoot = %d\n",
-            toPrettyChars(), minst ? minst.toChars() : null,
-            enclosing ? enclosing.toPrettyChars() : null,
-            enclosing && enclosing.inNonRoot()
-        );
+        // printf(
+        //     "\n%s minst = %s, enclosing (%s).isNonRoot = %d  needsCodegenOld? %d\n",
+        //     toPrettyChars(), minst ? minst.toChars() : null,
+        //     enclosing ? enclosing.toPrettyChars() : null,
+        //     enclosing && enclosing.inNonRoot(),
+        //     needsCodegenOld,
+        // );
 
-        if(minst) return true;
+        // if(minst && !needsCodegenOld) {
+        //     printf("!!!!!!!!!!!!!!!!!\n");
+        //     printf("%s\n", toPrettyChars);
+        //     printf("enclosing: %p inNonRoot? %d\n", enclosing, enclosing && enclosing.inNonRoot);
+        //     printf("minst isRoot? %d  root imports? %d\n", minst.isRoot, minst.rootImports);
+        //     printf("!!!!!!!!!!!!!!!!!\n");
+        // }
 
-        if(!minst) {
-            printf("\nno minst!  tinst: %p needs? %d  tnext: %p needs? %d\n",
-                   tinst, tinst && tinst.needsCodegen, tnext, tnext && tnext.needsCodegen);
+
+        // if(!minst) {
+        //     printf("no minst for %s!  tinst: %p needs? %d  tnext: %p needs? %d\n",
+        //            this.toPrettyChars,
+        //            tinst, tinst && tinst.needsCodegen, tnext, tnext && tnext.needsCodegen);
+        // }
+
+        //if(minst) return true;
+        if(minst) {
+            if (!minst.isRoot() && !minst.rootImports())
+                return false;
+
+            TemplateInstance tnext = this.tnext;
+            this.tnext = null;
+
+            if (tnext && !tnext.needsCodegen() && tnext.minst)
+            {
+                minst = tnext.minst; // cache result
+                assert(!minst.isRoot());
+                return false;
+            }
+
+            // Do codegen because this is not included in non-root instances.
+            return true;
         }
-
 
         if (!minst)
         {
@@ -6237,6 +6264,170 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         if (global.params.allInst)
         {
+            return true;
+        }
+
+        if (isDiscardable())
+        {
+            return false;
+        }
+
+        if (!minst)
+        {
+            // If this is a speculative instantiation,
+            // 1. do codegen if ancestors really needs codegen.
+            // 2. become non-speculative if siblings are not speculative
+
+            TemplateInstance tnext = this.tnext;
+            TemplateInstance tinst = this.tinst;
+            // At first, disconnect chain first to prevent infinite recursion.
+            this.tnext = null;
+            this.tinst = null;
+
+            // Determine necessity of tinst before tnext.
+            if (tinst && tinst.needsCodegen())
+            {
+                minst = tinst.minst; // cache result
+                assert(minst);
+                assert(minst.isRoot() || minst.rootImports());
+                return true;
+            }
+            if (tnext && (tnext.needsCodegen() || tnext.minst))
+            {
+                minst = tnext.minst; // cache result
+                assert(minst);
+                return minst.isRoot() || minst.rootImports();
+            }
+
+            // Elide codegen because this is really speculative.
+            return false;
+        }
+
+        /* Even when this is reached to the codegen pass,
+         * a non-root nested template should not generate code,
+         * due to avoid ODR violation.
+         */
+        if (enclosing && enclosing.inNonRoot())
+        {
+            if (tinst)
+            {
+                auto r = tinst.needsCodegen();
+                minst = tinst.minst; // cache result
+                return r;
+            }
+            if (tnext)
+            {
+                auto r = tnext.needsCodegen();
+                minst = tnext.minst; // cache result
+                return r;
+            }
+            return false;
+        }
+
+        if (global.params.useUnitTests && false)
+        {
+            // Prefer instantiations from root modules, to maximize link-ability.
+            if (minst.isRoot())
+                return true;
+
+            TemplateInstance tnext = this.tnext;
+            TemplateInstance tinst = this.tinst;
+            this.tnext = null;
+            this.tinst = null;
+
+            if (tinst && tinst.needsCodegen())
+            {
+                minst = tinst.minst; // cache result
+                assert(minst);
+                assert(minst.isRoot() || minst.rootImports());
+                return true;
+            }
+            if (tnext && tnext.needsCodegen())
+            {
+                minst = tnext.minst; // cache result
+                assert(minst);
+                assert(minst.isRoot() || minst.rootImports());
+                return true;
+            }
+
+            // https://issues.dlang.org/show_bug.cgi?id=2500 case
+            if (minst.rootImports())
+                return true;
+
+            // Elide codegen because this is not included in root instances.
+            return false;
+        }
+        else
+        {
+            // Prefer instantiations from non-root module, to minimize object code size.
+
+            /* If a TemplateInstance is ever instantiated by non-root modules,
+             * we do not have to generate code for it,
+             * because it will be generated when the non-root module is compiled.
+             *
+             * But, if the non-root 'minst' imports any root modules, it might still need codegen.
+             *
+             * The problem is if A imports B, and B imports A, and both A
+             * and B instantiate the same template, does the compilation of A
+             * or the compilation of B do the actual instantiation?
+             *
+             * See https://issues.dlang.org/show_bug.cgi?id=2500.
+             */
+            if (!minst.isRoot() && !minst.rootImports())
+                return false;
+
+            TemplateInstance tnext = this.tnext;
+            this.tnext = null;
+
+            if (tnext && !tnext.needsCodegen() && tnext.minst)
+            {
+                minst = tnext.minst; // cache result
+                assert(!minst.isRoot());
+                return false;
+            }
+
+            // Do codegen because this is not included in non-root instances.
+            return true;
+        }
+    }
+
+    final bool needsCodegenOld()
+    {
+        // Now -allInst is just for the backward compatibility.
+        if (global.params.allInst)
+        {
+            //printf("%s minst = %s, enclosing (%s).isNonRoot = %d\n",
+            //    toPrettyChars(), minst ? minst.toChars() : NULL,
+            //    enclosing ? enclosing.toPrettyChars() : NULL, enclosing && enclosing.inNonRoot());
+            if (enclosing)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=14588
+                 * If the captured context is not a function
+                 * (e.g. class), the instance layout determination is guaranteed,
+                 * because the semantic/semantic2 pass will be executed
+                 * even for non-root instances.
+                 */
+                if (!enclosing.isFuncDeclaration())
+                    return true;
+
+                /* https://issues.dlang.org/show_bug.cgi?id=14834
+                 * If the captured context is a function,
+                 * this excessive instantiation may cause ODR violation, because
+                 * -allInst and others doesn't guarantee the semantic3 execution
+                 * for that function.
+                 *
+                 * If the enclosing is also an instantiated function,
+                 * we have to rely on the ancestor's needsCodegen() result.
+                 */
+                if (TemplateInstance ti = enclosing.isInstantiated())
+                    return ti.needsCodegen();
+
+                /* https://issues.dlang.org/show_bug.cgi?id=13415
+                 * If and only if the enclosing scope needs codegen,
+                 * this nested templates would also need code generation.
+                 */
+                return !enclosing.inNonRoot();
+            }
             return true;
         }
 
