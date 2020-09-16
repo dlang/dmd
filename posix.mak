@@ -41,6 +41,7 @@ clean:
 
 test:
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
+	$(QUIET)$(MAKE) -C src -f posix.mak dmd
 	$(QUIET)$(MAKE) -C test -f Makefile
 
 html:
