@@ -60,6 +60,7 @@ import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -1445,7 +1446,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLdsymbol:
                 case FLfunc:
                     sym = toSymbol(cast(Dsymbol)c.IEV1.Vdsym);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == -1)
+                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV1.Vsym = sym;
                     c.IFL1 = sym.Sfl ? sym.Sfl : FLauto;
@@ -1473,7 +1474,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     Declaration d = cast(Declaration)c.IEV2.Vdsym;
                     sym = toSymbol(cast(Dsymbol)d);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == -1)
+                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV2.Vsym = sym;
                     c.IFL2 = sym.Sfl ? sym.Sfl : FLauto;

@@ -53,6 +53,7 @@ import dmd.backend.type;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.cgcv;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 
 extern (C++):
@@ -688,7 +689,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 
     auto s = symbol_calloc(id, idlen);
     s.Sclass = SCextern;
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     symbol_func(s);
 
     auto t = type_function(TYnfunc, null, false, Type_toCtype(taa.next));
