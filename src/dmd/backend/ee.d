@@ -29,7 +29,7 @@ import dmd.backend.oper;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.cgcv;
-
+import dmd.backend.symtab;
 version (SCPP)
 {
 import parser;
@@ -50,9 +50,8 @@ __gshared EEcontext eecontext;
 // Convert any symbols generated for the debugger expression to SCstack
 // storage class.
 
-void eecontext_convs(uint marksi)
-{   uint u;
-    uint top;
+void eecontext_convs(SYMIDX marksi)
+{
     symtab_t *ps;
 
     // Change all generated SCauto's to SCstack's
@@ -64,12 +63,11 @@ else
 {
     ps = cstate.CSpsymtab;
 }
-    top = ps.top;
+    const top = ps.length;
     //printf("eecontext_convs(%d,%d)\n",marksi,top);
-    for (u = marksi; u < top; u++)
-    {   Symbol *s;
-
-        s = ps.tab[u];
+    foreach (u; marksi .. top)
+    {
+        auto s = ps.tab[u];
         switch (s.Sclass)
         {
             case SCauto:
@@ -93,11 +91,10 @@ void eecontext_parse()
 {
     if (eecontext.EEimminent)
     {   type *t;
-        uint marksi;
         Symbol *s;
 
         //printf("imminent\n");
-        marksi = globsym.top;
+        const marksi = globsym.length;
         eecontext.EEin++;
         s = symbol_genauto(tspvoid);
         eecontext.EEelem = func_expr_dtor(true);

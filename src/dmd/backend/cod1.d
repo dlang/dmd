@@ -3977,7 +3977,7 @@ static if (0)
         { }
         else
         {
-            for (SYMIDX si = 0; si < globsym.top; si++)
+            for (SYMIDX si = 0; si < globsym.length; si++)
             {
                 Symbol* s = globsym.tab[si];
 

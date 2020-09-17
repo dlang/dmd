@@ -151,7 +151,7 @@ private bool hashSymbolIdentifiers(symtab_t* symtab)
     bool hashCollisions = false;
     SYMIDX[256] firstSym = void;
     memset(firstSym.ptr, -1, (firstSym).sizeof);
-    for (SYMIDX si = 0; si < symtab.top; si++)
+    for (SYMIDX si = 0; si < symtab.length; si++)
     {
         Symbol* sa = symtab.tab[si];
         int hash = getHash(sa.Sident.ptr) & 255;
@@ -190,22 +190,22 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
     // - arguments should be kept at the very beginning
     // - variables with unique name come first (will be emitted with full function scope)
     // - variables with duplicate names are added with ascending code offset
-    if (sortedSymtab.symmax < symtab.top)
+    if (sortedSymtab.symmax < symtab.length)
     {
-        nextSym = cast(int*)util_realloc(nextSym, symtab.top, (*nextSym).sizeof);
-        sortedSymtab.tab = cast(Symbol**) util_realloc(sortedSymtab.tab, symtab.top, (Symbol*).sizeof);
-        sortedSymtab.symmax = symtab.top;
+        nextSym = cast(int*)util_realloc(nextSym, symtab.length, (*nextSym).sizeof);
+        sortedSymtab.tab = cast(Symbol**) util_realloc(sortedSymtab.tab, symtab.length, (Symbol*).sizeof);
+        sortedSymtab.symmax = symtab.length;
     }
 
     if (!hashSymbolIdentifiers(symtab))
     {
         // without any collisions, there are no duplicate symbol names, so bail out early
-        uniquecnt = symtab.top;
+        uniquecnt = symtab.length;
         return symtab;
     }
 
     SYMIDX argcnt;
-    for (argcnt = 0; argcnt < symtab.top; argcnt++)
+    for (argcnt = 0; argcnt < symtab.length; argcnt++)
     {
         Symbol* sa = symtab.tab[argcnt];
         if (sa.Sclass != SCparameter && sa.Sclass != SCregpar && sa.Sclass != SCfastpar && sa.Sclass != SCshadowreg)
@@ -216,15 +216,15 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
     // find symbols with identical names, only these need lexical scope
     uniquecnt = argcnt;
     SYMIDX dupcnt = 0;
-    for (SYMIDX sj, si = argcnt; si < symtab.top; si++)
+    for (SYMIDX sj, si = argcnt; si < symtab.length; si++)
     {
         Symbol* sa = symtab.tab[si];
         if (!isLexicalScopeVar(sa) || hasUniqueIdentifier(symtab, si))
             sortedSymtab.tab[uniquecnt++] = sa;
         else
-            sortedSymtab.tab[symtab.top - 1 - dupcnt++] = sa; // fill from the top
+            sortedSymtab.tab[symtab.length - 1 - dupcnt++] = sa; // fill from the top
     }
-    sortedSymtab.top = symtab.top;
+    sortedSymtab.length = symtab.length;
     if(dupcnt == 0)
         return symtab;
 
@@ -284,7 +284,7 @@ public void writeSymbolTable(symtab_t* symtab,
 
     // Write local symbol table
     bool endarg = false;
-    for (SYMIDX si = 0; si < symtab.top; si++)
+    for (SYMIDX si = 0; si < symtab.length; si++)
     {
         Symbol *sa = symtab.tab[si];
         if (endarg == false &&

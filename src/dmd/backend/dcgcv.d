@@ -2839,7 +2839,7 @@ else
 
     // Put out local symbols
     endarg = 0;
-    for (si = 0; si < symtab.top; si++)
+    for (si = 0; si < symtab.length; si++)
     {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
         Symbol *sa = symtab.tab[si];
         cv4_outsym(sa);

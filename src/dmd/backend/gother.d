@@ -1772,7 +1772,7 @@ void deadvar()
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             Symbol *s = globsym.tab[i];
 
@@ -1795,7 +1795,7 @@ void deadvar()
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
                 foreach (j, b; dfo[])
@@ -1804,7 +1804,7 @@ void deadvar()
         }
 
         /* Print results        */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             char *p;
             Symbol *s = globsym.tab[i];

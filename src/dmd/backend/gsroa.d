@@ -76,7 +76,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                 const si = e.EV.Vsym.Ssymnum;
                 if (si != SYMIDX.max && sia[si].canSlice)
                 {
-                    assert(si < symtab.top);
+                    assert(si < symtab.length);
                     const n = nthSlice(e);
                     const sz = getSize(e);
                     if (sz == 2 * SLICESIZE && !tyfv(e.Ety) &&
@@ -130,7 +130,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                         const si = e1.EV.Vsym.Ssymnum;
                         if (si != SYMIDX.max && sia[si].canSlice)
                         {
-                            assert(si < symtab.top);
+                            assert(si < symtab.length);
                             if (nthSlice(e1) == NOTSLICE)
                             {
                                 sia[si].canSlice = false;
@@ -259,7 +259,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
 void sliceStructs(symtab_t* symtab, block* startblock)
 {
     if (debugc) printf("sliceStructs() %s\n", funcsym_p.Sident.ptr);
-    const sia_length = symtab.top;
+    const sia_length = symtab.length;
     /* 3 is because it is used for two arrays, sia[] and sia2[].
      * sia2[] can grow to twice the size of sia[], as symbols can get split into two.
      */
@@ -279,14 +279,14 @@ void sliceStructs(symtab_t* symtab, block* startblock)
     SymInfo[] sia = sip[0 .. sia_length];
     SymInfo[] sia2 = sip[sia_length .. sia_length * 3];
 
-    if (0) foreach (si; 0 .. symtab.top)
+    if (0) foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab.tab[si];
         printf("[%d]: %p %d %s\n", si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
     }
 
     bool anySlice = false;
-    foreach (si; 0 .. symtab.top)
+    foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab.tab[si];
         //printf("slice1: %s\n", s.Sident.ptr);
@@ -403,7 +403,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
             goto Ldone;
     }
 
-    foreach (si; 0 .. symtab.top)
+    foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab.tab[si];
         assert(s.Ssymnum == si);

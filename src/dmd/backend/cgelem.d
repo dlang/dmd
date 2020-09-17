@@ -5335,7 +5335,7 @@ private elem * elvalist(elem *e, goal_t goal)
         // Find last named parameter
         Symbol *lastNamed = null;
         Symbol *arguments_typeinfo = null;
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
             Symbol *s = globsym.tab[si];
 
@@ -5372,7 +5372,7 @@ static if (TARGET_WINDOS)
 
     // Find last named parameter
     Symbol *lastNamed = null;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
 
@@ -5402,7 +5402,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
     // Find __va_argsave
     Symbol *va_argsave = null;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
         if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
