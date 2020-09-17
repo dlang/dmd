@@ -69,6 +69,7 @@ struct Target
     TargetObjC objc;
 
     DString architectureName;    // name of the platform architecture (e.g. X86_64)
+    DArray<DString> platformNames;
 
     template <typename T>
     struct FPTypeProperties

@@ -44,9 +44,11 @@ import dmd.mtype;
 import dmd.root.rmem;
 import dmd.typesem;
 import dmd.tokens : TOK;
+import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.string : toDString;
+public import dmd.target_platform : Platform, platform;
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -61,12 +63,13 @@ import dmd.root.string : toDString;
 extern (C++) struct Target
 {
     // D ABI
-    uint ptrsize;             /// size of a pointer in bytes
-    uint realsize;            /// size a real consumes in memory
-    uint realpad;             /// padding added to the CPU real size to bring it up to realsize
-    uint realalignsize;       /// alignment for reals
-    uint classinfosize;       /// size of `ClassInfo`
-    ulong maxStaticDataSize;  /// maximum size of static data
+    uint ptrsize;                   /// size of a pointer in bytes
+    uint realsize;                  /// size a real consumes in memory
+    uint realpad;                   /// padding added to the CPU real size to bring it up to realsize
+    uint realalignsize;             /// alignment for reals
+    uint classinfosize;             /// size of `ClassInfo`
+    ulong maxStaticDataSize;        /// maximum size of static data
+    Platform platform;              /// backend platform
 
     /// C ABI
     TargetC c;
@@ -79,6 +82,9 @@ extern (C++) struct Target
 
     /// Architecture name
     const(char)[] architectureName;
+
+    // List of describing names for the current platform instance
+    string[] platformNames;
 
     /**
      * Values representing all properties for floating point types
@@ -145,41 +151,80 @@ extern (C++) struct Target
             ptrsize = 8;
             classinfosize = 0x98; // 152
         }
-        if (params.isLinux || params.isFreeBSD || params.isOpenBSD || params.isDragonFlyBSD || params.isSolaris)
+
+        // For now use the statically determined platform
+        platform = .platform;
+        with (Platform)
+        final switch (platform)
         {
-            realsize = 12;
-            realpad = 2;
-            realalignsize = 4;
-        }
-        else if (params.isOSX)
-        {
-            realsize = 16;
-            realpad = 6;
-            realalignsize = 16;
-        }
-        else if (params.isWindows)
-        {
-            realsize = 10;
-            realpad = 0;
-            realalignsize = 2;
-            if (ptrsize == 4)
-            {
-                /* Optlink cannot deal with individual data chunks
-                 * larger than 16Mb
-                 */
-                maxStaticDataSize = 0x100_0000;  // 16Mb
-            }
-        }
-        else
-            assert(0);
-        if (params.is64bit)
-        {
-            if (params.isLinux || params.isFreeBSD || params.isDragonFlyBSD || params.isSolaris)
-            {
+            case Linux, FreeBSD, OpenBSD, DragonFlyBSD, Solaris:
+                realsize = 12;
+                realpad = 2;
+                realalignsize = 4;
+                break;
+            case OSX:
                 realsize = 16;
                 realpad = 6;
                 realalignsize = 16;
+                break;
+            case Windows:
+                realsize = 10;
+                realpad = 0;
+                realalignsize = 2;
+                if (ptrsize == 4)
+                {
+                    /* Optlink cannot deal with individual data chunks
+                     * larger than 16Mb
+                     */
+                    maxStaticDataSize = 0x100_0000;  // 16Mb
+                }
+                break;
+        }
+        if (params.is64bit)
+        {
+            with (Platform)
+            final switch (platform)
+            {
+                case Linux, FreeBSD, OpenBSD, DragonFlyBSD, Solaris:
+                    realsize = 16;
+                    realpad = 6;
+                    realalignsize = 16;
+                    break;
+                case OSX, Windows:
+                    break;
             }
+        }
+
+        with (Platform)
+        final switch (target.platform)
+        {
+            case Windows:
+                platformNames = ["windows"];
+                break;
+
+            case Linux:
+                platformNames = ["posix", "linux"];
+                break;
+
+            case FreeBSD:
+                platformNames = ["posix", "freebsd", "bsd"];
+                break;
+
+            case OpenBSD:
+                platformNames = ["posix", "openbsd", "bsd"];
+                break;
+
+            case Solaris:
+                platformNames = ["posix", "solaris", "bsd"];
+                break;
+
+            case DragonFlyBSD:
+                platformNames = ["posix", "dragonflybsd", "bsd"];
+                break;
+
+            case OSX:
+                platformNames = ["posix", "osx"];
+                break;
         }
 
         c.initialize(params, this);
@@ -905,12 +950,15 @@ extern (C++) struct Target
     out(result) { assert(result || params.isWindows); }
     do
     {
-        return params.isLinux
-            || params.isOSX
-            || params.isFreeBSD
-            || params.isOpenBSD
-            || params.isDragonFlyBSD
-            || params.isSolaris;
+        with (Platform)
+        final switch (platform)
+        {
+            case Linux, OSX, FreeBSD, OpenBSD, DragonFlyBSD, Solaris:
+                return true;
+
+            case Windows:
+                return false;
+        }
     }
 }
 
@@ -1026,12 +1074,15 @@ struct TargetCPP
      */
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.DragonFlyBSD || TARGET.Solaris)
-            return toCppMangleItanium(s);
-        else static if (TARGET.Windows)
-            return toCppMangleMSVC(s);
-        else
-            static assert(0, "fix this");
+        with (Platform)
+        final switch (platform)
+        {
+            case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                return toCppMangleItanium(s);
+
+            case Windows:
+                return toCppMangleMSVC(s);
+        }
     }
 
     /**
@@ -1043,12 +1094,14 @@ struct TargetCPP
      */
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            return cppTypeInfoMangleItanium(cd);
-        else static if (TARGET.Windows)
-            return cppTypeInfoMangleMSVC(cd);
-        else
-            static assert(0, "fix this");
+        with (Platform)
+        final switch (platform)
+        {
+            case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                return cppTypeInfoMangleItanium(cd);
+            case Windows:
+                return cppTypeInfoMangleMSVC(cd);
+        }
     }
 
     /**

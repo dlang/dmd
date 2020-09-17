@@ -166,7 +166,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     params.argv0 = arguments[0].toDString;
 
     // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
-    static if (TARGET.Windows)
+    static if (platform == Platform.Windows)
     {
         params.is64bit = false;
         params.mscoff = false;
@@ -1129,26 +1129,25 @@ private void setDefaultLibrary()
 {
     if (global.params.defaultlibname is null)
     {
-        static if (TARGET.Windows)
+        with (Platform)
+        final switch (platform)
         {
-            if (global.params.is64bit)
-                global.params.defaultlibname = "phobos64";
-            else if (global.params.mscoff)
-                global.params.defaultlibname = "phobos32mscoff";
-            else
-                global.params.defaultlibname = "phobos";
-        }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
-            global.params.defaultlibname = "libphobos2.a";
-        }
-        else static if (TARGET.OSX)
-        {
-            global.params.defaultlibname = "phobos2";
-        }
-        else
-        {
-            static assert(0, "fix this");
+            case Windows:
+                if (global.params.is64bit)
+                    global.params.defaultlibname = "phobos64";
+                else if (global.params.mscoff)
+                    global.params.defaultlibname = "phobos32mscoff";
+                else
+                    global.params.defaultlibname = "phobos";
+                break;
+
+            case Linux, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                global.params.defaultlibname = "libphobos2.a";
+                break;
+
+            case OSX:
+                global.params.defaultlibname = "phobos2";
+                break;
         }
     }
     else if (!global.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
@@ -1160,28 +1159,37 @@ private void setDefaultLibrary()
 
 /*************************************
  * Set the `is` target fields of `params` according
- * to the TARGET value.
+ * to the platform backend value.
  * Params:
  *      params = where the `is` fields are
  */
 void setTarget(ref Param params)
 {
-    static if (TARGET.Windows)
-        params.isWindows = true;
-    else static if (TARGET.Linux)
-        params.isLinux = true;
-    else static if (TARGET.OSX)
-        params.isOSX = true;
-    else static if (TARGET.FreeBSD)
-        params.isFreeBSD = true;
-    else static if (TARGET.OpenBSD)
-        params.isOpenBSD = true;
-    else static if (TARGET.Solaris)
-        params.isSolaris = true;
-    else static if (TARGET.DragonFlyBSD)
-        params.isDragonFlyBSD = true;
-    else
-        static assert(0, "unknown TARGET");
+    with (Platform)
+    final switch (platform)
+    {
+        case Windows:
+            params.isWindows = true;
+            break;
+        case Linux:
+            params.isLinux = true;
+            break;
+        case OSX:
+            params.isOSX = true;
+            break;
+        case FreeBSD:
+            params.isFreeBSD = true;
+            break;
+        case OpenBSD:
+            params.isOpenBSD = true;
+            break;
+        case Solaris:
+            params.isSolaris = true;
+            break;
+        case DragonFlyBSD:
+            params.isDragonFlyBSD = true;
+            break;
+    }
 }
 
 /**
@@ -1199,75 +1207,74 @@ void setTarget(ref Param params)
 void addDefaultVersionIdentifiers(const ref Param params)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    if (params.isWindows)
+    with (Platform)
+    final switch (platform)
     {
-        VersionCondition.addPredefinedGlobalIdent("Windows");
-        if (global.params.mscoff)
-        {
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
-            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Microsoft");
-        }
-        else
-        {
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
-            VersionCondition.addPredefinedGlobalIdent("CppRuntime_DigitalMars");
-        }
-    }
-    else if (params.isLinux)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("linux");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        // Note: This should be done with a target triplet, to support cross compilation.
-        // However DMD currently does not support it, so this is a simple
-        // fix to make DMD compile on Musl-based systems such as Alpine.
-        // See https://github.com/dlang/dmd/pull/8020
-        // And https://wiki.osdev.org/Target_Triplet
-        version (CRuntime_Musl)
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
-        else
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
-    }
-    else if (params.isOSX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OSX");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
-        // For legacy compatibility
-        VersionCondition.addPredefinedGlobalIdent("darwin");
-    }
-    else if (params.isFreeBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
-    }
-    else if (params.isOpenBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
-    }
-    else if (params.isDragonFlyBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
-    }
-    else if (params.isSolaris)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("Solaris");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Sun");
-    }
-    else
-    {
-        assert(0);
+        case Windows:
+            VersionCondition.addPredefinedGlobalIdent("Windows");
+            if (global.params.mscoff)
+            {
+                VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
+                VersionCondition.addPredefinedGlobalIdent("CppRuntime_Microsoft");
+            }
+            else
+            {
+                VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
+                VersionCondition.addPredefinedGlobalIdent("CppRuntime_DigitalMars");
+            }
+            break;
+
+        case Linux:
+            VersionCondition.addPredefinedGlobalIdent("Posix");
+            VersionCondition.addPredefinedGlobalIdent("linux");
+            VersionCondition.addPredefinedGlobalIdent("ELFv1");
+            // Note: This should be done with a target triplet, to support cross compilation.
+            // However DMD currently does not support it, so this is a simple
+            // fix to make DMD compile on Musl-based systems such as Alpine.
+            // See https://github.com/dlang/dmd/pull/8020
+            // And https://wiki.osdev.org/Target_Triplet
+            version (CRuntime_Musl)
+                VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
+            else
+                VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
+            break;
+
+        case OSX:
+            VersionCondition.addPredefinedGlobalIdent("Posix");
+            VersionCondition.addPredefinedGlobalIdent("OSX");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
+            // For legacy compatibility
+            VersionCondition.addPredefinedGlobalIdent("darwin");
+            break;
+
+        case FreeBSD:
+            VersionCondition.addPredefinedGlobalIdent("Posix");
+            VersionCondition.addPredefinedGlobalIdent("FreeBSD");
+            VersionCondition.addPredefinedGlobalIdent("ELFv1");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
+            break;
+
+        case OpenBSD:
+            VersionCondition.addPredefinedGlobalIdent("Posix");
+            VersionCondition.addPredefinedGlobalIdent("OpenBSD");
+            VersionCondition.addPredefinedGlobalIdent("ELFv1");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
+            break;
+
+        case DragonFlyBSD:
+            VersionCondition.addPredefinedGlobalIdent("Posix");
+            VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
+            VersionCondition.addPredefinedGlobalIdent("ELFv1");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
+            break;
+
+        case Solaris:
+            VersionCondition.addPredefinedGlobalIdent("Posix");
+            VersionCondition.addPredefinedGlobalIdent("Solaris");
+            VersionCondition.addPredefinedGlobalIdent("ELFv1");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Sun");
+            break;
     }
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
@@ -1286,7 +1293,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
-        if (params.isWindows)
+        if (platform == Platform.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
         }
@@ -1296,7 +1303,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        if (params.isWindows)
+        if (platform == Platform.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }
@@ -1585,7 +1592,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         const(char)[] arg = p.toDString();
         if (*p != '-')
         {
-            static if (TARGET.Windows)
+            static if (platform == Platform.Windows)
             {
                 const ext = FileName.ext(arg);
                 if (ext.length && FileName.equals(ext, "exe"))
@@ -1743,24 +1750,28 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.dll = true;
         else if (arg == "-fPIC")
         {
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            with (Platform)
+            final switch (platform)
             {
-                params.pic = PIC.pic;
-            }
-            else
-            {
-                goto Lerror;
+                case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                    params.pic = PIC.pic;
+                    break;
+
+                case Windows:
+                    goto Lerror;
             }
         }
         else if (arg == "-fPIE")
         {
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            with (Platform)
+            final switch (platform)
             {
-                params.pic = PIC.pie;
-            }
-            else
-            {
-                goto Lerror;
+                case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                    params.pic = PIC.pie;
+                    break;
+
+                case Windows:
+                    goto Lerror;
             }
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
@@ -1804,7 +1815,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-            static if (TARGET.DragonFlyBSD) {
+            static if (platform == Platform.DragonFlyBSD) {
                 error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
             } else {
                 params.is64bit = false;
@@ -1814,14 +1825,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             params.is64bit = true;
-            static if (TARGET.Windows)
+            static if (platform == Platform.Windows)
             {
                 params.mscoff = true;
             }
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
-            static if (TARGET.Windows)
+            static if (platform == Platform.Windows)
             {
                 params.is64bit = 0;
                 params.mscoff = true;
@@ -1833,7 +1844,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
-            static if (TARGET.Windows)
+            static if (platform == Platform.Windows)
             {
                 params.mscrtlib = arg[10 .. $];
             }
@@ -2226,14 +2237,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (startsWith(p + 1, "Xcc="))
         {
             // Linking code is guarded by version (Posix):
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            with (Platform)
+            final switch (platform)
             {
-                params.linkswitches.push(p + 5);
-                params.linkswitchIsForCC.push(true);
-            }
-            else
-            {
-                goto Lerror;
+                case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+                    params.linkswitches.push(p + 5);
+                    params.linkswitchIsForCC.push(true);
+                    break;
+
+                case Windows:
+                    goto Lerror;
             }
         }
         else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
@@ -2541,23 +2554,26 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 version (NoMain) {} else
 private void reconcileCommands(ref Param params, size_t numSrcFiles)
 {
-    static if (TARGET.OSX)
-    {
+    static if (platform == Platform.OSX)
         params.pic = PIC.pic;
-    }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+
+    with (Platform)
+    final switch (platform)
     {
-        if (params.lib && params.dll)
-            error(Loc.initial, "cannot mix -lib and -shared");
-    }
-    static if (TARGET.Windows)
-    {
-        if (params.mscoff && !params.mscrtlib)
-        {
-            VSOptions vsopt;
-            vsopt.initialize();
-            params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
-        }
+        case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+            if (params.lib && params.dll)
+                error(Loc.initial, "cannot mix -lib and -shared");
+            break;
+
+        case Windows:
+            version (Windows)
+            if (params.mscoff && !params.mscrtlib)
+            {
+                VSOptions vsopt;
+                vsopt.initialize();
+                params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
+            }
+            break;
     }
 
     // Target uses 64bit pointers.
@@ -2725,14 +2741,20 @@ Module createModule(const(char)* file, ref Strings libmodules)
         libmodules.push(file);
         return null;
     }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+
+    with (Platform)
+    final switch (platform)
     {
-        if (FileName.equals(ext, global.dll_ext))
-        {
-            global.params.dllfiles.push(file);
-            libmodules.push(file);
-            return null;
-        }
+        case Linux, OSX, FreeBSD, OpenBSD, Solaris, DragonFlyBSD:
+            if (FileName.equals(ext, global.dll_ext))
+            {
+                global.params.dllfiles.push(file);
+                libmodules.push(file);
+                return null;
+            }
+            break;
+        case Windows:
+            break;
     }
     if (ext == global.ddoc_ext)
     {
@@ -2750,7 +2772,7 @@ Module createModule(const(char)* file, ref Strings libmodules)
         global.params.mapfile = file.toDString;
         return null;
     }
-    static if (TARGET.Windows)
+    static if (platform == Platform.Windows)
     {
         if (FileName.equals(ext, "res"))
         {

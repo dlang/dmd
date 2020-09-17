@@ -1262,7 +1262,7 @@ auto sourceFiles()
             libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d target_platform.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d
         "),
         backendHeaders: fileArray(env["C"], "
