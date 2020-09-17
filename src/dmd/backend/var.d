@@ -22,6 +22,7 @@ import dmd.backend.dlist;
 import dmd.backend.goh;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

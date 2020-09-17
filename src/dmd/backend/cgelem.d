@@ -37,6 +37,7 @@ import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

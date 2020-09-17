@@ -19,6 +19,7 @@ import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.type;
 
 extern (C++):
@@ -701,13 +702,6 @@ struct BlockRange
 /**********************************
  * Functions
  */
-
-struct symtab_t
-{
-    SYMIDX top;                 // 1 past end
-    SYMIDX symmax;              // max # of entries in tab[] possible
-    Symbol **tab;               // local Symbol table
-}
 
 alias func_flags_t = uint;
 enum

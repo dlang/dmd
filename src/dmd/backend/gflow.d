@@ -1365,7 +1365,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPvar:
                 if (symbol_isintab(n.EV.Vsym))
                 {
-                    SYMIDX si = n.EV.Vsym.Ssymnum;
+                    const si = n.EV.Vsym.Ssymnum;
 
                     assert(cast(uint)si < globsym.top);
                     if (!vec_testbit(si,KILL))  // if not in KILL

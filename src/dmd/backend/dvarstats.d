@@ -21,6 +21,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.code;
+import dmd.backend.symtab;
 
 extern (C++):
 

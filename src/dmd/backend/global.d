@@ -28,6 +28,7 @@ import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
+import dmd.backend.symtab;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
@@ -320,10 +321,6 @@ extern __gshared
 }
 
 /* Symbol.c */
-extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax);
-Symbol **symtab_malloc(size_t symmax);
-Symbol **symtab_calloc(size_t symmax);
-void symtab_free(Symbol **tab);
 //#if TERMCODE
 //void symbol_keep(Symbol *s);
 //#else
