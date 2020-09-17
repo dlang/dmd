@@ -228,6 +228,8 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     OutBuffer decl;
 
     // enable indent by spaces on buffers
+    fwd.doindent = true;
+    fwd.spaces = true;
     decl.doindent = true;
     decl.spaces = true;
     check.doindent = true;
@@ -262,72 +264,6 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
         hashIf(buf, "!defined(_d_real)");
         {
             hashDefine(buf, "_d_real long double");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasDefaultEnum)
-    {
-        hashIf(buf, "!defined(BEGIN_ENUM)");
-        {
-            hashDefine(buf, "BEGIN_ENUM(name, upper, lower) enum class name {");
-            hashDefine(buf, "ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,");
-            hashDefine(buf, "END_ENUM(name, upper, lower) };");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasNumericEnum)
-    {
-        hashIf(buf, "!defined(BEGIN_ENUM_NUMERIC)");
-        {
-            hashDefine(buf, "BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {");
-            hashDefine(buf, "ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,");
-            hashDefine(buf, "END_ENUM_NUMERIC(type, name, upper, lower) };");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasTypedEnum)
-    {
-        hashIf(buf, "!defined(BEGIN_ENUM_TYPE)");
-        {
-            hashDefine(buf, "BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {");
-            hashDefine(buf, "ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;");
-            hashDefine(buf, "END_ENUM_TYPE(type, name, upper, lower) };");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasAnonEnum)
-    {
-        hashIf(buf, "!defined(BEGIN_ANON_ENUM)");
-        {
-            hashDefine(buf, "BEGIN_ANON_ENUM() enum {");
-            hashDefine(buf, "ANON_ENUM_KEY(type, name, value) name = value,");
-            hashDefine(buf, "END_ANON_ENUM() };");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasAnonNumericEnum)
-    {
-        hashIf(buf, "!defined(BEGIN_ANON_ENUM_NUMERIC)");
-        {
-            hashDefine(buf, "BEGIN_ANON_ENUM_NUMERIC(type) enum : type {");
-            hashDefine(buf, "ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,");
-            hashDefine(buf, "END_ANON_ENUM_NUMERIC(type) };");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasNumericConstant)
-    {
-        hashIf(buf, "!defined(ENUM_CONSTANT_NUMERIC)");
-        {
-            hashDefine(buf, "ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };");
-        }
-        hashEndIf(buf);
-    }
-    if (v.hasTypedConstant)
-    {
-        hashIf(buf, "!defined(ENUM_CONSTANT)");
-        {
-            hashDefine(buf, "ENUM_CONSTANT(type, name, value) static type const name = value;");
         }
         hashEndIf(buf);
     }
@@ -415,13 +351,6 @@ public:
     AST.Type* origType;
 
     bool hasReal;
-    bool hasDefaultEnum;
-    bool hasNumericEnum;
-    bool hasTypedEnum;
-    bool hasAnonEnum;
-    bool hasAnonNumericEnum;
-    bool hasNumericConstant;
-    bool hasTypedConstant;
     const bool printIgnored;
 
     this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
@@ -727,13 +656,21 @@ public:
             final switch (kind)
             {
                 case EnumKind.Int, EnumKind.Numeric:
-                    hasNumericConstant = true;
-                    buf.writestring("ENUM_CONSTANT_NUMERIC(");
+                    buf.writestring("enum : ");
+                    writeEnumTypeName(type);
+                    buf.printf(" { %s = ", vd.ident.toChars());
+                    auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
+                    visitInteger(ie.toInteger(), type);
+                    buf.writestring(" };");
                     break;
 
                 case EnumKind.String, EnumKind.Enum:
-                    hasTypedConstant = true;
-                    buf.writestring("ENUM_CONSTANT(");
+                    buf.writestring("static ");
+                    writeEnumTypeName(type);
+                    buf.printf(" const %s = ", vd.ident.toChars());
+                    auto e = AST.initializerToExpression(vd._init);
+                    e.accept(this);
+                    buf.writestring(";");
                     break;
 
                 case EnumKind.Other:
@@ -744,21 +681,7 @@ public:
                     }
                     return;
             }
-            writeEnumTypeName(type);
-            buf.writestring(", ");
-            buf.writestring(vd.ident.toString());
-            buf.writestring(", ");
-            auto e = AST.initializerToExpression(vd._init);
-            if (kind == EnumKind.Int || kind == EnumKind.Numeric)
-            {
-                auto ie = e.isIntegerExp();
-                visitInteger(ie.toInteger(), type);
-            }
-            else
-            {
-                e.accept(this);
-            }
-            buf.writestringln(")");
+            buf.writenl();
             buf.writenl();
             return;
         }
@@ -1283,65 +1206,34 @@ public:
         bool manifestConstants = !type || (isAnonymous && kind == EnumKind.Other);
         assert(!manifestConstants || isAnonymous);
 
-        const(char)[] name = null;
-        char[] nameLower = null;
-        char[] nameUpper = null;
-        char[] nameAbbrev = null;
-        if (!isAnonymous)
-        {
-            name = ed.ident.toString;
-            nameLower = new char[name.length];
-            nameUpper = new char[name.length];
-            foreach (i, c; name)
-            {
-                nameUpper[i] = cast(char)toupper(c);
-                nameLower[i] = cast(char)tolower(c);
-                if (isupper(c))
-                    nameAbbrev ~= c;
-            }
-        }
-
         // write the enum header
         if (!manifestConstants)
         {
-            if (!isAnonymous && kind == EnumKind.Int)
+            if (kind == EnumKind.Int || kind == EnumKind.Numeric)
             {
-                hasDefaultEnum = true;
-                buf.writestring("BEGIN_ENUM(");
-            }
-            else if (!isAnonymous && kind == EnumKind.Numeric)
-            {
-                hasNumericEnum = true;
-                buf.writestring("BEGIN_ENUM_NUMERIC(");
-            }
-            else if(!isAnonymous)
-            {
-                hasTypedEnum = true;
-                buf.writestring("BEGIN_ENUM_TYPE(");
-            }
-            else if (kind == EnumKind.Int)
-            {
-                hasAnonEnum = true;
-                buf.writestring("BEGIN_ANON_ENUM(");
+                buf.writestring("enum");
+                if (!isAnonymous)
+                {
+                    buf.writestring(" class ");
+                    buf.writestring(ed.ident.toString());
+                }
+                if (kind == EnumKind.Numeric)
+                {
+                    buf.writestring(" : ");
+                    writeEnumTypeName(type);
+                }
             }
             else
             {
-                hasAnonNumericEnum = true;
-                buf.writestring("BEGIN_ANON_ENUM_NUMERIC(");
+                buf.writestring("namespace");
+                if(!isAnonymous)
+                {
+                    buf.writestring(" ");
+                    buf.writestring(ed.ident.toString());
+                }
             }
-            if (kind != EnumKind.Int)
-                writeEnumTypeName(type);
-            if (!isAnonymous)
-            {
-                if (kind != EnumKind.Int)
-                    buf.writestring(", ");
-                buf.writestring(name);
-                buf.writestring(", ");
-                buf.writestring(nameUpper);
-                buf.writestring(", ");
-                buf.writestring(nameLower);
-            }
-            buf.writestringln(")");
+            buf.writenl();
+            buf.writestringln("{");
         }
 
         // emit constant for each member
@@ -1354,82 +1246,38 @@ public:
             AST.Type memberType = type ? type : m.type;
             const EnumKind memberKind = type ? kind : getEnumKind(memberType);
 
-            if (!manifestConstants && !isAnonymous && kind == EnumKind.Int)
-                buf.writestring("ENUM_KEY(");
-            else if (!manifestConstants && !isAnonymous && kind == EnumKind.Numeric)
-                buf.writestring("ENUM_KEY_NUMERIC(");
-            else if(!manifestConstants && !isAnonymous)
-                buf.writestring("ENUM_KEY_TYPE(");
-            else if (!manifestConstants && kind == EnumKind.Int)
-                buf.writestring("ANON_ENUM_KEY(");
-            else if (!manifestConstants)
-                buf.writestring("ANON_ENUM_KEY_NUMERIC(");
-            else if (manifestConstants && memberKind == EnumKind.Int || memberKind == EnumKind.Numeric)
+            if (!manifestConstants && (kind == EnumKind.Int || kind == EnumKind.Numeric))
             {
-                hasNumericConstant = true;
-                buf.writestring("ENUM_CONSTANT_NUMERIC(");
-            }
-            else if (manifestConstants)
-            {
-                hasTypedConstant = true;
-                buf.writestring("ENUM_CONSTANT(");
-            }
-            writeEnumTypeName(memberType);
-            buf.printf(", %s, ", m.ident.toChars());
-
-            if (kind == EnumKind.Int || kind == EnumKind.Numeric)
-            {
+                buf.printf("%s = ", m.ident.toChars());
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
+                buf.writestring(",");
+            }
+            else if (manifestConstants && (memberKind == EnumKind.Int || memberKind == EnumKind.Numeric))
+            {
+                buf.writestring("enum : ");
+                writeEnumTypeName(memberType);
+                buf.printf(" { %s = ", m.ident.toChars());
+                auto ie = cast(AST.IntegerExp)m.value;
+                visitInteger(ie.toInteger(), memberType);
+                buf.writestring(" };");
             }
             else
-                m.value.accept(this);
-            if (!isAnonymous)
             {
-                buf.writestring(", ");
-                buf.writestring(name);
-                buf.writestring(", ");
-                buf.writestring(nameUpper);
-                buf.writestring(", ");
-                buf.writestring(nameLower);
-                if (!manifestConstants)
-                {
-                    buf.writestring(", ");
-                    buf.writestring(nameAbbrev);
-                }
+                buf.writestring("static ");
+                writeEnumTypeName(memberType);
+                buf.printf(" const %s = ", m.ident.toChars());
+                m.value.accept(this);
+                buf.writestring(";");
             }
-            buf.writestringln(")");
+            buf.writenl();
         }
 
         if (!manifestConstants)
             buf.level--;
         // write the enum tail
         if (!manifestConstants)
-        {
-            if (!isAnonymous && kind == EnumKind.Int)
-                buf.writestring("END_ENUM(");
-            else if (!isAnonymous && kind == EnumKind.Numeric)
-                buf.writestring("END_ENUM_NUMERIC(");
-            else if(!isAnonymous)
-                buf.writestring("END_ENUM_TYPE(");
-            else if (kind == EnumKind.Int)
-                buf.writestring("END_ANON_ENUM(");
-            else
-                buf.writestring("END_ANON_ENUM_NUMERIC(");
-            if (kind != EnumKind.Int)
-                writeEnumTypeName(type);
-            if (!isAnonymous)
-            {
-                if (kind != EnumKind.Int)
-                    buf.writestring(", ");
-                buf.writestring(name);
-                buf.writestring(", ");
-                buf.writestring(nameUpper);
-                buf.writestring(", ");
-                buf.writestring(nameLower);
-            }
-            buf.writestring(")");
-        }
+            buf.writestring("};");
         buf.writenl();
         buf.writenl();
     }
