@@ -6187,47 +6187,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
-        // printf(
-        //     "\n%s minst = %s, enclosing (%s).isNonRoot = %d  needsCodegenOld? %d\n",
-        //     toPrettyChars(), minst ? minst.toChars() : null,
-        //     enclosing ? enclosing.toPrettyChars() : null,
-        //     enclosing && enclosing.inNonRoot(),
-        //     needsCodegenOld,
-        // );
-
-        // if(minst && !needsCodegenOld) {
-        //     printf("!!!!!!!!!!!!!!!!!\n");
-        //     printf("%s\n", toPrettyChars);
-        //     printf("enclosing: %p inNonRoot? %d\n", enclosing, enclosing && enclosing.inNonRoot);
-        //     printf("minst isRoot? %d  root imports? %d\n", minst.isRoot, minst.rootImports);
-        //     printf("!!!!!!!!!!!!!!!!!\n");
-        // }
-
-
-        // if(!minst) {
-        //     printf("no minst for %s!  tinst: %p needs? %d  tnext: %p needs? %d\n",
-        //            this.toPrettyChars,
-        //            tinst, tinst && tinst.needsCodegen, tnext, tnext && tnext.needsCodegen);
-        // }
-
-        //if(minst) return true;
-        if(minst) {
-            if (!minst.isRoot() && !minst.rootImports())
-                return false;
-
-            TemplateInstance tnext = this.tnext;
-            this.tnext = null;
-
-            if (tnext && !tnext.needsCodegen() && tnext.minst)
-            {
-                minst = tnext.minst; // cache result
-                assert(!minst.isRoot());
-                return false;
-            }
-
-            // Do codegen because this is not included in non-root instances.
-            return true;
-        }
+        if(minst) return true;
 
         if (!minst)
         {

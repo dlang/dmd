@@ -1214,7 +1214,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         if (TemplateInstance ti = sd.isInstantiated())
         {
-            if (!ti.needsCodegen())
+            if (!ti.needsCodegen() || true)
             {
                 assert(ti.minst || sd.requestTypeInfo);
 
