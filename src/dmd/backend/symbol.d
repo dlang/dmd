@@ -44,6 +44,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -85,66 +86,6 @@ void struct_free(struct_t *st) { }
 
 func_t* func_calloc() { return cast(func_t *) calloc(1, func_t.sizeof); }
 void func_free(func_t* f) { free(f); }
-
-/*********************************
- * Allocate/free symbol table.
- */
-
-extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_REALLOC(tab, symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) realloc(tab, symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_malloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_MALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) malloc(symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_calloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_CALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) calloc(symmax, (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-void symtab_free(Symbol **tab)
-{
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-        MEM_PH_FREE(tab);
-    else if (tab)
-        free(tab);
-}
 
 /*******************************
  * Type out symbol information.

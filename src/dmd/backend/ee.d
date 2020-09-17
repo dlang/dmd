@@ -23,6 +23,7 @@ import core.stdc.time;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
+import dmd.backend.symtab;
 import dmd.backend.type;
 import dmd.backend.oper;
 import dmd.backend.el;

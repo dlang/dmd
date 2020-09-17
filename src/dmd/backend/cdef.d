@@ -361,7 +361,6 @@ enum
 enum REGMAX = 29;      // registers are numbered 0..10
 
 alias tym_t = uint;    // data type big enough for type masks
-alias SYMIDX = int;    // symbol table index
 
 
 version (MARS)
