@@ -31,6 +31,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.global;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -254,7 +255,7 @@ private void symbolz(Symbol** ps, int fl, regm_t regsaved, const(char)* name, SY
 {
     Symbol *s = symbol_calloc(name);
     s.Stype = t;
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     s.Sclass = SCextern;
     s.Sfl = cast(char)fl;
     s.Sregsaved = regsaved;

@@ -34,6 +34,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.goh;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -252,7 +253,7 @@ void WReqn(elem *e)
 
             case OPvar:
                 printf("%s",e.EV.Vsym.Sident.ptr);
-                if (e.EV.Vsym.Ssymnum != -1)
+                if (e.EV.Vsym.Ssymnum != SYMIDX.max)
                     printf("(%d)",e.EV.Vsym.Ssymnum);
                 if (e.EV.Voffset != 0)
                 {

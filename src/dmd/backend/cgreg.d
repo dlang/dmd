@@ -31,6 +31,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -239,7 +240,7 @@ private void el_weights(int bi,elem *e,uint weight)
             {
                 case OPvar:
                     Symbol *s = e.EV.Vsym;
-                    if (s.Ssymnum != -1 && s.Sflags & GTregcand)
+                    if (s.Ssymnum != SYMIDX.max && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
                         //printf("adding %d weight to '%s' (block %d, Ssymnum %d), giving Sweight %d\n",weight,s.Sident.ptr,bi,s.Ssymnum,s.Sweight);
@@ -274,7 +275,7 @@ private int cgreg_benefit(Symbol *s, reg_t reg, Symbol *retsym)
     //printf("cgreg_benefit(s = '%s', reg = %d)\n", s.Sident.ptr, reg);
 
     vec_sub(s.Slvreg,s.Srange,regrange[reg]);
-    int si = s.Ssymnum;
+    int si = cast(int)s.Ssymnum;
 
     reg_t dst_integer_reg;
     reg_t dst_float_reg;
