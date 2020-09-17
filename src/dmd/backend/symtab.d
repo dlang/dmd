@@ -37,7 +37,7 @@ private void err_nomem();
 
 struct symtab_t
 {
-    SYMIDX top;                 // 1 past end
+    SYMIDX length;              // 1 past end
     SYMIDX symmax;              // max # of entries in tab[] possible
     Symbol **tab;               // local Symbol table
 }
@@ -72,22 +72,6 @@ Symbol **symtab_malloc(size_t symmax)
     else
     {
         newtab = cast(Symbol **) malloc(symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_calloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_CALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) calloc(symmax, (Symbol *).sizeof);
         if (!newtab)
             err_nomem();
     }

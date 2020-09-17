@@ -263,7 +263,7 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
 Symbol *nteh_contextsym()
 {
     for (SYMIDX si = 0; 1; si++)
-    {   assert(si < globsym.top);
+    {   assert(si < globsym.length);
         Symbol* sp = globsym.tab[si];
         symbol_debug(sp);
         if (strcmp(sp.Sident.ptr,s_name_context) == 0)
@@ -319,7 +319,7 @@ Symbol *nteh_ecodesym()
     Symbol *sp;
 
     for (si = 0; 1; si++)
-    {   assert(si < globsym.top);
+    {   assert(si < globsym.length);
         sp = globsym.tab[si];
         symbol_debug(sp);
         if (strcmp(sp.Sident.ptr, s_name_ecode) == 0)

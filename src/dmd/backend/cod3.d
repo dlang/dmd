@@ -4067,7 +4067,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
 {
     //printf("prolog_loadparams()\n");
     debug
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
         if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
@@ -4086,7 +4086,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      * registers into their stack locations.
      */
     regm_t shadowregm = 0;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
         uint sz = cast(uint)type_size(s.Stype);
@@ -4234,7 +4234,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      * and Pb is passed in R2 but assigned to R1. Detect it and assert.
      */
     regm_t assignregs = 0;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
         uint sz = cast(uint)type_size(s.Stype);
@@ -4293,7 +4293,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      * Do not use assignaddr(), as it will replace the stack reference with
      * the register.
      */
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
         uint sz = cast(uint)type_size(s.Stype);
@@ -5122,7 +5122,7 @@ void cod3_adjSymOffsets()
     SYMIDX si;
 
     //printf("cod3_adjSymOffsets()\n");
-    for (si = 0; si < globsym.top; si++)
+    for (si = 0; si < globsym.length; si++)
     {
         //printf("\tglobsym.tab[%d] = %p\n",si,globsym.tab[si]);
         Symbol *s = globsym.tab[si];

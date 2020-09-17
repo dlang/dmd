@@ -1457,7 +1457,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
 {
     symbol_debug(v);
     assert(symbol_isintab(v));
-    assert(v.Ssymnum < globsym.top);
+    assert(v.Ssymnum < globsym.length);
     bool stop = false;
 
     // Walk tree in evaluation order
@@ -2083,8 +2083,8 @@ private void findbasivs(ref loop l)
     bool ambdone;
 
     ambdone = false;
-    poss = vec_calloc(globsym.top);
-    notposs = vec_calloc(globsym.top);  /* vector of all variables      */
+    poss = vec_calloc(globsym.length);
+    notposs = vec_calloc(globsym.length);  /* vector of all variables      */
                                         /* (initially all unmarked)     */
 
     /* for each def in go.defnod[] that is within loop l     */
@@ -2131,7 +2131,7 @@ private void findbasivs(ref loop l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                foreach (uint j; 0 .. globsym.top)
+                foreach (uint j; 0 .. globsym.length)
                 {
                     if (!(globsym.tab[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
@@ -2149,7 +2149,7 @@ private void findbasivs(ref loop l)
 
     /* create list of IVs */
     uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each basic IV
+    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each basic IV
     {
         Symbol *s;
 
@@ -2222,8 +2222,8 @@ private void findopeqs(ref loop l)
     bool ambdone;
 
     ambdone = false;
-    poss = vec_calloc(globsym.top);
-    notposs = vec_calloc(globsym.top);  // vector of all variables
+    poss = vec_calloc(globsym.length);
+    notposs = vec_calloc(globsym.length);  // vector of all variables
                                         // (initially all unmarked)
 
     // for each def in go.defnod[] that is within loop l
@@ -2264,7 +2264,7 @@ private void findopeqs(ref loop l)
 
             if (!ambdone)           // avoid redundant loops
             {
-                foreach (j; 0 .. globsym.top)
+                foreach (j; 0 .. globsym.length)
                 {
                     if (!(globsym.tab[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
@@ -2291,7 +2291,7 @@ private void findopeqs(ref loop l)
 
     // create list of IVs
     uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each opeq IV
+    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each opeq IV
     {
         Symbol *s;
 
@@ -3395,10 +3395,10 @@ private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
     sincn = incn;
 
     debug
-      if (!(X.Ssymnum < globsym.top && incn))
-          printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.top,&l,incn);
+      if (!(X.Ssymnum < globsym.length && incn))
+          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.length,&l,incn);
 
-    assert(X.Ssymnum < globsym.top && incn);
+    assert(X.Ssymnum < globsym.length && incn);
     count = 0;
     nd = null;
     for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop

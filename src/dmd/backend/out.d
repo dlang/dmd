@@ -969,7 +969,7 @@ void out_regcand(symtab_t *psymtab)
 {
     //printf("out_regcand()\n");
     const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc);
-    for (SYMIDX si = 0; si < psymtab.top; si++)
+    for (SYMIDX si = 0; si < psymtab.length; si++)
     {   Symbol *s = psymtab.tab[si];
 
         symbol_debug(s);
@@ -991,7 +991,7 @@ void out_regcand(symtab_t *psymtab)
 
         // Any assembler blocks make everything ambiguous
         if (b.BC == BCasm)
-            for (SYMIDX si = 0; si < psymtab.top; si++)
+            for (SYMIDX si = 0; si < psymtab.length; si++)
                 psymtab.tab[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
@@ -999,7 +999,7 @@ void out_regcand(symtab_t *psymtab)
     // address of all non-register parameters.
     if (addressOfParam)                      // if took address of a parameter
     {
-        for (SYMIDX si = 0; si < psymtab.top; si++)
+        for (SYMIDX si = 0; si < psymtab.length; si++)
             if (psymtab.tab[si].Sclass == SCparameter || psymtab.tab[si].Sclass == SCshadowreg)
                 psymtab.tab[si].Sflags &= ~(SFLunambig | GTregcand);
     }
@@ -1160,17 +1160,17 @@ version (SCPP)
 
     /* Copy local symbol table onto main one, making sure       */
     /* that the symbol numbers are adjusted accordingly */
-    //printf("f.Flocsym.top = %d\n",f.Flocsym.top);
-    uint nsymbols = f.Flocsym.top;
+    //printf("f.Flocsym.length = %d\n",f.Flocsym.length);
+    uint nsymbols = f.Flocsym.length;
     if (nsymbols > globsym.symmax)
     {   /* Reallocate globsym.tab[]     */
         globsym.symmax = nsymbols;
         globsym.tab = symtab_realloc(globsym.tab, globsym.symmax);
     }
     debug debugy && printf("appending symbols to symtab...\n");
-    assert(globsym.top == 0);
+    assert(globsym.length == 0);
     memcpy(&globsym.tab[0],&f.Flocsym.tab[0],nsymbols * (Symbol *).sizeof);
-    globsym.top = nsymbols;
+    globsym.length = nsymbols;
 
     assert(startblock == null);
     if (f.Fflags & Finline)            // if keep function around
@@ -1226,14 +1226,14 @@ version (SCPP)
 }
 
     // TX86 computes parameter offsets in stackoffsets()
-    //printf("globsym.top = %d\n", globsym.top);
+    //printf("globsym.length = %d\n", globsym.length);
 
 version (SCPP)
 {
     FuncParamRegs fpr = FuncParamRegs_create(tyf);
 }
 
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {   Symbol *s = globsym.tab[si];
 
         symbol_debug(s);
@@ -1339,7 +1339,7 @@ version (MARS)
     }
     PARSER = 0;
     if (eecontext.EEelem)
-    {   uint marksi = globsym.top;
+    {   uint marksi = globsym.length;
 
         eecontext.EEin++;
         outelem(eecontext.EEelem, addressOfParam);
@@ -1352,7 +1352,7 @@ version (MARS)
     // address of all non-register parameters.
     if (addressOfParam | anyasm)        // if took address of a parameter
     {
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
             if (anyasm || globsym.tab[si].Sclass == SCparameter)
                 globsym.tab[si].Sflags &= ~(SFLunambig | GTregcand);
     }
@@ -1558,7 +1558,7 @@ version (MARS)
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.
      */
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym.tab[si];
 
@@ -1611,9 +1611,9 @@ Ldone:
 version (SCPP)
 {
     // Free any added symbols
-    freesymtab(globsym.tab,nsymbols,globsym.top);
+    freesymtab(globsym.tab,nsymbols,globsym.length);
 }
-    globsym.top = 0;
+    globsym.length = 0;
 
     //printf("done with writefunc()\n");
     //dfo.dtor();       // save allocation for next time

@@ -269,7 +269,7 @@ tryagain:
     if (!config.fulltypes || (config.flags4 & CFG4optimized))
     {
         regm_t noparams = 0;
-        for (int i = 0; i < globsym.top; i++)
+        for (int i = 0; i < globsym.length; i++)
         {
             Symbol *s = globsym.tab[i];
             s.Sflags &= ~SFLread;
@@ -352,7 +352,7 @@ tryagain:
     }
 
     // See if we need to enforce a particular stack alignment
-    foreach (i; 0 .. globsym.top)
+    foreach (i; 0 .. globsym.length)
     {
         Symbol *s = globsym.tab[i];
 
@@ -768,7 +768,7 @@ void prolog(ref CodeBuilder cdb)
          */
         /* Look for __va_argsave
          */
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
             Symbol *s = globsym.tab[si];
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
@@ -1150,7 +1150,7 @@ else
         {   Symbol *sthis;
 
             for (SYMIDX si = 0; 1; si++)
-            {   assert(si < globsym.top);
+            {   assert(si < globsym.length);
                 sthis = globsym.tab[si];
                 if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                     break;
@@ -1262,16 +1262,16 @@ void stackoffsets(int flags)
     Symbol **autos = null;
     if (doAutoOpt)
     {
-        if (globsym.top <= autotmp.length)
+        if (globsym.length <= autotmp.length)
             autos = autotmp.ptr;
         else
-        {   autos = cast(Symbol **)malloc(globsym.top * (*autos).sizeof);
+        {   autos = cast(Symbol **)malloc(globsym.length * (*autos).sizeof);
             assert(autos);
         }
     }
     size_t autosi = 0;  // number used in autos[]
 
-    for (int si = 0; si < globsym.top; si++)
+    for (int si = 0; si < globsym.length; si++)
     {   Symbol *s = globsym.tab[si];
 
         /* Don't allocate space for dead or zero size parameters
@@ -1513,8 +1513,8 @@ private void blcodgen(block *bl)
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(char *) alloca(globsym.top * char.sizeof);
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        sflsave = cast(char *) alloca(globsym.length * char.sizeof);
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             Symbol *s = globsym.tab[i];
 

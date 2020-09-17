@@ -849,7 +849,7 @@ debug
 
                 debug assert(f);
                 blocklist_free(&f.Fstartblock);
-                freesymtab(f.Flocsym.tab,0,f.Flocsym.top);
+                freesymtab(f.Flocsym.tab,0,f.Flocsym.length);
 
                 symtab_free(f.Flocsym.tab);
               if (CPP)
@@ -1091,7 +1091,7 @@ debug
         return -1;
     }
     debug assert(symtab);
-    sitop = symtab.top;
+    sitop = symtab.length;
     assert(sitop <= symtab.symmax);
     if (sitop == symtab.symmax)
     {
@@ -1107,10 +1107,10 @@ else
     symtab.tab[sitop] = s;
 
     debug if (debugy)
-        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.top);
+        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.length);
 
     assert(s.Ssymnum == SYMIDX.max);
-    return s.Ssymnum = symtab.top++;
+    return s.Ssymnum = symtab.length++;
 }
 
 /********************************************
@@ -1145,7 +1145,7 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
     debug if (debugy)
         printf("freesymtab(from %d to %d)\n",n1,n2);
 
-    assert(stab != globsym.tab || (n1 <= n2 && n2 <= globsym.top));
+    assert(stab != globsym.tab || (n1 <= n2 && n2 <= globsym.length));
     for (si = n1; si < n2; si++)
     {   Symbol *s;
 
@@ -1335,7 +1335,7 @@ Symbol *symbol_hydrate(Symbol **ps)
             blocklist_hydrate(&f.Fstartblock);
 
             ph_hydrate(cast(void**)&f.Flocsym.tab);
-            for (si = 0; si < f.Flocsym.top; si++)
+            for (si = 0; si < f.Flocsym.length; si++)
                 symbol_hydrate(&f.Flocsym.tab[si]);
 
             srcpos_hydrate(&f.Fstartline);
@@ -1541,12 +1541,12 @@ version (DEBUG_XSYMGEN)
 version (DEBUG_XSYMGEN)
 {
             if (!xsym_gen || !ph_in_head(f.Flocsym.tab))
-                for (si = 0; si < f.Flocsym.top; si++)
+                for (si = 0; si < f.Flocsym.length; si++)
                     symbol_dehydrate(&f.Flocsym.tab[si]);
 }
 else
 {
-            for (si = 0; si < f.Flocsym.top; si++)
+            for (si = 0; si < f.Flocsym.length; si++)
                 symbol_dehydrate(&f.Flocsym.tab[si]);
 }
             ph_dehydrate(&f.Flocsym.tab);
@@ -2172,7 +2172,7 @@ void symboltable_clean(Symbol *s)
                     debug assert(f);
 
                     list_apply(&f.Fsymtree,cast(list_free_fp)&symboltable_clean);
-                    for (si = 0; si < f.Flocsym.top; si++)
+                    for (si = 0; si < f.Flocsym.length; si++)
                         symboltable_clean(f.Flocsym.tab[si]);
                     if (f.Foversym)
                         symboltable_clean(f.Foversym);

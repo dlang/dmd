@@ -111,7 +111,7 @@ else
     const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
 // ee.c
-void eecontext_convs(uint marksi);
+void eecontext_convs(SYMIDX marksi);
 void eecontext_parse();
 
 // exp2.c
