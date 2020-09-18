@@ -37,6 +37,7 @@ private void err_nomem();
 
 struct symtab_t
 {
+  nothrow:
     alias T = Symbol*;
 
     ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
@@ -54,6 +55,17 @@ struct symtab_t
     {
         assert(a <= b && b <= length);
         return tab[a .. b];
+    }
+
+    void dtor()
+    {
+        if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
+            MEM_PH_FREE(tab);
+        else
+            free(tab);
+        length = 0;
+        tab = null;
+        symmax = 0;
     }
 
     SYMIDX length;              // 1 past end
@@ -97,12 +109,5 @@ Symbol **symtab_malloc(size_t symmax)
     return newtab;
 }
 
-void symtab_free(Symbol **tab)
-{
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-        MEM_PH_FREE(tab);
-    else if (tab)
-        free(tab);
-}
 
 
