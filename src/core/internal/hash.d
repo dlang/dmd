@@ -9,8 +9,7 @@
  */
 module core.internal.hash;
 
-import core.internal.convert;
-import core.internal.traits : allSatisfy, Unconst, Unqual;
+import core.internal.traits : Unconst;
 
 // If true ensure that positive zero and negative zero have the same hash.
 // Historically typeid(float).getHash did this but hashOf(float) did not.
@@ -63,7 +62,7 @@ private template isCppClassWithoutHash(T)
         enum isCppClassWithoutHash = false;
     else
         enum bool isCppClassWithoutHash = __traits(getLinkage, T) == "C++"
-            && !is(Unqual!T : Object) && !hasCallableToHash!T;
+            && !is(immutable T* : immutable Object*) && !hasCallableToHash!T;
 }
 
 /+
@@ -100,7 +99,10 @@ private template canBitwiseHash(T)
         static if (hasCallableToHash!T || __traits(isNested, T))
             enum canBitwiseHash = false;
         else
+        {
+            import core.internal.traits : allSatisfy;
             enum canBitwiseHash = allSatisfy!(.canBitwiseHash, typeof(T.tupleof));
+        }
     }
     else static if (is(T == union))
     {
@@ -144,6 +146,7 @@ if (is(T EType == enum) && (!__traits(isScalar, T) || is(T == __vector)))
 size_t hashOf(T)(scope const auto ref T val, size_t seed = 0)
 if (!is(T == enum) && __traits(isStaticArray, T) && canBitwiseHash!T)
 {
+    import core.internal.convert : toUbyte;
     // FIXME:
     // We would like to to do this:
     //
@@ -196,6 +199,7 @@ if (!is(T == enum) && __traits(isStaticArray, T) && !canBitwiseHash!T)
 size_t hashOf(T)(scope const T val, size_t seed = 0)
 if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
+    import core.internal.convert : toUbyte;
     alias ElementType = typeof(val[0]);
     static if (!canBitwiseHash!ElementType)
     {
@@ -277,7 +281,10 @@ size_t hashOf(T)(scope const T val) if (__traits(isScalar, T) && !is(T == __vect
         else static if (T.sizeof == double.sizeof && T.mant_dig == double.mant_dig)
             return hashOf(*cast(const ulong*) &data);
         else
+        {
+            import core.internal.convert : floatSize, toUbyte;
             return bytesHashWithExactSizeAndAlignment!T(toUbyte(data)[0 .. floatSize!T], 0);
+        }
     }
 }
 
@@ -339,7 +346,10 @@ size_t hashOf(T)(scope const T val, size_t seed) if (__traits(isScalar, T) && !i
         else static if (T.sizeof == double.sizeof && T.mant_dig == double.mant_dig)
             return hashOf(*cast(const ulong*) &data, seed);
         else
+        {
+            import core.internal.convert : floatSize, toUbyte;
             return bytesHashWithExactSizeAndAlignment!T(toUbyte(data)[0 .. floatSize!T], seed);
+        }
     }
     else
     {
@@ -355,7 +365,7 @@ if (is(T == __vector) && !is(T == enum))
         if (__ctfe)
         {
             // Workaround for CTFE bug.
-            alias E = Unqual!(typeof(val[0]));
+            static if (is(immutable typeof(val[0]) == immutable E, E)) {} // Get E.
             E[T.sizeof / E.sizeof] array;
             foreach (i; 0 .. T.sizeof / E.sizeof)
                 array[i] = val[i];
@@ -365,6 +375,7 @@ if (is(T == __vector) && !is(T == enum))
     }
     else
     {
+        import core.internal.convert : toUbyte;
         return bytesHashAlignedBy!T(toUbyte(val), seed);
     }
 }
@@ -396,6 +407,7 @@ q{
     }
     else
     {
+        import core.internal.convert : toUbyte;
         static if (__traits(hasMember, T, "toHash") && is(typeof(T.toHash) == function))
         {
             // TODO: in the future maybe this should be changed to a static
