@@ -639,7 +639,8 @@ struct ASTBase
             super(Id.empty);
             this.loc = loc;
             this.exp = exp;
-            this.msg = msg;
+            this.msg = new Expressions(1);
+            this.msg.push(msg);
         }
     }
 
