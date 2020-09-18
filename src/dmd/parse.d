@@ -2168,7 +2168,10 @@ final class Parser(AST) : Lexer
         if (token.value == TOK.comma)
         {
             if(peekNext() == TOK.rightParentheses)
+            {
                 nextToken(); // consume `,`
+                nextToken(); // consume `)`
+            }
             else
                 msg = parseArguments();
         }
