@@ -85,7 +85,7 @@ void cgreg_init()
     // Make adjustments to symbols we might stick in registers
     for (size_t i = 0; i < globsym.length; i++)
     {   uint sz;
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
 
         //printf("considering candidate '%s' for register\n",s.Sident);
 
@@ -156,7 +156,7 @@ void cgreg_term()
     {
         for (size_t i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
             vec_free(s.Srange);
             vec_free(s.Slvreg);
             s.Srange = null;
@@ -747,7 +747,7 @@ void cgreg_unregister(regm_t conflict)
     if (pass == PASSfinal)
         pass = PASSreg;                         // have to codegen at least one more time
     for (int i = 0; i < globsym.length; i++)
-    {   Symbol *s = globsym.tab[i];
+    {   Symbol *s = globsym[i];
         if (s.Sfl == FLreg && s.Sregm & conflict)
         {
             s.Sflags |= GTunregister;
@@ -778,7 +778,7 @@ int cgreg_assign(Symbol *retsym)
      * code gen pass.
      */
     for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym.tab[si];
+    {   Symbol *s = globsym[si];
 
         if (s.Sflags & GTunregister)
         {
@@ -837,7 +837,7 @@ int cgreg_assign(Symbol *retsym)
      */
     regm_t regparams = 0;
     for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym.tab[si];
+    {   Symbol *s = globsym[si];
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             regparams |= s.Spregm();
     }
@@ -856,7 +856,7 @@ int cgreg_assign(Symbol *retsym)
     t.sym = null;
     t.benefit = 0;
     for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym.tab[si];
+    {   Symbol *s = globsym[si];
 
         Reg u;
         u.sym = s;
@@ -1011,7 +1011,7 @@ Ltried:
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
         for (size_t si = 0; si < globsym.length; si++)
-        {   Symbol *s = globsym.tab[si];
+        {   Symbol *s = globsym[si];
 
             if (s.Sfl == FLreg &&                // if assigned to register
                 (1 << s.Sreglsw) & fregsaved &&   // and that register is not scratch

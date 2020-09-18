@@ -1774,7 +1774,7 @@ void deadvar()
         /* Initialize vectors for live ranges.  */
         for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLunambig)
             {
@@ -1797,17 +1797,17 @@ void deadvar()
         flowlv();                       /* compute live variables       */
         for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
+            if (globsym[i].Srange /*&& globsym[i].Sclass != CLMOS*/)
                 foreach (j, b; dfo[])
                     if (vec_testbit(i,b.Binlv))
-                        vec_setbit(cast(uint)j,globsym.tab[i].Srange);
+                        vec_setbit(cast(uint)j,globsym[i].Srange);
         }
 
         /* Print results        */
         for (SYMIDX i = 0; i < globsym.length; i++)
         {
             char *p;
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers

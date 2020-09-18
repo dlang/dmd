@@ -264,7 +264,7 @@ Symbol *nteh_contextsym()
 {
     for (SYMIDX si = 0; 1; si++)
     {   assert(si < globsym.length);
-        Symbol* sp = globsym.tab[si];
+        Symbol* sp = globsym[si];
         symbol_debug(sp);
         if (strcmp(sp.Sident.ptr,s_name_context) == 0)
             return sp;
@@ -320,7 +320,7 @@ Symbol *nteh_ecodesym()
 
     for (si = 0; 1; si++)
     {   assert(si < globsym.length);
-        sp = globsym.tab[si];
+        sp = globsym[si];
         symbol_debug(sp);
         if (strcmp(sp.Sident.ptr, s_name_ecode) == 0)
             return sp;

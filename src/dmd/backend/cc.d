@@ -1409,7 +1409,7 @@ struct Symbol
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
 
     // CPP || OPTIMIZER
-    SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
+    SYMIDX Ssymnum;             // Symbol number (index into globsym[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
     int Sseg;                   // segment index

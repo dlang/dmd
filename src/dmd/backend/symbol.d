@@ -849,9 +849,9 @@ debug
 
                 debug assert(f);
                 blocklist_free(&f.Fstartblock);
-                freesymtab(f.Flocsym.tab,0,f.Flocsym.length);
+                freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
-                symtab_free(f.Flocsym.tab);
+                symtab_free(f.Flocsym[].ptr);
               if (CPP)
               {
                 if (f.Fflags & Fnotparent)
@@ -1126,7 +1126,7 @@ SYMIDX symbol_insert(symtab_t* symtab, Symbol* s, SYMIDX n)
         symtab.tab[i] = symtab.tab[i - 1];
         symtab.tab[i].Ssymnum += 1;
     }
-    globsym.tab[n] = s;
+    globsym[n] = s;
     s.Ssymnum = n;
     return n;
 }
@@ -1145,7 +1145,7 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
     debug if (debugy)
         printf("freesymtab(from %d to %d)\n", cast(int) n1, cast(int) n2);
 
-    assert(stab != globsym.tab || (n1 <= n2 && n2 <= globsym.length));
+    assert(stab != globsym[].ptr || (n1 <= n2 && n2 <= globsym.length));
     for (si = n1; si < n2; si++)
     {   Symbol *s;
 
@@ -1336,7 +1336,7 @@ Symbol *symbol_hydrate(Symbol **ps)
 
             ph_hydrate(cast(void**)&f.Flocsym.tab);
             for (si = 0; si < f.Flocsym.length; si++)
-                symbol_hydrate(&f.Flocsym.tab[si]);
+                symbol_hydrate(&f.Flocsym[].ptr[si]);
 
             srcpos_hydrate(&f.Fstartline);
             srcpos_hydrate(&f.Fendline);
@@ -1540,7 +1540,7 @@ version (DEBUG_XSYMGEN)
 
 version (DEBUG_XSYMGEN)
 {
-            if (!xsym_gen || !ph_in_head(f.Flocsym.tab))
+            if (!xsym_gen || !ph_in_head(f.Flocsym[].ptr))
                 for (si = 0; si < f.Flocsym.length; si++)
                     symbol_dehydrate(&f.Flocsym.tab[si]);
 }
@@ -2173,7 +2173,7 @@ void symboltable_clean(Symbol *s)
 
                     list_apply(&f.Fsymtree,cast(list_free_fp)&symboltable_clean);
                     for (si = 0; si < f.Flocsym.length; si++)
-                        symboltable_clean(f.Flocsym.tab[si]);
+                        symboltable_clean(f.Flocsym[si]);
                     if (f.Foversym)
                         symboltable_clean(f.Foversym);
                     if (f.Fexplicitspec)

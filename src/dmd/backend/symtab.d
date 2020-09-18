@@ -37,9 +37,28 @@ private void err_nomem();
 
 struct symtab_t
 {
+    alias T = Symbol*;
+
+    ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
+    {
+        assert(i < length);
+        return tab[i];
+    }
+
+    extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
+    {
+        return tab[0 .. length];
+    }
+
+    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
+    {
+        assert(a <= b && b <= length);
+        return tab[a .. b];
+    }
+
     SYMIDX length;              // 1 past end
     SYMIDX symmax;              // max # of entries in tab[] possible
-    Symbol **tab;               // local Symbol table
+    T* tab;                     // local Symbol table
 }
 
 /*********************************

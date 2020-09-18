@@ -2133,7 +2133,7 @@ private void findbasivs(ref loop l)
             {
                 foreach (j; 0 .. globsym.length)
                 {
-                    if (!(globsym.tab[j].Sflags & SFLunambig))
+                    if (!(globsym[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2154,7 +2154,7 @@ private void findbasivs(ref loop l)
         Symbol *s;
 
         /* Skip if we don't want it to be a basic IV (see funcprev())   */
-        s = globsym.tab[i];
+        s = globsym[i];
         assert(symbol_isintab(s));
         if (s.Sflags & SFLnotbasiciv)
             continue;
@@ -2266,7 +2266,7 @@ private void findopeqs(ref loop l)
             {
                 foreach (j; 0 .. globsym.length)
                 {
-                    if (!(globsym.tab[j].Sflags & SFLunambig))
+                    if (!(globsym[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2295,7 +2295,7 @@ private void findopeqs(ref loop l)
     {
         Symbol *s;
 
-        s = globsym.tab[i];
+        s = globsym[i];
         assert(symbol_isintab(s));
 
         // Do not use aggregates as basic IVs. This is because the other loop
