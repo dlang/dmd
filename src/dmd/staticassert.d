@@ -13,6 +13,7 @@
 
 module dmd.staticassert;
 
+import dmd.arraytypes;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
@@ -27,9 +28,17 @@ import dmd.visitor;
 extern (C++) final class StaticAssert : Dsymbol
 {
     Expression exp;
-    Expression msg;
+    Expressions* msg;
 
     extern (D) this(const ref Loc loc, Expression exp, Expression msg)
+    {
+        super(loc, Id.empty);
+        this.exp = exp;
+        this.msg = new Expressions(1);
+        this.msg.push(msg);
+    }
+    
+    extern (D) this(const ref Loc loc, Expression exp, Expressions* msg)
     {
         super(loc, Id.empty);
         this.exp = exp;
@@ -39,7 +48,7 @@ extern (C++) final class StaticAssert : Dsymbol
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticAssert(loc, exp.syntaxCopy(), msg ? msg.syntaxCopy() : null);
+        return new StaticAssert(loc, exp.syntaxCopy(), msg ? Expression.arraySyntaxCopy(msg) : null);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)

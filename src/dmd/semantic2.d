@@ -109,19 +109,40 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             if (sa.msg)
             {
-                sc = sc.startCTFE();
-                sa.msg = sa.msg.expressionSemantic(sc);
-                sa.msg = resolveProperties(sc, sa.msg);
-                sc = sc.endCTFE();
-                sa.msg = sa.msg.ctfeInterpret();
-                if (StringExp se = sa.msg.toStringExp())
+                OutBuffer msgbuf;
+                for (size_t i = 0; i < sa.msg.dim; i++)
                 {
-                    // same with pragma(msg)
-                    const slice = se.toUTF8(sc).peekString();
-                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)slice.length, slice.ptr);
+                    Expression e = (*sa.msg)[i];
+                    sc = sc.startCTFE();
+                    e = e.expressionSemantic(sc);
+                    e = resolveProperties(sc, e);
+                    sc = sc.endCTFE();
+                    if (e.type && e.type.ty == Tvoid)
+                    {
+                        error(sa.loc, "Cannot pass argument `%s` to `static assert` because it is `void`", e.toChars());
+                        return;
+                    }
+                    e = ctfeInterpretForPragmaMsg(e);
+                    if (e.op == TOK.error)
+                    {
+                        errorSupplemental(sa.loc, "while evaluating `static assert(%s)`", (*sa.msg)[i].toChars());
+                        return;
+                    }
+                    StringExp se = e.toStringExp();
+                    if (se)
+                    {
+                        const slice = se.toUTF8(sc).peekString();
+                        // Hack to keep old formatting to avoid changin error mesages everywhere
+                        if (sa.msg.dim == 1)
+                            msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
+                        else
+                            msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
+                    }
+                    else
+                        msgbuf.printf("%s", e.toChars());
                 }
-                else
-                    error(sa.loc, "static assert:  %s", sa.msg.toChars());
+                error(sa.loc, "static assert:  %s", msgbuf.extractChars());
+                
             }
             else
                 error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
@@ -131,6 +152,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 fatal();
         }
     }
+    
 
     override void visit(TemplateInstance tempinst)
     {
