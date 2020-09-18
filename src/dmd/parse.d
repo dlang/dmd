@@ -2165,8 +2165,13 @@ final class Parser(AST) : Lexer
         nextToken();
         check(TOK.leftParentheses);
         exp = parseAssignExp();
-        if (token.value == TOK.comma && peekNext() != TOK.rightParentheses)
-            msg = parseArguments();
+        if (token.value == TOK.comma)
+        {
+            if(peekNext() == TOK.rightParentheses)
+                nextToken(); // consume `,`
+            else
+                msg = parseArguments();
+        }
         else
             check(TOK.rightParentheses);
         check(TOK.semicolon);
