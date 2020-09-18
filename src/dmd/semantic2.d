@@ -142,7 +142,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         msgbuf.printf("%s", e.toChars());
                 }
                 error(sa.loc, "static assert:  %s", msgbuf.extractChars());
-                
             }
             else
                 error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
