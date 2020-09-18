@@ -1444,7 +1444,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
     final void generateRTInfo(AggregateDeclaration ad, Scope* sc)
     {
         // don't do it for or error types
-        if (!ad.getRTInfo && Type.rtinfo && (ad.type && ad.type.ty != Terror))
+        if (!ad.getRTInfo && Type.rtinfo && !global.params.betterC && (ad.type && ad.type.ty != Terror))
         {
             // Evaluate: RTinfo!type
             auto tiargs = new Objects();
@@ -1506,6 +1506,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
     override void visit(TypeInfoStructDeclaration tid)
     {
         StructDeclaration sd = tid.tinfo.isTypeStruct().sym;
+        sd.semanticTypeInfoMembers();
         if (sd.rtInfoScope)
             generateRTInfo(sd, sd.rtInfoScope);
     }

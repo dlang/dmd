@@ -9,7 +9,7 @@ struct T
 
 void main()
 {
-    // assumes enum RTInfo(T) = null
-    assert(typeid(T).rtInfo == null); // ok
-    assert(typeid(S).rtInfo == null); // fails
+    // assumes enum RTInfo(T) merges identical bitmaps
+    assert(typeid(T).rtInfo !is null); // ok
+    assert(typeid(S).rtInfo is typeid(T).rtInfo); // fails
 }

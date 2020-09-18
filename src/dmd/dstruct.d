@@ -70,6 +70,9 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
+    if (global.params.betterC)
+        return;
+
     if (sc)
     {
         if (sc.intypeof)
