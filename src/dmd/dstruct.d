@@ -70,8 +70,8 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
-    if (global.params.betterC)
-        return;
+    if (!global.params.useTypeInfo || !Type.dtypeinfo)
+        return; // not expected to be used with -betterC
 
     if (sc)
     {
