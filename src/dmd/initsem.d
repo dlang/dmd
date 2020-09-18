@@ -144,8 +144,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                             error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         return new ErrorInitializer();
                     }
-                    if (s.isDeprecated())
-                        deprecation(i.loc, "field `%s` of struct `%s` is deprecated", s.toChars(), sd.toChars());
+                    s.checkDeprecated(i.loc, sc);
 
                     s = s.toAlias();
                     // Find out which field index it is
