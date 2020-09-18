@@ -271,7 +271,7 @@ tryagain:
         regm_t noparams = 0;
         for (int i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
             s.Sflags &= ~SFLread;
             switch (s.Sclass)
             {
@@ -354,7 +354,7 @@ tryagain:
     // See if we need to enforce a particular stack alignment
     foreach (i; 0 .. globsym.length)
     {
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
 
         if (Symbol_Sisdead(s, anyiasm))
             continue;
@@ -770,7 +770,7 @@ void prolog(ref CodeBuilder cdb)
          */
         for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *s = globsym.tab[si];
+            Symbol *s = globsym[si];
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
             {
                 if (!(s.Sflags & SFLdead))
@@ -1151,7 +1151,7 @@ else
 
             for (SYMIDX si = 0; 1; si++)
             {   assert(si < globsym.length);
-                sthis = globsym.tab[si];
+                sthis = globsym[si];
                 if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                     break;
             }
@@ -1272,7 +1272,7 @@ void stackoffsets(int flags)
     size_t autosi = 0;  // number used in autos[]
 
     for (int si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym.tab[si];
+    {   Symbol *s = globsym[si];
 
         /* Don't allocate space for dead or zero size parameters
          */
@@ -1516,7 +1516,7 @@ private void blcodgen(block *bl)
         sflsave = cast(char *) alloca(globsym.length * char.sizeof);
         for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
@@ -1583,7 +1583,7 @@ private void blcodgen(block *bl)
 
     for (int i = 0; i < anyspill; i++)
     {
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
     }
 

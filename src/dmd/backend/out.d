@@ -1163,7 +1163,7 @@ version (SCPP)
     //printf("f.Flocsym.length = %d\n",f.Flocsym.length);
     auto nsymbols = f.Flocsym.length;
     if (nsymbols > globsym.symmax)
-    {   /* Reallocate globsym.tab[]     */
+    {   /* Reallocate globsym[]     */
         globsym.symmax = nsymbols;
         globsym.tab = symtab_realloc(globsym.tab, globsym.symmax);
     }
@@ -1234,7 +1234,7 @@ version (SCPP)
 }
 
     for (SYMIDX si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym.tab[si];
+    {   Symbol *s = globsym[si];
 
         symbol_debug(s);
         //printf("symbol %d '%s'\n",si,s.Sident.ptr);
@@ -1353,8 +1353,8 @@ version (MARS)
     if (addressOfParam | anyasm)        // if took address of a parameter
     {
         for (SYMIDX si = 0; si < globsym.length; si++)
-            if (anyasm || globsym.tab[si].Sclass == SCparameter)
-                globsym.tab[si].Sflags &= ~(SFLunambig | GTregcand);
+            if (anyasm || globsym[si].Sclass == SCparameter)
+                globsym[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
     block_pred();                       // compute predecessors to blocks
@@ -1560,7 +1560,7 @@ version (MARS)
      */
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
 
         switch (s.Sclass)
         {   case SCfastpar:

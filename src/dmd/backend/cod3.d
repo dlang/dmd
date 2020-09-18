@@ -996,7 +996,7 @@ version (MARS)
                 CodeBuilder cdbload;  cdbload.ctor();
 
                 for (int i = 0; i < anyspill; i++)
-                {   Symbol *s = globsym.tab[i];
+                {   Symbol *s = globsym[i];
 
                     if (s.Sflags & SFLspill &&
                         vec_testbit(dfoidx,s.Srange))
@@ -4069,7 +4069,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     debug
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
@@ -4088,7 +4088,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     regm_t shadowregm = 0;
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg)
@@ -4236,7 +4236,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     regm_t assignregs = 0;
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
@@ -4295,7 +4295,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      */
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if ((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
@@ -5124,8 +5124,8 @@ void cod3_adjSymOffsets()
     //printf("cod3_adjSymOffsets()\n");
     for (si = 0; si < globsym.length; si++)
     {
-        //printf("\tglobsym.tab[%d] = %p\n",si,globsym.tab[si]);
-        Symbol *s = globsym.tab[si];
+        //printf("\tglobsym[%d] = %p\n",si,globsym[si]);
+        Symbol *s = globsym[si];
 
         switch (s.Sclass)
         {

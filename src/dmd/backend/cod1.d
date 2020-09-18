@@ -3979,7 +3979,7 @@ static if (0)
         {
             for (SYMIDX si = 0; si < globsym.length; si++)
             {
-                Symbol* s = globsym.tab[si];
+                Symbol* s = globsym[si];
 
                 if (s.Sflags & GTregcand && type_size(s.Stype) != 0)
                 {

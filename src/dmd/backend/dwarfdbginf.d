@@ -1578,7 +1578,7 @@ static if (ELFOBJ || MACHOBJ)
 
         for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *sa = globsym.tab[si];
+            Symbol *sa = globsym[si];
 
             version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
@@ -1707,7 +1707,7 @@ static if (ELFOBJ || MACHOBJ)
         {
             for (SYMIDX si = 0; si < globsym.length; si++)
             {
-                Symbol *sa = globsym.tab[si];
+                Symbol *sa = globsym[si];
 
                 version (MARS)
                     if (sa.Sflags & SFLnodebug)
