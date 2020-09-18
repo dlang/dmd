@@ -1318,8 +1318,8 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 debug if (debugc)
                 {
                     printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
-                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
+                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
+                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
                 }
 
                 type *nt = n.ET;
@@ -1815,10 +1815,10 @@ void deadvar()
             {
                 p = cast(char *) s.Sident.ptr ;
                 if (s.Sflags & SFLdead)
-                    if (debugc) printf("Symbol %d '%s' is dead\n",i,p);
+                    if (debugc) printf("Symbol %d '%s' is dead\n",cast(int) i,p);
                 if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
                 {
-                    printf("Live range for %d '%s': ",i,p);
+                    printf("Live range for %d '%s': ",cast(int) i,p);
                     vec_println(s.Srange);
                 }
             }

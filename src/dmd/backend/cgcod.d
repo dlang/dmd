@@ -1539,7 +1539,7 @@ private void blcodgen(block *bl)
             {
                 if (vec_testbit(dfoidx,s.Srange))
                 {
-                    anyspill = i + 1;
+                    anyspill = cast(int)(i + 1);
                     cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
                     if (vec_testbit(dfoidx,s.Slvreg))
                     {

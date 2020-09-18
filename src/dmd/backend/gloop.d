@@ -2131,7 +2131,7 @@ private void findbasivs(ref loop l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                foreach (uint j; 0 .. globsym.length)
+                foreach (j; 0 .. globsym.length)
                 {
                     if (!(globsym.tab[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
@@ -3396,7 +3396,7 @@ private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
 
     debug
       if (!(X.Ssymnum < globsym.length && incn))
-          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.length,&l,incn);
+          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",cast(int) X.Ssymnum,cast(int) globsym.length,&l,incn);
 
     assert(X.Ssymnum < globsym.length && incn);
     count = 0;
