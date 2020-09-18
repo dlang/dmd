@@ -2119,7 +2119,6 @@ public:
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
-    Array<Expression*>* getAttributes();
     const char* kind() const;
     void accept(Visitor* v);
     static bool isGNUABITag(Expression* e);
@@ -4614,6 +4613,8 @@ enum : bool { LOGSEMANTIC = false };
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
+
+extern Array<Expression*>* getAttributes(UserAttributeDeclaration* uad);
 
 enum class ILS
 {

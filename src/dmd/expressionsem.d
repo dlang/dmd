@@ -12337,6 +12337,21 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     return true;
 }
 
+extern (C++) Expressions* getAttributes(UserAttributeDeclaration uad)
+{
+    if (auto sc = uad._scope)
+    {
+        uad._scope = null;
+        arrayExpressionSemantic(uad.atts, sc);
+    }
+    auto exps = new Expressions();
+    if (uad.userAttribDecl && uad.userAttribDecl !is uad)
+        exps.push(new TupleExp(Loc.initial, uad.userAttribDecl.getAttributes()));
+    if (uad.atts && uad.atts.dim)
+        exps.push(new TupleExp(Loc.initial, uad.atts));
+    return exps;
+}
+
 /*******************************
  * Checks the attributes of a function.
  * Purity (`pure`), safety (`@safe`), no GC allocations(`@nogc`)

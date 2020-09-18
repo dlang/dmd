@@ -33,7 +33,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.expression;
-import dmd.expressionsem : arrayExpressionSemantic;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen : protectionToBuffer;
@@ -1405,21 +1404,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
             (*udas)[1] = new TupleExp(Loc.initial, udas2);
         }
         return udas;
-    }
-
-    Expressions* getAttributes()
-    {
-        if (auto sc = _scope)
-        {
-            _scope = null;
-            arrayExpressionSemantic(atts, sc);
-        }
-        auto exps = new Expressions();
-        if (userAttribDecl && userAttribDecl !is this)
-            exps.push(new TupleExp(Loc.initial, userAttribDecl.getAttributes()));
-        if (atts && atts.dim)
-            exps.push(new TupleExp(Loc.initial, atts));
-        return exps;
     }
 
     override const(char)* kind() const
