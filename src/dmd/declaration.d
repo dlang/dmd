@@ -362,6 +362,14 @@ extern (C++) abstract class Declaration : Dsymbol
                                     return false;
                         }
                     }
+                    if (auto ctor = isCtorDeclaration())
+                    {
+                        if (ctor.isCpCtor && ctor.generated)
+                        {
+                            .error(loc, "Generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", parent.toPrettyChars());
+                            return true;
+                        }
+                    }
                     error(loc, "cannot be used because it is annotated with `@disable`");
                 }
             }
