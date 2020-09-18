@@ -211,14 +211,65 @@ private bool lambdaHasSideEffect(Expression e)
     return false;
 }
 
+private bool isAssignment(Expression e)
+{
+    extern (C++) final class IsAssignment : SemanticTimePermissiveVisitor
+    {
+        alias visit = typeof(super).visit;
+        bool result;
+
+        override void visit(AssignExp)
+        {
+            result = true;
+        }
+
+        override void visit(BinAssignExp)
+        {
+            result = true;
+        }
+    }
+
+    scope IsAssignment v = new IsAssignment();
+    e.accept(v);
+    return v.result;
+}
+
+/**
+ * Check whether the e is a call to a @nodiscard function, or is
+ * a non-assignment expression with @nodiscard type.
+ */
+private bool isNodiscard(Expression e)
+{
+    if (auto ce = e.isCallExp())
+    {
+        if (ce.f && (ce.f.storage_class & STC.nodiscard)) {
+            e.error("ignored return value of `@nodiscard` function `%s`; prepend a `cast(void)` if intentional", ce.f.toPrettyChars());
+            return true;
+        }
+    }
+    if (!isAssignment(e))
+    {
+        auto sym = e.type.toDsymbol(null);
+        auto ad = sym ? sym.isAggregateDeclaration() : null;
+        if (ad && (ad.storage_class & STC.nodiscard) != 0) {
+            e.error("ignored value of `@nodiscard` type `%s`; prepend a `cast(void)` if intentional", e.type.toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
 /***********************************
  * The result of this expression will be discarded.
- * Print error messages if the operation has no side effects (and hence is meaningless).
+ * Print error messages if the operation has no side effects (and hence is meaningless),
+ * or if it is non-discardable because of a @nodiscard annotation.
  * Returns:
- *      true if expression has no side effects
+ *      true if expression has no side effects or is @nodiscard
  */
 bool discardValue(Expression e)
 {
+    if (isNodiscard(e))
+        return true;
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
         return false;
     switch (e.op)

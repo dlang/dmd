@@ -2493,13 +2493,14 @@ enum class STC : uint64_t
     local = 2251799813685248LLU,
     returninferred = 4503599627370496LLU,
     live = 9007199254740992LLU,
+    nodiscard = 18014398509481984LLU,
     safeGroup = 60129542144LLU,
     IOR = 2103296LLU,
     TYPECTOR = 2685403140LLU,
     FUNCATTR = 9011661828521984LLU,
 };
 
-static STC const STCStorageClass = (STC)12407095344775071LLU;
+static STC const STCStorageClass = (STC)30421493854257055LLU;
 
 static STC const STCFlowThruAggregate = (STC)60129542144LLU;
 
@@ -7250,6 +7251,7 @@ struct Id
     static Identifier* property;
     static Identifier* nogc;
     static Identifier* live;
+    static Identifier* nodiscard;
     static Identifier* safe;
     static Identifier* trusted;
     static Identifier* system;
