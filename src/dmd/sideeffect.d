@@ -280,7 +280,7 @@ bool discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
-                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
+                    e.warning("calling `%s` without side effects discards return value of type `%s`; prepend a `cast(void)` if intentional", s, e.type.toChars());
                 }
             }
         }
