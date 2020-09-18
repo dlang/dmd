@@ -918,6 +918,10 @@ extern (C++) final class StaticIfCondition : Condition
 
             import dmd.staticcond;
             bool errors;
+
+            if (!exp)
+                return errorReturn();
+
             bool result = evalStaticCondition(sc, exp, exp, errors);
 
             // Prevent repeated condition evaluation.
