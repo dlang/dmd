@@ -1506,9 +1506,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
     override void visit(TypeInfoStructDeclaration tid)
     {
         StructDeclaration sd = tid.tinfo.isTypeStruct().sym;
-        sd.semanticTypeInfoMembers();
-        if (sd.rtInfoScope)
-            generateRTInfo(sd, sd.rtInfoScope);
+        if (sd.members)
+        {
+            sd.semanticTypeInfoMembers();
+            if (sd.rtInfoScope)
+                generateRTInfo(sd, sd.rtInfoScope);
+        }
     }
 }
 
