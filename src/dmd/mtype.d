@@ -3718,9 +3718,7 @@ extern (C++) final class TypeSArray : TypeArray
         auto elements = new Expressions(d);
         foreach (ref e; *elements)
             e = null;
-        auto ae = new ArrayLiteralExp(Loc.initial, this, elementinit, elements);
-        ae.verifyTypeInfo(null); // no Scope available here, will use rootModule
-        return ae;
+        return new ArrayLiteralExp(Loc.initial, this, elementinit, elements);
     }
 
     override bool hasPointers()
