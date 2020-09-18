@@ -151,7 +151,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 fatal();
         }
     }
-    
 
     override void visit(TemplateInstance tempinst)
     {
