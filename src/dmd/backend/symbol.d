@@ -851,7 +851,7 @@ debug
                 blocklist_free(&f.Fstartblock);
                 freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
-                symtab_free(f.Flocsym[].ptr);
+                f.Flocsym.dtor();
               if (CPP)
               {
                 if (f.Fflags & Fnotparent)
@@ -1108,6 +1108,9 @@ else
 
     debug if (debugy)
         printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr, cast(int) symtab.length);
+
+    debug if (s.Ssymnum != SYMIDX.max)
+        printf("symbol %s already added\n", s.Sident.ptr);
 
     assert(s.Ssymnum == SYMIDX.max);
     return s.Ssymnum = symtab.length++;
