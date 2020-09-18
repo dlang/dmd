@@ -632,7 +632,7 @@ struct ASTBase
     extern (C++) final class StaticAssert : Dsymbol
     {
         Expression exp;
-        Expression msg;
+        Expressions* msg;
 
         extern (D) this(const ref Loc loc, Expression exp, Expression msg)
         {
