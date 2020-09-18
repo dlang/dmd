@@ -254,7 +254,7 @@ void WReqn(elem *e)
             case OPvar:
                 printf("%s",e.EV.Vsym.Sident.ptr);
                 if (e.EV.Vsym.Ssymnum != SYMIDX.max)
-                    printf("(%d)",e.EV.Vsym.Ssymnum);
+                    printf("(%d)", cast(int) e.EV.Vsym.Ssymnum);
                 if (e.EV.Voffset != 0)
                 {
                     if (e.EV.Voffset.sizeof == 8)

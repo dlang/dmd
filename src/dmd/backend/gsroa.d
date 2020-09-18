@@ -282,7 +282,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
     if (0) foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab.tab[si];
-        printf("[%d]: %p %d %s\n", si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
+        printf("[%d]: %p %d %s\n", cast(int)si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
     }
 
     bool anySlice = false;

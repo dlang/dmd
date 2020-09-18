@@ -1161,7 +1161,7 @@ version (SCPP)
     /* Copy local symbol table onto main one, making sure       */
     /* that the symbol numbers are adjusted accordingly */
     //printf("f.Flocsym.length = %d\n",f.Flocsym.length);
-    uint nsymbols = f.Flocsym.length;
+    auto nsymbols = f.Flocsym.length;
     if (nsymbols > globsym.symmax)
     {   /* Reallocate globsym.tab[]     */
         globsym.symmax = nsymbols;
@@ -1339,8 +1339,8 @@ version (MARS)
     }
     PARSER = 0;
     if (eecontext.EEelem)
-    {   uint marksi = globsym.length;
-
+    {
+        const marksi = globsym.length;
         eecontext.EEin++;
         outelem(eecontext.EEelem, addressOfParam);
         eecontext.EEelem = doptelem(eecontext.EEelem,true);

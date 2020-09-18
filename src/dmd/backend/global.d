@@ -148,7 +148,7 @@ version (Posix)
 void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
 void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void *p) { mem_free(p); }
-void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
+void *util_realloc(void *oldp,size_t n,size_t size) { return mem_realloc(oldp, n * size); }
 //#define parc_malloc     mem_malloc
 //#define parc_calloc     mem_calloc
 //#define parc_realloc    mem_realloc
@@ -160,7 +160,7 @@ else
 void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
-void *util_realloc(void *oldp,uint n,uint size);
+void *util_realloc(void *oldp,size_t n,size_t size);
 void *parc_malloc(size_t len);
 void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);

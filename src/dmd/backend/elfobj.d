@@ -960,7 +960,7 @@ void *elf_renumbersyms()
     for (int i = 1; i < SegData.length; i++)
     {                           // Map indicies in the segment table
         seg_data *pseg = SegData[i];
-        pseg.SDsymidx = sym_map[pseg.SDsymidx];
+        pseg.SDsymidx = cast(uint) sym_map[pseg.SDsymidx];
 
         if (SecHdrTab[pseg.SDshtidx].sh_type == SHT_GROUP)
         {   // map symbol index of group section header
@@ -968,7 +968,7 @@ void *elf_renumbersyms()
             assert(oidx < symbol_idx);
             // we only have one symbol table
             assert(SecHdrTab[pseg.SDshtidx].sh_link == SHN_SYMTAB);
-            SecHdrTab[pseg.SDshtidx].sh_info = sym_map[oidx];
+            SecHdrTab[pseg.SDshtidx].sh_info = cast(uint) sym_map[oidx];
         }
 
         if (pseg.SDrel)
@@ -994,7 +994,7 @@ void *elf_renumbersyms()
                     uint t = ELF32_R_TYPE(rel.r_info);
                     uint si = ELF32_R_SYM(rel.r_info);
                     assert(si < symbol_idx);
-                    rel.r_info = ELF32_R_INFO(sym_map[si],t);
+                    rel.r_info = ELF32_R_INFO(cast(uint) sym_map[si],t);
                     rel++;
                 }
             }

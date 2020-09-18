@@ -24,7 +24,7 @@ extern (C++):
 
 nothrow:
 
-alias SYMIDX = int;    // symbol table index
+alias SYMIDX = size_t;    // symbol table index
 
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;

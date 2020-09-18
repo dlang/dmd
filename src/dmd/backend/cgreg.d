@@ -245,7 +245,7 @@ private void el_weights(int bi,elem *e,uint weight)
                         s.Sweight += weight;
                         //printf("adding %d weight to '%s' (block %d, Ssymnum %d), giving Sweight %d\n",weight,s.Sident.ptr,bi,s.Ssymnum,s.Sweight);
                         if (weights)
-                            WEIGHTS(bi,s.Ssymnum) += weight;
+                            WEIGHTS(bi,cast(int)s.Ssymnum) += weight;
                     }
                     break;
 

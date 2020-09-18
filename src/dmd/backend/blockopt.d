@@ -70,7 +70,7 @@ extern (C) void mem_free(void*); // tk/mem.c
 alias MEM_PH_FREE = mem_free;
 
 version (HTOD)
-    void *util_realloc(void* p, uint n, uint size);
+    void *util_realloc(void* p, size_t n, size_t size);
 else
     import dmd.backend.gflow : util_realloc;
 
