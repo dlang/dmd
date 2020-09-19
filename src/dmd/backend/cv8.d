@@ -497,7 +497,7 @@ void cv8_func_term(Symbol *sfunc)
             buf.write16(S_END);
         }
     }
-    varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
+    varStats_writeSymbolTable(globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)
