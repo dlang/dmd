@@ -1071,10 +1071,10 @@ private void symbol_undef(Symbol *s)
 
 SYMIDX symbol_add(Symbol *s)
 {
-    return symbol_add(cstate.CSpsymtab, s);
+    return symbol_add(*cstate.CSpsymtab, s);
 }
 
-SYMIDX symbol_add(symtab_t* symtab, Symbol* s)
+SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
 {   SYMIDX sitop;
 
     //printf("symbol_add('%s')\n", s.Sident.ptr);
@@ -1088,19 +1088,18 @@ debug
     symbol_debug(s);
     if (pstate.STinsizeof)
     {   symbol_keep(s);
-        return -1;
+        return SYMIDX.max;
     }
-    debug assert(symtab);
     sitop = symtab.length;
     assert(sitop <= symtab.symmax);
     if (sitop == symtab.symmax)
     {
-debug
-    enum SYMINC = 1;                       /* flush out reallocation bugs  */
-else
-    enum SYMINC = 99;
+        debug
+            enum SYMINC = 1;                       /* flush out reallocation bugs  */
+        else
+            enum SYMINC = 99;
 
-        symtab.symmax += (symtab == &globsym) ? SYMINC : 1;
+        symtab.symmax += (&symtab == &globsym) ? SYMINC : 1;
         //assert(symtab.symmax * (Symbol *).sizeof < 4096 * 4);
         symtab.tab = symtab_realloc(symtab.tab, symtab.symmax);
     }
@@ -1135,13 +1134,11 @@ SYMIDX symbol_insert(symtab_t* symtab, Symbol* s, SYMIDX n)
 }
 
 /****************************
- * Free up the symbol table, from symbols n1 through n2, not
- * including n2.
+ * Free up the symbols stab[n1 .. n2]
  */
 
 void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
-{   SYMIDX si;
-
+{
     if (!stab)
         return;
 
@@ -1149,22 +1146,21 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
         printf("freesymtab(from %d to %d)\n", cast(int) n1, cast(int) n2);
 
     assert(stab != globsym[].ptr || (n1 <= n2 && n2 <= globsym.length));
-    for (si = n1; si < n2; si++)
-    {   Symbol *s;
-
-        s = stab[si];
+    foreach (ref s; stab[n1 .. n2])
+    {
         if (s && s.Sflags & SFLfree)
-        {   stab[si] = null;
+        {
 
-debug
-{
-            if (debugy)
-                printf("Freeing %p '%s' (%d)\n",s,s.Sident.ptr, cast(int) si);
-            symbol_debug(s);
-}
+            debug
+            {
+                if (debugy)
+                    printf("Freeing %p '%s'\n",s,s.Sident.ptr);
+                symbol_debug(s);
+            }
             s.Sl = s.Sr = null;
             s.Ssymnum = SYMIDX.max;
             symbol_free(s);
+            s = null;
         }
     }
 }
