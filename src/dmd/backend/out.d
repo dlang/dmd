@@ -1161,16 +1161,10 @@ version (SCPP)
     /* Copy local symbol table onto main one, making sure       */
     /* that the symbol numbers are adjusted accordingly */
     //printf("f.Flocsym.length = %d\n",f.Flocsym.length);
-    auto nsymbols = f.Flocsym.length;
-    if (nsymbols > globsym.symmax)
-    {   /* Reallocate globsym[]     */
-        globsym.symmax = nsymbols;
-        globsym.tab = symtab_realloc(globsym.tab, globsym.symmax);
-    }
     debug debugy && printf("appending symbols to symtab...\n");
-    assert(globsym.length == 0);
+    const nsymbols = f.Flocsym.length;
+    globsym.setLength(nsymbols);
     memcpy(&globsym.tab[0],&f.Flocsym.tab[0],nsymbols * (Symbol *).sizeof);
-    globsym.length = nsymbols;
 
     assert(startblock == null);
     if (f.Fflags & Finline)            // if keep function around
