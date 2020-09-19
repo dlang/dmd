@@ -39,6 +39,47 @@ struct symtab_t
 {
   nothrow:
     alias T = Symbol*;
+    alias capacity = symmax;
+
+    /**********************
+     * Set useable length of array.
+     * Params:
+     *  length = minimum number of elements in array
+     */
+    void setLength(size_t length)
+    {
+        static void enlarge(ref symtab_t barray, size_t length)
+        {
+            pragma(inline, false);
+            const newcap = (barray.capacity == 0)
+                ? length
+                : (length + (length >> 1) + 15) & ~15;
+
+            T* p;
+            if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
+                p = cast(T*) MEM_PH_REALLOC(barray.tab, newcap * T.sizeof);
+            else
+                p = cast(T*) realloc(barray.tab, newcap * T.sizeof);
+
+            if (length && !p)
+            {
+                version (unittest)
+                    assert(0);
+                else
+                    err_nomem();
+            }
+            barray.tab = p;
+            barray.length = length;
+            barray.capacity = newcap;
+            //barray.array = p[0 .. length];
+        }
+
+        if (length <= capacity)
+            this.length = length;               // the fast path
+            //array = array.ptr[0 .. length];   // the fast path
+        else
+            enlarge(this, length);              // the slow path
+    }
 
     ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
     {
@@ -72,42 +113,4 @@ struct symtab_t
     SYMIDX symmax;              // max # of entries in tab[] possible
     T* tab;                     // local Symbol table
 }
-
-/*********************************
- * Allocate/free symbol table.
- */
-
-extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_REALLOC(tab, symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) realloc(tab, symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_malloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_MALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) malloc(symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-
 

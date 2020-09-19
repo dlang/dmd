@@ -1075,44 +1075,33 @@ SYMIDX symbol_add(Symbol *s)
 }
 
 SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
-{   SYMIDX sitop;
-
-    //printf("symbol_add('%s')\n", s.Sident.ptr);
-debug
 {
-    if (!s || !s.Sident[0])
-    {   printf("bad symbol\n");
-        assert(0);
+    //printf("symbol_add('%s')\n", s.Sident.ptr);
+    debug
+    {
+        if (!s || !s.Sident[0])
+        {   printf("bad symbol\n");
+            assert(0);
+        }
     }
-}
     symbol_debug(s);
     if (pstate.STinsizeof)
     {   symbol_keep(s);
         return SYMIDX.max;
     }
-    sitop = symtab.length;
-    assert(sitop <= symtab.symmax);
-    if (sitop == symtab.symmax)
-    {
-        debug
-            enum SYMINC = 1;                       /* flush out reallocation bugs  */
-        else
-            enum SYMINC = 99;
-
-        symtab.symmax += (&symtab == &globsym) ? SYMINC : 1;
-        //assert(symtab.symmax * (Symbol *).sizeof < 4096 * 4);
-        symtab.tab = symtab_realloc(symtab.tab, symtab.symmax);
-    }
-    symtab.tab[sitop] = s;
+    const sitop = symtab.length;
+    symtab.setLength(sitop + 1);
+    symtab[sitop] = s;
 
     debug if (debugy)
         printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr, cast(int) symtab.length);
 
     debug if (s.Ssymnum != SYMIDX.max)
         printf("symbol %s already added\n", s.Sident.ptr);
-
     assert(s.Ssymnum == SYMIDX.max);
-    return s.Ssymnum = symtab.length++;
+    s.Ssymnum = sitop;
+
+    return sitop;
 }
 
 /********************************************
