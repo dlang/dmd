@@ -819,6 +819,8 @@ nothrow:
         }
     }
 
+    __gshared bool printSearchPath = false;
+
     /*************************************
      * Search Path for file in a safe manner.
      *
@@ -851,19 +853,24 @@ nothrow:
                  */
                 for (size_t i = 0; i < path.dim; i++)
                 {
+                    import core.stdc.stdio;
+
                     const(char)* cname = null;
                     const(char)* cpath = canonicalName((*path)[i]);
-                    //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
-                    //      name, (char *)path.data[i], cpath);
+                    if (printSearchPath)
+                        printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
+                              name, (*path)[i], cpath);
                     if (cpath is null)
                         goto cont;
                     cname = canonicalName(combine(cpath, name));
-                    //printf("FileName::safeSearchPath(): cname=%s\n", cname);
+                    if (printSearchPath)
+                        printf("FileName::safeSearchPath(): cname=%s\n", cname);
                     if (cname is null)
                         goto cont;
-                    //printf("FileName::safeSearchPath(): exists=%i "
-                    //      "strncmp(cpath, cname, %i)=%i\n", exists(cname),
-                    //      strlen(cpath), strncmp(cpath, cname, strlen(cpath)));
+                    if (printSearchPath)
+                        printf("FileName::safeSearchPath(): exists=%i " ~
+                              "strncmp(cpath, cname, %zi)=%i\n", exists(cname),
+                              strlen(cpath), strncmp(cpath, cname, strlen(cpath)));
                     // exists and name is *really* a "child" of path
                     if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
                     {

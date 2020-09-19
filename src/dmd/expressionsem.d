@@ -5895,6 +5895,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto name = FileName.safeSearchPath(global.filePath, namez);
         if (!name)
         {
+            FileName.printSearchPath = true;
+            name = FileName.safeSearchPath(global.filePath, namez);
+
             e.error("file `%s` cannot be found or not in a path specified with `-J`", se.toChars());
             e.errorSupplemental("Path(s) searched (as provided by `-J`):");
             foreach (idx, path; *global.filePath)

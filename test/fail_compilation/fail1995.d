@@ -1,4 +1,5 @@
 /*
+DISABLED: osx
 REQUIRED_ARGS: -Jdoes_not_exists -Jfail_compilation/fail1995.d -Jfail_compilation/
 TEST_OUTPUT:
 ---
