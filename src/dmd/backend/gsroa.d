@@ -390,7 +390,7 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
                 snew.Stype.Tcount++;
 
                 // insert snew into symtab[si + n + 1]
-                symbol_insert(&symtab, snew, si + n + 1);
+                symbol_insert(symtab, snew, si + n + 1);
 
                 sia2[si + n].canSlice = true;
                 sia2[si + n].si0 = si + n;

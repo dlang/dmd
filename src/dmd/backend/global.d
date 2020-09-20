@@ -355,7 +355,7 @@ int baseclass_nitems(baseclass_t *b);
 void symbol_free(Symbol *s);
 SYMIDX symbol_add(Symbol *s);
 SYMIDX symbol_add(ref symtab_t, Symbol *s);
-SYMIDX symbol_insert(symtab_t*, Symbol *s, SYMIDX n);
+SYMIDX symbol_insert(ref symtab_t, Symbol *s, SYMIDX n);
 void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol *symbol_copy(Symbol *s);
 Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
