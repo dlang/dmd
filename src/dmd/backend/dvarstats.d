@@ -84,13 +84,11 @@ nothrow:
 
     // line number records for the current function
     Barray!LineOffset lineOffsets;
-    int cntUsedLineOffsets;
     const(char)* srcfile;  // only one file supported, no inline
 
 public void startFunction()
 {
     lineOffsets.setLength(0);
-    cntUsedLineOffsets = 0;
     srcfile = null;
 }
 
@@ -347,27 +345,27 @@ private extern (C) static int cmpLineOffsets(scope const void* off1, scope const
 
 private void sortLineOffsets()
 {
-    if (cntUsedLineOffsets == 0)
+    if (lineOffsets.length == 0)
         return;
 
     // remember the offset to the next recorded offset on another line
-    for (int i = 1; i < cntUsedLineOffsets; i++)
+    for (int i = 1; i < lineOffsets.length; i++)
         lineOffsets[i-1].diffNextOffset = cast(uint)(lineOffsets[i].offset - lineOffsets[i-1].offset);
-    lineOffsets[cntUsedLineOffsets - 1].diffNextOffset = cast(uint)(retoffset + retsize - lineOffsets[cntUsedLineOffsets - 1].offset);
+    lineOffsets[lineOffsets.length - 1].diffNextOffset = cast(uint)(retoffset + retsize - lineOffsets[lineOffsets.length - 1].offset);
 
     // sort line records and remove duplicate lines preferring smaller offsets
-    qsort(lineOffsets[].ptr, cntUsedLineOffsets, (lineOffsets[0]).sizeof, &cmpLineOffsets);
+    qsort(lineOffsets[].ptr, lineOffsets.length, (lineOffsets[0]).sizeof, &cmpLineOffsets);
     int j = 0;
-    for (int i = 1; i < cntUsedLineOffsets; i++)
+    for (int i = 1; i < lineOffsets.length; i++)
         if (lineOffsets[i].linnum > lineOffsets[j].linnum)
             lineOffsets[++j] = lineOffsets[i];
-    cntUsedLineOffsets = j + 1;
+    lineOffsets.setLength(j + 1);
 }
 
 private targ_size_t getLineOffset(int linnum)
 {
     int idx = findLineIndex(linnum);
-    if (idx >= cntUsedLineOffsets || lineOffsets[idx].linnum < linnum)
+    if (idx >= lineOffsets.length || lineOffsets[idx].linnum < linnum)
         return retoffset + retsize; // function length
     if (idx > 0 && lineOffsets[idx].linnum != linnum)
         // for inexact line numbers, use the offset following the previous line
@@ -379,7 +377,7 @@ private targ_size_t getLineOffset(int linnum)
 private int findLineIndex(uint line)
 {
     int low = 0;
-    int high = cntUsedLineOffsets;
+    int high = cast(int)lineOffsets.length;
     while (low < high)
     {
         int mid = (low + high) >> 1;
@@ -412,10 +410,10 @@ public void recordLineOffset(Srcpos src, targ_size_t off)
     // assume ascending code offsets generated during codegen, ignore any other
     //  (e.g. there is an additional line number emitted at the end of the function
     //   or multiple line numbers at the same offset)
-    if (cntUsedLineOffsets > 0 && lineOffsets[cntUsedLineOffsets-1].offset >= off)
+    if (lineOffsets.length > 0 && lineOffsets[lineOffsets.length-1].offset >= off)
         return;
 
-    if (cntUsedLineOffsets > 0 && lineOffsets[cntUsedLineOffsets-1].linnum == src.Slinnum)
+    if (lineOffsets.length > 0 && lineOffsets[lineOffsets.length-1].linnum == src.Slinnum)
     {
         // optimize common case: new offset on same line
         return;
@@ -425,8 +423,6 @@ public void recordLineOffset(Srcpos src, targ_size_t off)
     linoff.linnum = src.Slinnum;
     linoff.offset = off;
     linoff.diffNextOffset = 0;
-
-    cntUsedLineOffsets++;
 }
 
 }
