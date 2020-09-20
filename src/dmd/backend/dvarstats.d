@@ -22,6 +22,7 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.code;
 import dmd.backend.symtab;
+import dmd.backend.barray;
 
 extern (C++):
 
@@ -83,12 +84,13 @@ nothrow:
     int uniquecnt;        // number of variables that have unique name and don't need lexical scope
 
     // line number records for the current function
-    LineOffset[] lineOffsets;
+    Barray!LineOffset lineOffsets;
     int cntUsedLineOffsets;
     const(char)* srcfile;  // only one file supported, no inline
 
 public void startFunction()
 {
+    lineOffsets.setLength(0);
     cntUsedLineOffsets = 0;
     srcfile = null;
 }
@@ -357,7 +359,7 @@ private void sortLineOffsets()
     lineOffsets[cntUsedLineOffsets - 1].diffNextOffset = cast(uint)(retoffset + retsize - lineOffsets[cntUsedLineOffsets - 1].offset);
 
     // sort line records and remove duplicate lines preferring smaller offsets
-    qsort(lineOffsets.ptr, cntUsedLineOffsets, (lineOffsets[0]).sizeof, &cmpLineOffsets);
+    qsort(lineOffsets[].ptr, cntUsedLineOffsets, (lineOffsets[0]).sizeof, &cmpLineOffsets);
     int j = 0;
     for (int i = 1; i < cntUsedLineOffsets; i++)
         if (lineOffsets[i].linnum > lineOffsets[j].linnum)
@@ -422,13 +424,11 @@ public void recordLineOffset(Srcpos src, targ_size_t off)
         return;
     }
     // don't care for lineOffsets being ordered now, that is taken care of later (calcLexicalScope)
-    if (lineOffsets.length <= cntUsedLineOffsets)
-    {
-        const newSize = 2 * cntUsedLineOffsets + 16;
-        lineOffsets = (cast(LineOffset*) util_realloc(lineOffsets.ptr, newSize, (lineOffsets[0]).sizeof))[0 .. newSize];
-    }
-    lineOffsets[cntUsedLineOffsets].linnum = src.Slinnum;
-    lineOffsets[cntUsedLineOffsets].offset = off;
+    LineOffset* linoff = lineOffsets.push();
+    linoff.linnum = src.Slinnum;
+    linoff.offset = off;
+    linoff.diffNextOffset = 0;
+
     cntUsedLineOffsets++;
 }
 
