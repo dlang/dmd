@@ -1109,13 +1109,13 @@ SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
  * Returns:
  *      position in table
  */
-SYMIDX symbol_insert(symtab_t* symtab, Symbol* s, SYMIDX n)
+SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
 {
     const sinew = symbol_add(s);        // added at end, have to move it
     for (SYMIDX i = sinew; i > n; --i)
     {
-        symtab.tab[i] = symtab.tab[i - 1];
-        symtab.tab[i].Ssymnum += 1;
+        symtab[i] = symtab[i - 1];
+        symtab[i].Ssymnum += 1;
     }
     globsym[n] = s;
     s.Ssymnum = n;
