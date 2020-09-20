@@ -1,4 +1,5 @@
-// PERMUTE_ARGS: -w -d -dw
+// REQUIRED_ARGS: -w -de
+// PERMUTE_ARGS:
 
 /***************************************************/
 // 15665
