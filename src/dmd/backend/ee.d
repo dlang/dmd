@@ -55,19 +55,23 @@ void eecontext_convs(SYMIDX marksi)
     symtab_t *ps;
 
     // Change all generated SCauto's to SCstack's
-version (SCPP)
-{
-    ps = &globsym;
-}
-else
-{
-    ps = cstate.CSpsymtab;
-}
+    version (SCPP)
+    {
+        ps = &globsym;
+    }
+    else version (HTOD)
+    {
+        ps = &globsym;
+    }
+    else
+    {
+        ps = cstate.CSpsymtab;
+    }
     const top = ps.length;
     //printf("eecontext_convs(%d,%d)\n",marksi,top);
     foreach (u; marksi .. top)
     {
-        auto s = ps.tab[u];
+        auto s = (*ps)[u];
         switch (s.Sclass)
         {
             case SCauto:
