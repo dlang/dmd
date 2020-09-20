@@ -12,6 +12,7 @@
 
 #include "dsymbol.h"
 #include "mtype.h"
+#include "objc.h"
 #include "tokens.h"
 
 class Expression;
@@ -26,7 +27,6 @@ struct Ensure
 };
 class FuncDeclaration;
 class StructDeclaration;
-struct ObjcSelector;
 struct IntRange;
 
 #define STCundefined    0ULL
