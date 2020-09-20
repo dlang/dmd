@@ -79,7 +79,7 @@ nothrow:
 
     // symbol table sorted by offset of variable creation
     symtab_t sortedSymtab;
-    SYMIDX* nextSym;      // next symbol with identifier with same hash, same size as sortedSymtab
+    Barray!SYMIDX nextSym;      // next symbol with identifier with same hash, same size as sortedSymtab
     int uniquecnt;        // number of variables that have unique name and don't need lexical scope
 
     // line number records for the current function
@@ -192,9 +192,9 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     // - arguments should be kept at the very beginning
     // - variables with unique name come first (will be emitted with full function scope)
     // - variables with duplicate names are added with ascending code offset
+    nextSym.setLength(symtab.length);
     if (sortedSymtab.symmax < symtab.length)
     {
-        nextSym = cast(SYMIDX*)util_realloc(nextSym, symtab.length, (*nextSym).sizeof);
         sortedSymtab.tab = cast(Symbol**) util_realloc(sortedSymtab.tab, symtab.length, (Symbol*).sizeof);
         sortedSymtab.symmax = symtab.length;
     }
