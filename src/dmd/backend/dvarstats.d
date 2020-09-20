@@ -22,6 +22,7 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.code;
 import dmd.backend.symtab;
+import dmd.backend.barray;
 
 extern (C++):
 
@@ -74,8 +75,7 @@ struct VarStatistics
 {
 private:
 nothrow:
-    LifeTime[] lifeTimes;
-    int cntUsedLifeTimes;
+    Barray!LifeTime lifeTimes;
 
     // symbol table sorted by offset of variable creation
     symtab_t sortedSymtab;
@@ -120,7 +120,7 @@ private extern (C) static int cmpLifeTime(scope const void* p1, scope const void
 }
 
 // a parent scope contains the creation offset of the child scope
-private static extern(D) SYMIDX isParentScope(LifeTime[] lifetimes, SYMIDX parent, SYMIDX si)
+private static extern(D) SYMIDX isParentScope(ref Barray!LifeTime lifetimes, SYMIDX parent, SYMIDX si)
 {
     if (parent == SYMIDX.max) // full function
         return true;
@@ -129,7 +129,7 @@ private static extern(D) SYMIDX isParentScope(LifeTime[] lifetimes, SYMIDX paren
 }
 
 // find a symbol that includes the creation of the given symbol as part of its life time
-private static extern(D) SYMIDX findParentScope(LifeTime[] lifetimes, SYMIDX si)
+private static extern(D) SYMIDX findParentScope(ref Barray!LifeTime lifetimes, SYMIDX si)
 {
     if (si != SYMIDX.max)
     {
@@ -234,8 +234,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     sortLineOffsets();
 
     // precalc the lexical blocks to emit so that identically named symbols don't overlap
-    if (lifeTimes.length < dupcnt)
-        lifeTimes = (cast(LifeTime*) util_realloc(lifeTimes.ptr, dupcnt, (LifeTime).sizeof))[0 .. dupcnt];
+    lifeTimes.setLength(dupcnt);
 
     for (SYMIDX si = 0; si < dupcnt; si++)
     {
@@ -243,8 +242,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
         lifeTimes[si].offCreate = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopestart);
         lifeTimes[si].offDestroy = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopeend);
     }
-    cntUsedLifeTimes = cast(int)dupcnt;
-    qsort(lifeTimes.ptr, dupcnt, (lifeTimes[0]).sizeof, &cmpLifeTime);
+    qsort(lifeTimes[].ptr, dupcnt, (lifeTimes[0]).sizeof, &cmpLifeTime);
 
     // ensure that an inner block does not extend beyond the end of a parent block
     for (SYMIDX si = 0; si < dupcnt; si++)
