@@ -1364,8 +1364,7 @@ int tryMain(string[] args)
         if (testArgs.isDisabled)
             return 0;
 
-        f.close();
-        printTestFailure(input_file, output_file);
+        printTestFailure(input_file, f);
         return 1;
     }
 
@@ -1600,16 +1599,8 @@ int tryMain(string[] args)
                 }
                 return Result.return0;
             }
-            f.writeln();
-            f.writeln("==============================");
-            f.writef("Test %s failed: ", input_file);
-            f.writeln(e.msg);
-            f.close();
 
-            writefln("\nTest %s failed.  The logged output:", input_file);
-            auto outputText = output_file.readText;
-            writeln(outputText);
-            output_file.remove();
+            const outputText = printTestFailure(input_file, f, e.msg);
 
             // auto-update if a diff is found and can be updated
             if (envData.autoUpdate &&
@@ -1789,8 +1780,7 @@ static this()
         const exitCode = wait(compileProc);
         if (exitCode != 0)
         {
-            outfile.close();
-            printTestFailure(testLogName, output_file);
+            printTestFailure(testLogName, outfile);
             return exitCode;
         }
     }
@@ -1811,8 +1801,7 @@ static this()
         }
         else if (exitCode != 0)
         {
-            outfile.close();
-            printTestFailure(testLogName, output_file);
+            printTestFailure(testLogName, outfile);
             return exitCode;
         }
     }
@@ -1824,11 +1813,16 @@ static this()
  * Prints the summary of a test failure to stdout and removes the logfile.
  *
  * Params:
- *   testLogName      = name of the test
- *   output_file_temp = path of the logfile
+ *   testLogName = name of the test
+ *   outfile     = the logfile
+ *   extra       = supplemental error message
+ * Returns: the content of outfile
  **/
-void printTestFailure(string testLogName, string output_file_temp)
+string printTestFailure(string testLogName, scope ref File outfile, string extra = null)
 {
+    const output_file_temp = outfile.name;
+    outfile.close();
+
     writeln("==============================");
     writefln("Test '%s' failed. The logged output:", testLogName);
     const output = readText(output_file_temp);
@@ -1836,7 +1830,12 @@ void printTestFailure(string testLogName, string output_file_temp)
     if (!output.endsWith("\n"))
           writeln();
     writeln("==============================");
+
+    if (extra)
+        writefln("Test '%s' failed: %s\n", testLogName, extra);
+
     remove(output_file_temp);
+    return output;
 }
 
 /**
