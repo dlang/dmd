@@ -746,6 +746,15 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
             return se.e1;
         }
     }
+
+    // It can be a `null` disguised as a cast, e.g. `cast(void*)0`.
+    if (auto ie = e.isIntegerExp())
+        if (ie.type.ty == Tpointer && ie.getInteger() == 0)
+            return new NullExp(ie.loc, e.type.nextOf());
+    // Those casts are invalid, but let the rest of the code handle it,
+    // as it could be something like `x !is null`, which doesn't need
+    // to dereference the pointer, even if the pointer is `cast(void*)420`.
+
     return e;
 }
 
