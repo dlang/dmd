@@ -967,7 +967,7 @@ package __gshared bool multiThreadedFlag = false;
 // Used for suspendAll/resumeAll below.
 package __gshared uint suspendDepth = 0;
 
-private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow);
+private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow @nogc);
 
 /**
  * Resume all threads but the calling thread for "stop the world" garbage

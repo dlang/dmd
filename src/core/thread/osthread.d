@@ -1546,7 +1546,7 @@ package extern(D) void* getStackBottom() nothrow @nogc
  * Returns:
  *  Whether the thread is now suspended (true) or terminated (false).
  */
-private extern (D) bool suspend( Thread t ) nothrow
+private extern (D) bool suspend( Thread t ) nothrow @nogc
 {
     Duration waittime = dur!"usecs"(10);
  Lagain:
@@ -1847,7 +1847,7 @@ extern (C) void thread_suspendAll() nothrow
  * Throws:
  *  ThreadError if the resume fails for a running thread.
  */
-private extern (D) void resume(ThreadBase _t) nothrow
+private extern (D) void resume(ThreadBase _t) nothrow @nogc
 {
     Thread t = _t.toThread;
 
