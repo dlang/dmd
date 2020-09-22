@@ -2,8 +2,8 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/test18385.d(13): Deprecation: function `test18385.foo(double)` cannot be overloaded with another `extern(C)` function at fail_compilation/test18385.d(12)
-fail_compilation/test18385.d(18): Deprecation: function `test18385.S.foo(double)` cannot be overloaded with another `extern(C)` function at fail_compilation/test18385.d(17)
+fail_compilation/test18385.d(13): Deprecation: function `test18385.foo` cannot overload `extern(C)` function at fail_compilation/test18385.d(12)
+fail_compilation/test18385.d(18): Deprecation: function `test18385.S.foo` cannot overload `extern(C)` function at fail_compilation/test18385.d(17)
 ---
 */
 

@@ -7,13 +7,13 @@ see visit(FuncDeclaration) in semantic2.d for details.
 
 TEST_OUTPUT:
 ---
-compilable\test18385.d(23): Deprecation: function `test18385.is_paragraph_start(int)` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(22)
-compilable\test18385.d(26): Deprecation: function `test18385.foo(byte, char)` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(25)
-compilable\test18385.d(29): Deprecation: function `test18385.trust()` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(28)
-compilable\test18385.d(32): Deprecation: function `test18385.purity()` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(31)
-compilable\test18385.d(35): Deprecation: function `test18385.nogc()` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(34)
-compilable\test18385.d(38): Deprecation: function `test18385.nothrow_()` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(37)
-compilable\test18385.d(41): Deprecation: function `test18385.live()` cannot be overloaded with another `extern(C)` function at compilable\test18385.d(40)
+compilable/test18385.d(23): Deprecation: function `test18385.is_paragraph_start` cannot overload `extern(C)` function at compilable/test18385.d(22)
+compilable/test18385.d(26): Deprecation: function `test18385.foo` cannot overload `extern(C)` function at compilable/test18385.d(25)
+compilable/test18385.d(29): Deprecation: function `test18385.trust` cannot overload `extern(C)` function at compilable/test18385.d(28)
+compilable/test18385.d(32): Deprecation: function `test18385.purity` cannot overload `extern(C)` function at compilable/test18385.d(31)
+compilable/test18385.d(35): Deprecation: function `test18385.nogc` cannot overload `extern(C)` function at compilable/test18385.d(34)
+compilable/test18385.d(38): Deprecation: function `test18385.nothrow_` cannot overload `extern(C)` function at compilable/test18385.d(37)
+compilable/test18385.d(41): Deprecation: function `test18385.live` cannot overload `extern(C)` function at compilable/test18385.d(40)
 ---
 */
 

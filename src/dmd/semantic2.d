@@ -408,12 +408,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 {
                     // @@@DEPRECATED_2.094@@@
                     // Deprecated in 2020-08, make this an error in 2.104
-                    deprecation(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
-                            f2.kind(),
-                            f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList),
-                            (f1.linkage == f2.linkage ? "another " : "").ptr,
-                            linkageToChars(f1.linkage), f1.loc.toChars());
+                    f2.deprecation("cannot overload `extern(%s)` function at %s",
+                            linkageToChars(f1.linkage),
+                            f1.loc.toChars());
 
                     // Enable this when turning the deprecation into an error
                     // f2.type = Type.terror;
