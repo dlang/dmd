@@ -5388,6 +5388,7 @@ public:
     bool isInOutQual() const;
     void isInOutQual(bool v);
     bool iswild() const;
+    bool attributesEqual(const TypeFunction* const other) const;
     void accept(Visitor* v);
 };
 

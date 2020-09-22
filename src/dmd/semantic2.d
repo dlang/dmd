@@ -359,17 +359,19 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
 
-        // https://issues.dlang.org/show_bug.cgi?id=18385
-        // Disable for 2.079, s.t. a deprecation cycle can be started with 2.080
-        if (0)
-        if (fd.overnext && !fd.errors)
+        // Only check valid functions which have a body to avoid errors
+        // for multiple declarations, e.g.
+        // void foo();
+        // void foo();
+        if (fd.fbody && fd.overnext && !fd.errors)
         {
             OutBuffer buf1;
             OutBuffer buf2;
 
             // Always starts the lookup from 'this', because the conflicts with
             // previous overloads are already reported.
-            auto f1 = fd;
+            alias f1 = fd;
+            auto tf1 = cast(TypeFunction) f1.type;
             mangleToFuncSignature(buf1, f1);
 
             overloadApply(f1, (Dsymbol s)
@@ -379,7 +381,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
 
                 // Don't have to check conflict between declaration and definition.
-                if ((f1.fbody !is null) != (f2.fbody !is null))
+                if (f2.fbody is null)
                     return 0;
 
                 /* Check for overload merging with base class member functions.
@@ -393,35 +395,26 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (f1.overrides(f2))
                     return 0;
 
+                auto tf2 = cast(TypeFunction) f2.type;
+
                 // extern (C) functions always conflict each other.
                 if (f1.ident == f2.ident &&
                     f1.toParent2() == f2.toParent2() &&
                     (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
-                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp))
-                {
-                    /* Allow the hack that is actually used in druntime,
-                     * to ignore function attributes for extern (C) functions.
-                     * TODO: Must be reconsidered in the future.
-                     *  BUG: https://issues.dlang.org/show_bug.cgi?id=18206
-                     *
-                     *  extern(C):
-                     *  alias sigfn_t  = void function(int);
-                     *  alias sigfn_t2 = void function(int) nothrow @nogc;
-                     *  sigfn_t  bsd_signal(int sig, sigfn_t  func);
-                     *  sigfn_t2 bsd_signal(int sig, sigfn_t2 func) nothrow @nogc;  // no error
-                     */
-                    if (f1.fbody is null || f2.fbody is null)
-                        return 0;
+                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp) &&
 
-                    auto tf2 = cast(TypeFunction)f2.type;
-                    error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
-                            f2.kind(),
-                            f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList),
-                            (f1.linkage == f2.linkage ? "another " : "").ptr,
-                            linkageToChars(f1.linkage), f1.loc.toChars());
-                    f2.type = Type.terror;
-                    f2.errors = true;
+                    // But allow the hack to declare overloads with different parameters/STC's
+                    (!tf1.attributesEqual(tf2) || tf1.parameterList != tf2.parameterList))
+                {
+                    // @@@DEPRECATED_2.094@@@
+                    // Deprecated in 2020-08, make this an error in 2.104
+                    f2.deprecation("cannot overload `extern(%s)` function at %s",
+                            linkageToChars(f1.linkage),
+                            f1.loc.toChars());
+
+                    // Enable this when turning the deprecation into an error
+                    // f2.type = Type.terror;
+                    // f2.errors = true;
                     return 0;
                 }
 
@@ -434,7 +427,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
                 if (strcmp(s1, s2) == 0)
                 {
-                    auto tf2 = cast(TypeFunction)f2.type;
                     error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
