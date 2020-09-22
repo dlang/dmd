@@ -1,26 +1,33 @@
-Usage of identical functions in a single module
+Diagnostics for conflicting function definitions within a module
 
-A binary should never contain multiple versions of a symbol.
-Before this version, it was allowed to provide multiple implementation for a function,
-even if they result in the same mangling, which can result in undefined behaviour:
+Previously, multiple definitions of identical functions within a module were not
+recognized, although they have the same mangling. This was problematic because a
+binary cannot contain multiple definitions of a symbol, which caused undefined
+behavior depending on the compiler backend.
+
+DMD will now raise an error message if there are conflicting implementations
+within a single module:
+
+---
+void foo() {}
+void foo() {} // error
+---
+
+Multiple declarations are still allowed as long as there is at most one definition:
+
+---
+void bar(int);
+void bar(int) { }
+void bar(int);
+---
+
+DMD will issue a deprecation for mangling schemes that don't support overloading
+(`extern(C|Windows|System)`):
 
 ---
 extern(C):
 void foo(int) { }
-void foo(double) { } // will issue a deprecation now
-
-void bar() {}
-void bar() {} // will raise an error
+void foo(double) { } // deprecation
 ---
 
-However, it's still allowed to have multiple declarations as long as there's at
-most one implementation:
-
----
-extern(C):
-void foo(int) { }
-void foo(double);
----
-
-Note that this change is only relevant for mangling schemes that do no support
-overloading like `extern(C)`.
+This deprecation will become an error in 2.105.
