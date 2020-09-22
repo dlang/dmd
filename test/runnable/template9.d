@@ -1476,6 +1476,7 @@ extern(C) alias void function() Callback;
 template W7585a(alias dg)
 {
     //pragma(msg, typeof(dg));
+    pragma(mangle, "W7585a" ~ dg.stringof)
     extern(C) void W7585a() { dg(); }
 }
 

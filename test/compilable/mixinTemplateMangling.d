@@ -2,7 +2,7 @@
 
 mixin template mixinFoo() {
 
-    extern(C) void cFoo() {}
+    extern(C) void cFoo();
 
     extern(C) int cVar;
     extern(D) int dVar;
@@ -15,7 +15,7 @@ mixin template mixinFoo() {
 mixin mixinFoo;
 
 mixin template mixinBar() {
-    extern(C) void cBar() {}
+    extern(C) void cBar();
     void dBar() {}
 }
 
@@ -28,8 +28,8 @@ static assert(dBar.mangleof == "_D21mixinTemplateMangling8__mixin5Qj4dBarFZv");
 
 struct S {
     mixin mixinFoo;
-    static assert(cFoo.mangleof == "_D21mixinTemplateMangling1S8__mixin14cFooMUZv");
-    static assert(cBar.mangleof == "_D21mixinTemplateMangling1S8__mixin18__mixin54cBarMUZv");
+    static assert(cFoo.mangleof == "cFoo");
+    static assert(cBar.mangleof == "cBar");
     static assert(dBar.mangleof == "_D21mixinTemplateMangling1S8__mixin18__mixin54dBarMFZv");
     static assert(dFoo.mangleof == "_D21mixinTemplateMangling1S8__mixin14dFooMFZv");
 }

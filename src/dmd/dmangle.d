@@ -557,44 +557,35 @@ public:
      * Try to obtain an externally mangled identifier from a declaration.
      * If the declaration is at global scope or mixed in at global scope,
      * the user might want to call it externally, so an externally mangled
-     * name is returned. Member functions or nested functions can't be called
-     * externally in C, so in that case null is returned. C++ does support
-     * namespaces, so extern(C++) always gives a C++ mangled name.
-     *
-     * See also: https://issues.dlang.org/show_bug.cgi?id=20012
+     * name is returned.
      *
      * Params:
      *     d = declaration to mangle
      *
      * Returns:
-     *     an externally mangled name or null if the declaration cannot be called externally
+     *     an externally mangled name or null if the declaration is `extern(D)`
      */
     extern (D) static const(char)[] externallyMangledIdentifier(Declaration d)
     {
-        const par = d.toParent(); //toParent() skips over mixin templates
-        if (!par || par.isModule() || d.linkage == LINK.cpp)
+        final switch (d.linkage)
         {
-            final switch (d.linkage)
+            case LINK.d:
+                 return null;
+            case LINK.c:
+            case LINK.windows:
+            case LINK.pascal:
+            case LINK.objc:
+                return d.ident.toString();
+            case LINK.cpp:
             {
-                case LINK.d:
-                    break;
-                case LINK.c:
-                case LINK.windows:
-                case LINK.pascal:
-                case LINK.objc:
-                    return d.ident.toString();
-                case LINK.cpp:
-                {
-                    const p = target.cpp.toMangle(d);
-                    return p.toDString();
-                }
-                case LINK.default_:
-                case LINK.system:
-                    d.error("forward declaration");
-                    return d.ident.toString();
+                const p = target.cpp.toMangle(d);
+                return p.toDString();
             }
+            case LINK.default_:
+            case LINK.system:
+                d.error("forward declaration");
+                return d.ident.toString();
         }
-        return null;
     }
 
     override void visit(Declaration d)

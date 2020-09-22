@@ -25,6 +25,7 @@ package class invarianttest:ComObject, IDataObject
         }
 
 extern (Windows):
+        pragma(mangle, "invarianttest_func")
         override void func()
         {
         int esp;
