@@ -119,7 +119,6 @@ public:
     bool noDefaultCtor;         // no default construction
     Sizeok sizeok;              // set when structsize contains valid data
 
-    virtual Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
     bool determineFields();
     size_t nonHiddenFields();
@@ -281,7 +280,6 @@ public:
 
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     bool isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210
@@ -318,7 +316,6 @@ class InterfaceDeclaration : public ClassDeclaration
 {
 public:
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind() const;

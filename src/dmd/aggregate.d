@@ -135,24 +135,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         protection = Prot(Prot.Kind.public_);
     }
 
-    /***************************************
-     * Create a new scope from sc.
-     * semantic, semantic2 and semantic3 will use this for aggregate members.
-     */
-    Scope* newScope(Scope* sc)
-    {
-        auto sc2 = sc.push(this);
-        sc2.stc &= STCFlowThruAggregate;
-        sc2.parent = this;
-        sc2.inunion = isUnionDeclaration();
-        sc2.protection = Prot(Prot.Kind.public_);
-        sc2.explicitProtection = 0;
-        sc2.aligndecl = null;
-        sc2.userAttribDecl = null;
-        sc2.namespace = null;
-        return sc2;
-    }
-
     override final void setScope(Scope* sc)
     {
         // Might need a scope to resolve forward references. The check for

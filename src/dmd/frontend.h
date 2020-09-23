@@ -1812,7 +1812,6 @@ public:
     Prot protection;
     bool noDefaultCtor;
     Sizeok sizeok;
-    virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     bool determineFields();
     size_t nonHiddenFields();
@@ -1915,7 +1914,6 @@ class AttribDeclaration : public Dsymbol
 public:
     Array<Dsymbol*>* decl;
     virtual Array<Dsymbol*>* include(Scope* sc);
-    virtual Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
     void importAll(Scope* sc);
@@ -1937,7 +1935,6 @@ class StorageClassDeclaration : public AttribDeclaration
 public:
     StorageClass stc;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     StorageClassDeclaration* isStorageClassDeclaration();
@@ -1950,7 +1947,6 @@ public:
     Expression* msg;
     char* msgstr;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     void accept(Visitor* v);
 };
@@ -1961,7 +1957,6 @@ public:
     LINK linkage;
     static LinkDeclaration* create(LINK p, Array<Dsymbol*>* decl);
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     const char* toChars() const;
     void accept(Visitor* v);
 };
@@ -1971,7 +1966,6 @@ class CPPMangleDeclaration : public AttribDeclaration
 public:
     CPPMANGLE cppmangle;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     const char* toChars() const;
     void accept(Visitor* v);
@@ -1982,7 +1976,6 @@ class CPPNamespaceDeclaration : public AttribDeclaration
 public:
     Expression* exp;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     const char* toChars() const;
     void accept(Visitor* v);
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
@@ -1994,7 +1987,6 @@ public:
     Prot protection;
     Array<Identifier*>* pkg_identifiers;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     const char* kind() const;
     const char* toPrettyChars(bool _param_0);
@@ -2010,7 +2002,6 @@ public:
 
     uint32_t salign;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -2035,7 +2026,6 @@ class PragmaDeclaration : public AttribDeclaration
 public:
     Array<Expression*>* args;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     const char* kind() const;
     void accept(Visitor* v);
 };
@@ -2092,7 +2082,6 @@ class ForwardingAttribDeclaration : public AttribDeclaration
 public:
     ForwardingScopeDsymbol* sym;
     ForwardingAttribDeclaration(Array<Dsymbol*>* decl);
-    Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     ForwardingAttribDeclaration* isForwardingAttribDeclaration();
     void accept(Visitor* v);
@@ -2117,7 +2106,6 @@ class UserAttributeDeclaration : public AttribDeclaration
 public:
     Array<Expression*>* atts;
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     Array<Expression*>* getAttributes();
     const char* kind() const;
@@ -2389,7 +2377,6 @@ public:
     Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass*>* baseclasses, Array<Dsymbol*>* members, bool inObject);
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     bool isBaseOf2(ClassDeclaration* cd);
     enum : int32_t { OFFSET_RUNTIME = 1985229328 };
 
@@ -2423,7 +2410,6 @@ class InterfaceDeclaration : public ClassDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
-    Scope* newScope(Scope* sc);
     bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseOf(BaseClass* bc, int32_t* poffset);
     const char* kind() const;

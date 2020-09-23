@@ -25,7 +25,6 @@ public:
     Dsymbols *decl;     // array of Dsymbol's
 
     virtual Dsymbols *include(Scope *sc);
-    virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     void importAll(Scope *sc);
@@ -48,7 +47,6 @@ public:
     StorageClass stc;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     StorageClassDeclaration *isStorageClassDeclaration() { return this; }
@@ -63,7 +61,6 @@ public:
     const char *msgstr;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -75,7 +72,6 @@ public:
 
     static LinkDeclaration *create(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     const char *toChars() const;
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -86,7 +82,6 @@ public:
     CPPMANGLE cppmangle;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
     const char *toChars() const;
     void accept(Visitor *v) { v->visit(this); }
@@ -98,7 +93,6 @@ public:
     Expression *exp;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     const char *toChars() const;
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -110,7 +104,6 @@ public:
     Identifiers* pkg_identifiers;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     const char *toPrettyChars(bool unused);
@@ -126,7 +119,6 @@ public:
 
     AlignDeclaration(const Loc &loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -153,7 +145,6 @@ public:
     Expressions *args;          // array of Expression's
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -213,7 +204,6 @@ class ForwardingAttribDeclaration : public AttribDeclaration
 public:
     ForwardingScopeDsymbol *sym;
 
-    Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     ForwardingAttribDeclaration *isForwardingAttribDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -246,7 +236,6 @@ public:
     Expressions *atts;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
     Expressions *getAttributes();
     const char *kind() const;
