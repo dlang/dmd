@@ -5190,8 +5190,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else
                 {
+                    /* https://issues.dlang.org/show_bug.cgi?id=21272
+                     * If we are in a foreach body we need to extract the
+                     * function containing the foreach
+                     */
+                    FuncDeclaration fes_enclosing_func;
+                    if (sc.func && sc.func.fes)
+                        fes_enclosing_func = sc.enclosing.enclosing.func;
+
                     // Disallow shadowing
-                    for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (scx.func && sc.func.fes)); scx = scx.enclosing)
+                    for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (fes_enclosing_func && scx.func == fes_enclosing_func)); scx = scx.enclosing)
                     {
                         Dsymbol s2;
                         if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
