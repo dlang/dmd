@@ -341,42 +341,42 @@ extern (C++) abstract class Declaration : Dsymbol
      */
     extern (D) final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
     {
-        if (storage_class & STC.disable)
+        if (!(storage_class & STC.disable))
+            return false;
+
+        if (sc.func && sc.func.storage_class & STC.disable)
+            return true;
+
+        auto p = toParent();
+        if (p && isPostBlitDeclaration())
         {
-            if (!(sc.func && sc.func.storage_class & STC.disable))
-            {
-                auto p = toParent();
-                if (p && isPostBlitDeclaration())
-                    p.error(loc, "is not copyable because it is annotated with `@disable`");
-                else
-                {
-                    // if the function is @disabled, maybe there
-                    // is an overload in the overload set that isn't
-                    if (isAliasedDeclaration)
-                    {
-                        FuncDeclaration fd = isFuncDeclaration();
-                        if (fd)
-                        {
-                            for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
-                                if (!(ovl.storage_class & STC.disable))
-                                    return false;
-                        }
-                    }
-                    if (auto ctor = isCtorDeclaration())
-                    {
-                        if (ctor.isCpCtor && ctor.generated)
-                        {
-                            .error(loc, "Generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", parent.toPrettyChars());
-                            return true;
-                        }
-                    }
-                    error(loc, "cannot be used because it is annotated with `@disable`");
-                }
-            }
+            p.error(loc, "is not copyable because it is annotated with `@disable`");
             return true;
         }
 
-        return false;
+        // if the function is @disabled, maybe there
+        // is an overload in the overload set that isn't
+        if (isAliasedDeclaration)
+        {
+            FuncDeclaration fd = isFuncDeclaration();
+            if (fd)
+            {
+                for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
+                    if (!(ovl.storage_class & STC.disable))
+                        return false;
+            }
+        }
+
+        if (auto ctor = isCtorDeclaration())
+        {
+            if (ctor.isCpCtor && ctor.generated)
+            {
+                .error(loc, "Generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", parent.toPrettyChars());
+                return true;
+            }
+        }
+        error(loc, "cannot be used because it is annotated with `@disable`");
+        return true;
     }
 
     /*************************************
