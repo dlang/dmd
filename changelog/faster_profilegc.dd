@@ -1,6 +1,0 @@
-`core.memory.GC.allocatedInCurrentThread()` was added, which makes `-profile=gc` faster
-
-The new function `core.memory.GC.allocatedInCurrentThread()` returns
-the same as `core.memory.GC.stats().allocatedInCurrentThread`, but
-is faster, because it avoids calculating other statistics.
-It is used for `-profile=gc` and makes it faster, too.
