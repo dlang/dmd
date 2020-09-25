@@ -41,7 +41,6 @@ install_host_dmd() {
     fi
     export PATH="$PWD/dmd2/windows/bin/:$PATH"
     export HOST_DC="$PWD/dmd2/windows/bin/dmd.exe"
-    export DM_MAKE="$PWD/dmd2/windows/bin/make.exe"
     dmd --version
 }
 
