@@ -1100,11 +1100,24 @@ extern (C++) final class OverDeclaration : Declaration
 extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
+    FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
+    Dsymbol aliassym;               // if redone as alias to another symbol
+    VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
+    Expression edtor;               // if !=null, does the destruction of the variable
+    IntRange* range;                // if !=null, the variable is known to be within the range
+    VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+
+    uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;
     uint sequenceNumber;            // order the variables are declared
     __gshared uint nextSequenceNumber;   // the counter for sequenceNumber
-    FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     structalign_t alignment;
+
+    // When interpreting, these point to the value (NULL if value not determinable)
+    // The index of this variable on the CTFE stack, AdrOnStackNone if not allocated
+    enum AdrOnStackNone = ~0u;
+    uint ctfeAdrOnStack;
+
     bool isargptr;                  // if parameter that _argptr points to
     bool ctorinit;                  // it has been initialized in a ctor
     bool iscatchvar;                // this is the exception object variable in catch() clause
@@ -1121,19 +1134,6 @@ extern (C++) class VarDeclaration : Declaration
     bool doNotInferScope;           // do not infer 'scope' for this variable
     bool doNotInferReturn;          // do not infer 'return' for this variable
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
-    Dsymbol aliassym;               // if redone as alias to another symbol
-    VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
-    uint endlinnum;                 // line number of end of scope that this var lives in
-
-    // When interpreting, these point to the value (NULL if value not determinable)
-    // The index of this variable on the CTFE stack, AdrOnStackNone if not allocated
-    enum AdrOnStackNone = ~0u;
-    uint ctfeAdrOnStack;
-
-    Expression edtor;               // if !=null, does the destruction of the variable
-    IntRange* range;                // if !=null, the variable is known to be within the range
-
-    VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
 
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     in

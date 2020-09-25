@@ -3075,11 +3075,20 @@ class VarDeclaration : public Declaration
 {
 public:
     Initializer* _init;
+    Array<FuncDeclaration*> nestedrefs;
+    Dsymbol* aliassym;
+    VarDeclaration* lastVar;
+    Expression* edtor;
+    IntRange* range;
+    Array<VarDeclaration*>* maybes;
+    uint32_t endlinnum;
     uint32_t offset;
     uint32_t sequenceNumber;
     static uint32_t nextSequenceNumber;
-    Array<FuncDeclaration*> nestedrefs;
     uint32_t alignment;
+    enum : uint32_t { AdrOnStackNone = 4294967295u };
+
+    uint32_t ctfeAdrOnStack;
     bool isargptr;
     bool ctorinit;
     bool iscatchvar;
@@ -3092,15 +3101,6 @@ public:
     bool doNotInferScope;
     bool doNotInferReturn;
     uint8_t isdataseg;
-    Dsymbol* aliassym;
-    VarDeclaration* lastVar;
-    uint32_t endlinnum;
-    enum : uint32_t { AdrOnStackNone = 4294967295u };
-
-    uint32_t ctfeAdrOnStack;
-    Expression* edtor;
-    IntRange* range;
-    Array<VarDeclaration*>* maybes;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = STC::undefined_);
     Dsymbol* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
