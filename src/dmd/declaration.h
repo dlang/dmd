@@ -209,10 +209,22 @@ class VarDeclaration : public Declaration
 {
 public:
     Initializer *_init;
+    FuncDeclarations nestedrefs; // referenced by these lexically nested functions
+    Dsymbol *aliassym;          // if redone as alias to another symbol
+    VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
+    Expression *edtor;          // if !=NULL, does the destruction of the variable
+    IntRange *range;            // if !NULL, the variable is known to be within the range
+    VarDeclarations *maybes;    // STCmaybescope variables that are assigned to this STCmaybescope variable
+
+    unsigned endlinnum;         // line number of end of scope that this var lives in
     unsigned offset;
     unsigned sequenceNumber;     // order the variables are declared
-    FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     structalign_t alignment;
+
+    // When interpreting, these point to the value (NULL if value not determinable)
+    // The index of this variable on the CTFE stack, ~0u if not allocated
+    unsigned ctfeAdrOnStack;
+
     bool isargptr;              // if parameter that _argptr points to
     bool ctorinit;              // it has been initialized in a ctor
     bool iscatchvar;            // this is the exception object variable in catch() clause
@@ -225,17 +237,6 @@ public:
     bool doNotInferScope;       // do not infer 'scope' for this variable
     bool doNotInferReturn;      // do not infer 'return' for this variable
     unsigned char isdataseg;    // private data for isDataseg
-    Dsymbol *aliassym;          // if redone as alias to another symbol
-    VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
-    unsigned endlinnum;         // line number of end of scope that this var lives in
-
-    // When interpreting, these point to the value (NULL if value not determinable)
-    // The index of this variable on the CTFE stack, ~0u if not allocated
-    unsigned ctfeAdrOnStack;
-    Expression *edtor;          // if !=NULL, does the destruction of the variable
-    IntRange *range;            // if !NULL, the variable is known to be within the range
-
-    VarDeclarations *maybes;    // STCmaybescope variables that are assigned to this STCmaybescope variable
 
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
