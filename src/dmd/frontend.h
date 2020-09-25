@@ -150,9 +150,9 @@ enum class LINK
 class LinkDeclaration;
 class Condition;
 class StaticForeach;
-enum class BUILTIN : int8_t
+enum class BUILTIN : unsigned char
 {
-    unknown = -1,
+    unknown = 255,
     unimp = 0,
     gcc = 1,
     llvm = 2,
@@ -7687,4 +7687,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-

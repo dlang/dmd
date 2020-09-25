@@ -1500,7 +1500,10 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             // Now that we completed semantic for the argument types,
             // run semantic on their default values,
             // bearing in mind tuples have been expanded.
-            size_t tupleStartIdx = size_t.max;
+            // We need to keep a pair of [oidx, eidx] (original index,
+            // extended index), as we need to run semantic when `oidx` changes.
+            size_t tupleOrigIdx = size_t.max;
+            size_t tupleExtIdx = size_t.max;
             foreach (oidx, oparam, eidx, eparam; tf.parameterList)
             {
                 // oparam (original param) will always have the default arg
@@ -1513,14 +1516,15 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     if (oparam is eparam)
                         errors |= !defaultArgSemantic(eparam, argsc);
                     // We're seeing a new tuple
-                    else if (tupleStartIdx == size_t.max || tupleStartIdx < eidx)
+                    else if (tupleOrigIdx == size_t.max || tupleOrigIdx < oidx)
                     {
                         /* https://issues.dlang.org/show_bug.cgi?id=18572
                          *
                          * If a tuple parameter has a default argument, when expanding the parameter
                          * tuple the default argument tuple must also be expanded.
                          */
-                        tupleStartIdx = eidx;
+                        tupleOrigIdx = oidx;
+                        tupleExtIdx = eidx;
                         errors |= !defaultArgSemantic(oparam, argsc);
                         TupleExp te = oparam.defaultArg.isTupleExp();
                         if (te && te.exps && te.exps.length)
@@ -1531,7 +1535,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     {
                         TupleExp te = oparam.defaultArg.isTupleExp();
                         if (te && te.exps && te.exps.length)
-                            eparam.defaultArg = (*te.exps)[eidx - tupleStartIdx];
+                            eparam.defaultArg = (*te.exps)[eidx - tupleExtIdx];
                     }
                 }
 

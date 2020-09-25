@@ -1,5 +1,0 @@
-Improve type determination for array literals
-
-There were some cases where DMD wasn't able to determine the common type for
-array literal elements. Mismatched enums and literals containing only mutable
-and immutable elements should now be correctly inferred.
