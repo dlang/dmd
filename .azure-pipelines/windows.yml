@@ -13,4 +13,4 @@ steps:
       FOR /F "tokens=* USEBACKQ" %%F IN (`where lib.exe`) DO (SET MSVC_AR=%%~fsF)
       bash --version
       sh --login .azure-pipelines/windows.sh
-    displayName: Build DMD
+    displayName: Build and test
