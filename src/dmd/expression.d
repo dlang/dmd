@@ -4812,12 +4812,17 @@ extern (C++) final class DotVarExp : UnaExp
 
     override bool isLvalue()
     {
-        return true;
+        if (e1.op != TOK.structLiteral)
+            return true;
+        auto vd = var.isVarDeclaration();
+        return !(vd && vd.isField());
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("DotVarExp::toLvalue(%s)\n", toChars());
+        if (!isLvalue())
+            return Expression.toLvalue(sc, e);
         if (e1.op == TOK.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
         {
             if (VarDeclaration vd = var.isVarDeclaration())
@@ -5341,6 +5346,22 @@ extern (C++) final class CastExp : UnaExp
         return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
     }
 
+    override bool isLvalue()
+    {
+        //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
+        if (!e1.isLvalue())
+            return false;
+        return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
+            e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        if (isLvalue())
+            return this;
+        return Expression.toLvalue(sc, e);
+    }
+
     override Expression addDtorHook(Scope* sc)
     {
         if (to.toBasetype().ty == Tvoid)        // look past the cast(void)
@@ -5804,12 +5825,21 @@ extern (C++) final class IndexExp : BinExp
 
     override bool isLvalue()
     {
+        if (e1.op == TOK.arrayLiteral || e1.op == TOK.assocArrayLiteral)
+            return false;
+        if (e1.type.ty == Tsarray ||
+            (e1.op == TOK.index && e1.type.ty != Tarray))
+        {
+            return e1.isLvalue();
+        }
         return true;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
-        return this;
+        if (isLvalue())
+            return this;
+        return Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)

@@ -4176,6 +4176,8 @@ public:
     Type* to;
     uint8_t mod;
     Expression* syntaxCopy();
+    bool isLvalue();
+    Expression* toLvalue(Scope* sc, Expression* e);
     Expression* addDtorHook(Scope* sc);
     void accept(Visitor* v);
 };
