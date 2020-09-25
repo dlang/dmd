@@ -561,6 +561,15 @@ void test15680()
 
 /******************************************************/
 
+void test41()
+{
+    //enum i = typeid(3).tsize;
+    //assert(i == 4);
+    static assert(typeid(4.0).tsize == 8);
+}
+
+/******************************************************/
+
 int main()
 {
     test2();
@@ -601,6 +610,7 @@ int main()
     test13045a();
     test13045b();
     test15680();
+    test41();
 
     return 0;
 }
