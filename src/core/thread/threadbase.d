@@ -754,7 +754,7 @@ package(core.thread):
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
 
-private alias attachThread = externDFunc!("core.thread.osthread.attachThread", ThreadBase function(ThreadBase) @nogc);
+private alias attachThread = externDFunc!("core.thread.osthread.attachThread", ThreadBase function(ThreadBase) @nogc nothrow);
 
 extern (C) void _d_monitordelete_nogc(Object h) @nogc;
 
