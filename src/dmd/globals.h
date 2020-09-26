@@ -147,6 +147,7 @@ struct Param
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
+    bool ctfe_cov;      // generate coverage data for ctfe
     bool nofloat;       // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;      // rather than error on them
     bool useModuleInfo; // generate runtime module information

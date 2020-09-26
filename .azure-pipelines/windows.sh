@@ -26,11 +26,13 @@ echo "GNU_MAKE: $("${GNU_MAKE}" --version)"
 echo "GREP_VERSION: $(grep --version)"
 
 ################################################################################
-# Prepare C compiler
+# Prepare DigitalMars make and C compiler
 ################################################################################
 
+install_host_dmc
+export DM_MAKE="$PWD/dm/bin/make.exe"
+
 if [ "$MODEL" == "32" ] ; then
-    install_host_dmc
     export CC="$PWD/dm/bin/dmc.exe"
     export AR="$PWD/dm/bin/lib.exe"
 else
@@ -79,7 +81,7 @@ fi
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/${MODEL}/dmd"
 
 cd "${DMD_DIR}/src"
-"${DM_MAKE}" -f "${MAKE_FILE}" reldmd-asserts DMD="$DMD_BIN_PATH"
+"${DM_MAKE}" -f "${MAKE_FILE}" reldmd-asserts DMD="$DMD_BIN_PATH" MAKE="$DM_MAKE"
 
 ################################################################################
 # WORKAROUND: Build zlib separately with DigitalMars make
@@ -88,7 +90,7 @@ cd "${DMD_DIR}/src"
 
 if [ "$MODEL" != "32" ] ; then
     cd "${DMD_DIR}/../phobos/etc/c/zlib"
-    ${DM_MAKE} -f win64.mak MODEL=${MODEL} "zlib${MODEL}.lib" "CC=$CC" "LIB=$AR" VCDIR=.
+    "${DM_MAKE}" -f win64.mak MODEL=${MODEL} "zlib${MODEL}.lib" "CC=$CC" "LIB=$AR" VCDIR=. MAKE="$DM_MAKE"
 fi
 
 ################################################################################
@@ -97,14 +99,14 @@ fi
 
 for proj in druntime phobos; do
     cd "${DMD_DIR}/../${proj}"
-    "${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=.
+    "${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=. MAKE="$DM_MAKE"
 done
 
 ################################################################################
 # Run druntime tests
 ################################################################################
 cd "${DMD_DIR}/../druntime"
-"${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=. unittest test_all
+"${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=. MAKE="$DM_MAKE" unittest test_all
 
 ################################################################################
 # Run DMD testsuite

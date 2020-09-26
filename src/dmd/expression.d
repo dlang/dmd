@@ -1175,7 +1175,7 @@ extern (C++) abstract class Expression : ASTNode
      *   check = current check (e.g. whether it's pure)
      *   checkName = the kind of check (e.g. `"pure"`)
      */
-    extern (D) void checkOverridenDtor(Scope* sc, FuncDeclaration f,
+    extern (D) final void checkOverridenDtor(Scope* sc, FuncDeclaration f,
                 scope bool function(DtorDeclaration) check, const string checkName
     ) {
         auto dd = f.isDtorDeclaration();
