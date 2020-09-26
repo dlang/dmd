@@ -38,6 +38,7 @@ import dmd.statement;
 import dmd.declaration;
 import dmd.dstruct;
 import dmd.func;
+// import dmd.dsymbol : ;
 
 /***********************************************************
  */

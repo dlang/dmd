@@ -10,10 +10,14 @@
  */
 module dmd.frontend;
 
+// import dmd.astcodegen : ;
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
 import dmd.errors : DiagnosticHandler, diagnosticHandler, Classification;
+// import std.range.primitives : ;
+// import std.traits : ;
+// import std.typecons : ;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;

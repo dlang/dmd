@@ -13,6 +13,7 @@
 
 module dmd.arrayop;
 
+// import core.stdc.stdio : ;
 import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.declaration;
@@ -29,6 +30,8 @@ import dmd.root.outbuffer;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+// import dmd.dsymbol : ;
+// import dmd.statement : ;
 
 /**********************************************
  * Check that there are no uses of arrays without [].

@@ -14,6 +14,7 @@
 
 module dmd.aggregate;
 
+// import core.stdc.stdio : ;
 import core.stdc.stdio;
 import core.checkedint;
 
@@ -35,6 +36,8 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.tokens;
+// import dmd.dstruct : ;
+// import dmd.dtemplate : ;
 import dmd.typesem : defaultInit;
 import dmd.visitor;
 

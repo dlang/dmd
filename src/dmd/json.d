@@ -36,6 +36,9 @@ import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.visitor;
+// import core.stdc.string : ;
+// import dmd.identifier : ;
+// import dmd.root.rootobject : ;
 
 version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);

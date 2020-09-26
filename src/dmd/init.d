@@ -26,7 +26,9 @@ import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
+// import core.checkedint : ;
 
+// import dmd.root.rootobject : ;
 enum NeedInterpret : int
 {
     INITnointerpret,

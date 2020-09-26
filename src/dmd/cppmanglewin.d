@@ -14,11 +14,14 @@ module dmd.cppmanglewin;
 import core.stdc.string;
 import core.stdc.stdio;
 
+// import dmd.arraytypes : ;
 import dmd.arraytypes;
 import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
+// import dmd.dclass : ;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
+// import dmd.dstruct : ;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -34,6 +37,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+// import dmd.target : ;
 
 extern (C++):
 

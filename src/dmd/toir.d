@@ -50,6 +50,11 @@ import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
+// import dmd.root.outbuffer : ;
+// import dmd.backend.dt : ;
+// import dmd.dmangle : ;
+// import dmd.dtemplate : ;
+// import dmd.tocsym : ;
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;

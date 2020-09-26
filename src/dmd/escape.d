@@ -34,6 +34,9 @@ import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;
+// import dmd.identifier : ;
+// import dmd.printast : ;
+// import dmd.root.rootobject : ;
 
 /******************************************************
  * Checks memory objects passed to a function.

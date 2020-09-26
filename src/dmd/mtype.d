@@ -50,6 +50,10 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+// import core.stdc.stdarg : ;
+// import dmd.attrib : ;
+// import dmd.init : ;
+// import dmd.root.ctfloat : ;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()

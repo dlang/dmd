@@ -17,6 +17,7 @@ import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.stdarg;
 import core.stdc.stdio;
+// import core.stdc.errno : ;
 import core.stdc.stdlib : getenv;
 import core.stdc.string;
 import core.stdc.time;

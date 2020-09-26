@@ -41,6 +41,7 @@ import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.inlinecost;
+// import dmd.opover : ;
 
 /***********************************************************
  * Scan function implementations in Module m looking for functions that can be inlined,

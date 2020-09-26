@@ -38,7 +38,24 @@ import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+// import core.stdc.stdlib : ;
+// import core.stdc.string : ;
 
+// import dmd.arraytypes : ;
+// import dmd.attrib : ;
+// import dmd.dclass : ;
+// import dmd.dstruct : ;
+// import dmd.dsymbolsem : ;
+// import dmd.errors : ;
+// import dmd.func : ;
+// import dmd.id : ;
+// import dmd.identifier : ;
+// import dmd.init : ;
+// import dmd.initsem : ;
+// import dmd.mtype : ;
+// import dmd.printast : ;
+// import dmd.root.array : ;
+// import dmd.root.rootobject : ;
 /*********************************************
  * Visit each Expression in e, and call dgVar() on each variable declared in it.
  * Params:

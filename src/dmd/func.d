@@ -55,6 +55,9 @@ import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
 import dmd.visitor;
+// import dmd.dinterpret : ;
+// import dmd.dstruct : ;
+// import dmd.escape : ;
 
 /// Inline Status
 enum ILS : int

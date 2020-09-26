@@ -16,6 +16,8 @@ import dmd.globals;
 import dmd.root.array;
 import dmd.root.rmem;
 import dmd.root.string;
+// import dmd.globals : ;
+// import dmd.root.array : ;
 
 version (Windows)
     private extern (C) int putenv(const char*) nothrow;

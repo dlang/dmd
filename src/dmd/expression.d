@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.apply;
 import dmd.arrayop;
+// import dmd.arrayop : ;
 import dmd.arraytypes;
 import dmd.ast_node;
 import dmd.gluelayer;
@@ -67,6 +68,13 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
 import dmd.visitor;
+// import dmd.canthrow : ;
+// import dmd.delegatize : ;
+// import dmd.dimport : ;
+// import dmd.dmodule : ;
+// import dmd.escape : ;
+// import dmd.inline : ;
+// import dmd.nspace : ;
 
 enum LOGSEMANTIC = false;
 void emplaceExp(T : Expression, Args...)(void* p, Args args)

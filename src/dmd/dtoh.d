@@ -25,6 +25,7 @@ import dmd.tokens;
 
 import dmd.root.outbuffer;
 import dmd.utils;
+// import core.stdc.ctype : ;
 
 //debug = Debug_DtoH;
 enum isBuildingCompiler = false;

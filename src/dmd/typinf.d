@@ -22,6 +22,7 @@ import dmd.gluelayer;
 import dmd.mtype;
 import dmd.visitor;
 import core.stdc.stdio;
+// import dmd.visitor : ;
 
 /****************************************************
  * Generates the `TypeInfo` object associated with `torig` if it

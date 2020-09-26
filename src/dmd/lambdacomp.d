@@ -33,6 +33,8 @@ import dmd.dscope;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+// import dmd.denum : ;
+// import dmd.dtemplate : ;
 
 enum LOG = false;
 

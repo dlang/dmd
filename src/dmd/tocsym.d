@@ -55,6 +55,16 @@ import dmd.backend.oper;
 import dmd.backend.cgcv;
 import dmd.backend.symtab;
 import dmd.backend.ty;
+// import dmd.root.array : ;
+// import dmd.arraytypes : ;
+// import dmd.complex : ;
+// import dmd.dstruct : ;
+// import dmd.dtemplate : ;
+// import dmd.init : ;
+// import dmd.tokens : ;
+// import dmd.typinf : ;
+// import dmd.backend.oper : ;
+// import dmd.backend.cgcv : ;
 
 extern (C++):
 

@@ -68,7 +68,27 @@ import dmd.target;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+// import core.stdc.string : ;
 
+// import dmd.aliasthis : ;
+// import dmd.astcodegen : ;
+// import dmd.clone : ;
+// import dmd.dcast : ;
+// import dmd.denum : ;
+// import dmd.dimport : ;
+// import dmd.dinterpret : ;
+// import dmd.initsem : ;
+// import dmd.hdrgen : ;
+// import dmd.objc : ;
+// import dmd.opover : ;
+// import dmd.parse : ;
+// import dmd.root.filename : ;
+// import dmd.root.outbuffer : ;
+// import dmd.root.rootobject : ;
+// import dmd.sideeffect : ;
+// import dmd.staticassert : ;
+// import dmd.utf : ;
+// import dmd.templateparamsem : ;
 enum LOG = false;
 
 

@@ -15,6 +15,7 @@ import dmd.root.stringtable;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
+// import dmd.root.array : ;
 
 import core.stdc.stdio;
 

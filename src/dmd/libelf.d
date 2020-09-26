@@ -34,6 +34,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
+// import dmd.root.file : ;
 
 import dmd.scanelf;
 

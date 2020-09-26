@@ -14,6 +14,8 @@ module dmd.dmsc;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stddef;
+// import core.stdc.string : ;
+// import core.stdc.stddef : ;
 
 extern (C++):
 
