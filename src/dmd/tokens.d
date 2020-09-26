@@ -286,6 +286,7 @@ enum TOK : ubyte
 
     objcClassReference,
     vectorArray,
+    totype,
 
     max_,
 }
@@ -419,6 +420,7 @@ private immutable TOK[] keywords =
     TOK.prettyFunction,
     TOK.shared_,
     TOK.immutable_,
+    TOK.totype,
 ];
 
 // Initialize the identifier pool
@@ -565,6 +567,7 @@ extern (C++) struct Token
         TOK.nothrow_: "nothrow",
         TOK.gshared: "__gshared",
         TOK.traits: "__traits",
+        TOK.totype: "__totype",
         TOK.vector: "__vector",
         TOK.overloadSet: "__overloadset",
         TOK.file: "__FILE__",

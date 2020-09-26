@@ -478,7 +478,8 @@ enum class TOK : uint8_t
     showCtfeContext = 232u,
     objcClassReference = 233u,
     vectorArray = 234u,
-    max_ = 235u,
+    totype = 235u,
+    max_ = 236u,
 };
 
 class StringExp;
@@ -647,6 +648,7 @@ class TypeDelegate;
 class TypeIdentifier;
 class TypeInstance;
 class TypeTypeof;
+class TypeTotype;
 class TypeReturn;
 class TypeStruct;
 class TypeEnum;
@@ -1277,7 +1279,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[46LLU];
+    static Type* basic[47LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -1386,6 +1388,7 @@ public:
     TypeIdentifier* isTypeIdentifier();
     TypeInstance* isTypeInstance();
     TypeTypeof* isTypeTypeof();
+    TypeTotype* isTypeTotype();
     TypeReturn* isTypeReturn();
     TypeStruct* isTypeStruct();
     TypeEnum* isTypeEnum();
@@ -4907,16 +4910,17 @@ enum class ENUMTY
     Terror = 34,
     Tinstance = 35,
     Ttypeof = 36,
-    Ttuple = 37,
-    Tslice = 38,
-    Treturn = 39,
-    Tnull = 40,
-    Tvector = 41,
-    Tint128 = 42,
-    Tuns128 = 43,
-    Ttraits = 44,
-    Tmixin = 45,
-    TMAX = 46,
+    Ttotype = 37,
+    Ttuple = 38,
+    Tslice = 39,
+    Treturn = 40,
+    Tnull = 41,
+    Tvector = 42,
+    Tint128 = 43,
+    Tuns128 = 44,
+    Ttraits = 45,
+    Tmixin = 46,
+    TMAX = 47,
 };
 
 typedef uint8_t TY;
@@ -5277,6 +5281,16 @@ public:
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
     ~TypeTypeof();
+};
+
+class TypeTotype final : public TypeQualified
+{
+public:
+    Expression* exp;
+    const char* kind() const;
+    TypeTotype* syntaxCopy();
+    void accept(Visitor* v);
+    ~TypeTotype();
 };
 
 class TypeReturn final : public TypeQualified

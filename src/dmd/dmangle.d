@@ -136,12 +136,37 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
+import dmd.root.stringtable;
 import dmd.root.aav;
 import dmd.root.string;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
+
+
+/**********************************************
+ * Convert a string representing a type (the deco) and
+ * return its equivalent Type.
+ * Params:
+ *      deco = string containing the deco
+ * Returns:
+ *      null for failed to convert
+ *      Type for succeeded
+ */
+
+public Type decoToType(const(char)[] deco)
+{
+    auto sv = Type.stringtable.lookup(deco);
+    if (sv && sv.value)
+    {
+        Type t = sv.value;
+        assert(t.deco);
+        return t;
+    }
+    return null;
+}
+
 
 private immutable char[TMAX] mangleChar =
 [
@@ -205,6 +230,7 @@ private immutable char[TMAX] mangleChar =
     Tinstance    : '@',
     Terror       : '@',
     Ttypeof      : '@',
+    Ttotype      : '@',
     Tslice       : '@',
     Treturn      : '@',
     Tvector      : '@',

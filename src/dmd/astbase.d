@@ -194,6 +194,7 @@ struct ASTBase
         Terror,
         Tinstance,
         Ttypeof,
+        Ttotype,
         Ttuple,
         Tslice,
         Treturn,
@@ -244,6 +245,7 @@ struct ASTBase
     alias Terror = ENUMTY.Terror;
     alias Tinstance = ENUMTY.Tinstance;
     alias Ttypeof = ENUMTY.Ttypeof;
+    alias Ttotype = ENUMTY.Ttotype;
     alias Ttuple = ENUMTY.Ttuple;
     alias Tslice = ENUMTY.Tslice;
     alias Treturn = ENUMTY.Treturn;
@@ -2804,6 +2806,7 @@ struct ASTBase
                 sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
                 sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
                 sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
+                sizeTy[Ttotype] = __traits(classInstanceSize, TypeTotype);
                 sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
                 sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
                 sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
@@ -3076,6 +3079,8 @@ struct ASTBase
             if (ty == Terror)
                 return this;
             if (ty == Ttypeof)
+                return this;
+            if (ty == Ttotype)
                 return this;
             if (ty == Tident)
                 return this;
@@ -3565,6 +3570,7 @@ struct ASTBase
             inout(TypeIdentifier) isTypeIdentifier() { return ty == Tident     ? cast(typeof(return))this : null; }
             inout(TypeInstance)   isTypeInstance()   { return ty == Tinstance  ? cast(typeof(return))this : null; }
             inout(TypeTypeof)     isTypeTypeof()     { return ty == Ttypeof    ? cast(typeof(return))this : null; }
+            inout(TypeTotype)     isTypeTotype()     { return ty == Ttotype    ? cast(typeof(return))this : null; }
             inout(TypeReturn)     isTypeReturn()     { return ty == Treturn    ? cast(typeof(return))this : null; }
             inout(TypeStruct)     isTypeStruct()     { return ty == Tstruct    ? cast(typeof(return))this : null; }
             inout(TypeEnum)       isTypeEnum()       { return ty == Tenum      ? cast(typeof(return))this : null; }
@@ -4593,6 +4599,30 @@ struct ASTBase
         override TypeTypeof syntaxCopy()
         {
             auto t = new TypeTypeof(loc, exp.syntaxCopy());
+            t.syntaxCopyHelper(this);
+            t.mod = mod;
+            return t;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeTotype : TypeQualified
+    {
+        Expression exp;
+
+        extern (D) this(const ref Loc loc, Expression exp)
+        {
+            super(Ttotype, loc);
+            this.exp = exp;
+        }
+
+        override Type syntaxCopy()
+        {
+            auto t = new TypeTotype(loc, exp.syntaxCopy());
             t.syntaxCopyHelper(this);
             t.mod = mod;
             return t;

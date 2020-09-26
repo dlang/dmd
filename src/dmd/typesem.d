@@ -1747,6 +1747,21 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         return t;
     }
 
+    Type visitTotype(TypeTotype mtype)
+    {
+        //printf("TypeTotype::semantic() %s\n", mtype.toChars());
+        StringExp se = semanticString(sc, mtype.exp, "__totype");
+        if (!se)
+            return Type.terror;
+        Type t = decoToType(se.toUTF8(sc).peekString());
+        if (!t)
+        {
+            .error(loc, "cannot determine `%s`", mtype.toChars());
+            return error();
+        }
+        return t;
+    }
+
     Type visitTraits(TypeTraits mtype)
     {
         if (mtype.ty == Terror)
@@ -1999,6 +2014,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         case Tident:     return visitIdentifier(cast(TypeIdentifier)type);
         case Tinstance:  return visitInstance(cast(TypeInstance)type);
         case Ttypeof:    return visitTypeof(cast(TypeTypeof)type);
+        case Ttotype:    return visitTotype(cast(TypeTotype)type);
         case Ttraits:    return visitTraits(cast(TypeTraits)type);
         case Treturn:    return visitReturn(cast(TypeReturn)type);
         case Tstruct:    return visitStruct(cast(TypeStruct)type);

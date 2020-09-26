@@ -56,6 +56,7 @@ immutable PREC[TOK.max_] precedence =
     TOK.objcClassReference : PREC.expr, // Objective-C class reference, same as TOK.type
 
     TOK.typeof_ : PREC.primary,
+    TOK.totype : PREC.primary,
     TOK.mixin_ : PREC.primary,
 
     TOK.import_ : PREC.primary,
@@ -586,6 +587,7 @@ final class Parser(AST) : Lexer
             case TOK.identifier:
             case TOK.super_:
             case TOK.typeof_:
+            case TOK.totype:
             case TOK.dot:
             case TOK.vector:
             case TOK.struct_:
@@ -1816,6 +1818,7 @@ final class Parser(AST) : Lexer
      *      mixin a.b.c!(args).Foo!(args);
      *      mixin Foo!(args) identifier;
      *      mixin typeof(expr).identifier!(args);
+     *      mixin totype(expr).identifier!(args);
      */
     private AST.Dsymbol parseMixin()
     {
@@ -1838,6 +1841,11 @@ final class Parser(AST) : Lexer
             if (token.value == TOK.typeof_)
             {
                 tqual = parseTypeof();
+                check(TOK.dot);
+            }
+            else if (token.value == TOK.totype)
+            {
+                tqual = parseTotype();
                 check(TOK.dot);
             }
             if (token.value != TOK.identifier)
@@ -2197,6 +2205,23 @@ final class Parser(AST) : Lexer
             AST.Expression exp = parseExpression(); // typeof(expression)
             t = new AST.TypeTypeof(loc, exp);
         }
+        check(TOK.rightParentheses);
+        return t;
+    }
+
+    /***********************************
+     * Parse totype(expression).
+     * Current token is on the `totype`.
+     */
+    AST.TypeQualified parseTotype()
+    {
+        AST.TypeQualified t;
+        const loc = token.loc;
+
+        nextToken();
+        check(TOK.leftParentheses);
+        AST.Expression exp = parseExpression(); // totype(expression)
+        t = new AST.TypeTotype(loc, exp);
         check(TOK.rightParentheses);
         return t;
     }
@@ -3777,6 +3802,11 @@ final class Parser(AST) : Lexer
         case TOK.typeof_:
             // typeof(expression)
             t = parseBasicTypeStartingAt(parseTypeof(), dontLookDotIdents);
+            break;
+
+        case TOK.totype:
+            // totype(expression)
+            t = parseBasicTypeStartingAt(parseTotype(), dontLookDotIdents);
             break;
 
         case TOK.vector:
@@ -5582,6 +5612,7 @@ final class Parser(AST) : Lexer
             }
         case TOK.dot:
         case TOK.typeof_:
+        case TOK.totype:
         case TOK.vector:
         case TOK.traits:
             /* https://issues.dlang.org/show_bug.cgi?id=15163
@@ -7099,6 +7130,7 @@ final class Parser(AST) : Lexer
             goto Ldot;
 
         case TOK.typeof_:
+        case TOK.totype:
         case TOK.vector:
         case TOK.mixin_:
             /* typeof(exp).identifier...
@@ -8120,6 +8152,12 @@ final class Parser(AST) : Lexer
                 e = new AST.TypeExp(loc, t);
                 break;
             }
+        case TOK.totype:
+            {
+                t = parseTotype();
+                e = new AST.TypeExp(loc, t);
+                break;
+            }
         case TOK.vector:
             {
                 t = parseVector();
@@ -8576,6 +8614,7 @@ final class Parser(AST) : Lexer
                         case TOK.function_:
                         case TOK.delegate_:
                         case TOK.typeof_:
+                        case TOK.totype:
                         case TOK.traits:
                         case TOK.vector:
                         case TOK.file:

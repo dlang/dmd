@@ -275,6 +275,7 @@ enum ENUMTY : int
     Terror,
     Tinstance,
     Ttypeof,
+    Ttotype,
     Ttuple,
     Tslice,
     Treturn,
@@ -325,6 +326,7 @@ alias Tdchar = ENUMTY.Tdchar;
 alias Terror = ENUMTY.Terror;
 alias Tinstance = ENUMTY.Tinstance;
 alias Ttypeof = ENUMTY.Ttypeof;
+alias Ttotype = ENUMTY.Ttotype;
 alias Ttuple = ENUMTY.Ttuple;
 alias Tslice = ENUMTY.Tslice;
 alias Treturn = ENUMTY.Treturn;
@@ -490,6 +492,7 @@ extern (C++) abstract class Type : ASTNode
             sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
             sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
             sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
+            sizeTy[Ttotype] = __traits(classInstanceSize, TypeTotype);
             sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
             sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
             sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
@@ -2690,6 +2693,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeIdentifier) isTypeIdentifier() { return ty == Tident     ? cast(typeof(return))this : null; }
         inout(TypeInstance)   isTypeInstance()   { return ty == Tinstance  ? cast(typeof(return))this : null; }
         inout(TypeTypeof)     isTypeTypeof()     { return ty == Ttypeof    ? cast(typeof(return))this : null; }
+        inout(TypeTotype)     isTypeTotype()     { return ty == Ttotype    ? cast(typeof(return))this : null; }
         inout(TypeReturn)     isTypeReturn()     { return ty == Treturn    ? cast(typeof(return))this : null; }
         inout(TypeStruct)     isTypeStruct()     { return ty == Tstruct    ? cast(typeof(return))this : null; }
         inout(TypeEnum)       isTypeEnum()       { return ty == Tenum      ? cast(typeof(return))this : null; }
@@ -5686,6 +5690,38 @@ extern (C++) final class TypeTypeof : TypeQualified
             return exp.type.size(loc);
         else
             return TypeQualified.size(loc);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class TypeTotype : TypeQualified
+{
+    Expression exp;
+
+    extern (D) this(const ref Loc loc, Expression exp)
+    {
+        super(Ttotype, loc);
+        this.exp = exp;
+    }
+
+    override const(char)* kind() const
+    {
+        return "totype";
+    }
+
+    override TypeTotype syntaxCopy()
+    {
+        //printf("TypeTypeof::syntaxCopy() %s\n", toChars());
+        auto t = new TypeTotype(loc, exp.syntaxCopy());
+        t.syntaxCopyHelper(this);
+        t.mod = mod;
+        return t;
     }
 
     override void accept(Visitor v)

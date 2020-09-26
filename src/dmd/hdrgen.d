@@ -3738,6 +3738,14 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         visitTypeQualifiedHelper(t);
     }
 
+    void visitTotype(TypeTotype t)
+    {
+        buf.writestring("__totype(");
+        t.exp.expressionToBuffer(buf, hgs);
+        buf.writeByte(')');
+        visitTypeQualifiedHelper(t);
+    }
+
     void visitReturn(TypeReturn t)
     {
         buf.writestring("typeof(return)");
@@ -3819,6 +3827,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tident:     return visitIdentifier(cast(TypeIdentifier)t);
         case Tinstance:  return visitInstance(cast(TypeInstance)t);
         case Ttypeof:    return visitTypeof(cast(TypeTypeof)t);
+        case Ttotype:    return visitTotype(cast(TypeTotype)t);
         case Treturn:    return visitReturn(cast(TypeReturn)t);
         case Tenum:      return visitEnum(cast(TypeEnum)t);
         case Tstruct:    return visitStruct(cast(TypeStruct)t);
