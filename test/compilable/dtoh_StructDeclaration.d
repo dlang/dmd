@@ -32,6 +32,7 @@ struct S2
     int32_t a;
     int32_t b;
     int64_t c;
+    S d;
     S2(int32_t a);
     S2() :
         a(42),
@@ -127,11 +128,6 @@ struct A
 StructDeclaration has the following issues:
   * align different than 1 does nothing; we should support align(n), where `n` in [1, 2, 4, 8, 16]
   * align(n): inside struct definition doesn’t add alignment, but breaks generation of default ctors
-  * default ctors should be generated only if struct has no ctors
-  * if a struct has ctors defined, only default ctor (S() { … }) should be generated to init members to default values, and the defined ctors must be declared
-  * if a struct has ctors defined, the declared ctors must have the name of the struct, not __ctor, as `__ctor` might not be portable
-  * if a struct has a `member = void`, dtoh code segfaults
-  * a struct should only define ctors if it’s extern (C++)
 */
 
 extern (C++) struct S
@@ -146,8 +142,10 @@ extern (C++) struct S2
     int a = 42;
     int b;
     long c;
+    S d = void;
 
     this(int a) {}
+    extern(D) this(int, int, long) {}
 }
 
 extern (C) struct S3
