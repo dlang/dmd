@@ -1125,6 +1125,26 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     Objects* tiargs;
     Type tthis;
 
+    // This got added for UFCS on type function which can't do the usual way
+    {
+        if (e1.op == TOK.dotIdentifier)
+        {
+            DotIdExp die = cast(DotIdExp) e1;
+            auto p = searchUFCS(sc, die, die.ident);
+            import dmd.asttypename;
+            if (auto ds = p.isDsymbolExp())
+            {
+                auto ss = ds.s;
+                auto fd = ss.isFuncDeclaration();
+                if (fd)
+                {
+                    e1 = new CallExp(e1.loc, fd, die.e1);
+                    e1 = expressionSemantic(e1, sc);
+                }
+            }
+        }
+    }
+
     if (e1.op == TOK.dot)
     {
         DotExp de = cast(DotExp)e1;
@@ -1335,8 +1355,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     }
     if (e2)
         return null;
-
-
 
     if (e1.type && e1.op != TOK.type) // function type is not a property
     {
@@ -11842,37 +11860,6 @@ Expression semanticX(DotIdExp exp, Scope* sc)
 
     if (exp.e1.op == TOK.dot)
     {
-    }
-    else if (exp.e1.op == TOK.type)
-    {
-        // let's do the freaking UFCS loop here, because why not
-        bool found_typefunction = false;
-        Expression e1 = exp;
-
-        if (e1.op == TOK.dotIdentifier)
-        {
-            DotIdExp die = cast(DotIdExp) e1;
-            auto p = searchUFCS(sc, die, die.ident);
-            if (auto ds = p.isDsymbolExp())
-            {
-                auto ss = ds.s;
-                auto fd = ss.isFuncDeclaration();
-                if (fd && fd.isTFunction())
-                {
-                    found_typefunction = true;
-                    e1 = new CallExp(e1.loc, fd, die.e1);
-                    e1 = expressionSemantic(e1, sc);
-                }
-            }
-        }
-        if (found_typefunction)
-        {
-            (cast(Expression)exp) = e1;
-        }
-        else
-        {
-            exp.e1 = resolvePropertiesX(sc, exp.e1);
-        }
     }
     else
     {
