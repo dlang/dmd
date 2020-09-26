@@ -11,17 +11,17 @@
 
 module dmd.identifier;
 
-import core.stdc.ctype;
-import core.stdc.stdio;
-import core.stdc.string;
-import dmd.globals;
-import dmd.id;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.root.string;
-import dmd.root.stringtable;
-import dmd.tokens;
-import dmd.utf;
+import core.stdc.ctype : isalnum;
+// import core.stdc.stdio : ;
+import core.stdc.string : strncmp;
+import dmd.globals : Loc;
+import dmd.id : Id;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rootobject : RootObject, DYNCAST;
+import dmd.root.string : toDString;
+import dmd.root.stringtable : StringTable;
+import dmd.tokens : TOK;
+import dmd.utf : utf_decodeChar, isUniAlpha;
 
 
 /***********************************************************

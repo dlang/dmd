@@ -13,7 +13,7 @@
 
 module dmd.entity;
 
-import core.stdc.ctype;
+import core.stdc.ctype : tolower;
 
 nothrow:
 

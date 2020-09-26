@@ -11,11 +11,11 @@
 
 module dmd.printast;
 
-import core.stdc.stdio;
+import core.stdc.stdio : printf, putc, stdout;
 
-import dmd.expression;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.expression : Expression, StructLiteralExp, SymbolExp, DsymbolExp, DotIdExp, UnaExp, BinExp, DelegateExp;
+import dmd.tokens : Token;
+import dmd.visitor : Visitor;
 
 /********************
  * Print AST data structure in a nice format.

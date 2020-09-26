@@ -11,33 +11,33 @@
 
 module dmd.foreachvar;
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
+// import core.stdc.stdio : ;
+// import core.stdc.stdlib : ;
+// import core.stdc.string : ;
 
-import dmd.apply;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.initsem;
-import dmd.mtype;
-import dmd.printast;
-import dmd.root.array;
-import dmd.root.rootobject;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.apply : walkPostorder;
+// import dmd.arraytypes : ;
+// import dmd.attrib : ;
+// import dmd.dclass : ;
+import dmd.declaration : VarDeclaration, TupleDeclaration;
+// import dmd.dstruct : ;
+import dmd.dsymbol : Dsymbol;
+// import dmd.dsymbolsem : ;
+import dmd.dtemplate : isExpression;
+// import dmd.errors : ;
+import dmd.expression : Expression, ErrorExp, DeclarationExp, IndexExp, SliceExp, DsymbolExp;
+// import dmd.func : ;
+// import dmd.id : ;
+// import dmd.identifier : ;
+// import dmd.init : ;
+// import dmd.initsem : ;
+// import dmd.mtype : ;
+// import dmd.printast : ;
+// import dmd.root.array : ;
+// import dmd.root.rootobject : ;
+import dmd.statement : Statement, ExpStatement, DtorExpStatement, IfStatement, DoStatement, ForStatement, SwitchStatement, CaseStatement, ReturnStatement, CompoundStatement, CompoundDeclarationStatement, UnrolledLoopStatement, ScopeStatement, DefaultStatement, WithStatement, TryCatchStatement, TryFinallyStatement, ThrowStatement, LabelStatement, STMT;
+import dmd.tokens : TOK;
+import dmd.visitor : StoppableVisitor;
 
 /*********************************************
  * Visit each Expression in e, and call dgVar() on each variable declared in it.

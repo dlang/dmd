@@ -11,37 +11,37 @@
 
 module dmd.asttypename;
 
-import dmd.ast_node;
-import dmd.attrib;
-import dmd.aliasthis;
-import dmd.aggregate;
-import dmd.complex;
-import dmd.cond;
-import dmd.ctfeexpr;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.dversion;
-import dmd.expression;
-import dmd.func;
-import dmd.denum;
-import dmd.dimport;
-import dmd.dmodule;
-import dmd.mtype;
-import dmd.typinf;
-import dmd.identifier;
-import dmd.init;
-import dmd.doc;
-import dmd.root.rootobject;
-import dmd.statement;
-import dmd.staticassert;
-import dmd.nspace;
-import dmd.visitor;
+import dmd.ast_node : ASTNode;
+import dmd.attrib : AttribDeclaration, CompileDeclaration, UserAttributeDeclaration, LinkDeclaration, AnonDeclaration, AlignDeclaration, CPPMangleDeclaration, CPPNamespaceDeclaration, ProtDeclaration, PragmaDeclaration, StorageClassDeclaration, ConditionalDeclaration, StaticForeachDeclaration, DeprecatedDeclaration, StaticIfDeclaration, ForwardingAttribDeclaration;
+import dmd.aliasthis : AliasThis;
+import dmd.aggregate : AggregateDeclaration;
+// import dmd.complex : ;
+import dmd.cond : Condition, StaticIfCondition, DVCondition, DebugCondition, VersionCondition;
+import dmd.ctfeexpr : ClassReferenceExp, ThrownExceptionExp;
+import dmd.dclass : ClassDeclaration, InterfaceDeclaration;
+// import dmd.declaration : ;
+// import dmd.denum : ;
+// import dmd.dimport : ;
+import dmd.declaration : Declaration, VarDeclaration, AliasDeclaration, TupleDeclaration, OverDeclaration, SymbolDeclaration, ThisDeclaration, TypeInfoDeclaration, TypeInfoStructDeclaration, TypeInfoClassDeclaration, TypeInfoInterfaceDeclaration, TypeInfoPointerDeclaration, TypeInfoArrayDeclaration, TypeInfoStaticArrayDeclaration, TypeInfoAssociativeArrayDeclaration, TypeInfoEnumDeclaration, TypeInfoFunctionDeclaration, TypeInfoDelegateDeclaration, TypeInfoTupleDeclaration, TypeInfoConstDeclaration, TypeInfoInvariantDeclaration, TypeInfoSharedDeclaration, TypeInfoWildDeclaration, TypeInfoVectorDeclaration;
+import dmd.dstruct : StructDeclaration, UnionDeclaration;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol, OverloadSet, WithScopeSymbol, ArrayScopeSymbol;
+import dmd.dtemplate : TemplateParameter, TemplateDeclaration, TemplateInstance, TemplateMixin, TemplateAliasParameter, TemplateTypeParameter, TemplateTupleParameter, TemplateValueParameter, TemplateThisParameter, Tuple;
+import dmd.dversion : DebugSymbol, VersionSymbol;
+import dmd.expression : Expression, DeclarationExp, IntegerExp, NewAnonClassExp, IsExp, RealExp, NullExp, TypeidExp, TraitsExp, StringExp, NewExp, AssocArrayLiteralExp, ArrayLiteralExp, CompileExp, FuncExp, IntervalExp, TypeExp, ScopeExp, IdentifierExp, UnaExp, DefaultInitExp, BinExp, DsymbolExp, TemplateExp, SymbolExp, TupleExp, ThisExp, VarExp, DollarExp, SuperExp, AddrExp, PreExp, PtrExp, NegExp, UAddExp, NotExp, ComExp, DeleteExp, CastExp, CallExp, DotIdExp, AssertExp, ImportExp, DotTemplateInstanceExp, ArrayExp, FuncInitExp, PrettyFuncInitExp, FileInitExp, LineInitExp, ModuleInitExp, CommaExp, PostExp, PowExp, MulExp, DivExp, ModExp, AddExp, MinExp, CatExp, ShlExp, ShrExp, UshrExp, EqualExp, InExp, IdentityExp, CmpExp, AndExp, XorExp, OrExp, LogicalExp, CondExp, AssignExp, BinAssignExp, AddAssignExp, MinAssignExp, MulAssignExp, DivAssignExp, ModAssignExp, PowAssignExp, AndAssignExp, OrAssignExp, XorAssignExp, ShlAssignExp, ShrAssignExp, UshrAssignExp, CatAssignExp, ErrorExp, ComplexExp, StructLiteralExp, ObjcClassReferenceExp, SymOffExp, OverExp, HaltExp, DotTemplateExp, DotVarExp, DelegateExp, DotTypeExp, VectorExp, VectorArrayExp, SliceExp, ArrayLengthExp, DelegatePtrExp, DelegateFuncptrExp, DotExp, IndexExp, ConstructExp, BlitExp, RemoveExp, VoidInitExp;
+import dmd.func : FuncDeclaration, FuncLiteralDeclaration, PostBlitDeclaration, CtorDeclaration, DtorDeclaration, InvariantDeclaration, UnitTestDeclaration, NewDeclaration, StaticCtorDeclaration, StaticDtorDeclaration, SharedStaticCtorDeclaration, SharedStaticDtorDeclaration, FuncAliasDeclaration;
+import dmd.denum : EnumDeclaration, EnumMember;
+import dmd.dimport : Import;
+import dmd.dmodule : Package, Module;
+import dmd.mtype : Parameter, Type, TypeBasic, TypeError, TypeNull, TypeVector, TypeEnum, TypeTuple, TypeClass, TypeStruct, TypeNext, TypeQualified, TypeTraits, TypeMixin, TypeReference, TypeSlice, TypeDelegate, TypePointer, TypeFunction, TypeArray, TypeDArray, TypeAArray, TypeSArray, TypeIdentifier, TypeReturn, TypeTypeof, TypeInstance;
+// import dmd.typinf : ;
+// import dmd.identifier : ;
+import dmd.init : Initializer, ExpInitializer, StructInitializer, ArrayInitializer, VoidInitializer, ErrorInitializer;
+// import dmd.doc : ;
+import dmd.root.rootobject : RootObject, DYNCAST;
+import dmd.statement : Statement, ImportStatement, ScopeStatement, ReturnStatement, LabelStatement, StaticAssertStatement, CompileStatement, WhileStatement, ForStatement, DoStatement, ForeachRangeStatement, ForeachStatement, IfStatement, ScopeGuardStatement, ConditionalStatement, StaticForeachStatement, PragmaStatement, SwitchStatement, CaseRangeStatement, CaseStatement, DefaultStatement, BreakStatement, ContinueStatement, GotoDefaultStatement, GotoCaseStatement, GotoStatement, SynchronizedStatement, WithStatement, TryCatchStatement, TryFinallyStatement, ThrowStatement, AsmStatement, ExpStatement, CompoundStatement, CompoundDeclarationStatement, CompoundAsmStatement, InlineAsmStatement, GccAsmStatement, ErrorStatement, PeelStatement, UnrolledLoopStatement, SwitchErrorStatement, DebugStatement, DtorExpStatement, ForwardingStatement, LabelDsymbol;
+import dmd.staticassert : StaticAssert;
+import dmd.nspace : Nspace;
+import dmd.visitor : Visitor;
 
 /// Returns: the typename of the dynamic ast-node-type
 /// (this is a development tool, do not use in actual code)

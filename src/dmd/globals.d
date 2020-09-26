@@ -11,11 +11,11 @@
 
 module dmd.globals;
 
-import core.stdc.stdint;
-import dmd.root.array;
-import dmd.root.filename;
-import dmd.root.outbuffer;
-import dmd.identifier;
+import core.stdc.stdint : int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t;
+import dmd.root.array : Array;
+import dmd.root.filename : Strings, FileName;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.identifier : Identifier;
 
 template xversion(string s)
 {

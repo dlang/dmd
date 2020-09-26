@@ -12,17 +12,17 @@
 
 module dmd.lib;
 
-import core.stdc.stdio;
-import core.stdc.stdarg;
+// import core.stdc.stdio : ;
+import core.stdc.stdarg : va_list, va_start, va_end;
 
-import dmd.globals;
-import dmd.errors;
-import dmd.utils;
+import dmd.globals : TARGET, Loc, global;
+import dmd.errors : message, verror;
+import dmd.utils : writeFile;
 
-import dmd.root.outbuffer;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.string;
+import dmd.root.outbuffer : OutBuffer;
+// import dmd.root.file : ;
+import dmd.root.filename : FileName;
+import dmd.root.string : toDString;
 
 static if (TARGET.Windows)
 {

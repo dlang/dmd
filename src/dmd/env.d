@@ -10,12 +10,12 @@
 
 module dmd.env;
 
-import core.stdc.string;
-import core.sys.posix.stdlib;
-import dmd.globals;
-import dmd.root.array;
-import dmd.root.rmem;
-import dmd.root.string;
+// import core.stdc.string : ;
+import core.sys.posix.stdlib : putenv, getenv;
+// import dmd.globals : ;
+// import dmd.root.array : ;
+import dmd.root.rmem : mem;
+import dmd.root.string : toCStringThen, toDString;
 
 version (Windows)
     private extern (C) int putenv(const char*) nothrow;

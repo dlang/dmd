@@ -13,16 +13,16 @@
 
 module dmd.safe;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
-import dmd.aggregate;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.expression;
-import dmd.mtype;
-import dmd.target;
-import dmd.tokens;
+import dmd.aggregate : Sizeok, ClassKind;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : VarDeclaration;
+import dmd.dscope : Scope;
+import dmd.expression : Expression, DotVarExp;
+import dmd.mtype : Type, Tstruct, Tclass, MODimplicitConv, Tarray, Tsarray, Tpointer, Tvoid, TypeStruct, Tfunction;
+import dmd.target : target;
+import dmd.tokens : TOK;
 
 
 /*************************************************************

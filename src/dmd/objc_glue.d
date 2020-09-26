@@ -11,38 +11,38 @@
 
 module dmd.objc_glue;
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
+import core.stdc.stdio : snprintf, sprintf;
+import core.stdc.stdlib : alloca;
+import core.stdc.string : memmove, strlen;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
-import dmd.glue;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.objc;
-import dmd.target;
+import dmd.aggregate : ClassKind;
+import dmd.arraytypes : ClassDeclarations, FuncDeclarations;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dmodule : Module;
+import dmd.dsymbol : foreachDsymbol;
+import dmd.expression : ObjcClassReferenceExp;
+import dmd.func : FuncDeclaration;
+import dmd.glue : toSymbol;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeFunction, Type, Tcomplex80, Tfloat80, ENUMTY;
+import dmd.objc : ObjcSelector;
+import dmd.target : target;
 
-import dmd.root.stringtable;
-import dmd.root.array;
+import dmd.root.stringtable : StringTable;
+import dmd.root.array : each;
 
-import dmd.backend.dt;
-import dmd.backend.cc;
-import dmd.backend.cdef;
-import dmd.backend.el;
-import dmd.backend.global;
-import dmd.backend.oper;
-import dmd.backend.outbuf;
-import dmd.backend.ty;
-import dmd.backend.type;
-import dmd.backend.mach;
-import dmd.backend.obj;
+import dmd.backend.dt : DtBuilder;
+import dmd.backend.cc : Symbol, FLextern;
+import dmd.backend.cdef : SCglobal, SCstatic;
+import dmd.backend.el : elem, el_var, el_pair, el_param;
+import dmd.backend.global : symbol_name, outdata;
+// import dmd.backend.oper : ;
+// import dmd.backend.outbuf : ;
+import dmd.backend.ty : TYnptr, TYdelegate, TYarray, TYchar, tym_t, TYnfunc, TYhfunc;
+import dmd.backend.type : type, type_fake, type_allocn, tstypes;
+import dmd.backend.mach : S_REGULAR, S_ATTR_NO_DEAD_STRIP, S_CSTRING_LITERALS, S_LITERAL_POINTERS;
+// import dmd.backend.obj : ;
 
 private __gshared ObjcGlue _objc;
 

@@ -11,28 +11,28 @@
 
 module dmd.ctfeexpr;
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
-import dmd.arraytypes;
-import dmd.complex;
-import dmd.constfold;
-import dmd.compiler;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dinterpret;
-import dmd.dstruct;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.mtype;
-import dmd.root.ctfloat;
-import dmd.root.port;
-import dmd.root.rmem;
-import dmd.tokens;
-import dmd.visitor;
+import core.stdc.stdio : printf;
+// import core.stdc.stdlib : ;
+import core.stdc.string : memcpy, memset;
+import dmd.arraytypes : Expressions;
+import dmd.complex : complex_t, creall, cimagl;
+import dmd.constfold : Slice, ArrayLength, sliceCmpStringWithString, sliceCmpStringWithArray, Cat, Cast, sliceAssignStringFromString, sliceAssignArrayLiteralFromString, sliceAssignStringFromArrayLiteral;
+import dmd.compiler : Compiler;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : VarDeclaration, Declaration;
+import dmd.dinterpret : incArrayAllocs, getValue, ctfeEmplaceExp;
+import dmd.dstruct : StructDeclaration;
+import dmd.dtemplate : isType;
+import dmd.errors : errorSupplemental, error;
+import dmd.expression : Expression, StructLiteralExp, UnionExp, ArrayLiteralExp, StringExp, AssocArrayLiteralExp, OwnedBy, UnaExp, BinExp, SliceExp, emplaceExp, NullExp, AddrExp, IndexExp, DotVarExp, IntegerExp, VarExp, SymOffExp, TypeidExp, DelegateExp, RealIdentical, VoidInitExp;
+import dmd.func : FuncDeclaration;
+import dmd.globals : Loc, uinteger_t, dinteger_t, sinteger_t;
+import dmd.mtype : Type, TypeAArray, TypeArray, Tarray, Taarray, Tsarray, Tstruct, Tpointer, Tfunction, Tclass, Tvoid, TypePointer, TypeNext, TypeSArray, Tdelegate, Tnull, TypeStruct;
+import dmd.root.ctfloat : real_t, CTFloat;
+import dmd.root.port : Port;
+import dmd.root.rmem : mem;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
 
 
 /***********************************************************

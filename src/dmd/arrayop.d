@@ -13,22 +13,22 @@
 
 module dmd.arrayop;
 
-import core.stdc.stdio;
-import dmd.arraytypes;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.outbuffer;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
+// import core.stdc.stdio : ;
+import dmd.arraytypes : Objects, Expressions;
+import dmd.declaration : ObjectNotFound;
+import dmd.dscope : Scope;
+// import dmd.dsymbol : ;
+import dmd.expression : Expression, BinExp, BinAssignExp, ErrorExp, UnaExp, SliceExp, IdentifierExp, DotIdExp, CallExp, VarExp, AddAssignExp, CatAssignExp, CastExp, StringExp, AddExp, CatExp;
+import dmd.expressionsem : expressionSemantic;
+import dmd.func : resolveFuncCall, FuncResolveFlag;
+import dmd.globals : Loc;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeDArray, Type, Tarray, Tsarray, Tvoid, Tint32, Tfloat64;
+import dmd.root.outbuffer : OutBuffer;
+// import dmd.statement : ;
+import dmd.tokens : TOK, Token;
+import dmd.visitor : Visitor;
 
 /**********************************************
  * Check that there are no uses of arrays without [].

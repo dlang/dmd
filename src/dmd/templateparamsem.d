@@ -11,17 +11,17 @@
 
 module dmd.templateparamsem;
 
-import dmd.arraytypes;
-import dmd.dsymbol;
-import dmd.dscope;
-import dmd.dtemplate;
-import dmd.globals;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.root.rootobject;
-import dmd.mtype;
-import dmd.typesem;
-import dmd.visitor;
+import dmd.arraytypes : TemplateParameters;
+import dmd.dsymbol : Dsymbol;
+import dmd.dscope : Scope;
+import dmd.dtemplate : TemplateTypeParameter, TemplateValueParameter, TemplateAliasParameter, TemplateTupleParameter, reliesOnTident, isError, isExpression, isType;
+import dmd.globals : Loc;
+import dmd.expression : Expression;
+import dmd.expressionsem : TemplateParameter, expressionSemantic;
+import dmd.root.rootobject : RootObject;
+import dmd.mtype : Type;
+import dmd.typesem : typeSemantic;
+import dmd.visitor : Visitor;
 
 /************************************************
  * Performs semantic on TemplateParameter AST nodes.

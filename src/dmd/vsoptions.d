@@ -25,7 +25,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
-import dmd.root.string : toDString;
+import dmd.root.string;
 
 private immutable supportedPre2017Versions = ["14.0", "12.0", "11.0", "10.0", "9.0"];
 
@@ -658,9 +658,9 @@ bool exists(const(wchar)* path)
 
 ///////////////////////////////////////////////////////////////////////
 // COM interfaces to find VS2017+ installations
-import core.sys.windows.com;
-import core.sys.windows.wtypes : BSTR;
-import core.sys.windows.oleauto : SysFreeString, SysStringLen;
+// import core.sys.windows.com : ;
+// import core.sys.windows.wtypes : ;
+// import core.sys.windows.oleauto : ;
 
 pragma(lib, "ole32.lib");
 pragma(lib, "oleaut32.lib");

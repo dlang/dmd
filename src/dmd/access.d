@@ -13,19 +13,19 @@
 
 module dmd.access;
 
-import dmd.aggregate;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.mtype;
-import dmd.tokens;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : Declaration;
+import dmd.dmodule : Module, Package;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dstruct : StructDeclaration;
+import dmd.dsymbol : Dsymbol, DsymbolTable, Prot, PASS;
+// import dmd.errors : ;
+import dmd.expression : Expression;
+// import dmd.func : ;
+import dmd.globals : Loc;
+import dmd.mtype : Tclass, TypeClass, Tstruct, TypeStruct, Terror;
+import dmd.tokens : TOK;
 
 private enum LOG = false;
 

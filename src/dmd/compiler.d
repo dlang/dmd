@@ -11,24 +11,24 @@
 
 module dmd.compiler;
 
-import dmd.astcodegen;
-import dmd.arraytypes;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbolsem;
-import dmd.errors;
-import dmd.expression;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
+// import dmd.astcodegen : ;
+import dmd.arraytypes : Modules, Identifiers;
+import dmd.dmodule : Module;
+// import dmd.dscope : ;
+// import dmd.dsymbolsem : ;
+import dmd.errors : message;
+import dmd.expression : Expression, UnionExp, emplaceExp, IntegerExp, RealExp;
+import dmd.globals : d_int32, d_int64, global;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
 import dmd.mtype;
-import dmd.parse;
-import dmd.root.array;
-import dmd.root.ctfloat;
-import dmd.semantic2;
-import dmd.semantic3;
-import dmd.tokens;
-import dmd.statement;
+// import dmd.parse : ;
+import dmd.root.array : Array, split;
+import dmd.root.ctfloat : real_t;
+// import dmd.semantic2 : ;
+// import dmd.semantic3 : ;
+// import dmd.tokens : ;
+// import dmd.statement : ;
 
 extern (C++) __gshared
 {

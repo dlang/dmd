@@ -14,33 +14,33 @@
 
 module dmd.inline;
 
-import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.stdio : printf, fflush, stdout;
+import core.stdc.string : memcpy;
 
-import dmd.aggregate;
-import dmd.apply;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.errors;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.initsem;
-import dmd.mtype;
-import dmd.opover;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
-import dmd.inlinecost;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.apply : walkPostorder;
+import dmd.arraytypes : Dsymbols, Expressions, Statements, FuncDeclarations;
+import dmd.attrib : AttribDeclaration;
+import dmd.declaration : VarDeclaration, TupleDeclaration, Declaration, STC;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope;
+import dmd.dstruct : semanticTypeInfo;
+import dmd.dsymbol : Dsymbol, PASS, foreachDsymbol;
+import dmd.dtemplate : TemplateInstance, isExpression, isType;
+import dmd.expression : Expression, DeclarationExp, UnaExp, AssertExp, BinExp, AssignExp, CallExp, SliceExp, TupleExp, ArrayLiteralExp, AssocArrayLiteralExp, StructLiteralExp, ArrayExp, CondExp, ErrorExp, SymOffExp, VarExp, ThisExp, SuperExp, TypeidExp, NewExp, DeleteExp, EqualExp, IndexExp, LogicalExp, AddrExp, DotVarExp, PtrExp, IntegerExp, DsymbolExp, stageInlineScan, ConstructExp, NullExp, BlitExp, CastExp, lastComma;
+import dmd.errors : message, warning;
+import dmd.func : FuncDeclaration, ILS, FUNCFLAG;
+import dmd.globals : Loc, global, PINLINE, DiagnosticReporting, LINK;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.init : VoidInitializer, ExpInitializer;
+import dmd.initsem : initializerToExpression;
+import dmd.mtype : Ttuple, Type, Tstruct, Tarray, Tsarray, Taarray, Tdelegate, Tvoid, TypeFunction, VarArg, Tclass, Tpointer, Tfunction;
+// import dmd.opover : ;
+import dmd.statement : Statement, ExpStatement, CompoundStatement, UnrolledLoopStatement, ScopeStatement, WhileStatement, DoStatement, ForStatement, ForeachStatement, ForeachRangeStatement, IfStatement, SwitchStatement, CaseStatement, DefaultStatement, ReturnStatement, SynchronizedStatement, WithStatement, TryCatchStatement, TryFinallyStatement, ThrowStatement, LabelStatement, ImportStatement, DtorExpStatement;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor, StoppableVisitor;
+import dmd.inlinecost : inlineCostExpression, COST_MAX, isInlinableNestedAggregate, inlineCostFunction, tooCostly;
 
 /***********************************************************
  * Scan function implementations in Module m looking for functions that can be inlined,

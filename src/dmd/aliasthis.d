@@ -13,10 +13,10 @@
 
 module dmd.aliasthis;
 
-import dmd.dsymbol;
-import dmd.globals;
-import dmd.identifier;
-import dmd.visitor;
+import dmd.dsymbol : Dsymbol;
+import dmd.globals : Loc;
+import dmd.identifier : Identifier;
+import dmd.visitor : Visitor;
 
 /***********************************************************
  * alias ident this;

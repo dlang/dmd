@@ -11,18 +11,18 @@
 
 module dmd.sideeffect;
 
-import dmd.apply;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.apply : walkPostorder;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dscope : SCOPE;
+import dmd.expression : Expression, CallExp, CastExp, VarExp, PtrExp, LogicalExp, CondExp, CommaExp, firstComma, DeclarationExp;
+import dmd.expressionsem : expressionSemantic;
+// import dmd.func : ;
+import dmd.globals : StorageClass, global, DiagnosticReporting;
+import dmd.identifier : Identifier;
+import dmd.init : ExpInitializer;
+import dmd.mtype : FuncDeclaration, Type, Scope, Tfunction, TypeFunction, PURE, Tdelegate, TypeDelegate, Tclass, Tvoid;
+import dmd.tokens : TOK;
+import dmd.visitor : StoppableVisitor;
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for

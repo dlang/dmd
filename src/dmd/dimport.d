@@ -11,19 +11,19 @@
 
 module dmd.dimport;
 
-import dmd.arraytypes;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.errors;
-import dmd.expression;
-import dmd.globals;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.rmem;
-import dmd.visitor;
+import dmd.arraytypes : Identifiers, AliasDeclarations;
+import dmd.declaration : STC, AliasDeclaration;
+import dmd.dmodule : Module, Package, PKG;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol, Prot, ScopeDsymbol, SearchLocalsOnly, DsymbolTable;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.errors : error;
+// import dmd.expression : ;
+import dmd.globals : Loc, global;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeIdentifier;
+import dmd.root.rmem : Pool;
+import dmd.visitor : Visitor;
 
 /***********************************************************
  */

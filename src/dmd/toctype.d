@@ -11,24 +11,24 @@
 
 module dmd.toctype;
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
+// import core.stdc.stdio : ;
+import core.stdc.stdlib : malloc, free;
 
-import dmd.backend.cc : Classsym, Symbol;
-import dmd.backend.ty;
-import dmd.backend.type;
+import dmd.backend.cc : Symbol, Classsym;
+import dmd.backend.ty : tym_t, mTYconst, mTYshared, mTYimmutable, TYnref, TYnfunc, tybasic, TYstruct, TYenum;
+import dmd.backend.type : type, type_fake, type_static_array, type_dyn_array, type_assoc_array, type_pointer, type_allocn, type_function, type_delegate, type_struct_class, symbol_struct_addField, type_alloc, type_enum;
 
-import dmd.root.rmem;
+import dmd.root.rmem : Mem;
 
-import dmd.declaration;
-import dmd.denum;
-import dmd.dstruct;
-import dmd.globals;
-import dmd.glue;
-import dmd.id;
-import dmd.mtype;
-import dmd.tocvdebug;
-import dmd.visitor;
+import dmd.declaration : STC;
+import dmd.denum : EnumDeclaration;
+import dmd.dstruct : StructDeclaration;
+import dmd.globals : global;
+import dmd.glue : totym;
+import dmd.id : Id;
+import dmd.mtype : MOD, Type, TypeSArray, TypeDArray, TypeAArray, TypePointer, TypeFunction, TypeDelegate, TypeStruct, TypeEnum, TypeClass, MODFlags, Parameter, VarArg, Tint32;
+import dmd.tocvdebug : toDebug;
+import dmd.visitor : Visitor;
 
 
 /*******************

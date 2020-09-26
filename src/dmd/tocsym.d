@@ -11,50 +11,50 @@
 
 module dmd.tocsym;
 
-import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.stdio : printf, sprintf;
+import core.stdc.string : strlen, strcmp;
 
-import dmd.root.array;
-import dmd.root.rmem;
+// import dmd.root.array : ;
+import dmd.root.rmem : Mem;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.complex;
-import dmd.ctfeexpr;
-import dmd.declaration;
-import dmd.dclass;
-import dmd.denum;
-import dmd.dmodule;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.e2ir;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.glue;
-import dmd.identifier;
-import dmd.id;
-import dmd.init;
-import dmd.mtype;
-import dmd.target;
-import dmd.toctype;
-import dmd.todt;
-import dmd.tokens;
-import dmd.typinf;
-import dmd.visitor;
-import dmd.dmangle;
+import dmd.aggregate : AggregateDeclaration;
+// import dmd.arraytypes : ;
+// import dmd.complex : ;
+import dmd.ctfeexpr : ClassReferenceExp;
+import dmd.declaration : SymbolDeclaration, VarDeclaration, TypeInfoDeclaration, TypeInfoClassDeclaration, STC;
+import dmd.dclass : ClassDeclaration, InterfaceDeclaration;
+import dmd.denum : EnumDeclaration;
+import dmd.dmodule : Module;
+// import dmd.dstruct : ;
+import dmd.dsymbol : Dsymbol;
+// import dmd.dtemplate : ;
+import dmd.e2ir : ISX64REF;
+import dmd.errors : message;
+import dmd.expression : StructLiteralExp;
+import dmd.func : FuncDeclaration, FuncAliasDeclaration;
+import dmd.globals : global, LINK, structalign_t, STRUCTALIGN_DEFAULT;
+import dmd.glue : bzeroSymbol, getBzeroSymbol;
+import dmd.identifier : Identifier;
+import dmd.id : Id;
+// import dmd.init : ;
+import dmd.mtype : TypeAArray, Terror, TypeFunction, VarArg, Type;
+import dmd.target : target;
+import dmd.toctype : Type_toCtype;
+import dmd.todt : Expression_toDt, ClassReferenceExp_toInstanceDt, cpp_type_info_ptr_toDt;
+// import dmd.tokens : ;
+// import dmd.typinf : ;
+import dmd.visitor : Visitor;
+import dmd.dmangle : mangleToBuffer, mangleExact;
 
-import dmd.backend.cdef;
-import dmd.backend.cc;
-import dmd.backend.dt;
-import dmd.backend.type;
-import dmd.backend.global;
-import dmd.backend.oper;
-import dmd.backend.cgcv;
-import dmd.backend.symtab;
-import dmd.backend.ty;
+import dmd.backend.cdef : EX_WIN64, OBJ_MACH, SCextern, SCauto, SCglobal, EX_WIN32, SCstatic, OBJ_MSCOFF, SCcomdat;
+import dmd.backend.cc : Symbol, Classsym, SFLartifical, SFLnodebug, config, FLextern, FLauto, SFLpublic, func_t, Fvirtual, Fstatic, SFLimplem, STRglobal, FLdata;
+import dmd.backend.dt : DtBuilder;
+import dmd.backend.type : type, TYPE, type_allocn, type_fake, type_setty, type_setcv, mangle_t, mTYman_c, mTYman_std, mTYman_pas, mTYman_d, mTYman_cpp, type_setmangle, type_paramsize, type_alloc, type_struct_class, TFsizeunknown, TFforward, tstypes, type_function;
+import dmd.backend.global : symbol_name, symbol_calloc, symbol_func, outthunk, outdata;
+// import dmd.backend.oper : ;
+// import dmd.backend.cgcv : ;
+import dmd.backend.symtab : SYMIDX;
+import dmd.backend.ty : TYnref, TYnptr, TYdelegate, mTYimmutable, mTYconst, mTYthread, _tysize, mTYvolatile, TYnfunc, TYnpfunc, TYmfunc, tyfunc, TYvoid, TYint;
 
 extern (C++):
 

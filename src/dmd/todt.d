@@ -12,39 +12,39 @@
 
 module dmd.todt;
 
-import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.stdio : printf;
+import core.stdc.string : strlen;
 
-import dmd.root.array;
-import dmd.root.rmem;
+import dmd.root.array : Array;
+import dmd.root.rmem : mem;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.backend.type;
-import dmd.complex;
-import dmd.ctfeexpr;
-import dmd.declaration;
-import dmd.dclass;
-import dmd.denum;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.init;
-import dmd.mtype;
-import dmd.target;
-import dmd.tokens;
-import dmd.tocsym;
-import dmd.toobj;
-import dmd.typesem;
-import dmd.typinf;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.arraytypes : Expressions;
+// import dmd.backend.type : ;
+import dmd.complex : creall, cimagl;
+import dmd.ctfeexpr : ClassReferenceExp;
+import dmd.declaration : TypeInfoDeclaration, TypeInfoConstDeclaration, TypeInfoInvariantDeclaration, TypeInfoSharedDeclaration, TypeInfoWildDeclaration, TypeInfoEnumDeclaration, TypeInfoPointerDeclaration, TypeInfoArrayDeclaration, TypeInfoStaticArrayDeclaration, TypeInfoVectorDeclaration, TypeInfoAssociativeArrayDeclaration, TypeInfoFunctionDeclaration, TypeInfoDelegateDeclaration, TypeInfoStructDeclaration, TypeInfoClassDeclaration, TypeInfoInterfaceDeclaration, TypeInfoTupleDeclaration, VarDeclaration, STC;
+import dmd.dclass : ClassDeclaration, BaseClass, InterfaceDeclaration;
+import dmd.denum : EnumDeclaration;
+import dmd.dstruct : StructDeclaration, search_toString, StructFlags;
+import dmd.dsymbol : PASS;
+import dmd.dtemplate : isType, TemplateInstance;
+import dmd.errors : error, fatal, warning;
+import dmd.expression : Expression, WANTvalue, CastExp, AddrExp, IntegerExp, RealExp, ComplexExp, NullExp, StringExp, ArrayLiteralExp, StructLiteralExp, SymOffExp, VarExp, FuncExp, VectorExp, TypeidExp;
+import dmd.func : FuncDeclaration;
+import dmd.globals : Loc, dinteger_t, global;
+import dmd.init : Initializer, ErrorInitializer, VoidInitializer, StructInitializer, ArrayInitializer, ExpInitializer, InitKind;
+import dmd.mtype : Type, TypeSArray, Tvector, TypeVector, Tsarray, Tpointer, Tarray, Tclass, Tfloat32, Timaginary32, Tfloat64, Timaginary64, Tfloat80, Timaginary80, Tcomplex32, Tcomplex64, Tcomplex80, Tstruct, Tenum, TypeEnum, TypeFunction, Tfunction, TRUST;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.tocsym : toVtblSymbol, toSymbolCppTypeInfo, toInitializer;
+import dmd.toobj : write_pointers, toObjFile, baseVtblOffset, write_instance_pointers;
+import dmd.typesem : defaultInit, merge;
+import dmd.typinf : genTypeInfo;
+import dmd.visitor : Visitor;
 
-import dmd.backend.cc;
-import dmd.backend.dt;
+import dmd.backend.cc : dt_t, Symbol;
+import dmd.backend.dt : DtBuilder, dt_free;
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;

@@ -11,7 +11,7 @@
 
 module dmd.complex;
 
-import dmd.root.ctfloat;
+import dmd.root.ctfloat : real_t, CTFloat;
 
 extern (C++) struct complex_t
 {

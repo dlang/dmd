@@ -13,19 +13,19 @@
 
 module dmd.parse;
 
-import core.stdc.stdio;
-import core.stdc.string;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.lexer;
+import core.stdc.stdio : sprintf;
+import core.stdc.string : memcpy, strlen;
+import dmd.globals : Loc, LINK, CPPMANGLE, StorageClass, global;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.lexer : Lexer;
 import dmd.errors;
-import dmd.root.filename;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.rootobject;
-import dmd.root.string;
-import dmd.tokens;
+import dmd.root.filename : FileName;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : mem;
+import dmd.root.rootobject : RootObject;
+import dmd.root.string : toDString;
+import dmd.tokens : TOK, Token;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.

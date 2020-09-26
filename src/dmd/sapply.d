@@ -11,8 +11,8 @@
 
 module dmd.sapply;
 
-import dmd.statement;
-import dmd.visitor;
+import dmd.statement : Statement, PeelStatement, CompoundStatement, UnrolledLoopStatement, ScopeStatement, WhileStatement, DoStatement, ForStatement, ForeachStatement, ForeachRangeStatement, IfStatement, PragmaStatement, SwitchStatement, CaseStatement, DefaultStatement, SynchronizedStatement, WithStatement, TryCatchStatement, TryFinallyStatement, ScopeGuardStatement, DebugStatement, LabelStatement;
+import dmd.visitor : StoppableVisitor;
 
 /**************************************
  * A Statement tree walker that will visit each Statement s in the tree,

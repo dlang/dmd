@@ -10,15 +10,15 @@
  */
 module dmd.frontend;
 
-import dmd.astcodegen : ASTCodegen;
-import dmd.dmodule : Module;
-import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
-import dmd.errors : DiagnosticHandler, diagnosticHandler, Classification;
+// import dmd.astcodegen : ;
+// import dmd.dmodule : ;
+// import dmd.globals : ;
+// import dmd.errors : ;
 
-import std.range.primitives : isInputRange, ElementType;
-import std.traits : isNarrowString;
-import std.typecons : Tuple;
-import core.stdc.stdarg;
+// import std.range.primitives : ;
+// import std.traits : ;
+// import std.typecons : ;
+// import core.stdc.stdarg : ;
 
 version (Windows) private enum sep = ";", exe = ".exe";
 version (Posix) private enum sep = ":", exe = "";

@@ -13,31 +13,31 @@
 
 module dmd.cond;
 
-import core.stdc.string;
+import core.stdc.string : strlen;
 import dmd.arraytypes;
-import dmd.ast_node;
-import dmd.dcast;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.globals;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.typesem;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.root.string;
-import dmd.tokens;
-import dmd.utils;
-import dmd.visitor;
-import dmd.id;
-import dmd.statement;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.func;
+import dmd.ast_node : ASTNode;
+import dmd.dcast : getIntRange;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope;
+// import dmd.dsymbol : ;
+import dmd.errors : error;
+import dmd.expression : Expression, ArrayLengthExp, WANTvalue, IntegerExp, IndexExp, TupleExp, ErrorExp, FuncExp, CallExp, TypeExp, IdentifierExp, AssertExp, CatAssignExp, ArrayLiteralExp;
+import dmd.expressionsem : resolveProperties, expressionSemantic;
+import dmd.globals : Loc, LINK, global;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeStruct, Type, TypeFunction, ParameterList, TypeTypeof, Parameter, Ttuple, Terror, Tarray;
+import dmd.typesem : typeSemantic;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rootobject : DYNCAST, RootObject;
+import dmd.root.string : toDString;
+import dmd.tokens : TOK;
+import dmd.utils : escapePath;
+import dmd.visitor : Visitor;
+import dmd.id : Id;
+import dmd.statement : ForeachStatement, ForeachRangeStatement, Statement, ExpStatement, ReturnStatement, CompoundStatement;
+import dmd.declaration : STC, VarDeclaration, TypeInfoStructDeclaration;
+import dmd.dstruct : StructDeclaration;
+import dmd.func : FuncLiteralDeclaration;
 
 /***********************************************************
  */

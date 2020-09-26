@@ -11,15 +11,15 @@
 
 module dmd.errors;
 
-import core.stdc.stdarg;
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
-import dmd.globals;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.string;
-import dmd.console;
+import core.stdc.stdarg : va_list, va_start, va_end;
+import core.stdc.stdio : fprintf, stderr, fputs, fputc, fflush, stdout;
+import core.stdc.stdlib : exit, EXIT_FAILURE;
+import core.stdc.string : strchr, strstr;
+import dmd.globals : Loc, global, DiagnosticReporting;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : mem;
+import dmd.root.string : toDString;
+import dmd.console : Color, Console;
 
 nothrow:
 

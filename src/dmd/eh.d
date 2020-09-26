@@ -13,26 +13,26 @@
 
 module dmd.eh;
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
+import core.stdc.stdio : sprintf;
+// import core.stdc.stdlib : ;
+// import core.stdc.string : ;
 
-import dmd.globals;
-import dmd.errors;
+import dmd.globals : global;
+import dmd.errors : error;
 
-import dmd.root.rmem;
+// import dmd.root.rmem : ;
 
-import dmd.backend.barray;
-import dmd.backend.cc;
-import dmd.backend.cdef;
-import dmd.backend.code;
-import dmd.backend.code_x86;
-import dmd.backend.dt;
-import dmd.backend.el;
-import dmd.backend.global;
-import dmd.backend.obj;
-import dmd.backend.ty;
-import dmd.backend.type;
+import dmd.backend.barray : Barray;
+import dmd.backend.cc : Symbol, config, funcsym_p, Feh_none, BlockRange, BC_try, block, BC_finally;
+import dmd.backend.cdef : EHmethod, SCstatic;
+import dmd.backend.code : Alloca, cod3_spoff, retoffset, usednteh, EHcleanup, code_next, nteh_patchindex, calccodsize, cod3_bpoffset;
+import dmd.backend.code_x86 : code, ESCAPE, ESCddtor, ESCdctor;
+import dmd.backend.dt : DtBuilder;
+// import dmd.backend.el : ;
+import dmd.backend.global : symbol_name, symbol_keep, outdata, startblock;
+import dmd.backend.obj : objmod;
+import dmd.backend.ty : _tysize, TYnptr, TYint;
+import dmd.backend.type : tstypes;
 
 extern (C++):
 

@@ -11,13 +11,13 @@
 
 module dmd.argtypes_x86;
 
-import core.stdc.stdio;
-import core.checkedint;
+// import core.stdc.stdio : ;
+import core.checkedint : addu;
 
-import dmd.declaration;
-import dmd.globals;
-import dmd.mtype;
-import dmd.visitor;
+// import dmd.declaration : ;
+import dmd.globals : d_uns64, Loc, global;
+import dmd.mtype : TypeTuple, Type, TypeError, TypeBasic, TypeVector, TypeAArray, TypePointer, TypeDArray, TypeDelegate, TypeSArray, TypeStruct, TypeEnum, TypeClass, Tvoid, Tbool, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tfloat32, Tint64, Tuns64, Tint128, Tuns128, Tfloat64, Tfloat80, Timaginary32, Timaginary64, Timaginary80, Tcomplex32, Tcomplex64, Tcomplex80, Tchar, Twchar, Tdchar, SIZE_INVALID;
+import dmd.visitor : Visitor;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function

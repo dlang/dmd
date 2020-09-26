@@ -11,24 +11,24 @@
 
 module dmd.link;
 
-import core.stdc.ctype;
-import core.stdc.stdio;
-import core.stdc.string;
-import core.sys.posix.stdio;
-import core.sys.posix.stdlib;
-import core.sys.posix.unistd;
+import core.stdc.ctype : isalnum;
+// import core.stdc.stdio : ;
+import core.stdc.string : strrchr, strstr, memcpy, strdup, strtok, strcpy, strcat, strlen;
+import core.sys.posix.stdio : FILE, fdopen, fread, ferror, fwrite, stderr, feof, L_tmpnam, P_tmpdir, perror;
+import core.sys.posix.stdlib : free, malloc, getenv, mkstemp, waitpid, WIFEXITED, WEXITSTATUS, WIFSIGNALED, WTERMSIG;
+import core.sys.posix.unistd : pid_t, close, vfork, dup2, STDERR_FILENO, execvp, _exit, fork, execv;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
-import dmd.env;
-import dmd.errors;
-import dmd.globals;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.string;
-import dmd.utils;
-import dmd.vsoptions;
+import dmd.env : restoreEnvVars;
+import dmd.errors : error, message;
+import dmd.globals : global, Loc;
+// import dmd.root.file : ;
+import dmd.root.filename : FileName, Strings;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : Mem, mem, xarraydup, arraydup;
+import dmd.root.string : startsWith, toDString, toCStringThen;
+import dmd.utils : ensurePathToNameExists;
+// import dmd.vsoptions : ;
 
 version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);

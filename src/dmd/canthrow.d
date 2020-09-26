@@ -13,22 +13,22 @@
 
 module dmd.canthrow;
 
-import dmd.aggregate;
-import dmd.apply;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.init;
-import dmd.mtype;
-import dmd.root.rootobject;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.apply : walkPostorder;
+// import dmd.arraytypes : ;
+// import dmd.attrib : ;
+import dmd.declaration : STC;
+// import dmd.dstruct : ;
+import dmd.dsymbol : Dsymbol, foreachDsymbol;
+// import dmd.dtemplate : ;
+import dmd.expression : Expression, DeclarationExp, CallExp, NewExp, DeleteExp, AssignExp, NewAnonClassExp;
+import dmd.func : FuncDeclaration;
+import dmd.globals : global;
+// import dmd.init : ;
+import dmd.mtype : Type, Tclass, Tpointer, Tarray, Tsarray;
+import dmd.root.rootobject : RootObject, DYNCAST;
+import dmd.tokens : TOK;
+import dmd.visitor : StoppableVisitor;
 
 /********************************************
  * Returns true if the expression may throw exceptions.

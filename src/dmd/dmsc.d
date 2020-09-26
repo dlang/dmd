@@ -11,24 +11,24 @@
 
 module dmd.dmsc;
 
-import core.stdc.stdio;
-import core.stdc.string;
-import core.stdc.stddef;
+// import core.stdc.stdio : ;
+// import core.stdc.string : ;
+// import core.stdc.stddef : ;
 
 extern (C++):
 
-import dmd.globals;
-import dmd.dclass;
-import dmd.dmodule;
-import dmd.mtype;
+import dmd.globals : PIC, Param, global, CPU;
+import dmd.dclass : ClassDeclaration;
+import dmd.dmodule : Module;
+import dmd.mtype : Type;
 
-import dmd.root.filename;
+import dmd.root.filename : FileName;
 
-import dmd.backend.cc;
-import dmd.backend.cdef;
-import dmd.backend.global;
-import dmd.backend.ty;
-import dmd.backend.type;
+import dmd.backend.cc : Symbol, FLdata;
+import dmd.backend.cdef : targ_size_t, SClocstat;
+import dmd.backend.global : symbol_generate, symbol_keep;
+import dmd.backend.ty : tym_t, _tysize, TYnptr, tybasic, TYvoid, tysize;
+import dmd.backend.type : type_fake, mTYman_sys;
 
 extern (C) void out_config_init(
         int model,      // 32: 32 bit code

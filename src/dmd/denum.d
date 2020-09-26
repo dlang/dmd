@@ -14,24 +14,24 @@
 
 module dmd.denum;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
-import dmd.attrib;
-import dmd.gluelayer;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.visitor;
+import dmd.attrib : UserAttributeDeclaration, DeprecatedDeclaration;
+import dmd.gluelayer : Symbol;
+import dmd.declaration : VarDeclaration;
+import dmd.dscope : Scope;
+import dmd.dsymbol : ScopeDsymbol, Prot, Dsymbol, SearchLocalsOnly, DsymbolTable, PASS;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.expression : Expression, ErrorExp, CmpExp, VarExp;
+import dmd.expressionsem : expressionSemantic;
+import dmd.globals : Loc, StorageClass;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.init : ExpInitializer;
+import dmd.mtype : Type, TypeEnum;
+import dmd.tokens : TOK;
+import dmd.typesem : getProperty, defaultInit, typeSemantic;
+import dmd.visitor : Visitor;
 
 /***********************************************************
  * AST node for `EnumDeclaration`

@@ -13,15 +13,15 @@
 
 module dmd.tokens;
 
-import core.stdc.ctype;
-import core.stdc.stdio;
-import core.stdc.string;
-import dmd.globals;
-import dmd.identifier;
-import dmd.root.ctfloat;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.utf;
+import core.stdc.ctype : isprint;
+import core.stdc.stdio : sprintf;
+import core.stdc.string : memcpy, strcat;
+import dmd.globals : Loc, sinteger_t, uinteger_t, d_int32, d_uns32;
+import dmd.identifier : Identifier;
+import dmd.root.ctfloat : real_t, CTFloat;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : mem;
+import dmd.utf : utf_decodeChar;
 
 enum TOK : ubyte
 {

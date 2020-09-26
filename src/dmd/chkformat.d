@@ -13,11 +13,11 @@ module dmd.chkformat;
 //import core.stdc.stdio : printf, scanf;
 import core.stdc.ctype : isdigit;
 
-import dmd.errors;
-import dmd.expression;
-import dmd.globals;
-import dmd.mtype;
-import dmd.target;
+import dmd.errors : deprecation;
+import dmd.expression : Expression;
+import dmd.globals : Loc, global;
+import dmd.mtype : Type, Tint32, Tuns32, Tint8, Tuns8, Tint16, Tuns16, Tint64, Tuns64, Tfloat64, Timaginary64, Tfloat80, Timaginary80, Tpointer, Tnull, Tclass, Tdelegate, Taarray, Tchar, Twchar, Tdchar, Tfloat32;
+import dmd.target : target;
 
 
 /******************************************

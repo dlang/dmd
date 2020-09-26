@@ -12,28 +12,28 @@
 module dmd.escape;
 
 import core.stdc.stdio : printf;
-import core.stdc.stdlib;
-import core.stdc.string;
+// import core.stdc.stdlib : ;
+import core.stdc.string : memset;
 
-import dmd.root.rmem;
+import dmd.root.rmem : mem;
 
-import dmd.aggregate;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.printast;
-import dmd.root.rootobject;
-import dmd.tokens;
-import dmd.visitor;
-import dmd.arraytypes;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol;
+import dmd.errors : error, deprecation, deprecationSupplemental;
+import dmd.expression : Expression, ArrayLiteralExp, AssocArrayLiteralExp, CallExp, AssignExp, DotVarExp, BinExp, expToVariable, AddrExp, SymOffExp, VarExp, ThisExp, PtrExp, DelegateExp, FuncExp, TupleExp, StructLiteralExp, NewExp, CastExp, SliceExp, IndexExp, BinAssignExp, CommaExp, CondExp, ConstructExp;
+import dmd.func : FuncDeclaration, CtorDeclaration, FUNCFLAG;
+import dmd.globals : global;
+import dmd.id : Id;
+// import dmd.identifier : ;
+import dmd.init : ExpInitializer;
+import dmd.mtype : TypeFunction, Parameter, Type, Tarray, Tsarray, Tstruct, Tfunction, Tclass, TRUST, Tvoid, Tpointer, TypeDelegate, Tdelegate, Taarray;
+// import dmd.printast : ;
+// import dmd.root.rootobject : ;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
+import dmd.arraytypes : Expressions, VarDeclarations, FuncDeclarations;
 
 /******************************************************
  * Checks memory objects passed to a function.

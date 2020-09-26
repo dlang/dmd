@@ -46,16 +46,16 @@
 
 module dmd.nspace;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.expression;
-import dmd.globals;
-import dmd.identifier;
-import dmd.visitor;
-import core.stdc.stdio;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.arraytypes : Dsymbols;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol, SearchLocalsOnly, DsymbolTable, Prot, foreachDsymbol;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.expression : Expression;
+import dmd.globals : Loc, LINK;
+import dmd.identifier : Identifier;
+import dmd.visitor : Visitor;
+// import core.stdc.stdio : ;
 
 private enum LOG = false;
 

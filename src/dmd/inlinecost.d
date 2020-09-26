@@ -11,30 +11,30 @@
 
 module dmd.inlinecost;
 
-import core.stdc.stdio;
-import core.stdc.string;
+// import core.stdc.stdio : ;
+// import core.stdc.string : ;
 
-import dmd.aggregate;
-import dmd.apply;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.opover;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.apply : walkPostorder;
+// import dmd.arraytypes : ;
+import dmd.attrib : AttribDeclaration;
+// import dmd.dclass : ;
+import dmd.declaration : STC;
+// import dmd.dmodule : ;
+// import dmd.dscope : ;
+import dmd.dstruct : StructDeclaration, UnionDeclaration;
+// import dmd.dsymbol : ;
+import dmd.expression : Expression, DeclarationExp, VarExp, ThisExp, StructLiteralExp, NewExp, FuncExp, DelegateExp, CallExp, DotVarExp;
+import dmd.func : FuncDeclaration;
+import dmd.globals : LINK;
+import dmd.id : Id;
+// import dmd.identifier : ;
+// import dmd.init : ;
+import dmd.mtype : Type, isAggregate;
+// import dmd.opover : ;
+import dmd.statement : Statement, ExpStatement, CompoundStatement, UnrolledLoopStatement, ScopeStatement, IfStatement, ReturnStatement, ImportStatement, ForStatement, ThrowStatement;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor, StoppableVisitor;
 
 enum COST_MAX = 250;
 

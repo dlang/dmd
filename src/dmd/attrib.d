@@ -24,27 +24,27 @@
 
 module dmd.attrib;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.cond;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.arraytypes : Dsymbols, ClassDeclarations, Identifiers, Expressions;
+import dmd.cond : Condition, StaticForeach, Include;
+import dmd.declaration : STC, VarDeclaration;
+import dmd.dmodule : Package, Module;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dsymbol : Dsymbol, Prot, ScopeDsymbol, ForwardingScopeDsymbol, DsymbolTable, foreachDsymbol;
 import dmd.dsymbolsem : dsymbolSemantic;
-import dmd.expression;
+import dmd.expression : Expression, ErrorExp, TupleExp;
 import dmd.expressionsem : arrayExpressionSemantic;
-import dmd.func;
-import dmd.globals;
+import dmd.func : FuncDeclaration;
+import dmd.globals : Loc, StorageClass, LINK, CPPMANGLE, PINLINE, structalign_t, STRUCTALIGN_DEFAULT, global, CppStdRevision;
 import dmd.hdrgen : protectionToBuffer;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.objc; // for objc.addSymbols
-import dmd.root.outbuffer;
-import dmd.target; // for target.systemLinkage
-import dmd.tokens;
-import dmd.visitor;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : Type;
+import dmd.objc : objc;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
 
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common

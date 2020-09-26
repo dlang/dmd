@@ -13,27 +13,27 @@
 
 module dmd.opover;
 
-import core.stdc.stdio;
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.statement;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.visitor;
+import core.stdc.stdio : printf;
+import dmd.aggregate : AggregateDeclaration, ClassKind;
+import dmd.arraytypes : Parameters, Objects, Expressions;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : MatchAccumulator, Declaration, STC;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dstruct : StructDeclaration;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol;
+import dmd.dtemplate : functionResolve, TemplateDeclaration;
+import dmd.errors : error;
+import dmd.expression : Expression, BinExp, StringExp, DotIdExp, UnaExp, ArrayExp, CastExp, EqualExp, CmpExp, BinAssignExp, IntervalExp, DotTemplateInstanceExp, CallExp, SliceExp, IndexExp, ErrorExp, expandTuples, IdentifierExp, NotExp, IdentityExp, TupleExp, IntegerExp, LogicalExp, DotVarExp, WANTvalue, DelegateExp;
+import dmd.expressionsem : resolveProperties, resolveOpDollar, resolveAliasThis, expressionSemantic, trySemantic, binSemanticProp;
+import dmd.func : FuncDeclaration, overloadApply;
+import dmd.globals : Loc, MATCH, global;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeFunction, Type, isAggregate, isIndexableNonAggregate, Tarray, Tsarray, Tclass, Tnull, Tpointer, Tstruct, TypeStruct, Terror, Tfunction, Ttuple, Taarray, TypeClass, Tdelegate, Parameter, TypeAArray, MODFlags, MOD, MODimplicitConv, VarArg;
+import dmd.statement : ForeachStatement;
+import dmd.tokens : TOK, Token;
+import dmd.typesem : typeSemantic;
+import dmd.visitor : Visitor;
 
 /***********************************
  * Determine if operands of binary op can be reversed

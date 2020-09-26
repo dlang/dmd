@@ -11,20 +11,20 @@
  */
 module dmd.dtoh;
 
-import core.stdc.stdio;
-import core.stdc.string;
-import core.stdc.ctype;
+import core.stdc.stdio : printf, fwrite, stdout;
+import core.stdc.string : strcmp;
+// import core.stdc.ctype : ;
 
-import dmd.astcodegen;
-import dmd.arraytypes;
-import dmd.globals;
-import dmd.identifier;
-import dmd.root.filename;
-import dmd.visitor;
-import dmd.tokens;
+import dmd.astcodegen : ASTCodegen;
+import dmd.arraytypes : Modules, Dsymbols;
+import dmd.globals : LINK, dinteger_t, global, CxxHeaderMode, Loc, CppStdRevision, STRUCTALIGN_DEFAULT, CPPMANGLE;
+import dmd.identifier : Identifier;
+import dmd.root.filename : FileName;
+import dmd.visitor : Visitor;
+import dmd.tokens : TOK;
 
-import dmd.root.outbuffer;
-import dmd.utils;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.utils : writeFile;
 
 //debug = Debug_DtoH;
 enum isBuildingCompiler = false;

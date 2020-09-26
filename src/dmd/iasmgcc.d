@@ -11,20 +11,20 @@
 
 module dmd.iasmgcc;
 
-import core.stdc.string;
+import core.stdc.string : memcpy;
 
-import dmd.arraytypes;
-import dmd.astcodegen;
-import dmd.dscope;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.identifier;
-import dmd.globals;
-import dmd.parse;
-import dmd.tokens;
-import dmd.statement;
-import dmd.statementsem;
+import dmd.arraytypes : Identifiers, Expressions, GotoStatements;
+import dmd.astcodegen : ASTCodegen;
+import dmd.dscope : Scope;
+import dmd.errors : deprecation;
+import dmd.expression : Expression, ErrorExp, StringExp;
+import dmd.expressionsem : semanticString, expressionSemantic;
+import dmd.identifier : Identifier;
+import dmd.globals : global, Loc;
+import dmd.parse : Parser;
+import dmd.tokens : Token, TOK;
+import dmd.statement : Statement, GccAsmStatement, GotoStatement;
+import dmd.statementsem : statementSemantic;
 
 private:
 

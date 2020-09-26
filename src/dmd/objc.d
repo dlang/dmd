@@ -13,32 +13,32 @@
 
 module dmd.objc;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.cond;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmangle;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.errors;
+import dmd.aggregate : AggregateDeclaration, ClassKind;
+import dmd.arraytypes : ClassDeclarations, FuncDeclarations, BaseClasses, Dsymbols;
+import dmd.attrib : AttribDeclaration;
+import dmd.cond : VersionCondition;
+import dmd.dclass : ClassDeclaration, InterfaceDeclaration, BaseClass;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dmangle : mangleToBuffer;
+// import dmd.dmodule : ;
+import dmd.dscope : Scope;
+// import dmd.dstruct : ;
+import dmd.dsymbol : Prot;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.errors : deprecationSupplemental;
 import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.gluelayer;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.array;
-import dmd.root.outbuffer;
-import dmd.root.stringtable;
-import dmd.target;
-import dmd.tokens;
+import dmd.expressionsem : ScopeDsymbol, arrayExpressionSemantic;
+import dmd.func : FuncDeclaration;
+import dmd.globals : LINK, Loc;
+import dmd.gluelayer : ObjcGlue;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeClass, TypeFunction, Type, Tclass;
+import dmd.root.array : each;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.stringtable : StringTable;
+import dmd.target : target;
+import dmd.tokens : TOK;
 
 struct ObjcSelector
 {

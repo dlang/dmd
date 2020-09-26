@@ -11,13 +11,13 @@
 
 module dmd.utils;
 
-import core.stdc.string;
-import dmd.errors;
-import dmd.globals;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.outbuffer;
-import dmd.root.string;
+import core.stdc.string : strdup;
+import dmd.errors : error, fatal;
+import dmd.globals : Loc;
+import dmd.root.file : FileBuffer, File;
+import dmd.root.filename : FileName;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.string : toDString;
 
 
 /**

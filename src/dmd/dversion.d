@@ -14,16 +14,16 @@
 
 module dmd.dversion;
 
-import dmd.arraytypes;
-import dmd.cond;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.globals;
-import dmd.identifier;
-import dmd.root.outbuffer;
-import dmd.visitor;
+import dmd.arraytypes : Identifiers;
+import dmd.cond : findCondition, VersionCondition;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol;
+// import dmd.dsymbolsem : ;
+import dmd.globals : Loc;
+import dmd.identifier : Identifier;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.visitor : Visitor;
 
 /***********************************************************
  * DebugSymbol's happen for statements like:

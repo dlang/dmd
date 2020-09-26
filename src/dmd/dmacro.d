@@ -11,13 +11,13 @@
 
 module dmd.dmacro;
 
-import core.stdc.ctype;
-import core.stdc.string;
-import dmd.doc;
-import dmd.errors;
-import dmd.globals;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
+import core.stdc.ctype : isdigit, isspace, isalpha;
+import core.stdc.string : memcpy, memcmp;
+import dmd.doc : isIdStart, utfStride, isIdTail;
+import dmd.errors : error;
+import dmd.globals : global, Loc;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : mem;
 
 extern (C++) struct MacroTable
 {

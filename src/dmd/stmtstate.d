@@ -11,8 +11,8 @@
 
 module dmd.stmtstate;
 
-import dmd.identifier;
-import dmd.statement;
+import dmd.identifier : Identifier;
+import dmd.statement : Statement;
 
 
 /************************************************

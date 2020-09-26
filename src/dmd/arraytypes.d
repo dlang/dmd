@@ -11,19 +11,19 @@
 
 module dmd.arraytypes;
 
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.dtemplate;
+import dmd.dclass : ClassDeclaration, BaseClass;
+import dmd.declaration : AliasDeclaration, VarDeclaration;
+import dmd.dmodule : Module;
+import dmd.dsymbol : Dsymbol;
+import dmd.dtemplate : TemplateParameter, TemplateInstance;
 import dmd.expression;
-import dmd.func;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.root.array;
-import dmd.root.rootobject;
-import dmd.statement;
+import dmd.func : FuncDeclaration, DtorDeclaration, Ensure, StaticDtorDeclaration, SharedStaticDtorDeclaration;
+import dmd.identifier : Identifier;
+import dmd.init : Initializer;
+import dmd.mtype : Parameter, Type;
+import dmd.root.array : Array;
+import dmd.root.rootobject : RootObject;
+import dmd.statement : Statement, ReturnStatement, GotoStatement, ScopeStatement, GotoCaseStatement, CaseStatement, Catch;
 
 alias Strings = Array!(const(char)*);
 alias Identifiers = Array!(Identifier);

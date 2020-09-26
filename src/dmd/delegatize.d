@@ -13,21 +13,21 @@
 
 module dmd.delegatize;
 
-import core.stdc.stdio;
-import dmd.apply;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.init;
-import dmd.initsem;
-import dmd.mtype;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
+// import core.stdc.stdio : ;
+import dmd.apply : walkPostorder;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol;
+import dmd.expression : Expression, ErrorExp, FuncExp, DeclarationExp, IndexExp, SliceExp, SymOffExp, VarExp, ThisExp;
+import dmd.expressionsem : expressionSemantic;
+import dmd.func : FuncDeclaration, FuncLiteralDeclaration;
+import dmd.globals : Loc, LINK;
+import dmd.init : Initializer, ExpInitializer, StructInitializer, ArrayInitializer;
+import dmd.initsem : initializerToExpression;
+import dmd.mtype : Type, TypeFunction, ParameterList, MODFlags, Tvoid;
+import dmd.statement : Statement, ExpStatement, ReturnStatement;
+import dmd.tokens : TOK;
+import dmd.visitor : StoppableVisitor;
 
 
 /*********************************

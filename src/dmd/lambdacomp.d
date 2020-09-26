@@ -15,24 +15,24 @@
 
 module dmd.lambdacomp;
 
-import core.stdc.stdio;
-import core.stdc.string;
+// import core.stdc.stdio : ;
+import core.stdc.string : strlen, strncmp;
 
-import dmd.declaration;
-import dmd.denum;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.func;
-import dmd.dmangle;
-import dmd.mtype;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.stringtable;
-import dmd.dscope;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.declaration : STC;
+// import dmd.denum : ;
+import dmd.dsymbol : Dsymbol;
+// import dmd.dtemplate : ;
+import dmd.expression : DotIdExp, IdentifierExp, DotVarExp, VarExp, CallExp, UnaExp, IntegerExp, RealExp, BinExp, StructLiteralExp, ArrayLiteralExp, AssocArrayLiteralExp, CompileExp, ComplexExp, DeclarationExp, DefaultInitExp, DsymbolExp, ErrorExp, FuncExp, HaltExp, IntervalExp, IsExp, NewAnonClassExp, NewExp, NullExp, ObjcClassReferenceExp, OverExp, ScopeExp, StringExp, SymbolExp, TemplateExp, ThisExp, TraitsExp, TupleExp, TypeExp, TypeidExp, VoidInitExp;
+import dmd.func : FuncLiteralDeclaration;
+import dmd.dmangle : mangleToBuffer;
+import dmd.mtype : TypeBasic, TypeStruct, TypeClass, Parameter, Terror, TypeFunction, Tident, TypeIdentifier;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : mem;
+import dmd.root.stringtable : StringTable;
+import dmd.dscope : Scope;
+import dmd.statement : ReturnStatement;
+import dmd.tokens : Token;
+import dmd.visitor : SemanticTimeTransitiveVisitor;
 
 enum LOG = false;
 

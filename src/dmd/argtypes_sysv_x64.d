@@ -11,10 +11,10 @@
 
 module dmd.argtypes_sysv_x64;
 
-import dmd.declaration;
-import dmd.globals;
-import dmd.mtype;
-import dmd.visitor;
+// import dmd.declaration : ;
+import dmd.globals : global;
+import dmd.mtype : TypeTuple, Type, TypeEnum, TypeBasic, TypeVector, TypeAArray, TypePointer, TypeNull, TypeClass, TypeDArray, TypeDelegate, TypeSArray, TypeStruct, Tvoid, Tbool, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tint64, Tuns64, Tchar, Twchar, Tdchar, Tint128, Tuns128, Tfloat80, Timaginary80, Tfloat32, Tfloat64, Timaginary32, Timaginary64, Tcomplex32, Tcomplex64, Tcomplex80, Tstruct, Tsarray;
+import dmd.visitor : Visitor;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function

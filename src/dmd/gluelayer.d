@@ -13,12 +13,12 @@
 
 module dmd.gluelayer;
 
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.mtype;
-import dmd.statement;
-import dmd.root.file;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol;
+// import dmd.mtype : ;
+import dmd.statement : Statement, AsmStatement;
+// import dmd.root.file : ;
 
 version (NoBackend)
 {

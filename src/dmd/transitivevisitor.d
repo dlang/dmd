@@ -5,11 +5,11 @@
 
 module dmd.transitivevisitor;
 
-import dmd.permissivevisitor;
-import dmd.tokens;
-import dmd.root.rootobject;
+// import dmd.permissivevisitor : ;
+// import dmd.tokens : ;
+// import dmd.root.rootobject : ;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
 /** Visitor that implements the AST traversal logic. The nodes just accept their children.
   */

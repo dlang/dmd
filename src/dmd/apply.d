@@ -11,12 +11,12 @@
 
 module dmd.apply;
 
-import dmd.arraytypes;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.visitor;
+import dmd.arraytypes : Expressions;
+import dmd.dsymbol : Dsymbol, foreachDsymbol;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.dtemplate : isExpression;
+import dmd.expression : Expression, NewExp, NewAnonClassExp, TypeidExp, UnaExp, BinExp, AssertExp, CallExp, ArrayExp, SliceExp, ArrayLiteralExp, AssocArrayLiteralExp, StructLiteralExp, TupleExp, CondExp, stageApply;
+import dmd.visitor : StoppableVisitor;
 
 /**************************************
  * An Expression tree walker that will visit each Expression e in the tree,

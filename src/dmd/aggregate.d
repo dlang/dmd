@@ -14,29 +14,29 @@
 
 module dmd.aggregate;
 
-import core.stdc.stdio;
-import core.checkedint;
+// import core.stdc.stdio : ;
+import core.checkedint : addu;
 
-import dmd.aliasthis;
-import dmd.apply;
-import dmd.arraytypes;
+import dmd.aliasthis : AliasThis;
+import dmd.apply : apply;
+import dmd.arraytypes : VarDeclarations, FuncDeclarations, DtorDeclarations, Expressions;
 import dmd.gluelayer : Symbol;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.tokens;
+import dmd.declaration : VarDeclaration, STCFlowThruAggregate, STC, ThisDeclaration;
+import dmd.dscope : Scope;
+// import dmd.dstruct : ;
+import dmd.dsymbol : ScopeDsymbol, Dsymbol, Prot, PASS;
+import dmd.dsymbolsem : dsymbolSemantic;
+// import dmd.dtemplate : ;
+import dmd.errors : error, deprecation;
+import dmd.expression : Expression;
+import dmd.func : FuncDeclaration, NewDeclaration, CtorDeclaration, DtorDeclaration;
+import dmd.globals : StorageClass, CPPMANGLE, Loc, d_uns64, structalign_t, global, STRUCTALIGN_DEFAULT;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : Type, Tstruct, TypeStruct, Tsarray, Terror, SIZE_INVALID, MODimplicitConv, TypeSArray, Tvoid;
+import dmd.tokens : TOK;
 import dmd.typesem : defaultInit;
-import dmd.visitor;
+import dmd.visitor : Visitor;
 
 enum Sizeok : int
 {

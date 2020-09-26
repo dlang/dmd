@@ -11,31 +11,31 @@
 
 module dmd.json;
 
-import core.stdc.stdio;
-import core.stdc.string;
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.cond;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.hdrgen;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.root.string;
-import dmd.visitor;
+// import core.stdc.stdio : ;
+// import core.stdc.string : ;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.arraytypes : Parameters, Modules, Dsymbols;
+import dmd.attrib : AttribDeclaration, ConditionalDeclaration;
+import dmd.cond : Include;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : Declaration, TypeInfoDeclaration, VarDeclaration, STCStorageClass, STC;
+import dmd.denum : EnumDeclaration, EnumMember;
+import dmd.dimport : Import;
+import dmd.dmodule : Module;
+import dmd.dsymbol : Dsymbol, Prot;
+import dmd.dtemplate : TemplateDeclaration, TemplateMixin, TemplateParameter;
+import dmd.errors : message;
+import dmd.expression : Expression;
+import dmd.func : PostBlitDeclaration, FuncDeclaration;
+import dmd.globals : LINK, StorageClass, Loc, JsonFieldFlags, STRUCTALIGN_DEFAULT, global;
+import dmd.hdrgen : stcToString, protectionToString;
+import dmd.id : Id;
+// import dmd.identifier : ;
+import dmd.mtype : TRUST, PURE, Type, Parameter, TypeFunction, Tfunction;
+import dmd.root.outbuffer : OutBuffer;
+// import dmd.root.rootobject : ;
+import dmd.root.string : toDString;
+import dmd.visitor : Visitor;
 
 version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);

@@ -14,31 +14,31 @@
 
 module dmd.dmangle;
 
-import core.stdc.ctype;
-import core.stdc.stdio;
-import core.stdc.string;
+// import core.stdc.ctype : ;
+import core.stdc.stdio : fprintf, stderr;
+import core.stdc.string : strncmp, strchr;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.ctfloat;
-import dmd.root.outbuffer;
-import dmd.root.aav;
-import dmd.root.string;
-import dmd.target;
-import dmd.tokens;
-import dmd.utf;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration;
+// import dmd.arraytypes : ;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : Declaration, OverDeclaration, VarDeclaration, STC;
+import dmd.dmodule : Module;
+import dmd.dsymbol : Dsymbol;
+import dmd.dtemplate : TemplateInstance, TemplateDeclaration, isType, isExpression, isDsymbol, Tuple, isTuple;
+import dmd.expression : Expression, IntegerExp, RealExp, ComplexExp, NullExp, StringExp, ArrayLiteralExp, AssocArrayLiteralExp, StructLiteralExp, WANTvalue;
+import dmd.func : FuncDeclaration, FuncAliasDeclaration;
+import dmd.globals : LINK, global, sinteger_t;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : TMAX, Tchar, Tbool, Tcomplex80, Tfloat64, Tfloat80, Tfloat32, Tint8, Tuns8, Tint32, Timaginary80, Tuns32, Tint64, Tuns64, Tnone, Tnull, Timaginary32, Timaginary64, Tcomplex32, Tcomplex64, Tint16, Tuns16, Twchar, Tvoid, Tdchar, Tint128, Tuns128, Tarray, Ttuple, Tclass, Tdelegate, Tenum, Tfunction, Tsarray, Taarray, Tpointer, Treference, Tstruct, Tident, Tinstance, Terror, Ttypeof, Tslice, Treturn, Tvector, Ttraits, Tmixin, MOD, Type, TypeNext, TypeVector, TypeSArray, TypeDArray, TypeAArray, TypeFunction, TypeIdentifier, TypeEnum, TypeStruct, TypeClass, TypeTuple, TypeNull, Parameter, MODFlags, TRUST;
+import dmd.root.ctfloat : real_t, CTFloat;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.aav : AssocArray, Key;
+import dmd.root.string : toDString;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.utf : utf_decodeWchar, utf_isValidDchar, isUniAlpha;
+import dmd.visitor : Visitor;
 
 private immutable char[TMAX] mangleChar =
 [

@@ -23,30 +23,30 @@
 
 module dmd.cppmangle;
 
-import core.stdc.string;
-import core.stdc.stdio;
+// import core.stdc.string : ;
+// import core.stdc.stdio : ;
 
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.declaration;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.nspace;
-import dmd.root.array;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.root.string;
-import dmd.target;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.visitor;
+import dmd.arraytypes : Objects, TemplateParameters;
+import dmd.attrib : CPPNamespaceDeclaration, UserAttributeDeclaration;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dsymbol : Dsymbol;
+import dmd.dtemplate : TemplateInstance, TemplateDeclaration, TemplateParameter, Tuple, isType, isExpression, isDsymbol, isTemplateParameter, isTuple, TemplateValueParameter, TemplateTupleParameter;
+import dmd.errors : fatal, error;
+import dmd.expression : StringExp, ArrayLiteralExp, IntegerExp, Expression, VarExp, getFuncTemplateDecl;
+import dmd.func : FuncDeclaration;
+import dmd.globals : Loc, global, CppStdRevision, sinteger_t, LINK;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : TypeFunction, Type, ParameterList, TypeClass, TypeNull, TypeBasic, TypeVector, TypeSArray, TypePointer, TypeReference, TypeStruct, TypeEnum, TypeIdentifier, TypeInstance, Tvoid, Tbool, Tnull, Tstruct, Tsarray, VarArg, Tclass, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tfloat32, Tint64, Tuns64, Tint128, Tuns128, Tfloat64, Tfloat80, Tchar, Twchar, Tdchar, Timaginary32, Timaginary64, Timaginary80, Tcomplex32, Tcomplex64, Tcomplex80, Tpointer, Treference, Tident;
+import dmd.nspace : Nspace;
+import dmd.root.array : Array;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rootobject : RootObject, DYNCAST;
+import dmd.root.string : dstrcmp;
+import dmd.target : target;
+import dmd.tokens : TOK;
+// import dmd.typesem : ;
+import dmd.visitor : Visitor;
 
 
 // helper to check if an identifier is a C++ operator

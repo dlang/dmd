@@ -11,30 +11,30 @@
 
 module dmd.clone;
 
-import core.stdc.stdio;
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.opover;
-import dmd.semantic2;
-import dmd.statement;
-import dmd.target;
-import dmd.typesem;
-import dmd.tokens;
+// import core.stdc.stdio : ;
+import dmd.aggregate : AggregateDeclaration, ClassKind;
+import dmd.arraytypes : Expressions, Parameters, Statements;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : STC, VarDeclaration, AliasDeclaration;
+import dmd.dscope : Scope;
+import dmd.dstruct : StructDeclaration;
+import dmd.dsymbol : Dsymbol;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.dtemplate : getDsymbol;
+import dmd.expression : NullExp, IdentifierExp, Expression, DeclarationExp, BlitExp, VarExp, ThisExp, CallExp, DotVarExp, AssignExp, DotIdExp, EqualExp, StringExp, CastExp, SliceExp, IntegerExp, SuperExp;
+import dmd.expressionsem : expressionSemantic;
+import dmd.func : FuncDeclaration, DtorDeclaration, resolveFuncCall, FuncResolveFlag, InvariantDeclaration;
+import dmd.globals : StorageClass, global, Loc, LINK;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.init : VoidInitializer;
+import dmd.mtype : TypeFunction, TRUST, PURE, Type, Tstruct, TypeStruct, Parameter, ParameterList, Tfunction, Tarray, Taarray, Tclass, MODFlags;
+import dmd.opover : search_function;
+import dmd.semantic2 : semantic2;
+import dmd.statement : Statement, ExpStatement, ReturnStatement, CompoundStatement, CompileStatement;
+import dmd.target : target;
+import dmd.typesem : typeSemantic, merge;
+import dmd.tokens : TOK;
 
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable

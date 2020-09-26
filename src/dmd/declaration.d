@@ -12,33 +12,33 @@
 
 module dmd.declaration;
 
-import core.stdc.stdio;
-import dmd.aggregate;
+// import core.stdc.stdio : ;
+import dmd.aggregate : AggregateDeclaration, ClassKind;
 import dmd.arraytypes;
-import dmd.ctorflow;
-import dmd.dclass;
-import dmd.delegatize;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.initsem;
-import dmd.intrange;
-import dmd.mtype;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.target;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.visitor;
+import dmd.ctorflow : CSX;
+import dmd.dclass : ClassDeclaration;
+import dmd.delegatize : ensureStaticLinkTo, lambdaCheckForNestedRef;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dstruct : StructDeclaration;
+import dmd.dsymbol : Dsymbol, Prot, SearchLocalsOnly, PASS, OverloadSet;
+import dmd.dsymbolsem : aliasSemantic, dsymbolSemantic;
+import dmd.dtemplate : isDsymbol;
+import dmd.errors : error, errorSupplemental, fatal;
+import dmd.expression : Modifiable, Expression, ThisExp, DsymbolExp, VarExp, DotVarExp, CallExp, SliceExp, IntegerExp, IdentifierExp, DeleteExp, ErrorExp, AssignExp;
+import dmd.func : FuncDeclaration, FuncAliasDeclaration, overloadApply, FUNCFLAG;
+import dmd.globals : StorageClass, LINK, Loc, d_uns64, structalign_t, MATCH, global;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.init : Initializer, INITinterpret, ExpInitializer, syntaxCopy;
+import dmd.initsem : initializerSemantic, initializerToExpression;
+import dmd.intrange : IntRange;
+import dmd.mtype : Type, TypeTuple, Tstruct, TypeStruct, MODtoChars, Parameter, Terror, SIZE_INVALID;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rootobject : RootObject, DYNCAST;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.typesem : typeSemantic;
+import dmd.visitor : Visitor;
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is

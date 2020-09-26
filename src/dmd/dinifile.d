@@ -12,21 +12,21 @@
 
 module dmd.dinifile;
 
-import core.stdc.ctype;
-import core.stdc.string;
-import core.sys.posix.stdlib;
+import core.stdc.ctype : isspace, isalnum, islower;
+import core.stdc.string : strlen, strchr, memcpy, memmove, strdup;
+import core.sys.posix.stdlib : malloc, free, getenv;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
 
-import dmd.env;
-import dmd.errors;
-import dmd.globals;
-import dmd.root.rmem;
-import dmd.root.filename;
-import dmd.root.outbuffer;
-import dmd.root.port;
-import dmd.root.string;
-import dmd.root.stringtable;
+import dmd.env : putenvRestorable;
+import dmd.errors : error, fatal;
+import dmd.globals : Loc;
+import dmd.root.rmem : Mem, xarraydup;
+import dmd.root.filename : Strings, FileName;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.port : Port;
+import dmd.root.string : toDString;
+import dmd.root.stringtable : StringTable;
 
 private enum LOG = false;
 

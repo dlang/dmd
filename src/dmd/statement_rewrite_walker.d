@@ -11,10 +11,10 @@
 
 module dmd.statement_rewrite_walker;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
-import dmd.statement;
-import dmd.visitor;
+import dmd.statement : Statement, PeelStatement, CompoundStatement, CompoundDeclarationStatement, UnrolledLoopStatement, ScopeStatement, WhileStatement, DoStatement, ForStatement, ForeachStatement, ForeachRangeStatement, IfStatement, SwitchStatement, CaseStatement, CaseRangeStatement, DefaultStatement, SynchronizedStatement, WithStatement, TryCatchStatement, TryFinallyStatement, DebugStatement, LabelStatement, Catch;
+import dmd.visitor : SemanticTimePermissiveVisitor;
 
 
 /** A visitor to walk entire statements and provides ability to replace any sub-statements.

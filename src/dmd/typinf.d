@@ -11,17 +11,17 @@
 
 module dmd.typinf;
 
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dclass;
-import dmd.dstruct;
-import dmd.errors;
-import dmd.globals;
-import dmd.gluelayer;
-import dmd.mtype;
-import dmd.visitor;
-import core.stdc.stdio;
+import dmd.declaration : TypeInfoDeclaration, TypeInfoSharedDeclaration, TypeInfoConstDeclaration, TypeInfoInvariantDeclaration, TypeInfoWildDeclaration, TypeInfoPointerDeclaration, TypeInfoArrayDeclaration, TypeInfoStaticArrayDeclaration, TypeInfoAssociativeArrayDeclaration, TypeInfoStructDeclaration, TypeInfoVectorDeclaration, TypeInfoEnumDeclaration, TypeInfoFunctionDeclaration, TypeInfoDelegateDeclaration, TypeInfoTupleDeclaration, TypeInfoInterfaceDeclaration, TypeInfoClassDeclaration;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dclass : ClassDeclaration;
+import dmd.dstruct : StructDeclaration;
+import dmd.errors : error, fatal;
+import dmd.globals : Loc, global;
+import dmd.gluelayer : toObjFile;
+import dmd.mtype : Type, Terror, Tpointer, Tarray, Tsarray, Taarray, Tstruct, Tvector, Tenum, Tfunction, Tdelegate, Ttuple, Tclass, TypeClass, TypeVector, TypeAArray, TypeStruct, TypeTuple, Tnull, Tchar, MODFlags;
+// import dmd.visitor : ;
+// import core.stdc.stdio : ;
 
 /****************************************************
  * Generates the `TypeInfo` object associated with `torig` if it

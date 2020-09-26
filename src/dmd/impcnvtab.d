@@ -16,7 +16,7 @@
 
 module dmd.impcnvtab;
 
-import dmd.mtype;
+import dmd.mtype : TMAX, ENUMTY, Terror, Tbool, Tint8, Tint32, Tuns8, Tint16, Tuns16, Tuns32, Tint64, Tuns64, Tint128, Tuns128, Tfloat32, Tfloat64, Tfloat80, Timaginary32, Timaginary64, Timaginary80, Tcomplex32, Tcomplex64, Tcomplex80;
 
 immutable ENUMTY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
 immutable ENUMTY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;

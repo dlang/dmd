@@ -13,14 +13,14 @@
 
 module dmd.staticassert;
 
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.visitor;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol;
+import dmd.expression : Expression;
+import dmd.globals : Loc;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+// import dmd.mtype : ;
+import dmd.visitor : Visitor;
 
 /***********************************************************
  */

@@ -25,27 +25,27 @@
 
 module dmd.target;
 
-import dmd.argtypes_x86;
+import dmd.argtypes_x86 : toArgTypes_x86;
 import dmd.argtypes_sysv_x64;
-import core.stdc.string : strlen;
-import dmd.cppmangle;
-import dmd.cppmanglewin;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.rmem;
-import dmd.typesem;
-import dmd.tokens : TOK;
-import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+// import core.stdc.string : ;
+import dmd.cppmangle : toCppMangleItanium, cppTypeInfoMangleItanium;
+// import dmd.cppmanglewin : ;
+// import dmd.dclass : ;
+import dmd.declaration : STC;
+// import dmd.dscope : ;
+import dmd.dstruct : StructDeclaration;
+// import dmd.dsymbol : ;
+import dmd.expression : Expression, StringExp, IntegerExp;
+import dmd.func : ClassDeclaration, Scope;
+import dmd.globals : Param, d_int64, Loc, LINK, global, CPU, d_uns64, TARGET;
+// import dmd.id : ;
+import dmd.identifier : Identifier;
+import dmd.mtype : Dsymbol, Type, Parameter, TypeTuple, TypeFunction, Tfloat80, Timaginary80, Tcomplex80, Tcomplex32, Tint64, Tuns64, Tfloat64, Timaginary64, Tcomplex64, TypeIdentifier, Tvoid, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tfloat32, Tvector, TypeVector, Tstruct, TypeStruct, Tsarray, Tarray, Tdelegate, ParameterList, TypeDelegate, isCopyable;
+import dmd.root.rmem : Pool;
+import dmd.typesem : typeSemantic, merge;
+// import dmd.tokens : ;
+import dmd.root.ctfloat : real_t;
+// import dmd.root.outbuffer : ;
 import dmd.root.string : toDString;
 
 ////////////////////////////////////////////////////////////////////////////////

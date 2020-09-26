@@ -11,9 +11,9 @@
 
 module dmd.ctorflow;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
-import dmd.root.rmem;
+import dmd.root.rmem : mem, arraydup;
 import dmd.globals : Loc;
 
 enum CSX : ushort

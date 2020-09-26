@@ -13,26 +13,26 @@
 
 module dmd.dclass;
 
-import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.stdio : printf;
+import core.stdc.string : memcpy;
 
-import dmd.aggregate;
-import dmd.apply;
-import dmd.arraytypes;
-import dmd.gluelayer;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.objc;
-import dmd.root.rmem;
-import dmd.target;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration, Baseok, Sizeok, ClassKind;
+import dmd.apply : apply;
+import dmd.arraytypes : FuncDeclarations, BaseClasses, Dsymbols, ClassDeclarations;
+import dmd.gluelayer : Symbol;
+import dmd.declaration : TypeInfoClassDeclaration, STC, VarDeclaration;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol, SearchLocalsOnly, ScopeDsymbol, PASS, SearchImportsOnly, IgnoreSymbolVisibility, Prot, IgnoreAmbiguous, IgnoreErrors;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.func : FuncDeclaration, overloadApply;
+import dmd.globals : Loc, global, MATCH, LINK;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : Type, TypeFunction, TypeClass;
+import dmd.objc : ObjcClassDeclaration, objc;
+import dmd.root.rmem : mem;
+import dmd.target : target;
+import dmd.visitor : Visitor;
 
 enum Abstract : int
 {

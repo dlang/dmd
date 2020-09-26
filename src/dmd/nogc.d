@@ -13,17 +13,17 @@
 
 module dmd.nogc;
 
-import dmd.aggregate;
-import dmd.apply;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.init;
-import dmd.mtype;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.apply : walkPostorder;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dscope : Scope, SCOPE;
+import dmd.expression : Expression, DeclarationExp, CallExp, ArrayLiteralExp, AssocArrayLiteralExp, NewExp, DeleteExp, IndexExp, AssignExp, CatAssignExp, CatExp, VarExp, ErrorExp;
+import dmd.func : FuncDeclaration, FUNCFLAG;
+import dmd.globals : global;
+import dmd.init : ExpInitializer;
+import dmd.mtype : Tarray, Type, Tclass, TypeClass, Tpointer, TypePointer, Tstruct, TypeStruct, Taarray, Tfunction, TypeFunction;
+import dmd.tokens : TOK;
+import dmd.visitor : StoppableVisitor;
 
 /**************************************
  * Look for GC-allocations

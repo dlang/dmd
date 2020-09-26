@@ -11,7 +11,7 @@
 
 module dmd.argtypes_aarch64;
 
-import dmd.mtype;
+import dmd.mtype : TypeTuple, Type, Tstruct, Tsarray, Tarray, Tdelegate;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function

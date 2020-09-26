@@ -11,31 +11,31 @@
 
 module dmd.initsem;
 
-import core.stdc.stdio;
-import core.checkedint;
+// import core.stdc.stdio : ;
+import core.checkedint : mulu;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.dcast;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.opover;
-import dmd.statement;
-import dmd.target;
-import dmd.tokens;
-import dmd.typesem;
+import dmd.aggregate : Sizeok;
+import dmd.arraytypes : Expressions, Statements;
+import dmd.dcast : toStaticArrayType;
+import dmd.declaration : VarDeclaration;
+import dmd.dscope : Scope;
+import dmd.dstruct : StructDeclaration;
+import dmd.dsymbol : Dsymbol, PASS;
+import dmd.dtemplate : TemplateInstance;
+import dmd.errors : error;
+import dmd.expression : Expression, AssocArrayLiteralExp, ErrorExp, doCopyOrMove, StructLiteralExp, FuncExp, TupleExp, WANTvalue, StringExp, DotIdExp, CallExp, typeDotIdExp, ArrayLiteralExp, SliceExp, ScopeExp, isFuncAddress, AddrExp, AssignExp;
+import dmd.expressionsem : resolveProperties, resolveAliasThis, expressionSemantic;
+import dmd.func : FuncLiteralDeclaration;
+import dmd.globals : Loc, LINK, uinteger_t, global, MATCH;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.init : ArrayInitializer, Initializer, NeedInterpret, VoidInitializer, ErrorInitializer, StructInitializer, ExpInitializer, hasNonConstPointers, InitKind;
+import dmd.mtype : Type, Tsarray, Tstruct, TypeStruct, Tdelegate, Tpointer, Tfunction, TypeFunction, ParameterList, Terror, Tarray, Tvector, TypeVector, Taarray, TypeSArray, Ttuple, TypeTuple, TY, TypeNext, isSomeChar;
+import dmd.opover : search_function;
+import dmd.statement : CompoundStatement;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.typesem : defaultInit;
 
 /********************************
  * If possible, convert array initializer to associative array initializer.

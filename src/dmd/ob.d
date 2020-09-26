@@ -12,37 +12,37 @@
 module dmd.ob;
 
 import core.stdc.stdio : printf;
-import core.stdc.stdlib;
-import core.stdc.string;
+// import core.stdc.stdlib : ;
+// import core.stdc.string : ;
 
-import dmd.root.array;
-import dmd.root.rootobject;
-import dmd.root.rmem;
+import dmd.root.array : Array;
+// import dmd.root.rootobject : ;
+import dmd.root.rmem : mem;
 
-import dmd.aggregate;
-import dmd.apply;
-import dmd.arraytypes;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.escape;
-import dmd.expression;
-import dmd.foreachvar;
-import dmd.func;
-import dmd.globals;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.printast;
-import dmd.statement;
-import dmd.stmtstate;
-import dmd.tokens;
-import dmd.visitor;
+// import dmd.aggregate : ;
+// import dmd.apply : ;
+import dmd.arraytypes : VarDeclarations;
+import dmd.declaration : VarDeclaration, STC;
+// import dmd.dscope : ;
+import dmd.dsymbol : DsymbolTable, Dsymbol;
+import dmd.dtemplate : isExpression;
+// import dmd.errors : ;
+import dmd.escape : EscapeByResults, escapeByValue;
+import dmd.expression : Expression, AssignExp, DeclarationExp, VarExp, CallExp, SymOffExp, LogicalExp, CondExp, AddrExp, UnaExp, BinExp, ArrayLiteralExp, StructLiteralExp, AssocArrayLiteralExp, NewExp, SliceExp;
+import dmd.foreachvar : foreachVar, foreachExpAndVar;
+import dmd.func : FuncDeclaration;
+import dmd.globals : Loc;
+// import dmd.identifier : ;
+// import dmd.init : ;
+import dmd.mtype : Type, Tvoid, Tclass, Tdelegate, Parameter, Tsarray, Tarray;
+// import dmd.printast : ;
+import dmd.statement : Statement, LabelDsymbol, ExpStatement, DtorExpStatement, CompoundStatement, CompoundDeclarationStatement, UnrolledLoopStatement, ScopeStatement, DoStatement, ForStatement, IfStatement, SwitchStatement, CaseStatement, DefaultStatement, GotoDefaultStatement, GotoCaseStatement, SwitchErrorStatement, ReturnStatement, BreakStatement, ContinueStatement, WithStatement, TryCatchStatement, TryFinallyStatement, ThrowStatement, GotoStatement, LabelStatement, STMT;
+// import dmd.stmtstate : ;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
 
-import dmd.root.bitarray;
-import dmd.root.outbuffer;
+import dmd.root.bitarray : BitArray;
+import dmd.root.outbuffer : OutBuffer;
 
 /**********************************
  * Perform ownership/borrowing checks for funcdecl.

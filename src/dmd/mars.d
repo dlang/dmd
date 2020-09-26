@@ -15,56 +15,56 @@
 
 module dmd.mars;
 
-import core.stdc.ctype;
-import core.stdc.limits;
+import core.stdc.ctype : isalnum, isdigit;
+// import core.stdc.limits : ;
 import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
+import core.stdc.stdlib : calloc, EXIT_FAILURE, EXIT_SUCCESS, atexit, getenv;
+import core.stdc.string : strcmp, strchr;
 
-import dmd.arraytypes;
-import dmd.astcodegen;
-import dmd.gluelayer;
-import dmd.builtin;
-import dmd.cond;
-import dmd.console;
-import dmd.compiler;
-import dmd.dinifile;
-import dmd.dinterpret;
-import dmd.dmodule;
-import dmd.doc;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.dtoh;
+import dmd.arraytypes : Modules;
+// import dmd.astcodegen : ;
+import dmd.gluelayer : backend_init, obj_start, genObjFile, obj_end, obj_write_deferred, backend_term;
+// import dmd.builtin : ;
+import dmd.cond : VersionCondition, DebugCondition;
+import dmd.console : Console;
+import dmd.compiler : includeImports, compiledImports, includeModulePatterns;
+import dmd.dinifile : findConfFile, parseConfFile, readFromEnv, updateRealEnvironment;
+import dmd.dinterpret : printCtfePerformanceStats;
+import dmd.dmodule : Module, removeHdrFilesAndFail, semantic3OnDependencies;
+import dmd.doc : gendocfile;
+import dmd.dsymbol : Dsymbol;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.dtemplate : printTemplateStats;
+import dmd.dtoh : genCppHdrFiles;
 import dmd.errors;
-import dmd.expression;
-import dmd.globals;
-import dmd.hdrgen;
-import dmd.id;
-import dmd.identifier;
-import dmd.inline;
-import dmd.json;
+import dmd.expression : Expression;
+import dmd.globals : Param, global, Loc, TARGET, CPU, PIC, CHECKENABLE, DiagnosticReporting, CHECKACTION, MessageStyle, CppStdRevision, CxxHeaderMode;
+import dmd.hdrgen : genhdrfile;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.inline : inlineScanModule;
+import dmd.json : json_generate, tryParseJsonField, jsonFieldNames;
 version (NoMain) {} else
 {
     import dmd.lib;
     import dmd.link;
     import dmd.vsoptions;
 }
-import dmd.mtype;
-import dmd.objc;
-import dmd.root.array;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.man;
-import dmd.root.outbuffer;
-import dmd.root.response;
-import dmd.root.rmem;
-import dmd.root.string;
-import dmd.root.stringtable;
-import dmd.semantic2;
-import dmd.semantic3;
-import dmd.target;
-import dmd.utils;
+import dmd.mtype : Type;
+import dmd.objc : Objc;
+import dmd.root.array : Array;
+import dmd.root.file : FileBuffer, File;
+import dmd.root.filename : Strings, FileName;
+import dmd.root.man : browse;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.response : responseExpand;
+import dmd.root.rmem : Mem, arraydup, mem, isGCAvailable;
+import dmd.root.string : startsWith, toDString, toCStringThen;
+import dmd.root.stringtable : StringTable;
+import dmd.semantic2 : semantic2;
+import dmd.semantic3 : semantic3;
+import dmd.target : target;
+import dmd.utils : writeFile, parseDigits;
 
 /**
  * Print DMD's logo on stdout

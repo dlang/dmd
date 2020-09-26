@@ -13,27 +13,27 @@
 
 module dmd.lexer;
 
-import core.stdc.ctype;
-import core.stdc.errno;
-import core.stdc.stdarg;
-import core.stdc.stdio;
+import core.stdc.ctype : isdigit, isprint, islower, isalpha, isspace, isxdigit;
+// import core.stdc.errno : ;
+import core.stdc.stdarg : va_list, va_start, va_end;
+import core.stdc.stdio : sprintf, vsprintf;
 import core.stdc.stdlib : getenv;
-import core.stdc.string;
-import core.stdc.time;
+import core.stdc.string : memcpy, strlen, memcmp;
+import core.stdc.time : time_t, time, ctime;
 
-import dmd.entity;
-import dmd.errors;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.root.ctfloat;
-import dmd.root.outbuffer;
-import dmd.root.port;
-import dmd.root.rmem;
-import dmd.root.string;
-import dmd.tokens;
-import dmd.utf;
-import dmd.utils;
+import dmd.entity : HtmlNamedEntity;
+import dmd.errors : warning, error, verror, vdeprecation, diagnosticHandler, Classification;
+import dmd.globals : Loc, global, uinteger_t;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.root.ctfloat : CTFloat;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.port : Port;
+import dmd.root.rmem : mem, xarraydup;
+import dmd.root.string : toDString;
+import dmd.tokens : Token, TOK;
+import dmd.utf : isUniAlpha, utf_isValidDchar, utf_decodeChar;
+import dmd.utils : parseDigits;
 
 nothrow:
 

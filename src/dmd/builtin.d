@@ -13,19 +13,19 @@
 
 module dmd.builtin;
 
-import core.stdc.math;
-import core.stdc.string;
-import dmd.arraytypes;
-import dmd.dmangle;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.mtype;
-import dmd.root.ctfloat;
-import dmd.root.stringtable;
-import dmd.tokens;
-import dmd.id;
+// import core.stdc.math : ;
+// import core.stdc.string : ;
+import dmd.arraytypes : Expressions;
+import dmd.dmangle : mangleExact;
+import dmd.errors : error;
+import dmd.expression : Expression, RealExp, IntegerExp;
+import dmd.func : BUILTIN, FuncDeclaration;
+import dmd.globals : Loc, uinteger_t;
+import dmd.mtype : Type, TY, Tint64, Tuns64;
+import dmd.root.ctfloat : CTFloat, real_t;
+// import dmd.root.stringtable : ;
+import dmd.tokens : TOK;
+import dmd.id : Id;
 static import core.bitop;
 
 /**********************************

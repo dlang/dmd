@@ -11,29 +11,29 @@
 
 module dmd.cppmanglewin;
 
-import core.stdc.string;
-import core.stdc.stdio;
+import core.stdc.string : memcpy, memset, strcmp;
+// import core.stdc.stdio : ;
 
-import dmd.arraytypes;
+// import dmd.arraytypes : ;
 import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
-import dmd.dclass;
-import dmd.declaration;
+// import dmd.dclass : ;
+import dmd.declaration : VarDeclaration, STC;
 import dmd.denum : isSpecialEnumIdent;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.mtype;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.target;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.visitor;
+// import dmd.dstruct : ;
+import dmd.dsymbol : Dsymbol, Prot;
+import dmd.dtemplate : TemplateInstance, TemplateValueParameter, TemplateDeclaration, TemplateParameter, isExpression, isDsymbol, isType, TemplateTupleParameter;
+import dmd.errors : error, fatal;
+import dmd.expression : Expression, StringExp, VarExp;
+import dmd.func : FuncDeclaration;
+import dmd.globals : dinteger_t, global, Loc, CPPMANGLE, sinteger_t, LINK;
+import dmd.id : Id;
+import dmd.mtype : Type, TypeNull, TypeBasic, TypeVector, TypeSArray, TypePointer, TypeReference, TypeFunction, TypeStruct, TypeEnum, TypeClass, Tbool, Tint64, Tuns64, Tint128, Tuns128, Tfloat80, Twchar, Tvoid, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tfloat32, Tfloat64, Tchar, Tdchar, Tsarray, Tfunction, Tpointer, Treference, Tclass, VarArg, Tstruct, Tenum, ParameterList, TypeDelegate;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rootobject : RootObject;
+// import dmd.target : ;
+import dmd.tokens : TOK;
+import dmd.typesem : merge;
+import dmd.visitor : Visitor;
 
 extern (C++):
 

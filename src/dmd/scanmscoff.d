@@ -13,12 +13,12 @@ module dmd.scanmscoff;
 
 version(Windows):
 
-import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
+import core.stdc.string;
 
-import dmd.root.rmem;
+import dmd.root.rme;
 import dmd.root.string;
 
-import dmd.globals, dmd.errors;
+import dmd.globals;
 
 private enum LOG = false;
 

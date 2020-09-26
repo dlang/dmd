@@ -13,30 +13,30 @@
 
 module dmd.dscope;
 
-import core.stdc.stdio;
-import core.stdc.string;
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.attrib;
-import dmd.ctorflow;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.doc;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.errors;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.speller;
-import dmd.statement;
-import dmd.tokens;
+// import core.stdc.stdio : ;
+// import core.stdc.string : ;
+import dmd.aggregate : AggregateDeclaration;
+// import dmd.arraytypes : ;
+import dmd.attrib : AlignDeclaration, CPPNamespaceDeclaration, DeprecatedDeclaration, UserAttributeDeclaration;
+import dmd.ctorflow : CtorFlow, mergeCallSuper, mergeFieldInit;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : VarDeclaration, STC, Declaration;
+import dmd.dmodule : Module;
+import dmd.doc : DocComment;
+import dmd.dsymbol : ScopeDsymbol, Dsymbol, Prot, IgnoreNone, DsymbolTable, SearchLocalsOnly, SearchImportsOnly, SearchUnqualifiedModule, IgnoreErrors, ExpressionDsymbol, IgnoreSymbolVisibility, WithScopeSymbol;
+import dmd.dsymbolsem : getAlignment;
+import dmd.dtemplate : TemplateInstance;
+import dmd.expression : Expression, DotIdExp, ThisExp;
+import dmd.errors : error, warning;
+import dmd.func : FuncDeclaration;
+import dmd.globals : LINK, CPPMANGLE, PINLINE, StorageClass, Loc, structalign_t, global, STRUCTALIGN_DEFAULT;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+// import dmd.root.outbuffer : ;
+import dmd.root.rmem : mem, arraydup;
+import dmd.root.speller : speller;
+import dmd.statement : LabelStatement, SwitchStatement, Statement, TryFinallyStatement, ScopeGuardStatement, ForeachStatement;
+import dmd.tokens : TOK, Token;
 
 //version=LOGSEARCH;
 

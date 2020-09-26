@@ -12,7 +12,7 @@
 
 module dmd.console;
 
-import core.stdc.stdio;
+import core.stdc.stdio : FILE, fprintf, fputs;
 extern (C) int isatty(int) nothrow;
 
 

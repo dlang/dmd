@@ -13,42 +13,42 @@
 
 module dmd.iasmdmd;
 
-import core.stdc.stdio;
-import core.stdc.stdarg;
-import core.stdc.stdlib;
-import core.stdc.string;
+import core.stdc.stdio : printf;
+import core.stdc.stdarg : va_list, va_start, va_end;
+// import core.stdc.stdlib : ;
+// import core.stdc.string : ;
 
-import dmd.declaration;
-import dmd.denum;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
-import dmd.optimize;
-import dmd.statement;
-import dmd.target;
-import dmd.tokens;
+import dmd.declaration : Declaration, STC, TupleDeclaration;
+import dmd.denum : EnumMember;
+import dmd.dscope : Scope;
+import dmd.dsymbol : Dsymbol;
+import dmd.errors : verror;
+import dmd.expression : Expression, VarExp, FuncExp, WANTexpand, IdentifierExp, TypeExp, DotIdExp;
+import dmd.expressionsem : expressionSemantic;
+import dmd.globals : Loc, global, PIC, d_int32, d_uns32, dinteger_t;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+// import dmd.init : ;
+import dmd.mtype : Type, Tpointer, Tfunction, Tvector, Tsarray;
+import dmd.optimize : expandVar;
+import dmd.statement : Statement, InlineAsmStatement, LabelDsymbol, ErrorStatement;
+import dmd.target : target;
+import dmd.tokens : TOK, Token;
 
-import dmd.root.ctfloat;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.root.ctfloat : real_t;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : mem;
+import dmd.root.rootobject : RootObject, DYNCAST;
 
-import dmd.backend.cc;
-import dmd.backend.cdef;
-import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.cc : block, FLlocalsize, FLdsymbol, FLconst, config, Srcpos, FLblock, FLdata, FLfunc, FLblockoff;
+import dmd.backend.cdef : regm_t, targ_llong, TARGET_80386, targ_size_t, targ_ullong, targ_float, targ_double, targ_ldouble;
+import dmd.backend.code : refparam, code_calloc, _Declaration, checkSetVex3, _LabelDsymbol, BPRM;
+import dmd.backend.code_x86 : code, CFpsw, CFaddrsize, CFoff, CFseg, CFwait, REX, REX_W, CFopsize, SEGCS, CFcs, SEGSS, CFss, SEGDS, CFds, SEGES, CFes, SEGFS, CFfs, SEGGS, CFgs, REX_B, REX_X, REX_R, CFvex3, VEX3_B1, VEX3_B2, VEX2_B1, CFvex, PAUSE, CFjmp16, mSI, mDX, mAX, mDI, mCX, ALLREGS, mR11, mXMM0, mBP, mSP, mES;
 import dmd.backend.codebuilder : CodeBuilder;
-import dmd.backend.global;
-import dmd.backend.iasm;
-import dmd.backend.ptrntab : asm_opstr, asm_op_lookup, init_optab;
-import dmd.backend.xmm;
+import dmd.backend.global : binary;
+import dmd.backend.iasm : opflag_t, _st, _sti, _r8, _al, _r16, _ax, _r32, _eax, _cl, _dx, _seg, _es, _cs, _ss, _ds, _gs, _fs, _special, _crn, _drn, _trn, _mm, _xmm, _xmm0, _ymm, _r64, _rax, PTRNTAB, OP, OpndSize, ASM_GET_aopty, _imm, _reg, CONSTRUCT_FLAGS, _fanysize, _i64_bit, _rel, _flbl, PTRNTAB1, ASM_END, _imm16, getOpndSize, _normal, PTRNTAB2, ASM_GET_uRegmask, PTRNTAB3, PTRNTAB4, _m, _addr16, _addr32, ASM_OPERAND_TYPE, ASM_MODIFIERS, _fn16, _mnoi, _nfwait, _fwait, ASM_GET_amod, _64_bit, _16_bit, _16_bit_addr, VEX_NOO, _rm, VEX_NDD, VEX_DDS, VEX_NDS, _float, _rplus_r, _rspecial, VEX_128_WIG, _f80, _f64, _fn32, _p, NUM_MASK, NUM_MASKR, _rseg, _a16, _modrm, MOD_MASK, _modsi, _moddx, _mod2, _modax, _modnot1, _modaxdx, _moddi, _modsidi, _modcx, _modes, _modall, _modsiax, _modsinot1, _modcxr11, _modxmm0, _mmm64, _xmm_m16, _xmm_m32, _xmm_m64, _xmm_m128, _ymm_m256, _a32, OPdb, OPds, OPdi, OPdl, OPdf, OPdd, OPde;
+import dmd.backend.ptrntab : init_optab, asm_op_lookup, asm_opstr;
+import dmd.backend.xmm : MOVDQ2Q;
 
 //debug = EXTRA_DEBUG;
 //debug = debuga;

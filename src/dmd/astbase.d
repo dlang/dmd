@@ -10,7 +10,7 @@
 
 module dmd.astbase;
 
-import dmd.parsetimevisitor;
+// import dmd.parsetimevisitor : ;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs

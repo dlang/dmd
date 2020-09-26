@@ -11,24 +11,24 @@
 
 module dmd.optimize;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
-import dmd.constfold;
-import dmd.ctfeexpr;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.globals;
-import dmd.init;
-import dmd.mtype;
-import dmd.root.ctfloat;
-import dmd.sideeffect;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.constfold : Neg, Com, Not, Ptr, Cast, Add, Min, Mul, Div, Mod, Shl, Shr, Ushr, And, Or, Xor, Pow, ArrayLength, Equal, Identity, Index, Slice, Cmp, Cat;
+import dmd.ctfeexpr : CTFEExp;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dsymbol : PASS;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.errors : fatal;
+import dmd.expression : Expression, ErrorExp, WANTexpand, AssignExp, VarExp, CommaExp, StringExp, ArrayLiteralExp, IntegerExp, UnaExp, BinExp, TupleExp, AssocArrayLiteralExp, StructLiteralExp, NegExp, ComExp, NotExp, SymOffExp, AddrExp, PtrExp, DotVarExp, NewExp, CallExp, CastExp, BinAssignExp, AddExp, MinExp, MulExp, DivExp, ModExp, UnionExp, ShlExp, ShrExp, UshrExp, AndExp, OrExp, XorExp, PowExp, ArrayLengthExp, EqualExp, IdentityExp, IndexExp, SliceExp, LogicalExp, CmpExp, CatExp, CondExp, WANTvalue, stageOptimize;
+import dmd.expressionsem : expressionSemantic;
+import dmd.globals : MATCH, Loc, sinteger_t, d_uns64, global;
+import dmd.init : ExpInitializer;
+import dmd.mtype : Type, Tsarray, Tstruct, Tpointer, Tident, TypeSArray, Tdelegate, Tfunction, TypeFunction, Parameter, Tarray, SIZE_INVALID, Tvoid, Tclass;
+import dmd.root.ctfloat : real_t;
+import dmd.sideeffect : hasSideEffect;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
 
 /*************************************
  * If variable has a const initializer,

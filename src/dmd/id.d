@@ -11,8 +11,8 @@
 
 module dmd.id;
 
-import dmd.identifier;
-import dmd.tokens;
+import dmd.identifier : Identifier;
+// import dmd.tokens : ;
 
 /**
  * Represents a list of predefined symbols the compiler knows about.

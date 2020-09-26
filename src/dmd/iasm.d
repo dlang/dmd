@@ -13,9 +13,9 @@
 
 module dmd.iasm;
 
-import dmd.dscope;
-import dmd.func;
-import dmd.statement;
+import dmd.dscope : Scope;
+import dmd.func : FuncDeclaration;
+import dmd.statement : Statement, AsmStatement, InlineAsmStatement;
 
 version (MARS)
 {

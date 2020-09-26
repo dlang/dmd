@@ -11,12 +11,12 @@
 
 module dmd.filecache;
 
-import dmd.root.stringtable;
-import dmd.root.array;
-import dmd.root.file;
-import dmd.root.filename;
+import dmd.root.stringtable : StringTable;
+// import dmd.root.array : ;
+import dmd.root.file : FileBuffer, File;
+import dmd.root.filename : FileName;
 
-import core.stdc.stdio;
+// import core.stdc.stdio : ;
 
 /**
 A line-by-line representation of a $(REF File, dmd,root,file).

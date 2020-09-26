@@ -13,29 +13,29 @@
 
 module dmd.dstruct;
 
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.opover;
-import dmd.semantic3;
-import dmd.target;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.typinf;
-import dmd.visitor;
+import dmd.aggregate : AggregateDeclaration, Sizeok;
+import dmd.arraytypes : FuncDeclarations, Expressions;
+import dmd.declaration : VarDeclaration, STC;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dsymbol : Dsymbol, SearchLocalsOnly, PASS, ScopeDsymbol, OverloadSet;
+import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.dtemplate : TemplateInstance, TemplateDeclaration;
+import dmd.errors : error, errorSupplemental;
+import dmd.expression : Expression, StringExp, doCopyOrMove, StructLiteralExp, ArrayLiteralExp, VectorExp;
+import dmd.expressionsem : resolveProperties;
+import dmd.func : FuncDeclaration, CtorDeclaration;
+import dmd.globals : structalign_t, Loc, LINK, global, STRUCTALIGN_DEFAULT;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : Type, TypeTuple, TypeFunction, ParameterList, TypeVector, TypeAArray, TypeStruct, Tvector, Taarray, Tstruct, Ttuple, Tclass, Tenum, Terror, Tsarray, TY, Tarray, TypeSArray, isSomeChar;
+import dmd.opover : search_function;
+import dmd.semantic3 : semantic3;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.typesem : merge;
+import dmd.typinf : getTypeInfoType;
+import dmd.visitor : Visitor;
 
 /***************************************
  * Search sd for a member function of the form:

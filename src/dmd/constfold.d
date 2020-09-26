@@ -15,24 +15,24 @@
 
 module dmd.constfold;
 
-import core.stdc.string;
-import core.stdc.stdio;
-import dmd.arraytypes;
-import dmd.complex;
-import dmd.ctfeexpr;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.errors;
-import dmd.expression;
-import dmd.globals;
-import dmd.mtype;
-import dmd.root.ctfloat;
-import dmd.root.port;
-import dmd.root.rmem;
-import dmd.sideeffect;
-import dmd.target;
-import dmd.tokens;
-import dmd.utf;
+import core.stdc.string : memcmp, memcpy;
+// import core.stdc.stdio : ;
+import dmd.arraytypes : Expressions;
+import dmd.complex : complex_t, creall, cimagl;
+import dmd.ctfeexpr : CTFEExp, specificCmp, realCmp, intUnsignedCmp, intSignedCmp;
+import dmd.declaration : VarDeclaration;
+import dmd.dstruct : StructDeclaration;
+import dmd.errors : error;
+import dmd.expression : Expression, UnionExp, ArrayLiteralExp, StringExp, SymOffExp, emplaceExp, RealExp, ComplexExp, IntegerExp, ErrorExp, StructLiteralExp, RealIdentical, VectorExp, AssocArrayLiteralExp, OwnedBy, NullExp, AddExp, AddrExp;
+import dmd.globals : Loc, sinteger_t, dinteger_t, d_int8, d_uns8, d_int16, d_uns16, d_int32, d_uns32, d_int64, d_uns64, global, uinteger_t, MATCH;
+import dmd.mtype : Type, Tint64, Tint8, Tuns8, Tchar, Tint16, Tuns16, Twchar, Tint32, Tuns32, Tdchar, Tuns64, Terror, Tpointer, TypeVector, Tdelegate, Tarray, Tbool, Tvoid, Tstruct, Tsarray, TypeSArray, isSomeChar;
+import dmd.root.ctfloat : CTFloat, real_t;
+import dmd.root.port : Port;
+import dmd.root.rmem : mem;
+import dmd.sideeffect : hasSideEffect;
+import dmd.target : target;
+import dmd.tokens : TOK;
+import dmd.utf : utf_codeLength, utf_encode;
 
 private enum LOG = false;
 

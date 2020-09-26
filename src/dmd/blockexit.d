@@ -11,21 +11,21 @@
 
 module dmd.blockexit;
 
-import core.stdc.stdio;
+import core.stdc.stdio : printf;
 
-import dmd.arraytypes;
-import dmd.canthrow;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.statement;
-import dmd.tokens;
-import dmd.visitor;
+// import dmd.arraytypes : ;
+import dmd.canthrow : canThrow;
+import dmd.dclass : ClassDeclaration;
+import dmd.declaration : STC;
+import dmd.expression : AssertExp;
+import dmd.func : FuncDeclaration;
+import dmd.globals : global;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.mtype : Type;
+import dmd.statement : Statement, ErrorStatement, ExpStatement, CompileStatement, CompoundStatement, UnrolledLoopStatement, ScopeStatement, WhileStatement, DoStatement, ForStatement, ForeachStatement, ForeachRangeStatement, IfStatement, ConditionalStatement, PragmaStatement, StaticAssertStatement, SwitchStatement, CaseStatement, DefaultStatement, GotoDefaultStatement, GotoCaseStatement, SwitchErrorStatement, ReturnStatement, BreakStatement, ContinueStatement, SynchronizedStatement, WithStatement, TryCatchStatement, TryFinallyStatement, ScopeGuardStatement, ThrowStatement, GotoStatement, LabelStatement, CompoundAsmStatement, ImportStatement;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
 
 /**
  * BE stands for BlockExit.

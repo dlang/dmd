@@ -11,11 +11,11 @@
 
 module dmd.intrange;
 
-import core.stdc.stdio;
+import core.stdc.stdio : printf;
 
-import dmd.mtype;
-import dmd.expression;
-import dmd.globals;
+import dmd.mtype : Type, Tvector, Tdchar;
+import dmd.expression : Expression;
+import dmd.globals : uinteger_t;
 
 private uinteger_t copySign(uinteger_t x, bool sign)
 {

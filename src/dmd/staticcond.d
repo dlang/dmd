@@ -11,19 +11,19 @@
 
 module dmd.staticcond;
 
-import dmd.arraytypes;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.globals;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.array;
-import dmd.root.outbuffer;
-import dmd.tokens;
+import dmd.arraytypes : Expressions;
+// import dmd.dmodule : ;
+import dmd.dscope : Scope, SCOPE;
+// import dmd.dsymbol : ;
+// import dmd.errors : ;
+import dmd.expression : Expression, NotExp, LogicalExp, CondExp, WANTvalue, BinExp;
+import dmd.expressionsem : resolveProperties, expressionSemantic;
+import dmd.globals : global;
+// import dmd.identifier : ;
+import dmd.mtype : Type;
+import dmd.root.array : Array;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.tokens : TOK;
 
 
 

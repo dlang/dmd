@@ -24,11 +24,11 @@ else version (DragonFlyBSD)
 else version (Solaris)
     import core.sys.solaris.elf;
 
-import core.stdc.string;
-import core.checkedint;
+import core.stdc.string : memchr;
+import core.checkedint : addu, mulu;
 
-import dmd.globals;
-import dmd.errors;
+import dmd.globals : Loc;
+import dmd.errors : error;
 
 enum LOG = false;
 

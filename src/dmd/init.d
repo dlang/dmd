@@ -11,21 +11,21 @@
 
 module dmd.init;
 
-import core.stdc.stdio;
-import core.checkedint;
+// import core.stdc.stdio : ;
+// import core.checkedint : ;
 
-import dmd.arraytypes;
-import dmd.ast_node;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.globals;
-import dmd.hdrgen;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.root.outbuffer;
-import dmd.root.rootobject;
-import dmd.tokens;
-import dmd.visitor;
+import dmd.arraytypes : Identifiers, Initializers, Expressions;
+import dmd.ast_node : ASTNode;
+// import dmd.dsymbol : ;
+import dmd.expression : Expression, stageSearchPointers;
+import dmd.globals : Loc;
+import dmd.hdrgen : HdrGenState, toCBuffer;
+import dmd.identifier : Identifier;
+import dmd.mtype : Type, Terror, TypeAArray, Tpointer, Tfunction;
+import dmd.root.outbuffer : OutBuffer;
+// import dmd.root.rootobject : ;
+import dmd.tokens : TOK;
+import dmd.visitor : Visitor;
 
 enum NeedInterpret : int
 {

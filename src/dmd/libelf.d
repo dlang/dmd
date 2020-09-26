@@ -15,27 +15,27 @@ version(Windows) {}
 else version(OSX) {}
 else:
 
-import core.stdc.time;
-import core.stdc.string;
-import core.stdc.stdlib;
-import core.stdc.stdio;
-import core.sys.posix.sys.stat;
-import core.sys.posix.unistd;
+import core.stdc.time : time;
+import core.stdc.string : memcmp, memcpy, memset;
+import core.stdc.stdlib : malloc, strtoul;
+import core.stdc.stdio : sprintf, snprintf;
+import core.sys.posix.sys.stat : stat_t, stat;
+import core.sys.posix.unistd : time_t, uid_t, gid_t, getuid, getgid;
 
-import dmd.globals;
-import dmd.lib;
-import dmd.utils;
+import dmd.globals : Loc;
+import dmd.lib : Library;
+import dmd.utils : readFile;
 
-import dmd.root.array;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.outbuffer;
-import dmd.root.port;
-import dmd.root.rmem;
-import dmd.root.string;
-import dmd.root.stringtable;
+import dmd.root.array : Array;
+// import dmd.root.file : ;
+import dmd.root.filename : FileName;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.port : Port;
+import dmd.root.rmem : Mem, xarraydup;
+import dmd.root.string : toDString, toCStringThen;
+import dmd.root.stringtable : StringTable;
 
-import dmd.scanelf;
+import dmd.scanelf : scanElfObjModule;
 
 // Entry point (only public symbol in this module).
 public extern (C++) Library LibElf_factory()
