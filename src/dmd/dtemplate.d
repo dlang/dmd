@@ -38,43 +38,54 @@
 
 module dmd.dtemplate;
 
-import core.stdc.stdio;
-import core.stdc.string;
-import dmd.aggregate;
-import dmd.arraytypes;
-import dmd.ast_node;
-import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmangle;
-import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.errors;
-import dmd.expression;
-import dmd.expressionsem;
-import dmd.func;
-import dmd.globals;
-import dmd.hdrgen;
-import dmd.id;
-import dmd.identifier;
-import dmd.impcnvtab;
-import dmd.init;
-import dmd.initsem;
-import dmd.mtype;
-import dmd.opover;
-import dmd.root.array;
-import dmd.root.outbuffer;
-import dmd.root.rmem;
-import dmd.root.rootobject;
-import dmd.semantic2;
-import dmd.semantic3;
-import dmd.tokens;
-import dmd.typesem;
-import dmd.visitor;
+import core.stdc.stdio : printf;
+import core.stdc.string : memcpy;
+import dmd.aggregate : AggregateDeclaration;
+import dmd.arraytypes : Objects, TemplateParameters, Modules, Expressions, Dsymbols, Types,
+    TemplateInstances, Parameters;
+import dmd.ast_node : ASTNode;
+import dmd.dcast : toStaticArrayType;
+import dmd.dclass : BaseClass, ClassDeclaration;
+import dmd.declaration : MatchAccumulator, Declaration, VarDeclaration, STC, AliasDeclaration,
+    OverDeclaration, TupleDeclaration;
+import dmd.dmangle : mangleToBuffer;
+import dmd.dmodule : Module;
+import dmd.dscope : Scope, SCOPE;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol, WithScopeSymbol, Prot, DsymbolTable, PASS, Ungag,
+    OverloadSet, foreachDsymbol;
+import dmd.dsymbolsem : aliasSemantic, dsymbolSemantic, templateInstanceSemantic;
+import dmd.errors : error, errorSupplemental, fatal, message, tip;
+import dmd.expression : Expression, VarExp, IntervalExp, RealExp, ComplexExp, IdentityExp, NullExp,
+    ArrayLiteralExp, AssocArrayLiteralExp, StructLiteralExp, IntegerExp, IdentifierExp, TupleExp,
+    FuncExp, WANTvalue, StringExp, SliceExp, ScopeExp, ThisExp, CommaExp, TypeExp, NewExp,
+    NewAnonClassExp, TypeidExp, TraitsExp, IsExp, UnaExp, DotTemplateInstanceExp, CallExp,
+    CastExp, ArrayExp, BinExp, CondExp, ErrorExp, DotVarExp, TemplateExp, DotTemplateExp, DotExp;
+import dmd.expressionsem : expressionSemantic, resolveProperties, resolveAliasThis;
+import dmd.func : FuncDeclaration, CtorDeclaration, resolveFuncCall, overloadApply, FuncResolveFlag,
+    FuncAliasDeclaration;
+import dmd.globals : Loc, MATCH, global, StorageClass, dinteger_t;
+import dmd.hdrgen : HdrGenState, toCBuffer, parametersTypeToChars, toCBufferInstance;
+import dmd.id : Id;
+import dmd.identifier : Identifier;
+import dmd.impcnvtab : impcnvResult;
+import dmd.init : Initializer, ExpInitializer;
+import dmd.initsem : initializerToExpression;
+import dmd.mtype : Type, Parameter, TypeQualified, Terror, TypeFunction, Tfunction, ParameterList,
+    VarArg, Tident, TypeIdentifier, MODFlags, MODmerge, MODmethodConv, Ttuple, TypeTuple, Tvoid,
+    Tarray, Tpointer, Tnone, Tsarray, Taarray, TypeAArray, isAggregate, TypeSArray, TypeArray,
+    Tclass, Tenum, TypeNext, ModToStc, MODimplicitConv, TY, TypeVector, TypeDArray, TypeInstance,
+    TypeStruct, TypeEnum, TypeClass, Ttypeof, AliasThisRec, Tstruct, Tvector, Tinstance, Tnull,
+    Tdelegate, TypeDelegate, TypeTypeof;
+import dmd.root.array : peekSlice, Array;
+import dmd.root.outbuffer : OutBuffer;
+import dmd.root.rmem : Pool;
+import dmd.root.rootobject : RootObject, DYNCAST;
+import dmd.semantic3 : semantic3;
+import dmd.tokens : TOK;
+import dmd.typesem : typeSemantic, resolve, merge, defaultInit;
+import dmd.visitor : Visitor;
 
-import dmd.templateparamsem;
+import dmd.templateparamsem : aliasParameterSemantic;
 
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;
