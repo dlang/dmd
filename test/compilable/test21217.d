@@ -23,6 +23,7 @@ struct Foo
 
     enum : int32_t { g = 7 };
 
+private:
     enum class Bar
     {
         a = 1,
@@ -30,6 +31,7 @@ struct Foo
     };
 
     // Ignored enum `test21217.Foo.h` because it is `private`.
+public:
     Foo() :
         a(1)
     {

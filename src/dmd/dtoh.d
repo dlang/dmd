@@ -349,6 +349,7 @@ public:
     LINK linkage = LINK.d;
     bool forwardedAA;
     AST.Type* origType;
+    AST.Prot.Kind currentProt; /// Last written protection level
 
     bool hasReal;
     const bool printIgnored;
@@ -360,6 +361,27 @@ public:
         this.donebuf = donebuf;
         this.buf = buf;
         this.printIgnored = global.params.doCxxHdrGeneration == CxxHeaderMode.verbose;
+    }
+
+    /// Visit `dsym` with `buf` while temporarily clearing **parent fields
+    private void visitAsRoot(AST.Dsymbol dsym, OutBuffer* buf)
+    {
+        auto adStash = this.adparent;
+        auto cdStash = this.cdparent;
+        auto tdStash = this.tdparent;
+        auto bufStash = this.buf;
+
+        this.adparent = null;
+        this.cdparent = null;
+        this.tdparent = null;
+        this.buf = buf;
+
+        dsym.accept(this);
+
+        this.adparent = adStash;
+        this.cdparent = cdStash;
+        this.tdparent = tdStash;
+        this.buf = bufStash;
     }
 
     private EnumKind getEnumKind(AST.Type type)
@@ -408,6 +430,48 @@ public:
 
         if (!adparent)
             buf.writenl();
+    }
+
+    /// Writes the corresponding access specifier if necessary
+    private void writeProtection(const AST.Prot.Kind kind)
+    {
+        // Don't write protection for global declarations
+        if (!(adparent || cdparent))
+            return;
+
+        string token;
+
+        switch(kind) with(AST.Prot.Kind)
+        {
+            case none, private_:
+                if (this.currentProt == AST.Prot.Kind.private_)
+                    return;
+                this.currentProt = AST.Prot.Kind.private_;
+                token = "private:";
+                break;
+
+            case package_, protected_:
+                if (this.currentProt == AST.Prot.Kind.protected_)
+                    return;
+                this.currentProt = AST.Prot.Kind.protected_;
+                token = "protected:";
+                break;
+
+            case undefined, public_, export_:
+                if (this.currentProt == AST.Prot.Kind.public_)
+                    return;
+                this.currentProt = AST.Prot.Kind.public_;
+                token = "public:";
+                break;
+
+            default:
+                printf("Unexpected protection: %d!\n", kind);
+                assert(0);
+        }
+
+        buf.level--;
+        buf.writestringln(token);
+        buf.level++;
     }
 
     override void visit(AST.Dsymbol s)
@@ -528,6 +592,8 @@ public:
             return;
         }
 
+        writeProtection(fd.protection.kind);
+
         if (tf.linkage == LINK.c)
             buf.writestring("extern \"C\" ");
         else if (!adparent)
@@ -555,7 +621,7 @@ public:
         }
 
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
-            buf.printf("private: ");
+            writeProtection(AST.Prot.Kind.private_);
         funcToBuffer(tf, fd);
         if (adparent && tf.isConst())
         {
@@ -578,7 +644,7 @@ public:
             buf.writestring(" = delete");
         buf.writestringln(";");
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
-            buf.writestringln("public:");
+            writeProtection(AST.Prot.Kind.public_);
 
         if (!adparent)
             buf.writenl();
@@ -634,6 +700,8 @@ public:
                 return;
             }
 
+            writeProtection(vd.protection.kind);
+
             final switch (kind)
             {
                 case EnumKind.Int, EnumKind.Numeric:
@@ -673,6 +741,7 @@ public:
                 ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
             }
+            writeProtection(vd.protection.kind);
             typeToBuffer(vd.type, vd.ident);
             buf.writestringln(";");
             return;
@@ -691,6 +760,7 @@ public:
                 ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
+            writeProtection(vd.protection.kind);
             if (vd.linkage == LINK.c)
                 buf.writestring("extern \"C\" ");
             else if (!adparent)
@@ -704,6 +774,7 @@ public:
 
         if (adparent && vd.type && vd.type.deco)
         {
+            writeProtection(vd.protection.kind);
             auto save = cdparent;
             cdparent = vd.isField() ? adparent.isClassDeclaration() : null;
             typeToBuffer(vd.type, vd.ident);
@@ -745,6 +816,8 @@ public:
         }
         if (isBuildingCompiler && ad.getModule() && ad.getModule().isIgnoredModule())
             return;
+
+        writeProtection(ad.protection.kind);
 
         if (auto t = ad.type)
         {
@@ -877,6 +950,8 @@ public:
 
         pushAlignToBuffer(sd.alignment);
 
+        writeProtection(sd.protection.kind);
+
         const structAsClass = sd.cppmangle == CPPMANGLE.asClass;
         if (sd.isUnionDeclaration())
             buf.writestring("union ");
@@ -894,11 +969,9 @@ public:
         buf.writenl();
         buf.writestring("{");
 
-        if (structAsClass)
-        {
-            buf.writenl();
-            buf.writestring("public:");
-        }
+        const protStash = this.currentProt;
+        this.currentProt = structAsClass ? AST.Prot.Kind.private_ : AST.Prot.Kind.public_;
+        scope (exit) this.currentProt = protStash;
 
         buf.level++;
         buf.writenl();
@@ -909,12 +982,10 @@ public:
         {
             m.accept(this);
         }
-        buf.level--;
-        adparent = save;
         // Generate default ctor
         if (!sd.noDefaultCtor && !sd.isUnionDeclaration())
         {
-            buf.level++;
+            writeProtection(AST.Prot.Kind.public_);
             buf.printf("%s()", sd.ident.toChars());
             size_t varCount;
             bool first = true;
@@ -957,7 +1028,6 @@ public:
             buf.writenl();
             buf.writestringln("{");
             buf.writestringln("}");
-            buf.level--;
         }
 
         version (none)
@@ -995,6 +1065,9 @@ public:
                 buf.writenl();
             }
         }
+
+        buf.level--;
+        adparent = save;
         buf.writestringln("};");
 
         popAlignToBuffer(sd.alignment);
@@ -1045,10 +1118,7 @@ public:
         OutBuffer decl;
         decl.doindent = true;
         decl.spaces = true;
-        auto save = buf;
-        buf = &decl;
-        ds.accept(this);
-        buf = save;
+        visitAsRoot(ds, &decl);
         donebuf.writestring(decl.peekChars());
     }
 
@@ -1076,6 +1146,8 @@ public:
             return;
         }
 
+        writeProtection(cd.protection.kind);
+
         const classAsStruct = cd.cppmangle == CPPMANGLE.asStruct;
         buf.writestring(classAsStruct ? "struct " : "class ");
         buf.writestring(cd.ident.toChars());
@@ -1100,8 +1172,10 @@ public:
 
         buf.writenl();
         buf.writestringln("{");
-        if (!classAsStruct)
-            buf.writestringln("public:");
+
+        const protStash = this.currentProt;
+        this.currentProt = classAsStruct ? AST.Prot.Kind.public_ : AST.Prot.Kind.private_;
+        scope (exit) this.currentProt = protStash;
 
         auto save = adparent;
         adparent = cd;
@@ -1189,6 +1263,8 @@ public:
         // determine if this is an enum, or just a group of manifest constants
         bool manifestConstants = !isOpaque && (!type || (isAnonymous && kind == EnumKind.Other));
         assert(!manifestConstants || isAnonymous);
+
+        writeProtection(ed.protection.kind);
 
         // write the enum header
         if (!manifestConstants)
@@ -1506,11 +1582,8 @@ public:
         if (cast(void*)t.sym !in forwarded)
         {
             forwarded[cast(void*)t.sym] = true;
-            auto save = buf;
-            buf = fwdbuf;
             //printf("Visiting enum %s from module %s %s\n", t.sym.toPrettyChars(), t.toChars(), t.sym.loc.toChars());
-            t.sym.accept(this);
-            buf = save;
+            visitAsRoot(t.sym, fwdbuf);
         }
         if (!cdparent && t.isConst())
             buf.writestring("const ");
