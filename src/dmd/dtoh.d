@@ -628,6 +628,11 @@ public:
 
         visited[cast(void*)vd] = true;
 
+        // Tuple field are expanded into multiple VarDeclarations
+        // (we'll visit them later)
+        if (vd.type && vd.type.isTypeTuple())
+            return;
+
         if (vd.type == AST.Type.tsize_t)
             origType = &vd.originalType;
         scope(exit) origType = null;
