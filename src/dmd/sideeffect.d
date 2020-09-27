@@ -240,6 +240,8 @@ private bool isAssignment(Expression e)
  */
 private bool isNodiscard(Expression e)
 {
+    if (!global.params.nodiscardAttribute)
+        return false;
     if (auto ce = e.isCallExp())
     {
         if (ce.f && (ce.f.storage_class & STC.nodiscard)) {

@@ -1444,6 +1444,8 @@ final class Parser(AST) : Lexer
             stc = isBuiltinAtAttribute(token.ident);
             if (!stc)
             {
+                if (token.ident == Id.nodiscard)
+                    deprecation("use of `@nodiscard` as a user-defined attribute is deprecated.");
                 // Allow identifier, template instantiation, or function call
                 AST.Expression exp = parsePrimaryExp();
                 if (token.value == TOK.leftParentheses)
@@ -9191,23 +9193,28 @@ final class Parser(AST) : Lexer
                (ident == Id.trusted)   ? AST.STC.trusted   :
                (ident == Id.system)    ? AST.STC.system    :
                (ident == Id.live)      ? AST.STC.live      :
+               (global.params.nodiscardAttribute) &&
                (ident == Id.nodiscard) ? AST.STC.nodiscard :
                (ident == Id.future)    ? AST.STC.future    :
                (ident == Id.disable)   ? AST.STC.disable   :
                0;
     }
 
-    enum StorageClass atAttrGroup =
-                AST.STC.property  |
-                AST.STC.nogc      |
-                AST.STC.safe      |
-                AST.STC.trusted   |
-                AST.STC.system    |
-                AST.STC.live      |
-                AST.STC.nodiscard |
-                /*AST.STC.future   |*/ // probably should be included
-                AST.STC.disable;
+    static StorageClass atAttrGroup()
+    {
+        enum StorageClass atAttrGroup =
+                    AST.STC.property  |
+                    AST.STC.nogc      |
+                    AST.STC.safe      |
+                    AST.STC.trusted   |
+                    AST.STC.system    |
+                    AST.STC.live      |
+                    /*AST.STC.future   |*/ // probably should be included
+                    AST.STC.disable;
+        return atAttrGroup |
+            (global.params.nodiscardAttribute ? AST.STC.nodiscard : 0);
     }
+}
 
 enum PREC : int
 {

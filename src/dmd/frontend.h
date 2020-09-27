@@ -6781,6 +6781,7 @@ struct Param
     bool useExceptions;
     bool noSharedAccess;
     bool previewIn;
+    bool nodiscardAttribute;
     bool betterC;
     bool addMain;
     bool allInst;
@@ -6925,6 +6926,7 @@ struct Param
         useExceptions(true),
         noSharedAccess(),
         previewIn(),
+        nodiscardAttribute(),
         betterC(),
         addMain(),
         allInst(),

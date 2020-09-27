@@ -154,6 +154,7 @@ struct Param
     bool useExceptions; // support exception handling
     bool noSharedAccess; // read/write access to shared memory objects
     bool previewIn;     // `in` means `scope const`, perhaps `ref`, accepts rvalues
+    bool nodiscardAttribute; // @nodiscard is a built-in attribute
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
