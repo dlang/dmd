@@ -89,3 +89,23 @@ static if (true)
         S s;
     }
 }
+
+alias AliasSeq(T...) = T;
+
+__gshared AliasSeq!(int, double) globalTuple = AliasSeq!(3, 4.0);
+
+void tupleFunction(AliasSeq!(int, double) argTuple)
+{
+    assert(argTuple[0] == 5);
+    assert(argTuple[1] == 6.0);
+}
+
+struct WithTuple
+{
+    AliasSeq!(int, double) memberTuple;
+}
+
+WithTuple createTuple()
+{
+    return WithTuple(1, 2.0);
+}
