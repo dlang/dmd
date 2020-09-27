@@ -463,6 +463,16 @@ void test_outbuffer()
 
 /**********************************/
 
+void test_attributes()
+{
+    UserAttributeDeclaration *uad = (UserAttributeDeclaration*)Dsymbol::create(NULL);
+    assert(uad);
+    Expressions *e = getAttributes(uad);
+    assert(e);
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
@@ -479,6 +489,7 @@ int main(int argc, char **argv)
     test_location();
     test_array();
     test_outbuffer();
+    test_attributes();
 
     frontend_term();
 
