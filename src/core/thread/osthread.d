@@ -1205,7 +1205,7 @@ version (Posix)
     __gshared int resumeSignalNumber;
 }
 
-private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc
+private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 {
     Thread thisThread = _thisThread.toThread();
 
