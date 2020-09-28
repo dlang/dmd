@@ -442,7 +442,7 @@ alias dmdDefault = makeRule!((builder, rule) => builder
     .deps([dmdExe(null, null, null), dmdConf])
 );
 
-/// Run's the test suite using `run.d`
+/// Run's the test suite (unittests & `run.d`)
 alias runTests = makeRule!((testBuilder, testRule)
 {
     // Precompiles the test runner
@@ -456,7 +456,7 @@ alias runTests = makeRule!((testBuilder, testRule)
         .name("test")
         .description("Run the test suite using test/run.d")
         .msg("(RUN) TEST")
-        .deps([dmdDefault, runner])
+        .deps([dmdDefault, runDmdUnittest, runner])
         .commandFunction({
             // Use spawnProcess to avoid output redirection for `command`s
             const scope cmd = [ runner.targets[0], "-j" ~ jobs.to!string ];
