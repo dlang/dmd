@@ -2179,8 +2179,7 @@ struct complex_t
 {
     _d_real re;
     _d_real im;
-    private: complex_t();
-    public:
+    complex_t() = delete;
     complex_t(_d_real re);
     complex_t(_d_real re, _d_real im);
     int32_t opEquals(complex_t y) const;
@@ -6937,7 +6936,7 @@ struct Param
         dtorFields(),
         fieldwise(),
         rvalueRefParam(),
-        cplusplus((CppStdRevision)199711u),
+        cplusplus((CppStdRevision)201103u),
         markdown(true),
         vmarkdown(),
         showGaggedErrors(),
