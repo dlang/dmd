@@ -315,9 +315,9 @@ dmd -cov -unittest myprog.d
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
             $(UL
-                $(LI $(I c++98) (default): Use C++98 name mangling,
+                $(LI $(I c++98): Use C++98 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
-                $(LI $(I c++11): Use C++11 name mangling,
+                $(LI $(I c++11) (default): Use C++11 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`)
                 $(LI $(I c++14): Use C++14 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`)

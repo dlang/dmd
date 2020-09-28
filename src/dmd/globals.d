@@ -198,7 +198,7 @@ extern (C++) struct Param
                             // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                             // Implementation: https://github.com/dlang/dmd/pull/9817
 
-    CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
+    CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
     bool markdown = true;   // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
