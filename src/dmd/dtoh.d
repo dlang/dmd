@@ -661,6 +661,9 @@ public:
             final switch (kind)
             {
                 case EnumKind.Int, EnumKind.Numeric:
+                    // 'enum : type' is only available from C++-11 onwards.
+                    if (global.params.cplusplus < CppStdRevision.cpp11)
+                        goto case;
                     buf.writestring("enum : ");
                     writeEnumTypeName(type);
                     buf.printf(" { %s = ", vd.ident.toChars());
@@ -1221,15 +1224,25 @@ public:
             if (kind == EnumKind.Int || kind == EnumKind.Numeric)
             {
                 buf.writestring("enum");
-                if (!isAnonymous)
+                // D enums are strong enums, but there exists only a direct mapping
+                // with 'enum class' from C++-11 onwards.
+                if (global.params.cplusplus >= CppStdRevision.cpp11)
                 {
-                    buf.writestring(" class ");
-                    buf.writestring(ed.ident.toString());
+                    if (!isAnonymous)
+                    {
+                        buf.writestring(" class ");
+                        buf.writestring(ed.ident.toString());
+                    }
+                    if (kind == EnumKind.Numeric)
+                    {
+                        buf.writestring(" : ");
+                        writeEnumTypeName(type);
+                    }
                 }
-                if (kind == EnumKind.Numeric)
+                else if (!isAnonymous)
                 {
-                    buf.writestring(" : ");
-                    writeEnumTypeName(type);
+                    buf.writeByte(' ');
+                    buf.writestring(ed.ident.toString());
                 }
             }
             else
@@ -1237,7 +1250,7 @@ public:
                 buf.writestring("namespace");
                 if(!isAnonymous)
                 {
-                    buf.writestring(" ");
+                    buf.writeByte(' ');
                     buf.writestring(ed.ident.toString());
                 }
             }
@@ -1257,12 +1270,19 @@ public:
 
             if (!manifestConstants && (kind == EnumKind.Int || kind == EnumKind.Numeric))
             {
-                buf.printf("%s = ", m.ident.toChars());
+                // C++-98 compatible enums must use the typename as a prefix to avoid
+                // collisions with other identifiers in scope.  For consistency with D,
+                // the enum member `Type.member` is emitted as `Type_member` in C++-98.
+                if (isAnonymous || global.params.cplusplus >= CppStdRevision.cpp11)
+                    buf.printf("%s = ", m.ident.toChars());
+                else
+                    buf.printf("%s_%s = ", ed.ident.toChars(), m.ident.toChars());
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
                 buf.writestring(",");
             }
-            else if (manifestConstants && (memberKind == EnumKind.Int || memberKind == EnumKind.Numeric))
+            else if (global.params.cplusplus >= CppStdRevision.cpp11 &&
+                     manifestConstants && (memberKind == EnumKind.Int || memberKind == EnumKind.Numeric))
             {
                 buf.writestring("enum : ");
                 writeEnumTypeName(memberType);
