@@ -694,8 +694,8 @@ public:
         {
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
-            enum ProtPublic = AST.Prot(AST.Prot.Kind.public_);
-            if (vd.protection.isMoreRestrictiveThan(ProtPublic)) {
+
+            if (vd.protection.kind == AST.Prot.Kind.none || vd.protection.kind == AST.Prot.Kind.private_) {
                 ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.protectionToChars(vd.protection.kind));
                 return;
             }
