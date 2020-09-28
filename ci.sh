@@ -50,9 +50,10 @@ clone() {
     done
 }
 
-# build dmd, druntime, phobos
+# build dmd (incl. building and running the unittests), druntime, phobos
 build() {
     source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
