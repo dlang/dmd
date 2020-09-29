@@ -1,0 +1,13 @@
+Improvements for the C++ header generation
+
+The following feautures/bugfixes/improvements were implemented for the
+experimental C++ header generator:
+
+- Enums are no longer emitted in macros and `enum class` is used if possible.
+- Forward referenced declarations are now properly indented.
+- Tuple members/parameters/variables are emitted as individual variables
+  using the compiler internal names instaed of causing an assertion failure.
+- Interfaces are now emitted as base classes.
+
+Note: The header generator is still considerer experimental, so please submit
+      any bugs encountered to [the bug tracker](https://issues.dlang.org).
