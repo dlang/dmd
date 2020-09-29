@@ -177,13 +177,13 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, out Expr
  *      sc = context
  *      s = symbol to start search at
  *      scopesym = unused
- *      pe = set if expression
- *      pt = set if type
- *      ps = set if symbol
+ *      pe = set if expression otherwise null
+ *      pt = set if type otherwise null
+ *      ps = set if symbol otherwise null
  *      typeid = set if in TypeidExpression https://dlang.org/spec/expression.html#TypeidExpression
  */
 private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
-    Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    out Expression pe, out Type pt, out Dsymbol ps, bool intypeid = false)
 {
     version (none)
     {
@@ -191,9 +191,6 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         if (scopesym)
             printf("\tscopesym = '%s'\n", scopesym.toChars());
     }
-    *pe = null;
-    *pt = null;
-    *ps = null;
 
     if (!s)
     {
@@ -210,7 +207,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         else
             error(loc, "undefined identifier `%s`", p);
 
-        *pt = Type.terror;
+        pt = Type.terror;
         return;
     }
 
@@ -248,7 +245,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
             ex = typeToExpressionHelper(mt, ex, i + 1);
             ex = ex.expressionSemantic(sc);
-            resolveExp(ex, *pt, *pe, *ps);
+            resolveExp(ex, pt, pe, ps);
             return;
         }
 
@@ -264,7 +261,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         }
         if (global.errors != errorsave)
         {
-            *pt = Type.terror;
+            pt = Type.terror;
             return;
         }
 
@@ -280,7 +277,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
             e = typeToExpressionHelper(mt, e, i);
             e = e.expressionSemantic(sc);
-            resolveExp(e, *pt, *pe, *ps);
+            resolveExp(e, pt, pe, ps);
         }
 
         //printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
@@ -346,7 +343,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     else
                         error(loc, "identifier `%s` of `%s` is not defined", id.toChars(), mt.toChars());
                 }
-                *pe = ErrorExp.get();
+                pe = ErrorExp.get();
                 return;
             }
         }
@@ -356,7 +353,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
     if (auto em = s.isEnumMember())
     {
         // It's not a type, it's an expression
-        *pe = em.getVarExp(loc, sc);
+        pe = em.getVarExp(loc, sc);
         return;
     }
     if (auto v = s.isVarDeclaration())
@@ -378,27 +375,27 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
             else
                 error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
-            *pt = Type.terror;
+            pt = Type.terror;
             return;
         }
         if (v.type.ty == Terror)
-            *pt = Type.terror;
+            pt = Type.terror;
         else
-            *pe = new VarExp(loc, v);
+            pe = new VarExp(loc, v);
         return;
     }
     if (auto fld = s.isFuncLiteralDeclaration())
     {
         //printf("'%s' is a function literal\n", fld.toChars());
-        *pe = new FuncExp(loc, fld);
-        *pe = (*pe).expressionSemantic(sc);
+        auto e = new FuncExp(loc, fld);
+        pe = e.expressionSemantic(sc);
         return;
     }
     version (none)
     {
         if (FuncDeclaration fd = s.isFuncDeclaration())
         {
-            *pe = new DsymbolExp(loc, fd);
+            pe = new DsymbolExp(loc, fd);
             return;
         }
     }
@@ -417,7 +414,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 continue;
             s = si;
         }
-        *ps = s;
+        ps = s;
         return;
     }
 
@@ -426,14 +423,14 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         {
             if (!ti.tempinst.errors)
                 error(loc, "forward reference to `%s`", ti.toChars());
-            *pt = Type.terror;
+            pt = Type.terror;
             return;
         }
 
     if (t.ty == Ttuple)
-        *pt = t;
+        pt = t;
     else
-        *pt = t.merge();
+        pt = t.merge();
 }
 
 /************************************
@@ -2842,7 +2839,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             }
         }
 
-        mt.resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
+        mt.resolveHelper(loc, sc, s, scopesym, *pe, *pt, *ps, intypeid);
         if (*pt)
             (*pt) = (*pt).addMod(mt.mod);
     }
@@ -2856,7 +2853,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (!global.gag && mt.tempinst.errors)
             return returnError();
 
-        mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
+        mt.resolveHelper(loc, sc, mt.tempinst, null, *pe, *pt, *ps, intypeid);
         if (*pt)
             *pt = (*pt).addMod(mt.mod);
         //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
@@ -2959,7 +2956,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-                mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
+                mt.resolveHelper(loc, sc, s, null, *pe, *pt, *ps, intypeid);
             else
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
@@ -2999,7 +2996,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-                mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
+                mt.resolveHelper(loc, sc, s, null, *pe, *pt, *ps, intypeid);
             else
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
