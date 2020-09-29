@@ -1273,6 +1273,15 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             {
                 if (fd.errors)
                     return ErrorExp.get();
+                if (!checkSymbolAccess(sc, fd))
+                {
+                    // @@@DEPRECATED_2020-10@@@
+                    // When turning into error, uncomment the return statement
+                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
+                                fd.toPrettyChars(), tf.toChars, sc._module.toChars);
+                    //return ErrorExp.get();
+                }
                 assert(fd.type.ty == Tfunction);
                 Expression e = new CallExp(loc, e1, e2);
                 return e.expressionSemantic(sc);
@@ -1288,6 +1297,14 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (!e2 || tf.isref)
                 {
+                    if (!checkSymbolAccess(sc, fd))
+                    {
+                        // @@@DEPRECATED_2020-10@@@
+                        // When turning into error, uncomment the return statement
+                        deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
+                                    fd.toPrettyChars(), tf.toChars, sc._module.toChars);
+                        //return ErrorExp.get();
+                    }
                     Expression e = new CallExp(loc, e1);
                     if (e2)
                         e = new AssignExp(loc, e, e2);
