@@ -2307,7 +2307,7 @@ public:
         expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
     }
 
-    override void visit(CompileExp e)
+    override void visit(MixinExp e)
     {
         buf.writestring("mixin(");
         argsToBuffer(e.exps, buf, hgs, null);
