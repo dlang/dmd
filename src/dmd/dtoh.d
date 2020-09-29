@@ -1125,13 +1125,17 @@ public:
         const classAsStruct = cd.cppmangle == CPPMANGLE.asStruct;
         buf.writestring(classAsStruct ? "struct " : "class ");
         buf.writestring(cd.ident.toChars());
-        if (cd.baseClass)
-        {
-            buf.writestring(" : public ");
-            buf.writestring(cd.baseClass.ident.toChars());
 
-            includeSymbol(cd.baseClass);
+        assert(cd.baseclasses);
+
+        foreach (i, base; *cd.baseclasses)
+        {
+            buf.writestring(i == 0 ? " : public " : ", public ");
+
+            buf.writestring(base.sym.ident.toChars());
+            includeSymbol(base.sym);
         }
+
         if (!cd.members)
         {
             buf.writestring(";");
