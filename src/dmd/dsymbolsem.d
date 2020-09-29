@@ -6627,6 +6627,39 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (sc2 != sc)
             sc2.pop();
 
+        if (e)  // Resolve mixin, if any
+        {
+            if (auto me = e.isMixinExp())
+            {
+                // Should merge with expressionsem.compileIt()
+                static Expression compileIt(Scope* sc, MixinExp exp)
+                {
+                    OutBuffer buf;
+                    if (expressionsToString(buf, sc, exp.exps))
+                        return null;
+
+                    uint errors = global.errors;
+                    const len = buf.length;
+                    const str = buf.extractChars()[0 .. len];
+                    scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false);
+                    p.nextToken();
+                    //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+                    Expression e = p.parseExpression();
+                    if (global.errors != errors)
+                        return null;
+
+                    if (p.token.value != TOK.endOfFile)
+                    {
+                        exp.error("incomplete mixin expression `%s`", str.ptr);
+                        return null;
+                    }
+                    return e;
+                }
+
+                e = compileIt(sc, me);
+            }
+        }
         if (e)  // Try to convert Expression to Dsymbol
         {
             s = getDsymbol(e);
