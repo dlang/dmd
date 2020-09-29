@@ -101,14 +101,19 @@ private Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression ex
 }
 
 /*************************************
- * Resolve a tuple index.
+ * Resolve a tuple index, `s[oindex]`, by figuring out what `s[oindex]` represents.
+ * Setting one of pe/pt/ps.
+ * Params:
+ *      loc = location for error messages
+ *      sc = context
+ *      s = symbol being indexed - could be a tuple, could be an expression
+ *      pe = set if s[oindex] is an Expression, otherwise null
+ *      pt = set if s[oindex] is a Type, otherwise null
+ *      ps = set if s[oindex] is a Dsymbol, otherwise null
+ *      oindex = index into s
  */
-private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
+private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, out Expression pe, out Type pt, out Dsymbol ps, RootObject oindex)
 {
-    *pt = null;
-    *ps = null;
-    *pe = null;
-
     auto tup = s.isTupleDeclaration();
 
     auto eindex = isExpression(oindex);
@@ -124,7 +129,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
             eindex = symbolToExp(sindex, loc, sc, false);
         Expression e = new IndexExp(loc, symbolToExp(s, loc, sc, false), eindex);
         e = e.expressionSemantic(sc);
-        resolveExp(e, *pt, *pe, *ps);
+        resolveExp(e, pt, pe, ps);
         return;
     }
 
@@ -136,7 +141,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
     if (!eindex)
     {
         .error(loc, "index `%s` is not an expression", oindex.toChars());
-        *pt = Type.terror;
+        pt = Type.terror;
         return;
     }
 
@@ -144,25 +149,23 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
     eindex = eindex.ctfeInterpret();
     if (eindex.op == TOK.error)
     {
-        *pt = Type.terror;
+        pt = Type.terror;
         return;
     }
     const(uinteger_t) d = eindex.toUInteger();
     if (d >= tup.objects.dim)
     {
         .error(loc, "tuple index `%llu` exceeds length %zu", d, tup.objects.dim);
-        *pt = Type.terror;
+        pt = Type.terror;
         return;
     }
 
     RootObject o = (*tup.objects)[cast(size_t)d];
-    *pt = isType(o);
-    *ps = isDsymbol(o);
-    *pe = isExpression(o);
-    if (*pt)
-        *pt = (*pt).typeSemantic(loc, sc);
-    if (*pe)
-        resolveExp(*pe, *pt, *pe, *ps);
+    ps = isDsymbol(o);
+    if (auto t = isType(o))
+        pt = t.typeSemantic(loc, sc);
+    if (auto e = isExpression(o))
+        resolveExp(e, pt, pe, ps);
 }
 
 /*************************************
@@ -233,7 +236,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             Type tx;
             Expression ex;
             Dsymbol sx;
-            resolveTupleIndex(loc, sc, s, &ex, &tx, &sx, id);
+            resolveTupleIndex(loc, sc, s, ex, tx, sx, id);
             if (sx)
             {
                 s = sx.toAlias();
