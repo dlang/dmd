@@ -35,8 +35,6 @@ protected:
     int32_t bf();
     int32_t cf();
     int32_t df();
-private:
-    int32_t ef();
 public:
     S2()
     {
@@ -62,8 +60,6 @@ protected:
     virtual int32_t bf();
     int32_t cf();
     int32_t df();
-private:
-    int32_t ef();
 };
 
 struct Outer

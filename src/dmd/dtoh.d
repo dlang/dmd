@@ -591,6 +591,11 @@ public:
             ignored("function %s because it's extern", fd.toPrettyChars());
             return;
         }
+        if (fd.protection.kind == AST.Prot.Kind.none || fd.protection.kind == AST.Prot.Kind.private_)
+        {
+            ignored("function %s because it's private", fd.toPrettyChars());
+            return;
+        }
 
         writeProtection(fd.protection.kind);
 

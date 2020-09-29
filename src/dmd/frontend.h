@@ -798,9 +798,6 @@ public:
     Dsymbol* toParent2();
     Dsymbol* toParentDecl();
     Dsymbol* toParentLocal();
-private:
-    Dsymbol* toParentDeclImpl(bool localOnly);
-public:
     Dsymbol* toParentP(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isInstantiated();
     bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2 = nullptr);
@@ -988,9 +985,6 @@ public:
     virtual bool checkType();
     virtual bool checkValue();
     bool checkDeprecated(Scope* sc, Dsymbol* s);
-private:
-    static bool checkImpure(Scope* sc);
-public:
     virtual Modifiable checkModifiable(Scope* sc, int32_t flag = 0);
     virtual Expression* toBoolean(Scope* sc);
     virtual Expression* addDtorHook(Scope* sc);
@@ -2700,8 +2694,6 @@ public:
     ForeachRangeStatement* rangefe;
     bool needExpansion;
     StaticForeach* syntaxCopy();
-private:
-    void lowerNonArrayAggregate(Scope* sc);
 };
 
 class DVCondition : public Condition
@@ -2771,9 +2763,6 @@ class ClassReferenceExp : public Expression
 public:
     StructLiteralExp* value;
     ClassDeclaration* originalClass();
-private:
-    int32_t getFieldIndex(Type* fieldtype, uint32_t fieldoffset);
-public:
     int32_t findFieldIndexByName(VarDeclaration* v);
     void accept(Visitor* v);
 };
@@ -3747,9 +3736,6 @@ public:
     const char* toCharsMaybeConstraints(bool includeConstraints) const;
     Prot prot();
     const char* getConstraintEvalError(const char*& tip);
-private:
-    void formatParamsWithTiargs(Array<RootObject*>& tiargs, OutBuffer& buf);
-public:
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
     MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, Array<Expression*>* fargs);
     RootObject* declareParameter(Scope* sc, TemplateParameter* tp, RootObject* o);
@@ -3967,15 +3953,7 @@ public:
     bool hasReal;
     bool printIgnored;
     ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
-private:
-    void visitAsRoot(Dsymbol* dsym, OutBuffer* buf);
-    EnumKind getEnumKind(Type* type);
-    void writeEnumTypeName(Type* type);
-public:
     void writeDeclEnd();
-private:
-    void writeProtection(const Kind kind);
-public:
     void visit(Dsymbol* s);
     void visit(Import* i);
     void visit(AttribDeclaration* pd);
@@ -3991,21 +3969,10 @@ public:
     void visit(CPPNamespaceDeclaration* ns);
     void handleNspace(Identifier* name, Array<Dsymbol*>* members);
     void visit(AnonDeclaration* ad);
-private:
-    bool memberField(VarDeclaration* vd);
-public:
     void visit(StructDeclaration* sd);
-private:
-    void pushAlignToBuffer(uint32_t alignment);
-    void popAlignToBuffer(uint32_t alignment);
-    void includeSymbol(Dsymbol* ds);
-public:
     void visit(ClassDeclaration* cd);
     void visit(EnumDeclaration* ed);
     void visit(EnumMember* em);
-private:
-    void typeToBuffer(Type* t, Identifier* ident);
-public:
     void visit(Type* t);
     void visit(TypeIdentifier* t);
     void visit(TypeNull* t);
@@ -4014,20 +3981,11 @@ public:
     void visit(TypeSArray* t);
     void visit(TypeAArray* t);
     void visit(TypeFunction* tf);
-private:
-    void enumToBuffer(EnumDeclaration* ed);
-public:
     void visit(TypeEnum* t);
     void visit(TypeStruct* t);
     void visit(TypeDArray* t);
-private:
-    void visitTi(TemplateInstance* ti);
-public:
     void visit(TemplateDeclaration* td);
     void visit(TypeClass* t);
-private:
-    void funcToBuffer(TypeFunction* tf, FuncDeclaration* fd);
-public:
     void visit(Parameter* p);
     void visit(Expression* e);
     void visit(VarExp* e);
@@ -4039,12 +3997,7 @@ public:
     void visit(StringExp* e);
     void visit(RealExp* e);
     void visit(IntegerExp* e);
-private:
-    void visitInteger(dinteger_t v, Type* t);
-public:
     void visit(StructLiteralExp* sle);
-private:
-    void ignored(const char* const format, ...);
 };
 
 class DebugSymbol : public Dsymbol
@@ -5280,9 +5233,6 @@ public:
     bool isTrusted();
     bool isNogc();
     bool isNogcBypassingInference();
-private:
-    bool isTypeIsolatedIndirect(Type* t);
-public:
     virtual bool isNested() const;
     AggregateDeclaration* isThis();
     bool needThis();
@@ -5892,9 +5842,6 @@ public:
     StorageClass parameterStorageClass(Type* tthis, Parameter* p);
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
-private:
-    const char* getParamError(Expression* arg, Parameter* par);
-public:
     bool isnothrow() const;
     void isnothrow(bool v);
     bool isnogc() const;
@@ -6489,9 +6436,6 @@ class CompileStatement : public Statement
 public:
     Array<Expression*>* exps;
     Statement* syntaxCopy();
-private:
-    Array<Statement*>* compileIt(Scope* sc);
-public:
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
 };

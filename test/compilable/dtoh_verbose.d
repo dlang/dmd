@@ -19,6 +19,13 @@ TEST_OUTPUT:
 // Ignored variable dtoh_verbose.i1 because of linkage
 // Ignored function dtoh_verbose.templ!int.templ
 // Ignored enum dtoh_verbose.arrayOpaque because of it's base type
+struct Hidden
+{
+    // Ignored function dtoh_verbose.Hidden.hidden because it's private
+    Hidden()
+    {
+    }
+};
 ---
 */
 
@@ -43,3 +50,8 @@ void templ(T)(T t) {}
 alias inst = templ!int;
 
 enum arrayOpaque : int[4];
+
+extern(C++) struct Hidden
+{
+    private void hidden() {}
+}
