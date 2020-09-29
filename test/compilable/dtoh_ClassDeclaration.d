@@ -85,6 +85,25 @@ public:
     class CC;
 
 };
+
+class I1
+{
+public:
+    virtual void foo() = 0;
+};
+
+class I2 : public I1
+{
+public:
+    virtual void bar() = 0;
+};
+
+class B : public A, public I1, public I2
+{
+public:
+    void foo();
+    void bar();
+};
 ---
 */
 
@@ -167,4 +186,20 @@ extern (C++) class A
 
     extern(C++) class CC;
 
+}
+
+extern(C++):
+interface I1
+{
+    void foo();
+}
+interface I2 : I1
+{
+    void bar();
+}
+
+class B : A, I1, I2
+{
+    override void foo() {}
+    override void bar() {}
 }
