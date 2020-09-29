@@ -124,7 +124,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
             eindex = symbolToExp(sindex, loc, sc, false);
         Expression e = new IndexExp(loc, symbolToExp(s, loc, sc, false), eindex);
         e = e.expressionSemantic(sc);
-        resolveExp(e, pt, pe, ps);
+        resolveExp(e, *pt, *pe, *ps);
         return;
     }
 
@@ -162,7 +162,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
     if (*pt)
         *pt = (*pt).typeSemantic(loc, sc);
     if (*pe)
-        resolveExp(*pe, pt, pe, ps);
+        resolveExp(*pe, *pt, *pe, *ps);
 }
 
 /*************************************
@@ -245,7 +245,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
             ex = typeToExpressionHelper(mt, ex, i + 1);
             ex = ex.expressionSemantic(sc);
-            resolveExp(ex, pt, pe, ps);
+            resolveExp(ex, *pt, *pe, *ps);
             return;
         }
 
@@ -277,7 +277,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
             e = typeToExpressionHelper(mt, e, i);
             e = e.expressionSemantic(sc);
-            resolveExp(e, pt, pe, ps);
+            resolveExp(e, *pt, *pe, *ps);
         }
 
         //printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
@@ -2538,69 +2538,37 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
 }
 
 /***************************************
- * Normalize `e` as the result of resolve() process.
+ * Determine if Expression `exp` should instead be a Type, a Dsymbol, or remain an Expression.
+ * Params:
+ *      exp = Expression to look at
+ *      t = if exp should be a Type, set t to that Type else null
+ *      s = if exp should be a Dsymbol, set s to that Dsymbol else null
+ *      e = if exp should remain an Expression, set e to that Expression else null
+ *
  */
-private void resolveExp(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
+private void resolveExp(Expression exp, out Type t, out Expression e, out Dsymbol s)
 {
-    *pt = null;
-    *pe = null;
-    *ps = null;
-
-    Dsymbol s;
-    switch (e.op)
+    if (exp.isTypeExp())
+        t = exp.type;
+    else if (auto ve = exp.isVarExp())
     {
-        case TOK.error:
-            *pt = Type.terror;
-            return;
-
-        case TOK.type:
-            *pt = e.type;
-            return;
-
-        case TOK.variable:
-            s = (cast(VarExp)e).var;
-            if (s.isVarDeclaration())
-                goto default;
-            //if (s.isOverDeclaration())
-            //    todo;
-            break;
-
-        case TOK.template_:
-            // TemplateDeclaration
-            s = (cast(TemplateExp)e).td;
-            break;
-
-        case TOK.scope_:
-            s = (cast(ScopeExp)e).sds;
-            // TemplateDeclaration, TemplateInstance, Import, Package, Module
-            break;
-
-        case TOK.function_:
-            s = getDsymbol(e);
-            break;
-
-        case TOK.dotTemplateDeclaration:
-            s = (cast(DotTemplateExp)e).td;
-            break;
-
-        //case TOK.this_:
-        //case TOK.super_:
-
-        //case TOK.tuple:
-
-        //case TOK.overloadSet:
-
-        //case TOK.dotVariable:
-        //case TOK.dotTemplateInstance:
-        //case TOK.dotType:
-        //case TOK.dotIdentifier:
-
-        default:
-            *pe = e;
-            return;
+        if (auto v = ve.var.isVarDeclaration())
+            e = exp;
+        else
+            s = ve.var;
     }
-
-    *ps = s;
+    else if (auto te = exp.isTemplateExp())
+        s = te.td;
+    else if (auto se = exp.isScopeExp())
+        s = se.sds;
+    else if (exp.isFuncExp())
+        s = getDsymbol(exp);
+    else if (auto dte = exp.isDotTemplateExp())
+        s = dte.td;
+    else if (exp.isErrorExp())
+        t = Type.terror;
+    else
+        e = exp;
 }
 
 /************************************
@@ -2993,7 +2961,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
-                resolveExp(e, pt, pe, ps);
+                resolveExp(e, *pt, *pe, *ps);
             }
             if (*pt)
                 (*pt) = (*pt).addMod(mt.mod);
@@ -3033,7 +3001,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
-                resolveExp(e, pt, pe, ps);
+                resolveExp(e, *pt, *pe, *ps);
             }
             if (*pt)
                 (*pt) = (*pt).addMod(mt.mod);
