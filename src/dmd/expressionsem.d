@@ -5826,7 +5826,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = (cast(BinExp)e).reorderSettingAAElem(sc);
     }
 
-    private Expression compileIt(CompileExp exp)
+    private Expression compileIt(MixinExp exp)
     {
         OutBuffer buf;
         if (expressionsToString(buf, sc, exp.exps))
@@ -5851,14 +5851,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return e;
     }
 
-    override void visit(CompileExp exp)
+    override void visit(MixinExp exp)
     {
         /* https://dlang.org/spec/expression.html#mixin_expressions
          */
 
         static if (LOGSEMANTIC)
         {
-            printf("CompileExp::semantic('%s')\n", exp.toChars());
+            printf("MixinExp::semantic('%s')\n", exp.toChars());
         }
 
         auto e = compileIt(exp);
@@ -6014,7 +6014,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             // if the assert condition is a mixin expression, try to compile it
-            if (auto ce = exp.e1.isCompileExp())
+            if (auto ce = exp.e1.isMixinExp())
             {
                 if (auto e1 = compileIt(ce))
                     exp.e1 = e1;

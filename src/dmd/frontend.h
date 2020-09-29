@@ -483,7 +483,7 @@ class TypeidExp;
 class TraitsExp;
 class HaltExp;
 class IsExp;
-class CompileExp;
+class MixinExp;
 class ImportExp;
 class AssertExp;
 class DotIdExp;
@@ -1021,7 +1021,7 @@ public:
     TraitsExp* isTraitsExp();
     HaltExp* isHaltExp();
     IsExp* isExp();
-    CompileExp* isCompileExp();
+    MixinExp* isMixinExp();
     ImportExp* isImportExp();
     AssertExp* isAssertExp();
     DotIdExp* isDotIdExp();
@@ -1493,7 +1493,7 @@ public:
     virtual void visit(NewExp* e);
     virtual void visit(AssocArrayLiteralExp* e);
     virtual void visit(ArrayLiteralExp* e);
-    virtual void visit(CompileExp* e);
+    virtual void visit(MixinExp* e);
     virtual void visit(FuncExp* e);
     virtual void visit(IntervalExp* e);
     virtual void visit(TypeExp* e);
@@ -4026,7 +4026,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CompileExp : public Expression
+class MixinExp : public Expression
 {
 public:
     Array<Expression*>* exps;

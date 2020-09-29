@@ -5559,13 +5559,13 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileExp : Expression
+    extern (C++) final class MixinExp : Expression
     {
         Expressions* exps;
 
         extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+            super(loc, TOK.mixin_, __traits(classInstanceSize, MixinExp));
             this.exps = exps;
         }
 

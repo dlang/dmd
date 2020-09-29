@@ -5749,7 +5749,7 @@ final class Parser(AST) : Lexer
                     check(TOK.semicolon);
                     if (e.op == TOK.mixin_)
                     {
-                        AST.CompileExp cpe = cast(AST.CompileExp)e;
+                        AST.MixinExp cpe = cast(AST.MixinExp)e;
                         s = new AST.CompileStatement(loc, cpe.exps);
                     }
                     else
@@ -8197,7 +8197,7 @@ final class Parser(AST) : Lexer
                 if (token.value != TOK.leftParentheses)
                     error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
                 auto exps = parseArguments();
-                e = new AST.CompileExp(loc, exps);
+                e = new AST.MixinExp(loc, exps);
                 break;
             }
         case TOK.import_:

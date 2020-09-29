@@ -1691,7 +1691,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(TraitsExp)    isTraitsExp() { return op == TOK.traits ? cast(typeof(return))this : null; }
         inout(HaltExp)      isHaltExp() { return op == TOK.halt ? cast(typeof(return))this : null; }
         inout(IsExp)        isExp() { return op == TOK.is_ ? cast(typeof(return))this : null; }
-        inout(CompileExp)   isCompileExp() { return op == TOK.mixin_ ? cast(typeof(return))this : null; }
+        inout(MixinExp)     isMixinExp() { return op == TOK.mixin_ ? cast(typeof(return))this : null; }
         inout(ImportExp)    isImportExp() { return op == TOK.import_ ? cast(typeof(return))this : null; }
         inout(AssertExp)    isAssertExp() { return op == TOK.assert_ ? cast(typeof(return))this : null; }
         inout(DotIdExp)     isDotIdExp() { return op == TOK.dotIdentifier ? cast(typeof(return))this : null; }
@@ -4613,19 +4613,19 @@ extern (C++) class BinAssignExp : BinExp
 /***********************************************************
  * https://dlang.org/spec/expression.html#mixin_expressions
  */
-extern (C++) final class CompileExp : Expression
+extern (C++) final class MixinExp : Expression
 {
     Expressions* exps;
 
     extern (D) this(const ref Loc loc, Expressions* exps)
     {
-        super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+        super(loc, TOK.mixin_, __traits(classInstanceSize, MixinExp));
         this.exps = exps;
     }
 
     override Expression syntaxCopy()
     {
-        return new CompileExp(loc, arraySyntaxCopy(exps));
+        return new MixinExp(loc, arraySyntaxCopy(exps));
     }
 
     override bool equals(const RootObject o) const
@@ -4635,7 +4635,7 @@ extern (C++) final class CompileExp : Expression
         auto e = o.isExpression();
         if (!e)
             return false;
-        if (auto ce = e.isCompileExp())
+        if (auto ce = e.isMixinExp())
         {
             if (exps.dim != ce.exps.dim)
                 return false;
