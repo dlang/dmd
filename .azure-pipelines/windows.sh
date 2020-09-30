@@ -71,13 +71,14 @@ else
 fi
 
 ################################################################################
-# Build DMD
+# Build DMD (incl. building and running the unittests)
 ################################################################################
 
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
 
 cd "$DMD_DIR/src"
-DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" reldmd-asserts DMD="$DMD_BIN_PATH" MAKE="$DM_MAKE"
+"$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest
+DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" reldmd-asserts
 
 ################################################################################
 # Build Druntime and Phobos
