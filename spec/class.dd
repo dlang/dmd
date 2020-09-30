@@ -1276,13 +1276,7 @@ void main()
         $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
         )
 
-        $(P Multiple $(I AliasThis) are allowed. For implicit conversions
-        and forwarded lookups, all $(I AliasThis) declarations are attempted;
-        if more than one $(I AliasThis) is eligible, the ambiguity is
-        disallowed by raising an error.
-        Note: Multiple $(I AliasThis) is currently unimplemented.
-        )
-
+        $(P Multiple $(I AliasThis) are currently not allowed.)
 
 $(H2 $(LNAME2 auto, Scope Classes))
 $(B Note): Scope classes have been $(DDSUBLINK deprecate, scope for allocating classes on the stack, recommended for deprecation).
