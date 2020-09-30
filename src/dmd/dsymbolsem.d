@@ -6634,12 +6634,18 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
         if (e)  // Try to convert Expression to Dsymbol
         {
-            s = getDsymbol(e);
-            if (!s)
+            // TupleExp is naturally converted to a TupleDeclaration
+            if (auto te = e.isTupleExp())
+                s = new TupleDeclaration(te.loc, ds.ident, cast(Objects*)te.exps);
+            else
             {
-                if (e.op != TOK.error)
-                    ds.error("cannot alias an expression `%s`", e.toChars());
-                return errorRet();
+                s = getDsymbol(e);
+                if (!s)
+                {
+                    if (e.op != TOK.error)
+                        ds.error("cannot alias an expression `%s`", e.toChars());
+                    return errorRet();
+                }
             }
         }
         ds.type = t;
