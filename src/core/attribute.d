@@ -16,7 +16,10 @@
 module core.attribute;
 
 version (D_ObjectiveC)
+{
+    version = UdaOptional;
     version = UdaSelector;
+}
 
 version (Posix)
     version = UdaGNUAbiTag;
@@ -24,6 +27,7 @@ version (Posix)
 version (CoreDdoc)
 {
     version = UdaGNUAbiTag;
+    version = UdaOptional;
     version = UdaSelector;
 }
 
@@ -67,6 +71,68 @@ version (UdaSelector) struct selector
 {
     string selector;
 }
+
+/**
+ * Use this attribute to make an Objective-C interface method optional.
+ *
+ * An optional method is a method that does **not** have to be implemented in
+ * the class that implements the interface. To safely call an optional method,
+ * a runtime check should be performed to make sure the receiver implements the
+ * method.
+ *
+ * This is a special compiler recognized attribute, it has several
+ * requirements, which all will be enforced by the compiler:
+ *
+ * * The attribute can only be attached to methods which have Objective-C
+ *   linkage. That is, a method inside an interface declared as `extern (Objective-C)`
+ *
+ * * It can only be used for methods that are declared inside an interface
+ * * It can only be used once in a method declaration
+ * * It cannot be attached to a method that is a template
+ *
+ * Examples:
+ * ---
+ * import core.attribute : optional, selector;
+ *
+ * extern (Objective-C):
+ *
+ * struct objc_selector;
+ * alias SEL = objc_selector*;
+ *
+ * SEL sel_registerName(in char* str);
+ *
+ * extern class NSObject
+ * {
+ *     bool respondsToSelector(SEL sel) @selector("respondsToSelector:");
+ * }
+ *
+ * interface Foo
+ * {
+ *     @optional void foo() @selector("foo");
+ *     @optional void bar() @selector("bar");
+ * }
+ *
+ * class Bar : NSObject
+ * {
+ *     static Bar alloc() @selector("alloc");
+ *     Bar init() @selector("init");
+ *
+ *     void bar() @selector("bar")
+ *     {
+ *     }
+ * }
+ *
+ * extern (D) void main()
+ * {
+ *     auto bar = Bar.alloc.init;
+ *
+ *     if (bar.respondsToSelector(sel_registerName("bar")))
+ *         bar.bar();
+ * }
+ * ---
+ */
+version (UdaOptional)
+    enum optional;
 
 /**
  * Use this attribute to declare an ABI tag on a C++ symbol.
