@@ -5622,7 +5622,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e.targ = t;
         }
 
-        if (e.targ.isTypeExpression())
+        if (!e.tspec && e.targ.isTypeExpression())
         {
             e.type = Type.tbool;
             result = e;
@@ -5806,6 +5806,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ : tspec)
              */
             e.tspec = e.tspec.typeSemantic(e.loc, sc);
+            if (e.targ.isTypeExpression() || e.tspec.isTypeExpression())
+            {
+                e.type = Type.tbool;
+                result = e;
+                return ;
+            }
             //printf("targ  = %s, %s\n", e.targ.toChars(), e.targ.deco);
             //printf("tspec = %s, %s\n", e.tspec.toChars(), e.tspec.deco);
 

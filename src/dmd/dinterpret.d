@@ -2985,49 +2985,35 @@ public:
         if(!targe)
         {
             e.error("is expressions within type functions may only use type expressions");
+            result = ErrorExp.get();
+            return ;
         }
         auto targ = ctfeInterpret(targe.exp);
         auto te = targ.isTypeExp();
+
         result = IntegerExp.createBool(te && te.type && te.type.ty != Terror);
-        // handling of more complex isExps
-        VarDeclaration vd = null;
-        if (e.id)
-        {
-            vd = cast(VarDeclaration)e.id;
-            // vd = sym.isVarDeclaration();
-    //        ctfeGlobals.stack.push(vd);
-  //          printf("pushing vd: %s\n", vd.toChars());
-        }
 
+        auto tspece = e.tspec ? e.tspec.isTypeExpression() : null;
+        auto tspec = tspece ? ctfeInterpret(tspece.exp) : null;
+        auto ts = tspec ? tspec.isTypeExp() : null;
+
+        // handling of == and &&
+        // See IsExp handling in expressionsem.d
+        if (e.tspec && !e.id && !(e.parameters && e.parameters.dim))
         {
-            if (e.tok2 != TOK.reserved)
+            if (e.tok == TOK.colon)
             {
-                switch(e.tok2)
-                {
-                   case TOK.super_:
-                    {
-                        if (te.type.ty != Tclass)
-                        {
-                            result = IntegerExp.createBool(false);
-                            return ;
-                        }
-                        ClassDeclaration cd = (cast(TypeClass)te.type).sym;
-                        if (cd.semanticRun < PASS.semanticdone)
-                            cd.dsymbolSemantic(null);
-
-                        printf("cd:%s\n", cd.toChars());
-                        auto te2 = new TypeExp(e.loc, cd.baseClass.type);
-                        if (!vd)
-                        {
-                            printf("no vd\n");
-                        }
-                        (new AssignExp(e.loc, new VarExp(e.loc, vd), te2)).interpretRegion(istate);
-
-                    }
-                break;
-                    default: assert(0);
-                }
+                result = IntegerExp.createBool(te.type.implicitConvTo(ts.type) != MATCH.nomatch);
             }
+            else if(e.tok == TOK.equal)
+            {
+                result = IntegerExp.createBool(te.type.equals(ts.type));
+            }
+        }
+        else if (e.tok2 != TOK.reserved)
+        {
+            e.error("Complex pattern matching forms of is expressions are not supported in TypeFunctions yet");
+            result = IntegerExp.createBool(false);
         }
     }
 
