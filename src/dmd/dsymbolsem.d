@@ -6623,7 +6623,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             sc2.stc |= ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
         }
         ds.type = ds.type.addSTC(ds.storage_class);
-        ds.type.resolve(ds.loc, sc2, &e, &t, &s);
+        ds.type.resolve(ds.loc, sc2, e, t, s);
         if (sc2 != sc)
             sc2.pop();
 

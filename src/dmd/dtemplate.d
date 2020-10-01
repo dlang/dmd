@@ -1983,11 +1983,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                  * instantiation scope 'sc' and the one
                                  * belonging to the template itself. */
                                 sco = sc;
-                                taa.index.resolve(instLoc, sco, &e, &t, &s);
+                                taa.index.resolve(instLoc, sco, e, t, s);
                                 if (!e)
                                 {
                                     sco = paramscope;
-                                    taa.index.resolve(instLoc, sco, &e, &t, &s);
+                                    taa.index.resolve(instLoc, sco, e, t, s);
                                 }
                                 global.endGagging(errors);
 
@@ -3847,7 +3847,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         Expression e;
                         Type tx;
                         Dsymbol s;
-                        taa.index.resolve(Loc.initial, sc, &e, &tx, &s);
+                        taa.index.resolve(Loc.initial, sc, e, tx, s);
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }
@@ -4058,7 +4058,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         Type tx;
                         Expression e;
                         Dsymbol s;
-                        tid.resolve(tp.loc, sc, &e, &tx, &s);
+                        tid.resolve(tp.loc, sc, e, tx, s);
                         Pool!TypeIdentifier.dispose(tid);
                         if (tx)
                         {
@@ -4242,7 +4242,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     L1:
                         if (j == IDX_NOTFOUND)
                         {
-                            t2.resolve((cast(TypeIdentifier)t2).loc, sc, &e2, &t2, &s2);
+                            t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
                             if (e2)
                                 goto Le;
                             goto Lnomatch;
@@ -4261,7 +4261,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         j = templateParameterLookup(t2, parameters);
                         if (j == IDX_NOTFOUND)
                         {
-                            t2.resolve((cast(TypeIdentifier)t2).loc, sc, &e2, &t2, &s2);
+                            t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
                             if (s2)
                                 goto Ls;
                             goto Lnomatch;
@@ -6581,7 +6581,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 //printf("type %s\n", ta.toChars());
 
                 // It might really be an Expression or an Alias
-                ta.resolve(loc, sc, &ea, &ta, &sa, (flags & 1) != 0);
+                ta.resolve(loc, sc, ea, ta, sa, (flags & 1) != 0);
                 if (ea)
                     goto Lexpr;
                 if (sa)
@@ -7642,7 +7642,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
             Expression e;
             Type t;
             Dsymbol s;
-            tqual.resolve(loc, sc, &e, &t, &s);
+            tqual.resolve(loc, sc, e, t, s);
             if (!s)
             {
                 error("is not defined");
