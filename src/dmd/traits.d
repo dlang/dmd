@@ -1729,7 +1729,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (!ex && t)
                 {
                     Dsymbol s;
-                    t.resolve(e.loc, sc2, &ex, &t, &s);
+                    t.resolve(e.loc, sc2, ex, t, s);
                     if (t)
                     {
                         t.typeSemantic(e.loc, sc2);

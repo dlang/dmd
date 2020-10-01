@@ -3215,7 +3215,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t;
         Dsymbol s;
 
-        dmd.typesem.resolve(exp.type, exp.loc, sc, &e, &t, &s, true);
+        dmd.typesem.resolve(exp.type, exp.loc, sc, e, t, s, true);
         if (e)
         {
             // `(Type)` is actually `(var)` so if `(var)` is a member requiring `this`
@@ -5275,7 +5275,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (ta)
         {
-            dmd.typesem.resolve(ta, exp.loc, sc, &ea, &ta, &sa, true);
+            dmd.typesem.resolve(ta, exp.loc, sc, ea, ta, sa, true);
         }
 
         if (ea)

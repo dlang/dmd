@@ -135,7 +135,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, out Expr
 
     // Convert oindex to Expression, then try to resolve to constant.
     if (tindex)
-        tindex.resolve(loc, sc, &eindex, &tindex, &sindex);
+        tindex.resolve(loc, sc, eindex, tindex, sindex);
     if (sindex)
         eindex = symbolToExp(sindex, loc, sc, false);
     if (!eindex)
@@ -702,7 +702,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         Type t;
         Expression e;
         Dsymbol s;
-        mtype.next.resolve(loc, sc, &e, &t, &s);
+        mtype.next.resolve(loc, sc, e, t, s);
 
         if (auto tup = s ? s.isTupleDeclaration() : null)
         {
@@ -895,7 +895,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             Expression e;
             Type t;
             Dsymbol s;
-            mtype.index.resolve(loc, sc, &e, &t, &s);
+            mtype.index.resolve(loc, sc, e, t, s);
 
             //https://issues.dlang.org/show_bug.cgi?id=15478
             if (s)
@@ -1646,7 +1646,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         Expression e;
         Dsymbol s;
         //printf("TypeIdentifier::semantic(%s)\n", mtype.toChars());
-        mtype.resolve(loc, sc, &e, &t, &s);
+        mtype.resolve(loc, sc, e, t, s);
         if (t)
         {
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
@@ -1701,7 +1701,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         //printf("TypeInstance::semantic(%p, %s)\n", this, toChars());
         {
             const errors = global.errors;
-            mtype.resolve(loc, sc, &e, &t, &s);
+            mtype.resolve(loc, sc, e, t, s);
             // if we had an error evaluating the symbol, suppress further errors
             if (!t && errors != global.errors)
                 return error();
@@ -1728,7 +1728,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         Expression e;
         Type t;
         Dsymbol s;
-        mtype.resolve(loc, sc, &e, &t, &s);
+        mtype.resolve(loc, sc, e, t, s);
         if (s && (t = s.getType()) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
@@ -1852,7 +1852,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         Expression e;
         Type t;
         Dsymbol s;
-        mtype.resolve(loc, sc, &e, &t, &s);
+        mtype.resolve(loc, sc, e, t, s);
         if (s && (t = s.getType()) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
@@ -2584,27 +2584,27 @@ private void resolveExp(Expression exp, out Type t, out Expression e, out Dsymbo
  *  ps = is set if t is a symbol
  *  intypeid = true if in type id
  */
-void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type pt, out Dsymbol ps, bool intypeid = false)
 {
     void returnExp(Expression e)
     {
-        *pt = null;
-        *pe = e;
-        *ps = null;
+        pe = e;
+        pt = null;
+        ps = null;
     }
 
     void returnType(Type t)
     {
-        *pt = t;
-        *pe = null;
-        *ps = null;
+        pe = null;
+        pt = t;
+        ps = null;
     }
 
     void returnSymbol(Dsymbol s)
     {
-        *pt = null;
-        *pe = null;
-        *ps = s;
+        pe = null;
+        pt = null;
+        ps = s;
     }
 
     void returnError()
@@ -2624,17 +2624,17 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
     {
         //printf("TypeSArray::resolve() %s\n", mt.toChars());
         mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
-        //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
-        if (*pe)
+        //printf("s = %p, e = %p, t = %p\n", ps, pe, pt);
+        if (pe)
         {
             // It's really an index expression
-            if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s);
-            returnExp(new ArrayExp(loc, *pe, mt.dim));
+            if (Dsymbol s = getDsymbol(pe))
+                pe = new DsymbolExp(loc, s);
+            returnExp(new ArrayExp(loc, pe, mt.dim));
         }
-        else if (*ps)
+        else if (ps)
         {
-            Dsymbol s = *ps;
+            Dsymbol s = ps;
             if (auto tup = s.isTupleDeclaration())
             {
                 mt.dim = semanticLength(sc, tup, mt.dim);
@@ -2681,8 +2681,8 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
         else
         {
-            if ((*pt).ty != Terror)
-                mt.next = *pt; // prevent re-running semantic() on 'next'
+            if (pt.ty != Terror)
+                mt.next = pt; // prevent re-running semantic() on 'next'
             visitType(mt);
         }
 
@@ -2692,27 +2692,27 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
     {
         //printf("TypeDArray::resolve() %s\n", mt.toChars());
         mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
-        //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
-        if (*pe)
+        //printf("s = %p, e = %p, t = %p\n", ps, pe, pt);
+        if (pe)
         {
             // It's really a slice expression
-            if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s);
-            returnExp(new ArrayExp(loc, *pe));
+            if (Dsymbol s = getDsymbol(pe))
+                pe = new DsymbolExp(loc, s);
+            returnExp(new ArrayExp(loc, pe));
         }
-        else if (*ps)
+        else if (ps)
         {
-            if (auto tup = (*ps).isTupleDeclaration())
+            if (auto tup = ps.isTupleDeclaration())
             {
-                // keep *ps
+                // keep ps
             }
             else
                 visitType(mt);
         }
         else
         {
-            if ((*pt).ty != Terror)
-                mt.next = *pt; // prevent re-running semantic() on 'next'
+            if (pt.ty != Terror)
+                mt.next = pt; // prevent re-running semantic() on 'next'
             visitType(mt);
         }
     }
@@ -2727,7 +2727,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             Expression e;
             Type t;
             Dsymbol s;
-            mt.index.resolve(loc, sc, &e, &t, &s, intypeid);
+            mt.index.resolve(loc, sc, e, t, s, intypeid);
             if (e)
             {
                 // It was an expression -
@@ -2748,8 +2748,8 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
      * Takes an array of Identifiers and figures out if
      * it represents a Type or an Expression.
      * Output:
-     *      if expression, *pe is set
-     *      if type, *pt is set
+     *      if expression, pe is set
+     *      if type, pt is set
      */
     void visitIdentifier(TypeIdentifier mt)
     {
@@ -2839,9 +2839,9 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             }
         }
 
-        mt.resolveHelper(loc, sc, s, scopesym, *pe, *pt, *ps, intypeid);
-        if (*pt)
-            (*pt) = (*pt).addMod(mt.mod);
+        mt.resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
+        if (pt)
+            pt = pt.addMod(mt.mod);
     }
 
     void visitInstance(TypeInstance mt)
@@ -2853,10 +2853,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (!global.gag && mt.tempinst.errors)
             return returnError();
 
-        mt.resolveHelper(loc, sc, mt.tempinst, null, *pe, *pt, *ps, intypeid);
-        if (*pt)
-            *pt = (*pt).addMod(mt.mod);
-        //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
+        mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
+        if (pt)
+            pt = pt.addMod(mt.mod);
+        //if (pt) printf("pt = %d '%s'\n", pt.ty, pt.toChars());
     }
 
     void visitTypeof(TypeTypeof mt)
@@ -2956,15 +2956,15 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-                mt.resolveHelper(loc, sc, s, null, *pe, *pt, *ps, intypeid);
+                mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
-                resolveExp(e, *pt, *pe, *ps);
+                resolveExp(e, pt, pe, ps);
             }
-            if (*pt)
-                (*pt) = (*pt).addMod(mt.mod);
+            if (pt)
+                pt = pt.addMod(mt.mod);
         }
         mt.inuse--;
     }
@@ -2996,31 +2996,31 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-                mt.resolveHelper(loc, sc, s, null, *pe, *pt, *ps, intypeid);
+                mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
-                resolveExp(e, *pt, *pe, *ps);
+                resolveExp(e, pt, pe, ps);
             }
-            if (*pt)
-                (*pt) = (*pt).addMod(mt.mod);
+            if (pt)
+                pt = pt.addMod(mt.mod);
         }
     }
 
     void visitSlice(TypeSlice mt)
     {
         mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
-        if (*pe)
+        if (pe)
         {
             // It's really a slice expression
-            if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s);
-            return returnExp(new ArrayExp(loc, *pe, new IntervalExp(loc, mt.lwr, mt.upr)));
+            if (Dsymbol s = getDsymbol(pe))
+                pe = new DsymbolExp(loc, s);
+            return returnExp(new ArrayExp(loc, pe, new IntervalExp(loc, mt.lwr, mt.upr)));
         }
-        else if (*ps)
+        else if (ps)
         {
-            Dsymbol s = *ps;
+            Dsymbol s = ps;
             TupleDeclaration td = s.isTupleDeclaration();
             if (td)
             {
@@ -3066,8 +3066,8 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
         else
         {
-            if ((*pt).ty != Terror)
-                mt.next = *pt; // prevent re-running semantic() on 'next'
+            if (pt.ty != Terror)
+                mt.next = pt; // prevent re-running semantic() on 'next'
             visitType(mt);
         }
     }
@@ -3079,8 +3079,8 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (auto t = o.isType())
         {
             resolve(t, loc, sc, pe, pt, ps, intypeid);
-            if (*pt)
-                (*pt) = (*pt).addMod(mt.mod);
+            if (pt)
+                pt = pt.addMod(mt.mod);
         }
         else if (auto e = o.isExpression())
         {

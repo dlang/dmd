@@ -5390,7 +5390,7 @@ extern (C++) final class TypeTraits : Type
         Type t;
         Expression e;
         Dsymbol s;
-        resolve(this, loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, e, t, s);
         if (t && t.ty != Terror)
             s = t.toDsymbol(sc);
         else if (e)
@@ -5442,7 +5442,7 @@ extern (C++) final class TypeMixin : Type
         Type t;
         Expression e;
         Dsymbol s;
-        resolve(this, loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, e, t, s);
         if (t)
             s = t.toDsymbol(sc);
         else if (e)
@@ -5578,7 +5578,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         Type t;
         Expression e;
         Dsymbol s;
-        resolve(this, loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, e, t, s);
         if (t && t.ty != Tident)
             s = t.toDsymbol(sc);
         if (e)
@@ -5626,7 +5626,7 @@ extern (C++) final class TypeInstance : TypeQualified
         Expression e;
         Dsymbol s;
         //printf("TypeInstance::semantic(%s)\n", toChars());
-        resolve(this, loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, e, t, s);
         if (t && t.ty != Tinstance)
             s = t.toDsymbol(sc);
         return s;
@@ -5671,7 +5671,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         Expression e;
         Type t;
         Dsymbol s;
-        resolve(this, loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, e, t, s);
         return s;
     }
 
@@ -5716,7 +5716,7 @@ extern (C++) final class TypeReturn : TypeQualified
         Expression e;
         Type t;
         Dsymbol s;
-        resolve(this, loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, e, t, s);
         return s;
     }
 
