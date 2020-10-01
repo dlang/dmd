@@ -136,6 +136,7 @@ struct ASTBase
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
         live                = (1L << 53),   // function @live attribute
+        nodiscard           = (1L << 54),   // @nodiscard
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         IOR  = STC.in_ | STC.ref_ | STC.out_,
@@ -149,7 +150,7 @@ struct ASTBase
          STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
          STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
          STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
-         STC.gshared | STC.property | STC.live |
+         STC.gshared | STC.property | STC.live | STC.nodiscard |
          STC.safeGroup | STC.disable);
 
     enum ENUMTY : int
@@ -6685,6 +6686,7 @@ struct ASTBase
             SCstring(STC.live, TOK.at, "@live"),
             SCstring(STC.disable, TOK.at, "@disable"),
             SCstring(STC.future, TOK.at, "@__future"),
+            SCstring(STC.nodiscard, TOK.at, "@nodiscard"),
             SCstring(0, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)

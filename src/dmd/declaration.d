@@ -253,6 +253,7 @@ enum STC : ulong
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
     returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
     live                = (1L << 53),   // function @live attribute
+    nodiscard           = (1L << 54),   // @nodiscard
 
     // Group members are mutually exclusive (there can be only one)
     safeGroup = STC.safe | STC.trusted | STC.system,
@@ -269,7 +270,7 @@ enum STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
      STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
-     STC.property | STC.safeGroup | STC.disable | STC.local | STC.live);
+     STC.property | STC.safeGroup | STC.disable | STC.local | STC.live | STC.nodiscard);
 
 /* These storage classes "flow through" to the inner scope of a Dsymbol
  */

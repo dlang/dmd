@@ -202,6 +202,7 @@ immutable Msgtable[] msgtable =
     { "property" },
     { "nogc" },
     { "live" },
+    { "nodiscard" },
     { "safe" },
     { "trusted" },
     { "system" },

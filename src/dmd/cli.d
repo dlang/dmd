@@ -771,6 +771,8 @@ dmd -cov -unittest myprog.d
             "disable access to shared memory objects"),
         Feature("in", "previewIn",
             "`in` on parameters means `scope const [ref]` and accepts rvalues"),
+        Feature("nodiscard", "nodiscardAttribute",
+            "enable `@nodiscard` attribute"),
         // DEPRECATED previews
         // trigger deprecation message once D repositories don't use this flag anymore
         Feature("markdown", "markdown", "enable Markdown replacements in Ddoc", false, false),
