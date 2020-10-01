@@ -1438,6 +1438,13 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
             Expression ex = condexp.expressionSemantic(sc);
             if (ex.op == TOK.error)
                 e = ex;
+            else if (e.op == TOK.function_ || e.op == TOK.delegate_)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=21285
+                // Functions and delegates don't convert correctly with castTo below
+                (*exps)[j0] = condexp.e1;
+                e = condexp.e2;
+            }
             else
             {
                 // Convert to common type
