@@ -2496,6 +2496,7 @@ public:
             expandTuples(expsx);
             if (expsx.dim != dim)
             {
+                // printf("expsx: %s, e.elements %s\n", expsx.toChars(), e.elements.toChars());
                 e.error("CTFE internal error: invalid array literal");
                 result = CTFEExp.cantexp;
                 return;

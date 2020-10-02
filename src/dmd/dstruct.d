@@ -418,7 +418,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
         }
 
-        argTypes = target.toArgTypes(type);
+        if (!type.isAliasType())
+            argTypes = target.toArgTypes(type);
     }
 
     /***************************************
