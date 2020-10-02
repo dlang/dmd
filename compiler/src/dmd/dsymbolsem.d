@@ -5932,10 +5932,28 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         return aliasInstanceSemantic(tempinst, sc, tempdecl);
     }
 
+    /* See if recursive instantiation of template.
+     * Do not cache instances of recursion in instances[]
+     */
+    bool isRecursive = false;
+    if (sc.parent && tempdecl.isVariadic() &&     // variadic templates used for recursive templates
+        !target.objectFormat() != Target.ObjectFormat.coff) // explanation: https://github.com/dlang/dmd/pull/11820
+    {
+        if (auto tp = sc.parent.isTemplateInstance())
+        {
+            if (tp.tempdecl == tempinst.tempdecl &&        // if parent is instantiation of the same template
+                tp.tiargs.length > tempinst.tiargs.length) // and there are fewer arguments
+            {
+                //printf("isRecursive = %d\n", isRecursive);
+                isRecursive = true;
+            }
+        }
+    }
+
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
-    tempinst.inst = tempdecl.findExistingInstance(tempinst, fargs);
+    tempinst.inst = isRecursive ? null : tempdecl.findExistingInstance(tempinst, fargs);
     TemplateInstance errinst = null;
     if (!tempinst.inst)
     {
@@ -6089,7 +6107,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     TemplateStats.incUnique(tempdecl, tempinst);
 
-    TemplateInstance tempdecl_instance_idx = tempdecl.addInstance(tempinst);
+    TemplateInstance tempdecl_instance_idx = isRecursive ? null : tempdecl.addInstance(tempinst);
 
     //getIdent();
 
