@@ -1445,7 +1445,16 @@ MATCH implicitConvTo(Expression e, Type t)
             if (tb.ty == Tpointer && e.e1.op == TOK.string_)
                 e.e1.accept(this);
         }
+
+        override void visit(TypeExp e)
+        {
+            // TODO FIXME this should work
+            // MATCH match = e.type.implicitConvTo(t);
+            if (t.ty == Talias)
+                result = MATCH.convert;
+        }
     }
+
 
     scope ImplicitConvTo v = new ImplicitConvTo(t);
     e.accept(v);
