@@ -1223,13 +1223,10 @@ extern (C++) class VarDeclaration : Declaration
         if (t.ty == Terror)
             return;
 
-        if (t.ty == Talias)
-            return;
-
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
-        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
+        uint memalignsize = (t.ty == Talias) ? 1 : target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
             poffset,
             memsize, memalignsize, alignment,
