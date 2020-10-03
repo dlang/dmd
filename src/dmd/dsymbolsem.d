@@ -6673,33 +6673,16 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     }
 }
 
-// Create a new scope from sc.
+/// Create a new scope from sc.
 Scope* newScope(Dsymbol dsym, Scope* sc)
 {
-    scope v = new ScopeVisitor(sc);
-    dsym.accept(v);
-    return v.result;
-}
-
-private extern(C++) final class ScopeVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-
-    private Scope* sc;
-    Scope* result;
-
-    this(Scope* sc,)
-    {
-        this.sc = sc;
-    }
-
     /****************************************
     * Create a new scope if one or more given attributes
     * are different from the sc's.
     * If the returned scope != sc, the caller should pop
     * the scope after it used.
     */
-    private static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
         CPPMANGLE cppmangle, Prot protection, int explicitProtection,
         AlignDeclaration aligndecl, PINLINE inlining)
     {
@@ -6725,7 +6708,7 @@ private extern(C++) final class ScopeVisitor : Visitor
         return sc2;
     }
 
-    override void visit(AggregateDeclaration ad)
+    Scope* visitAggregateDeclaration(AggregateDeclaration ad)
     {
         auto sc2 = sc.push(ad);
         sc2.stc &= STCFlowThruAggregate;
@@ -6736,13 +6719,12 @@ private extern(C++) final class ScopeVisitor : Visitor
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
         sc2.namespace = null;
-        result = sc2;
+        return sc2;
     }
 
-    override void visit(ClassDeclaration cd)
+    Scope* visitClassDeclaration(ClassDeclaration cd)
     {
-        visit(cast(AggregateDeclaration) cd);
-        auto sc2 = result;
+        auto sc2 = visitAggregateDeclaration(cast(AggregateDeclaration)cd);
         if (cd.isCOMclass())
         {
             /* This enables us to use COM objects under Linux and
@@ -6750,28 +6732,22 @@ private extern(C++) final class ScopeVisitor : Visitor
              */
             sc2.linkage = target.systemLinkage();
         }
-        result = sc2;
+        return sc2;
     }
 
-    override void visit(InterfaceDeclaration id)
+    Scope* visitInterfaceDeclaration(InterfaceDeclaration id)
     {
-        visit(cast(ClassDeclaration) id);
-        auto sc2 = result;
+        auto sc2 = visitClassDeclaration(cast(ClassDeclaration)id);
         if (id.com)
             sc2.linkage = LINK.windows;
         else if (id.classKind == ClassKind.cpp)
             sc2.linkage = LINK.cpp;
         else if (id.classKind == ClassKind.objc)
             sc2.linkage = LINK.objc;
-        result = sc2;
+        return sc2;
     }
 
-    override void visit(AttribDeclaration ad)
-    {
-        result = sc;
-    }
-
-    override void visit(StorageClassDeclaration scd)
+    Scope* visitStorageClassDeclaration(StorageClassDeclaration scd)
     {
         StorageClass scstc = sc.stc;
         /* These sets of storage classes are mutually exclusive,
@@ -6789,7 +6765,7 @@ private extern(C++) final class ScopeVisitor : Visitor
             scstc &= ~(STC.safe | STC.trusted | STC.system);
         scstc |= scd.stc;
         //printf("scstc = x%llx\n", scstc);
-        result = createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
+        return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
             sc.protection, sc.explicitProtection, sc.aligndecl, sc.inlining);
     }
 
@@ -6800,52 +6776,36 @@ private extern(C++) final class ScopeVisitor : Visitor
      * in any function overriding `newScope`), then set the `Scope`'s depdecl.
      *
      */
-    override void visit(DeprecatedDeclaration dd)
+    Scope* visitDeprecatedDeclaration(DeprecatedDeclaration dd)
     {
-        this.visit(cast(StorageClassDeclaration) dd);
+        Scope* sc2 = visitStorageClassDeclaration(dd);
         // The enclosing scope is deprecated as well
-        if (result == sc)
-            result = sc.push();
-        result.depdecl = dd;
-    }
-
-    override void visit(LinkDeclaration ld)
-    {
-        result = createNewScope(sc, sc.stc, ld.linkage, sc.cppmangle, sc.protection, sc.explicitProtection,
-            sc.aligndecl, sc.inlining);
-    }
-
-    override void visit(CPPMangleDeclaration cppmd)
-    {
-        result = createNewScope(sc, sc.stc, LINK.cpp, cppmd.cppmangle, sc.protection, sc.explicitProtection,
-            sc.aligndecl, sc.inlining);
+        if (sc2 == sc)
+            sc2 = sc.push();
+        sc2.depdecl = dd;
+        return sc2;
     }
 
     /**
      * Returns:
      *   A copy of the parent scope, with `cppnd` as `namespace` and C++ linkage
      */
-    override void visit(CPPNamespaceDeclaration cppnd)
+    Scope* visitCPPNamespaceDeclaration(CPPNamespaceDeclaration cppnd)
     {
         auto scx = sc.copy();
         scx.linkage = LINK.cpp;
         scx.namespace = cppnd;
-        result = scx;
+        return scx;
     }
 
-    override void visit(ProtDeclaration pd)
+    Scope* visitProtDeclaration(ProtDeclaration pd)
     {
         if (pd.pkg_identifiers)
             dsymbolSemantic(pd, sc);
-        result = createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, pd.protection, 1, sc.aligndecl, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, pd.protection, 1, sc.aligndecl, sc.inlining);
     }
 
-    override void visit(AlignDeclaration ad)
-    {
-        result = createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, ad, sc.inlining);
-    }
-
-    override void visit(PragmaDeclaration pd)
+    Scope* visitPragmaDeclaration(PragmaDeclaration pd)
     {
         if (pd.ident == Id.Pinline)
         {
@@ -6874,8 +6834,8 @@ private extern(C++) final class ScopeVisitor : Visitor
                 else if (e.isBool(false))
                     inlining = PINLINE.never;
             }
-            result = createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
-            return;
+            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection,
+                sc.aligndecl, inlining);
         }
         if (pd.ident == Id.printf || pd.ident == Id.scanf)
         {
@@ -6887,21 +6847,12 @@ private extern(C++) final class ScopeVisitor : Visitor
             else
                 sc2.flags = (sc2.flags & ~SCOPE.printf) | SCOPE.scanf;
 
-            result = sc2;
-            return;
+            return sc2;
         }
-        result = sc;
+        return sc;
     }
 
-    /**************************************
-     * Use the ForwardingScopeDsymbol as the parent symbol for members.
-     */
-    override void visit(ForwardingAttribDeclaration fad)
-    {
-        result = sc.push(fad.sym);
-    }
-
-    override void visit(UserAttributeDeclaration uad)
+    Scope* visitUserAttributeDeclaration(UserAttributeDeclaration uad)
     {
         Scope* sc2 = sc;
         if (uad.atts && uad.atts.dim)
@@ -6910,6 +6861,33 @@ private extern(C++) final class ScopeVisitor : Visitor
             sc2 = sc.copy();
             sc2.userAttribDecl = uad;
         }
-        result = sc2;
+        return sc2;
+    }
+
+    import dmd.asttypename : astTypeName;
+    switch (astTypeName(dsym))
+    {
+        case "UnionDeclaration":
+        case "StructDeclaration":
+        case "AggregateDeclaration": return visitAggregateDeclaration(cast(AggregateDeclaration)dsym);
+        case "ClassDeclaration": return visitClassDeclaration(cast(ClassDeclaration)dsym);
+        case "InterfaceDeclaration": return visitInterfaceDeclaration(cast(InterfaceDeclaration)dsym);
+        case "StorageClassDeclaration": return visitStorageClassDeclaration(cast(StorageClassDeclaration)dsym);
+        case "DeprecatedDeclaration": return visitDeprecatedDeclaration(cast(DeprecatedDeclaration)dsym);
+        case "LinkDeclaration":
+            return createNewScope(sc, sc.stc, (cast(LinkDeclaration)dsym).linkage, sc.cppmangle,
+                sc.protection, sc.explicitProtection, sc.aligndecl, sc.inlining);
+        case "CPPMangleDeclaration":
+            return createNewScope(sc, sc.stc, LINK.cpp, (cast(CPPMangleDeclaration)dsym).cppmangle,
+                sc.protection, sc.explicitProtection, sc.aligndecl, sc.inlining);
+        case "CPPNamespaceDeclaration": return visitCPPNamespaceDeclaration(cast(CPPNamespaceDeclaration)dsym);
+        case "ProtDeclaration": return visitProtDeclaration(cast(ProtDeclaration)dsym);
+        case "AlignDeclaration":
+            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection,
+                cast(AlignDeclaration)dsym, sc.inlining);
+        case "PragmaDeclaration": return visitPragmaDeclaration(cast(PragmaDeclaration)dsym);
+        case "ForwardingAttribDeclaration": return sc.push((cast(ForwardingAttribDeclaration)dsym).sym);
+        case "UserAttributeDeclaration": return visitUserAttributeDeclaration(cast(UserAttributeDeclaration)dsym);
+        default: return sc;
     }
 }
