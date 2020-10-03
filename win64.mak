@@ -59,8 +59,8 @@ $(mak\SRCS)
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
 
-OBJS= errno_c_$(MODEL).obj msvc_$(MODEL).obj msvc_math_$(MODEL).obj
-OBJS_TO_DELETE= errno_c_$(MODEL).obj msvc_$(MODEL).obj msvc_math_$(MODEL).obj
+OBJS= errno_c_$(MODEL).obj
+OBJS_TO_DELETE= errno_c_$(MODEL).obj
 
 ######################## Header file generation ##############################
 
@@ -77,12 +77,6 @@ copy:
 
 errno_c_$(MODEL).obj : src\core\stdc\errno.c
 	"$(CC)" -c -Fo$@ $(CFLAGS) src\core\stdc\errno.c
-
-msvc_$(MODEL).obj : src\rt\msvc.c win64.mak
-	"$(CC)" -c -Fo$@ $(CFLAGS) src\rt\msvc.c
-
-msvc_math_$(MODEL).obj : src\rt\msvc_math.c win64.mak
-	"$(CC)" -c -Fo$@ $(CFLAGS) src\rt\msvc_math.c
 
 ################### Library generation #########################
 
