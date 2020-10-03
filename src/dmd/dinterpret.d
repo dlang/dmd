@@ -2991,24 +2991,27 @@ public:
         }
         auto targ = ctfeInterpret(targe.exp);
         auto te = targ.isTypeExp();
-
-        result = IntegerExp.createBool(te && te.type && te.type.ty != Terror);
+        /// tet is short for typeExp.type;
+        auto tet = te ? te.type : null;
+        result = IntegerExp.createBool(tet && tet.ty != Terror);
 
         auto tspece = e.tspec ? e.tspec.isTypeExpression() : null;
         auto tspec = tspece ? ctfeInterpret(tspece.exp) : null;
-        auto ts = tspec ? tspec.isTypeExp() : null;
+		auto te_spec = tspec ? tspec.isTypeExp() : null;
+        auto ts = te_spec ? te_spec.type : e.tspec;
 
         // handling of == and &&
         // See IsExp handling in expressionsem.d
         if (e.tspec && !e.id && !(e.parameters && e.parameters.dim))
         {
+			assert(ts);
             if (e.tok == TOK.colon)
             {
-                result = IntegerExp.createBool(te.type.implicitConvTo(ts.type) != MATCH.nomatch);
+                result = IntegerExp.createBool(tet.implicitConvTo(ts) != MATCH.nomatch);
             }
             else if(e.tok == TOK.equal)
             {
-                result = IntegerExp.createBool(te.type.equals(ts.type));
+                result = IntegerExp.createBool(tet.equals(ts));
             }
         }
         else if (e.tok2 != TOK.reserved)
