@@ -242,6 +242,7 @@ extern(C++, "foo", "bar", "baz") int doStuff(int);
 version(CppRuntime_DigitalMars) // DMC doesn't support c++11
 {
     void test40() {}
+    void test41() {}
 }
 else
 {
@@ -262,6 +263,13 @@ else
 
     alias FooVargs = foovargs!(int, float);
     alias FooVargs2 = foovargs!(char*);
+
+    void test41();
+    void make_shared_poc(T, Args...)(ref Args args)
+    {
+       assert(args[0] + args[1] == 3);
+    }
+    alias Make_Shared_Poc =  make_shared_poc!(int, int, int);
 }
 
 void main()
@@ -357,4 +365,5 @@ void main()
     assert(doStuff(2) == 4);
 
     test40();
+    test41();
 }
