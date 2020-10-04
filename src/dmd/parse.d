@@ -8124,6 +8124,12 @@ final class Parser(AST) : Lexer
                 e = new AST.CallExp(loc, e, parseArguments());
                 break;
             }
+            // if the type is not followed by a dot then the type is a type expression
+            if (token.value != TOK.dot)
+            {
+                e = new AST.TypeExp(loc, t);
+                break;
+            }
             check(TOK.dot, t.toChars());
             if (token.value != TOK.identifier)
             {
