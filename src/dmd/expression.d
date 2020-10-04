@@ -1431,7 +1431,8 @@ extern (C++) abstract class Expression : ASTNode
 
                 // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
                 // so don't print anything to avoid double error messages.
-                if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT))
+                if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
+                    || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX))
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
@@ -6229,6 +6230,7 @@ extern (C++) final class UshrAssignExp : BinAssignExp
  */
 extern (C++) class CatAssignExp : BinAssignExp
 {
+    bool isCTFEHookPart;
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOK.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);

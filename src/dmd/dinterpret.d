@@ -4735,6 +4735,10 @@ public:
                 result = interpretRegion(ae, istate);
                 return;
             }
+            else if (fd.ident == Id._d_arrayappendT)
+                assert(0, "CTFE cannot interpret _d_arrayappendT!");
+            else if (fd.ident == Id._d_arrayappendcTX)
+                assert(0, "CTFE cannot interpret _d_arrayappendcTX!");
         }
         else if (auto soe = ecall.isSymOffExp())
         {
