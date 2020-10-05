@@ -254,16 +254,6 @@ extern (C++) struct Target
     }
 
     /**
-     * Size of the target OS critical section.
-     * Returns:
-     *      size in bytes
-     */
-    extern (C++) uint critsecsize()
-    {
-        return c.criticalSectionSize;
-    }
-
-    /**
      * Type for the `va_list` type for the target; e.g., required for `_argptr`
      * declarations.
      * NOTE: For Posix/x86_64 this returns the type which will really
@@ -931,7 +921,6 @@ struct TargetC
 {
     uint longsize;            /// size of a C `long` or `unsigned long` type
     uint long_doublesize;     /// size of a C `long double`
-    uint criticalSectionSize; /// size of os critical section
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
@@ -954,51 +943,6 @@ struct TargetC
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
-
-        criticalSectionSize = getCriticalSectionSize(params);
-    }
-
-    private static uint getCriticalSectionSize(ref const Param params) pure
-    {
-        if (params.targetOS == TargetOS.Windows)
-        {
-            // sizeof(CRITICAL_SECTION) for Windows.
-            return params.isLP64 ? 40 : 24;
-        }
-        else if (params.targetOS == TargetOS.linux)
-        {
-            // sizeof(pthread_mutex_t) for Linux.
-            if (params.is64bit)
-                return params.isLP64 ? 40 : 32;
-            else
-                return params.isLP64 ? 40 : 24;
-        }
-        else if (params.targetOS == TargetOS.FreeBSD)
-        {
-            // sizeof(pthread_mutex_t) for FreeBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.targetOS == TargetOS.OpenBSD)
-        {
-            // sizeof(pthread_mutex_t) for OpenBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.targetOS == TargetOS.DragonFlyBSD)
-        {
-            // sizeof(pthread_mutex_t) for DragonFlyBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.targetOS == TargetOS.OSX)
-        {
-            // sizeof(pthread_mutex_t) for OSX.
-            return params.isLP64 ? 64 : 44;
-        }
-        else if (params.targetOS == TargetOS.Solaris)
-        {
-            // sizeof(pthread_mutex_t) for Solaris.
-            return 24;
-        }
-        assert(0);
     }
 }
 

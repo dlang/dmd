@@ -303,7 +303,7 @@ immutable Msgtable[] msgtable =
     { "aaRehash", "_aaRehash" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
-    { "criticalenter", "_d_criticalenter" },
+    { "criticalenter", "_d_criticalenter2" },
     { "criticalexit", "_d_criticalexit" },
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
