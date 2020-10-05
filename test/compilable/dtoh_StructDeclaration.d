@@ -121,6 +121,12 @@ struct A
     {
     }
 };
+
+union U
+{
+    int32_t i;
+    char c;
+};
 ---
 */
 
@@ -205,4 +211,10 @@ extern (C++) struct A
 
     extern(C++) class C;
 
+}
+
+extern(C++) union U
+{
+    int i;
+    char c;
 }

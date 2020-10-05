@@ -59,8 +59,7 @@ struct S
 
 union U
 {
-    // int a;   // FIXME: Generates struct constructor
-                // U() : a(), b() {}
+    int a;
     bool b;
 }
 

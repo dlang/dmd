@@ -960,7 +960,7 @@ public:
         buf.level--;
         adparent = save;
         // Generate default ctor
-        if (!sd.noDefaultCtor)
+        if (!sd.noDefaultCtor && !sd.isUnionDeclaration())
         {
             buf.level++;
             buf.printf("%s()", sd.ident.toChars());

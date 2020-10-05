@@ -9,6 +9,7 @@ experimental C++ header generator:
 - Tuple members/parameters/variables are emitted as individual variables
   using the compiler internal names instaed of causing an assertion failure.
 - Interfaces are now emitted as base classes.
+- No auto-generated default constructor for unions
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
