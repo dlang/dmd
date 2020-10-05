@@ -1698,6 +1698,11 @@ class BuildRule
             {
                 command.run;
             }
+            else
+                // Do not automatically return true if the target has neither
+                // command nor command function (e.g. dmdDefault) to avoid
+                // unecessary rebuilds
+                return depUpdated;
         }
 
         return true;
