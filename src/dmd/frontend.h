@@ -3572,9 +3572,6 @@ struct UnionExp
         char indexexp[82LLU];
         char sliceexp[83LLU];
         char vectorexp[69LLU];
-        __AnonStruct__u()
-        {
-        }
     };
     #pragma pack(pop)
 
