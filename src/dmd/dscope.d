@@ -37,9 +37,6 @@ import dmd.root.rmem;
 import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
-// import core.stdc.string : ;
-// import dmd.arraytypes : ;
-// import dmd.root.outbuffer : ;
 
 //version=LOGSEARCH;
 

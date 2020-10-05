@@ -68,18 +68,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-// import core.stdc.stddef : ;
-// import core.stdc.time : ;
 
-// import dmd.root.rootobject : ;
-// import dmd.dscope : ;
-// import dmd.statement : ;
-// import dmd.backend.cgcv : ;
-// import dmd.backend.code : ;
-// import dmd.backend.code_x86 : ;
-// import dmd.backend.cv4 : ;
-// import dmd.backend.el : ;
-// import dmd.backend.oper : ;
 extern (C++):
 
 alias toSymbol = dmd.tocsym.toSymbol;

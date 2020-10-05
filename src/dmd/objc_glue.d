@@ -43,9 +43,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.mach;
 import dmd.backend.obj;
-// import dmd.backend.oper : ;
-// import dmd.backend.outbuf : ;
-// import dmd.backend.obj : ;
 
 private __gshared ObjcGlue _objc;
 

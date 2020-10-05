@@ -40,7 +40,6 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
 import dmd.visitor;
-// import dmd.errors : ;
 
 enum LOG = false;
 

@@ -29,11 +29,6 @@ import dmd.mtype;
 import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
-// import dmd.arraytypes : ;
-// import dmd.attrib : ;
-// import dmd.dstruct : ;
-// import dmd.dtemplate : ;
-// import dmd.init : ;
 
 /********************************************
  * Returns true if the expression may throw exceptions.

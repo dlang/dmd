@@ -51,9 +51,6 @@ import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-// import dmd.canthrow : ;
-// import dmd.dclass : ;
-// import dmd.dinterpret : ;
 
 /**
  * Returns:

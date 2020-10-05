@@ -14,7 +14,6 @@
 
 module dmd.dmangle;
 
-// import core.stdc.ctype : ;
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
@@ -40,7 +39,6 @@ import dmd.target;
 import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
-// import dmd.arraytypes : ;
 
 private immutable char[TMAX] mangleChar =
 [

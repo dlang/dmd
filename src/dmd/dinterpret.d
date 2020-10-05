@@ -46,8 +46,6 @@ import dmd.statement;
 import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
-// import core.stdc.stdlib : ;
-// import dmd.apply : ;
 
 /*************************************
  * Entry point for CTFE.

@@ -12,8 +12,6 @@
 module dmd.ob;
 
 import core.stdc.stdio : printf;
-// import core.stdc.stdlib : ;
-// import core.stdc.string : ;
 import core.stdc.stdlib;
 import core.stdc.string;
 
@@ -45,14 +43,6 @@ import dmd.visitor;
 
 import dmd.root.bitarray;
 import dmd.root.outbuffer;
-// import dmd.root.rootobject : ;
-// import dmd.aggregate : ;
-// import dmd.apply : ;
-// import dmd.dscope : ;
-// import dmd.errors : ;
-// import dmd.identifier : ;
-// import dmd.init : ;
-// import dmd.printast : ;
 
 /**********************************
  * Perform ownership/borrowing checks for funcdecl.

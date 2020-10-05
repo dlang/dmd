@@ -19,8 +19,6 @@ import dmd.dsymbol;
 import dmd.mtype;
 import dmd.statement;
 import dmd.root.file;
-// import dmd.mtype : ;
-// import dmd.root.file : ;
 
 version (NoBackend)
 {

@@ -11,7 +11,6 @@
 
 module dmd.argtypes_sysv_x64;
 
-// import dmd.declaration : ;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;

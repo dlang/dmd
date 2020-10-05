@@ -21,7 +21,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.visitor;
-// import dmd.mtype : ;
 
 /***********************************************************
  */

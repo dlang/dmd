@@ -36,8 +36,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.tokens;
-// import dmd.dstruct : ;
-// import dmd.dtemplate : ;
 import dmd.typesem : defaultInit;
 import dmd.visitor;
 

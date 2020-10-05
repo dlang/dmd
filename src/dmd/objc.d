@@ -26,8 +26,6 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
-// import dmd.dmodule : ;
-// import dmd.dstruct : ;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;

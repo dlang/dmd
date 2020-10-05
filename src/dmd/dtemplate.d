@@ -75,8 +75,6 @@ import dmd.typesem;
 import dmd.visitor;
 
 import dmd.templateparamsem;
-// import dmd.opover : ;
-// import dmd.semantic2 : ;
 
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;

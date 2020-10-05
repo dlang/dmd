@@ -24,10 +24,6 @@ import dmd.mtype;
 import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.tokens;
-// import dmd.dmodule : ;
-// import dmd.dsymbol : ;
-// import dmd.errors : ;
-// import dmd.identifier : ;
 
 
 

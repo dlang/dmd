@@ -23,7 +23,6 @@
 
 module dmd.cppmangle;
 
-// import core.stdc.string : ;
 import core.stdc.string;
 import core.stdc.stdio;
 
@@ -48,7 +47,6 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
-// import dmd.typesem : ;
 
 
 // helper to check if an identifier is a C++ operator

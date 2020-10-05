@@ -13,7 +13,6 @@
 
 module dmd.builtin;
 
-// import core.stdc.math : ;
 import core.stdc.math;
 import core.stdc.string;
 import dmd.arraytypes;
@@ -27,7 +26,6 @@ import dmd.root.ctfloat;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.id;
-// import dmd.root.stringtable : ;
 static import core.bitop;
 
 /**********************************

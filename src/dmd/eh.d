@@ -33,11 +33,7 @@ import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
-// import core.stdc.stdlib : ;
-// import core.stdc.string : ;
 
-// import dmd.root.rmem : ;
-// import dmd.backend.el : ;
 extern (C++):
 
 

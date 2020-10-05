@@ -24,7 +24,6 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.rmem;
 import dmd.visitor;
-// import dmd.expression : ;
 
 /***********************************************************
  */

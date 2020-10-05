@@ -65,11 +65,6 @@ import dmd.toir;
 import dmd.toobj;
 import dmd.typesem;
 import dmd.utils;
-// import dmd.root.file : ;
-// import dmd.declaration : ;
-// import dmd.dmangle : ;
-// import dmd.dstruct : ;
-// import dmd.dtemplate : ;
 
 extern (C++):
 

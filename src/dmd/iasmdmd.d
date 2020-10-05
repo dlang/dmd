@@ -44,7 +44,6 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-// import dmd.init : ;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;

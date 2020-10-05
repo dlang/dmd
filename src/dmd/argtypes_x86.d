@@ -14,7 +14,6 @@ module dmd.argtypes_x86;
 import core.stdc.stdio;
 import core.checkedint;
 
-// import dmd.declaration : ;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;

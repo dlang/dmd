@@ -17,7 +17,6 @@ module dmd.mars;
 
 import core.stdc.ctype;
 import core.stdc.limits;
-// import core.stdc.limits : ;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -37,8 +36,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
-// import dmd.astcodegen : ;
-// import dmd.builtin : ;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;

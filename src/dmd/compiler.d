@@ -11,7 +11,6 @@
 
 module dmd.compiler;
 
-// import dmd.astcodegen : ;
 import dmd.astcodegen;
 import dmd.arraytypes;
 import dmd.dmodule;
@@ -22,9 +21,7 @@ import dmd.expression;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-// import dmd.dsymbolsem : ;
 import dmd.mtype;
-// import dmd.parse : ;
 import dmd.parse;
 import dmd.root.array;
 import dmd.root.ctfloat;
@@ -32,9 +29,6 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
 import dmd.statement;
-// import dmd.semantic2 : ;
-// import dmd.semantic3 : ;
-// import dmd.tokens : ;
 
 extern (C++) __gshared
 {

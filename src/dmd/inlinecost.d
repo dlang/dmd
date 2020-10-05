@@ -35,16 +35,7 @@ import dmd.opover;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
-// import core.stdc.string : ;
 
-// import dmd.arraytypes : ;
-// import dmd.dclass : ;
-// import dmd.dmodule : ;
-// import dmd.dscope : ;
-// import dmd.dsymbol : ;
-// import dmd.identifier : ;
-// import dmd.init : ;
-// import dmd.opover : ;
 enum COST_MAX = 250;
 
 private enum STATEMENT_COST = 0x1000;

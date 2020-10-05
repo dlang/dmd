@@ -5,9 +5,6 @@
 
 module dmd.transitivevisitor;
 
-// import dmd.permissivevisitor : ;
-// import dmd.tokens : ;
-// import dmd.root.rootobject : ;
 import dmd.permissivevisitor;
 import dmd.tokens;
 import dmd.root.rootobject;
