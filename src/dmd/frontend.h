@@ -1764,11 +1764,9 @@ struct TargetC
 {
     uint32_t longsize;
     uint32_t long_doublesize;
-    uint32_t criticalSectionSize;
     TargetC() :
         longsize(),
-        long_doublesize(),
-        criticalSectionSize()
+        long_doublesize()
     {
     }
 };
@@ -6722,7 +6720,6 @@ public:
     void deinitialize();
     uint32_t alignsize(Type* type);
     uint32_t fieldalign(Type* type);
-    uint32_t critsecsize();
     Type* va_listType(const Loc& loc, Scope* sc);
     int32_t isVectorTypeSupported(int32_t sz, Type* type);
     bool isVectorOpSupported(Type* type, uint8_t op, Type* t2 = nullptr);
