@@ -13,11 +13,10 @@ void testWithAllAttributes() @safe pure nothrow @nogc
 
     // rvalues
     testin1(42);
-    testin2([42, ulong.max, ulong.min, 42UL]);
+    testin2((ulong[64]).init);
     testin3(ValueT(42));
     testin3(RefT(42));
-    testin4([ValueT(0), ValueT(1), ValueT(2), ValueT(3),
-             ValueT(4), ValueT(5), ValueT(6), ValueT(7)]);
+    testin4((ValueT[64]).init);
     testin4([RefT(42), RefT(84), RefT(126), RefT(4)]);
     testin5(NonCopyable(true));
     testin6(WithPostblit(true));
@@ -27,14 +26,14 @@ void testWithAllAttributes() @safe pure nothrow @nogc
     isTestOver = false;
 
     // lvalues
-    uint      a1;
-    ulong[4]  a2;
-    ValueT    a3;
-    ValueT[8] a4;
-    RefT      a5;
-    RefT[4]   a6;
+    uint       a1;
+    ulong[64]  a2;
+    ValueT     a3;
+    ValueT[64] a4;
+    RefT       a5;
+    RefT[4]    a6;
     NonCopyable  a7 = NonCopyable(true);
-    WithPostblit  a8;
+    WithPostblit a8;
     WithCopyCtor a9;
     WithDtor     a10 = WithDtor(&isTestOver);
 
@@ -118,7 +117,7 @@ void testForeach() @safe pure
 }
 
 struct ValueT { int value; }
-struct RefT   { ubyte[64] value; }
+struct RefT   { ulong[64] value; }
 
 struct NonCopyable
 {
@@ -155,25 +154,26 @@ struct WithDtor
 @safe pure nothrow @nogc:
 
 // By value
-void testin1(in uint p) {}
+void testin1(in uint p) { static assert(!__traits(isRef, p)); }
 // By ref because of size
-void testin2(in ulong[4] p) {}
+void testin2(in ulong[64] p) { static assert(__traits(isRef, p)); }
 // By value or ref depending on size
-void testin3(in ValueT p) {}
-void testin3(in RefT p) {}
+void testin3(in ValueT p) { static assert(!__traits(isRef, p)); }
+void testin3(in RefT p) { static assert(__traits(isRef, p)); }
 // By ref because of size
-void testin4(in ValueT[8] p) {}
-void testin4(in RefT[4] p) {}
+void testin4(in ValueT[64] p) { static assert(__traits(isRef, p)); }
+void testin4(in RefT[4] p) { static assert(__traits(isRef, p)); }
 
 // By ref because of non-copyability
-void testin5(in NonCopyable noncopy) {}
+void testin5(in NonCopyable noncopy) { static assert(__traits(isRef, noncopy)); }
 //  By ref because of postblit
-void testin6(in WithPostblit withposblit) {}
+void testin6(in WithPostblit withpostblit) { static assert(__traits(isRef, withpostblit)); }
 //  By ref because of copy ctor
-void testin7(in WithCopyCtor withcopy) {}
+void testin7(in WithCopyCtor withcopy) { static assert(__traits(isRef, withcopy)); }
 //  By ref because of dtor
 void testin8(in WithDtor withdtor, scope bool* isTestOver)
 {
+    static assert(__traits(isRef, withdtor));
     if (isTestOver)
         *isTestOver = true;
 }

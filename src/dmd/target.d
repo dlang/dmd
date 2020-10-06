@@ -776,59 +776,53 @@ extern (C++) struct Target
     }
 
     /**
-     * Determine which `in` parameters needs to be passed by `ref`
-     *
-     * Called from `TypeFunction` semantic with the full function type.
-     * This routine must iterate over parameters, and may set `STC.ref_`
-     * for any parameter which already have `STC.in_`.
-     * This hook must never set `STC.ref_` if the parameter is not `STC.in_`,
-     * nor should it ever change anything else.
-     *
-     * This hook will not be called when `-preview=in` wasn't passed to the
-     * frontend, hence it needs not care about `params.previewIn`.
-     *
+     * Decides whether an `in` parameter of the specified POD type is to be
+     * passed by reference or by value. To be used with `-preview=in` only!
      * Params:
-     *   tf    = Type of the function to inspect. The type will have its
-     *           parameter types semantically resolved, however other attributes
-     *           (return type, `@safe` / `nothrow`, etc...) must not be used.
+     *  t = type of the `in` parameter, must be a POD
+     * Returns:
+     *  `true` if the `in` parameter is to be passed by reference
      */
-    extern(C++) void applyInRefParams (TypeFunction tf)
+    extern (C++) bool preferPassByRef(Type t)
     {
-        foreach (_idx, p; tf.parameterList)
+        const size = t.size();
+        if (global.params.is64bit)
         {
-            // Ignore non-`in` or already-`ref` parameters
-            if ((p.storageClass & (STC.in_ | STC.ref_)) != STC.in_)
-                continue;
-
-            assert(p.type !is null);
-            // If it has a copy constructor / destructor / postblit,
-            // it is always by ref
-            if (p.type.needsDestruction() || p.type.needsCopyOrPostblit())
-                p.storageClass |= STC.ref_;
-            // If the type can't be copied, always by `ref`
-            else if (!p.type.isCopyable())
-                p.storageClass |= STC.ref_;
-            // The Win64 ABI requires x87 real to be passed by ref
-            else if (params.isWindows && params.is64bit &&
-                     p.type.ty == Tfloat80)
-                p.storageClass |= STC.ref_;
-
-            // If it's a dynamic array, use the value type as it
-            // allows covariance between `in char[]` and `scope const(char)[]`
-            // The same reasoning applies to pointers and classes,
-            // but that is handled by the `(sz > 8)` below.
-            else if (p.type.ty == Tarray)
-                continue;
-            // Pass delegates by value to allow covariance
-            // Function pointers are a single pointers and handled below.
-            else if (p.type.ty == Tdelegate)
-                continue;
-            else
+            if (global.params.isWindows)
             {
-                const sz = p.type.size();
-                if (params.is64bit ? (sz > 16) : (sz > 8))
-                    p.storageClass |= STC.ref_;
+                // If size is larger than 8 or not a power-of-2, the Win64 ABI
+                // would require a hidden reference anyway.
+                return size > 8
+                    || (size > 0 && (size & (size - 1)) != 0);
             }
+            else // SysV x86_64 ABI
+            {
+                // Prefer a ref if the POD cannot be passed in registers, i.e.,
+                // would be passed on the stack, *and* the size is > 16.
+                if (size <= 16)
+                    return false;
+
+                TypeTuple getArgTypes()
+                {
+                    import dmd.aggregate : Sizeok;
+                    if (auto ts = t.toBasetype().isTypeStruct())
+                    {
+                        auto sd = ts.sym;
+                        assert(sd.sizeok == Sizeok.done);
+                        return sd.argTypes;
+                    }
+                    return toArgTypes(t);
+                }
+
+                TypeTuple argTypes = getArgTypes();
+                assert(argTypes !is null, "size == 0 should already be handled");
+                return argTypes.arguments.length == 0; // cannot be passed in registers
+            }
+        }
+        else // 32-bit x86 ABI
+        {
+            // Prefer a ref if the size is > 2 machine words.
+            return size > 8;
         }
     }
 
