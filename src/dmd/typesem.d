@@ -3206,6 +3206,31 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
              */
             e = new StringExp(e.loc, e.toString());
         }
+        else if (ident == Id._tupleof)
+        {
+            if (e.type.ty == Tarray && e.type.nextOf().ty == Talias)
+            {
+                import dmd.dinterpret;
+                import dmd.ctfeexpr;
+                auto res = ctfeInterpret(e);
+                if (!res || exceptionOrCantInterpret(res))
+                {
+                    e.error("Cannot create tuple from alias[]: %s", e.toChars());
+                    e = ErrorExp.get();
+                    goto Lreturn;
+                }
+                auto ae = res.isArrayLiteralExp();
+                assert(ae);
+                e = new TupleExp(e.loc, ae.elements);
+                goto Lreturn;
+            }
+            else
+            {
+                e.error("You may only use .tupleof on alias[] in this context");
+                e = ErrorExp.get();
+                goto Lreturn;
+            }
+        }
         else
             e = mt.getProperty(sc, e.loc, ident, flag & DotExpFlag.gag);
 
