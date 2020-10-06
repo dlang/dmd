@@ -14,6 +14,7 @@ module dmd.dcast;
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
+import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.dclass;
