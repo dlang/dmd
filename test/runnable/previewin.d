@@ -166,6 +166,7 @@ void testin4(in RefT[4] p) { static assert(__traits(isRef, p)); }
 
 // By ref because of non-copyability
 void testin5(in NonCopyable noncopy) { static assert(__traits(isRef, noncopy)); }
+static assert(testin5.mangleof == "_D9previewin7testin5FNaNbNiNfIKSQBe11NonCopyableZv"); // incl. `ref`
 //  By ref because of postblit
 void testin6(in WithPostblit withpostblit) { static assert(__traits(isRef, withpostblit)); }
 //  By ref because of copy ctor

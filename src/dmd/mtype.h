@@ -558,7 +558,7 @@ public:
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth);
     const char *toChars() const;
-    bool isCovariant(bool returnByRef, const Parameter *p) const;
+    bool isCovariant(bool returnByRef, const Parameter *p, bool previewIn) const;
 };
 
 struct ParameterList

@@ -24,14 +24,13 @@ struct FooBar
     string toString() const
     {
         string result;
+        // Type is const
+        this.toString((in char[] buf) {
+            static assert(is(typeof(buf) == const(char[])));
+            result ~= buf;
+        });
         // Type inference works
-        this.toString((buf) { result ~= buf; });
-        // Specifying the STC too
         this.toString((in buf) { result ~= buf; });
-        // Some covariance
-        this.toString((const scope buf) { result ~= buf; });
-        this.toString((scope const(char)[] buf) { result ~= buf; });
-        this.toString((scope const(char[]) buf) { result ~= buf; });
         return result;
     }
 

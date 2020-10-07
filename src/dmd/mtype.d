@@ -6951,8 +6951,8 @@ extern (C++) final class Parameter : ASTNode
      * Params:
      *  returnByRef = true if the function returns by ref
      *  p = Parameter to compare with
-     *  previewIn = Whether `-previewIn` is being used, and thus if
-     *              `in` means `scope`.
+     *  previewIn = Whether `-preview=in` is being used, and thus if
+     *              `in` means `scope [ref]`.
      *
      * Returns:
      *  true = `this` can be used in place of `p`
@@ -6972,8 +6972,8 @@ extern (C++) final class Parameter : ASTNode
                 otherSTC |= STC.scope_;
         }
 
-        enum stc = STC.ref_ | STC.out_ | STC.lazy_;
-        if ((thisSTC & stc) != (otherSTC & stc))
+        const mask = STC.ref_ | STC.out_ | STC.lazy_ | (previewIn ? STC.in_ : 0);
+        if ((thisSTC & mask) != (otherSTC & mask))
             return false;
         return isCovariantScope(returnByRef, thisSTC, otherSTC);
     }
