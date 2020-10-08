@@ -4499,8 +4499,9 @@ Expression defaultInit(Type mt, const ref Loc loc)
             error(loc, "`void` does not have a default initializer");
             return ErrorExp.get();
 
-        case Talias:
-            return new TypeExp(loc, mt);
+        case Ttype:
+            // initialze with the empty type (emptier than void, it is what was before there was even void)
+            return new TypeExp(loc, Type.basic[Tnone]);
 
         default:
             break;
