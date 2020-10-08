@@ -3121,9 +3121,12 @@ final class Parser(AST) : Lexer
             nextToken();
             int alt = 0;
             const typeLoc = token.loc;
+            Identifier ident;
             memtype = parseBasicType();
-            memtype = parseDeclarator(memtype, &alt, null);
-            checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
+            memtype = parseDeclarator(memtype, alt, ident);
+            if (ident)
+                error("unexpected identifier `%s` in declarator", ident.toChars());
+            checkCstyleTypeSyntax(typeLoc, memtype, alt, ident);
         }
 
         e = new AST.EnumDeclaration(loc, id, memtype);
@@ -3619,8 +3622,11 @@ final class Parser(AST) : Lexer
         t = parseBasicType();
 
         int alt = 0;
-        t = parseDeclarator(t, &alt, pident, ptpl);
-        checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
+        Identifier ident;
+        t = parseDeclarator(t, alt, ident, ptpl);
+        checkCstyleTypeSyntax(typeLoc, t, alt, ident);
+        if (pident)
+            *pident = ident;
 
         t = t.addSTC(stc);
         return t;
@@ -4070,7 +4076,24 @@ final class Parser(AST) : Lexer
         assert(0);
     }
 
-    private AST.Type parseDeclarator(AST.Type t, int* palt, Identifier* pident, AST.TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, AST.Expressions** pudas = null)
+    /**********************
+     * Parse Declarator
+     * Params:
+     *  t            = base type to start with
+     *  palt         = OR in 1 for C-style function pointer declaration syntax,
+     *                 2 for C-style array declaration syntax, otherwise don't modify
+     *  pident       = set to Identifier if there is one, null if not
+     *  tpl          = if !null, then set to TemplateParameterList
+     *  storageClass = any storage classes seen so far
+     *  pdisable     = set to true if @disable seen
+     *  pudas        = any user defined attributes seen so far. Merged with any more found
+     * Returns:
+     *  type declared
+     * Reference: https://dlang.org/spec/declaration.html#Declarator
+     */
+    private AST.Type parseDeclarator(AST.Type t, ref int palt, out Identifier pident,
+        AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
+        bool* pdisable = null, AST.Expressions** pudas = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseBasicType2(t);
@@ -4078,10 +4101,7 @@ final class Parser(AST) : Lexer
         switch (token.value)
         {
         case TOK.identifier:
-            if (pident)
-                *pident = token.ident;
-            else
-                error("unexpected identifier `%s` in declarator", token.ident.toChars());
+            pident = token.ident;
             ts = t;
             nextToken();
             break;
@@ -4097,7 +4117,7 @@ final class Parser(AST) : Lexer
                      * although the D style would be:
                      *  int[]*[3] ident
                      */
-                    *palt |= 1;
+                    palt |= 1;
                     nextToken();
                     ts = parseDeclarator(t, palt, pident);
                     check(TOK.rightParentheses);
@@ -4146,7 +4166,7 @@ final class Parser(AST) : Lexer
                             // It's a dynamic array
                             ta = new AST.TypeDArray(t); // []
                             nextToken();
-                            *palt |= 2;
+                            palt |= 2;
                         }
                         else if (isDeclaration(&token, NeedDeclaratorId.no, TOK.rightBracket, null))
                         {
@@ -4155,7 +4175,7 @@ final class Parser(AST) : Lexer
                             AST.Type index = parseType(); // [ type ]
                             check(TOK.rightBracket);
                             ta = new AST.TypeAArray(t, index);
-                            *palt |= 2;
+                            palt |= 2;
                         }
                         else
                         {
@@ -4163,7 +4183,7 @@ final class Parser(AST) : Lexer
                             AST.Expression e = parseAssignExp(); // [ expression ]
                             ta = new AST.TypeSArray(t, e);
                             check(TOK.rightBracket);
-                            *palt |= 2;
+                            palt |= 2;
                         }
 
                         /* Insert ta into
@@ -4215,7 +4235,7 @@ final class Parser(AST) : Lexer
                     AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
-                        *pdisable = stc & STC.disable ? 1 : 0;
+                        *pdisable = stc & STC.disable ? true : false;
 
                     /* Insert tf into
                      *   ts -> ... -> t
@@ -4749,13 +4769,13 @@ final class Parser(AST) : Lexer
         while (1)
         {
             AST.TemplateParameters* tpl = null;
-            int disable;
+            bool disable;
             int alt = 0;
 
             const loc = token.loc;
-            Identifier ident = null;
+            Identifier ident;
 
-            auto t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas);
+            auto t = parseDeclarator(ts, alt, ident, &tpl, storage_class, &disable, &udas);
             assert(t);
             if (!tfirst)
                 tfirst = t;
@@ -5255,6 +5275,11 @@ final class Parser(AST) : Lexer
         }
     }
 
+    /* *************************
+     * Issue errors if C-style syntax
+     * Params:
+     *  alt = !=0 for C-style syntax
+     */
     private void checkCstyleTypeSyntax(Loc loc, AST.Type t, int alt, Identifier ident)
     {
         if (!alt)
