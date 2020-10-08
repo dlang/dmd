@@ -79,9 +79,9 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
-            if (t.ty == Talias)
+            if (t.ty == Ttype)
             {
-                // casts to Talias just create a new castExp.
+                // casts to Ttype just create a new castExp.
                 result = new CastExp(e.loc, e, t);
                 result.type = t;
                 return ;
@@ -1450,7 +1450,7 @@ MATCH implicitConvTo(Expression e, Type t)
         {
             // TODO FIXME this should work
             // MATCH match = e.type.implicitConvTo(t);
-            if (t.ty == Talias)
+            if (t.ty == Ttype)
                 result = MATCH.convert;
         }
     }

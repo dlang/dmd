@@ -3631,7 +3631,7 @@ final class Parser(AST) : Lexer
         switch (token.value)
         {
         case TOK.alias_ :
-            t = AST.Type.talias;
+            t = AST.Type.ttype;
             goto LabelX;
 
         case TOK.void_:
@@ -4500,7 +4500,7 @@ final class Parser(AST) : Lexer
             {
                 auto ident = token.ident;
                 nextToken();
-                auto s = new AST.VarDeclaration(loc, AST.Type.talias, ident, null);
+                auto s = new AST.VarDeclaration(loc, AST.Type.ttype, ident, null);
                 addComment(s, comment);
                 auto a = new AST.Dsymbols();
                 a.push(s);

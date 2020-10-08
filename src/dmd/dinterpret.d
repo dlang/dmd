@@ -2302,10 +2302,10 @@ public:
                     result = CTFEExp.cantexp;
                 }
             }
-            else if (v.type.ty == Talias)
+            else if (v.type.ty == Ttype)
             {
                 // Hack
-                // We have to set values for talias.
+                // We have to set values for Ttype.
                 result = v.type.defaultInitLiteral(e.loc);
                 setValue(v, result);
             }
@@ -3046,6 +3046,7 @@ public:
             printf("%s TraitsExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         // some checking has already been done by semantic
+/+      DISABLED UNTIL WE GET TALIAS
         if (e.ident == Id.getAttributes)
         {
             auto o = (*e.args)[0];
@@ -3087,7 +3088,7 @@ public:
 
             result = new ArrayLiteralExp(e.loc, Type.talias.arrayOf(), exps);
         }
-
++/
     }
 
     extern (D) private void interpretCommon(BinExp e, fp_t fp)
@@ -4006,7 +4007,7 @@ public:
         }
 
         // Super super hacky!
-        if (e1.type.ty == Talias)
+        if (e1.type.ty == Ttype)
         {
             // we are doing an alias assign ... so just assign!
             oldval = newval;
@@ -5962,10 +5963,10 @@ public:
         }
 
         // casts to alias just pass trough to the exp
-        if (e.to.ty == Talias)
+        if (e.to.ty == Ttype)
         {
             result = ctfeInterpret(e1);
-            //result.type = Type.talias;
+            //result.type = Type.Ttype;
             return ;
         }
         if (e.to.ty == Tpointer && e1.op != TOK.null_)

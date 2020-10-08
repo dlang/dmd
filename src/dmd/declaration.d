@@ -1226,7 +1226,7 @@ extern (C++) class VarDeclaration : Declaration
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
-        uint memalignsize = (t.ty == Talias) ? 1 : target.fieldalign(t);   // size of member for alignment purposes
+        uint memalignsize = (t.ty == Ttype) ? 1 : target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
             poffset,
             memsize, memalignsize, alignment,
@@ -1336,7 +1336,7 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool isCTFE()
     {
-        return ((storage_class & STC.ctfe) != 0)  || isAliasType(type);
+        return ((storage_class & STC.ctfe) != 0)  || isTypeType(type);
     }
 
     final bool isOverlappedWith(VarDeclaration v)

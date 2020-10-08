@@ -168,7 +168,7 @@ struct ASTBase
         Tdelegate,
         Tnone,
 
-        Talias,
+        Ttype,
 
         Tvoid,
         Tint8,

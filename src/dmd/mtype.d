@@ -249,7 +249,7 @@ enum ENUMTY : int
     Tdelegate,
     Tnone,
 
-    Talias, /// Type type
+    Ttype, /// Type type
 
     Tvoid,
 
@@ -305,7 +305,7 @@ alias Tstruct = ENUMTY.Tstruct;
 alias Tenum = ENUMTY.Tenum;
 alias Tdelegate = ENUMTY.Tdelegate;
 alias Tnone = ENUMTY.Tnone;
-alias Talias = ENUMTY.Talias;
+alias Ttype = ENUMTY.Ttype;
 alias Tvoid = ENUMTY.Tvoid;
 alias Tint8 = ENUMTY.Tint8;
 alias Tuns8 = ENUMTY.Tuns8;
@@ -423,7 +423,7 @@ extern (C++) abstract class Type : ASTNode
 
     type* ctype;                    // for back end
 
-    extern (C++) __gshared Type talias;
+    extern (C++) __gshared Type ttype;
     extern (C++) __gshared Type tvoid;
     extern (C++) __gshared Type tint8;
     extern (C++) __gshared Type tuns8;
@@ -836,7 +836,7 @@ extern (C++) abstract class Type : ASTNode
         // Set basic types
         __gshared TY* basetab =
         [
-            Talias,
+            Ttype,
             Tvoid,
             Tint8,
             Tuns8,
@@ -872,7 +872,7 @@ extern (C++) abstract class Type : ASTNode
         }
         basic[Terror] = new TypeError();
 
-        talias = basic[Talias];
+        ttype = basic[Ttype];
 
         tvoid = basic[Tvoid];
         tint8 = basic[Tint8];
@@ -2246,7 +2246,7 @@ extern (C++) abstract class Type : ASTNode
         //printf("to  : %s\n", to.toChars());
         if (this.equals(to))
             return MATCH.exact;
-        if (to.ty == Talias)
+        if (to.ty == Ttype)
             return MATCH.convert;
         return MATCH.nomatch;
     }
@@ -3078,7 +3078,10 @@ extern (C++) final class TypeBasic : Type
         uint flags = 0;
         switch (ty)
         {
-        case Talias:
+
+        case Tnone : d = "NoneType"; break;
+
+        case Ttype:
             d = Token.toChars(TOK.alias_);
             break;
 
@@ -3226,7 +3229,7 @@ extern (C++) final class TypeBasic : Type
         //printf("TypeBasic::size()\n");
         switch (ty)
         {
-        case Talias:
+        case Ttype:
             size = 0;
             break;
 
@@ -7277,15 +7280,15 @@ bool isCopyable(Type t)
 }
 
 /***************************************************
- * Determine if type t is a Talias on some level.
+ * Determine if type t is a Ttype on some level.
  * Params:
  *      t = type to check
  * Returns:
- *      true if it's a Talias (a type type)
+ *      true if it's a Ttype (a type type)
  */
-static bool isAliasType(Type t)
+static bool isTypeType(Type t)
 {
-    // printf("isAliasType: %s\n", t.toChars());
+    // printf("isTypeType: %s\n", t.toChars());
     static Type[128] prevTypes;
     static size_t n = 0;
     prevTypes[n++] = t;
@@ -7293,14 +7296,14 @@ static bool isAliasType(Type t)
 
     if (t.ty == Tenum) // hack! this is to avoid asking nextof of enums
         return false;
-    if (t.ty == Talias)
+    if (t.ty == Ttype)
         return true;
     if (t.ty == Tstruct)
     {
         auto sym = (cast(TypeStruct)t).sym;
         if (sym) foreach(f;sym.fields)
         {
-            if (f.type && f.type.isAliasType())
+            if (f.type && f.type.isTypeType())
             {
                 return true;
             }
@@ -7322,5 +7325,5 @@ static bool isAliasType(Type t)
         }
     }
 
-    return tnext ? isAliasType(tnext) : false;
+    return tnext ? isTypeType(tnext) : false;
 }

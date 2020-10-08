@@ -1679,7 +1679,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 const(Loc) varDeclLoc = varDecl.getLoc();
                 Module varDeclModule = varDecl.getModule();
                 // special special case when the variable is a type variable
-                if (e.type.isAliasType())
+                if (e.type.isTypeType())
                 {
                     return new TypeExpression(e.loc, e).addMod(mtype.mod);
                 }
@@ -3208,7 +3208,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         else if (ident == Id._tupleof)
         {
-            if (e.type.ty == Tarray && e.type.nextOf().ty == Talias)
+            if (e.type.ty == Tarray && e.type.nextOf().ty == Ttype)
             {
                 import dmd.dinterpret;
                 import dmd.ctfeexpr;
@@ -4500,8 +4500,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
             return ErrorExp.get();
 
         case Ttype:
-            // initialze with the empty type (emptier than void, it is what was before there was even void)
-            return new TypeExp(loc, Type.basic[Tnone]);
+            return new TypeExp(loc, Type.basic[Terror]);
 
         default:
             break;

@@ -395,12 +395,12 @@ extern (C++) class FuncDeclaration : Declaration
 
         auto tf = type.toTypeFunction();
 
-        if (tf.nextOf && (tf.nextOf.ty == Talias || isAliasType(tf.nextOf)))
+        if (tf.nextOf && (tf.nextOf.ty == Ttype || isTypeType(tf.nextOf)))
             hasAliasInDecl = true;
 
         if (!hasAliasInDecl && tf.parameterList.parameters) foreach(p;*tf.parameterList.parameters)
         {
-            if (p.type.ty == Talias || isAliasType(p.type))
+            if (p.type.ty == Ttype || isTypeType(p.type))
             {
                 hasAliasInDecl = true;
                 break;

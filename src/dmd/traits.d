@@ -857,9 +857,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o = (*e.args)[0];
         if (Type t = getType(o))
         {
-            if (t.ty == Talias)
+            if (t.ty == Ttype)
             {
-                e.type = Type.talias;
+                e.type = Type.ttype;
                 return e;
             }
         }
@@ -1253,14 +1253,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto o = (*e.args)[0];
         auto type = o.getType();
-        if (type && type.ty == Talias)
+/+      reenable when we have talias
+        if (type && type.ty == Ttype)
         {
             // TODO: :PERFORMANCE: commonly used type; we should cache it
             auto t = Type.talias.arrayOf();
+            // this to is actually talias since the attribs can be anything
             e.type = t;
             return e;
         }
-
++/
         auto po = isParameter(o);
         auto s = getDsymbolWithoutExpCtx(o);
         UserAttributeDeclaration udad = null;

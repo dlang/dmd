@@ -495,7 +495,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 {
                     type = vd.type;
                 }
-                if (type && (type.ty == Talias || isAliasType(type)))
+                if (type && (type.ty == Ttype || isTypeType(type)))
                 {
                     hasAliasMembers = true;
                     break;

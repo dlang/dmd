@@ -444,7 +444,7 @@ Expression paintTypeOntoLiteral(Type type, Expression lit)
 Expression paintTypeOntoLiteral(UnionExp* pue, Type type, Expression lit)
 {
     // painting to alias is a no-op
-    if (type.ty == Talias)
+    if (type.ty == Ttype)
     {
         auto nlit = lit.copy();
         //nlit.type = Type.talias;
@@ -1587,7 +1587,7 @@ Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expres
         return paintTypeOntoLiteral(pue, to, e);
     }
 
-    if (to.ty == Talias)
+    if (to.ty == Ttype)
     {
         return e;
     }

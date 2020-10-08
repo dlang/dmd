@@ -76,7 +76,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
             Type t2 = null;
             switch (t.ty)
             {
-            case Talias:
+            case Ttype:
             case Tvoid:
                 return;
             case Tbool:

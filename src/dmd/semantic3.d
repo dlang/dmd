@@ -485,7 +485,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (f.parameterList.parameters)
             foreach (fparam; *f.parameterList.parameters)
             {
-                if (isAliasType(fparam.type))
+                if (isTypeType(fparam.type))
                     funcdecl.flags |= FUNCFLAG.compileTimeOnly;
 
                 if (!fparam.ident)

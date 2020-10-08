@@ -1347,7 +1347,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
-        if (!v || !v.type || (v.type.ty != Talias && (!v.type.nextOf() || v.type.nextOf().ty != Talias)))
+        if (!v || !v.type || (v.type.ty != Ttype && (!v.type.nextOf() || v.type.nextOf().ty != Ttype)))
         {
             if (v && ve.checkPurity(sc, v))
                 return ErrorExp.get();
@@ -5574,14 +5574,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                auto vd = new VarDeclaration(e.loc, Type.basic[Talias], e.id, new ExpInitializer(e.loc, 
+                auto vd = new VarDeclaration(e.loc, Type.basic[Ttype], e.id, new ExpInitializer(e.loc, 
                         new TypeExp(e.loc, new TypeError())));
                 if (e.tok2 == TOK.super_)
                 {
-                  //  vd.type = Type.basic[Talias].arrayOf();
+                  //  vd.type = Type.basic[Ttype].arrayOf();
                 }
                 else
-                    vd.type = Type.basic[Talias];
+                    vd.type = Type.basic[Ttype];
 
                 //vd.setScope(sc);
                 vd.storage_class |= STCStorageClass.temp;
@@ -9346,7 +9346,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setResult(ale1x);
             ale.e1 = ale1x;
 
-            if (isAliasType(ale.e1.type))
+            if (isTypeType(ale.e1.type))
             {
                 exp.type = Type.tsize_t;
                 return setResult(exp);
@@ -11946,7 +11946,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
     if (e != exp)
         return e;
 
-    if (exp.e1.type && exp.e1.type.ty == Talias)
+    if (exp.e1.type && exp.e1.type.ty == Ttype)
     {
         // printf("resloving %s on a type-variable '%s'.type(%s)\n", exp.ident.toChars(), exp.e1.toChars(), exp.e1.type.toChars()); //debugline
         if (exp.ident == Id.stringof)
@@ -11958,10 +11958,13 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         {
             exp.type = Type.tsize_t;
         }
+/+      DISABLED UNTIL WE HAVE TALIAS
         else if (exp.ident == Id._tupleof)
         {
             exp.type = Type.talias.arrayOf;
+            // yes this acutally is talias because it has more than just types
         }
++/
         return exp;
     }
 
