@@ -34,7 +34,6 @@ import dmd.tokens;
  * necessary.
  * Params:
  *      sc  = instantiating scope
- *      original = original expression, for error messages
  *      e =  resulting expression
  *      errors = set to `true` if errors occurred
  *      negatives = array to store negative clauses
@@ -42,7 +41,7 @@ import dmd.tokens;
  * Returns:
  *      true if evaluates to true
  */
-bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Expressions* negatives = null, Expression* msg = null)
+bool evalStaticCondition(Scope* sc, Expression e, out bool errors, Expressions* negatives = null, Expression* msg = null)
 {
     if (negatives)
         negatives.setDim(0);

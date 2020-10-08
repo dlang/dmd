@@ -922,7 +922,7 @@ extern (C++) final class StaticIfCondition : Condition
             if (!exp)
                 return errorReturn();
 
-            bool result = evalStaticCondition(sc, exp, exp, errors);
+            bool result = evalStaticCondition(sc, exp, errors);
 
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d

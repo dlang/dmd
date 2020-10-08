@@ -883,7 +883,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         ti.inst = ti; // temporary instantiation to enable genIdent()
         scx.flags |= SCOPE.constraint;
         bool errors;
-        const bool result = evalStaticCondition(scx, constraint, lastConstraint, errors, &lastConstraintNegs);
+        const bool result = evalStaticCondition(scx, lastConstraint, errors, &lastConstraintNegs);
         if (result || errors)
         {
             lastConstraint = null;
