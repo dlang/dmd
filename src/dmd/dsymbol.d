@@ -17,6 +17,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.aggregate;
+import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.ast_node;

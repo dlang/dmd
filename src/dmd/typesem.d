@@ -17,6 +17,7 @@ import core.stdc.stdio;
 
 import dmd.access;
 import dmd.aggregate;
+import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astcodegen;

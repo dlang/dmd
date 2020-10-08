@@ -15,6 +15,7 @@ module dmd.opover;
 
 import core.stdc.stdio;
 import dmd.aggregate;
+import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.dclass;
 import dmd.declaration;
