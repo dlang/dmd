@@ -2210,9 +2210,18 @@ else version (Darwin)
     // inode functions by appending $INODE64 to newer 64-bit inode functions.
     version (OSX)
     {
-        pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
-        pragma(mangle, "lstat$INODE64") int lstat(const scope char*, stat_t*);
-        pragma(mangle, "stat$INODE64")  int stat(const scope char*, stat_t*);
+        version (AArch64)
+        {
+            int fstat(int, stat_t*);
+            int lstat(const scope char*, stat_t*);
+            int stat(const scope char*, stat_t*);
+        }
+        else
+        {
+            pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
+            pragma(mangle, "lstat$INODE64") int lstat(const scope char*, stat_t*);
+            pragma(mangle, "stat$INODE64")  int stat(const scope char*, stat_t*);
+        }
     }
     else
     {

@@ -130,7 +130,12 @@ else version (Darwin)
     // Other Darwin variants (iOS, TVOS, WatchOS) only support 64-bit inodes,
     // no suffix needed
     version (OSX)
-        pragma(mangle, "readdir$INODE64") dirent* readdir(DIR*);
+    {
+        version (AArch64)
+            dirent* readdir(DIR*);
+        else
+            pragma(mangle, "readdir$INODE64") dirent* readdir(DIR*);
+    }
     else
         dirent* readdir(DIR*);
 }
@@ -416,7 +421,13 @@ else
 // in else below.
 version (OSX)
 {
-    version (D_LP64)
+    version (AArch64)
+    {
+        int     closedir(DIR*);
+        DIR*    opendir(const scope char*);
+        void    rewinddir(DIR*);
+    }
+    else version (D_LP64)
     {
         int closedir(DIR*);
         pragma(mangle, "opendir$INODE64")   DIR* opendir(const scope char*);
