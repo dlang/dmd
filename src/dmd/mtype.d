@@ -248,6 +248,7 @@ enum ENUMTY : int
 
     Tdelegate,
     Tnone,
+    Tempty,
 
     Ttype, /// Type type
 
@@ -305,6 +306,7 @@ alias Tstruct = ENUMTY.Tstruct;
 alias Tenum = ENUMTY.Tenum;
 alias Tdelegate = ENUMTY.Tdelegate;
 alias Tnone = ENUMTY.Tnone;
+alias Tempty = ENUMTY.Tempty;
 alias Ttype = ENUMTY.Ttype;
 alias Tvoid = ENUMTY.Tvoid;
 alias Tint8 = ENUMTY.Tint8;
@@ -457,6 +459,8 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) __gshared Type terror;      // for error recovery
     extern (C++) __gshared Type tnull;       // for null type
+    extern (C++) __gshared Type tempty;      // only used for __type.init
+
 
     extern (C++) __gshared Type tsize_t;     // matches size_t alias
     extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
@@ -834,9 +838,10 @@ extern (C++) abstract class Type : ASTNode
         stringtable._init(14_000);
 
         // Set basic types
-        __gshared TY* basetab =
+        __gshared TY[] basetab =
         [
             Ttype,
+            Tempty,
             Tvoid,
             Tint8,
             Tuns8,
@@ -861,18 +866,18 @@ extern (C++) abstract class Type : ASTNode
             Tchar,
             Twchar,
             Tdchar,
-            Terror
         ];
 
-        for (size_t i = 0; basetab[i] != Terror; i++)
+        foreach(ty;basetab)
         {
-            Type t = new TypeBasic(basetab[i]);
+            Type t = new TypeBasic(ty);
             t = t.merge();
-            basic[basetab[i]] = t;
+            basic[ty] = t;
         }
         basic[Terror] = new TypeError();
 
         ttype = basic[Ttype];
+        tempty = basic[Tempty];
 
         tvoid = basic[Tvoid];
         tint8 = basic[Tint8];
@@ -3079,7 +3084,9 @@ extern (C++) final class TypeBasic : Type
         switch (ty)
         {
 
-        case Tnone : d = "NoneType"; break;
+        case Tempty:
+           d = "∅";
+           break;
 
         case Ttype:
             d = Token.toChars(TOK.alias_);

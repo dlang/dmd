@@ -2993,7 +2993,7 @@ public:
         auto te = targ.isTypeExp();
         /// tet is short for typeExp.type;
         auto tet = te ? te.type : null;
-        result = IntegerExp.createBool(tet && tet.ty != Terror && tet.ty != Tnone);
+        result = IntegerExp.createBool(tet && tet.ty != Terror && tet.ty != Tempty);
 
         auto tspece = e.tspec ? e.tspec.isTypeExpression() : null;
         auto tspec = tspece ? ctfeInterpret(tspece.exp) : null;
