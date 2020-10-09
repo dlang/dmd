@@ -5908,6 +5908,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * http://cwe.mitre.org/data/definitions/22.html
          */
 
+        if (FileName.absolute(namez))
+        {
+            e.error("absolute path is not allowed in import expression: `%s`", se.toChars());
+            return setError();
+        }
+
+        if (!FileName.safePath(namez))
+        {
+            version(Windows)
+                e.error("path either refers to parent (`..`) directory or contains one of reserved characters (`<`, `>`, `:`, `\"`, `|`, `?`, `*`): `%s`", se.toChars());
+            else
+                e.error("path refers to parent (`..`) directory: `%s`", se.toChars());
+            return setError();
+        }
+
         auto name = FileName.safeSearchPath(global.filePath, namez);
         if (!name)
         {

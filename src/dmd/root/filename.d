@@ -731,7 +731,7 @@ nothrow:
      * Returns:
      *  true if path is safe.
      */
-    private extern (D) static bool safePath(const(char)* name) pure @nogc
+    extern (D) static bool safePath(const(char)* name) pure @nogc
     {
         // Don't allow absolute path
         if (absolute(name))
