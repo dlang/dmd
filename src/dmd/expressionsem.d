@@ -1347,7 +1347,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
-        if (!v || !v.type || (v.type.ty != Ttype && (!v.type.nextOf() || v.type.nextOf().ty != Ttype)))
+        if (!v || !(v.type && (v.type.ty == Ttype && (!v.type.nextOf() || v.type.nextOf().ty == Ttype))))
         {
             if (v && ve.checkPurity(sc, v))
                 return ErrorExp.get();
