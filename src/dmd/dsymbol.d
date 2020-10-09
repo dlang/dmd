@@ -417,6 +417,9 @@ extern (C++) class Dsymbol : ASTNode
         else
             deprecation(loc, "is deprecated");
 
+        if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
+            ti.printInstantiationTrace(Classification.deprecation);
+
         return true;
     }
 

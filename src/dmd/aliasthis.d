@@ -154,7 +154,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
  */
 bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
 {
-    import dmd.errors : deprecation;
+    import dmd.errors : deprecation, Classification;
     import dmd.dsymbolsem : getMessage;
 
     if (global.params.useDeprecated != DiagnosticReporting.off
@@ -173,6 +173,10 @@ bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
         else
             deprecation(loc, "`alias %s this` is deprecated",
                         at.sym.toChars());
+
+        if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
+            ti.printInstantiationTrace(Classification.deprecation);
+
         return true;
     }
     return false;
