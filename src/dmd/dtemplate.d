@@ -5974,7 +5974,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (global.gag)
             return;
 
-        const(uint) max_shown = 6;
+        // Print full trace for verbose mode, otherwise only short traces
+        const(uint) max_shown = !global.params.verbose ? 6 : uint.max;
         const(char)* format = "instantiated from here: `%s`";
 
         // determine instantiation depth and number of recursive instantiations
@@ -5992,8 +5993,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 ++n_totalrecursions;
         }
 
-        // show full trace only if it's short or verbose is on
-        if (n_instantiations <= max_shown || global.params.verbose)
+        if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
             {
