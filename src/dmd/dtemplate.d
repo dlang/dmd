@@ -5984,6 +5984,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         for (TemplateInstance cur = this; cur; cur = cur.tinst)
         {
             ++n_instantiations;
+            // Set error here as we don't want it to depend on the number of
+            // entries that are being printed.
+            cur.errors = true;
+
             // If two instantiations use the same declaration, they are recursive.
             // (this works even if they are instantiated from different places in the
             // same template).
@@ -5996,10 +6000,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
-            {
-                cur.errors = true;
                 errorSupplemental(cur.loc, format, cur.toChars());
-            }
         }
         else if (n_instantiations - n_totalrecursions <= max_shown)
         {
@@ -6008,7 +6009,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             int recursionDepth = 0;
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
             {
-                cur.errors = true;
                 if (cur.tinst && cur.tempdecl && cur.tinst.tempdecl && cur.tempdecl.loc.equals(cur.tinst.tempdecl.loc))
                 {
                     ++recursionDepth;
@@ -6030,8 +6030,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             uint i = 0;
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
             {
-                cur.errors = true;
-
                 if (i == max_shown / 2)
                     errorSupplemental(cur.loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
 
