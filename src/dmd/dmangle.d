@@ -55,8 +55,7 @@ private immutable char[TMAX] mangleChar =
     Tuns32       : 'k',
     Tint64       : 'l',
     Tuns64       : 'm',
-    Tnone        : 'n',
-    Tnull        : 'n', // yes, same as TypeNone
+    Tnull        : 'n',
     Timaginary32 : 'o',
     Timaginary64 : 'p',
     Tcomplex32   : 'q',
@@ -98,6 +97,7 @@ private immutable char[TMAX] mangleChar =
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
+    Tnone        : '@',
     Tident       : '@',
     Tinstance    : '@',
     Terror       : '@',
