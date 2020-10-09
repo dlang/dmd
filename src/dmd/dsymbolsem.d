@@ -5928,6 +5928,17 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     {
         tempinst.minst = null;
     }
+    // https://issues.dlang.org/show_bug.cgi?id=21299
+    // If not speculative, this instance should have the same instantiating
+    // root module as its enclosing template symbol. This can differ when
+    // the enclosing template gets changed from non-root to a root instance
+    // in the instantiation graph. When that occurs, this instance also
+    // needs to be appended to the root module, otherwise there will be
+    // undefined references at link-time.
+    if (tempinst.minst && tempinst.tinst)
+    {
+        tempinst.minst = tempinst.tinst.minst;
+    }
 
     tempinst.gagged = (global.gag > 0);
 
