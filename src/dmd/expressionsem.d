@@ -5484,7 +5484,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     private ResolveResult resolve_(Type t, const ref Loc loc, Scope* sc)
     {
         ResolveResult r;
-        resolve(t, loc, sc, &r.exp, &r.type, &r.sym);
+        resolve(t, loc, sc, r.exp, r.type, r.sym);
 
         if (r.exp)
         {
