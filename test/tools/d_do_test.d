@@ -1422,7 +1422,7 @@ int tryMain(string[] args)
             {
                 foreach (filename; testArgs.sources ~ (autoCompileImports ? null : testArgs.compiledImports))
                 {
-                    string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
+                    string newo = output_dir ~ envData.sep ~ replace(filename.baseName(), ".d", envData.obj);
                     toCleanup ~= newo;
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
