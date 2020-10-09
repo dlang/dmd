@@ -13,6 +13,9 @@ fail_compilation\fail21227_win.d(8): Error: path either refers to parent (`..`) 
 fail_compilation\fail21227_win.d(9): Error: path either refers to parent (`..`) directory or contains one of reserved characters (`<`, `>`, `:`, `"`, `|`, `?`, `*`): `"../file.txt"`
 fail_compilation\fail21227_win.d(10): Error: path either refers to parent (`..`) directory or contains one of reserved characters (`<`, `>`, `:`, `"`, `|`, `?`, `*`): `"path\\to\\parent\\..\\file.txt"`
 fail_compilation\fail21227_win.d(11): Error: path either refers to parent (`..`) directory or contains one of reserved characters (`<`, `>`, `:`, `"`, `|`, `?`, `*`): `"path/to/parent/../file.txt"`
+fail_compilation\fail21227_win.d(12): Error: file `"do_not_exist"` cannot be found or not in a path specified with `-J`
+fail_compilation\fail21227_win.d(12):        Path(s) searched (as provided by `-J`):
+fail_compilation\fail21227_win.d(12):        [0]: `fail_compilation`
 ---
  */
 #line 1
@@ -26,5 +29,6 @@ enum val =
     import(r"..\file.txt") ~
     import(r"../file.txt") ~
     import(r"path\to\parent\..\file.txt") ~
-    import(r"path/to/parent/../file.txt");
+    import(r"path/to/parent/../file.txt") ~
+    import(r"do_not_exist")
 ;
