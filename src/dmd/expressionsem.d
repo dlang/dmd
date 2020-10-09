@@ -11951,7 +11951,16 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         // printf("resloving %s on a type-variable '%s'.type(%s)\n", exp.ident.toChars(), exp.e1.toChars(), exp.e1.type.toChars()); //debugline
         if (exp.ident == Id.stringof)
         {
-            exp.type = Type.tstring;
+            if (!!(sc.flags & SCOPE.ctfe))
+            {
+                auto ex = new StringExp(exp.loc, "__type");
+                ex.expressionSemantic(sc);
+                return ex;
+            }
+            else
+            {
+                exp.type = Type.tstring;
+            }
         }
         else if (exp.ident == Id.__sizeof
             || exp.ident == Id.length)
