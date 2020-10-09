@@ -160,19 +160,19 @@ bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
     if (global.params.useDeprecated != DiagnosticReporting.off
         && at.isDeprecated() && !sc.isDeprecated())
     {
-            const(char)* message = null;
-            for (Dsymbol p = at; p; p = p.parent)
-            {
-                message = p.depdecl ? p.depdecl.getMessage() : null;
-                if (message)
-                    break;
-            }
+        const(char)* message = null;
+        for (Dsymbol p = at; p; p = p.parent)
+        {
+            message = p.depdecl ? p.depdecl.getMessage() : null;
             if (message)
-                deprecation(loc, "`alias %s this` is deprecated - %s",
-                            at.sym.toChars(), message);
-            else
-                deprecation(loc, "`alias %s this` is deprecated",
-                            at.sym.toChars());
+                break;
+        }
+        if (message)
+            deprecation(loc, "`alias %s this` is deprecated - %s",
+                        at.sym.toChars(), message);
+        else
+            deprecation(loc, "`alias %s this` is deprecated",
+                        at.sym.toChars());
         return true;
     }
     return false;
