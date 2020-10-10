@@ -16,9 +16,9 @@ struct Foo
     int32_t a;
     enum : int32_t { b = 2 };
 
-    // ignoring enum `test21217.Foo.c` because it is `private`.
-    // ignoring enum `test21217.Foo.d` because it is `protected`.
-    // ignoring enum `test21217.Foo.e` because it is `package`.
+    // Ignored enum `test21217.Foo.c` because it is `private`.
+    // Ignored enum `test21217.Foo.d` because it is `protected`.
+    // Ignored enum `test21217.Foo.e` because it is `package`.
     enum : int32_t { f = 6 };
 
     enum : int32_t { g = 7 };
@@ -29,7 +29,7 @@ struct Foo
         b = 2,
     };
 
-    // ignoring enum `test21217.Foo.h` because it is `private`.
+    // Ignored enum `test21217.Foo.h` because it is `private`.
     Foo() :
         a(1)
     {
