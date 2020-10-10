@@ -110,7 +110,7 @@ $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 
 unittest: $(SRCS) $(DRUNTIME)
 	*$(DMD) $(UDFLAGS) -L/co $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
-	unittest
+	.\unittest.exe
 
 ################### tests ######################################
 
