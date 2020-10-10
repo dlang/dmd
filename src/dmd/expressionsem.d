@@ -11948,21 +11948,15 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 
     if (exp.e1.type && exp.e1.type.ty == Ttype)
     {
+        if (exp.ident == Id._init)
+        {
+           return new TypeExp(exp.loc, Type.basic[Tempty]);
+        }
         // printf("resloving %s on a type-variable '%s'.type(%s)\n", exp.ident.toChars(), exp.e1.toChars(), exp.e1.type.toChars()); //debugline
         if (exp.ident == Id.stringof)
-        {
-            if (!!(sc.flags & SCOPE.ctfe))
-            {
-                auto ex = new StringExp(exp.loc, "__type");
-                ex.expressionSemantic(sc);
-                return ex;
-            }
-            else
-            {
-                exp.type = Type.tstring;
-            }
-        }
-        else if (exp.ident == Id.__sizeof
+            goto Lskip;
+
+        if (exp.ident == Id.__sizeof
             || exp.ident == Id.length)
         {
             exp.type = Type.tsize_t;
@@ -11976,6 +11970,8 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 +/
         return exp;
     }
+    Lskip:
+
 
     Expression eleft;
     Expression eright;
