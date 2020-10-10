@@ -1828,7 +1828,7 @@ extern (C) void thread_suspendAll() nothrow
                 }
                 if (cnt)
                     goto Lagain;
-             }
+            }
         }
     }
 }
