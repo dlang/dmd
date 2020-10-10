@@ -418,6 +418,19 @@ private Expression pointerBitmap(TraitsExp e)
     return ale;
 }
 
+private TraitsExp interceptTypeType(return ref TraitsExp e, RootObject o, Type resultType)
+{
+    if (Type t = getType(o))
+    {
+        if (t.ty == Ttype)
+        {
+            e.type = resultType;
+            return e;
+        }
+    }
+    return null;
+}
+
 Expression semanticTraits(TraitsExp e, Scope* sc)
 {
     static if (LOGSEMANTIC)
@@ -797,6 +810,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
+
+        if (auto exp = interceptTypeType(e, o, Type.tstring))
+        {
+            return exp;
+        }
+
         Identifier id;
         if (auto po = isParameter(o))
         {
@@ -855,14 +874,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        if (Type t = getType(o))
-        {
-            if (t.ty == Ttype)
-            {
-                e.type = Type.ttype;
-                return e;
-            }
-        }
         auto s = getDsymbolWithoutExpCtx(o);
         if (s)
         {

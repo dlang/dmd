@@ -24,9 +24,8 @@ static assert(sizeOf(S2) == S2.sizeof);
 
 string stringOf(type y)
 {
-    return y.stringof;
+    return __traits(identifier, y);
 }
 static assert(stringOf(S1) == S1.stringof);
 static assert(stringOf(S2) == S2.stringof);
-
 

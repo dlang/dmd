@@ -3089,6 +3089,30 @@ public:
             result = new ArrayLiteralExp(e.loc, Type.talias.arrayOf(), exps);
         }
 +/
+
+        if (e.ident == Id.identifier)
+        {
+            auto o = (*e.args)[0];
+
+            if (o.dyncast() != DYNCAST.expression || !(cast(Expression)o).isVarExp())
+            {
+                e.error("VarExp expected!");
+                result = ErrorExp.get();
+                return ;
+            }
+            auto e1 = interpretRegion(cast(VarExp)o, istate);
+            import dmd.asttypename;
+            auto te = e1.isTypeExp();
+            if (!te)
+            {
+                e.error("Type expected");
+                result = ErrorExp.get();
+                return;
+            }
+            result = new StringExp(e.loc, te.type.toString());
+            result.type = Type.tstring;
+            return;
+        }
     }
 
     extern (D) private void interpretCommon(BinExp e, fp_t fp)
