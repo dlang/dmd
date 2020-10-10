@@ -189,9 +189,11 @@ enum TOK : ubyte
     wchar_,
     dchar_,
     bool_,
+    empty_,
+    __type_,
 
     // Aggregates
-    struct_ = 151,
+    struct_ = 153,
     class_,
     interface_,
     union_,
@@ -223,7 +225,7 @@ enum TOK : ubyte
     immutable_,
 
     // Statements
-    if_ = 181,
+    if_ = 183,
     else_,
     while_,
     for_,
@@ -249,7 +251,7 @@ enum TOK : ubyte
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 205,
+    invariant_ = 207,
 
     // Testing
     unittest_,
@@ -259,7 +261,7 @@ enum TOK : ubyte
     ref_,
     macro_,
 
-    parameters = 210,
+    parameters = 212,
     traits,
     overloadSet,
     pure_,
@@ -279,7 +281,7 @@ enum TOK : ubyte
     vector,
     pound,
 
-    interval = 229,
+    interval = 231,
     voidExpression,
     cantExpression,
     showCtfeContext,
@@ -338,6 +340,7 @@ private immutable TOK[] keywords =
     TOK.float64,
     TOK.float80,
     TOK.bool_,
+    TOK.__type_,
     TOK.char_,
     TOK.wchar_,
     TOK.dchar_,
@@ -494,6 +497,8 @@ extern (C++) struct Token
         TOK.float64: "double",
         TOK.float80: "real",
         TOK.bool_: "bool",
+        TOK.__type_ : "__type",
+        TOK.empty_ : "∅",
         TOK.char_: "char",
         TOK.wchar_: "wchar",
         TOK.dchar_: "dchar",

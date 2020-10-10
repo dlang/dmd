@@ -248,7 +248,7 @@ enum ENUMTY : int
 
     Tdelegate,
     Tnone,
-    Tempty,
+    Tempty, /// the empty type ∅
 
     Ttype, /// Type type
 
@@ -3089,7 +3089,7 @@ extern (C++) final class TypeBasic : Type
            break;
 
         case Ttype:
-            d = Token.toChars(TOK.alias_);
+            d = Token.toChars(TOK.__type_);
             break;
 
         case Tvoid:
