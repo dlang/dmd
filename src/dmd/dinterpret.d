@@ -3035,7 +3035,6 @@ public:
                 if (e.op == TOK.type)
                 {
                     auto type = (cast(TypeExp)e).type;
-                    printf("type: %s\n", type.toChars());
                     return type.toDsymbol(null);
                 }
             }

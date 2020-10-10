@@ -3397,12 +3397,20 @@ extern (C++) final class TypeExp : Expression
 
     override bool checkType()
     {
+        if (type.ty == Tempty)
+        {
+            return false;
+        }
         error("type `%s` is not an expression", toChars());
         return true;
     }
 
     override bool checkValue()
     {
+        if (type.ty == Tempty)
+        {
+            return false;
+        }
         error("type `%s` has no value", toChars());
         return true;
     }

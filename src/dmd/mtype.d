@@ -3085,7 +3085,7 @@ extern (C++) final class TypeBasic : Type
         {
 
         case Tempty:
-           d = "∅";
+           d = Token.toChars(TOK.empty_);
            break;
 
         case Ttype:
