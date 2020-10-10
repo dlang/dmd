@@ -798,20 +798,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         for (TemplatePrevious* p = previous; p; p = p.prev)
         {
-            if (arrayObjectMatch(p.dedargs, dedargs))
+            if (!arrayObjectMatch(p.dedargs, dedargs))
+                continue;
+            //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
+            /* It must be a subscope of p.sc, other scope chains are not recursive
+             * instantiations.
+             * the chain of enclosing scopes is broken by paramscope (its enclosing
+             * scope is _scope, but paramscope.callsc is the instantiating scope). So
+             * it's good enough to check the chain of callsc
+             */
+            for (Scope* scx = paramscope.callsc; scx; scx = scx.callsc)
             {
-                //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
-                /* It must be a subscope of p.sc, other scope chains are not recursive
-                 * instantiations.
-                 * the chain of enclosing scopes is broken by paramscope (its enclosing
-                 * scope is _scope, but paramscope.callsc is the instantiating scope). So
-                 * it's good enough to check the chain of callsc
-                 */
-                for (Scope* scx = paramscope.callsc; scx; scx = scx.callsc)
-                {
-                    if (scx == p.sc)
-                        return false;
-                }
+                if (scx == p.sc)
+                    return false;
             }
             /* BUG: should also check for ref param differences
              */
@@ -919,47 +918,45 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             lastConstraintTiargs = null;
             lastConstraintNegs.setDim(0);
         }
-        if (msg)
-        {
-            OutBuffer buf;
+        if (!msg)
+            return null;
 
-            assert(parameters && lastConstraintTiargs);
-            if (parameters.length > 0)
-            {
-                formatParamsWithTiargs(*lastConstraintTiargs, buf);
-                buf.writenl();
-            }
-            if (!full)
-            {
-                // choosing singular/plural
-                const s = (count == 1) ?
-                    "  must satisfy the following constraint:" :
-                    "  must satisfy one of the following constraints:";
-                buf.writestring(s);
-                buf.writenl();
-                // the constraints
-                buf.writeByte('`');
-                buf.writestring(msg);
-                buf.writeByte('`');
-            }
-            else
-            {
-                buf.writestring("  whose parameters have the following constraints:");
-                buf.writenl();
-                const sep = "  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`";
-                buf.writestring(sep);
-                buf.writenl();
-                // the constraints
-                buf.writeByte('`');
-                buf.writestring(msg);
-                buf.writeByte('`');
-                buf.writestring(sep);
-                tip = "not satisfied constraints are marked with `>`";
-            }
-            return buf.extractChars();
+        OutBuffer buf;
+
+        assert(parameters && lastConstraintTiargs);
+        if (parameters.length > 0)
+        {
+            formatParamsWithTiargs(*lastConstraintTiargs, buf);
+            buf.writenl();
+        }
+        if (!full)
+        {
+            // choosing singular/plural
+            const s = (count == 1) ?
+                "  must satisfy the following constraint:" :
+                "  must satisfy one of the following constraints:";
+            buf.writestring(s);
+            buf.writenl();
+            // the constraints
+            buf.writeByte('`');
+            buf.writestring(msg);
+            buf.writeByte('`');
         }
         else
-            return null;
+        {
+            buf.writestring("  whose parameters have the following constraints:");
+            buf.writenl();
+            const sep = "  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`";
+            buf.writestring(sep);
+            buf.writenl();
+            // the constraints
+            buf.writeByte('`');
+            buf.writestring(msg);
+            buf.writeByte('`');
+            buf.writestring(sep);
+            tip = "not satisfied constraints are marked with `>`";
+        }
+        return buf.extractChars();
     }
 
     private void formatParamsWithTiargs(ref Objects tiargs, ref OutBuffer buf)
@@ -1738,40 +1735,40 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             RootObject oarg = (*dedargs)[i];
                             RootObject oded = (*dedtypes)[i];
-                            if (!oarg)
+                            if (oarg)
+                                continue;
+
+                            if (oded)
                             {
-                                if (oded)
+                                if (tparam.specialization() || !tparam.isTemplateTypeParameter())
                                 {
-                                    if (tparam.specialization() || !tparam.isTemplateTypeParameter())
-                                    {
-                                        /* The specialization can work as long as afterwards
-                                         * the oded == oarg
-                                         */
-                                        (*dedargs)[i] = oded;
-                                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
-                                        //printf("m2 = %d\n", m2);
-                                        if (m2 <= MATCH.nomatch)
-                                            goto Lnomatch;
-                                        if (m2 < matchTiargs)
-                                            matchTiargs = m2; // pick worst match
-                                        if (!(*dedtypes)[i].equals(oded))
-                                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
-                                    }
-                                    else
-                                    {
-                                        if (MATCH.convert < matchTiargs)
-                                            matchTiargs = MATCH.convert;
-                                    }
-                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                                    /* The specialization can work as long as afterwards
+                                     * the oded == oarg
+                                     */
+                                    (*dedargs)[i] = oded;
+                                    MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
+                                    //printf("m2 = %d\n", m2);
+                                    if (m2 <= MATCH.nomatch)
+                                        return nomatch();
+                                    if (m2 < matchTiargs)
+                                        matchTiargs = m2; // pick worst match
+                                    if (!(*dedtypes)[i].equals(oded))
+                                        error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                                 }
                                 else
                                 {
-                                    inuse++;
-                                    oded = tparam.defaultArg(instLoc, paramscope);
-                                    inuse--;
-                                    if (oded)
-                                        (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                                    if (MATCH.convert < matchTiargs)
+                                        matchTiargs = MATCH.convert;
                                 }
+                                (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                            }
+                            else
+                            {
+                                inuse++;
+                                oded = tparam.defaultArg(instLoc, paramscope);
+                                inuse--;
+                                if (oded)
+                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                             }
                         }
                     }
@@ -2111,78 +2108,78 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             //printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, oded);
             //if (oarg) printf("oarg: %s\n", oarg.toChars());
             //if (oded) printf("oded: %s\n", oded.toChars());
-            if (!oarg)
+            if (oarg)
+                continue;
+
+            if (oded)
             {
-                if (oded)
+                if (tparam.specialization() || !tparam.isTemplateTypeParameter())
                 {
-                    if (tparam.specialization() || !tparam.isTemplateTypeParameter())
-                    {
-                        /* The specialization can work as long as afterwards
-                         * the oded == oarg
-                         */
-                        (*dedargs)[i] = oded;
-                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
-                        //printf("m2 = %d\n", m2);
-                        if (m2 <= MATCH.nomatch)
-                            goto Lnomatch;
-                        if (m2 < matchTiargs)
-                            matchTiargs = m2; // pick worst match
-                        if (!(*dedtypes)[i].equals(oded))
-                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
-                    }
-                    else
-                    {
-                        // Discussion: https://issues.dlang.org/show_bug.cgi?id=16484
-                        if (MATCH.convert < matchTiargs)
-                            matchTiargs = MATCH.convert;
-                    }
+                    /* The specialization can work as long as afterwards
+                     * the oded == oarg
+                     */
+                    (*dedargs)[i] = oded;
+                    MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
+                    //printf("m2 = %d\n", m2);
+                    if (m2 <= MATCH.nomatch)
+                        return nomatch();
+                    if (m2 < matchTiargs)
+                        matchTiargs = m2; // pick worst match
+                    if (!(*dedtypes)[i].equals(oded))
+                        error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                 }
                 else
                 {
-                    inuse++;
-                    oded = tparam.defaultArg(instLoc, paramscope);
-                    inuse--;
-                    if (!oded)
-                    {
-                        // if tuple parameter and
-                        // tuple parameter was not in function parameter list and
-                        // we're one or more arguments short (i.e. no tuple argument)
-                        if (tparam == tp &&
-                            fptupindex == IDX_NOTFOUND &&
-                            ntargs <= dedargs.dim - 1)
-                        {
-                            // make tuple argument an empty tuple
-                            oded = new Tuple();
-                        }
-                        else
-                            goto Lnomatch;
-                    }
-                    if (isError(oded))
-                        goto Lerror;
-                    ntargs++;
-
-                    /* At the template parameter T, the picked default template argument
-                     * X!int should be matched to T in order to deduce dependent
-                     * template parameter A.
-                     *  auto foo(T : X!A = X!int, A...)() { ... }
-                     *  foo();  // T <-- X!int, A <-- (int)
-                     */
-                    if (tparam.specialization())
-                    {
-                        (*dedargs)[i] = oded;
-                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
-                        //printf("m2 = %d\n", m2);
-                        if (m2 <= MATCH.nomatch)
-                            goto Lnomatch;
-                        if (m2 < matchTiargs)
-                            matchTiargs = m2; // pick worst match
-                        if (!(*dedtypes)[i].equals(oded))
-                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
-                    }
+                    // Discussion: https://issues.dlang.org/show_bug.cgi?id=16484
+                    if (MATCH.convert < matchTiargs)
+                        matchTiargs = MATCH.convert;
                 }
-                oded = declareParameter(paramscope, tparam, oded);
-                (*dedargs)[i] = oded;
             }
+            else
+            {
+                inuse++;
+                oded = tparam.defaultArg(instLoc, paramscope);
+                inuse--;
+                if (!oded)
+                {
+                    // if tuple parameter and
+                    // tuple parameter was not in function parameter list and
+                    // we're one or more arguments short (i.e. no tuple argument)
+                    if (tparam == tp &&
+                        fptupindex == IDX_NOTFOUND &&
+                        ntargs <= dedargs.dim - 1)
+                    {
+                        // make tuple argument an empty tuple
+                        oded = new Tuple();
+                    }
+                    else
+                        return nomatch();
+                }
+                if (isError(oded))
+                    return matcherror();
+                ntargs++;
+
+                /* At the template parameter T, the picked default template argument
+                 * X!int should be matched to T in order to deduce dependent
+                 * template parameter A.
+                 *  auto foo(T : X!A = X!int, A...)() { ... }
+                 *  foo();  // T <-- X!int, A <-- (int)
+                 */
+                if (tparam.specialization())
+                {
+                    (*dedargs)[i] = oded;
+                    MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
+                    //printf("m2 = %d\n", m2);
+                    if (m2 <= MATCH.nomatch)
+                        return nomatch();
+                    if (m2 < matchTiargs)
+                        matchTiargs = m2; // pick worst match
+                    if (!(*dedtypes)[i].equals(oded))
+                        error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
+                }
+            }
+            oded = declareParameter(paramscope, tparam, oded);
+            (*dedargs)[i] = oded;
         }
 
         /* https://issues.dlang.org/show_bug.cgi?id=7469
