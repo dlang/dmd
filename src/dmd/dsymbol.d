@@ -1219,6 +1219,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(Declaration)                 isDeclaration()                 inout { return null; }
     inout(StorageClassDeclaration)     isStorageClassDeclaration()     inout { return null; }
     inout(ExpressionDsymbol)           isExpressionDsymbol()           inout { return null; }
+    inout(AliasAssign)                 isAliasAssign()                 inout { return null; }
     inout(ThisDeclaration)             isThisDeclaration()             inout { return null; }
     inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return null; }
     inout(TupleDeclaration)            isTupleDeclaration()            inout { return null; }
@@ -2113,7 +2114,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 }
 
 /**
- * Class that holds an expression in a Dsymbol wraper.
+ * Class that holds an expression in a Dsymbol wrapper.
  * This is not an AST node, but a class used to pass
  * an expression as a function parameter of type Dsymbol.
  */
@@ -2132,6 +2133,45 @@ extern (C++) final class ExpressionDsymbol : Dsymbol
     }
 }
 
+/**********************************************
+ * Encapsulate assigning to an alias:
+ *      `identifier = type;`
+ * where `identifier` is an AliasDeclaration in scope.
+ */
+extern (C++) final class AliasAssign : Dsymbol
+{
+    Identifier ident; /// Dsymbol's ident will be null, as this class is anonymous
+    Type type;        /// replace previous RHS of AliasDeclaration with `type`
+
+    extern (D) this(const ref Loc loc, Identifier ident, Type type)
+    {
+        super(loc, null);
+        this.ident = ident;
+        this.type = type;
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        assert(!s);
+        AliasAssign aa = new AliasAssign(loc, ident, type.syntaxCopy());
+        return aa;
+    }
+
+    override inout(AliasAssign) isAliasAssign() inout
+    {
+        return this;
+    }
+
+    override const(char)* kind() const
+    {
+        return "aliasAssign";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
 
 /***********************************************************
  * Table of Dsymbol's

@@ -1444,6 +1444,15 @@ public:
         buf.writenl();
     }
 
+    override void visit(AliasAssign d)
+    {
+        buf.writestring(d.ident.toString());
+        buf.writestring(" = ");
+        typeToBuffer(d.type, null, buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
     override void visit(VarDeclaration d)
     {
         if (d.storage_class & STC.local)

@@ -294,7 +294,11 @@ extern (C++) abstract class Declaration : Dsymbol
     StorageClass storage_class = STC.undefined_;
     Prot protection;
     LINK linkage = LINK.default_;
-    int inuse;          // used to detect cycles
+    short inuse;          // used to detect cycles
+
+    ubyte adFlags;         // control re-assignment of AliasDeclaration (put here for packing reasons)
+      enum wasRead    = 1; // set if AliasDeclaration was read
+      enum ignoreRead = 2; // ignore any reads of AliasDeclaration
 
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
@@ -869,6 +873,11 @@ extern (C++) final class AliasDeclaration : Declaration
         //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
+
+        // Reading the AliasDeclaration
+        if (!(adFlags & ignoreRead))
+            adFlags |= wasRead;                 // can never assign to this AliasDeclaration again
+
         if (inuse == 1 && type && _scope)
         {
             inuse = 2;
