@@ -3519,6 +3519,7 @@ public:
     void visit(IntegerExp* e);
     void visitInteger(dinteger_t v, Type* t);
     void visit(StructLiteralExp* sle);
+    void ignored(const char* const format, ...);
 };
 
 class DebugSymbol : public Dsymbol
