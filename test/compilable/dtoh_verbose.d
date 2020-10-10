@@ -18,6 +18,7 @@ TEST_OUTPUT:
 // ignoring function dtoh_verbose.bar because it's extern
 // ignoring variable dtoh_verbose.i1 because of linkage
 // ignored function dtoh_verbose.templ!int.templ
+// ignoring enum dtoh_verbose.arrayOpaque because of it's base type
 ---
 */
 
@@ -40,3 +41,5 @@ int i1;
 void templ(T)(T t) {}
 
 alias inst = templ!int;
+
+enum arrayOpaque : int[4];

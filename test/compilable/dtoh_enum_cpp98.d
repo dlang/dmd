@@ -193,3 +193,8 @@ enum d = &foo;
 
 immutable bool e_b;
 enum e = &e_b;
+
+// Opaque enums require C++ 11
+enum opaque;
+enum typedOpaque : long;
+enum arrayOpaque : int[4];
