@@ -27,7 +27,7 @@ DRUNTIME=lib\$(DRUNTIME_BASE).lib
 
 DOCFMT=
 
-target : import copydir copy $(DRUNTIME)
+target: import copydir copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -65,42 +65,42 @@ IMPLIBS= \
 	lib\win32\wininet.lib \
 	lib\win32\winspool.lib
 
-implibsdir :
+implibsdir:
 	if not exist lib\win32 mkdir lib\win32
 
-implibs : implibsdir $(IMPLIBS)
+implibs: implibsdir $(IMPLIBS)
 
-lib\win32\glu32.lib : def\glu32.def
+lib\win32\glu32.lib: def\glu32.def
 	implib $@ $**
 
-lib\win32\odbc32.lib : def\odbc32.def
+lib\win32\odbc32.lib: def\odbc32.def
 	implib $@ $**
 
-lib\win32\opengl32.lib : def\opengl32.def
+lib\win32\opengl32.lib: def\opengl32.def
 	implib $@ $**
 
-lib\win32\rpcrt4.lib : def\rpcrt4.def
+lib\win32\rpcrt4.lib: def\rpcrt4.def
 	implib $@ $**
 
-lib\win32\shell32.lib : def\shell32.def
+lib\win32\shell32.lib: def\shell32.def
 	implib $@ $**
 
-lib\win32\version.lib : def\version.def
+lib\win32\version.lib: def\version.def
 	implib $@ $**
 
-lib\win32\wininet.lib : def\wininet.def
+lib\win32\wininet.lib: def\wininet.def
 	implib $@ $**
 
-lib\win32\winspool.lib : def\winspool.def
+lib\win32\winspool.lib: def\winspool.def
 	implib $@ $**
 
 ################### C\ASM Targets ############################
 
-errno_c_$(MODEL).obj : src\core\stdc\errno.c
+errno_c_$(MODEL).obj: src\core\stdc\errno.c
 	$(CC) -c -o$@ $(CFLAGS) src\core\stdc\errno.c
 
 # only rebuild explicitly
-rebuild_minit_obj : src\rt\minit.asm
+rebuild_minit_obj: src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
 ################### Library generation #########################
@@ -108,7 +108,7 @@ rebuild_minit_obj : src\rt\minit.asm
 $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
-unittest : $(SRCS) $(DRUNTIME)
+unittest: $(SRCS) $(DRUNTIME)
 	*$(DMD) $(UDFLAGS) -L/co $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
 	unittest
 

@@ -49,7 +49,7 @@ CFLAGS=$(CFLAGS) /Zl
 
 DOCFMT=
 
-target : import copydir copy $(DRUNTIME)
+target: import copydir copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -75,7 +75,7 @@ copy:
 
 ################### C\ASM Targets ############################
 
-errno_c_$(MODEL).obj : src\core\stdc\errno.c
+errno_c_$(MODEL).obj: src\core\stdc\errno.c
 	"$(CC)" -c -Fo$@ $(CFLAGS) src\core\stdc\errno.c
 
 ################### Library generation #########################
@@ -84,7 +84,7 @@ $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
 	*"$(DMD)" -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
-unittest : $(SRCS) $(DRUNTIME)
+unittest: $(SRCS) $(DRUNTIME)
 	*"$(DMD)" $(UDFLAGS) -version=druntime_unittest $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
 	unittest
 
