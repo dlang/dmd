@@ -99,6 +99,7 @@ struct SelectiveImportsTmpl final
     {
     }
 };
+
 ---
 */
 
@@ -169,4 +170,79 @@ extern(C++) struct SelectiveImportsTmpl(T)
     public import dtoh_imports :
         importFunc,
         aliasName = ImportsC;
+}
+
+/+
+TEST_OUTPUT:
+---
+struct Postblit final
+{
+    // Ignored postblit `dtoh_verbose.Postblit.__postblit` because it cannot be mapped to C++
+    // Ignored dtoh_verbose.Postblit.__xpostblit because `using` cannot rename functions in aggregates
+    // Ignored function dtoh_verbose.Postblit.opAssign because of linkage
+    Postblit()
+    {
+    }
+    // Restricting usage because the postblit cannot be called from C++
+    Postblit(const Postblit&) = delete;
+    void operator=(const Postblit&) = delete;
+};
+
+struct DisabledPostblit final
+{
+    // Ignored function dtoh_verbose.DisabledPostblit.opAssign because of linkage
+    DisabledPostblit()
+    {
+    }
+    // Restricting usage because the postblit cannot be called from C++
+    DisabledPostblit(const DisabledPostblit&) = delete;
+    void operator=(const DisabledPostblit&) = delete;
+};
+
+struct PostblitWithCC final
+{
+    // Ignored postblit `dtoh_verbose.PostblitWithCC.__postblit` because it cannot be mapped to C++
+    // Ignored copy constructor `dtoh_verbose.PostblitWithCC.this` because it is hidden by the postblit
+    // Ignored dtoh_verbose.PostblitWithCC.__xpostblit because `using` cannot rename functions in aggregates
+    // Ignored function dtoh_verbose.PostblitWithCC.opAssign because of linkage
+    PostblitWithCC()
+    {
+    }
+    // Restricting usage because the postblit cannot be called from C++
+    PostblitWithCC(const PostblitWithCC&) = delete;
+    void operator=(const PostblitWithCC&) = delete;
+};
+
+struct DisabledPostblitWithCC final
+{
+    DisabledPostblitWithCC(const DisabledPostblitWithCC& other);
+    DisabledPostblitWithCC()
+    {
+    }
+    // Restricting usage because the postblit cannot be called from C++
+    void operator=(const DisabledPostblitWithCC&) = delete;
+};
+---
++/
+extern (C++) struct Postblit
+{
+    this(this) {}
+}
+
+extern (C++) struct DisabledPostblit
+{
+    @disable this(this);
+}
+
+
+extern (C++) struct PostblitWithCC
+{
+    this(this) {}
+    this(ref const PostblitWithCC other) {} // Lower precedence than the postblit
+}
+
+extern (C++) struct DisabledPostblitWithCC
+{
+    @disable this(this);
+    this(ref const DisabledPostblitWithCC other) {}
 }

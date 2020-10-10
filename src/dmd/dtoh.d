@@ -718,9 +718,30 @@ public:
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
+        if (fd.isPostBlitDeclaration())
+        {
+            // Silently ignore generated functions, those were never specified by the user
+            if (!fd.generated && !fd.isDisabled())
+                ignored("postblit `%s` because it cannot be mapped to C++", fd.toPrettyChars());
+            return;
+        }
+
+        // Check if `fd` is a copy ctor hidden by the postblit
+        if (auto ctor = fd.isCtorDeclaration())
+        {
+            auto par = ctor.toParent();
+            auto sd = par ? par.isStructDeclaration() : null;
+            if (ctor.isCpCtor && sd && sd.postblit && !sd.postblit.isDisabled())
+            {
+                // C++ doesn't know that the postblit takes precedence
+                ignored("copy constructor `%s` because it is hidden by the postblit", fd.toPrettyChars());
+                return;
+            }
+        }
+
         // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;
-        if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
+        if (tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp)
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
             return checkVirtualFunction(fd);
@@ -1349,6 +1370,22 @@ public:
                 buf.writestringln("{}");
                 buf.level--;
             }
+        }
+
+        // Disable assignment and copy construction that would circumvent the postblit
+        if (auto pb = sd.postblits.length ? sd.postblits[0] : null)
+        {
+            const ch = sd.ident.toChars();
+            buf.writestringln("// Restricting usage because the postblit cannot be called from C++");
+
+            // Allow construction for disabled postblit + copy ctor (callable by C++)
+            if (!(pb.isDisabled() && sd.hasCopyCtor))
+            {
+                buf.printf("%s(const %s&) = delete;", ch, ch);
+                buf.writenl();
+            }
+            buf.printf("void operator=(const %s&) = delete;", ch);
+            buf.writenl();
         }
 
         buf.level--;

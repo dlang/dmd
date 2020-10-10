@@ -819,6 +819,9 @@ struct Param final
         exefile(exefile),
         mapfile(mapfile)
         {}
+    // Restricting usage because the postblit cannot be called from C++
+    Param(const Param&) = delete;
+    void operator=(const Param&) = delete;
 };
 
 struct Global final
@@ -882,6 +885,9 @@ struct Global final
         versionids(versionids),
         debugids(debugids)
         {}
+    // Restricting usage because the postblit cannot be called from C++
+    Global(const Global&) = delete;
+    void operator=(const Global&) = delete;
 };
 
 extern Global global;
@@ -1730,6 +1736,9 @@ struct FileBuffer final
     FileBuffer(_d_dynamicArray< uint8_t > data) :
         data(data)
         {}
+    // Restricting usage because the postblit cannot be called from C++
+    FileBuffer(const FileBuffer&) = delete;
+    void operator=(const FileBuffer&) = delete;
 };
 
 struct File final
@@ -1747,6 +1756,9 @@ struct File final
             success(success),
             buffer(buffer)
             {}
+        // Restricting usage because the postblit cannot be called from C++
+        ReadResult(const ReadResult&) = delete;
+        void operator=(const ReadResult&) = delete;
     };
 
     static ReadResult read(const char* name);
@@ -5426,6 +5438,9 @@ struct BaseClass final
         baseInterfaces()
     {
     }
+    // Restricting usage because the postblit cannot be called from C++
+    BaseClass(const BaseClass&) = delete;
+    void operator=(const BaseClass&) = delete;
 };
 
 class ClassDeclaration : public AggregateDeclaration
