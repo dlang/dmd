@@ -1054,6 +1054,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (ti.tiargs.dim)
                 printf("ti.tiargs.dim = %d, [0] = %p\n", ti.tiargs.dim, (*ti.tiargs)[0]);
         }
+        MATCH nomatch()
+        {
+            static if (LOGM)
+            {
+                printf(" no match\n");
+            }
+            return MATCH.nomatch;
+        }
         MATCH m;
         size_t dedtypes_dim = dedtypes.dim;
 
@@ -1110,7 +1118,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 {
                     printf("\tmatchArg() for parameter %i failed\n", i);
                 }
-                goto Lnomatch;
+                return nomatch();
             }
 
             if (m2 < m)
@@ -1122,7 +1130,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 // in TemplateDeclaration.semantic, and
                 // then we don't need to make sparam if flags == 0
-                goto Lnomatch;
+                return nomatch();
             }
         }
 
@@ -1172,13 +1180,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 fd.type = tf.typeSemantic(loc, paramscope);
                 global.endGagging(olderrors);
                 if (fd.type.ty != Tfunction)
-                    goto Lnomatch;
+                    return nomatch();
                 fd.originalType = fd.type; // for mangling
             }
 
             // TODO: dedtypes => ti.tiargs ?
             if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
-                goto Lnomatch;
+                return nomatch();
         }
 
         static if (LOGM)
@@ -1202,22 +1210,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
             }
             else
-                goto Lnomatch;
+                return nomatch();
         }
         static if (LOGM)
         {
             printf(" match = %d\n", m);
         }
-        goto Lret;
 
-    Lnomatch:
-        static if (LOGM)
-        {
-            printf(" no match\n");
-        }
-        m = MATCH.nomatch;
-
-    Lret:
         paramscope.pop();
         static if (LOGM)
         {
@@ -1353,6 +1352,20 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         // Set up scope for parameters
         Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
+        MATCH nomatch()
+        {
+            paramscope.pop();
+            //printf("\tnomatch\n");
+            return MATCH.nomatch;
+        }
+
+        MATCH matcherror()
+        {
+            // todo: for the future improvement
+            paramscope.pop();
+            //printf("\terror\n");
+            return MATCH.nomatch;
+        }
         // Mark the parameter scope as deprecated if the templated
         // function is deprecated (since paramscope.enclosing is the
         // calling scope already)
@@ -1384,7 +1397,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (ntargs > n)
             {
                 if (!tp)
-                    goto Lnomatch;
+                    return nomatch();
 
                 /* The extra initial template arguments
                  * now form the tuple argument.
@@ -1412,13 +1425,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 MATCH m = (*parameters)[i].matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, &sparam);
                 //printf("\tdeduceType m = %d\n", m);
                 if (m <= MATCH.nomatch)
-                    goto Lnomatch;
+                    return nomatch();
                 if (m < matchTiargs)
                     matchTiargs = m;
 
                 sparam.dsymbolSemantic(paramscope);
                 if (!paramscope.insert(sparam))
-                    goto Lnomatch;
+                    return nomatch();
             }
             if (n < parameters.dim && !declaredTuple)
             {
@@ -1483,7 +1496,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         continue;
 
                     if (fparameters.varargs != VarArg.none) // variadic function doesn't
-                        goto Lnomatch; // go with variadic template
+                        return nomatch(); // go with variadic template
 
                     goto L1;
                 }
@@ -1507,7 +1520,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     scope t = new TypeIdentifier(Loc.initial, ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCH.nomatch)
-                        goto Lnomatch;
+                        return nomatch();
                     if (m < match)
                         match = m; // pick worst match
                 }
@@ -1543,7 +1556,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     mod = MODmerge(thismod, mod);
                 MATCH m = MODmethodConv(thismod, mod);
                 if (m <= MATCH.nomatch)
-                    goto Lnomatch;
+                    return nomatch();
                 if (m < match)
                     match = m;
             }
@@ -1602,7 +1615,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
 
                         if (nfargs2 - argi < rem)
-                            goto Lnomatch;
+                            return nomatch();
                         declaredTuple.objects.setDim(nfargs2 - argi - rem);
                         for (size_t i = 0; i < declaredTuple.objects.dim; i++)
                         {
@@ -1610,10 +1623,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             // Check invalid arguments to detect errors early.
                             if (farg.op == TOK.error || farg.type.ty == Terror)
-                                goto Lnomatch;
+                                return nomatch();
 
                             if (!(fparam.storageClass & STC.lazy_) && farg.type.ty == Tvoid)
-                                goto Lnomatch;
+                                return nomatch();
 
                             Type tt;
                             MATCH m;
@@ -1627,7 +1640,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 m = deduceTypeHelper(farg.type, &tt, tid);
                             }
                             if (m <= MATCH.nomatch)
-                                goto Lnomatch;
+                                return nomatch();
                             if (m < match)
                                 match = m;
 
@@ -1649,7 +1662,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         for (size_t i = 0; i < declaredTuple.objects.dim; i++)
                         {
                             if (!isType(declaredTuple.objects[i]))
-                                goto Lnomatch;
+                                return nomatch();
                         }
                     }
                     assert(declaredTuple);
@@ -1686,11 +1699,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 if (fparam.defaultArg)
                                     break;
 
-                                goto Lnomatch;
+                                return nomatch();
                             }
                             farg = (*fargs)[argi];
                             if (!farg.implicitConvTo(p.type))
-                                goto Lnomatch;
+                                return nomatch();
                         }
                         continue;
                     }
@@ -1806,7 +1819,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 {
                     // Check invalid arguments to detect errors early.
                     if (farg.op == TOK.error || farg.type.ty == Terror)
-                        goto Lnomatch;
+                        return nomatch();
 
                     Type att = null;
                 Lretry:
@@ -1818,7 +1831,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     Type argtype = farg.type;
 
                     if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Tvoid && farg.op != TOK.function_)
-                        goto Lnomatch;
+                        return nomatch();
 
                     // https://issues.dlang.org/show_bug.cgi?id=12876
                     // Optimize argument to allow CT-known length matching
@@ -1916,15 +1929,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             }
                             else
-                                goto Lnomatch;
+                                return nomatch();
                         }
                     }
                     if (m > MATCH.nomatch && (fparam.storageClass & STC.out_))
                     {
                         if (!farg.isLvalue())
-                            goto Lnomatch;
+                            return nomatch();
                         if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
-                            goto Lnomatch;
+                            return nomatch();
                     }
                     if (m == MATCH.nomatch && (fparam.storageClass & STC.lazy_) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
                         m = MATCH.convert;
@@ -1942,7 +1955,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                  * matches TypeFunction.callMatch()
                  */
                 if (!(fparameters.varargs == VarArg.typesafe && parami + 1 == nfparams))
-                    goto Lnomatch;
+                    return nomatch();
 
                 /* Check for match with function parameter T...
                  */
@@ -1959,7 +1972,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             TypeSArray tsa = cast(TypeSArray)tb;
                             dinteger_t sz = tsa.dim.toInteger();
                             if (sz != nfargs - argi)
-                                goto Lnomatch;
+                                return nomatch();
                         }
                         else if (tb.ty == Taarray)
                         {
@@ -1990,15 +2003,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 global.endGagging(errors);
 
                                 if (!e)
-                                {
-                                    goto Lnomatch;
-                                }
+                                    return nomatch();
 
                                 e = e.ctfeInterpret();
                                 e = e.implicitCastTo(sco, Type.tsize_t);
                                 e = e.optimize(WANTvalue);
                                 if (!dim.equals(e))
-                                    goto Lnomatch;
+                                    return nomatch();
                             }
                             else
                             {
@@ -2006,19 +2017,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 TemplateParameter tprm = (*parameters)[i];
                                 TemplateValueParameter tvp = tprm.isTemplateValueParameter();
                                 if (!tvp)
-                                    goto Lnomatch;
+                                    return nomatch();
                                 Expression e = cast(Expression)(*dedtypes)[i];
                                 if (e)
                                 {
                                     if (!dim.equals(e))
-                                        goto Lnomatch;
+                                        return nomatch();
                                 }
                                 else
                                 {
                                     Type vt = tvp.valType.typeSemantic(Loc.initial, sc);
                                     MATCH m = dim.implicitConvTo(vt);
                                     if (m <= MATCH.nomatch)
-                                        goto Lnomatch;
+                                        return nomatch();
                                     (*dedtypes)[i] = dim;
                                 }
                             }
@@ -2061,7 +2072,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 wildmatch |= wm;
                             }
                             if (m == MATCH.nomatch)
-                                goto Lnomatch;
+                                return nomatch();
                             if (m < match)
                                 match = m;
                         }
@@ -2072,13 +2083,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     goto Lmatch;
 
                 default:
-                    goto Lnomatch;
+                    return nomatch();
                 }
                 assert(0);
             }
             //printf(". argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
             if (argi != nfargs2 && fparameters.varargs == VarArg.none)
-                goto Lnomatch;
+                return nomatch();
         }
 
     Lmatch:
@@ -2213,13 +2224,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             sc2 = sc2.pop();
 
             if (!fd)
-                goto Lnomatch;
+                return nomatch();
         }
 
         if (constraint)
         {
             if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
-                goto Lnomatch;
+                return nomatch();
         }
 
         version (none)
@@ -2234,17 +2245,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         paramscope.pop();
         //printf("\tmatch %d\n", match);
         return cast(MATCH)(match | (matchTiargs << 4));
-
-    Lnomatch:
-        paramscope.pop();
-        //printf("\tnomatch\n");
-        return MATCH.nomatch;
-
-    Lerror:
-        // todo: for the future improvement
-        paramscope.pop();
-        //printf("\terror\n");
-        return MATCH.nomatch;
     }
 
     /**************************************************
