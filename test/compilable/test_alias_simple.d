@@ -1,7 +1,9 @@
 /*
 REQUIRED_ARGS: -sktf
 */
-bool isType(alias t)
+alias type = __type; 
+
+bool isType(type t)
 {
     return is(t);
 }
@@ -13,14 +15,14 @@ static assert(!isType("hello"));
 struct S1 { double[2] x; }
 struct S2 { int[16] i16; }
 
-size_t sizeOf(alias t)
+size_t sizeOf(type t)
 {
     return t.sizeof;
 }
 static assert(sizeOf(S1) == S1.sizeof);
 static assert(sizeOf(S2) == S2.sizeof);
 
-string stringOf(alias y)
+string stringOf(type y)
 {
     return y.stringof;
 }
