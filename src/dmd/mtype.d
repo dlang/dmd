@@ -3358,6 +3358,12 @@ extern (C++) final class TypeBasic : Type
         if (this == to)
             return MATCH.exact;
 
+        // any type implicitly converts to __type;
+        if (to.ty == Ttype)
+        {
+            return MATCH.convert;
+        }
+
         if (ty == to.ty)
         {
             if (mod == to.mod)
