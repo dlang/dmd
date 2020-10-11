@@ -2917,8 +2917,21 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         }
         mt.exp = exp2;
 
-        if (mt.exp.op == TOK.type ||
-            mt.exp.op == TOK.scope_)
+
+        Type t = mt.exp.type;
+        if (mt.exp.op == TOK.type)
+        {
+            auto te = mt.exp.isTypeExp();
+
+            if (te.type.ty == Terror)
+                goto Lerr;
+            else
+            {
+                pt = Type.basic[Ttype].addMod(mt.mod);
+                goto Lret;
+            }
+        }
+        if (mt.exp.op == TOK.scope_)
         {
             if (mt.exp.checkType())
                 goto Lerr;
@@ -2945,7 +2958,6 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                 goto Lerr;
         }
 
-        Type t = mt.exp.type;
         if (!t)
         {
             error(loc, "expression `%s` has no type", mt.exp.toChars());
@@ -2973,6 +2985,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             if (pt)
                 pt = pt.addMod(mt.mod);
         }
+    Lret:
         mt.inuse--;
     }
 
