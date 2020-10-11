@@ -220,9 +220,9 @@ void test_visitors()
     tp->accept(&tv);
     assert(tv.type == true);
 
-    LinkDeclaration *ld = LinkDeclaration::create(LINK::d, NULL);
+    LinkDeclaration *ld = LinkDeclaration::create(LINKd, NULL);
     assert(ld->isAttribDeclaration() == static_cast<AttribDeclaration *>(ld));
-    assert(ld->linkage == LINK::d);
+    assert(ld->linkage == LINKd);
     ld->accept(&tv);
     assert(tv.attrib == true);
 
@@ -247,7 +247,7 @@ void test_visitors()
     assert(tv.typeinfo == true);
 
     Parameters *args = new Parameters;
-    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
     FuncDeclaration *fd = FuncDeclaration::create(Loc (), Loc (), Identifier::idPool("test"),
                                                   STCextern, tf);
     assert(fd->isFuncDeclaration() == fd);
@@ -346,7 +346,7 @@ void test_parameters()
     args->push(Parameter::create(STCundefined, Type::tint32, NULL, NULL, NULL));
     args->push(Parameter::create(STCundefined, Type::tint64, NULL, NULL, NULL));
 
-    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
 
     assert(tf->parameterList.length() == 2);
     assert(tf->parameterList[0]->type == Type::tint32);
@@ -360,7 +360,7 @@ void test_types()
 {
     Parameters *args = new Parameters;
     StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
-    TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::d, stc);
+    TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKd, stc);
 
     assert(tfunction->isnothrow());
     assert(!tfunction->isnogc());
@@ -372,7 +372,7 @@ void test_types()
     assert(!tfunction->isScopeQual());
     assert(tfunction->isreturninferred());
     assert(!tfunction->isscopeinferred());
-    assert(tfunction->linkage == LINK::d);
+    assert(tfunction->linkage == LINKd);
     assert(tfunction->trust == TRUST::trusted);
     assert(tfunction->purity == PURE::impure);
 }

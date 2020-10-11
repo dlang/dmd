@@ -113,11 +113,11 @@ enum class Kind
 };
 
 struct BitArray;
-enum class CPPMANGLE : uint8_t
+enum class CPPMANGLE
 {
-    def = 0u,
-    asStruct = 1u,
-    asClass = 2u,
+    def = 0,
+    asStruct = 1,
+    asClass = 2,
 };
 
 class AliasThis;
@@ -135,16 +135,16 @@ class GotoCaseStatement;
 class ReturnStatement;
 class GotoStatement;
 struct Ensure;
-enum class LINK : uint8_t
+enum class LINK
 {
-    default_ = 0u,
-    d = 1u,
-    c = 2u,
-    cpp = 3u,
-    windows = 4u,
-    pascal = 5u,
-    objc = 6u,
-    system = 7u,
+    default_ = 0,
+    d = 1,
+    c = 2,
+    cpp = 3,
+    windows = 4,
+    pascal = 5,
+    objc = 6,
+    system = 7,
 };
 
 class LinkDeclaration;
@@ -440,12 +440,12 @@ enum class TOK : uint8_t
 
 class StringExp;
 class TupleExp;
-enum class MATCH : uint8_t
+enum class MATCH
 {
-    nomatch = 0u,
-    convert = 1u,
-    constant = 2u,
-    exact = 3u,
+    nomatch = 0,
+    convert = 1,
+    constant = 2,
+    exact = 3,
 };
 
 enum class Modifiable
@@ -677,11 +677,11 @@ class ObjcClassReferenceExp;
 class ThrownExceptionExp;
 struct ASTCodegen;
 union __AnonStruct__u;
-enum class PINLINE : uint8_t
+enum class PINLINE
 {
-    default_ = 0u,
-    never = 1u,
-    always = 2u,
+    default_ = 0,
+    never = 1,
+    always = 2,
 };
 
 struct ObjcFuncDeclaration;
