@@ -991,12 +991,20 @@ void parseEnvironment()
         // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
         bool pic;
-        version(X86_64)
+        if (model == "64")
             pic = true;
-        else version(X86)
+        else if (model == "32")
             pic = false;
-        if (env.getNumberedBool("PIC"))
-            pic = true;
+
+        const picValue = env.getDefault("PIC", "");
+        switch (picValue)
+        {
+            case "": /** Keep the default **/ break;
+            case "0": pic = false; break;
+            case "1": pic = true; break;
+            default:
+                throw abortBuild(format("Variable 'PIC' should be '0', '1' or <empty> but got '%s'", picValue));
+        }
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
     }
