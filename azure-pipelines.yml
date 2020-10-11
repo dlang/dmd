@@ -125,6 +125,6 @@ jobs:
           D_COMPILER: ldc
           C_RUNTIME: mingw
           VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.20.0
+          LDC_VERSION: 1.23.0
     steps:
       - template: .azure-pipelines/windows-visual-studio.yml
