@@ -7117,6 +7117,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (ad.dtor)
             {
+                err |= !ad.dtor.functionSemantic();
                 err |= exp.checkPurity(sc, ad.dtor);
                 err |= exp.checkSafety(sc, ad.dtor);
                 err |= exp.checkNogc(sc, ad.dtor);
