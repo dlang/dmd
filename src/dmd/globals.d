@@ -659,7 +659,7 @@ nothrow:
     }
 }
 
-enum LINK : ubyte
+enum LINK : int
 {
     default_,
     d,
@@ -671,14 +671,14 @@ enum LINK : ubyte
     system,
 }
 
-enum CPPMANGLE : ubyte
+enum CPPMANGLE : int
 {
     def,
     asStruct,
     asClass,
 }
 
-enum MATCH : ubyte
+enum MATCH : int
 {
     nomatch,   // no match
     convert,   // match with conversions
@@ -686,7 +686,7 @@ enum MATCH : ubyte
     exact,     // exact match
 }
 
-enum PINLINE : ubyte
+enum PINLINE : int
 {
     default_,     // as specified on the command line
     never,   // never inline

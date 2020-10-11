@@ -396,38 +396,38 @@ struct Loc
     bool equals(const Loc& loc) const;
 };
 
-enum class LINK : uint8_t
+enum LINK
 {
-    default_,
-    d,
-    c,
-    cpp,
-    windows,
-    pascal,
-    objc,
-    system
+    LINKdefault,
+    LINKd,
+    LINKc,
+    LINKcpp,
+    LINKwindows,
+    LINKpascal,
+    LINKobjc,
+    LINKsystem
 };
 
-enum class CPPMANGLE : uint8_t
+enum CPPMANGLE
 {
-    def,
-    asStruct,
-    asClass
+    CPPMANGLEdefault,
+    CPPMANGLEstruct,
+    CPPMANGLEclass
 };
 
-enum class MATCH : uint8_t
+enum MATCH
 {
-    nomatch,       // no match
-    convert,       // match with conversions
-    constant,      // match with conversion to const
-    exact          // exact match
+    MATCHnomatch,       // no match
+    MATCHconvert,       // match with conversions
+    MATCHconst,         // match with conversion to const
+    MATCHexact          // exact match
 };
 
-enum class PINLINE : uint8_t
+enum PINLINE
 {
-    default_,     // as specified on the command line
-    never,        // never inline
-    always        // always inline
+    PINLINEdefault,      // as specified on the command line
+    PINLINEnever,        // never inline
+    PINLINEalways        // always inline
 };
 
 typedef uinteger_t StorageClass;
