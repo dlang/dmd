@@ -1,0 +1,28 @@
+Support for alias of individual array elements and aggregate members
+
+Although generally speaking it is illegal to alias an expression
+it is now allowed to put an alias on a specific element of an aggregate.
+
+using the alias generates the same code as using the aliased expression.
+
+Example on an array:
+
+---
+// give signification to individual elements of an array using aliases
+string[3] data  = ["Anna", "Miles", "AnnaMiles@jourrapide.com "];
+alias firstName = data[0];
+alias lastName  = data[1];
+alias email     = data[2];
+const bool addressContainsName = [firstName, lastName].all!(a => email.canFind(a));
+---
+
+Example using a struct:
+
+---
+static struct Phazor { float freq; }
+Phazor ph;
+// shortcut member access
+// without using a function/lambda
+alias f = ph.freq;
+f = 220.0;
+---

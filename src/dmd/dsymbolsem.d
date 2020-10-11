@@ -6598,7 +6598,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
      *   alias y = x;
      * try to convert identifier x to 3.
      */
-    auto s = ds.type.toDsymbol(sc);
+    Dsymbol s = ds.type.toDsymbol(sc);
     if (errors != global.errors)
     {
         s = null;
@@ -6622,14 +6622,108 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             sc2 = sc.push();
             sc2.stc |= ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
         }
+
         ds.type = ds.type.addSTC(ds.storage_class);
         ds.type.resolve(ds.loc, sc2, e, t, s);
         if (sc2 != sc)
             sc2.pop();
 
-        if (e)  // Try to convert Expression to Dsymbol
+        // indicates if a member can be aliased with an expression
+        static bool isDeclarationMemberSym(Dsymbol ss, Scope* ssc)
         {
-            s = getDsymbol(e);
+            FuncDeclaration fd  = ss ? ss.isFuncDeclaration() : null;
+            VarDeclaration vd   = ss ? ss.isVarDeclaration() : null;
+            return (fd || vd) && ss.needThis() && !(ss.parent && ss.parent.isTemplateMixin())
+                              && !(fd && fd.overnext)
+                              && (/*ss.toParent() is ds.toParent() ||*/ ssc.func);
+        }
+
+        // To alias aggregate members, although we use an expression,
+        // we firstly need to have a symbol to perform checks on it.
+        // This branch is for obtaining it, and if `resolve()` has given just an exp.
+        //
+        // It is also necessary because `resolve()` remove the `this`, e.g in `alias a = givaThis.member` (issue14128)
+        Expression restoredExp;
+        if (!s && e && e.op == TOK.variable)
+        {
+            restoredExp = typeToExpression(oldtype);
+            if (restoredExp && restoredExp.op == TOK.dotIdentifier)
+            {
+                //printf("converted back exp to exp: `%s` (oldop=%d newop=%d)\n", e.toChars(), e.op, restoredExp.op);
+                s = getDsymbol(e);
+                e = restoredExp;
+            }
+        }
+        // Now, for members alias there's necessarily a valid "s". Use `isDeclarationMemberSym` on it.
+        if (s)
+        {
+            if (isDeclarationMemberSym(s, sc))
+            {
+                if (!restoredExp)
+                    restoredExp = typeToExpression(oldtype);
+                if (restoredExp && restoredExp.op == TOK.dotIdentifier)
+                {
+                    //printf("converted back declaration `%s` to exp: `%s` (op=%d)\n", s.toChars(), restoredExp.toChars(), restoredExp.op);
+                    e = restoredExp;
+                }
+            }
+            else e = null; // i.e "s" is good, no need to wrap the exp in a `MemberSymbol`
+        }
+        // Try to convert Expression to Dsymbol
+        if (e)
+        {
+            //printf("trying to alias `%s` (%d)\n", e.toChars, e.op);
+
+            // alias of member: `alias a = e1[e2];` we allow if...
+            if (ArrayExp ae = e.isArrayExp())
+            {
+                // 1. `e1` is a symbol or an array literal (e.g enum id = arrayliteral)
+                ae.e1 = expressionSemantic(ae.e1, sc);
+                VarExp ve = ae.e1.isVarExp();
+                ArrayLiteralExp ale = ae.e1.isArrayLiteralExp();
+                // 2. `e2` is an integer known at compile time
+                IntegerExp ie = (ae.arguments && ae.arguments.dim == 1)
+                    ? expressionSemantic((*ae.arguments)[0], sc).ctfeInterpret().isIntegerExp() : null;
+                if (!ve && !ale)
+                {
+                    OutBuffer buff;
+                    if (ae.arguments)
+                        argsToBuffer(ae.arguments, &buff, null);
+                    ds.error(", cannot index `%s` using `[%s]` because it is not a symbol", ae.e1.toChars(), buff.extractChars());
+                }
+                else if (!ie)
+                {
+                    OutBuffer buff;
+                    if (ae.arguments)
+                        argsToBuffer(ae.arguments, &buff, null);
+                    ds.error(", symbol `%s` cannot be indexed using `[%s]`", ae.e1.toChars(), buff.extractChars());
+                }
+                else if ((ve || ale) && ie)
+                {
+                    s = new MemberAlias(ae.expressionSemantic(sc), false);
+                }
+            }
+            // alias of member: `alias a = e1.var`
+            else if (DotVarExp dve = e.isDotVarExp())
+            {
+                if (!sc.func)
+                    s = new MemberAlias(dve.expressionSemantic(sc), false);
+                else
+                    s = new MemberAlias(dve, true);
+            }
+            // alias of member: `alias a = e1.id`
+            else if (DotIdExp die = e.isDotIdExp())
+            {
+                if (!sc.func)
+                    s = new MemberAlias(die.expressionSemantic(sc), false);
+                else
+                    s = new MemberAlias(die, true);
+            }
+            // not more special case allowed, now it really must be a symbol
+            else
+            {
+                s = getDsymbol(e);
+            }
             if (!s)
             {
                 if (e.op != TOK.error)
@@ -6637,7 +6731,8 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
                 t = Type.terror;
             }
         }
-        ds.type = t;
+        if (!s)
+            ds.type = t;
     }
     if (s == ds)
     {
@@ -6651,7 +6746,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         ds.type = ds.type.typeSemantic(ds.loc, sc);
         ds.aliassym = null;
     }
-    else    // it's a symbolic alias
+    else // it's a symbolic alias
     {
         //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
         ds.type = null;

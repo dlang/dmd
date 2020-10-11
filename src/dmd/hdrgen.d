@@ -3106,7 +3106,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
 /**************************************************
  * Write out argument list to buf.
  */
-private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null)
+void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null)
 {
     if (!expressions || !expressions.dim)
         return;

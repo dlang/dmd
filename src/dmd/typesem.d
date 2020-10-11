@@ -3801,6 +3801,18 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return new DotExp(e.loc, e, oe);
         }
 
+        if (MemberAlias ma = s.isMemberAlias())
+        {
+            Expression result = ma.e;
+            if (ma.isScopeSensitive)
+            {
+                result = result.syntaxCopy();
+                result = result.expressionSemantic(sc);
+                result = resolveProperties(sc, result);
+            }
+            return result;
+        }
+
         Declaration d = s.isDeclaration();
         if (!d)
         {
@@ -4228,6 +4240,18 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 return oe;
             }
             return new DotExp(e.loc, e, oe);
+        }
+
+        if (MemberAlias ma = s.isMemberAlias())
+        {
+            Expression result = ma.e;
+            if (ma.isScopeSensitive)
+            {
+                result = result.syntaxCopy();
+                result = result.expressionSemantic(sc);
+                result = resolveProperties(sc, result);
+            }
+            return result;
         }
 
         Declaration d = s.isDeclaration();

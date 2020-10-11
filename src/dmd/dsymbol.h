@@ -69,6 +69,7 @@ class SymbolDeclaration;
 class Expression;
 class ExpressionDsymbol;
 class OverloadSet;
+class MemberAlias;
 struct AA;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -277,6 +278,7 @@ public:
     virtual ProtDeclaration *isProtDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
     virtual CompileDeclaration *isCompileDeclaration() { return NULL; }
+    virtual MemberAlias *isMemberAlias() { return NULL; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -395,4 +397,24 @@ public:
 
     // Number of symbols in symbol table
     size_t length() const;
+};
+
+/**
+ * Wrapper used when a member is aliased.
+ *
+ * The member can be either a variable, a function of an array element.
+ * It is stored as an expression be cause it's necessary to keep track
+ * of the `this` for aggregates members and for arrays to tie the symbol
+ * representing the array to an index.
+ *
+ * This symbol is not an AST node (so no visited) and is anonymous,
+ * only using the identifier of the alias for which an `MemberAlias` is created
+ * can give back the expression.
+ */
+class MemberAlias : public Dsymbol
+{
+public:
+    Expression *e;
+    bool isScopeSensitive;
+    MemberAlias *isMemberAlias() { return this; }
 };

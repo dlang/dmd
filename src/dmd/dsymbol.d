@@ -1255,6 +1255,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
+    inout(MemberAlias)                 isMemberAlias()                 inout { return null; }
 }
 
 /***********************************************************
@@ -2179,4 +2180,33 @@ extern (C++) final class DsymbolTable : RootObject
     {
         return tab.length;
     }
+}
+
+/**
+ * Wrapper used when a member is aliased.
+ *
+ * The member can be either a variable, a function of an array element.
+ * It is stored as an expression be cause it's necessary to keep track
+ * of the `this` for aggregates members and for arrays to tie the symbol
+ * representing the array to an index.
+ *
+ * This symbol is not an AST node (so no visited) and is anonymous,
+ * only using the identifier of the alias for which an `MemberAlias` is created
+ * can give back the expression.
+ */
+extern (C++) final class MemberAlias : Dsymbol
+{
+    /// The expression giving the member
+    Expression e;
+    /// Indicates if the expression must be copied and analyzed for each new use
+    const bool isScopeSensitive;
+    /// Only called in `aliasSemantic()`
+    package this(Expression e, bool isScopeSensitive)
+    {
+        super(e.loc, Identifier.anonymous());
+        this.e = e;
+        this.isScopeSensitive = isScopeSensitive;
+    }
+
+    override inout(MemberAlias) isMemberAlias() inout { return this; }
 }
