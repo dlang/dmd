@@ -38,7 +38,7 @@ import dmd.tokens;
 import dmd.typesem : defaultInit;
 import dmd.visitor;
 
-enum Sizeok : int
+enum Sizeok : ubyte
 {
     none,           /// size of aggregate is not yet able to compute
     fwd,            /// size of aggregate is ready to compute
@@ -46,7 +46,7 @@ enum Sizeok : int
     done,           /// size of aggregate is set correctly
 }
 
-enum Baseok : int
+enum Baseok : ubyte
 {
     none,             /// base classes not computed yet
     start,            /// in process of resolving base classes
@@ -60,7 +60,7 @@ enum Baseok : int
  * is an anonymous class. If the class is anonymous it is also
  * considered to be a D class.
  */
-enum ClassKind : int
+enum ClassKind : ubyte
 {
     /// the aggregate is a d(efault) class
     d,

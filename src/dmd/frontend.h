@@ -102,15 +102,15 @@ class ProtDeclaration;
 class OverloadSet;
 class CompileDeclaration;
 class DsymbolTable;
-enum class Kind
+enum class Kind : uint8_t
 {
-    undefined = 0,
-    none = 1,
-    private_ = 2,
-    package_ = 3,
-    protected_ = 4,
-    public_ = 5,
-    export_ = 6,
+    undefined = 0u,
+    none = 1u,
+    private_ = 2u,
+    package_ = 3u,
+    protected_ = 4u,
+    public_ = 5u,
+    export_ = 6u,
 };
 
 struct BitArray;
@@ -2238,27 +2238,27 @@ struct TargetObjC
     }
 };
 
-enum class Sizeok
+enum class Sizeok : uint8_t
 {
-    none = 0,
-    fwd = 1,
-    inProcess = 2,
-    done = 3,
+    none = 0u,
+    fwd = 1u,
+    inProcess = 2u,
+    done = 3u,
 };
 
-enum class Baseok
+enum class Baseok : uint8_t
 {
-    none = 0,
-    start = 1,
-    done = 2,
-    semanticdone = 3,
+    none = 0u,
+    start = 1u,
+    done = 2u,
+    semanticdone = 3u,
 };
 
-enum class ClassKind
+enum class ClassKind : uint8_t
 {
-    d = 0,
-    cpp = 1,
-    objc = 2,
+    d = 0u,
+    cpp = 1u,
+    objc = 2u,
 };
 
 class AggregateDeclaration : public ScopeDsymbol
@@ -2671,11 +2671,11 @@ extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
 
-enum class Include
+enum class Include : uint8_t
 {
-    notComputed = 0,
-    yes = 1,
-    no = 2,
+    notComputed = 0u,
+    yes = 1u,
+    no = 2u,
 };
 
 class Condition : public ASTNode
@@ -2801,11 +2801,11 @@ enum : bool { LOG = false };
 
 extern bool arrayTypeCompatibleWithoutCasting(Type* t1, Type* t2);
 
-enum class Abstract
+enum class Abstract : uint8_t
 {
-    fwdref = 0,
-    yes = 1,
-    no = 2,
+    fwdref = 0u,
+    yes = 1u,
+    no = 2u,
 };
 
 struct BaseClass
@@ -2827,18 +2827,18 @@ struct BaseClass
     }
 };
 
-enum class ClassFlags
+enum class ClassFlags : uint32_t
 {
-    none = 0,
-    isCOMclass = 1,
-    noPointers = 2,
-    hasOffTi = 4,
-    hasCtor = 8,
-    hasGetMembers = 16,
-    hasTypeInfo = 32,
-    isAbstract = 64,
-    isCPPclass = 128,
-    hasDtor = 256,
+    none = 0u,
+    isCOMclass = 1u,
+    noPointers = 2u,
+    hasOffTi = 4u,
+    hasCtor = 8u,
+    hasGetMembers = 16u,
+    hasTypeInfo = 32u,
+    isAbstract = 64u,
+    isCPPclass = 128u,
+    hasDtor = 256u,
 };
 
 class ClassDeclaration : public AggregateDeclaration
