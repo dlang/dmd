@@ -236,7 +236,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <StackReserveSize>8388608</StackReserveSize>
+      <StackReserveSize>16777216</StackReserveSize>
       <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
