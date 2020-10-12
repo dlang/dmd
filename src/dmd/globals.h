@@ -396,16 +396,16 @@ struct Loc
     bool equals(const Loc& loc) const;
 };
 
-enum LINK
+enum class LINK : uint8_t
 {
-    LINKdefault,
-    LINKd,
-    LINKc,
-    LINKcpp,
-    LINKwindows,
-    LINKpascal,
-    LINKobjc,
-    LINKsystem
+    default_,
+    d,
+    c,
+    cpp,
+    windows,
+    pascal,
+    objc,
+    system
 };
 
 enum CPPMANGLE

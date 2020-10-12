@@ -659,7 +659,7 @@ nothrow:
     }
 }
 
-enum LINK : int
+enum LINK : ubyte
 {
     default_,
     d,

@@ -135,16 +135,16 @@ class GotoCaseStatement;
 class ReturnStatement;
 class GotoStatement;
 struct Ensure;
-enum class LINK
+enum class LINK : uint8_t
 {
-    default_ = 0,
-    d = 1,
-    c = 2,
-    cpp = 3,
-    windows = 4,
-    pascal = 5,
-    objc = 6,
-    system = 7,
+    default_ = 0u,
+    d = 1u,
+    c = 2u,
+    cpp = 3u,
+    windows = 4u,
+    pascal = 5u,
+    objc = 6u,
+    system = 7u,
 };
 
 class LinkDeclaration;
