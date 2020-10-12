@@ -113,11 +113,11 @@ enum class Kind
 };
 
 struct BitArray;
-enum class CPPMANGLE
+enum class CPPMANGLE : uint8_t
 {
-    def = 0,
-    asStruct = 1,
-    asClass = 2,
+    def = 0u,
+    asStruct = 1u,
+    asClass = 2u,
 };
 
 class AliasThis;

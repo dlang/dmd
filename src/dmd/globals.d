@@ -671,7 +671,7 @@ enum LINK : int
     system,
 }
 
-enum CPPMANGLE : int
+enum CPPMANGLE : ubyte
 {
     def,
     asStruct,
