@@ -1307,11 +1307,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *      fd              Partially instantiated function declaration
      *      ti.tdtypes     Expression/Type deduced template arguments
      * Returns:
-     *      match level
-     *          bit 0-3     Match template parameters by inferred template arguments
-     *          bit 4-7     Match template parameters by initial template arguments
+     *      match pair of initial and inferred template arguments
      */
-    extern (D) MATCH deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs)
+    extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs)
     {
         size_t nfparams;
         size_t nfargs;
@@ -1352,24 +1350,24 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         dedtypes.zero();
 
         if (errors || fd.errors)
-            return MATCH.nomatch;
+            return MATCHpair(MATCH.nomatch, MATCH.nomatch);
 
         // Set up scope for parameters
         Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
-        MATCH nomatch()
+        MATCHpair nomatch()
         {
             paramscope.pop();
             //printf("\tnomatch\n");
-            return MATCH.nomatch;
+            return MATCHpair(MATCH.nomatch, MATCH.nomatch);
         }
 
-        MATCH matcherror()
+        MATCHpair matcherror()
         {
             // todo: for the future improvement
             paramscope.pop();
             //printf("\terror\n");
-            return MATCH.nomatch;
+            return MATCHpair(MATCH.nomatch, MATCH.nomatch);
         }
         // Mark the parameter scope as deprecated if the templated
         // function is deprecated (since paramscope.enclosing is the
@@ -2255,7 +2253,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         paramscope.pop();
         //printf("\tmatch %d\n", match);
-        return cast(MATCH)(match | (matchTiargs << 4));
+        return MATCHpair(matchTiargs, match);
     }
 
     /**************************************************
@@ -2960,9 +2958,9 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
 
             auto fd = f;
-            int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
-            MATCH mta = cast(MATCH)(x >> 4);
-            MATCH mfa = cast(MATCH)(x & 0xF);
+            MATCHpair x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            MATCH mta = x.mta;
+            MATCH mfa = x.mfa;
             //printf("match:t/f = %d/%d\n", mta, mfa);
             if (!fd || mfa == MATCH.nomatch)
                 continue;
@@ -8394,5 +8392,20 @@ void printTemplateStats()
                     ss.ts.uniqueInstantiations,
                     ss.td.toCharsNoConstraints());
         }
+    }
+}
+
+/// Pair of MATCHes
+private struct MATCHpair
+{
+    MATCH mta;  /// match template parameters by initial template arguments
+    MATCH mfa;  /// match template parameters by inferred template arguments
+
+    debug this(MATCH mta, MATCH mfa)
+    {
+        assert(MATCH.min <= mta && mta <= MATCH.max);
+        assert(MATCH.min <= mfa && mfa <= MATCH.max);
+        this.mta = mta;
+        this.mfa = mfa;
     }
 }

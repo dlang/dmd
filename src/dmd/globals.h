@@ -382,12 +382,12 @@ enum class CPPMANGLE : uint8_t
     asClass
 };
 
-enum MATCH
+enum class MATCH : int
 {
-    MATCHnomatch,       // no match
-    MATCHconvert,       // match with conversions
-    MATCHconst,         // match with conversion to const
-    MATCHexact          // exact match
+    nomatch,       // no match
+    convert,       // match with conversions
+    constant,      // match with conversion to const
+    exact          // exact match
 };
 
 enum class PINLINE : uint8_t
