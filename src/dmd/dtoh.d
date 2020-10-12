@@ -1784,27 +1784,12 @@ public:
         if (ident)
             buf.writestring(ident.toChars());
         ident = null;
-        version (all)
+
+        if (p.defaultArg)
         {
-            if (p.defaultArg && p.defaultArg.op >= TOK.int32Literal && p.defaultArg.op < TOK.struct_)
-            {
-                //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
-                buf.writestring(" = ");
-                buf.writestring(p.defaultArg.toChars());
-            }
-        }
-        else
-        {
-            if (p.defaultArg)
-            {
-                //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
-                //return;
-                buf.writestring("/*");
-                buf.writestring(" = ");
-                buf.writestring(p.defaultArg.toChars());
-                //p.defaultArg.accept(this);
-                buf.writestring("*/");
-            }
+            //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
+            buf.writestring(" = ");
+            p.defaultArg.accept(this);
         }
     }
 
@@ -1815,7 +1800,104 @@ public:
             printf("[AST.Expression enter] %s\n", e.toChars());
             scope(exit) printf("[AST.Expression exit] %s\n", e.toChars());
         }
-        assert(0);
+        // Valid in most cases, others should be overriden below
+        // to use the appropriate operators  (:: and ->)
+        buf.writestring(e.toString());
+    }
+
+    override void visit(AST.VarExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.VarExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.VarExp exit] %s\n", e.toChars());
+        }
+
+        /// Partially prints the FQN including parent aggregates
+        void printPrefix(AST.Dsymbol var)
+        {
+            if (!var || !var.isAggregateDeclaration())
+                return;
+            printPrefix(var.parent);
+            includeSymbol(var.parent);
+
+            buf.writestring(var.toString());
+            buf.writestring("::");
+        }
+
+        // Static members are not represented as DotVarExp, hence
+        // manually print the full name here
+        if (e.var.storage_class & AST.STC.static_)
+            printPrefix(e.var.parent);
+
+        includeSymbol(e.var);
+        buf.writestring(e.toString());
+    }
+
+    override void visit(AST.CallExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.CallExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.CallExp exit] %s\n", e.toChars());
+        }
+
+        // Dereferencing function pointers requires additional braces: (*f)(args)
+        const isFp = e.e1.isPtrExp();
+        if (isFp)
+            buf.writeByte('(');
+        else
+            includeSymbol(e.f);
+
+        e.e1.accept(this);
+
+        if (isFp) buf.writeByte(')');
+
+        assert(e.arguments);
+        buf.writeByte('(');
+        foreach (i, arg; *e.arguments)
+        {
+            if (i)
+                buf.writestring(", ");
+            arg.accept(this);
+        }
+        buf.writeByte(')');
+    }
+
+    override void visit(AST.DotVarExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.DotVarExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.DotVarExp exit] %s\n", e.toChars());
+        }
+
+        // Accessing members through a pointer?
+        if (auto pe = e.e1.isPtrExp)
+        {
+            pe.e1.accept(this);
+            buf.writestring("->");
+        }
+        else
+        {
+            e.e1.accept(this);
+            buf.writeByte('.');
+        }
+
+        buf.writestring(e.var.toChars());
+    }
+
+    override void visit(AST.DotIdExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.DotIdExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.DotIdExp exit] %s\n", e.toChars());
+        }
+
+        e.e1.accept(this);
+        buf.writestring("::");
+        buf.writestring(e.ident.toChars());
     }
 
     override void visit(AST.NullExp e)

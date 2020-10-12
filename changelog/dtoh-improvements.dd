@@ -6,6 +6,7 @@ experimental C++ header generator:
 - Enums are no longer emitted in macros and `enum class` is used when the
   C++ standard set from `-extern-std=` is c++11 or later.
 - Forward referenced declarations are now properly indented.
+- Default functions parameters are properly emitted
 - Tuple members/parameters/variables are emitted as individual variables
   using the compiler internal names instead of causing an assertion failure.
 - Interfaces are now emitted as base classes.
