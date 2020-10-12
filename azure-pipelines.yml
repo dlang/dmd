@@ -68,15 +68,20 @@ jobs:
     variables:
       VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
       HOST_DMD_VERSION: 2.093.1
+      D_COMPILER: ldc
+      VISUALD_VER: v0.49.0
+      LDC_VERSION: 1.20.0
     strategy:
       matrix:
         win32-ldc:
           OS: Win_32
-          MODEL: 32
+          MODEL: 32mscoff
           ARCH: x86
-          D_COMPILER: ldc
-          VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.14.0
+        win32-mscoff-MinGW:
+          OS: Win_32
+          MODEL: 32mscoff
+          ARCH: x86
+          C_RUNTIME: mingw
     steps:
       - script: set
         displayName: environment
