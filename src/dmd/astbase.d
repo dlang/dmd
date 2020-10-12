@@ -52,14 +52,14 @@ struct ASTBase
     alias Initializers          = Array!(Initializer);
     alias Ensures               = Array!(Ensure);
 
-    enum Sizeok : int
+    enum Sizeok : ubyte
     {
         none,               // size of aggregate is not yet able to compute
         fwd,                // size of aggregate is ready to compute
         done,               // size of aggregate is set correctly
     }
 
-    enum Baseok : int
+    enum Baseok : ubyte
     {
         none,               // base classes not computed yet
         start,              // in process of resolving base classes
@@ -6549,7 +6549,7 @@ struct ASTBase
 
     struct Prot
     {
-        enum Kind : int
+        enum Kind : ubyte
         {
             undefined,
             none,

@@ -124,7 +124,7 @@ struct Ungag
 struct Prot
 {
     ///
-    enum Kind : int
+    enum Kind : ubyte
     {
         undefined,
         none,           // no access

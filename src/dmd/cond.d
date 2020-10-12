@@ -42,7 +42,7 @@ import dmd.func;
 /***********************************************************
  */
 
-enum Include
+enum Include : ubyte
 {
     notComputed,        /// not computed yet
     yes,                /// include the conditional code

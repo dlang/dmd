@@ -26,20 +26,20 @@ class InterfaceDeclaration;
 class TypeInfoClassDeclaration;
 class VarDeclaration;
 
-enum Sizeok
+enum class Sizeok : uint8_t
 {
-    SIZEOKnone,         // size of aggregate is not yet able to compute
-    SIZEOKfwd,          // size of aggregate is ready to compute
-    SIZEOKinProcess,    // in the midst of computing the size
-    SIZEOKdone          // size of aggregate is set correctly
+    none,         // size of aggregate is not yet able to compute
+    fwd,          // size of aggregate is ready to compute
+    inProcess,    // in the midst of computing the size
+    done          // size of aggregate is set correctly
 };
 
-enum Baseok
+enum class Baseok : uint8_t
 {
-    BASEOKnone,         // base classes not computed yet
-    BASEOKin,           // in process of resolving base classes
-    BASEOKdone,         // all base classes are resolved
-    BASEOKsemanticdone  // all base classes semantic done
+    none,         // base classes not computed yet
+    in,           // in process of resolving base classes
+    done,         // all base classes are resolved
+    semanticdone  // all base classes semantic done
 };
 
 enum StructPOD
@@ -49,18 +49,18 @@ enum StructPOD
     ISPODfwd            // POD not yet computed
 };
 
-enum Abstract
+enum class Abstract : uint8_t
 {
-    ABSfwdref = 0,      // whether an abstract class is not yet computed
-    ABSyes,             // is abstract class
-    ABSno               // is not abstract class
+    fwdref = 0,      // whether an abstract class is not yet computed
+    yes,             // is abstract class
+    no               // is not abstract class
 };
 
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 struct ClassKind
 {
-    enum Type
+    enum class Type : uint8_t
     {
         /// the aggregate is a d(efault) struct/class/interface
         d,

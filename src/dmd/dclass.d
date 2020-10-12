@@ -34,7 +34,7 @@ import dmd.root.rmem;
 import dmd.target;
 import dmd.visitor;
 
-enum Abstract : int
+enum Abstract : ubyte
 {
     fwdref = 0,      // whether an abstract class is not yet computed
     yes,             // is abstract class
@@ -129,7 +129,7 @@ extern (C++) struct BaseClass
     }
 }
 
-enum ClassFlags : int
+enum ClassFlags : uint
 {
     none          = 0x0,
     isCOMclass    = 0x1,
