@@ -20,21 +20,21 @@ extern(C):
 nothrow:
 @nogc:
 
+// VS2013- FILE.
 struct _iobuf
 {
     char* _ptr;
-    int   _cnt;  // _cnt and _base exchanged for VS2015
+    int   _cnt;
     char* _base;
     int   _flag;
     int   _file;
     int   _charbuf;
     int   _bufsiz;
     char* _tmpfname;
-    // additional members in VS2015
 }
 
 FILE* __acrt_iob_func(int hnd);     // VS2015+
-FILE* __iob_func();                 // VS2013-
+_iobuf* __iob_func();               // VS2013-
 
 int _set_output_format(int format); // VS2013-
 
@@ -73,10 +73,10 @@ void init_msvc()
     }
     else if (isAvailable!__iob_func)
     {
-        FILE* fp = __iob_func();
-        stdin = fp;
-        stdout = fp + 1;
-        stderr = fp + 2;
+        _iobuf* fp = __iob_func();
+        stdin  = cast(FILE*) &fp[0];
+        stdout = cast(FILE*) &fp[1];
+        stderr = cast(FILE*) &fp[2];
     }
     if (isAvailable!_set_output_format)
     {
