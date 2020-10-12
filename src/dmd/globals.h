@@ -423,11 +423,11 @@ enum MATCH
     MATCHexact          // exact match
 };
 
-enum PINLINE
+enum class PINLINE : uint8_t
 {
-    PINLINEdefault,      // as specified on the command line
-    PINLINEnever,        // never inline
-    PINLINEalways        // always inline
+    default_,     // as specified on the command line
+    never,        // never inline
+    always        // always inline
 };
 
 typedef uinteger_t StorageClass;

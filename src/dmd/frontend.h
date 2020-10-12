@@ -677,11 +677,11 @@ class ObjcClassReferenceExp;
 class ThrownExceptionExp;
 struct ASTCodegen;
 union __AnonStruct__u;
-enum class PINLINE
+enum class PINLINE : uint8_t
 {
-    default_ = 0,
-    never = 1,
-    always = 2,
+    default_ = 0u,
+    never = 1u,
+    always = 2u,
 };
 
 struct ObjcFuncDeclaration;

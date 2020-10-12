@@ -686,7 +686,7 @@ enum MATCH : int
     exact,     // exact match
 }
 
-enum PINLINE : int
+enum PINLINE : ubyte
 {
     default_,     // as specified on the command line
     never,   // never inline
