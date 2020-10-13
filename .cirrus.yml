@@ -1,0 +1,64 @@
+common_steps_template: &COMMON_STEPS_TEMPLATE
+  clone_dmd_script: |
+    set -uexo pipefail
+    git clone --branch "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}" --depth 1 https://github.com/dlang/dmd.git ../dmd
+  install_prerequisites_script: cd ../dmd && ./cirrusci.sh
+  install_host_compiler_script: cd ../dmd && ./ci.sh install_host_compiler
+  setup_repos_script: |
+    set -uexo pipefail
+    ln -s $CIRRUS_WORKING_DIR ../druntime
+    cd ../dmd && ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
+  build_script: cd ../dmd && ./ci.sh build
+  test_dmd_script: cd ../dmd && ./ci.sh test_dmd
+  test_druntime_script: cd ../dmd && ./ci.sh test_druntime
+  test_phobos_script: cd ../dmd && ./ci.sh test_phobos
+
+environment:
+  CIRRUS_CLONE_DEPTH: 1
+  # for ci.sh:
+  MODEL: 64
+  HOST_DC: dmd
+  N: 4
+  OS_NAME: linux
+  FULL_BUILD: false
+
+# Linux
+task:
+  name: Ubuntu 16.04 $TASK_NAME_SUFFIX
+  container:
+    image: ubuntu:16.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    matrix:
+      - TASK_NAME_SUFFIX: x86
+        MODEL: 32
+      - TASK_NAME_SUFFIX: x64
+  install_git_script: apt-get -q update && apt-get install -yq git-core
+  << : *COMMON_STEPS_TEMPLATE
+
+# Mac
+task:
+  name: macOS 10.15 x64
+  osx_instance:
+    image: catalina-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+  << : *COMMON_STEPS_TEMPLATE
+
+# FreeBSD
+task:
+  name: FreeBSD 12.1 x64
+  freebsd_instance:
+    image_family: freebsd-12-1
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+  install_bash_and_git_script: pkg install -y bash git
+  << : *COMMON_STEPS_TEMPLATE
