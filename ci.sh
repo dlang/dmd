@@ -12,8 +12,6 @@ if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 build_path=generated/$OS_NAME/release/$MODEL
 
-build_path=generated/$OS_NAME/release/$MODEL
-
 # use faster ld.gold linker on linux
 if [ "$OS_NAME" == "linux" ]; then
     mkdir -p linker
@@ -78,8 +76,8 @@ rebuild() {
 # test druntime, phobos, dmd
 test() {
     test_dub_package
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+    test_druntime
+    test_phobos
     test_dmd
 }
 
@@ -91,6 +89,14 @@ test_dmd() {
     else
         make -j1 -C test auto-tester-test MODEL=$MODEL N=$N ARGS="-O -inline -release"
     fi
+}
+
+test_druntime() {
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
+}
+
+test_phobos() {
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
 }
 
 # test dub package
@@ -182,3 +188,21 @@ install_d() {
     CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
   fi
 }
+
+# Define commands
+
+if [ "$#" -gt 0 ]; then
+  case $1 in
+    install_d) install_d "$2" ;;
+    setup_repos) setup_repos ;;
+    build) build ;;
+    rebuild) rebuild "${2:-}" ;;
+    test) test ;;
+    test_dmd) test_dmd ;;
+    test_druntime) test_druntime ;;
+    test_phobos) test_phobos ;;
+    test_dub_package) test_dub_package ;;
+    testsuite) testsuite ;;
+    *) echo "Unknown command: $1" >&2; exit 1 ;;
+  esac
+fi

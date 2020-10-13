@@ -27,26 +27,18 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
     # create a `dmd` symlink to the repo dir, necessary for druntime/Phobos
     ln -s $CIRRUS_WORKING_DIR ../dmd
   install_host_compiler_script: |
-    source ci.sh
-    # kludge
+    # kludge for ci.sh
     if [ "${DMD:0:4}" == "gdmd" ]; then export DMD="gdmd"; fi
-    if [ -z "${D_VERSION+x}" ]; then install_d "$DMD"; else install_d "$DMD-$D_VERSION"; fi
+    compiler="$DMD"
+    if [ -n "${D_VERSION+x}" ]; then compiler="$DMD-$D_VERSION"; fi
+    ./ci.sh install_d "$compiler"
   setup_repos_script: |
     export BRANCH=${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}
-    source ci.sh
-    setup_repos
-  build_script: |
-    source ci.sh
-    build
-  test_dmd_script: |
-    source ci.sh
-    test_dmd
-  test_druntime_script: |
-    set -uexo pipefail
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
-  test_phobos_script: |
-    set -uexo pipefail
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+    ./ci.sh setup_repos
+  build_script: ./ci.sh build
+  test_dmd_script: ./ci.sh test_dmd
+  test_druntime_script: ./ci.sh test_druntime
+  test_phobos_script: ./ci.sh test_phobos
 
 environment:
   CIRRUS_CLONE_DEPTH: 50

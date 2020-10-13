@@ -30,19 +30,17 @@ else
 fi
 export BRANCH
 
-source ci.sh
-
 ################################################################################
-# Always source a DMD instance
+# Install D host compiler
 ################################################################################
 
-install_d "$DMD"
+./ci.sh install_d "$DMD"
 
 ################################################################################
 # Define commands
 ################################################################################
 
 case $1 in
-    setup) setup_repos ;;
-    testsuite) testsuite ;;
+    setup) ./ci.sh setup_repos ;;
+    testsuite) ./ci.sh testsuite ;;
 esac
