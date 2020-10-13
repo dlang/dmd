@@ -408,11 +408,11 @@ enum class LINK : uint8_t
     system
 };
 
-enum CPPMANGLE
+enum class CPPMANGLE : uint8_t
 {
-    CPPMANGLEdefault,
-    CPPMANGLEstruct,
-    CPPMANGLEclass
+    def,
+    asStruct,
+    asClass
 };
 
 enum MATCH
