@@ -1,9 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -uexo pipefail
 
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-if [ -z ${BRANCH+x} ] ; then echo "Variable 'BRANCH' needs to be set."; exit 1; fi
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
@@ -128,6 +127,7 @@ test_dub_package() {
 
 # clone druntime/phobos repos if not already available
 setup_repos() {
+    if [ -z ${BRANCH+x} ] ; then echo "Variable 'BRANCH' needs to be set."; exit 1; fi
     for proj in druntime phobos; do
         if [ ! -d ../$proj ]; then
             if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
