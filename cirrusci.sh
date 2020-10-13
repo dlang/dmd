@@ -22,7 +22,7 @@ if [ "$OS_NAME" == "linux" ]; then
   fi
   if [ "${DMD:0:4}" == "gdmd" ]; then
     # ci.sh uses `sudo add-apt-repository ...` to add a PPA repo
-    packages="$packages sudo software-properties-common wget"
+    packages="$packages sudo software-properties-common"
   fi
   apt-get -q update
   apt-get install -yq $packages

@@ -31,16 +31,18 @@ fi
 export BRANCH
 
 ################################################################################
-# Install D host compiler
-################################################################################
-
-./ci.sh install_d "$DMD"
-
-################################################################################
 # Define commands
 ################################################################################
 
 case $1 in
-    setup) ./ci.sh setup_repos ;;
-    testsuite) ./ci.sh testsuite ;;
+    setup)
+      ./ci.sh setup_repos
+      ;;
+    testsuite)
+      if [ "$DMD" == "gdc" ] || [ "$DMD" == "gdmd" ] ; then
+        export DMD=gdmd-$GDC_VERSION
+      fi
+      ./ci.sh install_d "$DMD"
+      ./ci.sh testsuite
+      ;;
 esac

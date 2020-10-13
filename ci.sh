@@ -172,23 +172,24 @@ download_install_sh() {
 }
 
 install_d() {
-  if [ "${DMD:-dmd}" == "gdc" ] || [ "${DMD:-dmd}" == "gdmd" ] ; then
-    export DMD=gdmd-${GDC_VERSION}
-    if [ ! -e ~/dlang/gdc-${GDC_VERSION}/activate ] ; then
+  local compiler="$1"
+  if [ "${compiler:0:5}" == "gdmd-" ] ; then
+    local gdc_version="${compiler:5}"
+    if [ ! -e ~/dlang/gdc-$gdc_version/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update
-        sudo apt-get install -y gdc-${GDC_VERSION}
+        sudo apt-get install -y gdc-$gdc_version
         # fetch the dmd-like wrapper
-        sudo wget https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -O /usr/bin/gdmd-${GDC_VERSION}
-        sudo chmod +x /usr/bin/gdmd-${GDC_VERSION}
+        sudo curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-$gdc_version
+        sudo chmod +x /usr/bin/gdmd-$gdc_version
         # fake install script and create a fake 'activate' script
-        mkdir -p ~/dlang/gdc-${GDC_VERSION}
-        echo "deactivate(){ echo;}" > ~/dlang/gdc-${GDC_VERSION}/activate
+        mkdir -p ~/dlang/gdc-$gdc_version
+        echo "deactivate(){ echo;}" > ~/dlang/gdc-$gdc_version/activate
     fi
   else
     local install_sh="install.sh"
     download_install_sh "$install_sh"
-    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
+    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$compiler"
   fi
 }
 

@@ -2,8 +2,6 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
   install_prerequisites_script: ./cirrusci.sh
   install_host_compiler_script: |
     set -uexo pipefail
-    # kludge for ci.sh
-    if [ "${DMD:0:4}" == "gdmd" ]; then export DMD="gdmd"; fi
     compiler="$DMD"
     if [ -n "${D_VERSION+x}" ]; then compiler="$DMD-$D_VERSION"; fi
     ./ci.sh install_d "$compiler"
@@ -46,7 +44,6 @@ task:
       - TASK_NAME_SUFFIX: x64, LDC
         DMD: ldc
       - TASK_NAME_SUFFIX: x64, GDC
-        GDC_VERSION: 9
         DMD: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
