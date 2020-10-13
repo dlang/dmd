@@ -23,7 +23,7 @@ else
     NM=nm
 fi
 
-# clone druntime and phobos
+# clone a repo
 clone() {
     local url="$1"
     local path="$2"
@@ -126,16 +126,19 @@ test_dub_package() {
     deactivate
 }
 
+# clone druntime/phobos repos if not already available
 setup_repos() {
-for proj in druntime phobos; do
-    if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
-           ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $BRANCH > /dev/null; then
-        # use master as fallback for other repos to test feature branches
-        clone https://github.com/dlang/$proj.git ../$proj master
-    else
-        clone https://github.com/dlang/$proj.git ../$proj $BRANCH
-    fi
-done
+    for proj in druntime phobos; do
+        if [ ! -d ../$proj ]; then
+            if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
+                   ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $BRANCH > /dev/null; then
+                # use master as fallback for other repos to test feature branches
+                clone https://github.com/dlang/$proj.git ../$proj master
+            else
+                clone https://github.com/dlang/$proj.git ../$proj $BRANCH
+            fi
+        fi
+    done
 }
 
 testsuite() {
