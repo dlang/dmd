@@ -408,7 +408,7 @@ enum LINK
     LINKsystem
 };
 
-enum CPPMANGLE : uint8_t
+enum class CPPMANGLE : uint8_t
 {
     def,
     asStruct,
