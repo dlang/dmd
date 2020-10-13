@@ -1,11 +1,14 @@
 # Learn more: https://aka.ms/yaml
+variables:
+  VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+
 jobs:
-  - job: Windows_Bootstrap
+  - job: Windows_DMD_bootstrap
     timeoutInMinutes: 120
     pool:
       vmImage: 'vs2017-win2016'
     variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      D_COMPILER: dmd
       HOST_DMD_VERSION: 2.079.0
     strategy:
       matrix:
@@ -13,16 +16,19 @@ jobs:
           OS: Win_64
           MODEL: 64
           ARCH: x64
-          D_COMPILER: dmd
+        x86-OMF:
+          OS: Win_32
+          MODEL: 32
+          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
 
-  - job: Windows
+  - job: Windows_DMD_latest
     timeoutInMinutes: 120
     pool:
       vmImage: 'vs2017-win2016'
     variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
     strategy:
       matrix:
@@ -30,101 +36,37 @@ jobs:
           OS: Win_64
           MODEL: 64
           ARCH: x64
-          D_COMPILER: dmd
+        x86-OMF:
+          OS: Win_32
+          MODEL: 32
+          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
       - template: .azure-pipelines/windows-artifact.yml
 
-  - job: Windows_OMF_Bootstrap
+  - job: Windows_VisualD_LDC
     timeoutInMinutes: 120
     pool:
       vmImage: 'vs2017-win2016'
     variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
-      HOST_DMD_VERSION: 2.079.0
+      D_COMPILER: ldc
+      VISUALD_VER: v0.49.0
+      LDC_VERSION: 1.20.0
     strategy:
       matrix:
-        win32:
-          OS: Win_32
-          MODEL: 32
-          ARCH: x86
-          D_COMPILER: dmd
-    steps:
-      - template: .azure-pipelines/windows.yml
-
-  - job: Windows_OMF
-    timeoutInMinutes: 120
-    pool:
-      vmImage: 'vs2017-win2016'
-    variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
-      HOST_DMD_VERSION: LATEST
-    strategy:
-      matrix:
-        win32:
-          OS: Win_32
-          MODEL: 32
-          ARCH: x86
-          D_COMPILER: dmd
-    steps:
-      - template: .azure-pipelines/windows.yml
-      - template: .azure-pipelines/windows-artifact.yml
-
-  - job: Windows_VisualD
-    timeoutInMinutes: 120
-    pool:
-      vmImage: 'vs2017-win2016'
-    variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
-      HOST_DMD_VERSION: 2.090.0
-    strategy:
-      matrix:
-        win32-ldc:
-          OS: Win_32
-          MODEL: 32
-          ARCH: x86
-          D_COMPILER: ldc
-          VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.20.0
-    steps:
-      - template: .azure-pipelines/windows-visual-studio.yml
-
-  - job: Windows_LDC_Debug
-    timeoutInMinutes: 120
-    pool:
-      vmImage: 'vs2017-win2016'
-    variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
-      HOST_DMD_VERSION: 2.090.0
-    strategy:
-      matrix:
-        x64-debug-ldc:
+        x64_Debug:
           OS: Win_64
           MODEL: 64
           ARCH: x64
           CONFIGURATION: Debug
-          D_COMPILER: ldc
-          VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.20.0
-    steps:
-      - template: .azure-pipelines/windows-visual-studio.yml
-
-  - job: Windows_LDC_MinGW
-    timeoutInMinutes: 120
-    pool:
-      vmImage: 'vs2017-win2016'
-    variables:
-      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
-      HOST_DMD_VERSION: 2.090.0
-    strategy:
-      matrix:
-        win32-ldc:
+        x86-mscoff:
           OS: Win_32
           MODEL: 32mscoff
           ARCH: x86
-          D_COMPILER: ldc
+        x86-mscoff_MinGW:
+          OS: Win_32
+          MODEL: 32mscoff
+          ARCH: x86
           C_RUNTIME: mingw
-          VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.20.0
     steps:
       - template: .azure-pipelines/windows-visual-studio.yml

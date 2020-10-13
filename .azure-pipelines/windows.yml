@@ -9,8 +9,6 @@ steps:
   - script: |
       @echo on
       call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
-      FOR /F "tokens=* USEBACKQ" %%F IN (`where cl.exe`) DO (SET MSVC_CC=%%~fsF)
-      FOR /F "tokens=* USEBACKQ" %%F IN (`where lib.exe`) DO (SET MSVC_AR=%%~fsF)
       bash --version
       sh --login .azure-pipelines/windows.sh
-    displayName: Build DMD
+    displayName: Build and test
