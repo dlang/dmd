@@ -1295,6 +1295,10 @@ tym_t totym(Type tx)
             t = TYint;
             break;
 
+        case Ttype:
+            error(Loc.initial, "__type escaped into the backend");
+            break;
+
         case Tnull:
             t = TYnptr;
             break;
