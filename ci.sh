@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 
+# Implements CI steps for Cirrus CI and Semaphore.
+# This file is invoked by .cirrus.yml and semaphoreci.sh.
+
 set -uexo pipefail
 
+# N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
+# OS_NAME: linux|darwin|freebsd
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
+# FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
+# MODEL: 32|64
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
+# DMD: dmd|ldc|gdmd-<version> (host compiler)
 if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
@@ -197,10 +205,10 @@ install_d() {
 
 if [ "$#" -gt 0 ]; then
   case $1 in
-    install_d) install_d "$2" ;;
+    install_d) install_d "$2" ;; # ci.sh install_d dmd[-<version>]|ldc[-<version>]|gdmd-<version>
     setup_repos) setup_repos ;;
     build) build ;;
-    rebuild) rebuild "${2:-}" ;;
+    rebuild) rebuild "${2:-}" ;; # ci.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
     test) test ;;
     test_dmd) test_dmd ;;
     test_druntime) test_druntime ;;
