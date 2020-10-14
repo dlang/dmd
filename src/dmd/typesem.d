@@ -2923,7 +2923,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         {
             auto te = mt.exp.isTypeExp();
 
-            if (te.type.ty == Terror)
+            if (te.type.ty == Terror || !global.params.sk_typefunctions)
                 goto Lerr;
             else
             {
