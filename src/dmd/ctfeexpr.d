@@ -1920,7 +1920,7 @@ bool isCtfeValueValid(Expression newval)
 
         case TOK.void_:
             return true; // uninitialized value
-        case TOK.__type_:
+        case TOK.__type___:
         case TOK.emptyType_:
             return true;
 

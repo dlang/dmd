@@ -47,7 +47,7 @@ import dmd.statement;
 import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
-
+//debug = LOG;
 /*************************************
  * Entry point for CTFE.
  * A compile-time result is required. Give an error if not possible.

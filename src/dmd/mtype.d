@@ -3089,7 +3089,7 @@ extern (C++) final class TypeBasic : Type
            break;
 
         case Ttype:
-            d = Token.toChars(TOK.__type_);
+            d = Token.toChars(TOK.__type___);
             break;
 
         case Tvoid:
