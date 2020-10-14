@@ -725,6 +725,56 @@ nothrow:
     }
 
     /************************************
+     * Determine if path contains reserved character.
+     * Params:
+     *  name = path
+     * Returns:
+     *  index of the first reserved character in path if found, size_t.max otherwise
+     */
+    extern (D) static size_t findReservedChar(const(char)* name) pure @nogc
+    {
+        version (Windows)
+        {
+            size_t idx = 0;
+            // According to https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
+            // the following characters are not allowed in path: < > : " | ? *
+            for (const(char)* p = name; *p; p++, idx++)
+            {
+                char c = *p;
+                if (c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' || c == '*')
+                {
+                    return idx;
+                }
+            }
+            return size_t.max;
+        }
+        else
+        {
+            return size_t.max;
+        }
+    }
+    unittest
+    {
+        assert(findReservedChar(r"") == size_t.max);
+        assert(findReservedChar(r" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-_=+()") == size_t.max);
+
+        version (Windows)
+        {
+            assert(findReservedChar(` < `) == 1);
+            assert(findReservedChar(` >`) == 1);
+            assert(findReservedChar(`: `) == 0);
+            assert(findReservedChar(`"`) == 0);
+            assert(findReservedChar(`|`) == 0);
+            assert(findReservedChar(`?`) == 0);
+            assert(findReservedChar(`*`) == 0);
+        }
+        else
+        {
+            assert(findReservedChar(`<>:"|?*`) == size_t.max);
+        }
+    }
+
+    /************************************
      * Determine if path is safe.
      * Params:
      *  name = path
@@ -744,39 +794,21 @@ nothrow:
             return false;
         }
 
-        version (Windows)
+        if (findReservedChar(name) != size_t.max)
         {
-            // According to https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
-            // the following characters are not allowed in path: < > : " | ? *
-            // Additionally we do not allow reference to parent directory ("..") in the path.
-            for (const(char)* p = name; *p; p++)
+            return false;
+        }
+
+        // Do not allow reference to parent directory ("..") in the path.
+        for (const(char)* p = name; *p; p++)
+        {
+            char c = *p;
+            if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
             {
-                char c = *p;
-                if (c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' || c == '*' ||
-                   (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3]))))
-                {
-                    return false;
-                }
+                return false;
             }
-            return true;
         }
-        else version (Posix)
-        {
-            // Do not allow reference to parent directory ("..") in the path.
-            for (const(char)* p = name; *p; p++)
-            {
-                char c = *p;
-                if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else
-        {
-            assert(0);
-        }
+        return true;
     }
     unittest
     {

@@ -5914,12 +5914,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+        auto idxReserved = FileName.findReservedChar(namez);
+        if (idxReserved != size_t.max)
+        {
+            e.error("`%s` is  not a valid filename on this platform", se.toChars());
+            e.errorSupplemental("Character `'%c'` is reserved and cannot be used", namez[idxReserved]);
+            return setError();
+        }
+
         if (!FileName.safePath(namez))
         {
-            version(Windows)
-                e.error("path either refers to parent (`..`) directory or contains one of reserved characters (`<`, `>`, `:`, `\"`, `|`, `?`, `*`): `%s`", se.toChars());
-            else
-                e.error("path refers to parent (`..`) directory: `%s`", se.toChars());
+            e.error("path refers to parent (`..`) directory: `%s`", se.toChars());
             return setError();
         }
 
