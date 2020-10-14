@@ -5922,7 +5922,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (!FileName.safePath(namez))
+        if (FileName.refersToParentDir(namez))
         {
             e.error("path refers to parent (`..`) directory: `%s`", se.toChars());
             return setError();

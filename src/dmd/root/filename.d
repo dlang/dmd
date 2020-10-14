@@ -775,6 +775,56 @@ nothrow:
     }
 
     /************************************
+     * Determine if path has a reference to parent directory.
+     * Params:
+     *  name = path
+     * Returns:
+     *  true if path contains '..' reference to parent directory
+     */
+    extern (D) static bool refersToParentDir(const(char)* name) pure @nogc
+    {
+        if (name[0] == '.' && name[1] == '.' && (!name[2] || isDirSeparator(name[2])))
+        {
+            return true;
+        }
+
+        for (const(char)* p = name; *p; p++)
+        {
+            char c = *p;
+            if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    unittest
+    {
+        assert(!refersToParentDir(r""));
+        assert(!refersToParentDir(r"foo"));
+        assert(!refersToParentDir(r"foo.."));
+        assert(!refersToParentDir(r"foo..boo"));
+        assert(!refersToParentDir(r"foo/..boo"));
+        assert(!refersToParentDir(r"foo../boo"));
+        assert(refersToParentDir(r".."));
+        assert(refersToParentDir(r"../"));
+        assert(refersToParentDir(r"foo/.."));
+        assert(refersToParentDir(r"foo/../"));
+        assert(refersToParentDir(r"foo/../../boo"));
+
+        version (Windows)
+        {
+            // Backslash as directory separator
+            assert(!refersToParentDir(r"foo\..boo"));
+            assert(!refersToParentDir(r"foo..\boo"));
+            assert(refersToParentDir(r"..\"));
+            assert(refersToParentDir(r"foo\.."));
+            assert(refersToParentDir(r"foo\..\"));
+            assert(refersToParentDir(r"foo\..\..\boo"));
+        }
+    }
+
+    /************************************
      * Determine if path is safe.
      * Params:
      *  name = path
@@ -788,8 +838,8 @@ nothrow:
         {
             return false;
         }
-        // Don't allow parent directory
-        if (name[0] == '.' && name[1] == '.' && (!name[2] || isDirSeparator(name[2])))
+
+        if (refersToParentDir(name))
         {
             return false;
         }
@@ -799,15 +849,6 @@ nothrow:
             return false;
         }
 
-        // Do not allow reference to parent directory ("..") in the path.
-        for (const(char)* p = name; *p; p++)
-        {
-            char c = *p;
-            if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
-            {
-                return false;
-            }
-        }
         return true;
     }
     unittest
