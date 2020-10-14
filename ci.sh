@@ -13,8 +13,8 @@ if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
 # MODEL: 32|64
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
-# DMD: dmd|ldc|gdmd-<version> (host compiler)
-if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
+# HOST_DC: dmd[-<version>]|ldc[-<version>]|gdmd-<version>
+if [ -z ${HOST_DC+x} ] ; then echo "Variable 'HOST_DC' needs to be set."; exit 1; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 build_path=generated/$OS_NAME/release/$MODEL
@@ -49,7 +49,7 @@ clone() {
 
 # build dmd, druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler
+    source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
@@ -180,9 +180,8 @@ download_install_sh() {
 }
 
 install_d() {
-  local compiler="$1"
-  if [ "${compiler:0:5}" == "gdmd-" ] ; then
-    local gdc_version="${compiler:5}"
+  if [ "${HOST_DC:0:5}" == "gdmd-" ] ; then
+    local gdc_version="${HOST_DC:5}"
     if [ ! -e ~/dlang/gdc-$gdc_version/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update
@@ -192,12 +191,13 @@ install_d() {
         sudo chmod +x /usr/bin/gdmd-$gdc_version
         # fake install script and create a fake 'activate' script
         mkdir -p ~/dlang/gdc-$gdc_version
-        echo "deactivate(){ echo;}" > ~/dlang/gdc-$gdc_version/activate
+        echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
+        echo "deactivate(){ echo;}" >> ~/dlang/gdc-$gdc_version/activate
     fi
   else
     local install_sh="install.sh"
     download_install_sh "$install_sh"
-    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$compiler"
+    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DC"
   fi
 }
 
@@ -205,7 +205,7 @@ install_d() {
 
 if [ "$#" -gt 0 ]; then
   case $1 in
-    install_d) install_d "$2" ;; # ci.sh install_d dmd[-<version>]|ldc[-<version>]|gdmd-<version>
+    install_d) install_d ;;
     setup_repos) setup_repos "$2" ;; # ci.sh setup_repos <git branch>
     build) build ;;
     rebuild) rebuild "${2:-}" ;; # ci.sh rebuild [1] (use `1` to compare binaries to test reproducible build)

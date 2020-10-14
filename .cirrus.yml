@@ -1,10 +1,6 @@
 common_steps_template: &COMMON_STEPS_TEMPLATE
   install_prerequisites_script: ./cirrusci.sh
-  install_host_compiler_script: |
-    set -uexo pipefail
-    compiler="$DMD"
-    if [ -n "${D_VERSION+x}" ]; then compiler="$DMD-$D_VERSION"; fi
-    ./ci.sh install_d "$compiler"
+  install_host_compiler_script: ./ci.sh install_d
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../dmd
@@ -18,7 +14,7 @@ environment:
   CIRRUS_CLONE_DEPTH: 50
   # for ci.sh:
   MODEL: 64
-  DMD: dmd
+  HOST_DC: dmd
   N: 4
   OS_NAME: linux
   FULL_BUILD: true
@@ -37,14 +33,14 @@ task:
         MODEL: 32
       - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
         MODEL: 32
-        D_VERSION: 2.079.0
+        HOST_DC: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, DMD (latest)
       - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
-        D_VERSION: 2.079.0
+        HOST_DC: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, LDC
-        DMD: ldc
+        HOST_DC: ldc
       - TASK_NAME_SUFFIX: x64, GDC
-        DMD: gdmd-9
+        HOST_DC: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
@@ -62,7 +58,7 @@ task:
       - TASK_NAME_SUFFIX: DMD (bootstrap)
         # de-facto bootstrap version on OSX
         # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
-        D_VERSION: 2.088.0
+        HOST_DC: dmd-2.088.0
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
@@ -87,6 +83,6 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
-    D_VERSION: 2.079.0
+    HOST_DC: dmd-2.079.0
   install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
