@@ -87,6 +87,15 @@ struct Aligned
 };
 #pragma pack(pop)
 
+struct Null
+{
+    void* field;
+    Null() :
+        field(nullptr)
+    {
+    }
+};
+
 struct A
 {
     int32_t a;
@@ -179,6 +188,11 @@ extern (C++) align(1) struct Aligned
     long c;
 
     this(int a) {}
+}
+
+extern (C++) struct Null
+{
+    void* field = null;
 }
 
 extern (C++) struct A

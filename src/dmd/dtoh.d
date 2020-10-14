@@ -1811,7 +1811,10 @@ public:
             printf("[AST.NullExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
         }
-        buf.writestring("nullptr");
+        if (global.params.cplusplus >= CppStdRevision.cpp11)
+            buf.writestring("nullptr");
+        else
+            buf.writestring("NULL");
     }
 
     override void visit(AST.ArrayLiteralExp e)
