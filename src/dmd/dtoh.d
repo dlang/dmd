@@ -422,11 +422,7 @@ public:
 
         if (isBuildingCompiler && s.getModule() && s.getModule().isFrontendModule())
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignored %s %s", s.kind(), s.toPrettyChars());
-                buf.writenl();
-            }
+            ignored("%s %s", s.kind(), s.toPrettyChars());
         }
     }
 
@@ -468,11 +464,7 @@ public:
         linkage = ld.linkage;
         if (ld.linkage != LINK.c && ld.linkage != LINK.cpp)
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignoring %s block because of linkage", ld.toPrettyChars());
-                buf.writenl();
-            }
+            ignored("%s block because of linkage", ld.toPrettyChars());
         }
         else
         {
@@ -522,29 +514,17 @@ public:
         auto tf = cast(AST.TypeFunction)fd.type;
         if (!tf || !tf.deco)
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignoring function %s because semantic hasn't been run", fd.toPrettyChars());
-                buf.writenl();
-            }
+            ignored("function %s because semantic hasn't been run", fd.toPrettyChars());
             return;
         }
         if (tf.linkage != LINK.c && tf.linkage != LINK.cpp)
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignoring function %s because of linkage", fd.toPrettyChars());
-                buf.writenl();
-            }
+            ignored("function %s because of linkage", fd.toPrettyChars());
             return;
         }
         if (!adparent && !fd.fbody)
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignoring function %s because it's extern", fd.toPrettyChars());
-                buf.writenl();
-            }
+            ignored("function %s because it's extern", fd.toPrettyChars());
             return;
         }
 
@@ -650,11 +630,7 @@ public:
             EnumKind kind = getEnumKind(type);
             enum ProtPublic = AST.Prot(AST.Prot.Kind.public_);
             if (vd.protection.isMoreRestrictiveThan(ProtPublic)) {
-                if (printIgnored)
-                {
-                    buf.printf("// ignoring enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.protectionToChars(vd.protection.kind));
-                    buf.writenl;
-                }
+                ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.protectionToChars(vd.protection.kind));
                 return;
             }
 
@@ -682,11 +658,7 @@ public:
                     break;
 
                 case EnumKind.Other:
-                    if (printIgnored)
-                    {
-                        buf.printf("// ignoring enum `%s` because type `%s` is currently not supported for enum constants.", vd.toPrettyChars(), type.toChars());
-                        buf.writenl;
-                    }
+                    ignored("enum `%s` because type `%s` is currently not supported for enum constants.", vd.toPrettyChars(), type.toChars());
                     return;
             }
             buf.writenl();
@@ -698,11 +670,7 @@ public:
         {
             if (linkage != LINK.c && linkage != LINK.cpp)
             {
-                if (printIgnored)
-                {
-                    buf.printf("// ignoring variable %s because of linkage", vd.toPrettyChars());
-                    buf.writenl();
-                }
+                ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
             }
             typeToBuffer(vd.type, vd.ident);
@@ -715,20 +683,12 @@ public:
         {
             if (vd.linkage != LINK.c && vd.linkage != LINK.cpp)
             {
-                if (printIgnored)
-                {
-                    buf.printf("// ignoring variable %s because of linkage", vd.toPrettyChars());
-                    buf.writenl();
-                }
+                ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
             }
             if (vd.storage_class & AST.STC.tls)
             {
-                if (printIgnored)
-                {
-                    buf.printf("// ignoring variable %s because of thread-local storage", vd.toPrettyChars());
-                    buf.writenl();
-                }
+                ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
             if (vd.linkage == LINK.c)
@@ -831,11 +791,7 @@ public:
             return;
         }
 
-        if (printIgnored)
-        {
-            buf.printf("// ignored %s %s", ad.aliassym.kind(), ad.aliassym.toPrettyChars());
-            buf.writenl();
-        }
+        ignored("%s %s", ad.aliassym.kind(), ad.aliassym.toPrettyChars());
     }
 
     override void visit(AST.Nspace ns)
@@ -915,11 +871,7 @@ public:
         visited[cast(void*)sd] = true;
         if (linkage != LINK.c && linkage != LINK.cpp)
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignoring non-cpp struct %s because of linkage", sd.toChars());
-                buf.writenl();
-            }
+            ignored("non-cpp struct %s because of linkage", sd.toChars());
             return;
         }
 
@@ -1120,8 +1072,7 @@ public:
         visited[cast(void*)cd] = true;
         if (!cd.isCPPclass())
         {
-            if (printIgnored)
-                buf.printf("// ignoring non-cpp class %s\n", cd.toChars());
+            ignored("non-cpp class %s", cd.toChars());
             return;
         }
 
@@ -1189,15 +1140,15 @@ public:
 
         //if (linkage != LINK.c && linkage != LINK.cpp)
         //{
-            //if (printIgnored)
-                //buf.printf("// ignoring non-cpp enum %s because of linkage\n", ed.toChars());
+            //ignored("non-cpp enum %s because of linkage\n", ed.toChars());
             //return;
         //}
 
         // we need to know a bunch of stuff about the enum...
         bool isAnonymous = ed.ident is null;
+        const isOpaque = !ed.members;
         AST.Type type = ed.memtype;
-        if (!type)
+        if (!type && !isOpaque)
         {
             // check all keys have matching type
             foreach (_m; *ed.members)
@@ -1214,8 +1165,29 @@ public:
         }
         EnumKind kind = getEnumKind(type);
 
+        if (isOpaque)
+        {
+            // Opaque enums were introduced in C++ 11 (workaround?)
+            if (global.params.cplusplus < CppStdRevision.cpp11)
+            {
+                ignored("%s because opaque enums require C++ 11", ed.toPrettyChars());
+                return;
+            }
+            // Opaque enum defaults to int but the type might not be set
+            else if (!type)
+            {
+                kind = EnumKind.Int;
+            }
+            // Cannot apply namespace workaround for non-integral types
+            else if (kind != EnumKind.Int && kind != EnumKind.Numeric)
+            {
+                ignored("enum %s because of it's base type", ed.toPrettyChars());
+                return;
+            }
+        }
+
         // determine if this is an enum, or just a group of manifest constants
-        bool manifestConstants = !type || (isAnonymous && kind == EnumKind.Other);
+        bool manifestConstants = !isOpaque && (!type || (isAnonymous && kind == EnumKind.Other));
         assert(!manifestConstants || isAnonymous);
 
         // write the enum header
@@ -1254,8 +1226,17 @@ public:
                     buf.writestring(ed.ident.toString());
                 }
             }
-            buf.writenl();
-            buf.writestringln("{");
+            // Opaque enums have no members, hence skip the body
+            if (isOpaque)
+            {
+                buf.writestringln(";");
+                return;
+            }
+            else
+            {
+                buf.writenl();
+                buf.writestringln("{");
+            }
         }
 
         // emit constant for each member
@@ -1650,11 +1631,7 @@ public:
 
         if (linkage != LINK.c && linkage != LINK.cpp)
         {
-            if (printIgnored)
-            {
-                buf.printf("// ignoring template %s because of linkage", td.toPrettyChars());
-                buf.writenl();
-            }
+            ignored("template %s because of linkage", td.toPrettyChars());
             return;
         }
 
@@ -1834,7 +1811,10 @@ public:
             printf("[AST.NullExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
         }
-        buf.writestring("nullptr");
+        if (global.params.cplusplus >= CppStdRevision.cpp11)
+            buf.writestring("nullptr");
+        else
+            buf.writestring("NULL");
     }
 
     override void visit(AST.ArrayLiteralExp e)
@@ -1982,5 +1962,40 @@ public:
             e.accept(this);
         }
         buf.writeByte(')');
+    }
+
+    static if (__VERSION__ < 2092)
+    {
+        private void ignored(const char* format, ...) nothrow
+        {
+            import core.stdc.stdarg;
+            if (!printIgnored)
+                return;
+
+            va_list ap;
+            va_start(ap, format);
+            buf.writestring("// Ignored ");
+            buf.vprintf(format, ap);
+            buf.writenl();
+            va_end(ap);
+        }
+    }
+    else
+    {
+        // Writes a formatted message into `buf` if `printIgnored` is true.
+        pragma(printf)
+        private void ignored(const char* format, ...) nothrow
+        {
+            import core.stdc.stdarg;
+            if (!printIgnored)
+                return;
+
+            va_list ap;
+            va_start(ap, format);
+            buf.writestring("// Ignored ");
+            buf.vprintf(format, ap);
+            buf.writenl();
+            va_end(ap);
+        }
     }
 }

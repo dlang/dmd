@@ -143,6 +143,13 @@ Options:
         return spawnProcess(unitTestRunnerCommand ~ args).wait();
     }
 
+    if (args == ["tools"])
+    {
+        verifyCompilerExists(env);
+        ensureToolsExists(env, EnumMembers!TestTools);
+        return 0;
+    }
+
     // default target
     if (!args.length)
         args = ["all"];

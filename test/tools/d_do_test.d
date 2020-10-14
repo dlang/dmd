@@ -803,20 +803,13 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
         auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
         string command = quoteSpaces(compiler);
-        if (envData.compiler == "dmd")
+        if (envData.usingMicrosoftCompiler)
         {
-            if (envData.usingMicrosoftCompiler)
-            {
-                command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
-            }
-            else if (envData.os == "windows" && envData.model == "32")
-            {
-                command ~= " -c "~curSrc~" -o"~curObj;
-            }
-            else
-            {
-                command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
-            }
+            command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
+        }
+        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32")
+        {
+            command ~= " -c "~curSrc~" -o"~curObj;
         }
         else
         {

@@ -106,6 +106,8 @@ namespace MyEnumCpp
 
 static MyEnum const testCpp = Foo(42);
 
+enum class opaque;
+enum class typedOpaque : int64_t;
 ---
 */
 
@@ -193,3 +195,7 @@ enum d = &foo;
 
 immutable bool e_b;
 enum e = &e_b;
+
+enum opaque;
+enum typedOpaque : long;
+enum arrayOpaque : int[4]; // Cannot be exported to C++

@@ -10,14 +10,15 @@ TEST_OUTPUT:
 #include <stdint.h>
 
 
-// ignoring function dtoh_verbose.foo because of linkage
-// ignoring extern () block because of linkage
-// ignoring function dtoh_verbose.bar because of linkage
-// ignoring non-cpp struct S because of linkage
-// ignoring non-cpp class C
-// ignoring function dtoh_verbose.bar because it's extern
-// ignoring variable dtoh_verbose.i1 because of linkage
-// ignored function dtoh_verbose.templ!int.templ
+// Ignored function dtoh_verbose.foo because of linkage
+// Ignored extern () block because of linkage
+// Ignored function dtoh_verbose.bar because of linkage
+// Ignored non-cpp struct S because of linkage
+// Ignored non-cpp class C
+// Ignored function dtoh_verbose.bar because it's extern
+// Ignored variable dtoh_verbose.i1 because of linkage
+// Ignored function dtoh_verbose.templ!int.templ
+// Ignored enum dtoh_verbose.arrayOpaque because of it's base type
 ---
 */
 
@@ -40,3 +41,5 @@ int i1;
 void templ(T)(T t) {}
 
 alias inst = templ!int;
+
+enum arrayOpaque : int[4];

@@ -6522,8 +6522,19 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // TypeTraits needs to know if it's located in an AliasDeclaration
     const oldflags = sc.flags;
     sc.flags |= SCOPE.alias_;
-    scope(exit)
+
+    void normalRet()
+    {
         sc.flags = oldflags;
+    }
+
+    void errorRet()
+    {
+        ds.aliassym = null;
+        ds.type = Type.terror;
+        ds.inuse = 0;
+        normalRet();
+    }
 
     // preserve the original type
     if (!ds.originalType && ds.type)
@@ -6536,39 +6547,35 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (fd || td && td.literal)
         {
             if (fd && fd.semanticRun >= PASS.semanticdone)
-                return;
+                return normalRet();
 
             Expression e = new FuncExp(ds.loc, ds.aliassym);
             e = e.expressionSemantic(sc);
-            if (e.op == TOK.function_)
+            if (auto fe = e.isFuncExp())
             {
-                FuncExp fe = cast(FuncExp)e;
                 ds.aliassym = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+                return normalRet();
             }
             else
-            {
-                ds.aliassym = null;
-                ds.type = Type.terror;
-            }
-            return;
+                return errorRet();
         }
 
         if (ds.aliassym.isTemplateInstance())
             ds.aliassym.dsymbolSemantic(sc);
-        return;
+        return normalRet();
     }
     ds.inuse = 1;
 
     // Given:
     //  alias foo.bar.abc def;
-    // it is not knowable from the syntax whether this is an alias
-    // for a type or an alias for a symbol. It is up to the semantic()
+    // it is not knowable from the syntax whether `def` is an alias
+    // for type `foo.bar.abc` or an alias for symbol `foo.bar.abc`. It is up to the semantic()
     // pass to distinguish.
-    // If it is a type, then type is set and getType() will return that
-    // type. If it is a symbol, then aliassym is set and type is NULL -
-    // toAlias() will return aliasssym.
+    // If it is a type, then `.type` is set and getType() will return that
+    // type. If it is a symbol, then `.aliassym` is set and type is `null` -
+    // toAlias() will return `.aliasssym`
 
-    uint errors = global.errors;
+    const errors = global.errors;
     Type oldtype = ds.type;
 
     // Ungag errors when not instantiated DeclDefs scope alias
@@ -6582,15 +6589,17 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
     // https://issues.dlang.org/show_bug.cgi?id=18480
     // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
-    // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
-    if (ds.type.ty == Tident && !ds._import)
+    if (auto tident = ds.type.isTypeIdentifier())
     {
-        auto tident = cast(TypeIdentifier)ds.type;
-        if (tident.ident is ds.ident && !tident.idents.dim)
+        // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
+        if (!ds._import)
         {
-            error(ds.loc, "`alias %s = %s;` cannot alias itself, use a qualified name to create an overload set",
-                ds.ident.toChars(), tident.ident.toChars());
-            ds.type = Type.terror;
+            if (tident.ident is ds.ident && !tident.idents.dim)
+            {
+                error(ds.loc, "`alias %s = %s;` cannot alias itself, use a qualified name to create an overload set",
+                    ds.ident.toChars(), tident.ident.toChars());
+                ds.type = Type.terror;
+            }
         }
     }
     /* This section is needed because Type.resolve() will:
@@ -6600,15 +6609,11 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
      */
     auto s = ds.type.toDsymbol(sc);
     if (errors != global.errors)
-    {
-        s = null;
-        ds.type = Type.terror;
-    }
-    if (s && s == ds)
+        return errorRet();
+    if (s == ds)
     {
         ds.error("cannot resolve");
-        s = null;
-        ds.type = Type.terror;
+        return errorRet();
     }
     if (!s || !s.isEnumMember())
     {
@@ -6634,7 +6639,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             {
                 if (e.op != TOK.error)
                     ds.error("cannot alias an expression `%s`", e.toChars());
-                t = Type.terror;
+                return errorRet();
             }
         }
         ds.type = t;
@@ -6642,26 +6647,23 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     if (s == ds)
     {
         assert(global.errors);
-        ds.type = Type.terror;
-        s = null;
+        return errorRet();
     }
-    if (!s) // it's a type alias
-    {
-        //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
-        ds.type = ds.type.typeSemantic(ds.loc, sc);
-        ds.aliassym = null;
-    }
-    else    // it's a symbolic alias
+    if (s) // it's a symbolic alias
     {
         //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
         ds.type = null;
         ds.aliassym = s;
     }
-    if (global.gag && errors != global.errors)
+    else    // it's a type alias
     {
-        ds.type = Type.terror;
+        //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
+        ds.type = ds.type.typeSemantic(ds.loc, sc);
         ds.aliassym = null;
     }
+
+    if (global.gag && errors != global.errors)
+        return errorRet();
     ds.inuse = 0;
     ds.semanticRun = PASS.semanticdone;
 
@@ -6671,4 +6673,5 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (!ds.overloadInsert(sx))
             ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
     }
+    normalRet();
 }

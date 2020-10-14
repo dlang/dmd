@@ -10,6 +10,8 @@ experimental C++ header generator:
   using the compiler internal names instaed of causing an assertion failure.
 - Interfaces are now emitted as base classes.
 - No auto-generated default constructor for unions
+- Opaque enums no longer cause segfaults & are properly exported for C++ 11
+- C++11 constructs are avoided when compiling with `-extern-std=c++98`.
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

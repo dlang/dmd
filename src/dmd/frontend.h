@@ -113,11 +113,11 @@ enum class Kind
 };
 
 struct BitArray;
-enum class CPPMANGLE
+enum class CPPMANGLE : uint8_t
 {
-    def = 0,
-    asStruct = 1,
-    asClass = 2,
+    def = 0u,
+    asStruct = 1u,
+    asClass = 2u,
 };
 
 class AliasThis;
@@ -135,16 +135,16 @@ class GotoCaseStatement;
 class ReturnStatement;
 class GotoStatement;
 struct Ensure;
-enum class LINK
+enum class LINK : uint8_t
 {
-    default_ = 0,
-    d = 1,
-    c = 2,
-    cpp = 3,
-    windows = 4,
-    pascal = 5,
-    objc = 6,
-    system = 7,
+    default_ = 0u,
+    d = 1u,
+    c = 2u,
+    cpp = 3u,
+    windows = 4u,
+    pascal = 5u,
+    objc = 6u,
+    system = 7u,
 };
 
 class LinkDeclaration;
@@ -677,11 +677,11 @@ class ObjcClassReferenceExp;
 class ThrownExceptionExp;
 struct ASTCodegen;
 union __AnonStruct__u;
-enum class PINLINE
+enum class PINLINE : uint8_t
 {
-    default_ = 0,
-    never = 1,
-    always = 2,
+    default_ = 0u,
+    never = 1u,
+    always = 2u,
 };
 
 struct ObjcFuncDeclaration;
@@ -3519,6 +3519,7 @@ public:
     void visit(IntegerExp* e);
     void visitInteger(dinteger_t v, Type* t);
     void visit(StructLiteralExp* sle);
+    void ignored(const char* const format, ...);
 };
 
 class DebugSymbol : public Dsymbol
