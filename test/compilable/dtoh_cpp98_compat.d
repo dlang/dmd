@@ -20,6 +20,10 @@ struct Null
     }
 };
 
+extern void* typeof_null;
+
+extern void* inferred_null;
+
 ---
 */
 
@@ -27,3 +31,6 @@ extern (C++) struct Null
 {
     void* field = null;
 }
+
+extern (C++) __gshared typeof(null) typeof_null = null;
+extern (C++) __gshared inferred_null = null;
