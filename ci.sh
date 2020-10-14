@@ -135,15 +135,15 @@ test_dub_package() {
 
 # clone druntime/phobos repos if not already available
 setup_repos() {
-    if [ -z ${BRANCH+x} ] ; then echo "Variable 'BRANCH' needs to be set."; exit 1; fi
+    local branch="$1"
     for proj in druntime phobos; do
         if [ ! -d ../$proj ]; then
-            if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
-                   ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $BRANCH > /dev/null; then
+            if [ $branch != master ] && [ $branch != stable ] &&
+                   ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $branch > /dev/null; then
                 # use master as fallback for other repos to test feature branches
                 clone https://github.com/dlang/$proj.git ../$proj master
             else
-                clone https://github.com/dlang/$proj.git ../$proj $BRANCH
+                clone https://github.com/dlang/$proj.git ../$proj $branch
             fi
         fi
     done
@@ -206,7 +206,7 @@ install_d() {
 if [ "$#" -gt 0 ]; then
   case $1 in
     install_d) install_d "$2" ;; # ci.sh install_d dmd[-<version>]|ldc[-<version>]|gdmd-<version>
-    setup_repos) setup_repos ;;
+    setup_repos) setup_repos "$2" ;; # ci.sh setup_repos <git branch>
     build) build ;;
     rebuild) rebuild "${2:-}" ;; # ci.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
     test) test ;;

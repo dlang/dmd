@@ -8,7 +8,7 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../dmd
-    BRANCH="${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}" ./ci.sh setup_repos
+    ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
   build_script: ./ci.sh build
   test_dmd_script: ./ci.sh test_dmd
   test_druntime_script: ./ci.sh test_druntime

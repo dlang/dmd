@@ -28,7 +28,6 @@ if [ -n "${PULL_REQUEST_NUMBER:-}" ]; then
 else
     BRANCH="${BRANCH_NAME}"
 fi
-export BRANCH
 
 ################################################################################
 # Define commands
@@ -36,7 +35,7 @@ export BRANCH
 
 case $1 in
     setup)
-      ./ci.sh setup_repos
+      ./ci.sh setup_repos "$BRANCH"
       ;;
     testsuite)
       if [ "$DMD" == "gdc" ] || [ "$DMD" == "gdmd" ] ; then
