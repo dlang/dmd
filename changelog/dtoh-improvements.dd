@@ -7,11 +7,12 @@ experimental C++ header generator:
   C++ standard set from `-extern-std=` is c++11 or later.
 - Forward referenced declarations are now properly indented.
 - Tuple members/parameters/variables are emitted as individual variables
-  using the compiler internal names instaed of causing an assertion failure.
+  using the compiler internal names instead of causing an assertion failure.
 - Interfaces are now emitted as base classes.
 - No auto-generated default constructor for unions
 - Opaque enums no longer cause segfaults & are properly exported for C++ 11
 - C++11 constructs are avoided when compiling with `-extern-std=c++98`.
+- Using `typeof(null)` type no longer causes an assertion failure.
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

@@ -1342,6 +1342,20 @@ public:
         buf.writestring(t.ident.toChars());
     }
 
+    override void visit(AST.TypeNull t)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeNull enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeNull exit] %s\n", t.toChars());
+        }
+        if (global.params.cplusplus >= CppStdRevision.cpp11)
+            buf.writestring("nullptr_t");
+        else
+            buf.writestring("void*");
+
+    }
+
     override void visit(AST.TypeBasic t)
     {
         debug (Debug_DtoH)

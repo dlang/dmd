@@ -3497,6 +3497,7 @@ public:
     void typeToBuffer(Type* t, Identifier* ident);
     void visit(Type* t);
     void visit(TypeIdentifier* t);
+    void visit(TypeNull* t);
     void visit(TypeBasic* t);
     void visit(TypePointer* t);
     void visit(TypeSArray* t);

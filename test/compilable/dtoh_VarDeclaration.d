@@ -26,6 +26,10 @@ union U;
 union U2;
 
 extern "C" size_t v;
+
+extern nullptr_t typeof_null;
+
+extern nullptr_t inferred_null;
 ---
 */
 
@@ -50,3 +54,6 @@ extern (C) union U;
 extern (C++) union U2;
 
 extern (C) size_t v;
+
+extern (C++) __gshared typeof(null) typeof_null = null;
+extern (C++) __gshared inferred_null = null;
