@@ -59,6 +59,7 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 import dmd.compiler;
+import dmd.root.array;
 
 /*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
@@ -121,6 +122,8 @@ private Expression checkAssignmentAsCondition(Expression e)
     }
     return e;
 }
+
+
 
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
@@ -201,6 +204,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             s.exp = checkGC(sc, s.exp);
             if (s.exp.op == TOK.error)
                 return setError();
+
+            import dmd.diagnostics : setAccessesInExpStatement;
+            setAccessesInExpStatement(s, sc);
         }
         result = s;
     }
@@ -238,6 +244,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Statements* flt = s.flatten(sc);
                 if (flt)
                 {
+                    // TODO: replace at `i` instead of remove and insert:
                     cs.statements.remove(i);
                     cs.statements.insert(i, flt);
                     continue;
@@ -2263,7 +2270,11 @@ else
         // Save 'root' of two branches (then and else) at the point where it forks
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
+        import dmd.diagnostics : setAccessesInIfStatementCondition;
+        setAccessesInIfStatementCondition(ifs, scd);
+
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
+
         scd.pop();
 
         CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
@@ -2282,6 +2293,7 @@ else
         {
             return setError();
         }
+
         result = ifs;
     }
 
@@ -2895,7 +2907,9 @@ else
             return;
         }
         if (errors || cs.exp.op == TOK.error)
+        {
             return setError();
+        }
 
         cs.lastVar = sc.lastVar;
         result = cs;
@@ -3022,7 +3036,9 @@ else
         sc.ctorflow.orCSX(CSX.label);
         ds.statement = ds.statement.statementSemantic(sc);
         if (errors || ds.statement.isErrorStatement())
+        {
             return setError();
+        }
 
         ds.lastVar = sc.lastVar;
         result = ds;
@@ -3082,8 +3098,16 @@ else
         if (fd.fes)
             fd = fd.fes.func; // fd is now function enclosing foreach
 
-            TypeFunction tf = cast(TypeFunction)fd.type;
+        TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
+
+        void setResult(Statement s)
+        {
+            result = s;
+            import dmd.diagnostics : setAccessesInReturnStatement;
+            if (auto rs = s.isReturnStatement)
+                setAccessesInReturnStatement(rs, sc);
+        }
 
         if (rs.exp && rs.exp.op == TOK.variable && (cast(VarExp)rs.exp).var == fd.vresult)
         {
@@ -3092,22 +3116,19 @@ else
             {
                 assert(rs.caseDim == 0);
                 sc.fes.cases.push(rs);
-                result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
-                return;
+                return setResult(new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1)));
             }
             if (fd.returnLabel)
             {
                 auto gs = new GotoStatement(rs.loc, Id.returnLabel);
                 gs.label = fd.returnLabel;
-                result = gs;
-                return;
+                return setResult(gs);
             }
 
             if (!fd.returns)
                 fd.returns = new ReturnStatements();
             fd.returns.push(rs);
-            result = rs;
-            return;
+            return setResult(rs);
         }
 
         Type tret = tf.next;
@@ -3372,12 +3393,8 @@ else
                 //  return cases.dim+1;
                 rs.exp = new IntegerExp(sc.fes.cases.dim + 1);
                 if (e0)
-                {
-                    result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
-                    return;
-                }
-                result = rs;
-                return;
+                    return setResult(new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs));
+                return setResult(rs);
             }
             else
             {
@@ -3406,22 +3423,23 @@ else
         if (e0)
         {
             if (e0.op == TOK.declaration || e0.op == TOK.comma)
-            {
                 rs.exp = Expression.combine(e0, rs.exp);
-            }
             else
-            {
-                result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
-                return;
-            }
+                return setResult(new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs));
         }
-        result = rs;
+
+        setResult(rs);
     }
 
     override void visit(BreakStatement bs)
     {
         /* https://dlang.org/spec/statement.html#break-statement
          */
+
+        void setResult(Statement s)
+        {
+            result = s;
+        }
 
         //printf("BreakStatement::semantic()\n");
 
@@ -3447,8 +3465,7 @@ else
                          * and 1 is break.
                          */
                         sc.fes.cases.push(bs);
-                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
-                        return;
+                        return setResult(new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1)));
                     }
                     break; // can't break to it
                 }
@@ -3464,8 +3481,7 @@ else
                     else
                     {
                         ls.breaks = true;
-                        result = bs;
-                        return;
+                        return setResult(bs);
                     }
                     return setError();
                 }
@@ -3476,15 +3492,10 @@ else
         else if (!sc.sbreak)
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
-            {
                 bs.error("`break` is not allowed inside `%s` bodies", Token.toChars(sc.os.tok));
-            }
             else if (sc.fes)
-            {
                 // Replace break; with return 1;
-                result = new ReturnStatement(Loc.initial, IntegerExp.literal!1);
-                return;
-            }
+                return setResult(new ReturnStatement(Loc.initial, IntegerExp.literal!1));
             else
                 bs.error("`break` is not inside a loop or `switch`");
             return setError();
@@ -3493,7 +3504,7 @@ else
         {
             bs.error("must use labeled `break` within `static foreach`");
         }
-        result = bs;
+        setResult(bs);
     }
 
     override void visit(ContinueStatement cs)

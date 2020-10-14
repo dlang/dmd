@@ -65,6 +65,7 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
+import dmd.diagnostics;
 
 /**
  * Print DMD's logo on stdout
@@ -628,6 +629,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     printCtfePerformanceStats();
     printTemplateStats();
+    printSymbolAccessStats(modules); // TODO pass `Module.amodules` for all modules
 
     Library library = null;
     if (params.lib)
@@ -1923,6 +1925,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
+            }
+        }
+        else if (startsWith(p + 1, "diagnose="))
+        {
+            const(char)[] style = arg["diagnose=".length + 1 .. $];
+
+            switch (style)
+            {
+            case "access":
+                params.diagnostics = cast(Diagnostics)(Diagnostics.symbolAccess);
+                break;
+            case "imports-access":
+                params.diagnostics = cast(Diagnostics)(Diagnostics.symbolAccess | Diagnostics.usedImportModuleMembers);
+                break;
+            default:
+                error("unknown diagnostics type '%.*s', must be 'access' or 'imports-access'", cast(int) style.length, style.ptr);
             }
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu

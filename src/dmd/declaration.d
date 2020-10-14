@@ -38,7 +38,10 @@ import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.statement : Statement;
 import dmd.visitor;
+import dmd.root.array;
+import dmd.diagnostics : doCheckUnused;
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -196,7 +199,7 @@ extern (C++) void ObjectNotFound(Identifier id)
     fatal();
 }
 
-enum STC : ulong
+enum STC : StorageClass
 {
     undefined_          = 0L,
     static_             = (1L << 0),
@@ -868,8 +871,10 @@ extern (C++) final class AliasDeclaration : Declaration
 
     override Dsymbol toAlias()
     {
-        //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
-        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse);
+        tagAsReferenced();
+
+        // printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d, _import = %p)\n",
+        //        loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse, _import);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
         if (inuse == 1 && type && _scope)
@@ -1095,6 +1100,60 @@ extern (C++) final class OverDeclaration : Declaration
     }
 }
 
+/** Variable state.
+ */
+enum VSTATE : ubyte
+{
+    unknown,                    // unknown state (value)
+    noninit,                    // non-`init` state (value)
+    init,                       // `init` (default) state (value)
+    newInit, // newed class with default constructor setting each member `m` to `m.init`
+    ignore,                     // should be ignored
+}
+static assert(VSTATE.sizeof == 1);
+
+/** Variable access, expressing either read status or write status exclusively.
+ */
+enum VACCESS : ubyte
+{
+    none,                       // no access
+    partial,                    // partial access (including full)
+    partialMaybe,               // partial (non-full) access maybe
+    full,                       // full access
+    fullMaybe,                  // full access maybe
+    partialOrFullMaybe,         // partial or full access maybe. maybe change `unknown`
+    /* TODO express non-direct transitive access via indirections in class to
+     * distinguish changing the classes pointer from its members?
+     */
+}
+static assert(VACCESS.sizeof == 1);
+
+struct AllVarStat
+{
+    // TODO: pack these
+    VACCESS readAccess = VACCESS.none;     // read access
+    VACCESS writeAccess = VACCESS.none;    // write access
+}
+
+struct VarStat
+{
+    this(VSTATE recentState)
+    {
+        this.recentState = recentState;
+    }
+    // TODO: pack these
+    Expression recentExp; // last read or write expression of `this`, or `null` if `this` is unreferenced
+
+    VACCESS recentReadAccess = VACCESS.none;   // recent read access
+    VACCESS recentWriteAccess = VACCESS.none;  // recent write access
+    VACCESS recentAliasedAccess = VACCESS.none; // recent escape access
+    VSTATE recentState = VSTATE.unknown;       // recent state (value)
+
+    VACCESS allReadAccess = VACCESS.none;   // all read access
+    VACCESS allWriteAccess = VACCESS.none;  // all write access
+    VACCESS allAliasedAccess = VACCESS.none; // all escape access
+}
+
 /***********************************************************
  */
 extern (C++) class VarDeclaration : Declaration
@@ -1134,6 +1193,8 @@ extern (C++) class VarDeclaration : Declaration
     IntRange* range;                // if !=null, the variable is known to be within the range
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+
+    AllVarStat allVarStat; // kinds of access done by all expression
 
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     in

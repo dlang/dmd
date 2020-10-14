@@ -561,7 +561,9 @@ class ClassReferenceExp;
 class TypeInfoClassDeclaration;
 struct ObjcClassDeclaration;
 class TypeFunction;
+struct LastVarStat;
 struct IntRange;
+struct AllVarStat;
 class TypeInfoStructDeclaration;
 class TypeInfoInterfaceDeclaration;
 class TypeInfoPointerDeclaration;
@@ -773,6 +775,7 @@ public:
     Scope* _scope;
     char* prettystring;
     bool errors;
+    bool vrefByName;
     PASS semanticRun;
     DeprecatedDeclaration* depdecl;
     UserAttributeDeclaration* userAttribDecl;
@@ -784,6 +787,8 @@ public:
     const char* locToChars();
     bool equals(const RootObject* const o) const;
     bool isAnonymous() const;
+    void tagAsReferenced();
+    bool isReferenced() const;
     void error(const Loc& loc, const char* format, ...);
     void error(const char* format, ...);
     void deprecation(const Loc& loc, const char* format, ...);
@@ -2594,6 +2599,25 @@ public:
     void accept(Visitor* v);
 };
 
+enum class VSTATE : uint8_t
+{
+    unknown = 0u,
+    no = 1u,
+    yes = 2u,
+};
+
+enum class VACCESS : uint8_t
+{
+    none = 0u,
+    partial = 1u,
+    partialMaybe = 2u,
+    full = 3u,
+    fullMaybe = 4u,
+    partialOrFullMaybe = 5u,
+};
+
+typedef Array<LastVarStat> ScopeVarStats;
+
 class VarDeclaration : public Declaration
 {
 public:
@@ -2624,6 +2648,7 @@ public:
     Expression* edtor;
     IntRange* range;
     Array<VarDeclaration*>* maybes;
+    AllVarStat allVarStat;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class);
     Dsymbol* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
@@ -6553,6 +6578,27 @@ public:
     void visit(RemoveExp* e);
 };
 
+class DiagnosticsVisitor : public SemanticTimeTransitiveVisitor
+{
+public:
+    void visit(Dsymbol* sym);
+    void visit(AliasDeclaration* ad);
+    void visit(VarDeclaration* vd);
+    void visit(FuncDeclaration* fd);
+    void visit(IfStatement* ie);
+    void visit(FuncAliasDeclaration* fa);
+    void visit(EnumDeclaration* ed);
+    void visit(EnumMember* em);
+    void visit(StructDeclaration* sd);
+    void visit(ClassDeclaration* cd);
+    void visit(InterfaceDeclaration* id);
+    void visit(TemplateDeclaration* td);
+    void visit(TemplateParameter* tp);
+    void visit(LabelDsymbol* ls);
+    void visit(LabelStatement* ls);
+    void visit(Import* im);
+};
+
 typedef void* Key;
 
 typedef void* Value;
@@ -6666,6 +6712,13 @@ enum class MessageStyle : uint8_t
 {
     digitalmars = 0u,
     gnu = 1u,
+};
+
+enum class Diagnostics : uint8_t
+{
+    none = 0u,
+    symbolAccess = 1u,
+    usedImportModuleMembers = 4u,
 };
 
 enum class CHECKENABLE : uint8_t
@@ -6851,6 +6904,7 @@ struct Param
     DArray< const char > moduleDepsFile;
     OutBuffer* moduleDeps;
     MessageStyle messageStyle;
+    Diagnostics diagnostics;
     bool debugb;
     bool debugc;
     bool debugf;
@@ -7686,4 +7740,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-
