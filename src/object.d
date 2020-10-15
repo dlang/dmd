@@ -677,28 +677,22 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void swap(void* p1, void* p2) const
     {
-        import core.memory;
         import core.stdc.string : memcpy;
 
-        void* tmp;
-        size_t sz = value.tsize;
-        ubyte[16] buffer;
-        void* pbuffer;
-
-        if (sz < buffer.sizeof)
-            tmp = buffer.ptr;
-        else
-            tmp = pbuffer = (new void[sz]).ptr;
-
-        for (size_t u = 0; u < len; u += sz)
+        size_t remaining = value.tsize * len;
+        void[size_t.sizeof * 4] buffer = void;
+        while (remaining > buffer.length)
         {
-            size_t o = u * sz;
-            memcpy(tmp, p1 + o, sz);
-            memcpy(p1 + o, p2 + o, sz);
-            memcpy(p2 + o, tmp, sz);
+            memcpy(buffer.ptr, p1, buffer.length);
+            memcpy(p1, p2, buffer.length);
+            memcpy(p2, buffer.ptr, buffer.length);
+            p1 += buffer.length;
+            p2 += buffer.length;
+            remaining -= buffer.length;
         }
-        if (pbuffer)
-            GC.free(pbuffer);
+        memcpy(buffer.ptr, p1, remaining);
+        memcpy(p1, p2, remaining);
+        memcpy(p2, buffer.ptr, remaining);
     }
 
     override const(void)[] initializer() nothrow pure const
@@ -746,6 +740,23 @@ class TypeInfo_StaticArray : TypeInfo
 
     // just return the rtInfo of the element, we have no generic type T to run RTInfo!T on
     override @property immutable(void)* rtInfo() nothrow pure const @safe { return value.rtInfo(); }
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21315
+@system unittest
+{
+    int[16] a, b;
+    foreach (int i; 0 .. 16)
+    {
+        a[i] = i;
+        b[i] = ~i;
+    }
+    typeid(int[16]).swap(&a, &b);
+    foreach (int i; 0 .. 16)
+    {
+        assert(a[i] == ~i);
+        assert(b[i] == i);
+    }
 }
 
 class TypeInfo_AssociativeArray : TypeInfo
