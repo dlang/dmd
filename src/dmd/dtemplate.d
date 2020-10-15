@@ -5969,13 +5969,29 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * give the nested TemplateInstance instantiations that got
      * us here. Those are a list threaded into the nested scopes.
      */
-    final void printInstantiationTrace()
+    extern(D) final void printInstantiationTrace(Classification cl = Classification.error)
     {
         if (global.gag)
             return;
 
-        const(uint) max_shown = 6;
+        // Print full trace for verbose mode, otherwise only short traces
+        const(uint) max_shown = !global.params.verbose ? 6 : uint.max;
         const(char)* format = "instantiated from here: `%s`";
+
+        // This returns a function pointer
+        scope printFn = () {
+            final switch (cl)
+            {
+                case Classification.error:
+                    return &errorSupplemental;
+                case Classification.warning:
+                    return &warningSupplemental;
+                case Classification.deprecation:
+                    return &deprecationSupplemental;
+                case Classification.gagged, Classification.tip:
+                    assert(0);
+            }
+        }();
 
         // determine instantiation depth and number of recursive instantiations
         int n_instantiations = 1;
@@ -5983,6 +5999,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         for (TemplateInstance cur = this; cur; cur = cur.tinst)
         {
             ++n_instantiations;
+            // Set error here as we don't want it to depend on the number of
+            // entries that are being printed.
+            if (cl == Classification.error ||
+                (cl == Classification.warning && global.params.warnings == DiagnosticReporting.error) ||
+                (cl == Classification.deprecation && global.params.useDeprecated == DiagnosticReporting.error))
+                cur.errors = true;
+
             // If two instantiations use the same declaration, they are recursive.
             // (this works even if they are instantiated from different places in the
             // same template).
@@ -5992,14 +6015,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 ++n_totalrecursions;
         }
 
-        // show full trace only if it's short or verbose is on
-        if (n_instantiations <= max_shown || global.params.verbose)
+        if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
-            {
-                cur.errors = true;
-                errorSupplemental(cur.loc, format, cur.toChars());
-            }
+                printFn(cur.loc, format, cur.toChars());
         }
         else if (n_instantiations - n_totalrecursions <= max_shown)
         {
@@ -6008,7 +6027,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             int recursionDepth = 0;
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
             {
-                cur.errors = true;
                 if (cur.tinst && cur.tempdecl && cur.tinst.tempdecl && cur.tempdecl.loc.equals(cur.tinst.tempdecl.loc))
                 {
                     ++recursionDepth;
@@ -6016,9 +6034,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     if (recursionDepth)
-                        errorSupplemental(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, cur.toChars());
+                        printFn(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, cur.toChars());
                     else
-                        errorSupplemental(cur.loc, format, cur.toChars());
+                        printFn(cur.loc, format, cur.toChars());
                     recursionDepth = 0;
                 }
             }
@@ -6030,13 +6048,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             uint i = 0;
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
             {
-                cur.errors = true;
-
                 if (i == max_shown / 2)
-                    errorSupplemental(cur.loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
+                    printFn(cur.loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
 
                 if (i < max_shown / 2 || i >= n_instantiations - max_shown + max_shown / 2)
-                    errorSupplemental(cur.loc, format, cur.toChars());
+                    printFn(cur.loc, format, cur.toChars());
                 ++i;
             }
         }
