@@ -1696,17 +1696,17 @@ ref U xerxes(ref return scope V v);  // (2) return ref and scope
 
 struct S
 {
-    this(return scope   ref int* p) { ptr = p; }
+    this(return scope ref int* p) { ptr = p; }
 
     int  val;
     int* ptr;
 }
 
-int* foo1(return scope   ref S s);
-int  foo2(return scope   ref S s);
+int* foo1(ref return scope S s);
+int  foo2(ref return scope S s);
 
-ref int* foo3(return ref   scope S s);
-ref int  foo4(return ref   scope S s);
+ref int* foo3(ref return scope S s);
+ref int  foo4(ref return scope S s);
 
 int* test1(scope S s)
 {
