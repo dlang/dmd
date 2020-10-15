@@ -1120,7 +1120,7 @@ extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims)
  * Allocate an uninitialized non-array item.
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
  */
-extern (C) void* _d_newitemU(in TypeInfo _ti)
+extern (C) void* _d_newitemU(in TypeInfo _ti) pure nothrow
 {
     auto ti = unqualify(_ti);
     auto flags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
@@ -1143,7 +1143,7 @@ extern (C) void* _d_newitemU(in TypeInfo _ti)
 }
 
 /// Same as above, zero initializes the item.
-extern (C) void* _d_newitemT(in TypeInfo _ti)
+extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -1152,7 +1152,7 @@ extern (C) void* _d_newitemT(in TypeInfo _ti)
 }
 
 /// Same as above, for item with non-zero initializer.
-extern (C) void* _d_newitemiT(in TypeInfo _ti)
+extern (C) void* _d_newitemiT(in TypeInfo _ti) pure nothrow
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
