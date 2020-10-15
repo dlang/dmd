@@ -1,6 +1,6 @@
 common_steps_template: &COMMON_STEPS_TEMPLATE
   install_prerequisites_script: ./cirrusci.sh
-  install_host_compiler_script: ./ci.sh install_d
+  install_host_compiler_script: ./ci.sh install_host_compiler
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../dmd

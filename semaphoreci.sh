@@ -38,6 +38,6 @@ fi
 ################################################################################
 
 case $1 in
-    setup) ./ci.sh install_d && ./ci.sh setup_repos "$BRANCH" ;;
+    setup) ./ci.sh install_host_compiler && ./ci.sh setup_repos "$BRANCH" ;;
     testsuite) ./ci.sh testsuite ;;
 esac

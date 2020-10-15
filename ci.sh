@@ -98,10 +98,12 @@ test_dmd() {
     fi
 }
 
+# build and run druntime unit tests
 test_druntime() {
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
 }
 
+# build and run Phobos unit tests
 test_phobos() {
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
 }
@@ -179,14 +181,15 @@ download_install_sh() {
   done
 }
 
-install_d() {
+# install D host compiler
+install_host_compiler() {
   if [ "${HOST_DC:0:5}" == "gdmd-" ] ; then
     local gdc_version="${HOST_DC:5}"
     if [ ! -e ~/dlang/gdc-$gdc_version/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update
         sudo apt-get install -y gdc-$gdc_version
-        # fetch the dmd-like wrapper
+        # fetch the gdmd wrapper for CLI compatibility with dmd
         sudo curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-$gdc_version
         sudo chmod +x /usr/bin/gdmd-$gdc_version
         # fake install script and create a fake 'activate' script
@@ -205,7 +208,7 @@ install_d() {
 
 if [ "$#" -gt 0 ]; then
   case $1 in
-    install_d) install_d ;;
+    install_host_compiler) install_host_compiler ;;
     setup_repos) setup_repos "$2" ;; # ci.sh setup_repos <git branch>
     build) build ;;
     rebuild) rebuild "${2:-}" ;; # ci.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
