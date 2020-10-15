@@ -745,7 +745,8 @@ public:
     ASTNode();
 };
 
-static Global global;
+extern Global global;
+
 struct Loc
 {
     const char* filename;
@@ -797,7 +798,6 @@ public:
     Dsymbol* toParent2();
     Dsymbol* toParentDecl();
     Dsymbol* toParentLocal();
-    Dsymbol* toParentDeclImpl(bool localOnly);
     Dsymbol* toParentP(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isInstantiated();
     bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2 = nullptr);
@@ -900,8 +900,10 @@ struct BitArray
 
     enum : uint64_t { BitsPerChunk = 64LLU };
 
+private:
     size_t len;
     uint64_t* ptr;
+public:
     BitArray()
     {
     }
@@ -913,10 +915,12 @@ public:
     Array<Dsymbol*>* members;
     DsymbolTable* symtab;
     uint32_t endlinnum;
+private:
     Array<Dsymbol*>* importedScopes;
     Kind* prots;
     BitArray accessiblePackages;
     BitArray privateAccessiblePackages;
+public:
     Dsymbol* syntaxCopy(Dsymbol* s);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     virtual void importScope(Dsymbol* s, Prot protection);
@@ -981,7 +985,6 @@ public:
     virtual bool checkType();
     virtual bool checkValue();
     bool checkDeprecated(Scope* sc, Dsymbol* s);
-    static bool checkImpure(Scope* sc);
     virtual Modifiable checkModifiable(Scope* sc, int32_t flag = 0);
     virtual Expression* toBoolean(Scope* sc);
     virtual Expression* addDtorHook(Scope* sc);
@@ -1122,7 +1125,9 @@ struct ObjcClassDeclaration
 
 struct FileName
 {
+private:
     DArray< const char > str;
+public:
     static bool equals(const char* name1, const char* name2);
     static bool absolute(const char* name);
     static const char* toAbsolute(const char* name, const char* base = nullptr);
@@ -1179,7 +1184,9 @@ public:
         }
     };
 
+private:
     Mcache* mcache;
+public:
     Type* pto;
     Type* rto;
     Type* arrayof;
@@ -2087,6 +2094,7 @@ struct Param
 };
 
 typedef uint32_t structalign_t;
+
 enum : uint32_t { STRUCTALIGN_DEFAULT = 4294967295u };
 
 struct Global
@@ -2158,17 +2166,29 @@ struct Global
 };
 
 typedef uint64_t dinteger_t;
+
 typedef int64_t sinteger_t;
+
 typedef uint64_t uinteger_t;
+
 typedef int8_t d_int8;
+
 typedef uint8_t d_uns8;
+
 typedef int16_t d_int16;
+
 typedef uint16_t d_uns16;
+
 typedef int32_t d_int32;
+
 typedef uint32_t d_uns32;
+
 typedef int64_t d_int64;
+
 typedef uint64_t d_uns64;
+
 typedef uint64_t StorageClass;
+
 class StoppableVisitor : public Visitor
 {
 public:
@@ -2512,8 +2532,10 @@ class StaticIfDeclaration : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol* scopesym;
+private:
     bool addisdone;
     bool onStack;
+public:
     Dsymbol* syntaxCopy(Dsymbol* s);
     Array<Dsymbol*>* include(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -2672,7 +2694,6 @@ public:
     ForeachRangeStatement* rangefe;
     bool needExpansion;
     StaticForeach* syntaxCopy();
-    void lowerNonArrayAggregate(Scope* sc);
 };
 
 class DVCondition : public Condition
@@ -2742,7 +2763,6 @@ class ClassReferenceExp : public Expression
 public:
     StructLiteralExp* value;
     ClassDeclaration* originalClass();
-    int32_t getFieldIndex(Type* fieldtype, uint32_t fieldoffset);
     int32_t findFieldIndexByName(VarDeclaration* v);
     void accept(Visitor* v);
 };
@@ -2836,7 +2856,9 @@ public:
     bool com;
     bool stack;
     int32_t cppDtorVtblIndex;
+private:
     bool inuse;
+public:
     Abstract isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
@@ -3340,7 +3362,9 @@ extern void printCtfePerformanceStats();
 
 struct MacroTable
 {
+private:
     Macro* mactab;
+public:
     MacroTable()
     {
     }
@@ -3597,8 +3621,8 @@ public:
 
 class ArrayScopeSymbol : public ScopeDsymbol
 {
-public:
     RootObject* arrayContent;
+public:
     Scope* sc;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     ArrayScopeSymbol* isArrayScopeSymbol();
@@ -3698,9 +3722,11 @@ public:
     Prot protection;
     int32_t inuse;
     TemplatePrevious* previous;
+private:
     Expression* lastConstraint;
     Array<Expression*> lastConstraintNegs;
     Array<RootObject*>* lastConstraintTiargs;
+public:
     Dsymbol* syntaxCopy(Dsymbol* _param_0);
     bool overloadInsert(Dsymbol* s);
     bool hasStaticCtorOrDtor();
@@ -3710,7 +3736,6 @@ public:
     const char* toCharsMaybeConstraints(bool includeConstraints) const;
     Prot prot();
     const char* getConstraintEvalError(const char*& tip);
-    void formatParamsWithTiargs(Array<RootObject*>& tiargs, OutBuffer& buf);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
     MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, Array<Expression*>* fargs);
     RootObject* declareParameter(Scope* sc, TemplateParameter* tp, RootObject* o);
@@ -3848,8 +3873,11 @@ public:
     TemplateInstance* tinst;
     TemplateInstance* tnext;
     Module* minst;
+private:
     uint16_t _nest;
+public:
     uint8_t inuse;
+private:
     enum class Flag : uint32_t
     {
         semantictiargsdone = 32768u,
@@ -3858,6 +3886,7 @@ public:
         available = 8191u,
     };
 
+public:
     Dsymbol* syntaxCopy(Dsymbol* s);
     Dsymbol* toAlias();
     const char* kind() const;
@@ -3919,11 +3948,10 @@ public:
     LINK linkage;
     bool forwardedAA;
     Type** origType;
+    Kind currentProt;
     bool hasReal;
     bool printIgnored;
     ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
-    EnumKind getEnumKind(Type* type);
-    void writeEnumTypeName(Type* type);
     void writeDeclEnd();
     void visit(Dsymbol* s);
     void visit(Import* i);
@@ -3940,15 +3968,10 @@ public:
     void visit(CPPNamespaceDeclaration* ns);
     void handleNspace(Identifier* name, Array<Dsymbol*>* members);
     void visit(AnonDeclaration* ad);
-    bool memberField(VarDeclaration* vd);
     void visit(StructDeclaration* sd);
-    void pushAlignToBuffer(uint32_t alignment);
-    void popAlignToBuffer(uint32_t alignment);
-    void includeSymbol(Dsymbol* ds);
     void visit(ClassDeclaration* cd);
     void visit(EnumDeclaration* ed);
     void visit(EnumMember* em);
-    void typeToBuffer(Type* t, Identifier* ident);
     void visit(Type* t);
     void visit(TypeIdentifier* t);
     void visit(TypeNull* t);
@@ -3957,14 +3980,11 @@ public:
     void visit(TypeSArray* t);
     void visit(TypeAArray* t);
     void visit(TypeFunction* tf);
-    void enumToBuffer(EnumDeclaration* ed);
     void visit(TypeEnum* t);
     void visit(TypeStruct* t);
     void visit(TypeDArray* t);
-    void visitTi(TemplateInstance* ti);
     void visit(TemplateDeclaration* td);
     void visit(TypeClass* t);
-    void funcToBuffer(TypeFunction* tf, FuncDeclaration* fd);
     void visit(Parameter* p);
     void visit(Expression* e);
     void visit(VarExp* e);
@@ -3976,9 +3996,7 @@ public:
     void visit(StringExp* e);
     void visit(RealExp* e);
     void visit(IntegerExp* e);
-    void visitInteger(dinteger_t v, Type* t);
     void visit(StructLiteralExp* sle);
-    void ignored(const char* const format, ...);
 };
 
 class DebugSymbol : public Dsymbol
@@ -4014,6 +4032,7 @@ struct UnionExp
     Expression* exp();
     Expression* copy();
     #pragma pack(push, 8)
+private:
     union __AnonStruct__u
     {
         char exp[40LLU];
@@ -4037,6 +4056,7 @@ struct UnionExp
 
     // Ignoring var u alignment 8
     __AnonStruct__u u;
+public:
     UnionExp()
     {
     }
@@ -4055,8 +4075,8 @@ enum : int32_t { WANTexpand = 1 };
 
 class IntegerExp : public Expression
 {
-public:
     dinteger_t value;
+public:
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
     static void emplace(UnionExp* pue, Loc loc, dinteger_t value, Type* type);
     bool equals(const RootObject* const o) const;
@@ -4177,13 +4197,13 @@ public:
 
 class StringExp : public Expression
 {
-public:
     union
     {
         char* string;
         char16_t* wstring;
         char32_t* dstring;
     };
+public:
     size_t len;
     uint8_t sz;
     uint8_t committed;
@@ -5212,7 +5232,6 @@ public:
     bool isTrusted();
     bool isNogc();
     bool isNogcBypassingInference();
-    bool isTypeIsolatedIndirect(Type* t);
     virtual bool isNested() const;
     AggregateDeclaration* isThis();
     bool needThis();
@@ -5787,6 +5806,7 @@ class TypeFunction : public TypeNext
 {
 public:
     ParameterList parameterList;
+private:
     enum class FunctionFlag : uint32_t
     {
         none = 0u,
@@ -5804,6 +5824,7 @@ public:
         inoutQual = 2048u,
     };
 
+public:
     LINK linkage;
     FunctionFlag funcFlags;
     TRUST trust;
@@ -5820,7 +5841,6 @@ public:
     StorageClass parameterStorageClass(Type* tthis, Parameter* p);
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
-    const char* getParamError(Expression* arg, Parameter* par);
     bool isnothrow() const;
     void isnothrow(bool v);
     bool isnogc() const;
@@ -6099,6 +6119,7 @@ public:
     static Parameter* getNth(Array<Parameter*>* parameters, size_t nth);
     const char* toChars() const;
     bool isCovariant(bool returnByRef, const Parameter* const p, bool previewIn = global.params.previewIn) const;
+private:
     enum class SR
     {
         None = 0,
@@ -6414,7 +6435,6 @@ class CompileStatement : public Statement
 public:
     Array<Expression*>* exps;
     Statement* syntaxCopy();
-    Array<Statement*>* compileIt(Scope* sc);
     Array<Statement*>* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -6937,8 +6957,10 @@ struct Target
     FPTypeProperties<float> FloatProperties;
     FPTypeProperties<double> DoubleProperties;
     FPTypeProperties<_d_real> RealProperties;
+private:
     Type* tvalist;
     const Param* params;
+public:
     void _init(const Param& params);
     void deinitialize();
     uint32_t alignsize(Type* type);
@@ -6952,6 +6974,7 @@ struct Target
     bool isReturnOnStack(TypeFunction* tf, bool needsThis);
     uint64_t parameterSize(const Loc& loc, Type* t);
     void applyInRefParams(TypeFunction* tf);
+private:
     enum class TargetInfoKeys
     {
         cppRuntimeLibrary = 0,
@@ -6960,6 +6983,7 @@ struct Target
         objectFormat = 3,
     };
 
+public:
     Expression* getTargetInfo(const char* name, const Loc& loc);
     Target() :
         ptrsize(),
@@ -7533,10 +7557,10 @@ struct Id
 
 class Identifier : public RootObject
 {
-public:
     int32_t value;
     bool isAnonymous_;
     DArray< char > name;
+public:
     static Identifier* create(const char* name);
     const char* toChars() const;
     int32_t getValue() const;
@@ -7589,6 +7613,7 @@ template <typename T>
 struct Array
 {
     // Ignoring var length alignment 0
+public:
     size_t length;
     // Ignoring var data alignment 0
     DArray< T > data;

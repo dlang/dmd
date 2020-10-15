@@ -17,12 +17,17 @@ struct Foo
     enum : int32_t { b = 2 };
 
     // Ignored enum `test21217.Foo.c` because it is `private`.
-    // Ignored enum `test21217.Foo.d` because it is `protected`.
-    // Ignored enum `test21217.Foo.e` because it is `package`.
+protected:
+    enum : int32_t { d = 4 };
+
+    enum : int32_t { e = 5 };
+
+public:
     enum : int32_t { f = 6 };
 
     enum : int32_t { g = 7 };
 
+private:
     enum class Bar
     {
         a = 1,
@@ -30,6 +35,7 @@ struct Foo
     };
 
     // Ignored enum `test21217.Foo.h` because it is `private`.
+public:
     Foo() :
         a(1)
     {

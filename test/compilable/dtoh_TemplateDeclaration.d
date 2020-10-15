@@ -15,6 +15,7 @@ template <typename T>
 struct A
 {
     // Ignoring var x alignment 0
+public:
     T x;
 };
 

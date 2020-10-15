@@ -10,6 +10,9 @@ experimental C++ header generator:
 - Tuple members/parameters/variables are emitted as individual variables
   using the compiler internal names instead of causing an assertion failure.
 - Interfaces are now emitted as base classes.
+- Aggregate members will be emitted with proper protection levels
+- Protected enums in aggregates are emitted again
+- Private member methods are no longer emitted
 - No auto-generated default constructor for unions
 - Opaque enums no longer cause segfaults & are properly exported for C++ 11
 - C++11 constructs are avoided when compiling with `-extern-std=c++98`.
