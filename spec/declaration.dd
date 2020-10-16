@@ -9,6 +9,7 @@ $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)
     $(GLINK VarDeclarations)
     $(GLINK AliasDeclaration)
+    $(GLINK AliasAssign)
     $(GLINK2 struct, AggregateDeclaration)
     $(GLINK2 enum, EnumDeclaration)
     $(GLINK2 module, ImportDeclaration)
@@ -501,6 +502,75 @@ alias c = a + b; // illegal, `a + b` is an expression
 a = 2;         // sets `S.i` to `2`
 b = 4;         // sets `S.j` to `4`
 -----------
+
+$(H2 $(LNAME2 AliasAssign, Alias Assign))
+
+$(GRAMMAR
+$(GNAME AliasAssign):
+    $(I Identifier) $(D =) $(GLINK Type)
+)
+
+        $(P An $(GLINK AliasDeclaration) can have a new value assigned to it with an
+        $(I AliasAssign):)
+
+---
+template Gorgon(T)
+{
+    alias A = long;
+    A = T; // assign new value to A
+    alias Gorgon = A;
+}
+pragma(msg, Gorgon!int); // prints int
+---
+
+$(UL
+$(LI The $(I AliasAssign) and its corresponding $(I AliasDeclaration) must both be
+declared in the same $(GLINK2 template, TemplateDeclaration).)
+
+$(LI The corresponding $(I AliasDeclaration) must appear lexically before the
+$(I AliasAssign).)
+
+$(LI The corresponding $(I AliasDeclaration) may not refer to overloaded symbols.)
+
+$(LI The value of an $(I AliasDeclaration) or left hand side (lvalue) of an $(I AliasAssign) may not be used prior
+to another $(I AliasAssign) to the same lvalue other than in the right hand side of that $(I AliasAssign).)
+
+)
+
+        $(BEST_PRACTICE
+        $(I AliasAssign) is particularly useful when using an iterative
+        computation rather than a recursive one, as it avoids creating
+        the large number of intermediate templates that the recursive one
+        engenders.
+---
+template AliasSeq(T...) { alias AliasSeq = T; }
+
+static if (0) // recursive method for comparison
+{
+    template Reverse(T...)
+    {
+        static if (T.length == 0)
+            alias Reverse = AliasSeq!();
+        else
+            alias Reverse = AliasSeq!(Reverse!(T[1 .. T.length]), T[0]);
+    }
+}
+else // iterative method minimizes template instantiations
+{
+    template Reverse(T...)
+    {
+        alias A = AliasSeq!();
+        static foreach (t; T)
+            A = AliasSeq!(t, A); // Alias Assign
+        alias Reverse = A;
+    }
+}
+
+enum X = 3;
+alias TK = Reverse!(int, const uint, X);
+pragma(msg, TK); // prints tuple(3, (const(uint)), (int))
+---
+        )
 
 $(H2 $(LNAME2 extern, Extern Declarations))
 
