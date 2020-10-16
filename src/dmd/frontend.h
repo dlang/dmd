@@ -3983,6 +3983,7 @@ public:
     void visit(TypeEnum* t);
     void visit(TypeStruct* t);
     void visit(TypeDArray* t);
+    void visit(TypeInstance* t);
     void visit(TemplateDeclaration* td);
     void visit(TypeClass* t);
     void visit(Parameter* p);
