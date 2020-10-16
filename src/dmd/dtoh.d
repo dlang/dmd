@@ -27,7 +27,6 @@ import dmd.root.outbuffer;
 import dmd.utils;
 
 //debug = Debug_DtoH;
-enum isBuildingCompiler = false;
 
 private struct DMDType
 {
@@ -37,8 +36,6 @@ private struct DMDType
     __gshared Identifier c_ulonglong;
     __gshared Identifier c_long_double;
     __gshared Identifier c_wchar_t;
-    __gshared Identifier AssocArray;
-    __gshared Identifier Array;
 
     static void _init()
     {
@@ -48,126 +45,7 @@ private struct DMDType
         c_ulonglong     = Identifier.idPool("__c_ulonglong");
         c_long_double   = Identifier.idPool("__c_long_double");
         c_wchar_t       = Identifier.idPool("__c_wchar_t");
-
-        if (isBuildingCompiler)
-        {
-            AssocArray      = Identifier.idPool("AssocArray");
-            Array           = Identifier.idPool("Array");
-        }
-
     }
-}
-
-private struct DMDModule
-{
-    __gshared Identifier identifier;
-    __gshared Identifier root;
-    __gshared Identifier visitor;
-    __gshared Identifier parsetimevisitor;
-    __gshared Identifier permissivevisitor;
-    __gshared Identifier strictvisitor;
-    __gshared Identifier transitivevisitor;
-    __gshared Identifier dmd;
-    static void _init()
-    {
-        identifier          = Identifier.idPool("identifier");
-        root                = Identifier.idPool("root");
-        visitor             = Identifier.idPool("visitor");
-        parsetimevisitor    = Identifier.idPool("parsetimevisitor");
-        permissivevisitor   = Identifier.idPool("permissivevisitor");
-        strictvisitor       = Identifier.idPool("strictvisitor");
-        transitivevisitor   = Identifier.idPool("transitivevisitor");
-        dmd                 = Identifier.idPool("dmd");
-    }
-}
-
-private struct DMDClass
-{
-    __gshared Identifier ID; ////Identifier
-    __gshared Identifier Visitor;
-    __gshared Identifier ParseTimeVisitor;
-    static void _init()
-    {
-        ID                  = Identifier.idPool("Identifier");
-        Visitor             = Identifier.idPool("Visitor");
-        ParseTimeVisitor    = Identifier.idPool("ParseTimeVisitor");
-    }
-
-}
-
-private bool isIdentifierClass(ASTCodegen.ClassDeclaration cd)
-{
-    return (cd.ident == DMDClass.ID &&
-            cd.parent !is null &&
-            cd.parent.ident == DMDModule.identifier &&
-            cd.parent.parent && cd.parent.parent.ident == DMDModule.dmd &&
-            !cd.parent.parent.parent);
-}
-
-private bool isVisitorClass(ASTCodegen.ClassDeclaration cd)
-{
-    for (auto cdb = cd; cdb; cdb = cdb.baseClass)
-    {
-        if (cdb.ident == DMDClass.Visitor ||
-            cdb.ident == DMDClass.ParseTimeVisitor)
-        return true;
-    }
-    return false;
-}
-
-private bool isIgnoredModule(ASTCodegen.Module m)
-{
-    if (!m)
-        return true;
-
-    // Ignore dmd.root
-    if (m.parent && m.parent.ident == DMDModule.root &&
-        m.parent.parent && m.parent.parent.ident == DMDModule.dmd &&
-        !m.parent.parent.parent)
-    {
-        return true;
-    }
-
-    // Ignore dmd.visitor and derivatives
-    if ((m.ident == DMDModule.visitor ||
-            m.ident == DMDModule.parsetimevisitor ||
-            m.ident == DMDModule.permissivevisitor ||
-            m.ident == DMDModule.strictvisitor ||
-            m.ident == DMDModule.transitivevisitor) &&
-            m.parent && m.parent.ident == DMDModule.dmd &&
-            !m.parent.parent)
-    {
-        return true;
-    }
-    return false;
-}
-
-private bool isFrontendModule(ASTCodegen.Module m)
-{
-    if (!m || !m.parent)
-        return false;
-
-    // Ignore dmd.root
-    if (m.parent.ident == DMDModule.root &&
-        m.parent.parent && m.parent.parent.ident == DMDModule.dmd &&
-        !m.parent.parent.parent)
-    {
-        return false;
-    }
-
-    // Ignore dmd.visitor and derivatives
-    if ((m.ident == DMDModule.visitor ||
-            m.ident == DMDModule.parsetimevisitor ||
-            m.ident == DMDModule.permissivevisitor ||
-            m.ident == DMDModule.strictvisitor ||
-            m.ident == DMDModule.transitivevisitor) &&
-            m.parent && m.parent.ident == DMDModule.dmd &&
-            !m.parent.parent)
-    {
-        return false;
-    }
-    return ((m.parent.ident == DMDModule.dmd && !m.parent.parent) ||
-            (m.parent.parent.ident == DMDModule.dmd && !m.parent.parent.parent));
 }
 
 private void initialize()
@@ -179,11 +57,6 @@ private void initialize()
         initialized = true;
 
         DMDType._init();
-        if (isBuildingCompiler)
-        {
-            DMDModule._init();
-            DMDClass._init();
-        }
     }
 }
 
@@ -483,11 +356,6 @@ public:
             printf("[AST.Dsymbol enter] %s\n", s.astTypeName().ptr);
             scope(exit) printf("[AST.Dsymbol exit] %s\n", s.toChars());
         }
-
-        if (isBuildingCompiler && s.getModule() && s.getModule().isFrontendModule())
-        {
-            ignored("%s %s", s.kind(), s.toPrettyChars());
-        }
     }
 
     override void visit(AST.Import i)
@@ -569,9 +437,6 @@ public:
         }
         if (cast(void*)fd in visited)
             return;
-        if (isBuildingCompiler && fd.getModule() && fd.getModule().isIgnoredModule())
-            return;
-
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
@@ -674,9 +539,6 @@ public:
         }
         if (cast(void*)vd in visited)
             return;
-        if (isBuildingCompiler && vd.getModule() && vd.getModule().isIgnoredModule())
-            return;
-
         visited[cast(void*)vd] = true;
 
         // Tuple field are expanded into multiple VarDeclarations
@@ -819,9 +681,6 @@ public:
             printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
             scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
         }
-        if (isBuildingCompiler && ad.getModule() && ad.getModule().isIgnoredModule())
-            return;
-
         writeProtection(ad.protection.kind);
 
         if (auto t = ad.type)
@@ -943,9 +802,6 @@ public:
             return;
         if (!sd.type || !sd.type.deco)
             return;
-        if (isBuildingCompiler && sd.getModule() && sd.getModule().isIgnoredModule())
-            return;
-
         visited[cast(void*)sd] = true;
         if (linkage != LINK.c && linkage != LINK.cpp)
         {
@@ -1136,14 +992,6 @@ public:
         }
         if (cast(void*)cd in visited)
             return;
-        if (isBuildingCompiler)
-        {
-            if (cd.getModule() && cd.getModule().isIgnoredModule())
-                return;
-            if (cd.isVisitorClass())
-                return;
-        }
-
         visited[cast(void*)cd] = true;
         if (!cd.isCPPclass())
         {
@@ -1192,12 +1040,6 @@ public:
         buf.level--;
         adparent = save;
 
-        // Generate special static inline function.
-        if (isBuildingCompiler && cd.isIdentifierClass())
-        {
-            buf.writestringln("static inline Identifier *idPool(const char *s) { return idPool(s, strlen(s)); }");
-        }
-
         buf.writestringln("};");
         buf.writenl();
     }
@@ -1210,9 +1052,6 @@ public:
             scope(exit) printf("[AST.EnumDeclaration exit] %s\n", ed.toChars());
         }
         if (cast(void*)ed in visited)
-            return;
-
-        if (isBuildingCompiler && ed.getModule() && ed.getModule().isIgnoredModule())
             return;
 
         visited[cast(void*)ed] = true;
@@ -1681,36 +1520,13 @@ public:
             scope(exit) printf("[visitTi(AST.TemplateInstance) exit] %s\n", ti.toChars());
         }
 
-        // FIXME: Restricting this to DMD seems wrong ...
-        if (isBuildingCompiler)
+
+        foreach (o; *ti.tiargs)
         {
-            if (ti.tempdecl.ident == DMDType.AssocArray)
-            {
-                if (!forwardedAA)
-                {
-                    forwardedAA = true;
-                    fwdbuf.writestring("struct AA;\n");
-                }
-                buf.writestring("AA*");
+            if (!AST.isType(o))
                 return;
-            }
-            if (ti.tempdecl.ident == DMDType.Array)
-            {
-                buf.writestring("Array");
-            }
-            else
-                goto LprintTypes;
         }
-        else
-        {
-            LprintTypes:
-            foreach (o; *ti.tiargs)
-            {
-                if (!AST.isType(o))
-                    return;
-            }
-            buf.writestring(ti.name.toChars());
-        }
+        buf.writestring(ti.name.toChars());
         buf.writeByte('<');
         foreach (i, o; *ti.tiargs)
         {
@@ -1740,9 +1556,6 @@ public:
         if (cast(void*)td in visited)
             return;
         visited[cast(void*)td] = true;
-
-        if (isBuildingCompiler && td.getModule() && td.getModule().isIgnoredModule())
-            return;
 
         if (!td.parameters || !td.onemember || !td.onemember.isStructDeclaration())
         {

@@ -3918,8 +3918,6 @@ public:
     ~TemplateMixin();
 };
 
-enum : bool { isBuildingCompiler = false };
-
 extern void genCppHdrFiles(Array<Module*>& ms);
 
 class ToCppBuffer : public Visitor
