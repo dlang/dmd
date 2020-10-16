@@ -441,6 +441,19 @@ public:
         if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
+
+            // Virtual extern(D) functions require a dummy declaration to ensure proper
+            // vtable layout - but omit redundant declarations - the slot was already
+            // reserved  in the base class
+            if (fd.isVirtual() && fd.introducing)
+            {
+                // Hide placeholders because they are not ABI compatible
+                writeProtection(AST.Prot.Kind.private_);
+
+                __gshared int counter; // Ensure unique names in all cases
+                buf.printf("virtual void __vtable_slot_%u();", counter++);
+                buf.writenl();
+            }
             return;
         }
         if (!adparent && !fd.fbody)
@@ -1650,6 +1663,13 @@ public:
             buf.writestring(" const");
     }
 
+    /**
+     * Writes the function signature to `buf`.
+     *
+     * Params:
+     *   fd     = the function to print
+     *   tf     = fd's type
+     */
     private void funcToBuffer(AST.TypeFunction tf, AST.FuncDeclaration fd)
     {
         debug (Debug_DtoH)

@@ -49,5 +49,8 @@ int main()
 
     tupleFunction(5, 6.0);
 
+    assert(vtable->callable_2() == 2);
+    assert(vtable->callable_4() == 4);
+    assert(vtable->callable_6() == 6);
     return 0;
 }
