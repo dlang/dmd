@@ -5826,7 +5826,7 @@ extern (C++) final class IndexExp : BinExp
 
     override bool isLvalue()
     {
-        if (e1.op == TOK.arrayLiteral || e1.op == TOK.assocArrayLiteral)
+        if (e1.op == TOK.assocArrayLiteral)
             return false;
         if (e1.type.ty == Tsarray ||
             (e1.op == TOK.index && e1.type.ty != Tarray))
