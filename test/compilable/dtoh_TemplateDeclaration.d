@@ -41,6 +41,14 @@ struct Bar
     // Ignoring var v alignment 0
     Foo<T> v;
 };
+
+template <typename T>
+struct Array
+{
+    typedef Array This;
+    typedef typeof(1 + 2) Int;
+    typedef typeof(T::a) IC;
+};
 ---
 */
 
@@ -69,4 +77,11 @@ extern(C++)
     {
         Foo!T v;
     }
+}
+
+extern (C++) struct Array(T)
+{
+    alias This = typeof(this);
+    alias Int = typeof(1 + 2);
+    alias IC = typeof(T.a);
 }

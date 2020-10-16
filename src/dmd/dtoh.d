@@ -1437,6 +1437,35 @@ public:
 
     }
 
+    override void visit(AST.TypeTypeof t)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeInstance enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeInstance exit] %s\n", t.toChars());
+        }
+        assert(t.exp);
+
+        if (t.exp.type)
+        {
+            t.exp.type.accept(this);
+        }
+        else if (t.exp.isThisExp())
+        {
+            // Short circuit typeof(this) => <Aggregate name>
+            assert(adparent);
+            buf.writestring(adparent.ident.toChars());
+        }
+        else
+        {
+            // Relying on C++'s typeof might produce wrong results
+            // but it's the best we've got here.
+            buf.writestring("typeof(");
+            t.exp.accept(this);
+            buf.writeByte(')');
+        }
+    }
+
     override void visit(AST.TypeBasic t)
     {
         debug (Debug_DtoH)
