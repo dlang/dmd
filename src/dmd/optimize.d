@@ -756,7 +756,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(BinExp e)
         {
             //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
-            const keepLhsLvalue = (e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign);
+            const keepLhsLvalue = e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign
+                || e.op == TOK.plusPlus || e.op == TOK.minusMinus
+                || e.op == TOK.prePlusPlus || e.op == TOK.preMinusMinus;
             binOptimize(e, result, keepLhsLvalue);
         }
 
@@ -993,6 +995,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             // We might know $ now
             setLengthVarIfKnown(e.lengthVar, ex);
             if (expOptimize(e.e2, WANTvalue))
+                return;
+            // Don't optimize to an array literal element directly in case an lvalue is requested
+            if (keepLvalue && ex.op == TOK.arrayLiteral)
                 return;
             ret = Index(e.type, ex, e.e2).copy();
             if (CTFEExp.isCantExp(ret) || (keepLvalue && !ret.isLvalue()))

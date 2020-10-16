@@ -8164,7 +8164,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        exp.e1 = exp.e1.optimize(WANTvalue);
+        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
 
         Type t1 = exp.e1.type.toBasetype();
         if (t1.ty == Tclass || t1.ty == Tstruct || exp.e1.op == TOK.arrayLength)
