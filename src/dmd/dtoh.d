@@ -397,14 +397,7 @@ public:
         }
         auto save = linkage;
         linkage = ld.linkage;
-        if (ld.linkage != LINK.c && ld.linkage != LINK.cpp)
-        {
-            ignored("%s block because of linkage", ld.toPrettyChars());
-        }
-        else
-        {
-            visit(cast(AST.AttribDeclaration)ld);
-        }
+        visit(cast(AST.AttribDeclaration)ld);
         linkage = save;
     }
 
