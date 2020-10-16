@@ -26,6 +26,12 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
     fi
     # create a `dmd` symlink to the repo dir, necessary for druntime/Phobos
     ln -s $CIRRUS_WORKING_DIR ../dmd
+  merge_script:
+    # for PRs - merge with target branch first
+    if [ ! -z ${CIRRUS_PR+x} ] ; then
+      git fetch origin "+refs/pull/$CIRRUS_PR/merge:";
+      git checkout -f FETCH_HEAD;
+    fi
   install_host_compiler_script: |
     source ci.sh
     # kludge
