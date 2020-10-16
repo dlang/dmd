@@ -1634,6 +1634,16 @@ public:
         buf.writestring(" >");
     }
 
+    override void visit(AST.TypeInstance t)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeInstance enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeInstance exit] %s\n", t.toChars());
+        }
+        visitTi(t.tempinst);
+    }
+
     private void visitTi(AST.TemplateInstance ti)
     {
         debug (Debug_DtoH)
@@ -1670,7 +1680,7 @@ public:
                 if (!AST.isType(o))
                     return;
             }
-            buf.writestring(ti.tempdecl.ident.toChars());
+            buf.writestring(ti.name.toChars());
         }
         buf.writeByte('<');
         foreach (i, o; *ti.tiargs)
