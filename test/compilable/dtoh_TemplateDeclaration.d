@@ -62,6 +62,11 @@ struct Array
     void get() const;
     template <typename T>
     bool opCast() const;
+    // Ignoring var i alignment 0
+    typename T::Member i;
+    // Ignoring var j alignment 0
+    typename Outer::Member::Nested j;
+    void visit(typename T::Member::Nested i);
     Array()
     {
     }
@@ -115,6 +120,22 @@ extern (C++) struct Array(T)
     {
         return str.ptr !is null;
     }
+
+    T.Member i;
+    Outer.Member.Nested j;
+    void visit(T.Member.Nested i) {}
 }
+
+// Not emitted yet even though it is used above
+struct Outer
+{
+    int a;
+    static struct Member
+    {
+        alias Nested = int;
+    }
+}
+
+// alias AO = Array!Outer;
 
 extern(C++) T foo(T, U)(U u) { return T.init; }
