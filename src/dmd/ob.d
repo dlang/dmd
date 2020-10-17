@@ -1844,6 +1844,8 @@ void doDataFlowAnalysis(ref ObState obstate)
         {
             if (v.isOut())
                 state = PtrState.Undefined;
+            else if (v.isBorrowedPtr())
+                state = PtrState.Borrowed;
             else
                 state = PtrState.Owner;
         }
