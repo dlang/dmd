@@ -224,6 +224,7 @@ public:
     AST.Type* origType;
     AST.Prot.Kind currentProt; /// Last written protection level
 
+    int ignoredCounter; /// How many symbols were ignored
     bool hasReal;
     const bool printIgnored;
 
@@ -243,6 +244,7 @@ public:
         auto cdStash = this.cdparent;
         auto tdStash = this.tdparent;
         auto bufStash = this.buf;
+        auto countStash = this.ignoredCounter;
 
         this.adparent = null;
         this.cdparent = null;
@@ -255,6 +257,7 @@ public:
         this.cdparent = cdStash;
         this.tdparent = tdStash;
         this.buf = bufStash;
+        this.ignoredCounter = countStash;
     }
 
     private EnumKind getEnumKind(AST.Type type)
@@ -440,13 +443,9 @@ public:
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
+        // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;
-        if (!tf || !tf.deco)
-        {
-            ignored("function %s because semantic hasn't been run", fd.toPrettyChars());
-            return;
-        }
-        if (tf.linkage != LINK.c && tf.linkage != LINK.cpp)
+        if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
             return;
@@ -464,7 +463,7 @@ public:
 
         writeProtection(fd.protection.kind);
 
-        if (tf.linkage == LINK.c)
+        if (tf && tf.linkage == LINK.c)
             buf.writestring("extern \"C\" ");
         else if (!adparent)
             buf.writestring("extern ");
@@ -493,7 +492,8 @@ public:
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
             writeProtection(AST.Prot.Kind.private_);
         funcToBuffer(tf, fd);
-        if (adparent && tf.isConst())
+        // FIXME: How to determine if fd is const without tf?
+        if (adparent && tf && tf.isConst())
         {
             bool fdOverridesAreConst = true;
             foreach (fdv; fd.foverrides)
@@ -1557,7 +1557,7 @@ public:
             return;
         visited[cast(void*)td] = true;
 
-        if (!td.parameters || !td.onemember || !td.onemember.isStructDeclaration())
+        if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isFuncDeclaration))
         {
             visit(cast(AST.Dsymbol)td);
             return;
@@ -1579,10 +1579,9 @@ public:
             return;
         }
 
-        auto sd = td.onemember.isStructDeclaration();
         auto save = tdparent;
         tdparent = td;
-
+        const bookmark = buf.length;
         buf.writestring("template <");
         bool first = true;
         foreach (p; *td.parameters)
@@ -1597,6 +1596,7 @@ public:
         buf.writestringln(">");
 
         // TODO replace this block with a sd.accept
+        if (auto sd = td.onemember.isStructDeclaration())
         {
             buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
             buf.writestring(sd.ident.toChars());
@@ -1622,7 +1622,15 @@ public:
                 buf.writenl();
             }
         }
+        else
+        {
+            const oldIgnored = this.ignoredCounter;
+            td.onemember.accept(this);
 
+            // Remove "template<...>" if the symbol could not be emitted
+            if (oldIgnored != this.ignoredCounter)
+                buf.setsize(bookmark);
+        }
         tdparent = save;
     }
 
@@ -1653,14 +1661,12 @@ public:
     {
         debug (Debug_DtoH)
         {
-            printf("[funcToBuffer(AST.TypeFunction) enter] %s\n", tf.toChars());
-            scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", tf.toChars());
+            printf("[funcToBuffer(AST.TypeFunction) enter] %s\n", fd.toChars());
+            scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", fd.toChars());
         }
 
         Identifier ident = fd.ident;
         auto originalType = cast(AST.TypeFunction)fd.originalType;
-
-        assert(tf.next);
 
         if (fd.isCtorDeclaration() || fd.isDtorDeclaration())
         {
@@ -1669,9 +1675,18 @@ public:
                 buf.writeByte('~');
             }
             buf.writestring(adparent.toChars());
+            if (!tf)
+            {
+                assert(fd.isDtorDeclaration());
+                buf.writestring("()");
+                return;
+            }
         }
         else
         {
+            import dmd.root.string : toDString;
+            assert(tf.next, fd.loc.toChars().toDString());
+
             tf.next == AST.Type.tsize_t ? originalType.next.accept(this) : tf.next.accept(this);
             if (tf.isref)
                 buf.writeByte('&');
@@ -1994,6 +2009,8 @@ public:
     {
         private void ignored(const char* format, ...) nothrow
         {
+            this.ignoredCounter++;
+
             import core.stdc.stdarg;
             if (!printIgnored)
                 return;
@@ -2012,6 +2029,8 @@ public:
         pragma(printf)
         private void ignored(const char* format, ...) nothrow
         {
+            this.ignoredCounter++;
+
             import core.stdc.stdarg;
             if (!printIgnored)
                 return;
