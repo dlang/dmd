@@ -1278,7 +1278,24 @@ public:
             printf("[AST.TypeIdentifier enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeIdentifier exit] %s\n", t.toChars());
         }
+        if (t.idents.length)
+            buf.writestring("typename ");
+
         buf.writestring(t.ident.toChars());
+
+        foreach (arg; t.idents)
+        {
+            buf.writestring("::");
+
+            import dmd.root.rootobject;
+            // Is this even possible?
+            if (arg.dyncast != DYNCAST.identifier)
+            {
+                printf("arg.dyncast() = %d\n", arg.dyncast());
+                assert(false);
+            }
+            buf.writestring((cast(Identifier) arg).toChars());
+        }
     }
 
     override void visit(AST.TypeNull t)
