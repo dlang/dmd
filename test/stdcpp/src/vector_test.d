@@ -1,5 +1,7 @@
 import core.stdcpp.vector;
 
+alias TestIssue21323IsFixed = vector!(vector!int);
+
 unittest
 {
     // test vector a bit

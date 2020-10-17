@@ -32,7 +32,7 @@ extern(C++, "std"):
 
 extern(C++, class) struct vector(T, Alloc = allocator!T)
 {
-    import core.lifetime : forward, move, moveEmplace, core_emplace = emplace;
+    import core.lifetime : forward, move, core_emplace = emplace;
 
     static assert(!is(T == bool), "vector!bool not supported!");
 extern(D):
@@ -579,6 +579,8 @@ extern(D):
 
         void _Reallocate_exactly(const size_type _Newcapacity)
         {
+            import core.lifetime : moveEmplace;
+
             const size_type _Size = size();
             pointer _Newvec = _Getal().allocate(_Newcapacity);
 
@@ -587,7 +589,7 @@ extern(D):
                 for (size_t i = _Size; i > 0; )
                 {
                     --i;
-                    _Get_data()._Myfirst[i].moveEmplace(_Newvec[i]);
+                    moveEmplace(_Get_data()._Myfirst[i], _Newvec[i]);
                 }
             }
             catch (Throwable e)
