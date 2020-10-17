@@ -103,6 +103,26 @@ template <typename T, typename U>
 extern T foo(U u);
 
 extern A<A<int32_t > > aaint;
+
+template <typename T>
+class Parent
+{
+    // Ignoring var parentMember alignment 0
+public:
+    T parentMember;
+    void parentFinal();
+    virtual void parentVirtual();
+};
+
+template <typename T>
+class Child final : public Parent<T >
+{
+    // Ignoring var childMember alignment 0
+public:
+    T childMember;
+    void parentVirtual();
+    T childFinal();
+};
 ---
 */
 
@@ -170,3 +190,17 @@ struct Outer
 extern(C++) T foo(T, U)(U u) { return T.init; }
 
 extern(C++) A!(A!int) aaint;
+
+extern(C++) class Parent(T)
+{
+    T parentMember;
+    final void parentFinal() {}
+    void parentVirtual() {}
+}
+
+extern(C++) final class Child(T) : Parent!T
+{
+    T childMember;
+    override void parentVirtual() {}
+    T childFinal() { return T.init; }
+}

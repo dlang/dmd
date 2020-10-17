@@ -257,6 +257,7 @@ public:
     bool forwardedAA;
     AST.Type* origType;
     AST.Prot.Kind currentProt; /// Last written protection level
+    AST.STC storageClass; /// Currently applicable storage classes
 
     int ignoredCounter; /// How many symbols were ignored
     bool hasReal;
@@ -274,17 +275,20 @@ public:
     /// Visit `dsym` with `buf` while temporarily clearing **parent fields
     private void visitAsRoot(AST.Dsymbol dsym, OutBuffer* buf)
     {
+        const stcStash = this.storageClass;
         auto adStash = this.adparent;
         auto tdStash = this.tdparent;
         auto bufStash = this.buf;
         auto countStash = this.ignoredCounter;
 
+        this.storageClass = AST.STC.undefined_;
         this.adparent = null;
         this.tdparent = null;
         this.buf = buf;
 
         dsym.accept(this);
 
+        this.storageClass = stcStash;
         this.adparent = adStash;
         this.tdparent = tdStash;
         this.buf = bufStash;
@@ -419,6 +423,19 @@ public:
         }
     }
 
+    override void visit(AST.StorageClassDeclaration scd)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.StorageClassDeclaration enter] %s\n", pd.toChars());
+            scope(exit) printf("[AST.StorageClassDeclaration exit] %s\n", pd.toChars());
+        }
+        const stcStash = this.storageClass;
+        this.storageClass |= scd.stc;
+        visit(cast(AST.AttribDeclaration) scd);
+        this.storageClass = stcStash;
+    }
+
     override void visit(AST.LinkDeclaration ld)
     {
         debug (Debug_DtoH)
@@ -506,14 +523,21 @@ public:
             buf.writestring("extern ");
         if (adparent && fd.isStatic())
             buf.writestring("static ");
-        if (adparent && fd.vtblIndex != -1)
-        {
-            if (!fd.isOverride())
+        else if (adparent && (
+            // Virtual functions in non-templated classes
+            (fd.vtblIndex != -1 && !fd.isOverride()) ||
+
+            // Virtual functions in templated classes (fd.vtblIndex still -1)
+            (tdparent && adparent.isClassDeclaration() && !(this.storageClass & AST.STC.final_ || fd.isFinal))))
                 buf.writestring("virtual ");
 
+        if (adparent && !tdparent)
+        {
             auto s = adparent.search(Loc.initial, fd.ident);
+            auto cd = adparent.isClassDeclaration();
+
             if (!(adparent.storage_class & AST.STC.abstract_) &&
-                !(cast(AST.ClassDeclaration)adparent).isAbstract() &&
+                !(cd && cd.isAbstract()) &&
                 s is fd && !fd.overnext)
             {
                 const cn = adparent.ident.toChars();
@@ -1058,7 +1082,7 @@ public:
         if (cast(void*)cd in visited)
             return;
         visited[cast(void*)cd] = true;
-        if (!cd.isCPPclass())
+        if (!cd.isCPPclass() && !(tdparent && linkage == LINK.cpp)) // FIXME: ClassKind not set for templated classes?
         {
             ignored("non-cpp class %s", cd.toChars());
             return;
@@ -1070,7 +1094,7 @@ public:
         buf.writestring(classAsStruct ? "struct " : "class ");
         buf.writestring(cd.ident.toChars());
 
-        if (cd.storage_class & AST.STC.final_)
+        if (cd.storage_class & AST.STC.final_ || (tdparent && this.storageClass & AST.STC.final_))
             buf.writestring(" final");
 
         assert(cd.baseclasses);
@@ -1079,8 +1103,19 @@ public:
         {
             buf.writestring(i == 0 ? " : public " : ", public ");
 
-            buf.writestring(base.sym.ident.toChars());
-            includeSymbol(base.sym);
+            // Base classes/interfaces might depend on template parameters,
+            // e.g. class A(T) : B!T { ... }
+            if (base.sym is null)
+            {
+                auto ti = base.type.isTypeInstance();
+                assert(ti);
+                visitTi(ti.tempinst);
+            }
+            else
+            {
+                buf.writestring(base.sym.toChars());
+                includeSymbol(base.sym);
+            }
         }
 
         if (!cd.members)
@@ -1652,7 +1687,7 @@ public:
             return;
         visited[cast(void*)td] = true;
 
-        if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isFuncDeclaration))
+        if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isClassDeclaration && !td.onemember.isFuncDeclaration))
         {
             visit(cast(AST.Dsymbol)td);
             return;
