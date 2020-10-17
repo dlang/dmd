@@ -17,6 +17,7 @@ TEST_OUTPUT:
 // Ignored non-cpp class C
 // Ignored function dtoh_verbose.bar because it's extern
 // Ignored variable dtoh_verbose.i1 because of linkage
+// Ignored template dtoh_verbose.templ(T)(T t) because of linkage
 // Ignored function dtoh_verbose.templ!int.templ
 // Ignored enum dtoh_verbose.arrayOpaque because of it's base type
 struct Hidden

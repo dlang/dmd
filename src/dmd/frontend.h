@@ -3947,6 +3947,7 @@ public:
     bool forwardedAA;
     Type** origType;
     Kind currentProt;
+    int32_t ignoredCounter;
     bool hasReal;
     bool printIgnored;
     ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
@@ -7620,6 +7621,24 @@ public:
     // Ignoring var SMALLARRAYCAP alignment 0
     // Ignoring var smallarray alignment 0
     void* smallarray;
+    Array(size_t dim);
+    ~Array();
+    const char* toChars() const;
+    Array& push(T ptr);
+    Array& append(Array* a);
+    void reserve(size_t nentries);
+    void remove(size_t i);
+    void insert(size_t index, Array* a);
+    void insert(size_t index, T ptr);
+    void setDim(size_t newdim);
+    size_t find(T ptr) const;
+    bool contains(T ptr) const;
+    T& opIndex(size_t i);
+    T* tdata();
+    Array<T>* copy() const;
+    void shift(T ptr);
+    void zero();
+    T pop();
     typedef length opDollar;
     typedef length dim;
 };

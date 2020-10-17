@@ -17,6 +17,7 @@ struct A
     // Ignoring var x alignment 0
 public:
     T x;
+    void foo();
 };
 
 struct B
@@ -48,7 +49,15 @@ struct Array
     typedef Array This;
     typedef typeof(1 + 2) Int;
     typedef typeof(T::a) IC;
+    Array(size_t dim);
+    ~Array();
+    void get() const;
+    template <typename T>
+    bool opCast() const;
 };
+
+template <typename T, typename U>
+extern T foo(U u);
 ---
 */
 
@@ -84,4 +93,17 @@ extern (C++) struct Array(T)
     alias This = typeof(this);
     alias Int = typeof(1 + 2);
     alias IC = typeof(T.a);
+
+    this(size_t dim) pure nothrow {}
+    @disable this(this);
+    ~this() {}
+    void get() const {}
+
+    bool opCast(T)() const pure nothrow @nogc @safe
+    if (is(T == bool))
+    {
+        return str.ptr !is null;
+    }
 }
+
+extern(C++) T foo(T, U)(U u) { return T.init; }
