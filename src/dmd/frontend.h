@@ -6958,6 +6958,9 @@ struct Target
         d_int64 max_10_exp;
         // Ignoring var min_10_exp alignment 0
         d_int64 min_10_exp;
+        FPTypeProperties()
+        {
+        }
     };
 
     FPTypeProperties<float> FloatProperties;
@@ -7619,7 +7622,6 @@ template <typename T>
 struct Array
 {
     // Ignoring var length alignment 0
-public:
     size_t length;
     // Ignoring var data alignment 0
     DArray< T > data;
@@ -7646,6 +7648,9 @@ public:
     T pop();
     typedef length opDollar;
     typedef length dim;
+    Array()
+    {
+    }
 };
 
 struct CTFloat

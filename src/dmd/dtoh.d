@@ -802,18 +802,21 @@ public:
             printf("[AST.StructDeclaration enter] %s\n", sd.toChars());
             scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
         }
-        if (sd.isInstantiated())
+        auto td = sd.isInstantiated();
+        if (td && td !is tdparent)
             return;
         if (cast(void*)sd in visited)
             return;
-        if (!sd.type || !sd.type.deco)
-            return;
+
         visited[cast(void*)sd] = true;
         if (linkage != LINK.c && linkage != LINK.cpp)
         {
             ignored("non-cpp struct %s because of linkage", sd.toChars());
             return;
         }
+
+        const ignoredStash = this.ignoredCounter;
+        scope (exit) this.ignoredCounter = ignoredStash;
 
         pushAlignToBuffer(sd.alignment);
 
@@ -940,12 +943,18 @@ public:
         popAlignToBuffer(sd.alignment);
         buf.writenl();
 
-        checkbuf.level++;
-        const sn = sd.ident.toChars();
-        const sz = sd.size(Loc.initial);
-        checkbuf.printf("assert(sizeof(%s) == %llu);", sn, sz);
-        checkbuf.writenl();
-        checkbuf.level--;
+        // Workaround because size triggers a forward-reference error
+        // for struct templates (the size is undetermined even if the
+        // size doesn't depend on the parameters)
+        if (!tdparent)
+        {
+            checkbuf.level++;
+            const sn = sd.ident.toChars();
+            const sz = sd.size(Loc.initial);
+            checkbuf.printf("assert(sizeof(%s) == %llu);", sn, sz);
+            checkbuf.writenl();
+            checkbuf.level--;
+        }
     }
 
     private void pushAlignToBuffer(uint alignment)
@@ -955,7 +964,8 @@ public:
         //       "Invalid alignment size");
 
         // When no alignment is specified, `uint.max` is the default
-        if (alignment == STRUCTALIGN_DEFAULT)
+        // FIXME: alignment is 0 for structs templated members
+        if (alignment == STRUCTALIGN_DEFAULT || (tdparent && alignment == 0))
         {
             return;
         }
@@ -966,7 +976,7 @@ public:
 
     private void popAlignToBuffer(uint alignment)
     {
-        if (alignment == STRUCTALIGN_DEFAULT)
+        if (alignment == STRUCTALIGN_DEFAULT || (tdparent && alignment == 0))
             return;
 
         buf.writestringln("#pragma pack(pop)");
@@ -1601,42 +1611,13 @@ public:
         }
         buf.writestringln(">");
 
-        // TODO replace this block with a sd.accept
-        if (auto sd = td.onemember.isStructDeclaration())
-        {
-            buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
-            buf.writestring(sd.ident.toChars());
-            if (sd.members)
-            {
-                buf.writenl();
-                buf.writestringln("{");
-                auto savex = adparent;
-                adparent = sd;
-                buf.level++;
-                foreach (m; *sd.members)
-                {
-                    m.accept(this);
-                }
-                buf.level--;
-                adparent = savex;
-                buf.writestringln("};");
-                buf.writenl();
-            }
-            else
-            {
-                buf.writestringln(";");
-                buf.writenl();
-            }
-        }
-        else
-        {
-            const oldIgnored = this.ignoredCounter;
-            td.onemember.accept(this);
+        const oldIgnored = this.ignoredCounter;
+        td.onemember.accept(this);
 
-            // Remove "template<...>" if the symbol could not be emitted
-            if (oldIgnored != this.ignoredCounter)
-                buf.setsize(bookmark);
-        }
+        // Remove "template<...>" if the symbol could not be emitted
+        if (oldIgnored != this.ignoredCounter)
+            buf.setsize(bookmark);
+
         tdparent = save;
     }
 

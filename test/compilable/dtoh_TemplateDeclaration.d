@@ -15,9 +15,11 @@ template <typename T>
 struct A
 {
     // Ignoring var x alignment 0
-public:
     T x;
     void foo();
+    A()
+    {
+    }
 };
 
 struct B
@@ -34,6 +36,9 @@ struct Foo
 {
     // Ignoring var val alignment 0
     T val;
+    Foo()
+    {
+    }
 };
 
 template <typename T>
@@ -41,6 +46,9 @@ struct Bar
 {
     // Ignoring var v alignment 0
     Foo<T> v;
+    Bar()
+    {
+    }
 };
 
 template <typename T>
@@ -54,6 +62,9 @@ struct Array
     void get() const;
     template <typename T>
     bool opCast() const;
+    Array()
+    {
+    }
 };
 
 template <typename T, typename U>
