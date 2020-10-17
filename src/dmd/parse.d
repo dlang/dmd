@@ -1466,7 +1466,7 @@ final class Parser(AST) : Lexer
         }
         else
         {
-            error("@identifier or @(ArgumentList) expected, not `@%s`", token.toChars());
+            error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
         }
 
         if (stc)
