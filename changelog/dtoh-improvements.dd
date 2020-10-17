@@ -24,6 +24,7 @@ experimental C++ header generator:
 - Proper vtable layout is ensured by emitting hidden placeholders for
   virtual functions that are not `extern(C|C++)`.
 - Fixed missing `const` for class members/methods
+- Templated class declarations are now emitted
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
