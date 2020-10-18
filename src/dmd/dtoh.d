@@ -131,7 +131,28 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     hashInclude(buf, "<stdint.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
 //    buf.writestring("#include <string.h>\n");
-    buf.writenl();
+
+    // Emit array compatibility because extern(C++) types may have slices
+    // as members (as opposed to function parameters)
+    buf.writestring(`
+#ifdef CUSTOM_D_ARRAY_TYPE
+#define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
+#else
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+};
+#endif
+`);
+
     if (v.hasReal)
     {
         hashIf(buf, "!defined(_d_real)");
@@ -1568,7 +1589,7 @@ public:
         }
         if (!cdparent && t.isConst())
             buf.writestring("const ");
-        buf.writestring("DArray< ");
+        buf.writestring("_d_dynamicArray< ");
         t.next.accept(this);
         buf.writestring(" >");
     }

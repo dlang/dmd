@@ -1,6 +1,3 @@
-// This should be solved by the header generator
-
-#include "dcompat.h"
 #include "library.h"
 
 #include <assert.h>

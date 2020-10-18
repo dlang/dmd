@@ -5,6 +5,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef CUSTOM_D_ARRAY_TYPE
+#define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
+#else
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+};
+#endif
 #if !defined(_d_real)
 # define _d_real long double
 #endif
@@ -1128,7 +1144,7 @@ struct ObjcClassDeclaration
 struct FileName
 {
 private:
-    DArray< const char > str;
+    _d_dynamicArray< const char > str;
 public:
     static bool equals(const char* name1, const char* name2);
     static bool absolute(const char* name);
@@ -2346,7 +2362,7 @@ struct BaseClass
     ClassDeclaration* sym;
     uint32_t offset;
     Array<FuncDeclaration* > vtbl;
-    DArray< BaseClass > baseInterfaces;
+    _d_dynamicArray< BaseClass > baseInterfaces;
     bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration* >* vtbl, int32_t newinstance);
     ~BaseClass();
     BaseClass() :
@@ -2387,7 +2403,7 @@ public:
     Array<Dsymbol* > vtbl;
     Array<Dsymbol* > vtblFinal;
     Array<BaseClass* >* baseclasses;
-    DArray< BaseClass* > interfaces;
+    _d_dynamicArray< BaseClass* > interfaces;
     Array<BaseClass* >* vtblInterfaces;
     TypeInfoClassDeclaration* vclassinfo;
     bool com;
@@ -2527,7 +2543,7 @@ public:
     Prot protection;
     LINK linkage;
     int32_t inuse;
-    DArray< char > mangleOverride;
+    _d_dynamicArray< char > mangleOverride;
     const char* kind() const;
     d_uns64 size(const Loc& loc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
@@ -2954,7 +2970,7 @@ public:
     static void _init();
     static void deinitialize();
     static AggregateDeclaration* moduleinfo;
-    DArray< char > arg;
+    _d_dynamicArray< char > arg;
     ModuleDeclaration* md;
     FileName srcfile;
     FileName objfile;
@@ -5072,13 +5088,13 @@ extern "C" void printInternalFailure(_IO_FILE* stream);
 
 extern void generateJson(Array<Module* >* modules);
 
-typedef int32_t(*MainFunc)(DArray< DArray< char > > args);
+typedef int32_t(*MainFunc)(_d_dynamicArray< _d_dynamicArray< char > > args);
 
-extern "C" DArray< DArray< char > > rt_options;
+extern "C" _d_dynamicArray< _d_dynamicArray< char > > rt_options;
 
 extern "C" int32_t main(int32_t argc, char** argv);
 
-extern "C" int32_t _Dmain(DArray< DArray< char > > _param_0);
+extern "C" int32_t _Dmain(_d_dynamicArray< _d_dynamicArray< char > > _param_0);
 
 extern "C" void printGlobalConfigs(_IO_FILE* stream);
 
@@ -6464,7 +6480,7 @@ struct Target
     TargetC c;
     TargetCPP cpp;
     TargetObjC objc;
-    DArray< const char > architectureName;
+    _d_dynamicArray< const char > architectureName;
     template <typename T>
     struct FPTypeProperties
     {
@@ -6841,26 +6857,26 @@ struct Param
     CHECKENABLE boundscheck;
     CHECKACTION checkAction;
     uint32_t errorLimit;
-    DArray< const char > argv0;
+    _d_dynamicArray< const char > argv0;
     Array<const char* > modFileAliasStrings;
     Array<const char* >* imppath;
     Array<const char* >* fileImppath;
-    DArray< const char > objdir;
-    DArray< const char > objname;
-    DArray< const char > libname;
+    _d_dynamicArray< const char > objdir;
+    _d_dynamicArray< const char > objname;
+    _d_dynamicArray< const char > libname;
     bool doDocComments;
-    DArray< const char > docdir;
-    DArray< const char > docname;
+    _d_dynamicArray< const char > docdir;
+    _d_dynamicArray< const char > docname;
     Array<const char* > ddocfiles;
     bool doHdrGeneration;
-    DArray< const char > hdrdir;
-    DArray< const char > hdrname;
+    _d_dynamicArray< const char > hdrdir;
+    _d_dynamicArray< const char > hdrname;
     bool hdrStripPlainFunctions;
     CxxHeaderMode doCxxHdrGeneration;
-    DArray< const char > cxxhdrdir;
-    DArray< const char > cxxhdrname;
+    _d_dynamicArray< const char > cxxhdrdir;
+    _d_dynamicArray< const char > cxxhdrname;
     bool doJsonGeneration;
-    DArray< const char > jsonfilename;
+    _d_dynamicArray< const char > jsonfilename;
     JsonFieldFlags jsonFieldFlags;
     OutBuffer* mixinOut;
     const char* mixinFile;
@@ -6869,10 +6885,10 @@ struct Param
     Array<const char* >* debugids;
     uint32_t versionlevel;
     Array<const char* >* versionids;
-    DArray< const char > defaultlibname;
-    DArray< const char > debuglibname;
-    DArray< const char > mscrtlib;
-    DArray< const char > moduleDepsFile;
+    _d_dynamicArray< const char > defaultlibname;
+    _d_dynamicArray< const char > debuglibname;
+    _d_dynamicArray< const char > mscrtlib;
+    _d_dynamicArray< const char > moduleDepsFile;
     OutBuffer* moduleDeps;
     MessageStyle messageStyle;
     bool debugb;
@@ -6888,10 +6904,10 @@ struct Param
     Array<bool > linkswitchIsForCC;
     Array<const char* > libfiles;
     Array<const char* > dllfiles;
-    DArray< const char > deffile;
-    DArray< const char > resfile;
-    DArray< const char > exefile;
-    DArray< const char > mapfile;
+    _d_dynamicArray< const char > deffile;
+    _d_dynamicArray< const char > resfile;
+    _d_dynamicArray< const char > exefile;
+    _d_dynamicArray< const char > mapfile;
     ~Param();
     Param() :
         obj(true),
@@ -7045,23 +7061,23 @@ enum : uint32_t { STRUCTALIGN_DEFAULT = 4294967295u };
 
 struct Global
 {
-    DArray< const char > inifilename;
-    DArray< char > mars_ext;
-    DArray< const char > obj_ext;
-    DArray< const char > lib_ext;
-    DArray< const char > dll_ext;
-    DArray< char > doc_ext;
-    DArray< char > ddoc_ext;
-    DArray< char > hdr_ext;
-    DArray< char > cxxhdr_ext;
-    DArray< char > json_ext;
-    DArray< char > map_ext;
+    _d_dynamicArray< const char > inifilename;
+    _d_dynamicArray< char > mars_ext;
+    _d_dynamicArray< const char > obj_ext;
+    _d_dynamicArray< const char > lib_ext;
+    _d_dynamicArray< const char > dll_ext;
+    _d_dynamicArray< char > doc_ext;
+    _d_dynamicArray< char > ddoc_ext;
+    _d_dynamicArray< char > hdr_ext;
+    _d_dynamicArray< char > cxxhdr_ext;
+    _d_dynamicArray< char > json_ext;
+    _d_dynamicArray< char > map_ext;
     bool run_noext;
-    DArray< char > copyright;
-    DArray< char > written;
+    _d_dynamicArray< char > copyright;
+    _d_dynamicArray< char > written;
     Array<const char* >* path;
     Array<const char* >* filePath;
-    DArray< const char > vendor;
+    _d_dynamicArray< const char > vendor;
     Param params;
     uint32_t errors;
     uint32_t warnings;
@@ -7542,7 +7558,7 @@ class Identifier final : public RootObject
 {
     int32_t value;
     bool isAnonymous_;
-    DArray< char > name;
+    _d_dynamicArray< char > name;
 public:
     static Identifier* create(const char* name);
     const char* toChars() const;
@@ -7561,8 +7577,8 @@ struct Token
     Loc loc;
     const char* ptr;
     TOK value;
-    DArray< const char > blockComment;
-    DArray< const char > lineComment;
+    _d_dynamicArray< const char > blockComment;
+    _d_dynamicArray< const char > lineComment;
     union
     {
         int64_t intvalue;
@@ -7598,7 +7614,7 @@ struct Array
     // Ignoring var length alignment 0
     size_t length;
     // Ignoring var data alignment 0
-    DArray< T > data;
+    _d_dynamicArray< T > data;
     // Ignoring var SMALLARRAYCAP alignment 0
     // Ignoring var smallarray alignment 0
     void* smallarray;
