@@ -111,7 +111,7 @@ class Parent
     virtual void __vtable_slot_1();
 };
 
-class Child : public Parent
+class Child final : public Parent
 {
 };
 ---
@@ -220,7 +220,7 @@ class Parent
     extern(D) void over(int) {}
 }
 
-class Child : Parent
+final class Child : Parent
 {
     extern(D) override void over() {}
 }

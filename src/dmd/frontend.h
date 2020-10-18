@@ -2313,7 +2313,7 @@ public:
     ~AggregateDeclaration();
 };
 
-class AliasThis : public Dsymbol
+class AliasThis final : public Dsymbol
 {
 public:
     Identifier* ident;
@@ -2424,7 +2424,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DeprecatedDeclaration : public StorageClassDeclaration
+class DeprecatedDeclaration final : public StorageClassDeclaration
 {
 public:
     Expression* msg;
@@ -2435,7 +2435,7 @@ public:
     void accept(Visitor* v);
 };
 
-class LinkDeclaration : public AttribDeclaration
+class LinkDeclaration final : public AttribDeclaration
 {
 public:
     LINK linkage;
@@ -2446,7 +2446,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CPPMangleDeclaration : public AttribDeclaration
+class CPPMangleDeclaration final : public AttribDeclaration
 {
 public:
     CPPMANGLE cppmangle;
@@ -2457,7 +2457,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CPPNamespaceDeclaration : public AttribDeclaration
+class CPPNamespaceDeclaration final : public AttribDeclaration
 {
 public:
     Expression* exp;
@@ -2468,7 +2468,7 @@ public:
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
 };
 
-class ProtDeclaration : public AttribDeclaration
+class ProtDeclaration final : public AttribDeclaration
 {
 public:
     Prot protection;
@@ -2482,7 +2482,7 @@ public:
     void accept(Visitor* v);
 };
 
-class AlignDeclaration : public AttribDeclaration
+class AlignDeclaration final : public AttribDeclaration
 {
 public:
     Expression* ealign;
@@ -2494,7 +2494,7 @@ public:
     void accept(Visitor* v);
 };
 
-class AnonDeclaration : public AttribDeclaration
+class AnonDeclaration final : public AttribDeclaration
 {
 public:
     bool isunion;
@@ -2510,7 +2510,7 @@ public:
     void accept(Visitor* v);
 };
 
-class PragmaDeclaration : public AttribDeclaration
+class PragmaDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression*>* args;
@@ -2533,7 +2533,7 @@ public:
     void accept(Visitor* v);
 };
 
-class StaticIfDeclaration : public ConditionalDeclaration
+class StaticIfDeclaration final : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol* scopesym;
@@ -2550,7 +2550,7 @@ public:
     void accept(Visitor* v);
 };
 
-class StaticForeachDeclaration : public AttribDeclaration
+class StaticForeachDeclaration final : public AttribDeclaration
 {
 public:
     StaticForeach* sfe;
@@ -2569,7 +2569,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ForwardingAttribDeclaration : public AttribDeclaration
+class ForwardingAttribDeclaration final : public AttribDeclaration
 {
 public:
     ForwardingScopeDsymbol* sym;
@@ -2580,7 +2580,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CompileDeclaration : public AttribDeclaration
+class CompileDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression*>* exps;
@@ -2594,7 +2594,7 @@ public:
     void accept(Visitor* v);
 };
 
-class UserAttributeDeclaration : public AttribDeclaration
+class UserAttributeDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression*>* atts;
@@ -2691,7 +2691,7 @@ public:
     void accept(Visitor* v);
 };
 
-class StaticForeach : public RootObject
+class StaticForeach final : public RootObject
 {
 public:
     Loc loc;
@@ -2711,7 +2711,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DebugCondition : public DVCondition
+class DebugCondition final : public DVCondition
 {
 public:
     static void addGlobalIdent(const char* ident);
@@ -2721,7 +2721,7 @@ public:
     const char* toChars() const;
 };
 
-class VersionCondition : public DVCondition
+class VersionCondition final : public DVCondition
 {
 public:
     static void addGlobalIdent(const char* ident);
@@ -2732,7 +2732,7 @@ public:
     const char* toChars() const;
 };
 
-class StaticIfCondition : public Condition
+class StaticIfCondition final : public Condition
 {
 public:
     Expression* exp;
@@ -2763,7 +2763,7 @@ extern const char* toCppMangleMSVC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleMSVC(Dsymbol* s);
 
-class ClassReferenceExp : public Expression
+class ClassReferenceExp final : public Expression
 {
 public:
     StructLiteralExp* value;
@@ -2772,7 +2772,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ThrownExceptionExp : public Expression
+class ThrownExceptionExp final : public Expression
 {
 public:
     ClassReferenceExp* thrown;
@@ -2780,7 +2780,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CTFEExp : public Expression
+class CTFEExp final : public Expression
 {
 public:
     const char* toChars() const;
@@ -2900,7 +2900,7 @@ public:
     ~ClassDeclaration();
 };
 
-class InterfaceDeclaration : public ClassDeclaration
+class InterfaceDeclaration final : public ClassDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -3028,7 +3028,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TupleDeclaration : public Declaration
+class TupleDeclaration final : public Declaration
 {
 public:
     Array<RootObject*>* objects;
@@ -3043,7 +3043,7 @@ public:
     void accept(Visitor* v);
 };
 
-class AliasDeclaration : public Declaration
+class AliasDeclaration final : public Declaration
 {
 public:
     Dsymbol* aliassym;
@@ -3061,7 +3061,7 @@ public:
     void accept(Visitor* v);
 };
 
-class OverDeclaration : public Declaration
+class OverDeclaration final : public Declaration
 {
 public:
     Dsymbol* overnext;
@@ -3130,7 +3130,7 @@ public:
     ~VarDeclaration();
 };
 
-class SymbolDeclaration : public Declaration
+class SymbolDeclaration final : public Declaration
 {
 public:
     StructDeclaration* dsym;
@@ -3150,7 +3150,7 @@ public:
     ~TypeInfoDeclaration();
 };
 
-class TypeInfoStructDeclaration : public TypeInfoDeclaration
+class TypeInfoStructDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoStructDeclaration* create(Type* tinfo);
@@ -3158,7 +3158,7 @@ public:
     ~TypeInfoStructDeclaration();
 };
 
-class TypeInfoClassDeclaration : public TypeInfoDeclaration
+class TypeInfoClassDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoClassDeclaration* create(Type* tinfo);
@@ -3166,7 +3166,7 @@ public:
     ~TypeInfoClassDeclaration();
 };
 
-class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
+class TypeInfoInterfaceDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoInterfaceDeclaration* create(Type* tinfo);
@@ -3174,7 +3174,7 @@ public:
     ~TypeInfoInterfaceDeclaration();
 };
 
-class TypeInfoPointerDeclaration : public TypeInfoDeclaration
+class TypeInfoPointerDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoPointerDeclaration* create(Type* tinfo);
@@ -3182,7 +3182,7 @@ public:
     ~TypeInfoPointerDeclaration();
 };
 
-class TypeInfoArrayDeclaration : public TypeInfoDeclaration
+class TypeInfoArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoArrayDeclaration* create(Type* tinfo);
@@ -3190,7 +3190,7 @@ public:
     ~TypeInfoArrayDeclaration();
 };
 
-class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
+class TypeInfoStaticArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoStaticArrayDeclaration* create(Type* tinfo);
@@ -3198,7 +3198,7 @@ public:
     ~TypeInfoStaticArrayDeclaration();
 };
 
-class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
+class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
@@ -3206,7 +3206,7 @@ public:
     ~TypeInfoAssociativeArrayDeclaration();
 };
 
-class TypeInfoEnumDeclaration : public TypeInfoDeclaration
+class TypeInfoEnumDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoEnumDeclaration* create(Type* tinfo);
@@ -3214,7 +3214,7 @@ public:
     ~TypeInfoEnumDeclaration();
 };
 
-class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
+class TypeInfoFunctionDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoFunctionDeclaration* create(Type* tinfo);
@@ -3222,7 +3222,7 @@ public:
     ~TypeInfoFunctionDeclaration();
 };
 
-class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
+class TypeInfoDelegateDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoDelegateDeclaration* create(Type* tinfo);
@@ -3230,7 +3230,7 @@ public:
     ~TypeInfoDelegateDeclaration();
 };
 
-class TypeInfoTupleDeclaration : public TypeInfoDeclaration
+class TypeInfoTupleDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoTupleDeclaration* create(Type* tinfo);
@@ -3238,7 +3238,7 @@ public:
     ~TypeInfoTupleDeclaration();
 };
 
-class TypeInfoConstDeclaration : public TypeInfoDeclaration
+class TypeInfoConstDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoConstDeclaration* create(Type* tinfo);
@@ -3246,7 +3246,7 @@ public:
     ~TypeInfoConstDeclaration();
 };
 
-class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
+class TypeInfoInvariantDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoInvariantDeclaration* create(Type* tinfo);
@@ -3254,7 +3254,7 @@ public:
     ~TypeInfoInvariantDeclaration();
 };
 
-class TypeInfoSharedDeclaration : public TypeInfoDeclaration
+class TypeInfoSharedDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoSharedDeclaration* create(Type* tinfo);
@@ -3262,7 +3262,7 @@ public:
     ~TypeInfoSharedDeclaration();
 };
 
-class TypeInfoWildDeclaration : public TypeInfoDeclaration
+class TypeInfoWildDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoWildDeclaration* create(Type* tinfo);
@@ -3270,7 +3270,7 @@ public:
     ~TypeInfoWildDeclaration();
 };
 
-class TypeInfoVectorDeclaration : public TypeInfoDeclaration
+class TypeInfoVectorDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoVectorDeclaration* create(Type* tinfo);
@@ -3278,7 +3278,7 @@ public:
     ~TypeInfoVectorDeclaration();
 };
 
-class ThisDeclaration : public VarDeclaration
+class ThisDeclaration final : public VarDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -3287,7 +3287,7 @@ public:
     ~ThisDeclaration();
 };
 
-class EnumDeclaration : public ScopeDsymbol
+class EnumDeclaration final : public ScopeDsymbol
 {
 public:
     Type* type;
@@ -3318,7 +3318,7 @@ public:
     ~EnumDeclaration();
 };
 
-class EnumMember : public VarDeclaration
+class EnumMember final : public VarDeclaration
 {
 public:
     Expression*& value();
@@ -3333,7 +3333,7 @@ public:
     ~EnumMember();
 };
 
-class Import : public Dsymbol
+class Import final : public Dsymbol
 {
 public:
     Array<Identifier*>* packages;
@@ -3409,7 +3409,7 @@ public:
     ~Package();
 };
 
-class Module : public Package
+class Module final : public Package
 {
 public:
     static Module* rootModule;
@@ -3592,7 +3592,7 @@ public:
     ~StructDeclaration();
 };
 
-class UnionDeclaration : public StructDeclaration
+class UnionDeclaration final : public StructDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -3614,7 +3614,7 @@ enum
     IgnoreSymbolVisibility = 128,
 };
 
-class WithScopeSymbol : public ScopeDsymbol
+class WithScopeSymbol final : public ScopeDsymbol
 {
 public:
     WithStatement* withstate;
@@ -3624,7 +3624,7 @@ public:
     ~WithScopeSymbol();
 };
 
-class ArrayScopeSymbol : public ScopeDsymbol
+class ArrayScopeSymbol final : public ScopeDsymbol
 {
     RootObject* arrayContent;
 public:
@@ -3635,7 +3635,7 @@ public:
     ~ArrayScopeSymbol();
 };
 
-class OverloadSet : public Dsymbol
+class OverloadSet final : public Dsymbol
 {
 public:
     Array<Dsymbol*> a;
@@ -3646,7 +3646,7 @@ public:
     ~OverloadSet();
 };
 
-class ForwardingScopeDsymbol : public ScopeDsymbol
+class ForwardingScopeDsymbol final : public ScopeDsymbol
 {
 public:
     ScopeDsymbol* forward;
@@ -3658,7 +3658,7 @@ public:
     ~ForwardingScopeDsymbol();
 };
 
-class ExpressionDsymbol : public Dsymbol
+class ExpressionDsymbol final : public Dsymbol
 {
 public:
     Expression* exp;
@@ -3666,7 +3666,7 @@ public:
     ExpressionDsymbol* isExpressionDsymbol();
 };
 
-class DsymbolTable : public RootObject
+class DsymbolTable final : public RootObject
 {
 public:
     AssocArray<Identifier*, Dsymbol*> tab;
@@ -3698,7 +3698,7 @@ extern TemplateParameter* isTemplateParameter(RootObject* o);
 
 extern bool isError(const RootObject* const o);
 
-class Tuple : public RootObject
+class Tuple final : public RootObject
 {
 public:
     Array<RootObject*> objects;
@@ -3707,7 +3707,7 @@ public:
     ~Tuple();
 };
 
-class TemplateDeclaration : public ScopeDsymbol
+class TemplateDeclaration final : public ScopeDsymbol
 {
 public:
     Array<TemplateParameter*>* parameters;
@@ -3752,7 +3752,7 @@ public:
     ~TemplateDeclaration();
 };
 
-class TypeDeduced : public Type
+class TypeDeduced final : public Type
 {
 public:
     Type* tded;
@@ -3803,7 +3803,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TemplateThisParameter : public TemplateTypeParameter
+class TemplateThisParameter final : public TemplateTypeParameter
 {
 public:
     TemplateThisParameter* isTemplateThisParameter();
@@ -3811,7 +3811,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TemplateValueParameter : public TemplateParameter
+class TemplateValueParameter final : public TemplateParameter
 {
 public:
     Type* valType;
@@ -3828,7 +3828,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TemplateAliasParameter : public TemplateParameter
+class TemplateAliasParameter final : public TemplateParameter
 {
 public:
     Type* specType;
@@ -3845,7 +3845,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TemplateTupleParameter : public TemplateParameter
+class TemplateTupleParameter final : public TemplateParameter
 {
 public:
     TemplateTupleParameter* isTemplateTupleParameter();
@@ -3908,7 +3908,7 @@ public:
     ~TemplateInstance();
 };
 
-class TemplateMixin : public TemplateInstance
+class TemplateMixin final : public TemplateInstance
 {
 public:
     TypeQualified* tqual;
@@ -3925,7 +3925,7 @@ public:
 
 extern void genCppHdrFiles(Array<Module*>& ms);
 
-class ToCppBuffer : public Visitor
+class ToCppBuffer final : public Visitor
 {
 public:
     enum class EnumKind
@@ -4005,7 +4005,7 @@ public:
     void visit(StructLiteralExp* sle);
 };
 
-class DebugSymbol : public Dsymbol
+class DebugSymbol final : public Dsymbol
 {
 public:
     uint32_t level;
@@ -4017,7 +4017,7 @@ public:
     void accept(Visitor* v);
 };
 
-class VersionSymbol : public Dsymbol
+class VersionSymbol final : public Dsymbol
 {
 public:
     uint32_t level;
@@ -4079,7 +4079,7 @@ enum : int32_t { WANTvalue = 0 };
 
 enum : int32_t { WANTexpand = 1 };
 
-class IntegerExp : public Expression
+class IntegerExp final : public Expression
 {
     dinteger_t value;
 public:
@@ -4099,7 +4099,7 @@ public:
     static IntegerExp* createBool(bool b);
 };
 
-class ErrorExp : public Expression
+class ErrorExp final : public Expression
 {
 public:
     static ErrorExp* get();
@@ -4108,7 +4108,7 @@ public:
     static ErrorExp* errorexp;
 };
 
-class VoidInitExp : public Expression
+class VoidInitExp final : public Expression
 {
 public:
     VarDeclaration* var;
@@ -4116,7 +4116,7 @@ public:
     void accept(Visitor* v);
 };
 
-class RealExp : public Expression
+class RealExp final : public Expression
 {
 public:
     _d_real value;
@@ -4132,7 +4132,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ComplexExp : public Expression
+class ComplexExp final : public Expression
 {
 public:
     complex_t value;
@@ -4158,13 +4158,13 @@ public:
     void accept(Visitor* v);
 };
 
-class DollarExp : public IdentifierExp
+class DollarExp final : public IdentifierExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class DsymbolExp : public Expression
+class DsymbolExp final : public Expression
 {
 public:
     Dsymbol* s;
@@ -4186,13 +4186,13 @@ public:
     void accept(Visitor* v);
 };
 
-class SuperExp : public ThisExp
+class SuperExp final : public ThisExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class NullExp : public Expression
+class NullExp final : public Expression
 {
 public:
     bool equals(const RootObject* const o) const;
@@ -4201,7 +4201,7 @@ public:
     void accept(Visitor* v);
 };
 
-class StringExp : public Expression
+class StringExp final : public Expression
 {
     union
     {
@@ -4236,7 +4236,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TupleExp : public Expression
+class TupleExp final : public Expression
 {
 public:
     Expression* e0;
@@ -4248,7 +4248,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ArrayLiteralExp : public Expression
+class ArrayLiteralExp final : public Expression
 {
 public:
     Expression* basis;
@@ -4265,7 +4265,7 @@ public:
     void accept(Visitor* v);
 };
 
-class AssocArrayLiteralExp : public Expression
+class AssocArrayLiteralExp final : public Expression
 {
 public:
     Array<Expression*>* keys;
@@ -4289,7 +4289,7 @@ enum : int32_t { stageInlineScan = 16 };
 
 enum : int32_t { stageToCBuffer = 32 };
 
-class StructLiteralExp : public Expression
+class StructLiteralExp final : public Expression
 {
 public:
     StructDeclaration* sd;
@@ -4311,7 +4311,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeExp : public Expression
+class TypeExp final : public Expression
 {
 public:
     Expression* syntaxCopy();
@@ -4320,7 +4320,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ScopeExp : public Expression
+class ScopeExp final : public Expression
 {
 public:
     ScopeDsymbol* sds;
@@ -4330,7 +4330,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TemplateExp : public Expression
+class TemplateExp final : public Expression
 {
 public:
     TemplateDeclaration* td;
@@ -4342,7 +4342,7 @@ public:
     void accept(Visitor* v);
 };
 
-class NewExp : public Expression
+class NewExp final : public Expression
 {
 public:
     Expression* thisexp;
@@ -4359,7 +4359,7 @@ public:
     void accept(Visitor* v);
 };
 
-class NewAnonClassExp : public Expression
+class NewAnonClassExp final : public Expression
 {
 public:
     Expression* thisexp;
@@ -4379,7 +4379,7 @@ public:
     void accept(Visitor* v);
 };
 
-class SymOffExp : public SymbolExp
+class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
@@ -4387,7 +4387,7 @@ public:
     void accept(Visitor* v);
 };
 
-class VarExp : public SymbolExp
+class VarExp final : public SymbolExp
 {
 public:
     bool delegateWasExtracted;
@@ -4401,7 +4401,7 @@ public:
     Expression* syntaxCopy();
 };
 
-class OverExp : public Expression
+class OverExp final : public Expression
 {
 public:
     OverloadSet* vars;
@@ -4410,7 +4410,7 @@ public:
     void accept(Visitor* v);
 };
 
-class FuncExp : public Expression
+class FuncExp final : public Expression
 {
 public:
     FuncLiteralDeclaration* fd;
@@ -4424,7 +4424,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DeclarationExp : public Expression
+class DeclarationExp final : public Expression
 {
 public:
     Dsymbol* declaration;
@@ -4433,7 +4433,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeidExp : public Expression
+class TypeidExp final : public Expression
 {
 public:
     RootObject* obj;
@@ -4441,7 +4441,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TraitsExp : public Expression
+class TraitsExp final : public Expression
 {
 public:
     Identifier* ident;
@@ -4450,13 +4450,13 @@ public:
     void accept(Visitor* v);
 };
 
-class HaltExp : public Expression
+class HaltExp final : public Expression
 {
 public:
     void accept(Visitor* v);
 };
 
-class IsExp : public Expression
+class IsExp final : public Expression
 {
 public:
     Type* targ;
@@ -4508,7 +4508,7 @@ public:
     void accept(Visitor* v);
 };
 
-class MixinExp : public Expression
+class MixinExp final : public Expression
 {
 public:
     Array<Expression*>* exps;
@@ -4517,13 +4517,13 @@ public:
     void accept(Visitor* v);
 };
 
-class ImportExp : public UnaExp
+class ImportExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class AssertExp : public UnaExp
+class AssertExp final : public UnaExp
 {
 public:
     Expression* msg;
@@ -4531,7 +4531,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DotIdExp : public UnaExp
+class DotIdExp final : public UnaExp
 {
 public:
     Identifier* ident;
@@ -4541,14 +4541,14 @@ public:
     void accept(Visitor* v);
 };
 
-class DotTemplateExp : public UnaExp
+class DotTemplateExp final : public UnaExp
 {
 public:
     TemplateDeclaration* td;
     void accept(Visitor* v);
 };
 
-class DotVarExp : public UnaExp
+class DotVarExp final : public UnaExp
 {
 public:
     Declaration* var;
@@ -4560,7 +4560,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DotTemplateInstanceExp : public UnaExp
+class DotTemplateInstanceExp final : public UnaExp
 {
 public:
     TemplateInstance* ti;
@@ -4569,7 +4569,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DelegateExp : public UnaExp
+class DelegateExp final : public UnaExp
 {
 public:
     FuncDeclaration* func;
@@ -4578,14 +4578,14 @@ public:
     void accept(Visitor* v);
 };
 
-class DotTypeExp : public UnaExp
+class DotTypeExp final : public UnaExp
 {
 public:
     Dsymbol* sym;
     void accept(Visitor* v);
 };
 
-class CallExp : public UnaExp
+class CallExp final : public UnaExp
 {
 public:
     Array<Expression*>* arguments;
@@ -4604,13 +4604,13 @@ public:
     void accept(Visitor* v);
 };
 
-class AddrExp : public UnaExp
+class AddrExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class PtrExp : public UnaExp
+class PtrExp final : public UnaExp
 {
 public:
     Modifiable checkModifiable(Scope* sc, int32_t flag);
@@ -4620,31 +4620,31 @@ public:
     void accept(Visitor* v);
 };
 
-class NegExp : public UnaExp
+class NegExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class UAddExp : public UnaExp
+class UAddExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ComExp : public UnaExp
+class ComExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class NotExp : public UnaExp
+class NotExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class DeleteExp : public UnaExp
+class DeleteExp final : public UnaExp
 {
 public:
     bool isRAII;
@@ -4652,7 +4652,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CastExp : public UnaExp
+class CastExp final : public UnaExp
 {
 public:
     Type* to;
@@ -4664,7 +4664,7 @@ public:
     void accept(Visitor* v);
 };
 
-class VectorExp : public UnaExp
+class VectorExp final : public UnaExp
 {
 public:
     TypeVector* to;
@@ -4676,7 +4676,7 @@ public:
     void accept(Visitor* v);
 };
 
-class VectorArrayExp : public UnaExp
+class VectorArrayExp final : public UnaExp
 {
 public:
     bool isLvalue();
@@ -4684,7 +4684,7 @@ public:
     void accept(Visitor* v);
 };
 
-class SliceExp : public UnaExp
+class SliceExp final : public UnaExp
 {
 public:
     Expression* upr;
@@ -4702,13 +4702,13 @@ public:
     void accept(Visitor* v);
 };
 
-class ArrayLengthExp : public UnaExp
+class ArrayLengthExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ArrayExp : public UnaExp
+class ArrayExp final : public UnaExp
 {
 public:
     Array<Expression*>* arguments;
@@ -4720,13 +4720,13 @@ public:
     void accept(Visitor* v);
 };
 
-class DotExp : public BinExp
+class DotExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class CommaExp : public BinExp
+class CommaExp final : public BinExp
 {
 public:
     bool isGenerated;
@@ -4742,7 +4742,7 @@ public:
     static void allow(Expression* exp);
 };
 
-class IntervalExp : public Expression
+class IntervalExp final : public Expression
 {
 public:
     Expression* lwr;
@@ -4751,7 +4751,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DelegatePtrExp : public UnaExp
+class DelegatePtrExp final : public UnaExp
 {
 public:
     bool isLvalue();
@@ -4760,7 +4760,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DelegateFuncptrExp : public UnaExp
+class DelegateFuncptrExp final : public UnaExp
 {
 public:
     bool isLvalue();
@@ -4769,7 +4769,7 @@ public:
     void accept(Visitor* v);
 };
 
-class IndexExp : public BinExp
+class IndexExp final : public BinExp
 {
 public:
     VarDeclaration* lengthVar;
@@ -4783,13 +4783,13 @@ public:
     void accept(Visitor* v);
 };
 
-class PostExp : public BinExp
+class PostExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class PreExp : public UnaExp
+class PreExp final : public UnaExp
 {
 public:
     void accept(Visitor* v);
@@ -4813,85 +4813,85 @@ public:
     void accept(Visitor* v);
 };
 
-class ConstructExp : public AssignExp
+class ConstructExp final : public AssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class BlitExp : public AssignExp
+class BlitExp final : public AssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class AddAssignExp : public BinAssignExp
+class AddAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class MinAssignExp : public BinAssignExp
+class MinAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class MulAssignExp : public BinAssignExp
+class MulAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class DivAssignExp : public BinAssignExp
+class DivAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ModAssignExp : public BinAssignExp
+class ModAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class AndAssignExp : public BinAssignExp
+class AndAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class OrAssignExp : public BinAssignExp
+class OrAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class XorAssignExp : public BinAssignExp
+class XorAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class PowAssignExp : public BinAssignExp
+class PowAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ShlAssignExp : public BinAssignExp
+class ShlAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ShrAssignExp : public BinAssignExp
+class ShrAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class UshrAssignExp : public BinAssignExp
+class UshrAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor* v);
@@ -4903,135 +4903,135 @@ public:
     void accept(Visitor* v);
 };
 
-class CatElemAssignExp : public CatAssignExp
+class CatElemAssignExp final : public CatAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class CatDcharAssignExp : public CatAssignExp
+class CatDcharAssignExp final : public CatAssignExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class AddExp : public BinExp
+class AddExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class MinExp : public BinExp
+class MinExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class CatExp : public BinExp
+class CatExp final : public BinExp
 {
 public:
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
 
-class MulExp : public BinExp
+class MulExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class DivExp : public BinExp
+class DivExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ModExp : public BinExp
+class ModExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class PowExp : public BinExp
+class PowExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ShlExp : public BinExp
+class ShlExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class ShrExp : public BinExp
+class ShrExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class UshrExp : public BinExp
+class UshrExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class AndExp : public BinExp
+class AndExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class OrExp : public BinExp
+class OrExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class XorExp : public BinExp
+class XorExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class LogicalExp : public BinExp
+class LogicalExp final : public BinExp
 {
 public:
     Expression* toBoolean(Scope* sc);
     void accept(Visitor* v);
 };
 
-class CmpExp : public BinExp
+class CmpExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class InExp : public BinExp
+class InExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class RemoveExp : public BinExp
+class RemoveExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class EqualExp : public BinExp
+class EqualExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class IdentityExp : public BinExp
+class IdentityExp final : public BinExp
 {
 public:
     void accept(Visitor* v);
 };
 
-class CondExp : public BinExp
+class CondExp final : public BinExp
 {
 public:
     Expression* econd;
@@ -5051,42 +5051,42 @@ public:
     void accept(Visitor* v);
 };
 
-class FileInitExp : public DefaultInitExp
+class FileInitExp final : public DefaultInitExp
 {
 public:
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
 
-class LineInitExp : public DefaultInitExp
+class LineInitExp final : public DefaultInitExp
 {
 public:
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
 
-class ModuleInitExp : public DefaultInitExp
+class ModuleInitExp final : public DefaultInitExp
 {
 public:
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
 
-class FuncInitExp : public DefaultInitExp
+class FuncInitExp final : public DefaultInitExp
 {
 public:
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
 
-class PrettyFuncInitExp : public DefaultInitExp
+class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
     Expression* resolveLoc(const Loc& loc, Scope* sc);
     void accept(Visitor* v);
 };
 
-class ObjcClassReferenceExp : public Expression
+class ObjcClassReferenceExp final : public Expression
 {
 public:
     ClassDeclaration* classDeclaration;
@@ -5106,7 +5106,7 @@ enum class ILS
     yes = 2,
 };
 
-class NrvoWalker : public StatementRewriteWalker
+class NrvoWalker final : public StatementRewriteWalker
 {
 public:
     FuncDeclaration* fd;
@@ -5269,7 +5269,7 @@ enum class FuncResolveFlag : uint8_t
     overloadOnly = 2u,
 };
 
-class FuncAliasDeclaration : public FuncDeclaration
+class FuncAliasDeclaration final : public FuncDeclaration
 {
 public:
     FuncDeclaration* funcalias;
@@ -5281,7 +5281,7 @@ public:
     ~FuncAliasDeclaration();
 };
 
-class FuncLiteralDeclaration : public FuncDeclaration
+class FuncLiteralDeclaration final : public FuncDeclaration
 {
 public:
     TOK tok;
@@ -5301,7 +5301,7 @@ public:
     ~FuncLiteralDeclaration();
 };
 
-class CtorDeclaration : public FuncDeclaration
+class CtorDeclaration final : public FuncDeclaration
 {
 public:
     bool isCpCtor;
@@ -5316,7 +5316,7 @@ public:
     ~CtorDeclaration();
 };
 
-class PostBlitDeclaration : public FuncDeclaration
+class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -5329,7 +5329,7 @@ public:
     ~PostBlitDeclaration();
 };
 
-class DtorDeclaration : public FuncDeclaration
+class DtorDeclaration final : public FuncDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -5358,7 +5358,7 @@ public:
     ~StaticCtorDeclaration();
 };
 
-class SharedStaticCtorDeclaration : public StaticCtorDeclaration
+class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -5382,7 +5382,7 @@ public:
     ~StaticDtorDeclaration();
 };
 
-class SharedStaticDtorDeclaration : public StaticDtorDeclaration
+class SharedStaticDtorDeclaration final : public StaticDtorDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -5391,7 +5391,7 @@ public:
     ~SharedStaticDtorDeclaration();
 };
 
-class InvariantDeclaration : public FuncDeclaration
+class InvariantDeclaration final : public FuncDeclaration
 {
 public:
     Dsymbol* syntaxCopy(Dsymbol* s);
@@ -5403,7 +5403,7 @@ public:
     ~InvariantDeclaration();
 };
 
-class UnitTestDeclaration : public FuncDeclaration
+class UnitTestDeclaration final : public FuncDeclaration
 {
 public:
     char* codedoc;
@@ -5418,7 +5418,7 @@ public:
     ~UnitTestDeclaration();
 };
 
-class NewDeclaration : public FuncDeclaration
+class NewDeclaration final : public FuncDeclaration
 {
 public:
     ParameterList parameterList;
@@ -5475,20 +5475,20 @@ public:
     void accept(Visitor* v);
 };
 
-class VoidInitializer : public Initializer
+class VoidInitializer final : public Initializer
 {
 public:
     Type* type;
     void accept(Visitor* v);
 };
 
-class ErrorInitializer : public Initializer
+class ErrorInitializer final : public Initializer
 {
 public:
     void accept(Visitor* v);
 };
 
-class StructInitializer : public Initializer
+class StructInitializer final : public Initializer
 {
 public:
     Array<Identifier*> field;
@@ -5497,7 +5497,7 @@ public:
     ~StructInitializer();
 };
 
-class ArrayInitializer : public Initializer
+class ArrayInitializer final : public Initializer
 {
 public:
     Array<Expression*> index;
@@ -5510,7 +5510,7 @@ public:
     ~ArrayInitializer();
 };
 
-class ExpInitializer : public Initializer
+class ExpInitializer final : public Initializer
 {
 public:
     bool expandTuples;
@@ -5629,7 +5629,7 @@ enum class DotExpFlag
     noDeref = 2,
 };
 
-class TypeError : public Type
+class TypeError final : public Type
 {
 public:
     const char* kind() const;
@@ -5661,7 +5661,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeBasic : public Type
+class TypeBasic final : public Type
 {
 public:
     char* dstring;
@@ -5683,7 +5683,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeVector : public Type
+class TypeVector final : public Type
 {
 public:
     Type* basetype;
@@ -5710,7 +5710,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeSArray : public TypeArray
+class TypeSArray final : public TypeArray
 {
 public:
     Expression* dim;
@@ -5731,7 +5731,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeDArray : public TypeArray
+class TypeDArray final : public TypeArray
 {
 public:
     const char* kind() const;
@@ -5746,7 +5746,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeAArray : public TypeArray
+class TypeAArray final : public TypeArray
 {
 public:
     Type* index;
@@ -5763,7 +5763,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypePointer : public TypeNext
+class TypePointer final : public TypeNext
 {
 public:
     static TypePointer* create(Type* t);
@@ -5778,7 +5778,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeReference : public TypeNext
+class TypeReference final : public TypeNext
 {
 public:
     const char* kind() const;
@@ -5808,7 +5808,7 @@ enum class TRUSTformat
     TRUSTformatSystem = 1,
 };
 
-class TypeFunction : public TypeNext
+class TypeFunction final : public TypeNext
 {
 public:
     ParameterList parameterList;
@@ -5876,7 +5876,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeDelegate : public TypeNext
+class TypeDelegate final : public TypeNext
 {
 public:
     static TypeDelegate* create(Type* t);
@@ -5892,7 +5892,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeTraits : public Type
+class TypeTraits final : public Type
 {
 public:
     Loc loc;
@@ -5905,7 +5905,7 @@ public:
     d_uns64 size(const Loc& loc);
 };
 
-class TypeMixin : public Type
+class TypeMixin final : public Type
 {
 public:
     Loc loc;
@@ -5930,7 +5930,7 @@ public:
     ~TypeQualified();
 };
 
-class TypeIdentifier : public TypeQualified
+class TypeIdentifier final : public TypeQualified
 {
 public:
     Identifier* ident;
@@ -5942,7 +5942,7 @@ public:
     ~TypeIdentifier();
 };
 
-class TypeInstance : public TypeQualified
+class TypeInstance final : public TypeQualified
 {
 public:
     TemplateInstance* tempinst;
@@ -5953,7 +5953,7 @@ public:
     ~TypeInstance();
 };
 
-class TypeTypeof : public TypeQualified
+class TypeTypeof final : public TypeQualified
 {
 public:
     Expression* exp;
@@ -5966,7 +5966,7 @@ public:
     ~TypeTypeof();
 };
 
-class TypeReturn : public TypeQualified
+class TypeReturn final : public TypeQualified
 {
 public:
     const char* kind() const;
@@ -5986,7 +5986,7 @@ enum class AliasThisRec
     tracingDT = 8,
 };
 
-class TypeStruct : public Type
+class TypeStruct final : public Type
 {
 public:
     StructDeclaration* sym;
@@ -6015,7 +6015,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeEnum : public Type
+class TypeEnum final : public Type
 {
 public:
     EnumDeclaration* sym;
@@ -6047,7 +6047,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeClass : public Type
+class TypeClass final : public Type
 {
 public:
     ClassDeclaration* sym;
@@ -6070,7 +6070,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeTuple : public Type
+class TypeTuple final : public Type
 {
 public:
     static TypeTuple* empty;
@@ -6085,7 +6085,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeSlice : public TypeNext
+class TypeSlice final : public TypeNext
 {
 public:
     Expression* lwr;
@@ -6095,7 +6095,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeNull : public Type
+class TypeNull final : public Type
 {
 public:
     const char* kind() const;
@@ -6107,7 +6107,7 @@ public:
     void accept(Visitor* v);
 };
 
-class Parameter : public ASTNode
+class Parameter final : public ASTNode
 {
 public:
     StorageClass storageClass;
@@ -6142,7 +6142,7 @@ private:
 
 extern AggregateDeclaration* isAggregate(Type* t);
 
-class NOGCVisitor : public StoppableVisitor
+class NOGCVisitor final : public StoppableVisitor
 {
 public:
     FuncDeclaration* f;
@@ -6161,7 +6161,7 @@ public:
     void visit(CatExp* e);
 };
 
-class Nspace : public ScopeDsymbol
+class Nspace final : public ScopeDsymbol
 {
 public:
     Expression* identExp;
@@ -6257,7 +6257,7 @@ enum class PREC
     primary = 16,
 };
 
-class PostorderStatementVisitor : public StoppableVisitor
+class PostorderStatementVisitor final : public StoppableVisitor
 {
 public:
     StoppableVisitor* v;
@@ -6403,14 +6403,14 @@ public:
     CompoundDeclarationStatement* isCompoundDeclarationStatement();
 };
 
-class ErrorStatement : public Statement
+class ErrorStatement final : public Statement
 {
 public:
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
 
-class PeelStatement : public Statement
+class PeelStatement final : public Statement
 {
 public:
     Statement* s;
@@ -6428,7 +6428,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DtorExpStatement : public ExpStatement
+class DtorExpStatement final : public ExpStatement
 {
 public:
     VarDeclaration* var;
@@ -6436,7 +6436,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CompileStatement : public Statement
+class CompileStatement final : public Statement
 {
 public:
     Array<Expression*>* exps;
@@ -6457,14 +6457,14 @@ public:
     void accept(Visitor* v);
 };
 
-class CompoundDeclarationStatement : public CompoundStatement
+class CompoundDeclarationStatement final : public CompoundStatement
 {
 public:
     Statement* syntaxCopy();
     void accept(Visitor* v);
 };
 
-class UnrolledLoopStatement : public Statement
+class UnrolledLoopStatement final : public Statement
 {
 public:
     Array<Statement*>* statements;
@@ -6486,7 +6486,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ForwardingStatement : public Statement
+class ForwardingStatement final : public Statement
 {
 public:
     ForwardingScopeDsymbol* sym;
@@ -6496,7 +6496,7 @@ public:
     void accept(Visitor* v);
 };
 
-class WhileStatement : public Statement
+class WhileStatement final : public Statement
 {
 public:
     Expression* condition;
@@ -6508,7 +6508,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DoStatement : public Statement
+class DoStatement final : public Statement
 {
 public:
     Statement* _body;
@@ -6520,7 +6520,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ForStatement : public Statement
+class ForStatement final : public Statement
 {
 public:
     Statement* _init;
@@ -6537,7 +6537,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ForeachStatement : public Statement
+class ForeachStatement final : public Statement
 {
 public:
     TOK op;
@@ -6556,7 +6556,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ForeachRangeStatement : public Statement
+class ForeachRangeStatement final : public Statement
 {
 public:
     TOK op;
@@ -6572,7 +6572,7 @@ public:
     void accept(Visitor* v);
 };
 
-class IfStatement : public Statement
+class IfStatement final : public Statement
 {
 public:
     Parameter* prm;
@@ -6585,7 +6585,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ConditionalStatement : public Statement
+class ConditionalStatement final : public Statement
 {
 public:
     Condition* condition;
@@ -6596,7 +6596,7 @@ public:
     void accept(Visitor* v);
 };
 
-class StaticForeachStatement : public Statement
+class StaticForeachStatement final : public Statement
 {
 public:
     StaticForeach* sfe;
@@ -6605,7 +6605,7 @@ public:
     void accept(Visitor* v);
 };
 
-class PragmaStatement : public Statement
+class PragmaStatement final : public Statement
 {
 public:
     Identifier* ident;
@@ -6615,7 +6615,7 @@ public:
     void accept(Visitor* v);
 };
 
-class StaticAssertStatement : public Statement
+class StaticAssertStatement final : public Statement
 {
 public:
     StaticAssert* sa;
@@ -6623,7 +6623,7 @@ public:
     void accept(Visitor* v);
 };
 
-class SwitchStatement : public Statement
+class SwitchStatement final : public Statement
 {
 public:
     Expression* condition;
@@ -6643,7 +6643,7 @@ public:
     ~SwitchStatement();
 };
 
-class CaseStatement : public Statement
+class CaseStatement final : public Statement
 {
 public:
     Expression* exp;
@@ -6655,7 +6655,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CaseRangeStatement : public Statement
+class CaseRangeStatement final : public Statement
 {
 public:
     Expression* first;
@@ -6665,7 +6665,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DefaultStatement : public Statement
+class DefaultStatement final : public Statement
 {
 public:
     Statement* statement;
@@ -6674,7 +6674,7 @@ public:
     void accept(Visitor* v);
 };
 
-class GotoDefaultStatement : public Statement
+class GotoDefaultStatement final : public Statement
 {
 public:
     SwitchStatement* sw;
@@ -6682,7 +6682,7 @@ public:
     void accept(Visitor* v);
 };
 
-class GotoCaseStatement : public Statement
+class GotoCaseStatement final : public Statement
 {
 public:
     Expression* exp;
@@ -6691,14 +6691,14 @@ public:
     void accept(Visitor* v);
 };
 
-class SwitchErrorStatement : public Statement
+class SwitchErrorStatement final : public Statement
 {
 public:
     Expression* exp;
     void accept(Visitor* v);
 };
 
-class ReturnStatement : public Statement
+class ReturnStatement final : public Statement
 {
 public:
     Expression* exp;
@@ -6708,7 +6708,7 @@ public:
     void accept(Visitor* v);
 };
 
-class BreakStatement : public Statement
+class BreakStatement final : public Statement
 {
 public:
     Identifier* ident;
@@ -6716,7 +6716,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ContinueStatement : public Statement
+class ContinueStatement final : public Statement
 {
 public:
     Identifier* ident;
@@ -6724,7 +6724,7 @@ public:
     void accept(Visitor* v);
 };
 
-class SynchronizedStatement : public Statement
+class SynchronizedStatement final : public Statement
 {
 public:
     Expression* exp;
@@ -6735,7 +6735,7 @@ public:
     void accept(Visitor* v);
 };
 
-class WithStatement : public Statement
+class WithStatement final : public Statement
 {
 public:
     Expression* exp;
@@ -6746,7 +6746,7 @@ public:
     void accept(Visitor* v);
 };
 
-class TryCatchStatement : public Statement
+class TryCatchStatement final : public Statement
 {
 public:
     Statement* _body;
@@ -6757,7 +6757,7 @@ public:
     void accept(Visitor* v);
 };
 
-class Catch : public RootObject
+class Catch final : public RootObject
 {
 public:
     Loc loc;
@@ -6770,7 +6770,7 @@ public:
     Catch* syntaxCopy();
 };
 
-class TryFinallyStatement : public Statement
+class TryFinallyStatement final : public Statement
 {
 public:
     Statement* _body;
@@ -6784,7 +6784,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ScopeGuardStatement : public Statement
+class ScopeGuardStatement final : public Statement
 {
 public:
     TOK tok;
@@ -6794,7 +6794,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ThrowStatement : public Statement
+class ThrowStatement final : public Statement
 {
 public:
     Expression* exp;
@@ -6803,7 +6803,7 @@ public:
     void accept(Visitor* v);
 };
 
-class DebugStatement : public Statement
+class DebugStatement final : public Statement
 {
 public:
     Statement* statement;
@@ -6812,7 +6812,7 @@ public:
     void accept(Visitor* v);
 };
 
-class GotoStatement : public Statement
+class GotoStatement final : public Statement
 {
 public:
     Identifier* ident;
@@ -6825,7 +6825,7 @@ public:
     void accept(Visitor* v);
 };
 
-class LabelStatement : public Statement
+class LabelStatement final : public Statement
 {
 public:
     Identifier* ident;
@@ -6843,7 +6843,7 @@ public:
     void accept(Visitor* v);
 };
 
-class LabelDsymbol : public Dsymbol
+class LabelDsymbol final : public Dsymbol
 {
 public:
     LabelStatement* statement;
@@ -6862,7 +6862,7 @@ public:
     void accept(Visitor* v);
 };
 
-class InlineAsmStatement : public AsmStatement
+class InlineAsmStatement final : public AsmStatement
 {
 public:
     code* asmcode;
@@ -6874,7 +6874,7 @@ public:
     void accept(Visitor* v);
 };
 
-class GccAsmStatement : public AsmStatement
+class GccAsmStatement final : public AsmStatement
 {
 public:
     StorageClass stc;
@@ -6890,7 +6890,7 @@ public:
     void accept(Visitor* v);
 };
 
-class CompoundAsmStatement : public CompoundStatement
+class CompoundAsmStatement final : public CompoundStatement
 {
 public:
     StorageClass stc;
@@ -6899,7 +6899,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ImportStatement : public Statement
+class ImportStatement final : public Statement
 {
 public:
     Array<Dsymbol*>* imports;
@@ -6909,7 +6909,7 @@ public:
 
 extern Statement* statementSemantic(Statement* s, Scope* sc);
 
-class StaticAssert : public Dsymbol
+class StaticAssert final : public Dsymbol
 {
 public:
     Expression* exp;
@@ -7561,7 +7561,7 @@ struct Id
     }
 };
 
-class Identifier : public RootObject
+class Identifier final : public RootObject
 {
     int32_t value;
     bool isAnonymous_;
