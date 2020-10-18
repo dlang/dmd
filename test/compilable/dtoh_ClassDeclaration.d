@@ -104,6 +104,16 @@ public:
     void foo();
     void bar();
 };
+
+class Parent
+{
+    virtual void __vtable_slot_0();
+    virtual void __vtable_slot_1();
+};
+
+class Child : public Parent
+{
+};
 ---
 */
 
@@ -202,4 +212,15 @@ class B : A, I1, I2
 {
     override void foo() {}
     override void bar() {}
+}
+
+class Parent
+{
+    extern(D) void over() {}
+    extern(D) void over(int) {}
+}
+
+class Child : Parent
+{
+    extern(D) override void over() {}
 }

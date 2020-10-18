@@ -14,9 +14,13 @@ experimental C++ header generator:
 - Protected enums in aggregates are emitted again
 - Private member methods are no longer emitted
 - No auto-generated default constructor for unions
+- No longer ignores declarations nested inside an extern block,
+  e.g. `extern(D) extern(C++) void foo() {} `
 - Opaque enums no longer cause segfaults & are properly exported for C++ 11
 - C++11 constructs are avoided when compiling with `-extern-std=c++98`.
 - Using `typeof(null)` type no longer causes an assertion failure.
+- Proper vtable layout is ensured by emitting hidden placeholders for
+  virtual functions that are not `extern(C|C++)`.
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

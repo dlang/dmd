@@ -29,6 +29,8 @@ struct S
     {
     }
 };
+
+extern void foo();
 ---
 */
 
@@ -47,4 +49,9 @@ extern (C++) struct S
         extern(C) void foo() {}
         extern(C++) void bar() {}
     }
+}
+
+extern (D)
+{
+    extern(C++) void foo() {}
 }

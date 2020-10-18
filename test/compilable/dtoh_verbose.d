@@ -11,7 +11,7 @@ TEST_OUTPUT:
 
 
 // Ignored function dtoh_verbose.foo because of linkage
-// Ignored extern () block because of linkage
+// Ignored variable dtoh_verbose.i because of linkage
 // Ignored function dtoh_verbose.bar because of linkage
 // Ignored non-cpp struct S because of linkage
 // Ignored non-cpp class C
