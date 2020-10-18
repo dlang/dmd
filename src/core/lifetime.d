@@ -1218,6 +1218,202 @@ pure nothrow @safe /* @nogc */ unittest
 // Bulk of emplace unittests ends here
 
 /**
+ * Emplaces a copy of the specified source value into uninitialized memory,
+ * i.e., simulates `T target = source` copy-construction for cases where the
+ * target memory is already allocated and to be initialized with a copy.
+ *
+ * Params:
+ *   source = value to be copied into target
+ *   target = uninitialized value to be initialized with a copy of source
+ */
+void copyEmplace(S, T)(ref S source, ref T target) @system
+    if (is(immutable S == immutable T) &&
+        __traits(compiles, (ref S src) { T tgt = src; }))
+{
+    void blit()
+    {
+        import core.stdc.string : memcpy;
+        memcpy(cast(void*) &target, &source, T.sizeof);
+    }
+
+    static if (is(T == struct))
+    {
+        static if (__traits(hasPostblit, T))
+        {
+            blit();
+            (cast() target).__xpostblit();
+        }
+        else static if (__traits(hasCopyConstructor, T))
+        {
+            target.__ctor(source);
+        }
+        else
+        {
+            blit(); // no opAssign
+        }
+    }
+    else static if (is(T == E[n], E, size_t n))
+    {
+        import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+        static if (hasElaborateCopyConstructor!E)
+        {
+            size_t i;
+            try
+            {
+                for (i = 0; i < n; i++)
+                    copyEmplace(source[i], target[i]);
+            }
+            catch (Exception e)
+            {
+                // destroy, in reverse order, what we've constructed so far
+                while (i--)
+                    destroy(*cast(Unqual!(E)*) &target[i]);
+                throw e;
+            }
+        }
+        else // trivial copy
+        {
+            blit(); // all elements at once
+        }
+    }
+    else
+    {
+        cast() target = source;
+    }
+}
+
+///
+@system pure nothrow @nogc unittest
+{
+    int source = 123;
+    int target = void;
+    copyEmplace(source, target);
+    assert(target == 123);
+}
+
+///
+@system pure nothrow @nogc unittest
+{
+    immutable int[1][1] source = [ [123] ];
+    immutable int[1][1] target = void;
+    copyEmplace(source, target);
+    assert(target[0][0] == 123);
+}
+
+///
+@system pure nothrow @nogc unittest
+{
+    struct S
+    {
+        int x;
+        void opAssign(const scope ref S rhs) @safe pure nothrow @nogc
+        {
+            assert(0);
+        }
+    }
+
+    S source = S(42);
+    S target = void;
+    copyEmplace(source, target);
+    assert(target.x == 42);
+}
+
+version (CoreUnittest)
+{
+    private void testCopyEmplace(S, T)(const scope T* expected = null)
+    {
+        S source;
+        T target = void;
+        copyEmplace(source, target);
+        if (expected)
+            assert(target == *expected);
+        else
+        {
+            T expectedCopy = source;
+            assert(target == expectedCopy);
+        }
+    }
+}
+
+// postblit
+@system pure nothrow @nogc unittest
+{
+    static struct S
+    {
+        @safe pure nothrow @nogc:
+        int x = 42;
+        this(this) { x += 10; }
+    }
+
+    testCopyEmplace!(S, S)();
+    testCopyEmplace!(immutable S, S)();
+    testCopyEmplace!(S, immutable S)();
+    testCopyEmplace!(immutable S, immutable S)();
+
+    testCopyEmplace!(S[1], S[1])();
+    testCopyEmplace!(immutable S[1], S[1])();
+
+    // copying to an immutable static array works, but `T expected = source`
+    // wrongly ignores the postblit: https://issues.dlang.org/show_bug.cgi?id=8950
+    immutable S[1] expectedImmutable = [S(52)];
+    testCopyEmplace!(S[1], immutable S[1])(&expectedImmutable);
+    testCopyEmplace!(immutable S[1], immutable S[1])(&expectedImmutable);
+}
+
+// copy constructors
+@system pure nothrow @nogc unittest
+{
+    static struct S
+    {
+        @safe pure nothrow @nogc:
+        int x = 42;
+        this(int x) { this.x = x; }
+        this(const scope ref S rhs) { x = rhs.x + 10; }
+        this(const scope ref S rhs) immutable { x = rhs.x + 20; }
+    }
+
+    testCopyEmplace!(S, S)();
+    testCopyEmplace!(immutable S, S)();
+    testCopyEmplace!(S, immutable S)();
+    testCopyEmplace!(immutable S, immutable S)();
+
+    // static arrays work, but `T expected = source` wrongly ignores copy ctors
+    // https://issues.dlang.org/show_bug.cgi?id=20365
+    S[1] expectedMutable = [S(52)];
+    immutable S[1] expectedImmutable = [immutable S(62)];
+    testCopyEmplace!(S[1], S[1])(&expectedMutable);
+    testCopyEmplace!(immutable S[1], S[1])(&expectedMutable);
+    testCopyEmplace!(S[1], immutable S[1])(&expectedImmutable);
+    testCopyEmplace!(immutable S[1], immutable S[1])(&expectedImmutable);
+}
+
+// destruction of partially copied static array
+@system unittest
+{
+    static struct S
+    {
+        __gshared int[] deletions;
+        int x;
+        this(this) { if (x == 5) throw new Exception(""); }
+        ~this() { deletions ~= x; }
+    }
+
+    alias T = immutable S[3][2];
+    T source = [ [S(1), S(2), S(3)], [S(4), S(5), S(6)] ];
+    T target = void;
+    try
+    {
+        copyEmplace(source, target);
+        assert(0);
+    }
+    catch (Exception)
+    {
+        assert(S.deletions == [ 4, 3, 2, 1 ] ||
+               S.deletions == [ 4 ]); // FIXME: happens with -O
+    }
+}
+
+/**
 Forwards function arguments while keeping `out`, `ref`, and `lazy` on
 the parameters.
 
