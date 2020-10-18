@@ -19,6 +19,7 @@ experimental C++ header generator:
 - Opaque enums no longer cause segfaults & are properly exported for C++ 11
 - C++11 constructs are avoided when compiling with `-extern-std=c++98`.
 - Using `typeof(null)` type no longer causes an assertion failure.
+- Final classes are marked as `final`
 - Proper vtable layout is ensured by emitting hidden placeholders for
   virtual functions that are not `extern(C|C++)`.
 

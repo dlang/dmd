@@ -1021,6 +1021,9 @@ public:
         buf.writestring(classAsStruct ? "struct " : "class ");
         buf.writestring(cd.ident.toChars());
 
+        if (cd.storage_class & AST.STC.final_)
+            buf.writestring(" final");
+
         assert(cd.baseclasses);
 
         foreach (i, base; *cd.baseclasses)
