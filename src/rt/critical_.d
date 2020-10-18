@@ -34,12 +34,33 @@ extern (C) void _d_critical_term()
 
 extern (C) void _d_criticalenter(D_CRITICAL_SECTION* cs)
 {
+    assert(cs !is null);
     ensureMutex(cast(shared(D_CRITICAL_SECTION*)) cs);
+    lockMutex(&cs.mtx);
+}
+
+extern (C) void _d_criticalenter2(D_CRITICAL_SECTION** pcs)
+{
+    D_CRITICAL_SECTION* cs = void;
+    if (*pcs is null)
+    {
+        lockMutex(cast(Mutex*)&gcs.mtx);
+        if (*pcs is null)
+        {
+            cs = new D_CRITICAL_SECTION;
+            initMutex(cast(Mutex*)&cs.mtx);
+            *pcs = cs;
+        }
+        unlockMutex(cast(Mutex*)&gcs.mtx);
+    }
+    else
+        cs = *pcs;
     lockMutex(&cs.mtx);
 }
 
 extern (C) void _d_criticalexit(D_CRITICAL_SECTION* cs)
 {
+    assert(cs !is null);
     unlockMutex(&cs.mtx);
 }
 
