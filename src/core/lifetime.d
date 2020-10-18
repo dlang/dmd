@@ -1231,6 +1231,8 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
         // this check seems to fail for nested aggregates
         /* && __traits(compiles, (ref S src) { T tgt = src; }) */)
 {
+    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+
     void blit()
     {
         import core.stdc.string : memcpy;
@@ -1246,7 +1248,13 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
         }
         else static if (__traits(hasCopyConstructor, T))
         {
-            target.__ctor(source);
+            emplace(cast(Unqual!(T)*) &target); // blit T.init
+            static if (__traits(isNested, T))
+            {
+                 // copy context pointer
+                cast() target.tupleof[$-1] = cast(typeof(target.tupleof[$-1])) source.tupleof[$-1];
+            }
+            target.__ctor(source); // invoke copy ctor
         }
         else
         {
@@ -1255,7 +1263,6 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     }
     else static if (is(T == E[n], E, size_t n))
     {
-        import core.internal.traits : hasElaborateCopyConstructor, Unqual;
         static if (hasElaborateCopyConstructor!E)
         {
             size_t i;
@@ -1386,6 +1393,30 @@ version (CoreUnittest)
     testCopyEmplace!(immutable S[1], S[1])(&expectedMutable);
     testCopyEmplace!(S[1], immutable S[1])(&expectedImmutable);
     testCopyEmplace!(immutable S[1], immutable S[1])(&expectedImmutable);
+}
+
+// copy constructor in nested struct
+@system pure nothrow unittest
+{
+    int copies;
+    struct S
+    {
+        @safe pure nothrow @nogc:
+        size_t x = 42;
+        this(size_t x) { this.x = x; }
+        this(const scope ref S rhs)
+        {
+            assert(x == 42); // T.init
+            x = rhs.x;
+            ++copies;
+        }
+    }
+
+    S source = S(666);
+    immutable S target = void;
+    copyEmplace(source, target);
+    assert(target is source);
+    assert(copies == 1);
 }
 
 // destruction of partially copied static array
