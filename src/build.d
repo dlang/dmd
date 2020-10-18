@@ -1065,9 +1065,12 @@ void parseEnvironment()
         if (!env["HOST_DMD"].exists)
         {
             writefln("Downloading DMD %s", hostDMDVer);
-            auto curlFlags = "-fsSL --retry 5 --retry-max-time 120 --connect-timeout 5 --speed-time 30 --speed-limit 1024";
+            const curlFlags = "-fsSL --retry 5 --retry-max-time 300 --connect-timeout 15 --speed-time 30 --speed-limit 1024";
             hostDMDRoot.mkdirRecurse;
-            ("curl " ~ curlFlags ~ " " ~ hostDMDURL~".tar.xz | tar -C "~hostDMDRoot~" -Jxf - || rm -rf "~hostDMDRoot).spawnShell.wait;
+            executeShell("curl " ~ curlFlags ~ "-o " ~
+                         hostDMDRoot ~ "/dmd_bootstrap.tar.xz" ~ hostDMDURL~".tar.xz");
+            executeShell("tar "~ hostDMDRoot ~ "/dmd_bootstrap.tar.xz -C " ~
+                         hostDMDRoot~" -Jxf - || rm -rf "~hostDMDRoot);
         }
     }
     else

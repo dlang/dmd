@@ -13,7 +13,7 @@ HOST_DMD_VER="${HOST_DMD_VER:-2.088.0}"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 GENERATED="$( cd "$DIR/.." >/dev/null 2>&1 && pwd )/generated"
-CURL_FLAGS=(-fsSL --retry 5 --retry-max-time 120 --connect-timeout 5 --speed-time 30 --speed-limit 1024)
+CURL_FLAGS=(-fsSL --retry 5 --retry-all-errors --retry-max-time 300 --connect-timeout 15 --speed-time 30 --speed-limit 1024)
 
 # detect model
 uname_m="$(uname -m)"
@@ -57,7 +57,8 @@ if [ ! -e "${HOST_RDMD}" ] ; then
     # prefer xz if available
     if command -v xz &> /dev/null ; then
         echo "[boostrap] Downloading compiler ${HOST_DMD_URL}.tar.xz"
-        curl "${CURL_FLAGS[@]}" "${HOST_DMD_URL}.tar.xz" | tar -C "${HOST_DMD_ROOT}" -Jxf - || rm -rf "${HOST_DMD_ROOT}"
+        curl "${CURL_FLAGS[@]}" "${HOST_DMD_URL}.tar.xz -o ${HOST_DMD_ROOT}/dmd_bootstrap.tar.xz"
+        tar ${HOST_DMD_ROOT}/dmd_bootstrap.tar.xz -C "${HOST_DMD_ROOT}" -Jxf - || rm -rf "${HOST_DMD_ROOT}"
     else
         echo "[bootstrap] Downloading compiler ${HOST_DMD_URL}.zip"
         TMPFILE="$(mktemp deleteme.XXXXXXXX.zip)"
