@@ -24,8 +24,8 @@ module core.internal.array.construction;
 Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
 {
     pragma(inline, false);
-    import core.internal.postblit : postblitRecurse;
-    import core.internal.traits : Unqual;
+    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+    import core.lifetime : copyEmplace;
     import core.stdc.string : memcpy;
     debug(PRINTF) import core.stdc.stdio;
 
@@ -46,33 +46,37 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
     void[] vTo = (cast(void*)to.ptr)[0..to.length];
     enforceRawArraysConformable("initialization", element_size, vFrom, vTo, false);
 
-    size_t i;
-    try
+    static if (hasElaborateCopyConstructor!T)
     {
-        for (i = 0; i < to.length; i++)
+        size_t i;
+        try
         {
-            auto elem = cast(Unqual!T*)&to[i];
-            // Copy construction is defined as bit copy followed by postblit.
-            memcpy(elem, &from[i], element_size);
-            postblitRecurse(*elem);
+            for (i = 0; i < to.length; i++)
+                copyEmplace(from[i], to[i]);
+        }
+        catch (Exception o)
+        {
+            /* Destroy, in reverse order, what we've constructed so far
+            */
+            while (i--)
+            {
+                auto elem = cast(Unqual!T*)&to[i];
+                destroy(*elem);
+            }
+
+            throw o;
         }
     }
-    catch (Exception o)
+    else
     {
-        /* Destroy, in reverse order, what we've constructed so far
-        */
-        while (i--)
-        {
-            auto elem = cast(Unqual!T*)&to[i];
-            destroy(*elem);
-        }
-
-        throw o;
+        // blit all elements at once
+        memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
     }
 
     return to;
 }
 
+// postblit
 @safe unittest
 {
     int counter;
@@ -80,6 +84,29 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
     {
         int val;
         this(this) { counter++; }
+    }
+
+    S[4] arr1;
+    S[4] arr2 = [S(0), S(1), S(2), S(3)];
+    _d_arrayctor(arr1[], arr2[]);
+
+    assert(counter == 4);
+    assert(arr1 == arr2);
+}
+
+// copy constructor
+@safe unittest
+{
+    int counter;
+    struct S
+    {
+        int val;
+        this(int val) { this.val = val; }
+        this(const scope ref S rhs)
+        {
+            val = rhs.val;
+            counter++;
+        }
     }
 
     S[4] arr1;
@@ -159,30 +186,21 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
 void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
 {
     pragma(inline, false);
-    import core.internal.postblit : postblitRecurse;
-    import core.stdc.string : memcpy;
     import core.internal.traits : Unqual;
-    size_t walker;
-    auto element_size = T.sizeof;
+    import core.lifetime : copyEmplace;
 
+    size_t i;
     try
     {
-        foreach (i; 0 .. p.length)
-        {
-            auto elem = cast(Unqual!T*)&p[walker];
-            // Copy construction is defined as bit copy followed by postblit.
-            memcpy(elem, &value, element_size);
-            postblitRecurse(*elem);
-            walker++;
-        }
+        for (i = 0; i < p.length; i++)
+            copyEmplace(value, p[i]);
     }
     catch (Exception o)
     {
         // Destroy, in reverse order, what we've constructed so far
-        while (walker > 0)
+        while (i--)
         {
-            walker--;
-            auto elem = cast(Unqual!T*)&p[walker];
+            auto elem = cast(Unqual!T*)&p[i];
             destroy(*elem);
         }
 
@@ -190,6 +208,7 @@ void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
     }
 }
 
+// postblit
 @safe unittest
 {
     int counter;
@@ -198,6 +217,28 @@ void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
         int val;
         this(this)
         {
+            counter++;
+        }
+    }
+
+    S[4] arr;
+    S s = S(1234);
+    _d_arraysetctor(arr[], s);
+    assert(counter == arr.length);
+    assert(arr == [S(1234), S(1234), S(1234), S(1234)]);
+}
+
+// copy constructor
+@safe unittest
+{
+    int counter;
+    struct S
+    {
+        int val;
+        this(int val) { this.val = val; }
+        this(const scope ref S rhs)
+        {
+            val = rhs.val;
             counter++;
         }
     }

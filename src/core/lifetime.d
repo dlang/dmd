@@ -1227,8 +1227,9 @@ pure nothrow @safe /* @nogc */ unittest
  *   target = uninitialized value to be initialized with a copy of source
  */
 void copyEmplace(S, T)(ref S source, ref T target) @system
-    if (is(immutable S == immutable T) &&
-        __traits(compiles, (ref S src) { T tgt = src; }))
+    if (is(immutable S == immutable T)
+        // this check seems to fail for nested aggregates
+        /* && __traits(compiles, (ref S src) { T tgt = src; }) */)
 {
     void blit()
     {
