@@ -435,4 +435,15 @@ void test40()
     char c = 'a';
     foovargs<char*>(&c);
 }
+
+template<typename T, typename ...Args>
+void make_shared_poc(Args&... args);
+
+void test41()
+{
+    int a = 1;
+    int b = 2;
+    make_shared_poc<int, int, int>(a, b);
+
+}
 #endif

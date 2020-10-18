@@ -1291,6 +1291,10 @@ private final class CppMangleVisitor : Visitor
                     return (*tf.parameterList.parameters)[n].type;
                 }());
             scope (exit) this.context.pop(prev);
+
+            if (this.context.ti && global.params.cplusplus >= CppStdRevision.cpp11)
+                handleParamPack(t, this.context.ti.tempdecl.isTemplateDeclaration().parameters);
+
             headOfType(t);
             ++numparams;
         }
@@ -1469,6 +1473,26 @@ private final class CppMangleVisitor : Visitor
     }
 
     /**
+     * Write `Dp` (C++11 function parameter pack prefix) if 't' is a TemplateSequenceParameter (T...).
+     *
+     * Params:
+     *   t      = Parameter type
+     *   params = Template parameters of the function
+     */
+    private void handleParamPack(Type t, TemplateParameters* params)
+    {
+        if (t.isTypeReference())
+            t = t.nextOf();
+        auto ti = t.isTypeIdentifier();
+        if (!ti)
+            return;
+
+        auto idx = templateParamIndex(ti.ident, params);
+        if (idx < params.length && (*params)[idx].isTemplateTupleParameter())
+            buf.writestring("Dp");
+    }
+
+    /**
      * Helper function to write a `T..._` template index.
      *
      * Params:
@@ -1480,9 +1504,6 @@ private final class CppMangleVisitor : Visitor
         // expressions are mangled in <X..E>
         if (param.isTemplateValueParameter())
             buf.writeByte('X');
-        else if (param.isTemplateTupleParameter() &&
-                 global.params.cplusplus >= CppStdRevision.cpp11)
-            buf.writestring("Dp");
         buf.writeByte('T');
         writeSequenceFromIndex(idx);
         buf.writeByte('_');
