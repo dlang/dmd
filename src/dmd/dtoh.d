@@ -126,7 +126,7 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     buf.writenl();
     buf.writestringln("#pragma once");
     buf.writenl();
-//    buf.writestring("#include <assert.h>\n");
+    hashInclude(buf, "<assert.h>");
     hashInclude(buf, "<stddef.h>");
     hashInclude(buf, "<stdint.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
@@ -149,6 +149,16 @@ struct _d_dynamicArray
 
     _d_dynamicArray(size_t length_in, T *ptr_in)
         : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
 };
 #endif
 `);

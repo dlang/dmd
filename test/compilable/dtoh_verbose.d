@@ -6,6 +6,7 @@ TEST_OUTPUT:
 
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -23,6 +24,16 @@ struct _d_dynamicArray
 
     _d_dynamicArray(size_t length_in, T *ptr_in)
         : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
 };
 #endif
 
