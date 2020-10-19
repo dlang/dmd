@@ -1,60 +1,21 @@
 common_steps_template: &COMMON_STEPS_TEMPLATE
-  install_prerequisites_script: |
-    set -uexo pipefail
-    if [ "$OS_NAME" == "linux" ]; then
-      packages="git-core make g++ gdb curl libcurl3 tzdata zip unzip xz-utils"
-      if [ "$MODEL" == "32" ]; then
-        dpkg --add-architecture i386
-        packages="$packages g++-multilib libcurl3-gnutls:i386"
-      fi
-      if [ "${DMD:0:4}" == "gdmd" ]; then
-        packages="$packages sudo software-properties-common wget"
-      fi
-      apt-get -q update
-      apt-get install -yq $packages
-    elif [ "$OS_NAME" == "darwin" ]; then
-      # required for install.sh
-      brew install gnupg
-    elif [ "$OS_NAME" == "freebsd" ]; then
-      packages="git gmake bash"
-      if [ "${D_VERSION:-x}" == "2.079.0" ] ; then
-        packages="$packages lang/gcc9"
-      fi
-      pkg install -y $packages
-      rm /usr/bin/make
-      ln -s /usr/local/bin/gmake /usr/bin/make
-    fi
-    # create a `dmd` symlink to the repo dir, necessary for druntime/Phobos
-    ln -s $CIRRUS_WORKING_DIR ../dmd
-  install_host_compiler_script: |
-    source ci.sh
-    # kludge
-    if [ "${DMD:0:4}" == "gdmd" ]; then export DMD="gdmd"; fi
-    if [ -z "${D_VERSION+x}" ]; then install_d "$DMD"; else install_d "$DMD-$D_VERSION"; fi
+  install_prerequisites_script: ./cirrusci.sh
+  install_host_compiler_script: ./ci.sh install_host_compiler
   setup_repos_script: |
-    export BRANCH=${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}
-    source ci.sh
-    setup_repos
-  build_script: |
-    source ci.sh
-    build
-  test_dmd_script: |
-    source ci.sh
-    test_dmd
-  test_druntime_script: |
     set -uexo pipefail
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
-  test_phobos_script: |
-    set -uexo pipefail
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+    ln -s $CIRRUS_WORKING_DIR ../dmd
+    ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
+  build_script: ./ci.sh build
+  test_dmd_script: ./ci.sh test_dmd
+  test_druntime_script: ./ci.sh test_druntime
+  test_phobos_script: ./ci.sh test_phobos
 
 environment:
   CIRRUS_CLONE_DEPTH: 50
   # for ci.sh:
   MODEL: 64
-  DMD: dmd
+  HOST_DC: dmd
   N: 4
-  BRANCH: master
   OS_NAME: linux
   FULL_BUILD: true
 
@@ -72,15 +33,14 @@ task:
         MODEL: 32
       - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
         MODEL: 32
-        D_VERSION: 2.079.0
+        HOST_DC: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, DMD (latest)
       - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
-        D_VERSION: 2.079.0
+        HOST_DC: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, LDC
-        DMD: ldc
+        HOST_DC: ldc
       - TASK_NAME_SUFFIX: x64, GDC
-        GDC_VERSION: 9
-        DMD: gdmd-9
+        HOST_DC: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
@@ -98,7 +58,7 @@ task:
       - TASK_NAME_SUFFIX: DMD (bootstrap)
         # de-facto bootstrap version on OSX
         # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
-        D_VERSION: 2.088.0
+        HOST_DC: dmd-2.088.0
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
@@ -111,6 +71,7 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
+  install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
 
 task:
@@ -122,5 +83,6 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
-    D_VERSION: 2.079.0
+    HOST_DC: dmd-2.079.0
+  install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
