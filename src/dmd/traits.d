@@ -1831,6 +1831,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     ad.include(null).foreachDsymbol(&symbolDg);
                 }
+                else if (auto tm = s.isTemplateMixin())
+                {
+                    tm.members.foreachDsymbol(&symbolDg);
+                }
                 else if (auto ud = s.isUnitTestDeclaration())
                 {
                     if (cast(void*)ud in uniqueUnitTests)
