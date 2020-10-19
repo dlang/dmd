@@ -462,6 +462,7 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "getCppNamespaces" },
     { "isReturnOnStack" },
     { "isZeroInit" },
     { "getTargetInfo" },

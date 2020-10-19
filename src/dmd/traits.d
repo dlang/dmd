@@ -1945,6 +1945,42 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
+    if (e.ident == Id.getCppNamespaces)
+    {
+        auto o = (*e.args)[0];
+        auto s = getDsymbolWithoutExpCtx(o);
+        auto exps = new Expressions(0);
+        if (auto d = s.isDeclaration())
+        {
+            if (d.inuse)
+            {
+                d.error("circular reference in `__traits(GetCppNamespaces,...)`");
+                return ErrorExp.get();
+            }
+            d.inuse = 1;
+        }
+
+        for (auto p = s; !p.isModule(); p = p.toParent())
+        {
+            p.dsymbolSemantic(sc);
+            if (p.isNspace())
+                exps.insert(0, new StringExp(p.loc, p.ident.toString()));
+
+            // Semantic processing will convert `extern(C++, "a", "b", "c")`
+            // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
+            // creating a linked list what `a`'s `cppnamespace` points to `b`,
+            // and `b`'s points to `c`. Our entry point is `a`.
+            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
+            {
+                ns.dsymbolSemantic(sc);
+                exps.insert(0, ns.exp);
+            }
+        }
+        if (auto d = s.isDeclaration())
+            d.inuse = 0;
+        auto tup = new TupleExp(e.loc, exps);
+        return tup.expressionSemantic(sc);
+    }
 
     static const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
     {
