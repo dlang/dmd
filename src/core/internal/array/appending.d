@@ -12,10 +12,12 @@ module core.internal.array.appending;
 /// See $(REF _d_arrayappendcTX, rt,lifetime,_d_arrayappendcTX)
 private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n) @trusted pure nothrow;
 
+private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
+
 /// Implementation of `_d_arrayappendcTX` and `_d_arrayappendcTXTrace`
 template _d_arrayappendcTXImpl(Tarr : T[], T)
 {
-    import core.internal.array.utils : _d_HookTraceImpl, isPostblitNoThrow;
+    import core.internal.array.utils : _d_HookTraceImpl;
 
     private enum errorMessage = "Cannot append to array if compiling without support for runtime type information!";
 
@@ -32,7 +34,7 @@ template _d_arrayappendcTXImpl(Tarr : T[], T)
     *   purity, and throwabilty checks. To prevent breaking existing code, this function template
     *   is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
      */
-    static if (isPostblitNoThrow!T) // `nothrow` deduction doesn't work, so this is needed
+    static if (isCopyingNothrow!T) // `nothrow` deduction doesn't work, so this is needed
         ref Tarr _d_arrayappendcTX(return scope ref Tarr px, size_t n) @trusted pure nothrow
         {
             pragma(inline, false);
@@ -77,7 +79,7 @@ template _d_arrayappendcTXImpl(Tarr : T[], T)
 /// Implementation of `_d_arrayappendT` and `_d_arrayappendTTrace`
 template _d_arrayappendTImpl(Tarr : T[], T)
 {
-    import core.internal.array.utils : _d_HookTraceImpl, isPostblitNoThrow;
+    import core.internal.array.utils : _d_HookTraceImpl;
 
     private enum errorMessage = "Cannot append to array if compiling without support for runtime type information!";
 
@@ -93,7 +95,7 @@ template _d_arrayappendTImpl(Tarr : T[], T)
     *   purity, and throwabilty checks. To prevent breaking existing code, this function template
     *   is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
      */
-    static if (isPostblitNoThrow!T)
+    static if (isCopyingNothrow!T)
         ref Tarr _d_arrayappendT(return scope ref Tarr x, scope Tarr y) @trusted pure nothrow
         {
             pragma(inline, false);
@@ -110,18 +112,25 @@ template _d_arrayappendTImpl(Tarr : T[], T)
 
     private enum _d_arrayappendTBody = q{
         import core.stdc.string : memcpy;
-        import core.internal.traits : Unqual;
+        import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+        import core.lifetime : copyEmplace;
 
         auto length = x.length;
-        auto sizeelem = T.sizeof;
 
         _d_arrayappendcTXImpl!Tarr._d_arrayappendcTX(x, y.length);
 
-        if (y.length)
-            memcpy(cast(Unqual!T *)&x[length], cast(Unqual!T *)&y[0], y.length * sizeelem);
+        static if (hasElaborateCopyConstructor!T)
+        {
+            foreach (i; 0 .. y.length)
+                copyEmplace(y[i], x[length + i]);
+        }
+        else
+        {
+            // blit all elements at once
+            if (y.length)
+                memcpy(cast(Unqual!T *)&x[length], cast(Unqual!T *)&y[0], y.length * T.sizeof);
+        }
 
-        // do postblit
-        __doPostblit(cast(Unqual!Tarr)x[length .. length + y.length]);
         return x;
     };
 
@@ -133,30 +142,6 @@ template _d_arrayappendTImpl(Tarr : T[], T)
      *  is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
      */
     alias _d_arrayappendTTrace = _d_HookTraceImpl!(Tarr, _d_arrayappendT, errorMessage);
-}
-
-/**
- * Run postblit on `t` if it is a struct and needs it.
- * Or if `t` is a array, run it on the children if they have a postblit.
- */
-private void __doPostblit(T)(auto ref T t) @trusted pure
-{
-    import core.internal.traits : hasElaborateCopyConstructor;
-
-    static if (is(T == struct))
-    {
-        // run the postblit function incase the struct has one
-        static if (__traits(hasMember, T, "__xpostblit") &&
-                // Bugzilla 14746: Check that it's the exact member of S.
-                __traits(isSame, T, __traits(parent, t.__xpostblit)))
-            t.__xpostblit();
-    }
-    else static if (is(T U : U[]) && hasElaborateCopyConstructor!U)
-    {
-        // only do a postblit if the `U` requires it.
-        foreach (ref el; t)
-            __doPostblit(el);
-    }
 }
 
 @safe unittest
@@ -184,16 +169,16 @@ private void __doPostblit(T)(auto ref T t) @trusted pure
     arr1_org ~= arr2;
     _d_arrayappendTImpl!(typeof(arr1))._d_arrayappendT(arr1, arr2);
 
-    // postblit should have triggered on atleast the items in arr2
+    // postblit should have triggered on at least the items in arr2
     assert(blitted >= arr2.length);
 }
 
-@safe unittest
+@safe nothrow unittest
 {
     int blitted;
     struct Item
     {
-        this(this)
+        this(this) nothrow
         {
             blitted++;
         }
@@ -204,18 +189,18 @@ private void __doPostblit(T)(auto ref T t) @trusted pure
 
     _d_arrayappendTImpl!(typeof(arr1))._d_arrayappendT(arr1, arr2);
 
-    // no postblit should have happend because arr{1,2} contains dynamic arrays
+    // no postblit should have happened because arr{1,2} contain dynamic arrays
     assert(blitted == 0);
 }
 
-@safe unittest
+@safe nothrow unittest
 {
-    int blitted;
+    int copied;
     struct Item
     {
-        this(this)
+        this(const scope ref Item) nothrow
         {
-            blitted++;
+            copied++;
         }
     }
 
@@ -223,11 +208,11 @@ private void __doPostblit(T)(auto ref T t) @trusted pure
     Item[1][] arr2 = [[Item()]];
 
     _d_arrayappendTImpl!(typeof(arr1))._d_arrayappendT(arr1, arr2);
-    // postblit should have happend because arr{1,2} contains static arrays
-    assert(blitted >= arr2.length);
+    // copy constructor should have been invoked because arr{1,2} contain static arrays
+    assert(copied >= arr2.length);
 }
 
-@safe unittest
+@safe nothrow unittest
 {
     string str;
     _d_arrayappendTImpl!(typeof(str))._d_arrayappendT(str, "a");
