@@ -3024,6 +3024,29 @@ public:
 
     override void visit(TraitsExp e)
     {
+        TypeExp getTypeExp(RootObject o)
+        {
+            TypeExp te_result = null;
+
+            if (o.dyncast() != DYNCAST.expression || !(cast(Expression)o).isVarExp())
+            {
+                e.error("VarExp expected!");
+            }
+            else
+            {
+                auto e1 = interpretRegion(cast(VarExp)o, istate);
+                import dmd.asttypename;
+                te_result = e1.isTypeExp();
+                if (!te_result)
+                {
+                    e.error("Type expected");
+                    result = ErrorExp.get();
+                }
+            }
+
+            return te_result;
+        }
+
         Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
         {
             if (auto e = isExpression(oarg))
@@ -3093,23 +3116,36 @@ public:
         {
             auto o = (*e.args)[0];
 
-            if (o.dyncast() != DYNCAST.expression || !(cast(Expression)o).isVarExp())
-            {
-                e.error("VarExp expected!");
-                result = ErrorExp.get();
-                return ;
-            }
-            auto e1 = interpretRegion(cast(VarExp)o, istate);
-            import dmd.asttypename;
-            auto te = e1.isTypeExp();
-            if (!te)
-            {
-                e.error("Type expected");
-                result = ErrorExp.get();
-                return;
-            }
+            auto te = getTypeExp(o);
             result = new StringExp(e.loc, te.type.toString());
             result.type = Type.tstring;
+            return;
+        }
+
+        if (e.ident == Id.getSuper)
+        {
+            auto o = (*e.args)[0];
+
+            auto te = getTypeExp(o);
+
+            if (te.type.ty != Tclass)
+            {
+                warning(e.loc, "__traits(getSuper), used on type `%s` which is not a class", te.toChars());
+                result = new TypeExp(e.loc, Type.tempty);
+            }
+            else
+            {
+                auto tc = cast(TypeClass) te.type;
+                auto cd = tc.sym;
+                if (cd.semanticRun < PASS.semanticdone)
+                    cd.dsymbolSemantic(null);
+                auto bases = cd.baseclasses;
+
+                auto baseType = bases.length ? (*bases)[0].type : Type.tempty;
+
+                result = new TypeExp(e.loc, baseType);
+            }
+
             return;
         }
     }

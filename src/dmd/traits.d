@@ -2055,6 +2055,22 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
+    else if (e.ident == Id.getSuper)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+
+        if (auto exp = interceptTypeType(e, o, Type.ttype))
+        {
+            return exp;
+        }
+        else
+        {
+            e.error("trait getSuper is only suppoerted for type functions as for now");
+        }
+    }
 
     static const(char)[] trait_search_fp(const(char)[] seed, out int cost)
     {

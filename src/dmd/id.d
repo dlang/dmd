@@ -458,6 +458,7 @@ immutable Msgtable[] msgtable =
     { "getFunctionVariadicStyle" },
     { "getParameterStorageClasses" },
     { "getLinkage" },
+    { "getSuper" },
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
