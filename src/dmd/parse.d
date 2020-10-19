@@ -361,7 +361,7 @@ final class Parser(AST) : Lexer
                 case TOK.at:
                     {
                         AST.Expressions* exps = null;
-                        const stc = parseAttribute(&exps);
+                        const stc = parseAttribute(exps);
                         if (stc & atAttrGroup)
                         {
                             error("`@%s` attribute for module declaration is not supported", token.toChars());
@@ -810,7 +810,7 @@ final class Parser(AST) : Lexer
             case TOK.at:
                 {
                     AST.Expressions* exps = null;
-                    stc = parseAttribute(&exps);
+                    stc = parseAttribute(exps);
                     if (stc)
                         goto Lstc; // it's a predefined attribute
                     // no redundant/conflicting check for UDAs
@@ -1425,60 +1425,55 @@ final class Parser(AST) : Lexer
     }
 
     /***********************************************
-     * Parse attribute, lexer is on '@'.
-     * Input:
-     *      pudas           array of UDAs to append to
+     * Parse attribute(s), lexer is on '@'.
+     *
+     * Attributes can be builtin (e.g. `@safe`, `@nogc`, etc...),
+     * or be user-defined (UDAs). In the former case, we return the storage
+     * class via the return value, while in thelater case we return `0`
+     * and set `pudas`.
+     *
+     * Params:
+     *   pudas = An array of UDAs to append to
+     *
      * Returns:
-     *      storage class   if a predefined attribute; also scanner remains on identifier.
-     *      0               if not a predefined attribute
-     *      *pudas          set if user defined attribute, scanner is past UDA
-     *      *pudas          NULL if not a user defined attribute
+     *   If the attribute is builtin, the return value will be non-zero.
+     *   Otherwise, 0 is returned, and `pudas` will be appended to.
      */
-    private StorageClass parseAttribute(AST.Expressions** pudas)
+    private StorageClass parseAttribute(ref AST.Expressions* udas)
     {
         nextToken();
-        AST.Expressions* udas = null;
-        StorageClass stc = 0;
         if (token.value == TOK.identifier)
         {
-            stc = isBuiltinAtAttribute(token.ident);
-            if (!stc)
-            {
-                // Allow identifier, template instantiation, or function call
-                AST.Expression exp = parsePrimaryExp();
-                if (token.value == TOK.leftParentheses)
-                {
-                    const loc = token.loc;
-                    exp = new AST.CallExp(loc, exp, parseArguments());
-                }
+            // If we find a builtin attribute, we're done, return immediately.
+            if (StorageClass stc = isBuiltinAtAttribute(token.ident))
+                return stc;
 
-                udas = new AST.Expressions();
-                udas.push(exp);
+            // Allow identifier, template instantiation, or function call
+            // for `@Argument` (single UDA) form.
+            AST.Expression exp = parsePrimaryExp();
+            if (token.value == TOK.leftParentheses)
+            {
+                const loc = token.loc;
+                exp = new AST.CallExp(loc, exp, parseArguments());
             }
+
+            if (udas is null)
+                udas = new AST.Expressions();
+            udas.push(exp);
+            return 0;
         }
-        else if (token.value == TOK.leftParentheses)
+
+        if (token.value == TOK.leftParentheses)
         {
-            // @( ArgumentList )
-            // Concatenate with existing
+            // Multi-UDAs ( `@( ArgumentList )`) form, concatenate with existing
             if (peekNext() == TOK.rightParentheses)
                 error("empty attribute list is not allowed");
-            udas = parseArguments();
-        }
-        else
-        {
-            error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+            udas = AST.UserAttributeDeclaration.concat(udas, parseArguments());
+            return 0;
         }
 
-        if (stc)
-        {
-        }
-        else if (udas)
-        {
-            *pudas = AST.UserAttributeDeclaration.concat(*pudas, udas);
-        }
-        else
-            error("valid attributes are `@property`, `@safe`, `@trusted`, `@system`, `@disable`, `@nogc`");
-        return stc;
+        error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+        return 0;
     }
 
     /***********************************************
@@ -1526,7 +1521,7 @@ final class Parser(AST) : Lexer
             case TOK.at:
                 {
                     AST.Expressions* udas = null;
-                    stc = parseAttribute(&udas);
+                    stc = parseAttribute(udas);
                     if (udas)
                     {
                         if (pudas)
@@ -2912,7 +2907,7 @@ final class Parser(AST) : Lexer
                 case TOK.at:
                     {
                         AST.Expressions* exps = null;
-                        StorageClass stc2 = parseAttribute(&exps);
+                        StorageClass stc2 = parseAttribute(exps);
                         if (stc2 & atAttrGroup)
                         {
                             error("`@%s` attribute for function parameter is not supported", token.toChars());
@@ -3054,7 +3049,7 @@ final class Parser(AST) : Lexer
                         if (token.value == TOK.at)
                         {
                             AST.Expressions* exps = null;
-                            StorageClass stc2 = parseAttribute(&exps);
+                            StorageClass stc2 = parseAttribute(exps);
                             if (stc2 & atAttrGroup)
                             {
                                 error("`@%s` attribute for function parameter is not supported", token.toChars());
@@ -3162,7 +3157,7 @@ final class Parser(AST) : Lexer
                     switch(token.value)
                     {
                         case TOK.at:
-                            if (StorageClass _stc = parseAttribute(&udas))
+                            if (StorageClass _stc = parseAttribute(udas))
                             {
                                 if (_stc == STC.disable)
                                     stc |= _stc;
@@ -4336,7 +4331,7 @@ final class Parser(AST) : Lexer
 
             case TOK.at:
                 {
-                    stc = parseAttribute(&udas);
+                    stc = parseAttribute(udas);
                     if (stc)
                         goto L1;
                     continue;
