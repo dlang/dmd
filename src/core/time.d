@@ -3064,7 +3064,7 @@ struct TickDuration
         {
             T a = TickDuration.currSystemTick;
             T b = TickDuration.currSystemTick;
-            assert((a + b).seconds > 0);
+            assert((a + b).usecs > 0);
             assert((a - b).seconds <= 0);
         }
     }
