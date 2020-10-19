@@ -19,6 +19,8 @@ fail_compilation/traits.d(309): Error: In expression `__traits(derivedMembers, f
 fail_compilation/traits.d(309):        `float` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation
 fail_compilation/traits.d(316): Error: In expression `__traits(derivedMembers, TemplatedStruct)` struct `TemplatedStruct(T)` has no members
 fail_compilation/traits.d(316):        `TemplatedStruct(T)` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation
+fail_compilation/traits.d(404): Error: function `traits.func1` circular reference in `__traits(GetCppNamespaces,...)`
+fail_compilation/traits.d(413): Error: function `traits.foo1.func1` circular reference in `__traits(GetCppNamespaces,...)`
 ---
 */
 
@@ -59,3 +61,23 @@ enum DM5 = __traits(derivedMembers, Interface);             // no error
 enum DM6 = __traits(derivedMembers, TemplatedStruct!float); // no error
 enum DM7 = __traits(derivedMembers, TemplatedStruct);       // compile error
 enum DM8 = __traits(derivedMembers, mixin(__MODULE__));     // no error
+
+#line 400
+extern(C++, "bar")
+extern(C++, __traits(getCppNamespaces, func1)) void func () {}
+
+extern(C++, "foo")
+extern(C++, __traits(getCppNamespaces, func2)) void func1 () {}
+
+extern(C++, "foobar")
+extern(C++, __traits(getCppNamespaces, func)) void func2 () {}
+
+extern(C++, bar1)
+extern(C++, __traits(getCppNamespaces, foo1.func1)) void func () {}
+
+extern(C++, foo1)
+extern(C++, __traits(getCppNamespaces, foobar1.func2)) void func1 () {}
+
+extern(C++, foobar1)
+extern(C++, __traits(getCppNamespaces, bar1.func)) void func2 () {}
+
