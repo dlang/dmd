@@ -41,21 +41,18 @@ extern (C) void _d_criticalenter(D_CRITICAL_SECTION* cs)
 
 extern (C) void _d_criticalenter2(D_CRITICAL_SECTION** pcs)
 {
-    D_CRITICAL_SECTION* cs = void;
-    if (*pcs is null)
+    if (atomicLoad!(MemoryOrder.acq)(*pcs) is null)
     {
         lockMutex(cast(Mutex*)&gcs.mtx);
-        if (*pcs is null)
+        if (atomicLoad!(MemoryOrder.raw)(*pcs) is null)
         {
-            cs = new D_CRITICAL_SECTION;
+            auto cs = new D_CRITICAL_SECTION;
             initMutex(cast(Mutex*)&cs.mtx);
-            *pcs = cs;
+            atomicStore!(MemoryOrder.rel)(*pcs, cs);
         }
         unlockMutex(cast(Mutex*)&gcs.mtx);
     }
-    else
-        cs = *pcs;
-    lockMutex(&cs.mtx);
+    lockMutex(&(*pcs).mtx);
 }
 
 extern (C) void _d_criticalexit(D_CRITICAL_SECTION* cs)
