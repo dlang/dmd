@@ -253,8 +253,11 @@ class Semaphore
         }
         else version (Posix)
         {
+            import core.sys.posix.time : clock_gettime, CLOCK_REALTIME;
+
             timespec t = void;
-            mktspec( t, period );
+            clock_gettime( CLOCK_REALTIME, &t );
+            mvtspec( t, period );
 
             while ( true )
             {
