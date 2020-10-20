@@ -1466,7 +1466,7 @@ final class Parser(AST) : Lexer
         }
         else
         {
-            error("@identifier or @(ArgumentList) expected, not `@%s`", token.toChars());
+            error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
         }
 
         if (stc)
@@ -1694,7 +1694,7 @@ final class Parser(AST) : Lexer
                     {
                         if (token.value != TOK.identifier)
                         {
-                            error("identifier expected for template alias parameter");
+                            error("identifier expected for template `alias` parameter");
                             goto Lerr;
                         }
                         tp_ident = token.ident;
@@ -1761,7 +1761,7 @@ final class Parser(AST) : Lexer
                     nextToken();
                     if (token.value != TOK.identifier)
                     {
-                        error("identifier expected for template this parameter");
+                        error("identifier expected for template `this` parameter");
                         goto Lerr;
                     }
                     loc = token.loc;
@@ -1902,7 +1902,7 @@ final class Parser(AST) : Lexer
 
         tm = new AST.TemplateMixin(locMixin, id, tqual, tiargs);
         if (token.value != TOK.semicolon)
-            error("`;` expected after mixin");
+            error("`;` expected after `mixin`");
         nextToken();
 
         return tm;
@@ -2385,7 +2385,7 @@ final class Parser(AST) : Lexer
             else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
                 level = cast(uint)token.unsvalue;
             else
-                error("identifier or integer expected inside debug(...), not `%s`", token.toChars());
+                error("identifier or integer expected inside `debug(...)`, not `%s`", token.toChars());
             nextToken();
             check(TOK.rightParentheses);
         }
@@ -2417,7 +2417,7 @@ final class Parser(AST) : Lexer
             else if (token.value == TOK.assert_)
                 id = Identifier.idPool(Token.toString(TOK.assert_));
             else
-                error("identifier or integer expected inside version(...), not `%s`", token.toChars());
+                error("identifier or integer expected inside `version(...)`, not `%s`", token.toChars());
             nextToken();
             check(TOK.rightParentheses);
         }
