@@ -2,8 +2,7 @@
 REQUIRED_ARGS: -unittest
 TEST_OUTPUT:
 ---
-fail_compilation/test19176.d(19): Error: `static if` conditional cannot be at global scope
-fail_compilation/test19176.d(14): Error: `tuple()` has no effect
+fail_compilation/test19176.d(13): Error: argument `foo()` to __traits(getUnitTests) must be a module or aggregate, not a template
 ---
 */
 

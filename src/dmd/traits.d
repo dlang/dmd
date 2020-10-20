@@ -1813,7 +1813,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             s = imp.mod;
 
         auto sds = s.isScopeDsymbol();
-        if (!sds)
+        if (!sds || sds.isTemplateDeclaration())
         {
             e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
                 s.toChars(), s.kind());
