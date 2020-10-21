@@ -1231,12 +1231,12 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
         // this check seems to fail for nested aggregates
         /* && __traits(compiles, (ref S src) { T tgt = src; }) */)
 {
-    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+    import core.internal.traits : hasElaborateCopyConstructor, Unconst, Unqual;
 
     void blit()
     {
         import core.stdc.string : memcpy;
-        memcpy(cast(void*) &target, &source, T.sizeof);
+        memcpy(cast(Unqual!(T)*) &target, cast(Unqual!(T)*) &source, T.sizeof);
     }
 
     static if (is(T == struct))
@@ -1252,7 +1252,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
             static if (__traits(isNested, T))
             {
                  // copy context pointer
-                cast() target.tupleof[$-1] = cast(typeof(target.tupleof[$-1])) source.tupleof[$-1];
+                *(cast(void**) &target.tupleof[$-1]) = cast(void*) source.tupleof[$-1];
             }
             target.__ctor(source); // invoke copy ctor
         }
@@ -1275,7 +1275,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
             {
                 // destroy, in reverse order, what we've constructed so far
                 while (i--)
-                    destroy(*cast(Unqual!(E)*) &target[i]);
+                    destroy(*cast(Unconst!(E)*) &target[i]);
                 throw e;
             }
         }
@@ -1286,7 +1286,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     }
     else
     {
-        cast() target = source;
+        *cast(Unconst!(T)*) &target = source;
     }
 }
 
@@ -1324,6 +1324,25 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     S target = void;
     copyEmplace(source, target);
     assert(target.x == 42);
+}
+
+// preserve shared-ness
+@system pure nothrow unittest
+{
+    auto s = new Object();
+    auto ss = new shared Object();
+
+    Object t;
+    shared Object st;
+
+    copyEmplace(s, t);
+    assert(t is s);
+
+    copyEmplace(ss, st);
+    assert(st is ss);
+
+    static assert(!__traits(compiles, copyEmplace(s, st)));
+    static assert(!__traits(compiles, copyEmplace(ss, t)));
 }
 
 version (CoreUnittest)
