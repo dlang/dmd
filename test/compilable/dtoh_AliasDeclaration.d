@@ -39,6 +39,18 @@ class C2;
 typedef C2* aliasC2;
 
 typedef size_t(*F)(size_t x);
+
+template <typename T, typename U>
+struct TS
+{
+    TS()
+    {
+    }
+};
+
+template <typename T, typename U>
+using TSD = TS<T, U>;
+typedef TSD<int32_t, int16_t > TSI;
 ---
 */
 
@@ -79,3 +91,7 @@ extern (C++) class C2;
 alias aliasC2 = C2;
 
 alias F = size_t function (size_t x);
+
+extern(C++) struct TS(T, U) {}
+alias TSD = TS;
+alias TSI = TSD!(int, short);

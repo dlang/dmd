@@ -728,6 +728,27 @@ public:
             writeDeclEnd();
             return;
         }
+        else if (auto td = ad.aliassym.isTemplateDeclaration())
+        {
+            if (global.params.cplusplus < CppStdRevision.cpp11)
+            {
+                ignored("%s because `using` declarations require C++ 11", ad.toPrettyChars());
+                return;
+            }
+
+            printTemplateParams(td);
+            buf.printf("using %s = %s<", ad.ident.toChars(), td.ident.toChars());
+
+            foreach (const idx, const p; *td.parameters)
+            {
+                if (idx)
+                    buf.writestring(", ");
+                buf.writestring(p.ident.toChars());
+            }
+            buf.writestringln(">;");
+            return;
+        }
+
         if (ad.aliassym.isDtorDeclaration())
         {
             // Ignore. It's taken care of while visiting FuncDeclaration
@@ -1618,6 +1639,20 @@ public:
         auto save = tdparent;
         tdparent = td;
         const bookmark = buf.length;
+        printTemplateParams(td);
+
+        const oldIgnored = this.ignoredCounter;
+        td.onemember.accept(this);
+
+        // Remove "template<...>" if the symbol could not be emitted
+        if (oldIgnored != this.ignoredCounter)
+            buf.setsize(bookmark);
+
+        tdparent = save;
+    }
+
+    private void printTemplateParams(const AST.TemplateDeclaration td)
+    {
         buf.writestring("template <");
         bool first = true;
         foreach (p; *td.parameters)
@@ -1630,15 +1665,6 @@ public:
             buf.writestring(p.ident.toChars());
         }
         buf.writestringln(">");
-
-        const oldIgnored = this.ignoredCounter;
-        td.onemember.accept(this);
-
-        // Remove "template<...>" if the symbol could not be emitted
-        if (oldIgnored != this.ignoredCounter)
-            buf.setsize(bookmark);
-
-        tdparent = save;
     }
 
     override void visit(AST.TypeClass t)

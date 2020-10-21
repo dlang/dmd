@@ -120,3 +120,16 @@ extern(C++) class VTable
 }
 
 extern(C++) __gshared VTable vtable = new VTable();
+
+extern(C++) struct TemplatedStruct(T)
+{
+    T t;
+    this(T t) { this.t = t; }
+}
+
+alias Templated = TemplatedStruct;
+
+extern(C++) Templated!int templated(Templated!(Templated!int) i)
+{
+    return typeof(return)(i.t.t);
+}
