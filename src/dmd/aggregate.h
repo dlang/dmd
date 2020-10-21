@@ -58,17 +58,14 @@ enum class Abstract : uint8_t
 
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
-struct ClassKind
+enum class ClassKind : uint8_t
 {
-    enum class Type : uint8_t
-    {
-        /// the aggregate is a d(efault) struct/class/interface
-        d,
-        /// the aggregate is a C++ struct/class/interface
-        cpp,
-        /// the aggregate is an Objective-C class/interface
-        objc
-    };
+  /// the aggregate is a d(efault) struct/class/interface
+  d,
+  /// the aggregate is a C++ struct/class/interface
+  cpp,
+  /// the aggregate is an Objective-C class/interface
+  objc
 };
 
 class AggregateDeclaration : public ScopeDsymbol
@@ -81,7 +78,7 @@ public:
     VarDeclarations fields;     // VarDeclaration fields
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
 
-    ClassKind::Type classKind;  // specifies the linkage type
+    ClassKind classKind;        // specifies the linkage type
     CPPMANGLE cppmangle;
 
     /* !=NULL if is nested
