@@ -24,7 +24,7 @@ struct A
 
 struct B
 {
-    A<int32_t> x;
+    A<int32_t > x;
     B() :
         x()
     {
@@ -45,7 +45,7 @@ template <typename T>
 struct Bar
 {
     // Ignoring var v alignment 0
-    Foo<T> v;
+    Foo<T > v;
     Bar()
     {
     }
@@ -74,6 +74,8 @@ struct Array
 
 template <typename T, typename U>
 extern T foo(U u);
+
+extern A<A<int32_t > > aaint;
 ---
 */
 
@@ -139,3 +141,5 @@ struct Outer
 // alias AO = Array!Outer;
 
 extern(C++) T foo(T, U)(U u) { return T.init; }
+
+extern(C++) A!(A!int) aaint;

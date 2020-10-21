@@ -1579,7 +1579,7 @@ public:
                 assert(0);
             }
         }
-        buf.writeByte('>');
+        buf.writestring(" >");
     }
 
     override void visit(AST.TemplateDeclaration td)

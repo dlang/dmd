@@ -39,7 +39,6 @@ class C2;
 typedef C2* aliasC2;
 
 typedef size_t(*F)(size_t x);
-
 ---
 */
 
