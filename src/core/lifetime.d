@@ -1227,11 +1227,17 @@ pure nothrow @safe /* @nogc */ unittest
  *   target = uninitialized value to be initialized with a copy of source
  */
 void copyEmplace(S, T)(ref S source, ref T target) @system
-    if (is(immutable S == immutable T)
-        // this check seems to fail for nested aggregates
-        /* && __traits(compiles, (ref S src) { T tgt = src; }) */)
+    if (is(immutable S == immutable T))
 {
-    import core.internal.traits : hasElaborateCopyConstructor, Unconst, Unqual;
+    import core.internal.traits : BaseElemOf, hasElaborateCopyConstructor, Unconst, Unqual;
+
+    // cannot have the following as simple template constraint due to nested-struct special case...
+    static if (!__traits(compiles, (ref S src) { T tgt = src; }))
+    {
+        alias B = BaseElemOf!T;
+        enum isNestedStruct = is(B == struct) && __traits(isNested, B);
+        static assert(isNestedStruct, "cannot copy-construct " ~ T.stringof ~ " from " ~ S.stringof);
+    }
 
     void blit()
     {
@@ -1286,7 +1292,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     }
     else
     {
-        *cast(Unconst!(T)*) &target = source;
+        *cast(Unconst!(T)*) &target = *cast(Unconst!(T)*) &source;
     }
 }
 
@@ -1343,6 +1349,25 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
 
     static assert(!__traits(compiles, copyEmplace(s, st)));
     static assert(!__traits(compiles, copyEmplace(ss, t)));
+}
+
+// don't violate immutability for reference types
+@system pure nothrow unittest
+{
+    auto s = new Object();
+    auto si = new immutable Object();
+
+    Object t;
+    immutable Object ti;
+
+    copyEmplace(s, t);
+    assert(t is s);
+
+    copyEmplace(si, ti);
+    assert(ti is si);
+
+    static assert(!__traits(compiles, copyEmplace(s, ti)));
+    static assert(!__traits(compiles, copyEmplace(si, t)));
 }
 
 version (CoreUnittest)
@@ -1431,11 +1456,23 @@ version (CoreUnittest)
         }
     }
 
-    S source = S(666);
-    immutable S target = void;
-    copyEmplace(source, target);
-    assert(target is source);
-    assert(copies == 1);
+    {
+        copies = 0;
+        S source = S(123);
+        immutable S target = void;
+        copyEmplace(source, target);
+        assert(target is source);
+        assert(copies == 1);
+    }
+
+    {
+        copies = 0;
+        immutable S[1] source = [immutable S(456)];
+        S[1] target = void;
+        copyEmplace(source, target);
+        assert(target[0] is source[0]);
+        assert(copies == 1);
+    }
 }
 
 // destruction of partially copied static array
