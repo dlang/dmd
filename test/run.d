@@ -251,7 +251,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
             sourceFile = toolsDir.buildPath(tool ~ ".d");
         }
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
-            writefln("%s is already up-to-date", tool);
+            log("%s is already up-to-date", tool);
         else
         {
             string[] command;
@@ -438,7 +438,7 @@ auto filterTargets(Target[] targets, string[string] env)
         auto resultRunTime = resultsDir.buildPath(testName ~ ".out").timeLastModified.ifThrown(SysTime.init);
         if (!force && resultRunTime > testPath(testName).timeLastModified &&
                 resultRunTime > env["DMD"].timeLastModified.ifThrown(SysTime.init))
-            writefln("%s is already up-to-date", testName);
+            log("%s is already up-to-date", testName);
         else
             targetsThatNeedUpdating ~= t;
     }
