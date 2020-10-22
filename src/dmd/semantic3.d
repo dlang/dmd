@@ -1472,7 +1472,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Evaluate: RTinfo!type
             auto tiargs = new Objects();
             tiargs.push(ad.type);
-            auto ti = Pool!TemplateInstance.make(ad.loc, Type.rtinfo, tiargs);
+            auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
 
             Scope* sc3 = ti.tempdecl._scope.startCTFE();
             sc3.tinst = sc.tinst;

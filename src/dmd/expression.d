@@ -3947,7 +3947,7 @@ extern (C++) final class FuncExp : Expression
             if (!tf.next && tof.next)
                 fd.treq = to;
 
-            auto ti = Pool!TemplateInstance.make(loc, td, tiargs);
+            auto ti = new TemplateInstance(loc, td, tiargs);
             Expression ex = (new ScopeExp(loc, ti)).expressionSemantic(td._scope);
 
             // Reset inference target for the later re-semantic
@@ -4875,7 +4875,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
     {
         super(loc, TOK.dotTemplateInstance, __traits(classInstanceSize, DotTemplateInstanceExp), e);
         //printf("DotTemplateInstanceExp()\n");
-        this.ti = Pool!TemplateInstance.make(loc, name, tiargs);
+        this.ti = new TemplateInstance(loc, name, tiargs);
     }
 
     extern (D) this(const ref Loc loc, Expression e, TemplateInstance ti)
