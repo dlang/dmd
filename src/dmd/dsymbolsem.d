@@ -5926,17 +5926,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     {
         tempinst.minst = null;
     }
-    // https://issues.dlang.org/show_bug.cgi?id=21299
-    // If not speculative, this instance should have the same instantiating
-    // root module as its enclosing template symbol. This can differ when
-    // the enclosing template gets changed from non-root to a root instance
-    // in the instantiation graph. When that occurs, this instance also
-    // needs to be appended to the root module, otherwise there will be
-    // undefined references at link-time.
-    if (tempinst.minst && tempinst.tinst)
-    {
-        tempinst.minst = tempinst.tinst.minst;
-    }
 
     tempinst.gagged = (global.gag > 0);
 
@@ -6055,17 +6044,18 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         if (tempinst.minst && tempinst.minst.isRoot() && !(tempinst.inst.minst && tempinst.inst.minst.isRoot()))
         {
             /* Swap the position of 'inst' and 'this' in the instantiation graph.
-             * Then, the primary instance `inst` will be changed to a root instance.
+             * Then, the primary instance `inst` will be changed to a root instance,
+             * along with all members of `inst` having their scopes updated.
              *
              * Before:
-             *  non-root -> A!() -> B!()[inst] -> C!()
+             *  non-root -> A!() -> B!()[inst] -> C!() { members[non-root] }
              *                      |
              *  root     -> D!() -> B!()[this]
              *
              * After:
              *  non-root -> A!() -> B!()[this]
              *                      |
-             *  root     -> D!() -> B!()[inst] -> C!()
+             *  root     -> D!() -> B!()[inst] -> C!() { members[root] }
              */
             Module mi = tempinst.minst;
             TemplateInstance ti = tempinst.tinst;
@@ -6073,6 +6063,53 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
             tempinst.tinst = tempinst.inst.tinst;
             tempinst.inst.minst = mi;
             tempinst.inst.tinst = ti;
+
+            /* https://issues.dlang.org/show_bug.cgi?id=21299
+               `minst` has been updated on the primary instance `inst` so it is
+               now coming from a root module, however all Dsymbol `inst.members`
+               of the instance still have their `_scope.minst` pointing at the
+               original non-root module. We must now propagate `minst` to all
+               members so that forward referenced dependencies that get
+               instantiated will also be appended to the root module, otherwise
+               there will be undefined references at link-time.  */
+            extern (C++) final class InstMemberWalker : Visitor
+            {
+                alias visit = Visitor.visit;
+                TemplateInstance inst;
+
+                extern (D) this(TemplateInstance inst)
+                {
+                    this.inst = inst;
+                }
+
+                override void visit(Dsymbol d)
+                {
+                    if (d._scope)
+                        d._scope.minst = inst.minst;
+                }
+
+                override void visit(ScopeDsymbol sds)
+                {
+                    sds.members.foreachDsymbol( s => s.accept(this) );
+                    visit(cast(Dsymbol)sds);
+                }
+
+                override void visit(AttribDeclaration ad)
+                {
+                    ad.include(null).foreachDsymbol( s => s.accept(this) );
+                    visit(cast(Dsymbol)ad);
+                }
+
+                override void visit(ConditionalDeclaration cd)
+                {
+                    if (cd.condition.inc)
+                        visit(cast(AttribDeclaration)cd);
+                    else
+                        visit(cast(Dsymbol)cd);
+                }
+            }
+            scope v = new InstMemberWalker(tempinst.inst);
+            tempinst.inst.accept(v);
 
             if (tempinst.minst) // if inst was not speculative
             {
