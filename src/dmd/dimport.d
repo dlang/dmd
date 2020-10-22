@@ -22,7 +22,6 @@ import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.root.rmem;
 import dmd.visitor;
 
 /***********************************************************
@@ -266,7 +265,7 @@ extern (C++) final class Import : Dsymbol
             Identifier _alias = aliases[i];
             if (!_alias)
                 _alias = name;
-            auto tname = Pool!TypeIdentifier.make(loc, name);
+            auto tname = new TypeIdentifier(loc, name);
             auto ad = new AliasDeclaration(loc, _alias, tname);
             ad._import = this;
             ad.addMember(sc, sd);
