@@ -67,7 +67,6 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.root.array;
 import dmd.root.outbuffer;
-import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -1507,7 +1506,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (auto ttp = param.isTemplateThisParameter())
                 {
                     hasttp = true;
-                    scope t = new TypeIdentifier(Loc.initial, ttp.ident);
+
+                    Type t = new TypeIdentifier(Loc.initial, ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCH.nomatch)
                         goto Lnomatch;
@@ -2833,23 +2833,17 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         {
             if (!tiargs)
                 tiargs = new Objects();
-            auto ti = Pool!TemplateInstance.make(loc, td, tiargs);
+            auto ti = new TemplateInstance(loc, td, tiargs);
             Objects dedtypes = Objects(td.parameters.dim);
             assert(td.semanticRun != PASS.init);
             MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta <= MATCH.nomatch || mta < ta_last)   // no match or less match
-            {
-                Pool!TemplateInstance.dispose(ti);
                 return 0;
-            }
 
             ti.templateInstanceSemantic(sc, fargs);
             if (!ti.inst)               // if template failed to expand
-            {
-                Pool!TemplateInstance.dispose(ti);
                 return 0;
-            }
 
             Dsymbol s = ti.inst.toAlias();
             FuncDeclaration fd;
@@ -2872,7 +2866,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                             if (scx == p.sc)
                             {
                                 error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
-                                Pool!TemplateInstance.dispose(ti);
                                 goto Lerror;
                             }
                         }
@@ -2906,7 +2899,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 m.lastf = fd;   // to propagate "error match"
                 m.count = 1;
                 m.last = MATCH.nomatch;
-                Pool!TemplateInstance.dispose(ti);
                 return 1;
             }
 
@@ -2930,7 +2922,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             return 0;
 
         Ltd_best2:
-            Pool!TemplateInstance.dispose(ti);
             return 0;
 
         Ltd2:
@@ -2957,7 +2948,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
 
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
-            auto ti = Pool!TemplateInstance.make(loc, td, tiargs);
+            auto ti = new TemplateInstance(loc, td, tiargs);
             ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
 
             auto fd = f;
@@ -2966,10 +2957,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             MATCH mfa = cast(MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
             if (!fd || mfa == MATCH.nomatch)
-            {
-                Pool!TemplateInstance.dispose(ti);
                 continue;
-            }
 
             Type tthis_fd = fd.needThis() ? tthis : null;
 
@@ -3087,14 +3075,12 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (!sc)
             sc = td_best._scope; // workaround for Type.aliasthisOf
 
-        auto ti = Pool!TemplateInstance.make(loc, td_best, ti_best.tiargs);
+        auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
         ti.templateInstanceSemantic(sc, fargs);
 
         m.lastf = ti.toAlias().isFuncDeclaration();
         if (!m.lastf)
-        {
             goto Lnomatch;
-        }
         if (ti.errors)
         {
         Lerror:
@@ -4055,12 +4041,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                          * it up and seeing if is an alias.
                          * https://issues.dlang.org/show_bug.cgi?id=1454
                          */
-                        auto tid = Pool!TypeIdentifier.make(tp.loc, tp.tempinst.name);
+                        auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
                         Type tx;
                         Expression e;
                         Dsymbol s;
                         tid.resolve(tp.loc, sc, &e, &tx, &s);
-                        Pool!TypeIdentifier.dispose(tid);
                         if (tx)
                         {
                             s = tx.toDsymbol(sc);
@@ -4839,17 +4824,16 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (!tf.next && tof.next)
                     e.fd.treq = tparam;
 
-                auto ti = Pool!TemplateInstance.make(e.loc, e.td, tiargs);
+                auto ti = new TemplateInstance(e.loc, e.td, tiargs);
                 Expression ex = (new ScopeExp(e.loc, ti)).expressionSemantic(e.td._scope);
 
                 // Reset inference target for the later re-semantic
                 e.fd.treq = null;
 
-                if (ex.op != TOK.function_)
-                {
-                    Pool!TemplateInstance.dispose(ti);
+                if (ex.op == TOK.error)
                     return;
-                }
+                if (ex.op != TOK.function_)
+                    return;
                 visit(ex.type);
                 return;
             }
@@ -5400,12 +5384,9 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     override final bool declareParameter(Scope* sc)
     {
         //printf("TemplateTypeParameter.declareParameter('%s')\n", ident.toChars());
-        auto ti = Pool!TypeIdentifier.make(loc, ident);
+        auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
-        if (sc.insert(ad) !is null)
-            return true;
-        Pool!TypeIdentifier.dispose(ti);
-        return false;
+        return sc.insert(ad) !is null;
     }
 
     override final void print(RootObject oarg, RootObject oded)
@@ -5452,7 +5433,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         {
             // Use this for alias-parameter's too (?)
             if (!tdummy)
-                tdummy = Pool!TypeIdentifier.make(loc, ident);
+                tdummy = new TypeIdentifier(loc, ident);
             t = tdummy;
         }
         return t;
@@ -5629,12 +5610,9 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
     override bool declareParameter(Scope* sc)
     {
-        auto ti = Pool!TypeIdentifier.make(loc, ident);
+        auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
-        if (sc.insert(ad) !is null)
-            return true;
-        Pool!TypeIdentifier.dispose(ti);
-        return false;
+        return sc.insert(ad) !is null;
     }
 
     override void print(RootObject oarg, RootObject oded)
@@ -5714,12 +5692,9 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
 
     override bool declareParameter(Scope* sc)
     {
-        auto ti = Pool!TypeIdentifier.make(loc, ident);
+        auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
-        if (sc.insert(ad) !is null)
-            return true;
-        Pool!TypeIdentifier.dispose(ti);
-        return false;
+        return sc.insert(ad) !is null;
     }
 
     override void print(RootObject oarg, RootObject oded)
@@ -5899,7 +5874,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        TemplateInstance ti = s ? cast(TemplateInstance)s : Pool!TemplateInstance.make(loc, name, null);
+        TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
         ti.tiargs = arraySyntaxCopy(tiargs);
         TemplateDeclaration td;
         if (inst && tempdecl && (td = tempdecl.isTemplateDeclaration()) !is null)

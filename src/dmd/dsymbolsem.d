@@ -4099,7 +4099,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cmainTemplateExists())
             {
                 // add `mixin _d_cmain!();` to the declaring module
-                auto tqual = Pool!TypeIdentifier.make(funcdecl.loc, Id.CMain);
+                auto tqual = new TypeIdentifier(funcdecl.loc, Id.CMain);
                 auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
                 sc._module.members.push(tm);
             }
