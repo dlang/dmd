@@ -52,5 +52,11 @@ int main()
     assert(vtable->callable_2() == 2);
     assert(vtable->callable_4() == 4);
     assert(vtable->callable_6() == 6);
+
+#if !defined(_WIN64)
+    // The call segfaults on Win64, probably an unrelated (ABI?) bug
+    assert(templated(Templated<int>(4)).t == 4);
+#endif
+
     return 0;
 }
