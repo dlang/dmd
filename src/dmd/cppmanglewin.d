@@ -909,74 +909,72 @@ extern(D):
             buf.writestring(name.toString());
             buf.writeByte('@');
         }
-        if (TemplateInstance ti = sym.isTemplateInstance())
+        auto ti = sym.isTemplateInstance();
+        if (!ti)
         {
-            auto id = ti.tempdecl.ident;
-            auto symName = id.toString();
-
-            int firstTemplateArg = 0;
-
-            // test for special symbols
-            if (mangleOperator(ti,symName,firstTemplateArg))
-                return;
-
-            scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
-            tmp.buf.writeByte('?');
-            tmp.buf.writeByte('$');
-            tmp.buf.writestring(symName);
-            tmp.saved_idents[0] = id;
-            if (symName == id.toString())
-                tmp.buf.writeByte('@');
-            if (flags & IS_DMC)
-            {
-                tmp.mangleIdent(sym.parent, true);
-                is_dmc_template = true;
-            }
-            bool is_var_arg = false;
-            for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
-            {
-                RootObject o = (*ti.tiargs)[i];
-                TemplateParameter tp = null;
-                TemplateValueParameter tv = null;
-                TemplateTupleParameter tt = null;
-                if (!is_var_arg)
-                {
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                    assert(td);
-                    tp = (*td.parameters)[i];
-                    tv = tp.isTemplateValueParameter();
-                    tt = tp.isTemplateTupleParameter();
-                }
-                if (tt)
-                {
-                    is_var_arg = true;
-                    tp = null;
-                }
-                if (tv)
-                {
-                    tmp.manlgeTemplateValue(o, tv, sym, is_dmc_template);
-                }
-                else if (!tp || tp.isTemplateTypeParameter())
-                {
-                    tmp.mangleTemplateType(o);
-                }
-                else if (tp.isTemplateAliasParameter())
-                {
-                    tmp.mangleTemplateAlias(o, sym);
-                }
-                else
-                {
-                    sym.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                    fatal();
-                }
-            }
-            writeName(Identifier.idPool(tmp.buf.extractSlice()));
-        }
-        else
-        {
-            // Not a template
             writeName(sym.ident);
+            return;
         }
+        auto id = ti.tempdecl.ident;
+        auto symName = id.toString();
+
+        int firstTemplateArg = 0;
+
+        // test for special symbols
+        if (mangleOperator(ti,symName,firstTemplateArg))
+            return;
+
+        scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
+        tmp.buf.writeByte('?');
+        tmp.buf.writeByte('$');
+        tmp.buf.writestring(symName);
+        tmp.saved_idents[0] = id;
+        if (symName == id.toString())
+            tmp.buf.writeByte('@');
+        if (flags & IS_DMC)
+        {
+            tmp.mangleIdent(sym.parent, true);
+            is_dmc_template = true;
+        }
+        bool is_var_arg = false;
+        for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
+        {
+            RootObject o = (*ti.tiargs)[i];
+            TemplateParameter tp = null;
+            TemplateValueParameter tv = null;
+            TemplateTupleParameter tt = null;
+            if (!is_var_arg)
+            {
+                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                assert(td);
+                tp = (*td.parameters)[i];
+                tv = tp.isTemplateValueParameter();
+                tt = tp.isTemplateTupleParameter();
+            }
+            if (tt)
+            {
+                is_var_arg = true;
+                tp = null;
+            }
+            if (tv)
+            {
+                tmp.manlgeTemplateValue(o, tv, sym, is_dmc_template);
+            }
+            else if (!tp || tp.isTemplateTypeParameter())
+            {
+                tmp.mangleTemplateType(o);
+            }
+            else if (tp.isTemplateAliasParameter())
+            {
+                tmp.mangleTemplateAlias(o, sym);
+            }
+            else
+            {
+                sym.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
+                fatal();
+            }
+        }
+        writeName(Identifier.idPool(tmp.buf.extractSlice()));
     }
 
     // returns true if name already saved
