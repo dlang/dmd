@@ -296,7 +296,12 @@ CSYM(fiber_switchContext):
       sub sp, r1, #72
       vpop {d8-d15}
     #else
-      sub sp, r1, #8
+        #ifdef __thumb__
+            sub r1, #8
+            mov sp, r1
+        #else
+            sub sp, r1, #8
+        #endif
     #endif
 
     // we don't really care about r0, we only used that for padding.
