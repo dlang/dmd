@@ -1255,8 +1255,8 @@ extern(D):
         }
         tmp.buf.writeByte('Z');
         const(char)* ret = tmp.buf.extractChars();
-        memcpy(&saved_idents, &tmp.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
-        memcpy(&saved_types, &tmp.saved_types, Type.sizeof * VC_SAVED_TYPE_CNT);
+        saved_idents[] = tmp.saved_idents[];
+        saved_types[] = tmp.saved_types[];
         return ret;
     }
 }
