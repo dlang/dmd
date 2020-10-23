@@ -1,4 +1,4 @@
-/*
+/++
 REQUIRED_ARGS: -HC -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
@@ -109,13 +109,17 @@ class Parent
 {
     virtual void __vtable_slot_0();
     virtual void __vtable_slot_1();
+public:
+    virtual void foo();
 };
 
 class Child final : public Parent
 {
+public:
+    void foo() /* const */;
 };
 ---
-*/
++/
 
 /*
 ClassDeclaration has the following issues:
@@ -218,9 +222,11 @@ class Parent
 {
     extern(D) void over() {}
     extern(D) void over(int) {}
+    void foo() {}
 }
 
 final class Child : Parent
 {
     extern(D) override void over() {}
+    override void foo() const {}
 }

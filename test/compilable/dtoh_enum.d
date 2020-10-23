@@ -56,6 +56,16 @@ namespace EnumWithStringType
     static const char* const Two = "2";
 };
 
+namespace EnumWStringType
+{
+    static const char16_t* const One = u"1";
+};
+
+namespace EnumDStringType
+{
+    static const char32_t* const One = U"1";
+};
+
 namespace EnumWithImplicitType
 {
     static const char* const One = "1";
@@ -149,6 +159,16 @@ enum EnumWithStringType : string
 {
     One = "1",
     Two = "2"
+}
+
+enum EnumWStringType : wstring
+{
+    One = "1"
+}
+
+enum EnumDStringType : dstring
+{
+    One = "1"
 }
 
 enum EnumWithImplicitType

@@ -20,6 +20,10 @@ extern int32_t(*f)(int32_t );
 
 extern void special(int32_t a = ptr->i, int32_t b = ptr->get(1, 2), int32_t j = (*f)(1));
 
+extern void strings(DArray< char > s = "\"Hello\\World!\"");
+
+extern void variadic(int32_t _param_0, ...);
+
 struct S2
 {
     S s;
@@ -54,6 +58,8 @@ extern int32_t baz2(int32_t x);
 extern int32_t baz4(int32_t x = 42);
 
 extern size_t baz5(size_t x = 42);
+
+extern size_t& bazRef(size_t& x);
 
 enum class E : int64_t
 {
@@ -133,6 +139,11 @@ extern (C++) size_t baz5(size_t x = 42)
     return x * 42;
 }
 
+extern (C++) ref size_t bazRef(return ref size_t x)
+{
+    return x;
+}
+
 extern (C++):
 
 enum E : long
@@ -172,3 +183,8 @@ S* ptr;
 int function(int) f;
 
 void special(int a = ptr.i, int b = ptr.get(1, 2), int j = f(1)) {}
+
+void strings(string s = `"Hello\World!"`) {}
+
+import core.stdc.stdarg;
+void variadic(int, ...) {}

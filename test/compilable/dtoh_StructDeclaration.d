@@ -34,6 +34,7 @@ struct S2
     int64_t c;
     S d;
     S2(int32_t a);
+    S2(char ) = delete;
     S2() :
         a(42),
         b(),
@@ -161,6 +162,7 @@ extern (C++) struct S2
 
     this(int a) {}
     extern(D) this(int, int, long) {}
+    @disable this(char);
 }
 
 extern (C) struct S3
