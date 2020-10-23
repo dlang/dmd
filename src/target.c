@@ -116,45 +116,6 @@ static void initFloatConstants(Target::FPTypeProperties<T> &f)
 #endif
 }
 
-static unsigned getCriticalSectionSize(const Param &params)
-{
-    if (params.isWindows)
-    {
-        // sizeof(CRITICAL_SECTION) for Windows.
-        return params.isLP64 ? 40 : 24;
-    }
-    else if (params.isLinux)
-    {
-        // sizeof(pthread_mutex_t) for Linux.
-        if (params.is64bit)
-            return params.isLP64 ? 40 : 32;
-        else
-            return params.isLP64 ? 40 : 24;
-    }
-    else if (params.isFreeBSD)
-    {
-        // sizeof(pthread_mutex_t) for FreeBSD.
-        return params.isLP64 ? 8 : 4;
-    }
-    else if (params.isOpenBSD)
-    {
-        // sizeof(pthread_mutex_t) for OpenBSD.
-        return params.isLP64 ? 8 : 4;
-    }
-    else if (params.isOSX)
-    {
-        // sizeof(pthread_mutex_t) for OSX.
-        return params.isLP64 ? 64 : 44;
-    }
-    else if (params.isSolaris)
-    {
-        // sizeof(pthread_mutex_t) for Solaris.
-        return 24;
-    }
-    assert(0);
-    return 0;
-}
-
 void Target::_init(const Param &params)
 {
     initFloatConstants<float>(target.FloatProperties);
@@ -240,8 +201,6 @@ void Target::_init(const Param &params)
     else
         c.long_doublesize = realsize;
 
-    c.criticalSectionSize = getCriticalSectionSize(params);
-
     if (params.isLinux || params.isFreeBSD
         || params.isOpenBSD || params.isSolaris)
         cpp.twoDtorInVtable = true;
@@ -301,17 +260,6 @@ unsigned Target::alignsize(Type* type)
 unsigned Target::fieldalign(Type* type)
 {
     return type->alignsize();
-}
-
-/***********************************
- * Return size of OS critical section.
- * NOTE: can't use the sizeof() calls directly since cross compiling is
- * supported and would end up using the host sizes rather than the target
- * sizes.
- */
-unsigned Target::critsecsize()
-{
-    return c.criticalSectionSize;
 }
 
 /***********************************
