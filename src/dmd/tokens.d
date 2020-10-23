@@ -128,7 +128,6 @@ enum TOK : ubyte
     construct,
     blit,
     dot,
-    arrow,
     comma,
     question,
     andAnd,
@@ -137,7 +136,7 @@ enum TOK : ubyte
     preMinusMinus,
 
     // Numeric literals
-    int32Literal = 105,
+    int32Literal = 104,
     uns32Literal,
     int64Literal,
     uns64Literal,
@@ -151,12 +150,12 @@ enum TOK : ubyte
     imaginary80Literal,
 
     // Char constants
-    charLiteral = 117,
+    charLiteral = 116,
     wcharLiteral,
     dcharLiteral,
 
     // Leaf operators
-    identifier = 120,
+    identifier = 119,
     string_,
     hexadecimalString,
     this_,
@@ -166,7 +165,7 @@ enum TOK : ubyte
     error,
 
     // Basic types
-    void_ = 128,
+    void_ = 127,
     int8,
     uns8,
     int16,
@@ -192,7 +191,7 @@ enum TOK : ubyte
     bool_,
 
     // Aggregates
-    struct_ = 152,
+    struct_ = 151,
     class_,
     interface_,
     union_,
@@ -224,7 +223,7 @@ enum TOK : ubyte
     immutable_,
 
     // Statements
-    if_ = 182,
+    if_ = 181,
     else_,
     while_,
     for_,
@@ -250,7 +249,7 @@ enum TOK : ubyte
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 206,
+    invariant_ = 205,
 
     // Testing
     unittest_,
@@ -260,7 +259,7 @@ enum TOK : ubyte
     ref_,
     macro_,
 
-    parameters = 211,
+    parameters = 210,
     traits,
     overloadSet,
     pure_,
@@ -280,7 +279,7 @@ enum TOK : ubyte
     vector,
     pound,
 
-    interval = 230,
+    interval = 229,
     voidExpression,
     cantExpression,
     showCtfeContext,
@@ -682,7 +681,6 @@ extern (C++) struct Token
         TOK.classReference: "classreference",
         TOK.thrownException: "thrownexception",
         TOK.delegateFunctionPointer: "delegatefuncptr",
-        TOK.arrow: "arrow",
         TOK.int32Literal: "int32v",
         TOK.uns32Literal: "uns32v",
         TOK.int64Literal: "int64v",
