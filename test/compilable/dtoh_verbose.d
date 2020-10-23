@@ -56,3 +56,11 @@ extern(C++) struct Hidden
 {
     private void hidden() {}
 }
+
+private {
+    enum PI = 4;
+}
+
+alias D = size_t delegate (size_t x);
+
+extern(C++) T foo(T) = T.init;

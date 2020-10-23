@@ -14,6 +14,9 @@ TEST_OUTPUT:
 struct Null
 {
     void* field;
+private:
+    Null(int32_t );
+public:
     Null() :
         field(NULL)
     {
@@ -30,6 +33,8 @@ extern void* inferred_null;
 extern (C++) struct Null
 {
     void* field = null;
+
+    @disable this(int);
 }
 
 extern (C++) __gshared typeof(null) typeof_null = null;

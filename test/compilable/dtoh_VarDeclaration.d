@@ -10,6 +10,9 @@ TEST_OUTPUT:
 #include <stddef.h>
 #include <stdint.h>
 
+#if !defined(_d_real)
+# define _d_real long double
+#endif
 
 extern "C" int32_t z;
 
@@ -30,6 +33,20 @@ extern "C" size_t v;
 extern nullptr_t typeof_null;
 
 extern nullptr_t inferred_null;
+
+extern int32_t i;
+
+extern _d_real r;
+
+extern int32_t si[4$?:32=u|64=LLU$];
+
+extern const DArray< const int32_t > di;
+
+extern void* ii;
+
+extern const int32_t* const pi;
+
+extern int16_t(*func)(float , bool , ...);
 ---
 */
 
@@ -57,3 +74,15 @@ extern (C) size_t v;
 
 extern (C++) __gshared typeof(null) typeof_null = null;
 extern (C++) __gshared inferred_null = null;
+
+extern(C++):
+__gshared
+{
+    int i;
+    real r;
+    int[4] si;
+    const int[] di;
+    int[int] ii;
+    const int* pi;
+    short function(float, bool, ...) func;
+}
