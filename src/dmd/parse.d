@@ -2226,106 +2226,102 @@ final class Parser(AST) : Lexer
         AST.Identifiers* idents = null;
         AST.Expressions* identExps = null;
         cppmangle = CPPMANGLE.def;
-        LINK link = LINK.d; // default
         nextToken();
         assert(token.value == TOK.leftParentheses);
         nextToken();
-        if (token.value == TOK.identifier)
+        LINK returnLinkage(LINK link)
         {
-            Identifier id = token.ident;
+            check(TOK.rightParentheses);
+            *pidents = idents;
+            *pIdentExps = identExps;
+            return link;
+        }
+        LINK invalidLinkage()
+        {
+            error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
+            return returnLinkage(LINK.d);
+        }
+
+        if (token.value != TOK.identifier)
+            return returnLinkage(LINK.d);
+
+        Identifier id = token.ident;
+        nextToken();
+        if (id == Id.Windows)
+            return returnLinkage(LINK.windows);
+        else if (id == Id.Pascal)
+        {
+            deprecation("`extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.");
+            return returnLinkage(LINK.pascal);
+        }
+        else if (id == Id.D)
+            return returnLinkage(LINK.d);
+        else if (id == Id.System)
+            return returnLinkage(LINK.system);
+        else if (id == Id.Objective) // Looking for tokens "Objective-C"
+        {
+            if (token.value != TOK.min)
+                return invalidLinkage();
+
             nextToken();
-            if (id == Id.Windows)
-                link = LINK.windows;
-            else if (id == Id.Pascal)
+            if (token.ident != Id.C)
+                return invalidLinkage();
+
+            nextToken();
+            return returnLinkage(LINK.objc);
+        }
+        else if (id != Id.C)
+            return invalidLinkage();
+
+        if (token.value != TOK.plusPlus)
+            return returnLinkage(LINK.c);
+
+        nextToken();
+        if (token.value != TOK.comma) // , namespaces or class or struct
+            return returnLinkage(LINK.cpp);
+
+        nextToken();
+
+        if (token.value == TOK.class_ || token.value == TOK.struct_)
+        {
+            cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
+            nextToken();
+        }
+        else if (token.value == TOK.identifier) // named scope namespace
+        {
+            idents = new AST.Identifiers();
+            while (1)
             {
-                deprecation("`extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.");
-                link = LINK.pascal;
-            }
-            else if (id == Id.D)
-            { /* already set */}
-            else if (id == Id.C)
-            {
-                link = LINK.c;
-                if (token.value == TOK.plusPlus)
-                {
-                    link = LINK.cpp;
-                    nextToken();
-                    if (token.value == TOK.comma) // , namespaces or class or struct
-                    {
-                        nextToken();
-                        if (token.value == TOK.class_ || token.value == TOK.struct_)
-                        {
-                            cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
-                            nextToken();
-                        }
-                        else if (token.value == TOK.identifier) // named scope namespace
-                        {
-                            idents = new AST.Identifiers();
-                            while (1)
-                            {
-                                Identifier idn = token.ident;
-                                idents.push(idn);
-                                nextToken();
-                                if (token.value == TOK.dot)
-                                {
-                                    nextToken();
-                                    if (token.value == TOK.identifier)
-                                        continue;
-                                    error("identifier expected for C++ namespace");
-                                    idents = null;  // error occurred, invalidate list of elements.
-                                }
-                                break;
-                            }
-                        }
-                        else // non-scoped StringExp namespace
-                        {
-                            cppMangleOnly = true;
-                            identExps = new AST.Expressions();
-                            while (1)
-                            {
-                                identExps.push(parseCondExp());
-                                if (token.value != TOK.comma)
-                                    break;
-                                nextToken();
-                                // Allow trailing commas as done for argument lists, arrays, ...
-                                if (token.value == TOK.rightParentheses)
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-            else if (id == Id.Objective) // Looking for tokens "Objective-C"
-            {
-                if (token.value == TOK.min)
+                Identifier idn = token.ident;
+                idents.push(idn);
+                nextToken();
+                if (token.value == TOK.dot)
                 {
                     nextToken();
-                    if (token.ident == Id.C)
-                    {
-                        link = LINK.objc;
-                        nextToken();
-                    }
-                    else
-                        goto LinvalidLinkage;
+                    if (token.value == TOK.identifier)
+                        continue;
+                    error("identifier expected for C++ namespace");
+                    idents = null;  // error occurred, invalidate list of elements.
                 }
-                else
-                    goto LinvalidLinkage;
-            }
-            else if (id == Id.System)
-            {
-                link = LINK.system;
-            }
-            else
-            {
-            LinvalidLinkage:
-                error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
-                link = LINK.d;
+                break;
             }
         }
-        check(TOK.rightParentheses);
-        *pidents = idents;
-        *pIdentExps = identExps;
-        return link;
+        else // non-scoped StringExp namespace
+        {
+            cppMangleOnly = true;
+            identExps = new AST.Expressions();
+            while (1)
+            {
+                identExps.push(parseCondExp());
+                if (token.value != TOK.comma)
+                    break;
+                nextToken();
+                // Allow trailing commas as done for argument lists, arrays, ...
+                if (token.value == TOK.rightParentheses)
+                    break;
+            }
+        }
+        return returnLinkage(LINK.cpp);
     }
 
     /***********************************
