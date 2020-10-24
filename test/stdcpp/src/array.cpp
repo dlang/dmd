@@ -6,7 +6,7 @@ std::array<int, 5>& fromC_ref(std::array<int, 5>&);
 std::array<int, 5>& sumOfElements_ref(std::array<int, 5>& arr)
 {
     int r = 0;
-    for (size_t i = 0; i < arr.size(); ++i)
+    for (std::size_t i = 0; i < arr.size(); ++i)
         r += arr[i];
     arr.fill(r);
     return arr;
