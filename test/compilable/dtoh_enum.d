@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -HC -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
@@ -97,7 +97,7 @@ namespace MyEnum
     static Foo const B = Foo(84);
 };
 
-static MyEnum const test = Foo(42);
+static /* MyEnum */ Foo const test = Foo(42);
 
 struct FooCpp
 {
@@ -114,12 +114,12 @@ namespace MyEnumCpp
     static FooCpp const B = FooCpp(84);
 };
 
-static MyEnum const testCpp = Foo(42);
+static /* MyEnum */ Foo const testCpp = Foo(42);
 
 enum class opaque;
 enum class typedOpaque : int64_t;
 ---
-*/
++/
 
 enum Anon = 10;
 enum Anon2 = true;
