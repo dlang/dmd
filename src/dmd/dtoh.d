@@ -1237,7 +1237,7 @@ public:
                 buf.writestring("static ");
                 writeEnumTypeName(memberType);
                 buf.printf(" const %s = ", m.ident.toChars());
-                m.value.accept(this);
+                m.origValue.accept(this);
                 buf.writestring(";");
             }
             buf.writenl();

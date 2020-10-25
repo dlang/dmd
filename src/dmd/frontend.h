@@ -7077,11 +7077,11 @@ enum class Color
 
 namespace Classification
 {
-    static Color const error = (/* Classification */ Color)(Color)9;
-    static Color const gagged = (/* Classification */ Color)(Color)12;
-    static Color const warning = (/* Classification */ Color)(Color)11;
-    static Color const deprecation = (/* Classification */ Color)(Color)14;
-    static Color const tip = (/* Classification */ Color)(Color)10;
+    static Color const error = (Color)9;
+    static Color const gagged = (Color)12;
+    static Color const warning = (Color)11;
+    static Color const deprecation = (Color)14;
+    static Color const tip = (Color)10;
 };
 
 extern void error(const Loc& loc, const char* format, ...);
