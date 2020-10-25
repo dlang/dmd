@@ -141,16 +141,20 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
         hashEndIf(buf);
     }
     buf.writenl();
-
+    // buf.writestringln("// fwd:");
     buf.write(&fwd);
     if (fwd.length > 0)
         buf.writenl();
 
+    // buf.writestringln("// done:");
     buf.write(&done);
+
+    // buf.writestringln("// decl:");
     buf.write(&decl);
 
     debug (Debug_DtoH)
     {
+        // buf.writestringln("// check:");
         buf.writestring(`
 #if OFFSETS
     template <class T>
@@ -1814,7 +1818,7 @@ public:
             if (!var || !var.isAggregateDeclaration())
                 return;
             printPrefix(var.parent);
-            includeSymbol(var.parent);
+            includeSymbol(var);
 
             buf.writestring(var.toString());
             buf.writestring("::");

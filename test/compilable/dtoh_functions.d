@@ -14,37 +14,6 @@ TEST_OUTPUT:
 struct S;
 struct S2;
 
-extern S* ptr;
-
-extern int32_t(*f)(int32_t );
-
-extern void special(int32_t a = ptr->i, int32_t b = ptr->get(1, 2), int32_t j = (*f)(1));
-
-extern void strings(DArray< char > s = "\"Hello\\World!\"");
-
-extern void variadic(int32_t _param_0, ...);
-
-struct S2
-{
-    S s;
-    struct S3
-    {
-        static int32_t i;
-        S3()
-        {
-        }
-    };
-
-    S2() :
-        s()
-    {
-    }
-};
-
-extern S2 s2;
-
-extern void chains(int32_t a = s2.s.i, int32_t b = S2::S3::i);
-
 extern "C" int32_t bar(int32_t x);
 
 extern "C" int32_t bar2(int32_t x);
@@ -83,6 +52,37 @@ struct S
 extern S s;
 
 extern void aggregates(int32_t a = s.i, int32_t b = s.get(1, 2), int32_t c = S::get(), int32_t d = S::staticVar);
+
+struct S2
+{
+    S s;
+    struct S3
+    {
+        static int32_t i;
+        S3()
+        {
+        }
+    };
+
+    S2() :
+        s()
+    {
+    }
+};
+
+extern S2 s2;
+
+extern void chains(int32_t a = s2.s.i, int32_t b = S2::S3::i);
+
+extern S* ptr;
+
+extern int32_t(*f)(int32_t );
+
+extern void special(int32_t a = ptr->i, int32_t b = ptr->get(1, 2), int32_t j = (*f)(1));
+
+extern void strings(DArray< char > s = "\"Hello\\World!\"");
+
+extern void variadic(int32_t _param_0, ...);
 ---
 */
 
