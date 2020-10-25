@@ -53,6 +53,10 @@ public:
         null_()
     {
     }
+    Null(void* field, _d_dynamicArray< const char > null_ = _d_dynamicArray< const char >()) :
+        field(field),
+        null_(null_)
+        {}
 };
 
 extern void* typeof_null;
@@ -66,6 +70,9 @@ struct MyString
         str()
     {
     }
+    MyString(_d_dynamicArray< const char > str) :
+        str(str)
+        {}
 };
 
 struct Wrapper
@@ -77,6 +84,10 @@ struct Wrapper
         s2(MyString(_d_dynamicArray< const char >()))
     {
     }
+    Wrapper(MyString s1, MyString s2 = MyString(_d_dynamicArray< const char >())) :
+        s1(s1),
+        s2(s2)
+        {}
 };
 ---
 */

@@ -55,6 +55,12 @@ struct S
         arr()
     {
     }
+    S(int8_t a, int32_t b = 0, int64_t c = 0LL, _d_dynamicArray< int32_t > arr = {}) :
+        a(a),
+        b(b),
+        c(c),
+        arr(arr)
+        {}
 };
 
 struct S2
@@ -100,6 +106,12 @@ struct S4
         d()
     {
     }
+    S4(int32_t a, int64_t b = 0LL, int32_t c = 0, int8_t d = 0) :
+        a(a),
+        b(b),
+        c(c),
+        d(d)
+        {}
 };
 
 #pragma pack(push, 1)
@@ -125,6 +137,9 @@ struct Null
         field(nullptr)
     {
     }
+    Null(void* field) :
+        field(field)
+        {}
 };
 
 struct A
@@ -150,6 +165,9 @@ struct A
             x()
         {
         }
+        Inner(int32_t x) :
+            x(x)
+            {}
     };
 
     typedef Inner I;
@@ -160,6 +178,10 @@ struct A
         s()
     {
     }
+    A(int32_t a, S s = S(0, 0, 0LL, {})) :
+        a(a),
+        s(s)
+        {}
 };
 
 union U

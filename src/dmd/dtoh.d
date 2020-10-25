@@ -980,41 +980,58 @@ public:
             buf.writenl();
             buf.writestringln("{");
             buf.writestringln("}");
-        }
-
-        version (none)
-        {
-            if (varCount)
+            auto ctor = sd.ctor ? sd.ctor.isFuncDeclaration() : null;
+            if (varCount && (!ctor || ctor.storage_class & AST.STC.disable))
             {
-                buf.printf("    %s(", sd.ident.toChars());
-                bool first = true;
+                buf.printf("%s(", sd.ident.toChars());
+                first = true;
                 foreach (m; *sd.members)
                 {
                     if (auto vd = m.isVarDeclaration())
                     {
                         if (!memberField(vd))
                             continue;
-                        if (first)
-                            first = false;
-                        else
+                        if (!first)
                             buf.writestring(", ");
                         assert(vd.type);
                         assert(vd.ident);
                         typeToBuffer(vd.type, vd.ident);
+                        // Don't print default value for first parameter to not clash
+                        // with the default ctor defined above
+                        if (!first)
+                        {
+                            buf.writestring(" = ");
+                            if (vd._init && !vd._init.isVoidInitializer())
+                                printExpressionFor(vd.type, AST.initializerToExpression(vd._init));
+                            else
+                                printExpressionFor(vd.type, vd.type.defaultInitLiteral(Loc.initial));
+                        }
+                        first = false;
                     }
                 }
-                buf.printf(") {");
+                buf.writestring(") :");
+                buf.level++;
+                buf.writenl();
+
+                first = true;
                 foreach (m; *sd.members)
                 {
                     if (auto vd = m.isVarDeclaration())
                     {
                         if (!memberField(vd))
                             continue;
-                        buf.printf(" this->%s = %s;", vd.ident.toChars(), vd.ident.toChars());
+
+                        if (first)
+                            first = false;
+                        else
+                            buf.writestringln(",");
+
+                        buf.printf("%s(%s)", vd.ident.toChars(), vd.ident.toChars());
                     }
                 }
-                buf.printf(" }");
                 buf.writenl();
+                buf.writestringln("{}");
+                buf.level--;
             }
         }
 

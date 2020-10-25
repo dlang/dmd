@@ -136,6 +136,9 @@ struct FooCpp
         i()
     {
     }
+    FooCpp(int32_t i) :
+        i(i)
+        {}
 };
 
 namespace MyEnumCpp
