@@ -714,7 +714,6 @@ enum class JsonFieldFlags : uint32_t
 
 class Library;
 struct _IO_FILE;
-struct Param;
 struct ObNode;
 class StoppableVisitor;
 struct Token;
@@ -722,6 +721,7 @@ struct code;
 struct TargetC;
 struct TargetCPP;
 struct TargetObjC;
+struct Param;
 struct Target;
 struct Mem;
 class Object;
@@ -1723,473 +1723,6 @@ struct ParameterList
     {
     }
 };
-
-enum class TARGET : bool
-{
-    Linux = true,
-    OSX = false,
-    FreeBSD = false,
-    OpenBSD = false,
-    Solaris = false,
-    Windows = false,
-    DragonFlyBSD = false,
-};
-
-enum class DiagnosticReporting : uint8_t
-{
-    error = 0u,
-    inform = 1u,
-    off = 2u,
-};
-
-enum class MessageStyle : uint8_t
-{
-    digitalmars = 0u,
-    gnu = 1u,
-};
-
-enum class CHECKENABLE : uint8_t
-{
-    _default = 0u,
-    off = 1u,
-    on = 2u,
-    safeonly = 3u,
-};
-
-enum class CHECKACTION : uint8_t
-{
-    D = 0u,
-    C = 1u,
-    halt = 2u,
-    context = 3u,
-};
-
-enum class CPU
-{
-    x87 = 0,
-    mmx = 1,
-    sse = 2,
-    sse2 = 3,
-    sse3 = 4,
-    ssse3 = 5,
-    sse4_1 = 6,
-    sse4_2 = 7,
-    avx = 8,
-    avx2 = 9,
-    avx512 = 10,
-    baseline = 11,
-    native = 12,
-};
-
-enum class PIC : uint8_t
-{
-    fixed = 0u,
-    pic = 1u,
-    pie = 2u,
-};
-
-enum class CppStdRevision : uint32_t
-{
-    cpp98 = 199711u,
-    cpp11 = 201103u,
-    cpp14 = 201402u,
-    cpp17 = 201703u,
-};
-
-enum class CxxHeaderMode : uint32_t
-{
-    none = 0u,
-    silent = 1u,
-    verbose = 2u,
-};
-
-struct Param
-{
-    bool obj;
-    bool link;
-    bool dll;
-    bool lib;
-    bool multiobj;
-    bool oneobj;
-    bool trace;
-    bool tracegc;
-    bool verbose;
-    bool vcg_ast;
-    bool showColumns;
-    bool vtls;
-    bool vtemplates;
-    bool vtemplatesListInstances;
-    bool vgc;
-    bool vfield;
-    bool vcomplex;
-    uint8_t symdebug;
-    bool symdebugref;
-    bool alwaysframe;
-    bool optimize;
-    bool map;
-    bool is64bit;
-    bool isLP64;
-    bool isLinux;
-    bool isOSX;
-    bool isWindows;
-    bool isFreeBSD;
-    bool isOpenBSD;
-    bool isDragonFlyBSD;
-    bool isSolaris;
-    bool hasObjectiveC;
-    bool mscoff;
-    DiagnosticReporting useDeprecated;
-    bool stackstomp;
-    bool useUnitTests;
-    bool useInline;
-    bool useDIP25;
-    bool noDIP25;
-    bool useDIP1021;
-    bool release;
-    bool preservePaths;
-    DiagnosticReporting warnings;
-    PIC pic;
-    bool color;
-    bool cov;
-    uint8_t covPercent;
-    bool ctfe_cov;
-    bool nofloat;
-    bool ignoreUnsupportedPragmas;
-    bool useModuleInfo;
-    bool useTypeInfo;
-    bool useExceptions;
-    bool noSharedAccess;
-    bool previewIn;
-    bool betterC;
-    bool addMain;
-    bool allInst;
-    bool fix16997;
-    bool fixAliasThis;
-    bool inclusiveInContracts;
-    bool vsafe;
-    bool ehnogc;
-    bool dtorFields;
-    bool fieldwise;
-    bool rvalueRefParam;
-    CppStdRevision cplusplus;
-    bool markdown;
-    bool vmarkdown;
-    bool showGaggedErrors;
-    bool printErrorContext;
-    bool manual;
-    bool usage;
-    bool mcpuUsage;
-    bool transitionUsage;
-    bool checkUsage;
-    bool checkActionUsage;
-    bool revertUsage;
-    bool previewUsage;
-    bool externStdUsage;
-    bool hcUsage;
-    bool logo;
-    CPU cpu;
-    CHECKENABLE useInvariants;
-    CHECKENABLE useIn;
-    CHECKENABLE useOut;
-    CHECKENABLE useArrayBounds;
-    CHECKENABLE useAssert;
-    CHECKENABLE useSwitchError;
-    CHECKENABLE boundscheck;
-    CHECKACTION checkAction;
-    uint32_t errorLimit;
-    DArray< const char > argv0;
-    Array<const char* > modFileAliasStrings;
-    Array<const char* >* imppath;
-    Array<const char* >* fileImppath;
-    DArray< const char > objdir;
-    DArray< const char > objname;
-    DArray< const char > libname;
-    bool doDocComments;
-    DArray< const char > docdir;
-    DArray< const char > docname;
-    Array<const char* > ddocfiles;
-    bool doHdrGeneration;
-    DArray< const char > hdrdir;
-    DArray< const char > hdrname;
-    bool hdrStripPlainFunctions;
-    CxxHeaderMode doCxxHdrGeneration;
-    DArray< const char > cxxhdrdir;
-    DArray< const char > cxxhdrname;
-    bool doJsonGeneration;
-    DArray< const char > jsonfilename;
-    JsonFieldFlags jsonFieldFlags;
-    OutBuffer* mixinOut;
-    const char* mixinFile;
-    int32_t mixinLines;
-    uint32_t debuglevel;
-    Array<const char* >* debugids;
-    uint32_t versionlevel;
-    Array<const char* >* versionids;
-    DArray< const char > defaultlibname;
-    DArray< const char > debuglibname;
-    DArray< const char > mscrtlib;
-    DArray< const char > moduleDepsFile;
-    OutBuffer* moduleDeps;
-    MessageStyle messageStyle;
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
-    bool run;
-    Array<const char* > runargs;
-    Array<const char* > objfiles;
-    Array<const char* > linkswitches;
-    Array<bool > linkswitchIsForCC;
-    Array<const char* > libfiles;
-    Array<const char* > dllfiles;
-    DArray< const char > deffile;
-    DArray< const char > resfile;
-    DArray< const char > exefile;
-    DArray< const char > mapfile;
-    ~Param();
-    Param() :
-        obj(true),
-        link(true),
-        dll(),
-        lib(),
-        multiobj(),
-        oneobj(),
-        trace(),
-        tracegc(),
-        verbose(),
-        vcg_ast(),
-        showColumns(),
-        vtls(),
-        vtemplates(),
-        vtemplatesListInstances(),
-        vgc(),
-        vfield(),
-        vcomplex(),
-        symdebug(),
-        symdebugref(),
-        alwaysframe(),
-        optimize(),
-        map(),
-        is64bit(true),
-        isLP64(),
-        isLinux(),
-        isOSX(),
-        isWindows(),
-        isFreeBSD(),
-        isOpenBSD(),
-        isDragonFlyBSD(),
-        isSolaris(),
-        hasObjectiveC(),
-        mscoff(false),
-        useDeprecated((DiagnosticReporting)1u),
-        stackstomp(),
-        useUnitTests(),
-        useInline(false),
-        useDIP25(),
-        noDIP25(),
-        useDIP1021(),
-        release(),
-        preservePaths(),
-        warnings((DiagnosticReporting)2u),
-        pic((PIC)0u),
-        color(),
-        cov(),
-        covPercent(),
-        ctfe_cov(false),
-        nofloat(),
-        ignoreUnsupportedPragmas(),
-        useModuleInfo(true),
-        useTypeInfo(true),
-        useExceptions(true),
-        noSharedAccess(),
-        previewIn(),
-        betterC(),
-        addMain(),
-        allInst(),
-        fix16997(),
-        fixAliasThis(),
-        inclusiveInContracts(),
-        vsafe(),
-        ehnogc(),
-        dtorFields(),
-        fieldwise(),
-        rvalueRefParam(),
-        cplusplus((CppStdRevision)201103u),
-        markdown(true),
-        vmarkdown(),
-        showGaggedErrors(),
-        printErrorContext(),
-        manual(),
-        usage(),
-        mcpuUsage(),
-        transitionUsage(),
-        checkUsage(),
-        checkActionUsage(),
-        revertUsage(),
-        previewUsage(),
-        externStdUsage(),
-        hcUsage(),
-        logo(),
-        cpu((CPU)11),
-        useInvariants((CHECKENABLE)0u),
-        useIn((CHECKENABLE)0u),
-        useOut((CHECKENABLE)0u),
-        useArrayBounds((CHECKENABLE)0u),
-        useAssert((CHECKENABLE)0u),
-        useSwitchError((CHECKENABLE)0u),
-        boundscheck((CHECKENABLE)0u),
-        checkAction((CHECKACTION)0u),
-        errorLimit(20u),
-        argv0(),
-        modFileAliasStrings(),
-        imppath(),
-        fileImppath(),
-        objdir(),
-        objname(),
-        libname(),
-        doDocComments(),
-        docdir(),
-        docname(),
-        ddocfiles(),
-        doHdrGeneration(),
-        hdrdir(),
-        hdrname(),
-        hdrStripPlainFunctions(true),
-        cxxhdrdir(),
-        cxxhdrname(),
-        doJsonGeneration(),
-        jsonfilename(),
-        mixinOut(),
-        mixinFile(),
-        mixinLines(),
-        debuglevel(),
-        debugids(),
-        versionlevel(),
-        versionids(),
-        defaultlibname(),
-        debuglibname(),
-        mscrtlib(),
-        moduleDepsFile(),
-        moduleDeps(),
-        messageStyle((MessageStyle)0u),
-        debugb(),
-        debugc(),
-        debugf(),
-        debugr(),
-        debugx(),
-        debugy(),
-        run(),
-        runargs(),
-        objfiles(),
-        linkswitches(),
-        linkswitchIsForCC(),
-        libfiles(),
-        dllfiles(),
-        deffile(),
-        resfile(),
-        exefile(),
-        mapfile()
-    {
-    }
-};
-
-typedef uint32_t structalign_t;
-
-enum : uint32_t { STRUCTALIGN_DEFAULT = 4294967295u };
-
-struct Global
-{
-    DArray< const char > inifilename;
-    DArray< char > mars_ext;
-    DArray< const char > obj_ext;
-    DArray< const char > lib_ext;
-    DArray< const char > dll_ext;
-    DArray< char > doc_ext;
-    DArray< char > ddoc_ext;
-    DArray< char > hdr_ext;
-    DArray< char > cxxhdr_ext;
-    DArray< char > json_ext;
-    DArray< char > map_ext;
-    bool run_noext;
-    DArray< char > copyright;
-    DArray< char > written;
-    Array<const char* >* path;
-    Array<const char* >* filePath;
-    DArray< const char > vendor;
-    Param params;
-    uint32_t errors;
-    uint32_t warnings;
-    uint32_t gag;
-    uint32_t gaggedErrors;
-    uint32_t gaggedWarnings;
-    void* console;
-    Array<Identifier* >* versionids;
-    Array<Identifier* >* debugids;
-    enum : int32_t { recursionLimit = 500 };
-
-    uint32_t startGagging();
-    bool endGagging(uint32_t oldGagged);
-    void increaseErrorCount();
-    void _init();
-    uint32_t versionNumber();
-    const char* const versionChars();
-    ~Global();
-    Global() :
-        inifilename(),
-        mars_ext("d"),
-        obj_ext(),
-        lib_ext(),
-        dll_ext(),
-        doc_ext("html"),
-        ddoc_ext("ddoc"),
-        hdr_ext("di"),
-        cxxhdr_ext("h"),
-        json_ext("json"),
-        map_ext("map"),
-        run_noext(),
-        copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
-        written("written by Walter Bright"),
-        path(),
-        filePath(),
-        vendor(),
-        params(),
-        errors(),
-        warnings(),
-        gag(),
-        gaggedErrors(),
-        gaggedWarnings(),
-        console(),
-        versionids(),
-        debugids()
-    {
-    }
-};
-
-typedef uint64_t dinteger_t;
-
-typedef int64_t sinteger_t;
-
-typedef uint64_t uinteger_t;
-
-typedef int8_t d_int8;
-
-typedef uint8_t d_uns8;
-
-typedef int16_t d_int16;
-
-typedef uint16_t d_uns16;
-
-typedef int32_t d_int32;
-
-typedef uint32_t d_uns32;
-
-typedef int64_t d_int64;
-
-typedef uint64_t d_uns64;
-
-typedef uint64_t StorageClass;
 
 class StoppableVisitor : public Visitor
 {
@@ -7135,7 +6668,448 @@ enum class HIGHLIGHT : uint8_t
     Other = 6u,
 };
 
+enum class TARGET : bool
+{
+    Linux = true,
+    OSX = false,
+    FreeBSD = false,
+    OpenBSD = false,
+    Solaris = false,
+    Windows = false,
+    DragonFlyBSD = false,
+};
+
+enum class DiagnosticReporting : uint8_t
+{
+    error = 0u,
+    inform = 1u,
+    off = 2u,
+};
+
+enum class MessageStyle : uint8_t
+{
+    digitalmars = 0u,
+    gnu = 1u,
+};
+
+enum class CHECKENABLE : uint8_t
+{
+    _default = 0u,
+    off = 1u,
+    on = 2u,
+    safeonly = 3u,
+};
+
+enum class CHECKACTION : uint8_t
+{
+    D = 0u,
+    C = 1u,
+    halt = 2u,
+    context = 3u,
+};
+
+enum class CPU
+{
+    x87 = 0,
+    mmx = 1,
+    sse = 2,
+    sse2 = 3,
+    sse3 = 4,
+    ssse3 = 5,
+    sse4_1 = 6,
+    sse4_2 = 7,
+    avx = 8,
+    avx2 = 9,
+    avx512 = 10,
+    baseline = 11,
+    native = 12,
+};
+
+enum class PIC : uint8_t
+{
+    fixed = 0u,
+    pic = 1u,
+    pie = 2u,
+};
+
+enum class CppStdRevision : uint32_t
+{
+    cpp98 = 199711u,
+    cpp11 = 201103u,
+    cpp14 = 201402u,
+    cpp17 = 201703u,
+};
+
+enum class CxxHeaderMode : uint32_t
+{
+    none = 0u,
+    silent = 1u,
+    verbose = 2u,
+};
+
+struct Param
+{
+    bool obj;
+    bool link;
+    bool dll;
+    bool lib;
+    bool multiobj;
+    bool oneobj;
+    bool trace;
+    bool tracegc;
+    bool verbose;
+    bool vcg_ast;
+    bool showColumns;
+    bool vtls;
+    bool vtemplates;
+    bool vtemplatesListInstances;
+    bool vgc;
+    bool vfield;
+    bool vcomplex;
+    uint8_t symdebug;
+    bool symdebugref;
+    bool alwaysframe;
+    bool optimize;
+    bool map;
+    bool is64bit;
+    bool isLP64;
+    bool isLinux;
+    bool isOSX;
+    bool isWindows;
+    bool isFreeBSD;
+    bool isOpenBSD;
+    bool isDragonFlyBSD;
+    bool isSolaris;
+    bool hasObjectiveC;
+    bool mscoff;
+    DiagnosticReporting useDeprecated;
+    bool stackstomp;
+    bool useUnitTests;
+    bool useInline;
+    bool useDIP25;
+    bool noDIP25;
+    bool useDIP1021;
+    bool release;
+    bool preservePaths;
+    DiagnosticReporting warnings;
+    PIC pic;
+    bool color;
+    bool cov;
+    uint8_t covPercent;
+    bool ctfe_cov;
+    bool nofloat;
+    bool ignoreUnsupportedPragmas;
+    bool useModuleInfo;
+    bool useTypeInfo;
+    bool useExceptions;
+    bool noSharedAccess;
+    bool previewIn;
+    bool betterC;
+    bool addMain;
+    bool allInst;
+    bool fix16997;
+    bool fixAliasThis;
+    bool inclusiveInContracts;
+    bool vsafe;
+    bool ehnogc;
+    bool dtorFields;
+    bool fieldwise;
+    bool rvalueRefParam;
+    CppStdRevision cplusplus;
+    bool markdown;
+    bool vmarkdown;
+    bool showGaggedErrors;
+    bool printErrorContext;
+    bool manual;
+    bool usage;
+    bool mcpuUsage;
+    bool transitionUsage;
+    bool checkUsage;
+    bool checkActionUsage;
+    bool revertUsage;
+    bool previewUsage;
+    bool externStdUsage;
+    bool hcUsage;
+    bool logo;
+    CPU cpu;
+    CHECKENABLE useInvariants;
+    CHECKENABLE useIn;
+    CHECKENABLE useOut;
+    CHECKENABLE useArrayBounds;
+    CHECKENABLE useAssert;
+    CHECKENABLE useSwitchError;
+    CHECKENABLE boundscheck;
+    CHECKACTION checkAction;
+    uint32_t errorLimit;
+    DArray< const char > argv0;
+    Array<const char* > modFileAliasStrings;
+    Array<const char* >* imppath;
+    Array<const char* >* fileImppath;
+    DArray< const char > objdir;
+    DArray< const char > objname;
+    DArray< const char > libname;
+    bool doDocComments;
+    DArray< const char > docdir;
+    DArray< const char > docname;
+    Array<const char* > ddocfiles;
+    bool doHdrGeneration;
+    DArray< const char > hdrdir;
+    DArray< const char > hdrname;
+    bool hdrStripPlainFunctions;
+    CxxHeaderMode doCxxHdrGeneration;
+    DArray< const char > cxxhdrdir;
+    DArray< const char > cxxhdrname;
+    bool doJsonGeneration;
+    DArray< const char > jsonfilename;
+    JsonFieldFlags jsonFieldFlags;
+    OutBuffer* mixinOut;
+    const char* mixinFile;
+    int32_t mixinLines;
+    uint32_t debuglevel;
+    Array<const char* >* debugids;
+    uint32_t versionlevel;
+    Array<const char* >* versionids;
+    DArray< const char > defaultlibname;
+    DArray< const char > debuglibname;
+    DArray< const char > mscrtlib;
+    DArray< const char > moduleDepsFile;
+    OutBuffer* moduleDeps;
+    MessageStyle messageStyle;
+    bool debugb;
+    bool debugc;
+    bool debugf;
+    bool debugr;
+    bool debugx;
+    bool debugy;
+    bool run;
+    Array<const char* > runargs;
+    Array<const char* > objfiles;
+    Array<const char* > linkswitches;
+    Array<bool > linkswitchIsForCC;
+    Array<const char* > libfiles;
+    Array<const char* > dllfiles;
+    DArray< const char > deffile;
+    DArray< const char > resfile;
+    DArray< const char > exefile;
+    DArray< const char > mapfile;
+    ~Param();
+    Param() :
+        obj(true),
+        link(true),
+        dll(),
+        lib(),
+        multiobj(),
+        oneobj(),
+        trace(),
+        tracegc(),
+        verbose(),
+        vcg_ast(),
+        showColumns(),
+        vtls(),
+        vtemplates(),
+        vtemplatesListInstances(),
+        vgc(),
+        vfield(),
+        vcomplex(),
+        symdebug(),
+        symdebugref(),
+        alwaysframe(),
+        optimize(),
+        map(),
+        is64bit(true),
+        isLP64(),
+        isLinux(),
+        isOSX(),
+        isWindows(),
+        isFreeBSD(),
+        isOpenBSD(),
+        isDragonFlyBSD(),
+        isSolaris(),
+        hasObjectiveC(),
+        mscoff(false),
+        useDeprecated((DiagnosticReporting)1u),
+        stackstomp(),
+        useUnitTests(),
+        useInline(false),
+        useDIP25(),
+        noDIP25(),
+        useDIP1021(),
+        release(),
+        preservePaths(),
+        warnings((DiagnosticReporting)2u),
+        pic((PIC)0u),
+        color(),
+        cov(),
+        covPercent(),
+        ctfe_cov(false),
+        nofloat(),
+        ignoreUnsupportedPragmas(),
+        useModuleInfo(true),
+        useTypeInfo(true),
+        useExceptions(true),
+        noSharedAccess(),
+        previewIn(),
+        betterC(),
+        addMain(),
+        allInst(),
+        fix16997(),
+        fixAliasThis(),
+        inclusiveInContracts(),
+        vsafe(),
+        ehnogc(),
+        dtorFields(),
+        fieldwise(),
+        rvalueRefParam(),
+        cplusplus((CppStdRevision)201103u),
+        markdown(true),
+        vmarkdown(),
+        showGaggedErrors(),
+        printErrorContext(),
+        manual(),
+        usage(),
+        mcpuUsage(),
+        transitionUsage(),
+        checkUsage(),
+        checkActionUsage(),
+        revertUsage(),
+        previewUsage(),
+        externStdUsage(),
+        hcUsage(),
+        logo(),
+        cpu((CPU)11),
+        useInvariants((CHECKENABLE)0u),
+        useIn((CHECKENABLE)0u),
+        useOut((CHECKENABLE)0u),
+        useArrayBounds((CHECKENABLE)0u),
+        useAssert((CHECKENABLE)0u),
+        useSwitchError((CHECKENABLE)0u),
+        boundscheck((CHECKENABLE)0u),
+        checkAction((CHECKACTION)0u),
+        errorLimit(20u),
+        argv0(),
+        modFileAliasStrings(),
+        imppath(),
+        fileImppath(),
+        objdir(),
+        objname(),
+        libname(),
+        doDocComments(),
+        docdir(),
+        docname(),
+        ddocfiles(),
+        doHdrGeneration(),
+        hdrdir(),
+        hdrname(),
+        hdrStripPlainFunctions(true),
+        cxxhdrdir(),
+        cxxhdrname(),
+        doJsonGeneration(),
+        jsonfilename(),
+        mixinOut(),
+        mixinFile(),
+        mixinLines(),
+        debuglevel(),
+        debugids(),
+        versionlevel(),
+        versionids(),
+        defaultlibname(),
+        debuglibname(),
+        mscrtlib(),
+        moduleDepsFile(),
+        moduleDeps(),
+        messageStyle((MessageStyle)0u),
+        debugb(),
+        debugc(),
+        debugf(),
+        debugr(),
+        debugx(),
+        debugy(),
+        run(),
+        runargs(),
+        objfiles(),
+        linkswitches(),
+        linkswitchIsForCC(),
+        libfiles(),
+        dllfiles(),
+        deffile(),
+        resfile(),
+        exefile(),
+        mapfile()
+    {
+    }
+};
+
 typedef uint32_t structalign_t;
+
+enum : uint32_t { STRUCTALIGN_DEFAULT = 4294967295u };
+
+struct Global
+{
+    DArray< const char > inifilename;
+    DArray< char > mars_ext;
+    DArray< const char > obj_ext;
+    DArray< const char > lib_ext;
+    DArray< const char > dll_ext;
+    DArray< char > doc_ext;
+    DArray< char > ddoc_ext;
+    DArray< char > hdr_ext;
+    DArray< char > cxxhdr_ext;
+    DArray< char > json_ext;
+    DArray< char > map_ext;
+    bool run_noext;
+    DArray< char > copyright;
+    DArray< char > written;
+    Array<const char* >* path;
+    Array<const char* >* filePath;
+    DArray< const char > vendor;
+    Param params;
+    uint32_t errors;
+    uint32_t warnings;
+    uint32_t gag;
+    uint32_t gaggedErrors;
+    uint32_t gaggedWarnings;
+    void* console;
+    Array<Identifier* >* versionids;
+    Array<Identifier* >* debugids;
+    enum : int32_t { recursionLimit = 500 };
+
+    uint32_t startGagging();
+    bool endGagging(uint32_t oldGagged);
+    void increaseErrorCount();
+    void _init();
+    uint32_t versionNumber();
+    const char* const versionChars();
+    ~Global();
+    Global() :
+        inifilename(),
+        mars_ext("d"),
+        obj_ext(),
+        lib_ext(),
+        dll_ext(),
+        doc_ext("html"),
+        ddoc_ext("ddoc"),
+        hdr_ext("di"),
+        cxxhdr_ext("h"),
+        json_ext("json"),
+        map_ext("map"),
+        run_noext(),
+        copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
+        written("written by Walter Bright"),
+        path(),
+        filePath(),
+        vendor(),
+        params(),
+        errors(),
+        warnings(),
+        gag(),
+        gaggedErrors(),
+        gaggedWarnings(),
+        console(),
+        versionids(),
+        debugids()
+    {
+    }
+};
 
 typedef uint64_t dinteger_t;
 
