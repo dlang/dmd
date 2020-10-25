@@ -57,6 +57,9 @@ struct B
         x()
     {
     }
+    B(A<int32_t > x) :
+        x(x)
+        {}
 };
 
 template <typename T>

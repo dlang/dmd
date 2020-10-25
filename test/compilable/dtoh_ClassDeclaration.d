@@ -97,6 +97,9 @@ public:
             x()
         {
         }
+        Inner(int32_t x) :
+            x(x)
+            {}
     };
 
     class InnerC

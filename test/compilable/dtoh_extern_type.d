@@ -90,6 +90,14 @@ struct Floats
         nInf(-INFINITY)
     {
     }
+    Floats(float f, double d = 4.56, _d_real r = 7.89L, double nan = NAN, double inf = INFINITY, double nInf = -INFINITY) :
+        f(f),
+        d(d),
+        r(r),
+        nan(nan),
+        inf(inf),
+        nInf(nInf)
+        {}
 };
 
 struct Null
@@ -99,6 +107,9 @@ struct Null
         null_()
     {
     }
+    Null(_d_dynamicArray< const char > null_) :
+        null_(null_)
+        {}
 };
 
 struct Wrapper
@@ -110,6 +121,10 @@ struct Wrapper
         n2(Null({}))
     {
     }
+    Wrapper(Null n1, Null n2 = Null({})) :
+        n1(n1),
+        n2(n2)
+        {}
 };
 
 extern const _d_dynamicArray< const char > helloWorld;

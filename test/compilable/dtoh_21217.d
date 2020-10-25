@@ -68,6 +68,9 @@ public:
         a(1)
     {
     }
+    Foo(int32_t a) :
+        a(a)
+        {}
 };
 
 ---
