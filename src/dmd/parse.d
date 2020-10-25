@@ -2366,6 +2366,7 @@ final class Parser(AST) : Lexer
     {
         uint level = 1;
         Identifier id = null;
+        Loc loc = token.loc;
 
         if (token.value == TOK.leftParentheses)
         {
@@ -2377,10 +2378,11 @@ final class Parser(AST) : Lexer
                 level = cast(uint)token.unsvalue;
             else
                 error("identifier or integer expected inside `debug(...)`, not `%s`", token.toChars());
+            loc = token.loc;
             nextToken();
             check(TOK.rightParentheses);
         }
-        return new AST.DebugCondition(mod, level, id);
+        return new AST.DebugCondition(loc, mod, level, id);
     }
 
     /**************************************
@@ -2390,6 +2392,7 @@ final class Parser(AST) : Lexer
     {
         uint level = 1;
         Identifier id = null;
+        Loc loc;
 
         if (token.value == TOK.leftParentheses)
         {
@@ -2399,6 +2402,7 @@ final class Parser(AST) : Lexer
              *    version (assert)
              * even though they are keywords
              */
+            loc = token.loc;
             if (token.value == TOK.identifier)
                 id = token.ident;
             else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
@@ -2414,7 +2418,7 @@ final class Parser(AST) : Lexer
         }
         else
             error("(condition) expected following `version`");
-        return new AST.VersionCondition(mod, level, id);
+        return new AST.VersionCondition(loc, mod, level, id);
     }
 
     /***********************************************
