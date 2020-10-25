@@ -1237,7 +1237,7 @@ public:
                 buf.writestring("static ");
                 writeEnumTypeName(memberType);
                 buf.printf(" const %s = ", m.ident.toChars());
-                m.value.accept(this);
+                m.origValue.accept(this);
                 buf.writestring(";");
             }
             buf.writenl();
@@ -1499,7 +1499,17 @@ public:
             return;
         }
 
-        buf.writestring(ed.toChars());
+        const kind = getEnumKind(ed.memtype);
+
+        // Check if the enum was emitted as a real enum
+        if (kind == EnumKind.Int || kind == EnumKind.Numeric)
+            buf.writestring(ed.toChars());
+        else
+        {
+            // Use the base type if the enum was emitted as a namespace
+            buf.printf("/* %s */ ", ed.ident.toChars());
+            ed.memtype.accept(this);
+        }
     }
 
     override void visit(AST.TypeEnum t)
