@@ -174,7 +174,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 | File                                                                        | Purpose                                                                            |
 |-----------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [chkformat.d](https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d) | Validate arguments wiht format specifiers for `printf` / `scanf` etc.              |
+| [chkformat.d](https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d) | Validate arguments with format specifiers for `printf` / `scanf` etc.              |
 | [imphint.d](https://github.com/dlang/dmd/blob/master/src/dmd/imphint.d)     | Give a suggestion to e.g. `import std.stdio` when `writeln` could not be resolved. |
 
 ### Library files
