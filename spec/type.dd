@@ -267,8 +267,8 @@ $(P The bool type is a byte-size type that can only hold the value `true` or
 `false`.)
 
 $(P The only operators that can accept operands of type bool are: $(CODE_AMP)
-$(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =) $(D ^=) !
-$(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).)
+$(CODE_PIPE), $(D ^), $(CODE_AMP)$(D =), $(CODE_PIPE)$(D =), $(D ^=), !,
+$(CODE_AMP)$(CODE_AMP), $(CODE_PIPE)$(CODE_PIPE), and $(D ?:).)
 
 $(P A `bool` value can be implicitly converted to any integral type, with
 `false` becoming 0 and `true` becoming 1.)
