@@ -556,12 +556,19 @@ alias d_uns32 = uint32_t;
 alias d_int64 = int64_t;
 alias d_uns64 = uint64_t;
 
+version (DMDLIB)
+{
+    version = LocOffset;
+}
+
 // file location
 struct Loc
 {
     const(char)* filename; // either absolute or relative to cwd
     uint linnum;
     uint charnum;
+    version (LocOffset)
+        uint fileOffset;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
