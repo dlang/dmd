@@ -648,6 +648,12 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         return Type.terror;
     }
 
+    Type visitExpression(TypeExpression te)
+    {
+        // printf("visitExpression\n");
+        return te;
+    }
+
     Type visitType(Type t)
     {
         if (t.ty == Tint128 || t.ty == Tuns128)
@@ -699,7 +705,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitSArray(TypeSArray mtype)
     {
-        //printf("TypeSArray::semantic() %s\n", toChars());
+        //printf("TypeSArray::semantic() %s\n",mtype.toChars());
         Type t;
         Expression e;
         Dsymbol s;
@@ -736,6 +742,24 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             return error();
 
         Type tbn = tn.toBasetype();
+
+        if (tn.ty == Texp)
+        {
+            auto te = cast(TypeExpression) tn;
+            //  - if type next is a TypeExpression we are most likely in a type function context -
+            // if the type of that expression is __type__* or __type__[] or an associative array with value type __type__
+            // the elem type (type.nextOf) should be __type__
+            // we can return the type __type__ as type of this.
+            // this has to be done now, since the value of the .dim expression might not be avilable at this time 
+            // import dmd.asttypename;
+            // printf("Exp: %s(astTypeName: %s) exp.type: %s\n", te.exp.toChars(), te.exp.astTypeName().ptr, te.exp.type.toChars());
+
+            auto tnexp = te.exp.type.nextOf();
+
+            if (tnexp && tnexp.ty == Ttype)
+                return tnexp.addMod(mtype.mod);
+        }
+
         if (mtype.dim)
         {
             //https://issues.dlang.org/show_bug.cgi?id=15478
@@ -2012,6 +2036,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         case Ttuple:     return visitTuple (cast(TypeTuple)type);
         case Tslice:     return visitSlice(cast(TypeSlice)type);
         case Tmixin:     return visitMixin(cast(TypeMixin)type);
+        case Texp:       return visitExpression(cast(TypeExpression)type);
     }
 }
 
