@@ -7,9 +7,36 @@ TEST_OUTPUT:
 
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef CUSTOM_D_ARRAY_TYPE
+#define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
+#else
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
+};
+#endif
 #if !defined(_d_real)
 # define _d_real long double
 #endif
@@ -40,7 +67,7 @@ extern _d_real r;
 
 extern int32_t si[4$?:32=u|64=LLU$];
 
-extern const DArray< const int32_t > di;
+extern const _d_dynamicArray< const int32_t > di;
 
 extern void* ii;
 

@@ -1,6 +1,3 @@
-// This should be solved by the header generator
-
-#include "dcompat.h"
 #include "library.h"
 
 #include <assert.h>
@@ -16,6 +13,8 @@ int main()
     assert(!c->s.b);
     assert(c->name.ptr == name);
     assert(c->name.length == length);
+    assert(c->name[1] == 'e');
+    assert(const_cast<const C*>(c)->name[2] == 'a');
     c->verify();
 
     assert(foo(c->s) == bar(c));
