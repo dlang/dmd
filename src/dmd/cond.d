@@ -42,7 +42,7 @@ import dmd.func;
 /***********************************************************
  */
 
-enum Include
+enum Include : ubyte
 {
     notComputed,        /// not computed yet
     yes,                /// include the conditional code
@@ -483,9 +483,9 @@ extern (C++) class DVCondition : Condition
     Identifier ident;
     Module mod;
 
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(Loc.initial);
+        super(loc);
         this.mod = mod;
         this.level = level;
         this.ident = ident;
@@ -548,10 +548,11 @@ extern (C++) final class DebugCondition : DVCondition
      *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
+     *  loc = Location in the source file
      */
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(loc, mod, level, ident);
     }
 
     override int include(Scope* sc)
@@ -822,10 +823,11 @@ extern (C++) final class VersionCondition : DVCondition
      *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
+     *  loc = Location in the source file
      */
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(loc, mod, level, ident);
     }
 
     override int include(Scope* sc)

@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -HC -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
@@ -7,9 +7,36 @@ TEST_OUTPUT:
 
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef CUSTOM_D_ARRAY_TYPE
+#define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
+#else
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
+};
+#endif
 
 struct Foo;
 struct FooCpp;
@@ -56,6 +83,16 @@ namespace EnumWithStringType
     static const char* const Two = "2";
 };
 
+namespace EnumWStringType
+{
+    static const char16_t* const One = u"1";
+};
+
+namespace EnumDStringType
+{
+    static const char32_t* const One = U"1";
+};
+
 namespace EnumWithImplicitType
 {
     static const char* const One = "1";
@@ -87,7 +124,7 @@ namespace MyEnum
     static Foo const B = Foo(84);
 };
 
-static MyEnum const test = Foo(42);
+static /* MyEnum */ Foo const test = Foo(42);
 
 struct FooCpp
 {
@@ -104,12 +141,12 @@ namespace MyEnumCpp
     static FooCpp const B = FooCpp(84);
 };
 
-static MyEnum const testCpp = Foo(42);
+static /* MyEnum */ Foo const testCpp = Foo(42);
 
 enum class opaque;
 enum class typedOpaque : int64_t;
 ---
-*/
++/
 
 enum Anon = 10;
 enum Anon2 = true;
@@ -149,6 +186,16 @@ enum EnumWithStringType : string
 {
     One = "1",
     Two = "2"
+}
+
+enum EnumWStringType : wstring
+{
+    One = "1"
+}
+
+enum EnumDStringType : dstring
+{
+    One = "1"
 }
 
 enum EnumWithImplicitType

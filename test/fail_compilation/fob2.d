@@ -161,3 +161,18 @@ fail_compilation/fob2.d(603): Error: variable `fob2.test6.p` is left dangling at
     return p;
 }
 
+/* TEST_OUTPUT:
+---
+fail_compilation/fob2.d(705): Error: variable `fob2.test7.p` is not Owner, cannot consume its value
+---
+*/
+
+#line 700
+
+void free7(int*);
+
+@live void test7(scope int* p)
+{
+    free7(p);
+}
+

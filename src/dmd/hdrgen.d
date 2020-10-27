@@ -1777,19 +1777,17 @@ public:
             case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
-                    if (hgs.fullDump)
+                    auto sym = te.sym;
+                    if (sym && sym.members && (!hgs.inEnumDecl || hgs.inEnumDecl != sym))
                     {
-                        auto sym = te.sym;
-                        if (hgs.inEnumDecl && sym && hgs.inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
+                        foreach (em; *sym.members)
                         {
-                            EnumMember em = cast(EnumMember) (*sym.members)[i];
-                            if (em.value.toInteger == v)
+                            if ((cast(EnumMember)em).value.toInteger == v)
                             {
                                 buf.printf("%s.%s", sym.toChars(), em.ident.toChars());
                                 return ;
                             }
                         }
-                        //assert(0, "We could not find the EmumMember");// for some reason it won't append char* ~ e.toChars() ~ " in " ~ sym.toChars() );
                     }
 
                     buf.printf("cast(%s)", te.sym.toChars());

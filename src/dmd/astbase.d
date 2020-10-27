@@ -52,14 +52,14 @@ struct ASTBase
     alias Initializers          = Array!(Initializer);
     alias Ensures               = Array!(Ensure);
 
-    enum Sizeok : int
+    enum Sizeok : ubyte
     {
         none,               // size of aggregate is not yet able to compute
         fwd,                // size of aggregate is ready to compute
         done,               // size of aggregate is set correctly
     }
 
-    enum Baseok : int
+    enum Baseok : ubyte
     {
         none,               // base classes not computed yet
         start,              // in process of resolving base classes
@@ -6339,9 +6339,9 @@ struct ASTBase
         Identifier ident;
         Module mod;
 
-        final extern (D) this(Module mod, uint level, Identifier ident)
+        final extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
         {
-            super(Loc.initial);
+            super(loc);
             this.mod = mod;
             this.ident = ident;
         }
@@ -6354,9 +6354,9 @@ struct ASTBase
 
     extern (C++) final class DebugCondition : DVCondition
     {
-        extern (D) this(Module mod, uint level, Identifier ident)
+        extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
         {
-            super(mod, level, ident);
+            super(loc, mod, level, ident);
         }
 
         override void accept(Visitor v)
@@ -6367,9 +6367,9 @@ struct ASTBase
 
     extern (C++) final class VersionCondition : DVCondition
     {
-        extern (D) this(Module mod, uint level, Identifier ident)
+        extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
         {
-            super(mod, level, ident);
+            super(loc, mod, level, ident);
         }
 
         override void accept(Visitor v)
@@ -6549,7 +6549,7 @@ struct ASTBase
 
     struct Prot
     {
-        enum Kind : int
+        enum Kind : ubyte
         {
             undefined,
             none,

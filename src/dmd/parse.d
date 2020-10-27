@@ -361,7 +361,7 @@ final class Parser(AST) : Lexer
                 case TOK.at:
                     {
                         AST.Expressions* exps = null;
-                        const stc = parseAttribute(&exps);
+                        const stc = parseAttribute(exps);
                         if (stc & atAttrGroup)
                         {
                             error("`@%s` attribute for module declaration is not supported", token.toChars());
@@ -810,7 +810,7 @@ final class Parser(AST) : Lexer
             case TOK.at:
                 {
                     AST.Expressions* exps = null;
-                    stc = parseAttribute(&exps);
+                    stc = parseAttribute(exps);
                     if (stc)
                         goto Lstc; // it's a predefined attribute
                     // no redundant/conflicting check for UDAs
@@ -1425,60 +1425,55 @@ final class Parser(AST) : Lexer
     }
 
     /***********************************************
-     * Parse attribute, lexer is on '@'.
-     * Input:
-     *      pudas           array of UDAs to append to
+     * Parse attribute(s), lexer is on '@'.
+     *
+     * Attributes can be builtin (e.g. `@safe`, `@nogc`, etc...),
+     * or be user-defined (UDAs). In the former case, we return the storage
+     * class via the return value, while in thelater case we return `0`
+     * and set `pudas`.
+     *
+     * Params:
+     *   pudas = An array of UDAs to append to
+     *
      * Returns:
-     *      storage class   if a predefined attribute; also scanner remains on identifier.
-     *      0               if not a predefined attribute
-     *      *pudas          set if user defined attribute, scanner is past UDA
-     *      *pudas          NULL if not a user defined attribute
+     *   If the attribute is builtin, the return value will be non-zero.
+     *   Otherwise, 0 is returned, and `pudas` will be appended to.
      */
-    private StorageClass parseAttribute(AST.Expressions** pudas)
+    private StorageClass parseAttribute(ref AST.Expressions* udas)
     {
         nextToken();
-        AST.Expressions* udas = null;
-        StorageClass stc = 0;
         if (token.value == TOK.identifier)
         {
-            stc = isBuiltinAtAttribute(token.ident);
-            if (!stc)
-            {
-                // Allow identifier, template instantiation, or function call
-                AST.Expression exp = parsePrimaryExp();
-                if (token.value == TOK.leftParentheses)
-                {
-                    const loc = token.loc;
-                    exp = new AST.CallExp(loc, exp, parseArguments());
-                }
+            // If we find a builtin attribute, we're done, return immediately.
+            if (StorageClass stc = isBuiltinAtAttribute(token.ident))
+                return stc;
 
-                udas = new AST.Expressions();
-                udas.push(exp);
+            // Allow identifier, template instantiation, or function call
+            // for `@Argument` (single UDA) form.
+            AST.Expression exp = parsePrimaryExp();
+            if (token.value == TOK.leftParentheses)
+            {
+                const loc = token.loc;
+                exp = new AST.CallExp(loc, exp, parseArguments());
             }
+
+            if (udas is null)
+                udas = new AST.Expressions();
+            udas.push(exp);
+            return 0;
         }
-        else if (token.value == TOK.leftParentheses)
+
+        if (token.value == TOK.leftParentheses)
         {
-            // @( ArgumentList )
-            // Concatenate with existing
+            // Multi-UDAs ( `@( ArgumentList )`) form, concatenate with existing
             if (peekNext() == TOK.rightParentheses)
                 error("empty attribute list is not allowed");
-            udas = parseArguments();
-        }
-        else
-        {
-            error("@identifier or @(ArgumentList) expected, not `@%s`", token.toChars());
+            udas = AST.UserAttributeDeclaration.concat(udas, parseArguments());
+            return 0;
         }
 
-        if (stc)
-        {
-        }
-        else if (udas)
-        {
-            *pudas = AST.UserAttributeDeclaration.concat(*pudas, udas);
-        }
-        else
-            error("valid attributes are `@property`, `@safe`, `@trusted`, `@system`, `@disable`, `@nogc`");
-        return stc;
+        error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+        return 0;
     }
 
     /***********************************************
@@ -1526,7 +1521,7 @@ final class Parser(AST) : Lexer
             case TOK.at:
                 {
                     AST.Expressions* udas = null;
-                    stc = parseAttribute(&udas);
+                    stc = parseAttribute(udas);
                     if (udas)
                     {
                         if (pudas)
@@ -1694,7 +1689,7 @@ final class Parser(AST) : Lexer
                     {
                         if (token.value != TOK.identifier)
                         {
-                            error("identifier expected for template alias parameter");
+                            error("identifier expected for template `alias` parameter");
                             goto Lerr;
                         }
                         tp_ident = token.ident;
@@ -1761,7 +1756,7 @@ final class Parser(AST) : Lexer
                     nextToken();
                     if (token.value != TOK.identifier)
                     {
-                        error("identifier expected for template this parameter");
+                        error("identifier expected for template `this` parameter");
                         goto Lerr;
                     }
                     loc = token.loc;
@@ -1902,7 +1897,7 @@ final class Parser(AST) : Lexer
 
         tm = new AST.TemplateMixin(locMixin, id, tqual, tiargs);
         if (token.value != TOK.semicolon)
-            error("`;` expected after mixin");
+            error("`;` expected after `mixin`");
         nextToken();
 
         return tm;
@@ -2231,106 +2226,102 @@ final class Parser(AST) : Lexer
         AST.Identifiers* idents = null;
         AST.Expressions* identExps = null;
         cppmangle = CPPMANGLE.def;
-        LINK link = LINK.d; // default
         nextToken();
         assert(token.value == TOK.leftParentheses);
         nextToken();
-        if (token.value == TOK.identifier)
+        LINK returnLinkage(LINK link)
         {
-            Identifier id = token.ident;
+            check(TOK.rightParentheses);
+            *pidents = idents;
+            *pIdentExps = identExps;
+            return link;
+        }
+        LINK invalidLinkage()
+        {
+            error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
+            return returnLinkage(LINK.d);
+        }
+
+        if (token.value != TOK.identifier)
+            return returnLinkage(LINK.d);
+
+        Identifier id = token.ident;
+        nextToken();
+        if (id == Id.Windows)
+            return returnLinkage(LINK.windows);
+        else if (id == Id.Pascal)
+        {
+            deprecation("`extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.");
+            return returnLinkage(LINK.pascal);
+        }
+        else if (id == Id.D)
+            return returnLinkage(LINK.d);
+        else if (id == Id.System)
+            return returnLinkage(LINK.system);
+        else if (id == Id.Objective) // Looking for tokens "Objective-C"
+        {
+            if (token.value != TOK.min)
+                return invalidLinkage();
+
             nextToken();
-            if (id == Id.Windows)
-                link = LINK.windows;
-            else if (id == Id.Pascal)
+            if (token.ident != Id.C)
+                return invalidLinkage();
+
+            nextToken();
+            return returnLinkage(LINK.objc);
+        }
+        else if (id != Id.C)
+            return invalidLinkage();
+
+        if (token.value != TOK.plusPlus)
+            return returnLinkage(LINK.c);
+
+        nextToken();
+        if (token.value != TOK.comma) // , namespaces or class or struct
+            return returnLinkage(LINK.cpp);
+
+        nextToken();
+
+        if (token.value == TOK.class_ || token.value == TOK.struct_)
+        {
+            cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
+            nextToken();
+        }
+        else if (token.value == TOK.identifier) // named scope namespace
+        {
+            idents = new AST.Identifiers();
+            while (1)
             {
-                deprecation("`extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.");
-                link = LINK.pascal;
-            }
-            else if (id == Id.D)
-            { /* already set */}
-            else if (id == Id.C)
-            {
-                link = LINK.c;
-                if (token.value == TOK.plusPlus)
-                {
-                    link = LINK.cpp;
-                    nextToken();
-                    if (token.value == TOK.comma) // , namespaces or class or struct
-                    {
-                        nextToken();
-                        if (token.value == TOK.class_ || token.value == TOK.struct_)
-                        {
-                            cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
-                            nextToken();
-                        }
-                        else if (token.value == TOK.identifier) // named scope namespace
-                        {
-                            idents = new AST.Identifiers();
-                            while (1)
-                            {
-                                Identifier idn = token.ident;
-                                idents.push(idn);
-                                nextToken();
-                                if (token.value == TOK.dot)
-                                {
-                                    nextToken();
-                                    if (token.value == TOK.identifier)
-                                        continue;
-                                    error("identifier expected for C++ namespace");
-                                    idents = null;  // error occurred, invalidate list of elements.
-                                }
-                                break;
-                            }
-                        }
-                        else // non-scoped StringExp namespace
-                        {
-                            cppMangleOnly = true;
-                            identExps = new AST.Expressions();
-                            while (1)
-                            {
-                                identExps.push(parseCondExp());
-                                if (token.value != TOK.comma)
-                                    break;
-                                nextToken();
-                                // Allow trailing commas as done for argument lists, arrays, ...
-                                if (token.value == TOK.rightParentheses)
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-            else if (id == Id.Objective) // Looking for tokens "Objective-C"
-            {
-                if (token.value == TOK.min)
+                Identifier idn = token.ident;
+                idents.push(idn);
+                nextToken();
+                if (token.value == TOK.dot)
                 {
                     nextToken();
-                    if (token.ident == Id.C)
-                    {
-                        link = LINK.objc;
-                        nextToken();
-                    }
-                    else
-                        goto LinvalidLinkage;
+                    if (token.value == TOK.identifier)
+                        continue;
+                    error("identifier expected for C++ namespace");
+                    idents = null;  // error occurred, invalidate list of elements.
                 }
-                else
-                    goto LinvalidLinkage;
-            }
-            else if (id == Id.System)
-            {
-                link = LINK.system;
-            }
-            else
-            {
-            LinvalidLinkage:
-                error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
-                link = LINK.d;
+                break;
             }
         }
-        check(TOK.rightParentheses);
-        *pidents = idents;
-        *pIdentExps = identExps;
-        return link;
+        else // non-scoped StringExp namespace
+        {
+            cppMangleOnly = true;
+            identExps = new AST.Expressions();
+            while (1)
+            {
+                identExps.push(parseCondExp());
+                if (token.value != TOK.comma)
+                    break;
+                nextToken();
+                // Allow trailing commas as done for argument lists, arrays, ...
+                if (token.value == TOK.rightParentheses)
+                    break;
+            }
+        }
+        return returnLinkage(LINK.cpp);
     }
 
     /***********************************
@@ -2375,6 +2366,7 @@ final class Parser(AST) : Lexer
     {
         uint level = 1;
         Identifier id = null;
+        Loc loc = token.loc;
 
         if (token.value == TOK.leftParentheses)
         {
@@ -2385,11 +2377,12 @@ final class Parser(AST) : Lexer
             else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
                 level = cast(uint)token.unsvalue;
             else
-                error("identifier or integer expected inside debug(...), not `%s`", token.toChars());
+                error("identifier or integer expected inside `debug(...)`, not `%s`", token.toChars());
+            loc = token.loc;
             nextToken();
             check(TOK.rightParentheses);
         }
-        return new AST.DebugCondition(mod, level, id);
+        return new AST.DebugCondition(loc, mod, level, id);
     }
 
     /**************************************
@@ -2399,6 +2392,7 @@ final class Parser(AST) : Lexer
     {
         uint level = 1;
         Identifier id = null;
+        Loc loc;
 
         if (token.value == TOK.leftParentheses)
         {
@@ -2408,6 +2402,7 @@ final class Parser(AST) : Lexer
              *    version (assert)
              * even though they are keywords
              */
+            loc = token.loc;
             if (token.value == TOK.identifier)
                 id = token.ident;
             else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
@@ -2417,13 +2412,13 @@ final class Parser(AST) : Lexer
             else if (token.value == TOK.assert_)
                 id = Identifier.idPool(Token.toString(TOK.assert_));
             else
-                error("identifier or integer expected inside version(...), not `%s`", token.toChars());
+                error("identifier or integer expected inside `version(...)`, not `%s`", token.toChars());
             nextToken();
             check(TOK.rightParentheses);
         }
         else
             error("(condition) expected following `version`");
-        return new AST.VersionCondition(mod, level, id);
+        return new AST.VersionCondition(loc, mod, level, id);
     }
 
     /***********************************************
@@ -2912,7 +2907,7 @@ final class Parser(AST) : Lexer
                 case TOK.at:
                     {
                         AST.Expressions* exps = null;
-                        StorageClass stc2 = parseAttribute(&exps);
+                        StorageClass stc2 = parseAttribute(exps);
                         if (stc2 & atAttrGroup)
                         {
                             error("`@%s` attribute for function parameter is not supported", token.toChars());
@@ -3054,7 +3049,7 @@ final class Parser(AST) : Lexer
                         if (token.value == TOK.at)
                         {
                             AST.Expressions* exps = null;
-                            StorageClass stc2 = parseAttribute(&exps);
+                            StorageClass stc2 = parseAttribute(exps);
                             if (stc2 & atAttrGroup)
                             {
                                 error("`@%s` attribute for function parameter is not supported", token.toChars());
@@ -3121,9 +3116,12 @@ final class Parser(AST) : Lexer
             nextToken();
             int alt = 0;
             const typeLoc = token.loc;
+            Identifier ident;
             memtype = parseBasicType();
-            memtype = parseDeclarator(memtype, &alt, null);
-            checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
+            memtype = parseDeclarator(memtype, alt, ident);
+            if (ident)
+                error("unexpected identifier `%s` in declarator", ident.toChars());
+            checkCstyleTypeSyntax(typeLoc, memtype, alt, ident);
         }
 
         e = new AST.EnumDeclaration(loc, id, memtype);
@@ -3162,7 +3160,7 @@ final class Parser(AST) : Lexer
                     switch(token.value)
                     {
                         case TOK.at:
-                            if (StorageClass _stc = parseAttribute(&udas))
+                            if (StorageClass _stc = parseAttribute(udas))
                             {
                                 if (_stc == STC.disable)
                                     stc |= _stc;
@@ -3619,8 +3617,11 @@ final class Parser(AST) : Lexer
         t = parseBasicType();
 
         int alt = 0;
-        t = parseDeclarator(t, &alt, pident, ptpl);
-        checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
+        Identifier ident;
+        t = parseDeclarator(t, alt, ident, ptpl);
+        checkCstyleTypeSyntax(typeLoc, t, alt, ident);
+        if (pident)
+            *pident = ident;
 
         t = t.addSTC(stc);
         return t;
@@ -4070,7 +4071,24 @@ final class Parser(AST) : Lexer
         assert(0);
     }
 
-    private AST.Type parseDeclarator(AST.Type t, int* palt, Identifier* pident, AST.TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, AST.Expressions** pudas = null)
+    /**********************
+     * Parse Declarator
+     * Params:
+     *  t            = base type to start with
+     *  palt         = OR in 1 for C-style function pointer declaration syntax,
+     *                 2 for C-style array declaration syntax, otherwise don't modify
+     *  pident       = set to Identifier if there is one, null if not
+     *  tpl          = if !null, then set to TemplateParameterList
+     *  storageClass = any storage classes seen so far
+     *  pdisable     = set to true if @disable seen
+     *  pudas        = any user defined attributes seen so far. Merged with any more found
+     * Returns:
+     *  type declared
+     * Reference: https://dlang.org/spec/declaration.html#Declarator
+     */
+    private AST.Type parseDeclarator(AST.Type t, ref int palt, out Identifier pident,
+        AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
+        bool* pdisable = null, AST.Expressions** pudas = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseBasicType2(t);
@@ -4078,10 +4096,7 @@ final class Parser(AST) : Lexer
         switch (token.value)
         {
         case TOK.identifier:
-            if (pident)
-                *pident = token.ident;
-            else
-                error("unexpected identifier `%s` in declarator", token.ident.toChars());
+            pident = token.ident;
             ts = t;
             nextToken();
             break;
@@ -4097,7 +4112,7 @@ final class Parser(AST) : Lexer
                      * although the D style would be:
                      *  int[]*[3] ident
                      */
-                    *palt |= 1;
+                    palt |= 1;
                     nextToken();
                     ts = parseDeclarator(t, palt, pident);
                     check(TOK.rightParentheses);
@@ -4146,7 +4161,7 @@ final class Parser(AST) : Lexer
                             // It's a dynamic array
                             ta = new AST.TypeDArray(t); // []
                             nextToken();
-                            *palt |= 2;
+                            palt |= 2;
                         }
                         else if (isDeclaration(&token, NeedDeclaratorId.no, TOK.rightBracket, null))
                         {
@@ -4155,7 +4170,7 @@ final class Parser(AST) : Lexer
                             AST.Type index = parseType(); // [ type ]
                             check(TOK.rightBracket);
                             ta = new AST.TypeAArray(t, index);
-                            *palt |= 2;
+                            palt |= 2;
                         }
                         else
                         {
@@ -4163,7 +4178,7 @@ final class Parser(AST) : Lexer
                             AST.Expression e = parseAssignExp(); // [ expression ]
                             ta = new AST.TypeSArray(t, e);
                             check(TOK.rightBracket);
-                            *palt |= 2;
+                            palt |= 2;
                         }
 
                         /* Insert ta into
@@ -4215,7 +4230,7 @@ final class Parser(AST) : Lexer
                     AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
-                        *pdisable = stc & STC.disable ? 1 : 0;
+                        *pdisable = stc & STC.disable ? true : false;
 
                     /* Insert tf into
                      *   ts -> ... -> t
@@ -4336,7 +4351,7 @@ final class Parser(AST) : Lexer
 
             case TOK.at:
                 {
-                    stc = parseAttribute(&udas);
+                    stc = parseAttribute(udas);
                     if (stc)
                         goto L1;
                     continue;
@@ -4749,13 +4764,13 @@ final class Parser(AST) : Lexer
         while (1)
         {
             AST.TemplateParameters* tpl = null;
-            int disable;
+            bool disable;
             int alt = 0;
 
             const loc = token.loc;
-            Identifier ident = null;
+            Identifier ident;
 
-            auto t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas);
+            auto t = parseDeclarator(ts, alt, ident, &tpl, storage_class, &disable, &udas);
             assert(t);
             if (!tfirst)
                 tfirst = t;
@@ -5255,6 +5270,11 @@ final class Parser(AST) : Lexer
         }
     }
 
+    /* *************************
+     * Issue errors if C-style syntax
+     * Params:
+     *  alt = !=0 for C-style syntax
+     */
     private void checkCstyleTypeSyntax(Loc loc, AST.Type t, int alt, Identifier ident)
     {
         if (!alt)

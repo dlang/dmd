@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -extern-std=c++98 -HC -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
@@ -7,9 +7,36 @@ TEST_OUTPUT:
 
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef CUSTOM_D_ARRAY_TYPE
+#define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
+#else
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
+};
+#endif
 
 struct Foo;
 struct FooCpp;
@@ -87,7 +114,7 @@ namespace MyEnum
     static Foo const B = Foo(84);
 };
 
-static MyEnum const test = Foo(42);
+static /* MyEnum */ Foo const test = Foo(42);
 
 struct FooCpp
 {
@@ -104,10 +131,10 @@ namespace MyEnumCpp
     static FooCpp const B = FooCpp(84);
 };
 
-static MyEnum const testCpp = Foo(42);
+static /* MyEnum */ Foo const testCpp = Foo(42);
 
 ---
-*/
++/
 
 enum Anon = 10;
 enum Anon2 = true;

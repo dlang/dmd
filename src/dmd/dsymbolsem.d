@@ -5928,6 +5928,17 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     {
         tempinst.minst = null;
     }
+    // https://issues.dlang.org/show_bug.cgi?id=21299
+    // If not speculative, this instance should have the same instantiating
+    // root module as its enclosing template symbol. This can differ when
+    // the enclosing template gets changed from non-root to a root instance
+    // in the instantiation graph. When that occurs, this instance also
+    // needs to be appended to the root module, otherwise there will be
+    // undefined references at link-time.
+    if (tempinst.minst && tempinst.tinst)
+    {
+        tempinst.minst = tempinst.tinst.minst;
+    }
 
     tempinst.gagged = (global.gag > 0);
 
@@ -6634,12 +6645,18 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
         if (e)  // Try to convert Expression to Dsymbol
         {
-            s = getDsymbol(e);
-            if (!s)
+            // TupleExp is naturally converted to a TupleDeclaration
+            if (auto te = e.isTupleExp())
+                s = new TupleDeclaration(te.loc, ds.ident, cast(Objects*)te.exps);
+            else
             {
-                if (e.op != TOK.error)
-                    ds.error("cannot alias an expression `%s`", e.toChars());
-                return errorRet();
+                s = getDsymbol(e);
+                if (!s)
+                {
+                    if (e.op != TOK.error)
+                        ds.error("cannot alias an expression `%s`", e.toChars());
+                    return errorRet();
+                }
             }
         }
         ds.type = t;

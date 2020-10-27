@@ -1,6 +1,3 @@
-// This should be solved by the header generator
-
-#include "dcompat.h"
 #include "library.h"
 
 #include <assert.h>
@@ -16,6 +13,8 @@ int main()
     assert(!c->s.b);
     assert(c->name.ptr == name);
     assert(c->name.length == length);
+    assert(c->name[1] == 'e');
+    assert(const_cast<const C*>(c)->name[2] == 'a');
     c->verify();
 
     assert(foo(c->s) == bar(c));
@@ -48,6 +47,15 @@ int main()
     assert(__globalTuple_field_1 == 4.0);
 
     tupleFunction(5, 6.0);
+
+    assert(vtable->callable_2() == 2);
+    assert(vtable->callable_4() == 4);
+    assert(vtable->callable_6() == 6);
+
+#if !defined(_WIN64)
+    // The call segfaults on Win64, probably an unrelated (ABI?) bug
+    assert(templated(Templated<int>(4)).t == 4);
+#endif
 
     return 0;
 }

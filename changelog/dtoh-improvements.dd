@@ -6,12 +6,23 @@ experimental C++ header generator:
 - Enums are no longer emitted in macros and `enum class` is used when the
   C++ standard set from `-extern-std=` is c++11 or later.
 - Forward referenced declarations are now properly indented.
+- Default functions parameters are properly emitted
 - Tuple members/parameters/variables are emitted as individual variables
-  using the compiler internal names instaed of causing an assertion failure.
+  using the compiler internal names instead of causing an assertion failure.
 - Interfaces are now emitted as base classes.
+- Aggregate members will be emitted with proper protection levels
+- Protected enums in aggregates are emitted again
+- Private member methods are no longer emitted
 - No auto-generated default constructor for unions
+- No longer ignores declarations nested inside an extern block,
+  e.g. `extern(D) extern(C++) void foo() {} `
 - Opaque enums no longer cause segfaults & are properly exported for C++ 11
 - C++11 constructs are avoided when compiling with `-extern-std=c++98`.
+- Using `typeof(null)` type no longer causes an assertion failure.
+- Final classes are marked as `final`
+- Identifier chains in templates are printed completely
+- Proper vtable layout is ensured by emitting hidden placeholders for
+  virtual functions that are not `extern(C|C++)`.
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

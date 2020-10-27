@@ -108,3 +108,28 @@ WithTuple createTuple()
 {
     return WithTuple(1, 2.0);
 }
+
+extern(C++) class VTable
+{
+    extern(D) int hidden_1() { return 1; }
+    int callable_2() { return 2; }
+    extern(Objective-C) int hidden_3() { return 3; }
+    int callable_4() { return 4; }
+    extern(D) final int hidden_5() { return 5; }
+    int callable_6() { return 6; }
+}
+
+extern(C++) __gshared VTable vtable = new VTable();
+
+extern(C++) struct TemplatedStruct(T)
+{
+    T t;
+    this(T t) { this.t = t; }
+}
+
+alias Templated = TemplatedStruct;
+
+extern(C++) Templated!int templated(Templated!(Templated!int) i)
+{
+    return typeof(return)(i.t.t);
+}
