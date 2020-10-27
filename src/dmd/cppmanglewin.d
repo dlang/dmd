@@ -1035,8 +1035,9 @@ extern(D):
         {
             mangleName(p, dont_use_back_reference);
             // Mangle our string namespaces as well
-            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
+            for (auto ns = p.cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
                 mangleName(ns, dont_use_back_reference);
+
             p = p.toParent();
             if (p.toParent() && p.toParent().isTemplateInstance())
             {
