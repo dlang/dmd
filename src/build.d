@@ -501,7 +501,7 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
 alias runCxxHeadersTest = makeRule!((builder, rule) {
     builder
         .name("cxx-headers-test")
-        .description("Test the C++ frontend headers ")
+        .description("Check that the C++ interface matches `src/dmd/frontend.h`")
         .msg("(TEST) CXX-HEADERS")
         .deps([buildFrontendHeaders])
         .commandFunction(() {
@@ -520,11 +520,28 @@ alias runCxxHeadersTest = makeRule!((builder, rule) {
                 }
                 else
                 {
+                    import core.runtime : Runtime;
+
                     string message = "ERROR: Newly generated header file (" ~ cxxHeaderGeneratedPath ~
                         ") doesn't match with the reference header file (" ~
                         cxxHeaderReferencePath ~ ")\n";
                     auto diff = tryRun(["git", "diff", "--no-index", cxxHeaderReferencePath, cxxHeaderGeneratedPath], runDir).output;
-                    diff ~= "\n===============\nNOTE: You can rerun with AUTO_UPDATE=1 to automatically update the reference header file.";
+                    diff ~= "\n===============
+The file `src/dmd/frontend.h` seems to be out of sync. This is likely because
+changes were made which affect the C++ interface used by GDC and LDC.
+
+Make sure that those changes have been properly reflected in the relevant header
+files (e.g. `src/dmd/scope.h` for changes in `src/dmd/dscope.d`).
+
+To update `frontend.h` and fix this error, run the following command:
+
+`" ~ Runtime.args[0] ~ " cxx-headers-test AUTO_UPDATE=1`
+
+Note that the generated code need not be valid, as the header generator
+(`src/dmd/dtoh.d`) is still under development.
+
+To read more about `frontend.h` and its usage, see src/README.md#cxx-headers-test
+";
                     abortBuild(message, diff);
                 }
             }
