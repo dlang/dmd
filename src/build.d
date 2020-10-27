@@ -452,11 +452,15 @@ alias runTests = makeRule!((testBuilder, testRule)
         .target(env["GENERATED"].buildPath("run".exeName))
         .command([ env["HOST_DMD"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
 
+    // Reference header assumes Linux64
+    auto headerCheck = env["OS"] == "linux" && env["MODEL"] == "64"
+                    ? [ runCxxHeadersTest ] : null;
+
     testBuilder
         .name("test")
         .description("Run the test suite using test/run.d")
         .msg("(RUN) TEST")
-        .deps([dmdDefault, runDmdUnittest, runner])
+        .deps([dmdDefault, runDmdUnittest, runner] ~ headerCheck)
         .commandFunction({
             // Use spawnProcess to avoid output redirection for `command`s
             const scope cmd = [ runner.targets[0], "-j" ~ jobs.to!string ];
