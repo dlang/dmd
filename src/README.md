@@ -53,8 +53,7 @@ Note: This is currently not supported on windows.
 ### cxx-headers-test
 
 Automatically generates a C++ header from the compilers source code using
-the integrated [C++ header generator `dtoh`](dmd/dtoh.d) and compares it
-to the [reference header](dmd/frontend.h).
+the integrated [C++ header generator `dtoh`](dmd/dtoh.d).
 
 Changes to the C++ interface need to be reflected in both the reference
 and the manually curated header (named `XXX.h` for `XXX.d`). The first

@@ -120,7 +120,7 @@ toolchain-info: $(GENERATED)/build
 
 # Run header test on linux
 ifeq ($(OS)$(MODEL),linux64)
-  HEADER_TEST=cxx-headers-test
+#  HEADER_TEST=cxx-headers-test
 endif
 
 auto-tester-test: $(GENERATED)/build

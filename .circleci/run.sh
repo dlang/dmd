@@ -185,7 +185,7 @@ test_cxx()
     ./src/build.d
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
-    ./src/build.d cxx-headers-test
+    # ./src/build.d cxx-headers-test
     deactivate
 }
 

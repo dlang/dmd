@@ -43,7 +43,7 @@ immutable rootRules = [
     &checkwhitespace,
     &runTests,
     &buildFrontendHeaders,
-    &runCxxHeadersTest,
+    //&runCxxHeadersTest,
     &runCxxUnittest,
     &detab,
     &tolf,
