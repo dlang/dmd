@@ -940,9 +940,9 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;    /// condition deciding whether decl or elsedecl applies
     Dsymbols* elsedecl;     /// array of Dsymbol's for else block
 
-    extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
-        super(decl);
+        super(loc, null, decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
         this.condition = condition;
         this.elsedecl = elsedecl;
@@ -951,7 +951,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -1018,16 +1018,16 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     private bool addisdone = false; /// true if members have been added to scope
     private bool onStack = false;   /// true if a call to `include` is currently active
 
-    extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
-        super(condition, decl, elsedecl);
+        super(loc, condition, decl, elsedecl);
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new StaticIfDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     /****************************************

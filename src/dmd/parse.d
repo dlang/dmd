@@ -500,6 +500,8 @@ final class Parser(AST) : Lexer
 
             linkage = linksave;
 
+            Loc startloc;
+
             switch (token.value)
             {
             case TOK.enum_:
@@ -690,6 +692,7 @@ final class Parser(AST) : Lexer
                         s = parseStaticAssert();
                     else if (next == TOK.if_)
                     {
+                        const Loc loc = token.loc;
                         condition = parseStaticIfCondition();
                         AST.Dsymbols* athen;
                         if (token.value == TOK.colon)
@@ -709,7 +712,7 @@ final class Parser(AST) : Lexer
                             aelse = parseBlock(pLastDecl);
                             checkDanglingElse(elseloc);
                         }
-                        s = new AST.StaticIfDeclaration(condition, athen, aelse);
+                        s = new AST.StaticIfDeclaration(loc, condition, athen, aelse);
                     }
                     else if (next == TOK.import_)
                     {
@@ -1134,6 +1137,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
             case TOK.debug_:
+                startloc = token.loc;
                 nextToken();
                 if (token.value == TOK.assign)
                 {
@@ -1158,6 +1162,7 @@ final class Parser(AST) : Lexer
                 goto Lcondition;
 
             case TOK.version_:
+                startloc = token.loc;
                 nextToken();
                 if (token.value == TOK.assign)
                 {
@@ -1200,7 +1205,7 @@ final class Parser(AST) : Lexer
                         aelse = parseBlock(pLastDecl);
                         checkDanglingElse(elseloc);
                     }
-                    s = new AST.ConditionalDeclaration(condition, athen, aelse);
+                    s = new AST.ConditionalDeclaration(startloc, condition, athen, aelse);
                     break;
                 }
             case TOK.semicolon:

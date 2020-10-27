@@ -340,6 +340,12 @@ struct ASTBase
             this.ident = ident;
         }
 
+        final extern (D) this(const ref Loc loc, Identifier ident)
+        {
+            this.loc = loc;
+            this.ident = ident;
+        }
+
         void addComment(const(char)* comment)
         {
             if (!this.comment)
@@ -615,6 +621,12 @@ struct ASTBase
 
         final extern (D) this(Dsymbols *decl)
         {
+            this.decl = decl;
+        }
+
+        final extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+        {
+            super(loc, ident);
             this.decl = decl;
         }
 
@@ -1403,9 +1415,9 @@ struct ASTBase
         Condition condition;
         Dsymbols* elsedecl;
 
-        final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+        final extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
-            super(decl);
+            super(loc, null, decl);
             this.condition = condition;
             this.elsedecl = elsedecl;
         }
@@ -1434,9 +1446,9 @@ struct ASTBase
 
     extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
-        extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+        extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
-            super(condition, decl, elsedecl);
+            super(loc, condition, decl, elsedecl);
         }
 
         override void accept(Visitor v)
