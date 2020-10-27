@@ -1074,7 +1074,7 @@ private final class CppMangleVisitor : Visitor
     {
         void runDg () { if (dg !is null) dg(); }
 
-        if (ns is null)
+        if (ns is null || ns.ident is null)
             return runDg();
 
         if (isStd(ns))

@@ -1977,7 +1977,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
             {
                 ns.dsymbolSemantic(sc);
-                exps.insert(0, ns.exp);
+
+                if (ns.exp.isErrorExp())
+                    return ErrorExp.get();
+
+                auto se = ns.exp.toStringExp();
+                // extern(C++, (emptyTuple))
+                // struct D {}
+                // will produce a blank ident
+                if (!se.len)
+                    continue;
+                exps.insert(0, se);
             }
         }
         if (auto d = s.isDeclaration())

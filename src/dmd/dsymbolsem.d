@@ -2199,12 +2199,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (auto se = ns.exp.toStringExp())
                 ns.ident = identFromSE(se);
+            // Empty Tuple
+            else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
+            {
+            }
             else
                 ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
                              ns.exp.toChars());
         }
-        if (ns.ident)
-            attribSemantic(ns);
+        attribSemantic(ns);
     }
 
     override void visit(UserAttributeDeclaration uad)

@@ -2282,6 +2282,9 @@ final class Parser(AST) : Lexer
 
         nextToken();
 
+        if (token.value == TOK.rightParentheses)
+            return returnLinkage(LINK.cpp); // extern(C++,)
+
         if (token.value == TOK.class_ || token.value == TOK.struct_)
         {
             cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
