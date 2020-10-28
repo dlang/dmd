@@ -393,22 +393,22 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 {
     LINK linkage; /// either explicitly set or `default_`
 
-    extern (D) this(LINK linkage, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl)
     {
-        super(decl);
+        super(loc, null, decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
         this.linkage = (linkage == LINK.system) ? target.systemLinkage() : linkage;
     }
 
-    static LinkDeclaration create(LINK p, Dsymbols* decl)
+    static LinkDeclaration create(const ref Loc loc, LINK p, Dsymbols* decl)
     {
-        return new LinkDeclaration(p, decl);
+        return new LinkDeclaration(loc, p, decl);
     }
 
     override LinkDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new LinkDeclaration(linkage, Dsymbol.arraySyntaxCopy(decl));
+        return new LinkDeclaration(loc, linkage, Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
@@ -445,9 +445,9 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 {
     CPPMANGLE cppmangle;
 
-    extern (D) this(CPPMANGLE cppmangle, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, CPPMANGLE cppmangle, Dsymbols* decl)
     {
-        super(decl);
+        super(loc, null, decl);
         //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", cppmangle, decl);
         this.cppmangle = cppmangle;
     }
@@ -455,7 +455,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
     override CPPMangleDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new CPPMangleDeclaration(cppmangle, Dsymbol.arraySyntaxCopy(decl));
+        return new CPPMangleDeclaration(loc, cppmangle, Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
@@ -515,23 +515,21 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     /// CTFE-able expression, resolving to `TupleExp` or `StringExp`
     Expression exp;
 
-    extern (D) this(Identifier ident, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
     {
-        super(decl);
-        this.ident = ident;
+        super(loc, ident, decl);
     }
 
-    extern (D) this(Expression exp, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
     {
-        super(decl);
+        super(loc, null, decl);
         this.exp = exp;
     }
 
-    extern (D) this(Identifier ident, Expression exp, Dsymbols* decl,
+    extern (D) this(const ref Loc loc, Identifier ident, Expression exp, Dsymbols* decl,
                     CPPNamespaceDeclaration parent)
     {
-        super(decl);
-        this.ident = ident;
+        super(loc, ident, decl);
         this.exp = exp;
         this.cppnamespace = parent;
     }
@@ -540,7 +538,7 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     {
         assert(!s);
         return new CPPNamespaceDeclaration(
-            this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
+            this.loc, this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
     }
 
     /**

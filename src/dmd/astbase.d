@@ -1312,10 +1312,10 @@ struct ASTBase
     {
         LINK linkage;
 
-        extern (D) this(LINK p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, LINK p, Dsymbols* decl)
         {
-            super(decl);
-            linkage = p;
+            super(loc, null, decl);
+            this.linkage = p;
         }
 
         override void accept(Visitor v)
@@ -1362,9 +1362,9 @@ struct ASTBase
     {
         CPPMANGLE cppmangle;
 
-        extern (D) this(CPPMANGLE p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, CPPMANGLE p, Dsymbols* decl)
         {
-            super(decl);
+            super(loc, null, decl);
             cppmangle = p;
         }
 
@@ -1378,15 +1378,14 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(Identifier ident, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
         {
-            super(decl);
-            this.ident = ident;
+            super(loc, ident, decl);
         }
 
-        extern (D) this(Expression exp, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
         {
-            super(decl);
+            super(loc, null, decl);
             this.exp = exp;
         }
 
