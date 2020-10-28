@@ -2024,7 +2024,7 @@ class LinkDeclaration final : public AttribDeclaration
 {
 public:
     LINK linkage;
-    static LinkDeclaration* create(LINK p, Array<Dsymbol* >* decl);
+    static LinkDeclaration* create(const Loc& loc, LINK p, Array<Dsymbol* >* decl);
     LinkDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     const char* toChars() const;

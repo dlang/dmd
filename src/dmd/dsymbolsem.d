@@ -2187,7 +2187,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     auto exp = (*te.exps)[d];
                     auto prev = d ? current : ns.cppnamespace;
                     current = (d + 1) != te.exps.dim
-                        ? new CPPNamespaceDeclaration(exp, null)
+                        ? new CPPNamespaceDeclaration(ns.loc, exp, null)
                         : ns;
                     current.exp = exp;
                     current.cppnamespace = prev;

@@ -220,7 +220,7 @@ void test_visitors()
     tp->accept(&tv);
     assert(tv.type == true);
 
-    LinkDeclaration *ld = LinkDeclaration::create(LINK::d, NULL);
+    LinkDeclaration *ld = LinkDeclaration::create(loc, LINK::d, NULL);
     assert(ld->isAttribDeclaration() == static_cast<AttribDeclaration *>(ld));
     assert(ld->linkage == LINK::d);
     ld->accept(&tv);

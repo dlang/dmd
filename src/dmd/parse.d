@@ -284,6 +284,7 @@ final class Parser(AST) : Lexer
     {
         AST.Module mod;
         LINK linkage;
+        Loc linkLoc;
         CPPMANGLE cppmangle;
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
@@ -950,6 +951,7 @@ final class Parser(AST) : Lexer
                     }
                     pAttrs.link = link;
                     this.linkage = link;
+                    this.linkLoc = linkLoc;
                     a = parseBlock(pLastDecl, pAttrs);
                     if (idents)
                     {
@@ -964,7 +966,7 @@ final class Parser(AST) : Lexer
                                 a.push(s);
                             }
                             if (cppMangleOnly)
-                                s = new AST.CPPNamespaceDeclaration(id, a);
+                                s = new AST.CPPNamespaceDeclaration(linkLoc, id, a);
                             else
                                 s = new AST.Nspace(linkLoc, id, null, a);
                         }
@@ -983,7 +985,7 @@ final class Parser(AST) : Lexer
                                 a.push(s);
                             }
                             if (cppMangleOnly)
-                                s = new AST.CPPNamespaceDeclaration(exp, a);
+                                s = new AST.CPPNamespaceDeclaration(linkLoc, exp, a);
                             else
                                 s = new AST.Nspace(linkLoc, null, exp, a);
                         }
@@ -992,11 +994,11 @@ final class Parser(AST) : Lexer
                     else if (cppmangle != CPPMANGLE.def)
                     {
                         assert(link == LINK.cpp);
-                        s = new AST.CPPMangleDeclaration(cppmangle, a);
+                        s = new AST.CPPMangleDeclaration(linkLoc, cppmangle, a);
                     }
                     else if (pAttrs.link != LINK.default_)
                     {
-                        s = new AST.LinkDeclaration(pAttrs.link, a);
+                        s = new AST.LinkDeclaration(linkLoc, pAttrs.link, a);
                         pAttrs.link = LINK.default_;
                     }
                     break;
@@ -4252,10 +4254,13 @@ final class Parser(AST) : Lexer
     }
 
     private void parseStorageClasses(ref StorageClass storage_class, ref LINK link,
-        ref bool setAlignment, ref AST.Expression ealign, ref AST.Expressions* udas)
+        ref bool setAlignment, ref AST.Expression ealign, ref AST.Expressions* udas,
+        out Loc linkloc)
     {
         StorageClass stc;
         bool sawLinkage = false; // seen a linkage declaration
+
+        linkloc = Loc.initial;
 
         while (1)
         {
@@ -4375,6 +4380,7 @@ final class Parser(AST) : Lexer
                     AST.Expressions* identExps = null;
                     CPPMANGLE cppmangle;
                     bool cppMangleOnly = false;
+                    linkloc = token.loc;
                     link = parseLinkage(&idents, &identExps, cppmangle, cppMangleOnly);
                     if (idents || identExps)
                     {
@@ -4417,6 +4423,7 @@ final class Parser(AST) : Lexer
         StorageClass storage_class = STC.undefined_;
         TOK tok = TOK.reserved;
         LINK link = linkage;
+        Loc linkloc = this.linkLoc;
         bool setAlignment = false;
         AST.Expression ealign;
         AST.Expressions* udas = null;
@@ -4506,9 +4513,10 @@ final class Parser(AST) : Lexer
                         udas = null;
                         storage_class = STC.undefined_;
                         link = linkage;
+                        linkloc = this.linkLoc;
                         setAlignment = false;
                         ealign = null;
-                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
                     }
 
                     if (token.value == TOK.at)
@@ -4626,7 +4634,7 @@ final class Parser(AST) : Lexer
                     {
                         auto a2 = new AST.Dsymbols();
                         a2.push(s);
-                        s = new AST.LinkDeclaration(link, a2);
+                        s = new AST.LinkDeclaration(linkloc, link, a2);
                     }
                     a.push(s);
 
@@ -4669,7 +4677,7 @@ final class Parser(AST) : Lexer
 
         if (!autodecl)
         {
-            parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+            parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
 
             if (token.value == TOK.enum_)
             {
@@ -4710,7 +4718,7 @@ final class Parser(AST) : Lexer
                 }
                 if (link != linkage)
                 {
-                    s = new AST.LinkDeclaration(link, a);
+                    s = new AST.LinkDeclaration(linkloc, link, a);
                     a = new AST.Dsymbols();
                     a.push(s);
                 }
@@ -4846,7 +4854,7 @@ final class Parser(AST) : Lexer
                 {
                     auto ax = new AST.Dsymbols();
                     ax.push(v);
-                    s = new AST.LinkDeclaration(link, ax);
+                    s = new AST.LinkDeclaration(linkloc, link, ax);
                 }
                 a.push(s);
                 switch (token.value)
@@ -4882,7 +4890,7 @@ final class Parser(AST) : Lexer
                 {
                     auto ax = new AST.Dsymbols();
                     ax.push(s);
-                    s = new AST.LinkDeclaration(link, ax);
+                    s = new AST.LinkDeclaration(linkloc, link, ax);
                 }
                 if (udas)
                 {
@@ -4946,7 +4954,7 @@ final class Parser(AST) : Lexer
                 {
                     auto ax = new AST.Dsymbols();
                     ax.push(s);
-                    s = new AST.LinkDeclaration(link, ax);
+                    s = new AST.LinkDeclaration(linkloc, link, ax);
                 }
                 if (udas)
                 {
