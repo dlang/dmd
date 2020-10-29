@@ -1076,6 +1076,8 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
     {
         static if (isStackGrowingDown)
         {
+            assert(c.tstack <= c.bstack, "stack bottom can't be less than top");
+
             // NOTE: We can't index past the bottom of the stack
             //       so don't do the "+1" if isStackGrowingDown.
             if (c.tstack && c.tstack < c.bstack)
@@ -1083,6 +1085,8 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
         }
         else
         {
+            assert(c.bstack <= c.tstack, "stack top can't be less than bottom");
+
             if (c.bstack && c.bstack < c.tstack)
                 scan(ScanType.stack, c.bstack, c.tstack + 1);
         }
