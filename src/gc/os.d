@@ -132,6 +132,8 @@ else static if (is(typeof(malloc))) // else version (GC_Use_Alloc_Malloc)
     void *os_mem_map(size_t nbytes) nothrow
     {   byte *p, q;
         p = cast(byte *) malloc(nbytes + PAGESIZE);
+        if (!p)
+            return null;
         q = p + ((PAGESIZE - ((cast(size_t) p & PAGE_MASK))) & PAGE_MASK);
         * cast(void**)(q + nbytes) = p;
         return q;
