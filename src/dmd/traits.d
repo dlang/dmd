@@ -1963,6 +1963,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         for (auto p = s; !p.isModule(); p = p.toParent())
         {
             p.dsymbolSemantic(sc);
+
+            if (p.isTemplateInstance())
+                continue;
+
             if (p.isNspace())
                 exps.insert(0, new StringExp(p.loc, p.ident.toString()));
 
