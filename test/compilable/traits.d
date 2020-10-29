@@ -279,4 +279,12 @@ static assert (__traits(getCppNamespaces,NS.GetNamespaceTest10) == Seq!("NS", "n
 static assert (__traits(getCppNamespaces,NS.GetNamespaceTest11) == Seq!("NS", "nested", "nested2"));
 static assert (__traits(getCppNamespaces,NS.GetNamespaceTest12) == Seq!("NS", "nested4", "nested3"));
 
+extern(C++, `ns`) struct GetNamespaceTestTemplated(T) {}
+extern(C++, `ns`)
+template GetNamespaceTestTemplated2(T)
+{
+    struct GetNamespaceTestTemplated2 {}
+}
 
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated).length  == 1);
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated2).length == 1);
