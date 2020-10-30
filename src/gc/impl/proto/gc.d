@@ -36,7 +36,7 @@ class ProtoGC : GC
     // Call this function when initializing the real GC
     // upon ProtoGC term. This function should be called
     // after the real GC is in place.
-    void term()
+    void transferRangesAndRoots()
     {
         // Transfer all ranges
         foreach (ref r; ranges)
