@@ -4,7 +4,12 @@ import dmd.lexer : Lexer;
 import dmd.tokens : TOK;
 
 import support : afterEach;
-import lexer.diagnostic_reporter : deinitializeFrontend;
+
+@afterEach deinitializeFrontend()
+{
+    import dmd.frontend : deinitializeDMD;
+    deinitializeDMD();
+}
 
 @("first token in the source code")
 unittest
