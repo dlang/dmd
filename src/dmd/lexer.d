@@ -203,11 +203,6 @@ unittest
     }
 }
 
-version (DMDLIB)
-{
-    version = LocOffset;
-}
-
 /***********************************************************
  */
 class Lexer
@@ -2289,8 +2284,6 @@ class Lexer
     final Loc loc() pure @nogc
     {
         scanloc.charnum = cast(uint)(1 + p - line);
-        version (LocOffset)
-            scanloc.fileOffset = cast(uint)(p - base);
         return scanloc;
     }
 

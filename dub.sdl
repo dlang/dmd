@@ -31,9 +31,7 @@ subPackage {
     "src/dmd/utf.d" \
     "src/dmd/utils.d"
 
-  versions \
-    "CallbackAPI" \
-    "DMDLIB"
+  versions "CallbackAPI"
 
   preGenerateCommands `
     "$${DUB_EXE}" \
