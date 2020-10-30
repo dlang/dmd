@@ -9137,6 +9137,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetlengthTImpl, "resizing arrays"))
                 return setError();
 
+            // use slice expression when arr.length = 0 to avoid runtime call
+            if(exp.e2.isConst() && exp.e2.toUInteger() == 0)
+            {
+                IntervalExp ie = new IntervalExp(ale.loc, exp.e2, exp.e2);
+                Expression se = new SliceExp(ale.loc, ale.e1, ie);
+                Expression as = new AssignExp(ale.loc, ale.e1, se);
+                auto res = as.expressionSemantic(sc);
+                return setResult(res);
+            }
+
             // Lower to object._d_arraysetlengthTImpl!(typeof(e1))._d_arraysetlengthT{,Trace}(e1, e2)
             Expression id = new IdentifierExp(ale.loc, Id.empty);
             id = new DotIdExp(ale.loc, id, Id.object);
