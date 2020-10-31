@@ -790,6 +790,13 @@ extern (C++) struct Target
         {
             if (global.params.isWindows)
             {
+                // Win64 special case: by-value for slices and delegates due to
+                // high number of usages in druntime/Phobos (compiled without
+                // -preview=in but supposed to link against -preview=in code)
+                const ty = t.toBasetype().ty;
+                if (ty == Tarray || ty == Tdelegate)
+                    return false;
+
                 // If size is larger than 8 or not a power-of-2, the Win64 ABI
                 // would require a hidden reference anyway.
                 return size > 8
