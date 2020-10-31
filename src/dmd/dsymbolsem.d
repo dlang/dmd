@@ -2513,7 +2513,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // Eval UDA in this same scope. Issues 19344, 20835, 21122
         if (em.userAttribDecl)
+        {
+            // Set scope but avoid extra sc.uda attachment inside setScope()
+            auto inneruda = em.userAttribDecl.userAttribDecl;
             em.userAttribDecl.setScope(sc);
+            em.userAttribDecl.userAttribDecl = inneruda;
+        }
 
         // The first enum member is special
         bool first = (em == (*em.ed.members)[0]);
