@@ -1351,6 +1351,8 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     static assert(!__traits(compiles, copyEmplace(ss, t)));
 }
 
+version (DigitalMars) version (X86) version (Posix) version = DMD_X86_Posix;
+
 // don't violate immutability for reference types
 @system pure nothrow unittest
 {
@@ -1364,7 +1366,8 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     assert(t is s);
 
     copyEmplace(si, ti);
-    assert(ti is si);
+    version (DMD_X86_Posix) { /* wrongly fails without -O */ } else
+        assert(ti is si);
 
     static assert(!__traits(compiles, copyEmplace(s, ti)));
     static assert(!__traits(compiles, copyEmplace(si, t)));
@@ -1496,8 +1499,14 @@ version (CoreUnittest)
     }
     catch (Exception)
     {
-        assert(S.deletions == [ 4, 3, 2, 1 ] ||
-               S.deletions == [ 4 ]); // FIXME: happens with -O
+        static immutable expectedDeletions = [ 4, 3, 2, 1 ];
+        version (DigitalMars)
+        {
+            assert(S.deletions == expectedDeletions ||
+                   S.deletions == [ 4 ]); // FIXME: happens with -O
+        }
+        else
+            assert(S.deletions == expectedDeletions);
     }
 }
 
