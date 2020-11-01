@@ -3828,7 +3828,8 @@ else
     {
         //printf("TryCatchStatement.semantic()\n");
 
-        if (!global.params.useExceptions)
+        if (!global.params.useExceptions &&
+            !(sc.func && sc.func.flags & FUNCFLAG.compileTimeOnly))
         {
             tcs.error("Cannot use try-catch statements with -betterC");
             return setError();
@@ -4022,7 +4023,8 @@ else
 
         //printf("ThrowStatement::semantic()\n");
 
-        if (!global.params.useExceptions)
+        if (!global.params.useExceptions &&
+            !(sc.func && sc.func.flags & FUNCFLAG.compileTimeOnly))
         {
             ts.error("Cannot use `throw` statements with -betterC");
             return setError();

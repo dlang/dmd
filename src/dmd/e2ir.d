@@ -176,6 +176,9 @@ private elem *callfunc(const ref Loc loc,
     elem *eside = null;
     elem *eresult = ehidden;
 
+    if (fd && fd.flags & FUNCFLAG.compileTimeOnly)
+        fd.error("is annotated with `pragma(ctfe)` and may not be called at runtime");
+
     version (none)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
