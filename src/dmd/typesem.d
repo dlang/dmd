@@ -1491,12 +1491,16 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 // Remove redundant storage classes for type, they are already applied
                 fparam.storageClass &= ~(STC.TYPECTOR);
-            }
 
-            // Now that we're done processing the types of parameters,
-            // apply `STC.ref` where necessary
-            if (global.params.previewIn)
-                target.applyInRefParams(tf);
+                // -preview=in: add `ref` storage class to suited `in` params
+                if (global.params.previewIn && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
+                {
+                    auto ts = t.baseElemOf().isTypeStruct();
+                    const isPOD = !ts || ts.sym.isPOD();
+                    if (!isPOD || target.preferPassByRef(t))
+                        fparam.storageClass |= STC.ref_;
+                }
+            }
 
             // Now that we completed semantic for the argument types,
             // run semantic on their default values,

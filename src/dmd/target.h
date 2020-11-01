@@ -109,7 +109,7 @@ public:
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     d_uns64 parameterSize(const Loc& loc, Type *t);
-    void applyInRefParams(TypeFunction *tf);
+    bool preferPassByRef(Type *t);
     Expression *getTargetInfo(const char* name, const Loc& loc);
 };
 
