@@ -2586,7 +2586,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* See if the symbol was a member of an enclosing 'with'
              */
             WithScopeSymbol withsym = scopesym.isWithScopeSymbol();
-            if (withsym && withsym.withstate.wthis)
+            if (withsym && withsym.withstate.wthis && symbolIsVisible(sc, s))
             {
                 /* Disallow shadowing
                  */
@@ -2621,13 +2621,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (withsym)
                 {
-                    if (auto t = withsym.withstate.exp.isTypeExp())
+                    if (withsym.withstate.exp.type.ty != Tvoid)
                     {
-                        e = new TypeExp(exp.loc, t.type);
-                        e = new DotIdExp(exp.loc, e, exp.ident);
-                        result = e.expressionSemantic(sc);
-                        return;
+                        // 'with (exp)' is a type expression
+                        // or 's' is not visible there (for error message)
+                        e = new TypeExp(exp.loc, withsym.withstate.exp.type);
                     }
+                    else
+                    {
+                        // 'with (exp)' is a Package/Module
+                        e = withsym.withstate.exp;
+                    }
+                    e = new DotIdExp(exp.loc, e, exp.ident);
+                    result = e.expressionSemantic(sc);
+                    return;
                 }
 
                 /* If f is really a function template,
