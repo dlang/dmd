@@ -1227,16 +1227,22 @@ pure nothrow @safe /* @nogc */ unittest
  *   target = uninitialized value to be initialized with a copy of source
  */
 void copyEmplace(S, T)(ref S source, ref T target) @system
-    if (is(immutable S == immutable T)
-        // this check seems to fail for nested aggregates
-        /* && __traits(compiles, (ref S src) { T tgt = src; }) */)
+    if (is(immutable S == immutable T))
 {
-    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+    import core.internal.traits : BaseElemOf, hasElaborateCopyConstructor, Unconst, Unqual;
+
+    // cannot have the following as simple template constraint due to nested-struct special case...
+    static if (!__traits(compiles, (ref S src) { T tgt = src; }))
+    {
+        alias B = BaseElemOf!T;
+        enum isNestedStruct = is(B == struct) && __traits(isNested, B);
+        static assert(isNestedStruct, "cannot copy-construct " ~ T.stringof ~ " from " ~ S.stringof);
+    }
 
     void blit()
     {
         import core.stdc.string : memcpy;
-        memcpy(cast(void*) &target, &source, T.sizeof);
+        memcpy(cast(Unqual!(T)*) &target, cast(Unqual!(T)*) &source, T.sizeof);
     }
 
     static if (is(T == struct))
@@ -1252,7 +1258,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
             static if (__traits(isNested, T))
             {
                  // copy context pointer
-                cast() target.tupleof[$-1] = cast(typeof(target.tupleof[$-1])) source.tupleof[$-1];
+                *(cast(void**) &target.tupleof[$-1]) = cast(void*) source.tupleof[$-1];
             }
             target.__ctor(source); // invoke copy ctor
         }
@@ -1275,7 +1281,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
             {
                 // destroy, in reverse order, what we've constructed so far
                 while (i--)
-                    destroy(*cast(Unqual!(E)*) &target[i]);
+                    destroy(*cast(Unconst!(E)*) &target[i]);
                 throw e;
             }
         }
@@ -1286,7 +1292,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     }
     else
     {
-        cast() target = source;
+        *cast(Unconst!(T)*) &target = *cast(Unconst!(T)*) &source;
     }
 }
 
@@ -1324,6 +1330,47 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     S target = void;
     copyEmplace(source, target);
     assert(target.x == 42);
+}
+
+// preserve shared-ness
+@system pure nothrow unittest
+{
+    auto s = new Object();
+    auto ss = new shared Object();
+
+    Object t;
+    shared Object st;
+
+    copyEmplace(s, t);
+    assert(t is s);
+
+    copyEmplace(ss, st);
+    assert(st is ss);
+
+    static assert(!__traits(compiles, copyEmplace(s, st)));
+    static assert(!__traits(compiles, copyEmplace(ss, t)));
+}
+
+version (DigitalMars) version (X86) version (Posix) version = DMD_X86_Posix;
+
+// don't violate immutability for reference types
+@system pure nothrow unittest
+{
+    auto s = new Object();
+    auto si = new immutable Object();
+
+    Object t;
+    immutable Object ti;
+
+    copyEmplace(s, t);
+    assert(t is s);
+
+    copyEmplace(si, ti);
+    version (DMD_X86_Posix) { /* wrongly fails without -O */ } else
+        assert(ti is si);
+
+    static assert(!__traits(compiles, copyEmplace(s, ti)));
+    static assert(!__traits(compiles, copyEmplace(si, t)));
 }
 
 version (CoreUnittest)
@@ -1412,11 +1459,23 @@ version (CoreUnittest)
         }
     }
 
-    S source = S(666);
-    immutable S target = void;
-    copyEmplace(source, target);
-    assert(target is source);
-    assert(copies == 1);
+    {
+        copies = 0;
+        S source = S(123);
+        immutable S target = void;
+        copyEmplace(source, target);
+        assert(target is source);
+        assert(copies == 1);
+    }
+
+    {
+        copies = 0;
+        immutable S[1] source = [immutable S(456)];
+        S[1] target = void;
+        copyEmplace(source, target);
+        assert(target[0] is source[0]);
+        assert(copies == 1);
+    }
 }
 
 // destruction of partially copied static array
@@ -1440,8 +1499,14 @@ version (CoreUnittest)
     }
     catch (Exception)
     {
-        assert(S.deletions == [ 4, 3, 2, 1 ] ||
-               S.deletions == [ 4 ]); // FIXME: happens with -O
+        static immutable expectedDeletions = [ 4, 3, 2, 1 ];
+        version (DigitalMars)
+        {
+            assert(S.deletions == expectedDeletions ||
+                   S.deletions == [ 4 ]); // FIXME: happens with -O
+        }
+        else
+            assert(S.deletions == expectedDeletions);
     }
 }
 
