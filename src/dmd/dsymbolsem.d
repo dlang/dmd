@@ -1836,6 +1836,42 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(PragmaDeclaration pd)
     {
+        void declarations()
+        {
+            if (!pd.decl)
+                return;
+
+            Scope* sc2 = pd.newScope(sc);
+            for (size_t i = 0; i < pd.decl.dim; i++)
+            {
+                Dsymbol s = (*pd.decl)[i];
+                s.dsymbolSemantic(sc2);
+                if (pd.ident == Id.mangle)
+                {
+                    assert(pd.args && pd.args.dim == 1);
+                    if (auto se = (*pd.args)[0].toStringExp())
+                    {
+                        const name = (cast(const(char)[])se.peekData()).xarraydup;
+                        uint cnt = setMangleOverride(s, name);
+                        if (cnt > 1)
+                        pd.error("can only apply to a single declaration");
+                    }
+                }
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+
+        void noDeclarations()
+        {
+            if (pd.decl)
+            {
+                pd.error("is missing a terminating `;`");
+                declarations();
+                // do them anyway, to avoid segfaults.
+            }
+        }
+
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
         if (global.params.mscoff)
@@ -1848,12 +1884,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     auto se = semanticString(sc, (*pd.args)[0], "linker directive");
                     if (!se)
-                        goto Lnodecl;
+                        return noDeclarations();
                     (*pd.args)[0] = se;
                     if (global.params.verbose)
                         message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
                 }
-                goto Lnodecl;
+                return noDeclarations();
             }
         }
         if (pd.ident == Id.msg)
@@ -1890,7 +1926,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 fprintf(stderr, "\n");
             }
-            goto Lnodecl;
+            return noDeclarations();
         }
         else if (pd.ident == Id.lib)
         {
@@ -1900,7 +1936,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 auto se = semanticString(sc, (*pd.args)[0], "library name");
                 if (!se)
-                    goto Lnodecl;
+                    return noDeclarations();
                 (*pd.args)[0] = se;
 
                 auto name = se.peekString().xarraydup;
@@ -1920,7 +1956,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 mem.xfree(name.ptr);
             }
-            goto Lnodecl;
+            return noDeclarations();
         }
         else if (pd.ident == Id.startaddress)
         {
@@ -1940,11 +1976,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!sa || !sa.isFuncDeclaration())
                     pd.error("function name expected for start address, not `%s`", e.toChars());
             }
-            goto Lnodecl;
+            return noDeclarations();
         }
         else if (pd.ident == Id.Pinline)
         {
-            goto Ldecl;
+            return declarations();
         }
         else if (pd.ident == Id.mangle)
         {
@@ -1955,23 +1991,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 pd.error("string expected for mangled name");
                 pd.args.setDim(1);
                 (*pd.args)[0] = ErrorExp.get(); // error recovery
-                goto Ldecl;
+                return declarations();
             }
 
             auto se = semanticString(sc, (*pd.args)[0], "mangled name");
             if (!se)
-                goto Ldecl;
+                return declarations();
             (*pd.args)[0] = se; // Will be used later
 
             if (!se.len)
             {
                 pd.error("zero-length string not allowed for mangled name");
-                goto Ldecl;
+                return declarations();
             }
             if (se.sz != 1)
             {
                 pd.error("mangled name characters can only be of type `char`");
-                goto Ldecl;
+                return declarations();
             }
             version (all)
             {
@@ -2014,79 +2050,50 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
-            goto Ldecl;
+            return declarations();
         }
         else if (pd.ident == Id.printf || pd.ident == Id.scanf)
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
-            goto Ldecl;
+            return declarations();
         }
-        else if (global.params.ignoreUnsupportedPragmas)
+        else if (!global.params.ignoreUnsupportedPragmas)
         {
-            if (global.params.verbose)
-            {
-                /* Print unrecognized pragmas
-                 */
-                OutBuffer buf;
-                buf.writestring(pd.ident.toString());
-                if (pd.args)
-                {
-                    const errors_save = global.startGagging();
-                    for (size_t i = 0; i < pd.args.dim; i++)
-                    {
-                        Expression e = (*pd.args)[i];
-                        sc = sc.startCTFE();
-                        e = e.expressionSemantic(sc);
-                        e = resolveProperties(sc, e);
-                        sc = sc.endCTFE();
-                        e = e.ctfeInterpret();
-                        if (i == 0)
-                            buf.writestring(" (");
-                        else
-                            buf.writeByte(',');
-                        buf.writestring(e.toChars());
-                    }
-                    if (pd.args.dim)
-                        buf.writeByte(')');
-                    global.endGagging(errors_save);
-                }
-                message("pragma    %s", buf.peekChars());
-            }
-        }
-        else
             error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toChars());
-    Ldecl:
-        if (pd.decl)
+            return declarations();
+        }
+
+        if (!global.params.verbose)
+            return declarations();
+
+        /* Print unrecognized pragmas
+         */
+        OutBuffer buf;
+        buf.writestring(pd.ident.toString());
+        if (pd.args)
         {
-            Scope* sc2 = pd.newScope(sc);
-            for (size_t i = 0; i < pd.decl.dim; i++)
+            const errors_save = global.startGagging();
+            for (size_t i = 0; i < pd.args.dim; i++)
             {
-                Dsymbol s = (*pd.decl)[i];
-                s.dsymbolSemantic(sc2);
-                if (pd.ident == Id.mangle)
-                {
-                    assert(pd.args && pd.args.dim == 1);
-                    if (auto se = (*pd.args)[0].toStringExp())
-                    {
-                        const name = (cast(const(char)[])se.peekData()).xarraydup;
-                        uint cnt = setMangleOverride(s, name);
-                        if (cnt > 1)
-                            pd.error("can only apply to a single declaration");
-                    }
-                }
+                Expression e = (*pd.args)[i];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+                e = e.ctfeInterpret();
+                if (i == 0)
+                    buf.writestring(" (");
+                else
+                    buf.writeByte(',');
+                buf.writestring(e.toChars());
             }
-            if (sc2 != sc)
-                sc2.pop();
+            if (pd.args.dim)
+                buf.writeByte(')');
+            global.endGagging(errors_save);
         }
-        return;
-    Lnodecl:
-        if (pd.decl)
-        {
-            pd.error("is missing a terminating `;`");
-            goto Ldecl;
-            // do them anyway, to avoid segfaults.
-        }
+        message("pragma    %s", buf.peekChars());
+        return declarations();
     }
 
     override void visit(StaticIfDeclaration sid)
