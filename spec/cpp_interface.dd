@@ -186,6 +186,13 @@ module ns;
 extern (C++, `ns`)
 {
     int foo() { return 1; }
+}
+---
+    $(P Any expression that resolves to either a tuple of strings or an empty tuple is accepted.
+      When the expression resolves to an empty tuple, it is equivalent to `extern (C++)`)
+---
+extern(C++, (expression))
+{
     int bar() { return 2; }
 }
 ---
