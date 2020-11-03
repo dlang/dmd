@@ -67,7 +67,7 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     :lld_exists
 
     if exist "%DMD_DIR%\mingw\dmd2\windows\lib%MODEL%\mingw\kernel32.lib" goto mingw_exists
-    powershell -command "& { iwr https://github.com/dlang/installer/releases/download/mingw-libs-7.0.0-2/mingw-libs-7.0.0-2.zip -OutFile mingw.zip }" || exit /B 13
+    powershell -command "& { iwr https://github.com/dlang/installer/releases/download/mingw-libs-8.0.0/mingw-libs-8.0.0.zip -OutFile mingw.zip }" || exit /B 13
     7z x mingw.zip -o%DMD_DIR%\mingw || exit /B 14
     :mingw_exists
 
