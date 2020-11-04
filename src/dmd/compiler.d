@@ -30,6 +30,11 @@ import dmd.semantic3;
 import dmd.tokens;
 import dmd.statement;
 
+version (DMDLIB)
+{
+    version = CallbackAPI;
+}
+
 extern (C++) __gshared
 {
     /// Module in which the D main is
