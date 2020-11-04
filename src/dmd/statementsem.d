@@ -60,6 +60,11 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.compiler;
 
+version (DMDLIB)
+{
+    version = CallbackAPI;
+}
+
 /*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
  * So fixing the label name inside in/out contracts is necessary
