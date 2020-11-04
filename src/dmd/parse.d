@@ -3992,9 +3992,9 @@ final class Parser(AST) : Lexer
      *      t function
      *      t delegate
      */
-    private AST.Type parseBasicType2(AST.Type t)
+    private AST.Type parseTypeSuffixes(AST.Type t)
     {
-        //printf("parseBasicType2()\n");
+        //printf("parseTypeSuffixes()\n");
         while (1)
         {
             switch (token.value)
@@ -4099,7 +4099,7 @@ final class Parser(AST) : Lexer
         bool* pdisable = null, AST.Expressions** pudas = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
-        t = parseBasicType2(t);
+        t = parseTypeSuffixes(t);
         AST.Type ts;
         switch (token.value)
         {
@@ -4755,7 +4755,7 @@ final class Parser(AST) : Lexer
                 else
                 {
                     ts = parseBasicType();
-                    ts = parseBasicType2(ts);
+                    ts = parseTypeSuffixes(ts);
                 }
             }
         }
@@ -4995,7 +4995,7 @@ final class Parser(AST) : Lexer
                 // function type (parameters) { statements... }
                 // delegate type (parameters) { statements... }
                 tret = parseBasicType();
-                tret = parseBasicType2(tret); // function return type
+                tret = parseTypeSuffixes(tret); // function return type
             }
 
             if (token.value == TOK.leftParentheses)
@@ -9164,7 +9164,7 @@ final class Parser(AST) : Lexer
 
         const stc = parseTypeCtor();
         auto t = parseBasicType(true);
-        t = parseBasicType2(t);
+        t = parseTypeSuffixes(t);
         t = t.addSTC(stc);
         if (t.ty == AST.Taarray)
         {
