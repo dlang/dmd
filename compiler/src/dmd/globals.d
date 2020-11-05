@@ -220,7 +220,8 @@ extern (C++) struct Param
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
     CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
 
-    CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
+    /// Action to take when bounds, asserts or switch defaults are violated
+    CHECKACTION checkAction = CHECKACTION.context;
 
     CLIIdentifierTable dIdentifierTable = CLIIdentifierTable.default_;
     CLIIdentifierTable cIdentifierTable = CLIIdentifierTable.default_;
