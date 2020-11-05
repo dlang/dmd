@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// REQUIRED_ARGS: -checkaction=D
 
 // Copyright (c) 1999-2016 by The D Language Foundation
 // All Rights Reserved
@@ -7021,4 +7022,3 @@ else
 {
     int main() { return 0; }
 }
-
