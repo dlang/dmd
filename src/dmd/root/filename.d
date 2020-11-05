@@ -725,132 +725,105 @@ nothrow:
     }
 
     /************************************
-     * Determine if path is safe.
+     * Determine if path contains reserved character.
      * Params:
      *  name = path
      * Returns:
-     *  true if path is safe.
+     *  index of the first reserved character in path if found, size_t.max otherwise
      */
-    private extern (D) static bool safePath(const(char)* name) pure @nogc
+    extern (D) static size_t findReservedChar(const(char)* name) pure @nogc
     {
-        // Don't allow absolute path
-        if (absolute(name))
-        {
-            return false;
-        }
-        // Don't allow parent directory
-        if (name[0] == '.' && name[1] == '.' && (!name[2] || isDirSeparator(name[2])))
-        {
-            return false;
-        }
-
         version (Windows)
         {
+            size_t idx = 0;
             // According to https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
             // the following characters are not allowed in path: < > : " | ? *
-            // Additionally we do not allow reference to parent directory ("..") in the path.
-            for (const(char)* p = name; *p; p++)
+            for (const(char)* p = name; *p; p++, idx++)
             {
                 char c = *p;
-                if (c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' || c == '*' ||
-                   (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3]))))
+                if (c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' || c == '*')
                 {
-                    return false;
+                    return idx;
                 }
             }
-            return true;
-        }
-        else version (Posix)
-        {
-            // Do not allow reference to parent directory ("..") in the path.
-            for (const(char)* p = name; *p; p++)
-            {
-                char c = *p;
-                if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
-                {
-                    return false;
-                }
-            }
-            return true;
+            return size_t.max;
         }
         else
         {
-            assert(0);
+            return size_t.max;
         }
     }
     unittest
     {
-        assert(safePath(r""));
-        assert(safePath(r"foo.bar"));
-        assert(safePath(r"foo.bar"));
-        assert(safePath(r"foo.bar.boo"));
-        assert(safePath(r"foo/bar.boo"));
-        assert(safePath(r"foo/bar/boo"));
-        assert(safePath(r"foo/bar//boo"));       // repeated directory separator
-        assert(safePath(r"foo.."));
-        assert(safePath(r"foo..boo"));
-        assert(safePath(r"foo/..boo"));
-        assert(safePath(r"foo../boo"));
-        assert(!safePath(r"/"));
-        assert(!safePath(r".."));
-        assert(!safePath(r"../"));
-        assert(!safePath(r"foo/.."));
-        assert(!safePath(r"foo/../"));
-        assert(!safePath(r"foo/../../boo"));
+        assert(findReservedChar(r"") == size_t.max);
+        assert(findReservedChar(r" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-_=+()") == size_t.max);
 
         version (Windows)
         {
-            assert(!safePath(r"\foo"));           // absolute path
-            assert(!safePath(r"\\foo"));          // UNC path
-            assert(!safePath(r"c:foo"));          // drive letter + relative path
-            assert(!safePath(r"c:\foo"));         // drive letter + absolute path
-
-            // Backslash as directory separator
-            assert(safePath(r"foo\bar.boo"));
-            assert(safePath(r"foo\bar\boo"));
-            assert(safePath(r"foo\bar\\boo"));   // repeated directory separator
-            assert(safePath(r"foo\..boo"));
-            assert(safePath(r"foo..\boo"));
-            assert(!safePath(r"\"));
-            assert(!safePath(r"..\"));
-            assert(!safePath(r"foo\.."));
-            assert(!safePath(r"foo\..\"));
-            assert(!safePath(r"foo\..\..\boo"));
-        }
-    }
-
-    /*************************************
-     * Search Path for file in a safe manner.
-     *
-     * Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
-     * ('Path Traversal') attacks.
-     *      http://cwe.mitre.org/data/definitions/22.html
-     * More info:
-     *      https://www.securecoding.cert.org/confluence/display/c/FIO02-C.+Canonicalize+path+names+originating+from+tainted+sources
-     * Returns:
-     *      NULL    file not found
-     *      !=NULL  mem.xmalloc'd file name
-     */
-    extern (C++) static const(char)* safeSearchPath(Strings* path, const(char)* name)
-    {
-        if (!safePath(name))
-        {
-            return null;
-        }
-
-        version (Windows)
-        {
-            return FileName.searchPath(path, name, false);
-        }
-        else version (Posix)
-        {
-            return FileName.searchPath(path, name, false);
+            assert(findReservedChar(` < `) == 1);
+            assert(findReservedChar(` >`) == 1);
+            assert(findReservedChar(`: `) == 0);
+            assert(findReservedChar(`"`) == 0);
+            assert(findReservedChar(`|`) == 0);
+            assert(findReservedChar(`?`) == 0);
+            assert(findReservedChar(`*`) == 0);
         }
         else
         {
-            assert(0);
+            assert(findReservedChar(`<>:"|?*`) == size_t.max);
         }
     }
+
+    /************************************
+     * Determine if path has a reference to parent directory.
+     * Params:
+     *  name = path
+     * Returns:
+     *  true if path contains '..' reference to parent directory
+     */
+    extern (D) static bool refersToParentDir(const(char)* name) pure @nogc
+    {
+        if (name[0] == '.' && name[1] == '.' && (!name[2] || isDirSeparator(name[2])))
+        {
+            return true;
+        }
+
+        for (const(char)* p = name; *p; p++)
+        {
+            char c = *p;
+            if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    unittest
+    {
+        assert(!refersToParentDir(r""));
+        assert(!refersToParentDir(r"foo"));
+        assert(!refersToParentDir(r"foo.."));
+        assert(!refersToParentDir(r"foo..boo"));
+        assert(!refersToParentDir(r"foo/..boo"));
+        assert(!refersToParentDir(r"foo../boo"));
+        assert(refersToParentDir(r".."));
+        assert(refersToParentDir(r"../"));
+        assert(refersToParentDir(r"foo/.."));
+        assert(refersToParentDir(r"foo/../"));
+        assert(refersToParentDir(r"foo/../../boo"));
+
+        version (Windows)
+        {
+            // Backslash as directory separator
+            assert(!refersToParentDir(r"foo\..boo"));
+            assert(!refersToParentDir(r"foo..\boo"));
+            assert(refersToParentDir(r"..\"));
+            assert(refersToParentDir(r"foo\.."));
+            assert(refersToParentDir(r"foo\..\"));
+            assert(refersToParentDir(r"foo\..\..\boo"));
+        }
+    }
+
 
     /**
        Check if the file the `path` points to exists

@@ -5908,7 +5908,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * http://cwe.mitre.org/data/definitions/22.html
          */
 
-        auto name = FileName.safeSearchPath(global.filePath, namez);
+        if (FileName.absolute(namez))
+        {
+            e.error("absolute path is not allowed in import expression: `%s`", se.toChars());
+            return setError();
+        }
+
+        auto idxReserved = FileName.findReservedChar(namez);
+        if (idxReserved != size_t.max)
+        {
+            e.error("`%s` is  not a valid filename on this platform", se.toChars());
+            e.errorSupplemental("Character `'%c'` is reserved and cannot be used", namez[idxReserved]);
+            return setError();
+        }
+
+        if (FileName.refersToParentDir(namez))
+        {
+            e.error("path refers to parent (`..`) directory: `%s`", se.toChars());
+            return setError();
+        }
+
+        auto name = FileName.searchPath(global.filePath, namez, false);
         if (!name)
         {
             e.error("file `%s` cannot be found or not in a path specified with `-J`", se.toChars());

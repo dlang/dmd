@@ -1173,7 +1173,6 @@ public:
     static bool equalsExt(const char* name, const char* ext);
     bool equalsExt(const char* ext) const;
     static const char* searchPath(Array<const char* >* path, const char* name, bool cwd);
-    static const char* safeSearchPath(Array<const char* >* path, const char* name);
     static int32_t exists(const char* name);
     static bool ensurePathExists(const char* path);
     static const char* canonicalName(const char* name);
