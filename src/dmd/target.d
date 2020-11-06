@@ -1053,6 +1053,20 @@ struct TargetCPP
     }
 
     /**
+     * Get mangle name of a this-adjusting thunk to the given function
+     * declaration for C++ ABI.
+     * Params:
+     *      fd = function with C++ linkage
+     *      offset = call offset to the vptr
+     * Returns:
+     *      string mangling of C++ thunk, or null if unhandled
+     */
+    extern (C++) const(char)* thunkMangle(FuncDeclaration fd, int offset)
+    {
+        return null;
+    }
+
+    /**
      * Gets vendor-specific type mangling for C++ ABI.
      * Params:
      *      t = type to inspect

@@ -85,6 +85,17 @@ extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     return buf.extractChars();
 }
 
+///
+extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
+{
+    //printf("cppThunkMangleItanium(%s)\n", fd.toChars());
+    OutBuffer buf;
+    buf.printf("_ZThn%u_", offset);  // "Th" means thunk, "n%u" is the call offset
+    scope CppMangleVisitor v = new CppMangleVisitor(&buf, fd.loc);
+    v.mangle_function_encoding(fd);
+    return buf.extractChars();
+}
+
 /******************************
  * Determine if sym is the 'primary' destructor, that is,
  * the most-aggregate destructor (the one that is defined as __xdtor)
@@ -1005,12 +1016,20 @@ private final class CppMangleVisitor : Visitor
         //printf("mangle_function(%s)\n", d.toChars());
         /*
          * <mangled-name> ::= _Z <encoding>
+         */
+        buf.writestring("_Z");
+        this.mangle_function_encoding(d);
+    }
+
+    void mangle_function_encoding(FuncDeclaration d)
+    {
+        //printf("mangle_function_encoding(%s)\n", d.toChars());
+        /*
          * <encoding> ::= <function name> <bare-function-type>
          *            ::= <data name>
          *            ::= <special-name>
          */
         TypeFunction tf = cast(TypeFunction)d.type;
-        buf.writestring("_Z");
 
         if (TemplateDeclaration ftd = getFuncTemplateDecl(d))
         {
