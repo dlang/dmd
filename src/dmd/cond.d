@@ -656,6 +656,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "CRuntime_Glibc":
             case "CRuntime_Microsoft":
             case "CRuntime_Musl":
+            case "CRuntime_Newlib":
             case "CRuntime_UClibc":
             case "CRuntime_WASI":
             case "Cygwin":

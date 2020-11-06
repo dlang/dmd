@@ -85,33 +85,34 @@ fail_compilation/reserved_version.d(184): Error: version identifier `CRuntime_Di
 fail_compilation/reserved_version.d(185): Error: version identifier `CRuntime_Glibc` is reserved and cannot be set
 fail_compilation/reserved_version.d(186): Error: version identifier `CRuntime_Microsoft` is reserved and cannot be set
 fail_compilation/reserved_version.d(187): Error: version identifier `CRuntime_Musl` is reserved and cannot be set
-fail_compilation/reserved_version.d(188): Error: version identifier `CRuntime_UClibc` is reserved and cannot be set
-fail_compilation/reserved_version.d(189): Error: version identifier `CRuntime_WASI` is reserved and cannot be set
-fail_compilation/reserved_version.d(190): Error: version identifier `D_Coverage` is reserved and cannot be set
-fail_compilation/reserved_version.d(191): Error: version identifier `D_Ddoc` is reserved and cannot be set
-fail_compilation/reserved_version.d(192): Error: version identifier `D_InlineAsm_X86` is reserved and cannot be set
-fail_compilation/reserved_version.d(193): Error: version identifier `D_InlineAsm_X86_64` is reserved and cannot be set
-fail_compilation/reserved_version.d(194): Error: version identifier `D_LP64` is reserved and cannot be set
-fail_compilation/reserved_version.d(195): Error: version identifier `D_X32` is reserved and cannot be set
-fail_compilation/reserved_version.d(196): Error: version identifier `D_HardFloat` is reserved and cannot be set
-fail_compilation/reserved_version.d(197): Error: version identifier `D_SoftFloat` is reserved and cannot be set
-fail_compilation/reserved_version.d(198): Error: version identifier `D_PIC` is reserved and cannot be set
-fail_compilation/reserved_version.d(199): Error: version identifier `D_SIMD` is reserved and cannot be set
-fail_compilation/reserved_version.d(200): Error: version identifier `D_Version2` is reserved and cannot be set
-fail_compilation/reserved_version.d(201): Error: version identifier `D_NoBoundsChecks` is reserved and cannot be set
-fail_compilation/reserved_version.d(204): Error: version identifier `all` is reserved and cannot be set
-fail_compilation/reserved_version.d(205): Error: version identifier `none` is reserved and cannot be set
-fail_compilation/reserved_version.d(206): Error: version identifier `AsmJS` is reserved and cannot be set
-fail_compilation/reserved_version.d(207): Error: version identifier `Emscripten` is reserved and cannot be set
-fail_compilation/reserved_version.d(208): Error: version identifier `WebAssembly` is reserved and cannot be set
-fail_compilation/reserved_version.d(209): Error: version identifier `WASI` is reserved and cannot be set
-fail_compilation/reserved_version.d(210): Error: version identifier `CppRuntime_Clang` is reserved and cannot be set
-fail_compilation/reserved_version.d(211): Error: version identifier `CppRuntime_DigitalMars` is reserved and cannot be set
-fail_compilation/reserved_version.d(212): Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
-fail_compilation/reserved_version.d(213): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
-fail_compilation/reserved_version.d(214): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
-fail_compilation/reserved_version.d(215): Error: version identifier `D_PIE` is reserved and cannot be set
-fail_compilation/reserved_version.d(216): Error: version identifier `AVR` is reserved and cannot be set
+fail_compilation/reserved_version.d(188): Error: version identifier `CRuntime_Newlib` is reserved and cannot be set
+fail_compilation/reserved_version.d(189): Error: version identifier `CRuntime_UClibc` is reserved and cannot be set
+fail_compilation/reserved_version.d(190): Error: version identifier `CRuntime_WASI` is reserved and cannot be set
+fail_compilation/reserved_version.d(191): Error: version identifier `D_Coverage` is reserved and cannot be set
+fail_compilation/reserved_version.d(192): Error: version identifier `D_Ddoc` is reserved and cannot be set
+fail_compilation/reserved_version.d(193): Error: version identifier `D_InlineAsm_X86` is reserved and cannot be set
+fail_compilation/reserved_version.d(194): Error: version identifier `D_InlineAsm_X86_64` is reserved and cannot be set
+fail_compilation/reserved_version.d(195): Error: version identifier `D_LP64` is reserved and cannot be set
+fail_compilation/reserved_version.d(196): Error: version identifier `D_X32` is reserved and cannot be set
+fail_compilation/reserved_version.d(197): Error: version identifier `D_HardFloat` is reserved and cannot be set
+fail_compilation/reserved_version.d(198): Error: version identifier `D_SoftFloat` is reserved and cannot be set
+fail_compilation/reserved_version.d(199): Error: version identifier `D_PIC` is reserved and cannot be set
+fail_compilation/reserved_version.d(200): Error: version identifier `D_SIMD` is reserved and cannot be set
+fail_compilation/reserved_version.d(201): Error: version identifier `D_Version2` is reserved and cannot be set
+fail_compilation/reserved_version.d(202): Error: version identifier `D_NoBoundsChecks` is reserved and cannot be set
+fail_compilation/reserved_version.d(205): Error: version identifier `all` is reserved and cannot be set
+fail_compilation/reserved_version.d(206): Error: version identifier `none` is reserved and cannot be set
+fail_compilation/reserved_version.d(207): Error: version identifier `AsmJS` is reserved and cannot be set
+fail_compilation/reserved_version.d(208): Error: version identifier `Emscripten` is reserved and cannot be set
+fail_compilation/reserved_version.d(209): Error: version identifier `WebAssembly` is reserved and cannot be set
+fail_compilation/reserved_version.d(210): Error: version identifier `WASI` is reserved and cannot be set
+fail_compilation/reserved_version.d(211): Error: version identifier `CppRuntime_Clang` is reserved and cannot be set
+fail_compilation/reserved_version.d(212): Error: version identifier `CppRuntime_DigitalMars` is reserved and cannot be set
+fail_compilation/reserved_version.d(213): Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
+fail_compilation/reserved_version.d(214): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
+fail_compilation/reserved_version.d(215): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
+fail_compilation/reserved_version.d(216): Error: version identifier `D_PIE` is reserved and cannot be set
+fail_compilation/reserved_version.d(217): Error: version identifier `AVR` is reserved and cannot be set
 ---
 */
 
@@ -201,6 +202,7 @@ version = CRuntime_DigitalMars;
 version = CRuntime_Glibc;
 version = CRuntime_Microsoft;
 version = CRuntime_Musl;
+version = CRuntime_Newlib;
 version = CRuntime_UClibc;
 version = CRuntime_WASI;
 version = D_Coverage;
@@ -310,6 +312,7 @@ debug = CRuntime_DigitalMars;
 debug = CRuntime_Glibc;
 debug = CRuntime_Microsoft;
 debug = CRuntime_Musl;
+debug = CRuntime_Newlib;
 debug = CRuntime_UClibc;
 debug = CRuntime_WASI;
 debug = CppRuntime_Clang;
