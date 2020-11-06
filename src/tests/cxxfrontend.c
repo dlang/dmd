@@ -461,6 +461,54 @@ void test_outbuffer()
     assert(strcmp(data, "hello hello \n") == 0);
 }
 
+void test_cppmangle()
+{
+    // Based off runnable_cxx/cppa.d.
+    const char *buf =
+        "module cppa;\n"
+        "extern (C++):\n"
+        "class Base { void based() { } }\n"
+        "interface Interface { int MethodCPP(); int MethodD(); }\n"
+        "class Derived : Base, Interface { int MethodCPP(); int MethodD() { return 3; } }";
+
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+
+    Module *m = Module::create("cppa.d", Identifier::idPool("cppa"), 0, 0);
+
+    unsigned errors = global.startGagging();
+    FuncDeclaration *fd;
+    const char *mangle;
+
+    m->srcBuffer = srcBuffer;
+    m->parse();
+    m->importedFrom = m;
+    m->importAll(NULL);
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
+
+    Dsymbol *s = m->search(Loc(), Identifier::idPool("Derived"));
+    assert(s);
+    ClassDeclaration *cd = s->isClassDeclaration();
+    assert(cd && cd->sizeok == Sizeok::done);
+    assert(cd->members && cd->members->length == 2);
+    assert(cd->vtblInterfaces && cd->vtblInterfaces->length == 1);
+    BaseClass *b = (*cd->vtblInterfaces)[0];
+
+    fd = (*cd->members)[0]->isFuncDeclaration();
+    assert(fd);
+    mangle = cppThunkMangleItanium(fd, b->offset);
+    assert(strcmp(mangle, "_ZThn4_N7Derived9MethodCPPEv") == 0);
+
+    fd = (*cd->members)[1]->isFuncDeclaration();
+    assert(fd);
+    mangle = cppThunkMangleItanium(fd, b->offset);
+    assert(strcmp(mangle, "_ZThn4_N7Derived7MethodDEv") == 0);
+
+    assert(!global.endGagging(errors));
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -479,6 +527,7 @@ int main(int argc, char **argv)
     test_location();
     test_array();
     test_outbuffer();
+    test_cppmangle();
 
     frontend_term();
 

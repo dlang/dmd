@@ -1776,6 +1776,7 @@ struct TargetCPP
     bool twoDtorInVtable;
     const char* toMangle(Dsymbol* s);
     const char* typeInfoMangle(ClassDeclaration* cd);
+    const char* thunkMangle(FuncDeclaration* fd, int32_t offset);
     const char* typeMangle(Type* t);
     Type* parameterType(Parameter* p);
     bool fundamentalType(const Type* const t, bool& isFundamental);
@@ -2316,6 +2317,8 @@ enum class CppOperator
 extern const char* toCppMangleItanium(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleItanium(Dsymbol* s);
+
+extern const char* cppThunkMangleItanium(FuncDeclaration* fd, int32_t offset);
 
 extern const char* toCppMangleMSVC(Dsymbol* s);
 
