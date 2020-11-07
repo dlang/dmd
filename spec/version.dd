@@ -260,6 +260,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
         $(TROW $(ARGS $(D CRuntime_Microsoft)) , $(ARGS Microsoft C runtime))
         $(TROW $(ARGS $(D CRuntime_Musl)) , $(ARGS musl C runtime))
+        $(TROW $(ARGS $(D CRuntime_Newlib)) , $(ARGS newlib C runtime))
         $(TROW $(ARGS $(D CRuntime_UClibc)) , $(ARGS uClibc C runtime))
         $(TROW $(ARGS $(D CRuntime_WASI)) , $(ARGS WASI C runtime))
         $(TROW $(ARGS $(D CppRuntime_Clang)) , $(ARGS Clang Cpp runtime))
