@@ -946,9 +946,49 @@ public:
             return;
         }
 
-        if (ad.aliassym.isDtorDeclaration())
+        auto fd = ad.aliassym.isFuncDeclaration();
+
+        if (fd && (fd.generated || fd.isDtorDeclaration()))
         {
             // Ignore. It's taken care of while visiting FuncDeclaration
+            return;
+        }
+
+        // Recognize member function aliases, e.g. alias visit = Parent.visit;
+        if (adparent && fd)
+        {
+            auto pd = fd.isMember();
+            if (!pd)
+            {
+                ignored("%s because free functions cannot be aliased in C++", ad.toPrettyChars());
+            }
+            else if (global.params.cplusplus < CppStdRevision.cpp11)
+            {
+                ignored("%s because `using` declarations require C++ 11", ad.toPrettyChars());
+            }
+            else if (ad.ident != fd.ident)
+            {
+                ignored("%s because `using` cannot rename functions in aggregates", ad.toPrettyChars());
+            }
+            else if (fd.toAliasFunc().parent.isTemplateMixin())
+            {
+                // Member's of template mixins are directly emitted into the aggregate
+            }
+            else
+            {
+                buf.writestring("using ");
+
+                // Print prefix of the base class if this function originates from a superclass
+                // because alias might be resolved through multiple classes, e.g.
+                // e.g. for alias visit = typeof(super).visit in the visitors
+                if (!fd.introducing)
+                    printPrefix(ad.toParent().isClassDeclaration().baseClass);
+                else
+                    printPrefix(pd);
+
+                buf.writestring(fd.ident.toChars());
+                buf.writestringln(";");
+            }
             return;
         }
 
@@ -2179,18 +2219,6 @@ public:
             scope(exit) printf("[AST.VarExp exit] %s\n", e.toChars());
         }
 
-        /// Partially prints the FQN including parent aggregates
-        void printPrefix(AST.Dsymbol var)
-        {
-            if (!var || !var.isAggregateDeclaration())
-                return;
-            printPrefix(var.parent);
-            includeSymbol(var);
-
-            buf.writestring(var.toString());
-            buf.writestring("::");
-        }
-
         // Static members are not represented as DotVarExp, hence
         // manually print the full name here
         if (e.var.storage_class & AST.STC.static_)
@@ -2198,6 +2226,18 @@ public:
 
         includeSymbol(e.var);
         writeIdentifier(e.var, !!e.var.isThis());
+    }
+
+    /// Partially prints the FQN including parent aggregates
+    private void printPrefix(AST.Dsymbol var)
+    {
+        if (!var || !var.isAggregateDeclaration())
+            return;
+        printPrefix(var.parent);
+        includeSymbol(var);
+
+        buf.writestring(var.toString());
+        buf.writestring("::");
     }
 
     override void visit(AST.CallExp e)

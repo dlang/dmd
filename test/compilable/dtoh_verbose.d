@@ -55,6 +55,16 @@ struct Hidden
     {
     }
 };
+
+class Visitor
+{
+public:
+    virtual void stat();
+    // Ignored dtoh_verbose.Visitor.bar because `using` cannot rename functions in aggregates
+    // Ignored dtoh_verbose.Visitor.unused because free functions cannot be aliased in C++
+};
+
+extern void unused();
 ---
 */
 
@@ -92,3 +102,14 @@ private {
 alias D = size_t delegate (size_t x);
 
 extern(C++) T foo(T) = T.init;
+
+extern(C++) class Visitor
+{
+    void stat() {}
+
+    // Ignored because those cannot be represented in C++
+    alias bar = stat;
+    alias unused = .unused;
+}
+
+extern(C++) void unused() {}

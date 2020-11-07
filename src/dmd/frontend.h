@@ -1409,6 +1409,7 @@ public:
 class Visitor : public ParseTimeVisitor<ASTCodegen >
 {
 public:
+    using ParseTimeVisitor::visit;
     virtual void visit(ErrorStatement* s);
     virtual void visit(PeelStatement* s);
     virtual void visit(UnrolledLoopStatement* s);
@@ -1473,6 +1474,7 @@ public:
 class SemanticTimePermissiveVisitor : public Visitor
 {
 public:
+    using Visitor::visit;
     void visit(Dsymbol* _param_0);
     void visit(Parameter* _param_0);
     void visit(Statement* _param_0);
@@ -1486,6 +1488,7 @@ public:
 class StatementRewriteWalker : public SemanticTimePermissiveVisitor
 {
 public:
+    using SemanticTimePermissiveVisitor::visit;
     Statement** ps;
     void visitStmt(Statement*& s);
     void replaceCurrent(Statement* s);
@@ -1549,6 +1552,7 @@ struct ParameterList
 class StoppableVisitor : public Visitor
 {
 public:
+    using Visitor::visit;
     bool stop;
 };
 
@@ -3334,6 +3338,7 @@ extern void genCppHdrFiles(Array<Module* >& ms);
 class ToCppBuffer final : public Visitor
 {
 public:
+    using Visitor::visit;
     enum class EnumKind
     {
         Int = 0,
@@ -4497,6 +4502,7 @@ enum class ILS : uint8_t
 class NrvoWalker final : public StatementRewriteWalker
 {
 public:
+    using StatementRewriteWalker::visit;
     FuncDeclaration* fd;
     Scope* sc;
     void visit(ReturnStatement* s);
@@ -5518,6 +5524,7 @@ extern AggregateDeclaration* isAggregate(Type* t);
 class NOGCVisitor final : public StoppableVisitor
 {
 public:
+    using StoppableVisitor::visit;
     FuncDeclaration* f;
     bool err;
     void doCond(Expression* exp);
@@ -5876,6 +5883,7 @@ public:
 class PostorderStatementVisitor final : public StoppableVisitor
 {
 public:
+    using StoppableVisitor::visit;
     StoppableVisitor* v;
     bool doCond(Statement* s);
     bool applyTo(Statement* s);
@@ -6717,6 +6725,7 @@ extern Type* getTypeInfoType(Loc loc, Type* t, Scope* sc);
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
 public:
+    using SemanticTimePermissiveVisitor::visit;
     void visit(PeelStatement* s);
     void visit(UnrolledLoopStatement* s);
     void visit(DebugStatement* s);
