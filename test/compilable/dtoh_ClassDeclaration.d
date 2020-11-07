@@ -57,6 +57,9 @@ public:
     int32_t b;
     int64_t c;
     C2(int32_t a);
+    virtual const C* const constRet();
+    virtual void constPar(const C* const c);
+    virtual void constThis() const;
 };
 
 class Aligned
@@ -167,6 +170,10 @@ extern (C++) class C2
     long c;
 
     this(int a) {}
+
+    const(C) constRet() { return null; }
+    void constPar(const C c) {}
+    void constThis() const {}
 }
 
 extern (C) class C3

@@ -799,10 +799,10 @@ public:
     CPPNamespaceDeclaration* cppnamespace;
     Symbol* csym;
     Symbol* isym;
-    char* comment;
-    Loc loc;
+    const char* comment;
+    const Loc loc;
     Scope* _scope;
-    char* prettystring;
+    const char* prettystring;
     bool errors;
     PASS semanticRun;
     DeprecatedDeclaration* depdecl;
@@ -982,7 +982,7 @@ struct Prot
 class Expression : public ASTNode
 {
 public:
-    TOK op;
+    const TOK op;
     uint8_t size;
     uint8_t parens;
     Type* type;
@@ -1986,7 +1986,7 @@ class DeprecatedDeclaration final : public StorageClassDeclaration
 {
 public:
     Expression* msg;
-    char* msgstr;
+    const char* msgstr;
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
@@ -2553,7 +2553,7 @@ public:
     Prot protection;
     LINK linkage;
     int32_t inuse;
-    _d_dynamicArray< char > mangleOverride;
+    _d_dynamicArray< const char > mangleOverride;
     const char* kind() const;
     d_uns64 size(const Loc& loc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
@@ -2980,11 +2980,11 @@ public:
     static void _init();
     static void deinitialize();
     static AggregateDeclaration* moduleinfo;
-    _d_dynamicArray< char > arg;
+    _d_dynamicArray< const char > arg;
     ModuleDeclaration* md;
-    FileName srcfile;
-    FileName objfile;
-    FileName hdrfile;
+    const FileName srcfile;
+    const FileName objfile;
+    const FileName hdrfile;
     FileName docfile;
     FileBuffer* srcBuffer;
     uint32_t errors;
@@ -2994,7 +2994,7 @@ public:
     bool hasAlwaysInlines;
     bool isPackageFile;
     Package* pkg;
-    Array<char* > contentImportedFiles;
+    Array<const char* > contentImportedFiles;
     int32_t needmoduleinfo;
     int32_t selfimports;
     bool selfImports();
@@ -3503,7 +3503,6 @@ public:
     OutBuffer* donebuf;
     OutBuffer* buf;
     AggregateDeclaration* adparent;
-    ClassDeclaration* cdparent;
     TemplateDeclaration* tdparent;
     Identifier* ident;
     LINK linkage;
@@ -3512,7 +3511,7 @@ public:
     Kind currentProt;
     int32_t ignoredCounter;
     bool hasReal;
-    bool printIgnored;
+    const bool printIgnored;
     ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
     void writeDeclEnd();
     void visit(Dsymbol* s);
@@ -4287,7 +4286,7 @@ public:
 class CommaExp final : public BinExp
 {
 public:
-    bool isGenerated;
+    const bool isGenerated;
     bool allowCommaExp;
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
@@ -4714,7 +4713,7 @@ public:
     FuncDeclaration* fdensure;
     Array<Expression* >* fdrequireParams;
     Array<Expression* >* fdensureParams;
-    char* mangleString;
+    const char* mangleString;
     VarDeclaration* vresult;
     LabelDsymbol* returnLabel;
     DsymbolTable* localsymtab;
@@ -5222,7 +5221,7 @@ public:
 class TypeBasic final : public Type
 {
 public:
-    char* dstring;
+    const char* dstring;
     uint32_t flags;
     const char* kind() const;
     Type* syntaxCopy();
@@ -5910,8 +5909,8 @@ enum class STMT : uint8_t
 class Statement : public ASTNode
 {
 public:
-    Loc loc;
-    STMT stmt;
+    const Loc loc;
+    const STMT stmt;
     DYNCAST dyncast() const;
     virtual Statement* syntaxCopy();
     static Array<Statement* >* arraySyntaxCopy(Array<Statement* >* a);
@@ -6166,7 +6165,7 @@ public:
 class PragmaStatement final : public Statement
 {
 public:
-    Identifier* ident;
+    const Identifier* const ident;
     Array<Expression* >* args;
     Statement* _body;
     Statement* syntaxCopy();
@@ -6318,7 +6317,7 @@ public:
 class Catch final : public RootObject
 {
 public:
-    Loc loc;
+    const Loc loc;
     Type* type;
     Identifier* ident;
     Statement* handler;
@@ -7566,9 +7565,9 @@ struct Id
 
 class Identifier final : public RootObject
 {
-    int32_t value;
-    bool isAnonymous_;
-    _d_dynamicArray< char > name;
+    const int32_t value;
+    const bool isAnonymous_;
+    const _d_dynamicArray< const char > name;
 public:
     static Identifier* create(const char* name);
     const char* toChars() const;
