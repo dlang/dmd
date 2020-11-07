@@ -251,7 +251,6 @@ public:
     OutBuffer* donebuf;
     OutBuffer* buf;
     AST.AggregateDeclaration adparent;
-    AST.ClassDeclaration cdparent;
     AST.TemplateDeclaration tdparent;
     Identifier ident;
     LINK linkage = LINK.d;
@@ -276,20 +275,17 @@ public:
     private void visitAsRoot(AST.Dsymbol dsym, OutBuffer* buf)
     {
         auto adStash = this.adparent;
-        auto cdStash = this.cdparent;
         auto tdStash = this.tdparent;
         auto bufStash = this.buf;
         auto countStash = this.ignoredCounter;
 
         this.adparent = null;
-        this.cdparent = null;
         this.tdparent = null;
         this.buf = buf;
 
         dsym.accept(this);
 
         this.adparent = adStash;
-        this.cdparent = cdStash;
         this.tdparent = tdStash;
         this.buf = bufStash;
         this.ignoredCounter = countStash;
@@ -347,7 +343,7 @@ public:
     private void writeProtection(const AST.Prot.Kind kind)
     {
         // Don't write protection for global declarations
-        if (!(adparent || cdparent))
+        if (!adparent)
             return;
 
         string token;
@@ -683,10 +679,7 @@ public:
         if (adparent && vd.type && vd.type.deco)
         {
             writeProtection(vd.protection.kind);
-            auto save = cdparent;
-            cdparent = vd.isField() ? adparent.isClassDeclaration() : null;
             typeToBuffer(vd.type, vd.ident);
-            cdparent = save;
             buf.writestringln(";");
 
             if (auto t = vd.type.isTypeStruct())
@@ -1404,7 +1397,7 @@ public:
             printf("[AST.TypeBasic enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeBasic exit] %s\n", t.toChars());
         }
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring("const ");
         string typeName;
         switch (t.ty)
@@ -1451,7 +1444,7 @@ public:
         t.next.accept(this);
         if (t.next.ty != AST.Tfunction)
             buf.writeByte('*');
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring(" const");
     }
 
@@ -1560,7 +1553,7 @@ public:
             //printf("Visiting enum %s from module %s %s\n", t.sym.toPrettyChars(), t.toChars(), t.sym.loc.toChars());
             visitAsRoot(t.sym, fwdbuf);
         }
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring("const ");
         enumToBuffer(t.sym);
     }
@@ -1580,7 +1573,7 @@ public:
             fwdbuf.writestringln(";");
         }
 
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring("const ");
         if (auto ti = t.sym.parent.isTemplateInstance())
         {
@@ -1597,7 +1590,7 @@ public:
             printf("[AST.TypeDArray enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeDArray exit] %s\n", t.toChars());
         }
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring("const ");
         buf.writestring("_d_dynamicArray< ");
         t.next.accept(this);
@@ -1727,11 +1720,11 @@ public:
             fwdbuf.writestringln(";");
         }
 
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring("const ");
         buf.writestring(t.sym.toChars());
         buf.writeByte('*');
-        if (!cdparent && t.isConst())
+        if (t.isConst())
             buf.writestring(" const");
     }
 
