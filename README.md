@@ -20,7 +20,7 @@ For more information, including instructions for compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
 visit the [D Wiki](http://wiki.dlang.org/DMD).
 
-All significant contributors to DMD source code, via github, bugzilla, email,
+All significant contributors to DMD source code, via GitHub, Bugzilla, email,
 wiki, the D forums, etc., please assign copyright to those
 DMD source code changes to the D Language Foundation. Please send
 an email to walter@digitalmars.com with the statement:
