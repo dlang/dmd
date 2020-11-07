@@ -2287,6 +2287,67 @@ void test16268()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=11435
+
+void test11435a()
+{
+    alias T = byte;
+
+    static void fun(T c, T b, int v)
+    {
+    }
+
+    static void abc(T[] b)
+    {
+        fun(b[0], b[1], 0);
+    }
+
+    version(Windows)
+    {
+        import core.sys.windows.windows;
+        auto p = VirtualAlloc(null, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    }
+    else
+    {
+        import core.sys.posix.sys.mman;
+        auto p = mmap(null, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0L);
+    }
+    assert(p);
+    auto px = (cast(T*)(p + 4096 - 2 * T.sizeof));
+    abc(px[0..2]);
+}
+
+void test11435b()
+{
+    import core.sys.windows.windows;
+    alias T = short;
+
+    static void fun(T c, T b, int v)
+    {
+    }
+
+    static void abc(T[] b)
+    {
+        fun(b[0], b[1], 0);
+    }
+
+    version(Windows)
+    {
+        import core.sys.windows.windows;
+        auto p = VirtualAlloc(null, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    }
+    else
+    {
+        import core.sys.posix.sys.mman;
+        auto p = mmap(null, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0L);
+    }
+    assert(p);
+    auto px = (cast(T*)(p + 4096 - 2 * T.sizeof));
+    abc(px[0..2]);
+}
+
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2379,6 +2440,8 @@ int main()
     test21038();
     test19846();
     test16268();
+    test11435a();
+    test11435b();
 
     printf("Success\n");
     return 0;
