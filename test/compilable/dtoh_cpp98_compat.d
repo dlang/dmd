@@ -89,6 +89,17 @@ struct Wrapper
         s2(s2)
         {}
 };
+
+class UsingBase
+{
+public:
+    virtual void foo();
+};
+
+class UsingChild : public UsingBase
+{
+public:
+};
 ---
 */
 
@@ -112,4 +123,14 @@ extern (C++) struct Wrapper
 {
     MyString s1 = MyString("Hello");
     MyString s2 = MyString(null);
+}
+
+extern (C++) class UsingBase
+{
+    void foo() {}
+}
+
+extern (C++) class UsingChild : UsingBase
+{
+    alias foo = UsingBase.foo;
 }
