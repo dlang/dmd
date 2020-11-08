@@ -620,6 +620,11 @@ public:
         if (vd.storage_class & AST.STC.manifest &&
             vd._init && vd._init.isExpInitializer() && vd.type !is null)
         {
+            if (linkage != LINK.c && linkage != LINK.cpp)
+            {
+                ignored("variable %s because of linkage", vd.toPrettyChars());
+                return;
+            }
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
 

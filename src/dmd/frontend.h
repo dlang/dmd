@@ -1946,8 +1946,6 @@ typedef Array<TemplateInstance* > TemplateInstances;
 
 typedef Array<Ensure > Ensures;
 
-static const char* const mixin_string = "\x0astring astTypeName(Dsymbol node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(Parameter node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(Statement node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(Type node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(Expression node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(TemplateParameter node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(Condition node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0astring astTypeName(Initializer node)\x0a{\x0a    scope tsv = new AstTypeNameVisitor;\x0a    node.accept(tsv);\x0a    return tsv.typeName;\x0a}\x0a\x0aprivate extern(C++) final class AstTypeNameVisitor : Visitor\x0a{\x0a    alias visit = Visitor.visit;\x0apublic :\x0a    string typeName;\x0a\x0a    override void visit (Dsymbol _)\x0a    {\x0a        typeName = \"Dsymbol\";\x0a    }\x0a\x0a    override void visit (Parameter _)\x0a    {\x0a        typeName = \"Parameter\";\x0a    }\x0a\x0a    override void visit (Statement _)\x0a    {\x0a        typeName = \"Statement\";\x0a    }\x0a\x0a    override void visit (Type _)\x0a    {\x0a        typeName = \"Type\";\x0a    }\x0a\x0a    override void visit (Expression _)\x0a    {\x0a        typeName = \"Expression\";\x0a    }\x0a\x0a    override void visit (TemplateParameter _)\x0a    {\x0a        typeName = \"TemplateParameter\";\x0a    }\x0a\x0a    override void visit (Condition _)\x0a    {\x0a        typeName = \"Condition\";\x0a    }\x0a\x0a    override void visit (Initializer _)\x0a    {\x0a        typeName = \"Initializer\";\x0a    }\x0a\x0a    override void visit (AliasThis _)\x0a    {\x0a        typeName = \"AliasThis\";\x0a    }\x0a\x0a    override void visit (Declaration _)\x0a    {\x0a        typeName = \"Declaration\";\x0a    }\x0a\x0a    override void visit (ScopeDsymbol _)\x0a    {\x0a        typeName = \"ScopeDsymbol\";\x0a    }\x0a\x0a    override void visit (Import _)\x0a    {\x0a        typeName = \"Import\";\x0a    }\x0a\x0a    override void visit (AttribDeclaration _)\x0a    {\x0a        typeName = \"AttribDeclaration\";\x0a    }\x0a\x0a    override void visit (StaticAssert _)\x0a    {\x0a        typeName = \"StaticAssert\";\x0a    }\x0a\x0a    override void visit (DebugSymbol _)\x0a    {\x0a        typeName = \"DebugSymbol\";\x0a    }\x0a\x0a    override void visit (VersionSymbol _)\x0a    {\x0a        typeName = \"VersionSymbol\";\x0a    }\x0a\x0a    override void visit (Package _)\x0a    {\x0a        typeName = \"Package\";\x0a    }\x0a\x0a    override void visit (EnumDeclaration _)\x0a    {\x0a        typeName = \"EnumDeclaration\";\x0a    }\x0a\x0a    override void visit (AggregateDeclaration _)\x0a    {\x0a        typeName = \"AggregateDeclaration\";\x0a    }\x0a\x0a    override void visit (TemplateDeclaration _)\x0a    {\x0a        typeName = \"TemplateDeclaration\";\x0a    }\x0a\x0a    override void visit (TemplateInstance _)\x0a    {\x0a        typeName = \"TemplateInstance\";\x0a    }\x0a\x0a    override void visit (Nspace _)\x0a    {\x0a        typeName = \"Nspace\";\x0a    }\x0a\x0a    override void visit (VarDeclaration _)\x0a    {\x0a        typeName = \"VarDeclaration\";\x0a    }\x0a\x0a    override void visit (FuncDeclaration _)\x0a    {\x0a        typeName = \"FuncDeclaration\";\x0a    }\x0a\x0a    override void visit (AliasDeclaration _)\x0a    {\x0a        typeName = \"AliasDeclaration\";\x0a    }\x0a\x0a    override void visit (TupleDeclaration _)\x0a    {\x0a        typeName = \"TupleDeclaration\";\x0a    }\x0a\x0a    override void visit (FuncLiteralDeclaration _)\x0a    {\x0a        typeName = \"FuncLiteralDeclaration\";\x0a    }\x0a\x0a    override void visit (PostBlitDeclaration _)\x0a    {\x0a        typeName = \"PostBlitDeclaration\";\x0a    }\x0a\x0a    override void visit (CtorDeclaration _)\x0a    {\x0a        typeName = \"CtorDeclaration\";\x0a    }\x0a\x0a    override void visit (DtorDeclaration _)\x0a    {\x0a        typeName = \"DtorDeclaration\";\x0a    }\x0a\x0a    override void visit (InvariantDeclaration _)\x0a    {\x0a        typeName = \"InvariantDeclaration\";\x0a    }\x0a\x0a    override void visit (UnitTestDeclaration _)\x0a    {\x0a        typeName = \"UnitTestDeclaration\";\x0a    }\x0a\x0a    override void visit (NewDeclaration _)\x0a    {\x0a        typeName = \"NewDeclaration\";\x0a    }\x0a\x0a    override void visit (StaticCtorDeclaration _)\x0a    {\x0a        typeName = \"StaticCtorDeclaration\";\x0a    }\x0a\x0a    override void visit (StaticDtorDeclaration _)\x0a    {\x0a        typeName = \"StaticDtorDeclaration\";\x0a    }\x0a\x0a    override void visit (SharedStaticCtorDeclaration _)\x0a    {\x0a        typeName = \"SharedStaticCtorDeclaration\";\x0a    }\x0a\x0a    override void visit (SharedStaticDtorDeclaration _)\x0a    {\x0a        typeName = \"SharedStaticDtorDeclaration\";\x0a    }\x0a\x0a    override void visit (CompileDeclaration _)\x0a    {\x0a        typeName = \"CompileDeclaration\";\x0a    }\x0a\x0a    override void visit (UserAttributeDeclaration _)\x0a    {\x0a        typeName = \"UserAttributeDeclaration\";\x0a    }\x0a\x0a    override void visit (LinkDeclaration _)\x0a    {\x0a        typeName = \"LinkDeclaration\";\x0a    }\x0a\x0a    override void visit (AnonDeclaration _)\x0a    {\x0a        typeName = \"AnonDeclaration\";\x0a    }\x0a\x0a    override void visit (AlignDeclaration _)\x0a    {\x0a        typeName = \"AlignDeclaration\";\x0a    }\x0a\x0a    override void visit (CPPMangleDeclaration _)\x0a    {\x0a        typeName = \"CPPMangleDeclaration\";\x0a    }\x0a\x0a    override void visit (CPPNamespaceDeclaration _)\x0a    {\x0a        typeName = \"CPPNamespaceDeclaration\";\x0a    }\x0a\x0a    override void visit (ProtDeclaration _)\x0a    {\x0a        typeName = \"ProtDeclaration\";\x0a    }\x0a\x0a    override void visit (PragmaDeclaration _)\x0a    {\x0a        typeName = \"PragmaDeclaration\";\x0a    }\x0a\x0a    override void visit (StorageClassDeclaration _)\x0a    {\x0a        typeName = \"StorageClassDeclaration\";\x0a    }\x0a\x0a    override void visit (ConditionalDeclaration _)\x0a    {\x0a        typeName = \"ConditionalDeclaration\";\x0a    }\x0a\x0a    override void visit (StaticForeachDeclaration _)\x0a    {\x0a        typeName = \"StaticForeachDeclaration\";\x0a    }\x0a\x0a    override void visit (DeprecatedDeclaration _)\x0a    {\x0a        typeName = \"DeprecatedDeclaration\";\x0a    }\x0a\x0a    override void visit (StaticIfDeclaration _)\x0a    {\x0a        typeName = \"StaticIfDeclaration\";\x0a    }\x0a\x0a    override void visit (EnumMember _)\x0a    {\x0a        typeName = \"EnumMember\";\x0a    }\x0a\x0a    override void visit (Module _)\x0a    {\x0a        typeName = \"Module\";\x0a    }\x0a\x0a    override void visit (StructDeclaration _)\x0a    {\x0a        typeName = \"StructDeclaration\";\x0a    }\x0a\x0a    override void visit (UnionDeclaration _)\x0a    {\x0a        typeName = \"UnionDeclaration\";\x0a    }\x0a\x0a    override void visit (ClassDeclaration _)\x0a    {\x0a        typeName = \"ClassDeclaration\";\x0a    }\x0a\x0a    override void visit (InterfaceDeclaration _)\x0a    {\x0a        typeName = \"InterfaceDeclaration\";\x0a    }\x0a\x0a    override void visit (TemplateMixin _)\x0a    {\x0a        typeName = \"TemplateMixin\";\x0a    }\x0a\x0a    override void visit (ImportStatement _)\x0a    {\x0a        typeName = \"ImportStatement\";\x0a    }\x0a\x0a    override void visit (ScopeStatement _)\x0a    {\x0a        typeName = \"ScopeStatement\";\x0a    }\x0a\x0a    override void visit (ReturnStatement _)\x0a    {\x0a        typeName = \"ReturnStatement\";\x0a    }\x0a\x0a    override void visit (LabelStatement _)\x0a    {\x0a        typeName = \"LabelStatement\";\x0a    }\x0a\x0a    override void visit (StaticAssertStatement _)\x0a    {\x0a        typeName = \"StaticAssertStatement\";\x0a    }\x0a\x0a    override void visit (CompileStatement _)\x0a    {\x0a        typeName = \"CompileStatement\";\x0a    }\x0a\x0a    override void visit (WhileStatement _)\x0a    {\x0a        typeName = \"WhileStatement\";\x0a    }\x0a\x0a    override void visit (ForStatement _)\x0a    {\x0a        typeName = \"ForStatement\";\x0a    }\x0a\x0a    override void visit (DoStatement _)\x0a    {\x0a        typeName = \"DoStatement\";\x0a    }\x0a\x0a    override void visit (ForeachRangeStatement _)\x0a    {\x0a        typeName = \"ForeachRangeStatement\";\x0a    }\x0a\x0a    override void visit (ForeachStatement _)\x0a    {\x0a        typeName = \"ForeachStatement\";\x0a    }\x0a\x0a    override void visit (IfStatement _)\x0a    {\x0a        typeName = \"IfStatement\";\x0a    }\x0a\x0a    override void visit (ScopeGuardStatement _)\x0a    {\x0a        typeName = \"ScopeGuardStatement\";\x0a    }\x0a\x0a    override void visit (ConditionalStatement _)\x0a    {\x0a        typeName = \"ConditionalStatement\";\x0a    }\x0a\x0a    override void visit (StaticForeachStatement _)\x0a    {\x0a        typeName = \"StaticForeachStatement\";\x0a    }\x0a\x0a    override void visit (PragmaStatement _)\x0a    {\x0a        typeName = \"PragmaStatement\";\x0a    }\x0a\x0a    override void visit (SwitchStatement _)\x0a    {\x0a        typeName = \"SwitchStatement\";\x0a    }\x0a\x0a    override void visit (CaseRangeStatement _)\x0a    {\x0a        typeName = \"CaseRangeStatement\";\x0a    }\x0a\x0a    override void visit (CaseStatement _)\x0a    {\x0a        typeName = \"CaseStatement\";\x0a    }\x0a\x0a    override void visit (DefaultStatement _)\x0a    {\x0a        typeName = \"DefaultStatement\";\x0a    }\x0a\x0a    override void visit (BreakStatement _)\x0a    {\x0a        typeName = \"BreakStatement\";\x0a    }\x0a\x0a    override void visit (ContinueStatement _)\x0a    {\x0a        typeName = \"ContinueStatement\";\x0a    }\x0a\x0a    override void visit (GotoDefaultStatement _)\x0a    {\x0a        typeName = \"GotoDefaultStatement\";\x0a    }\x0a\x0a    override void visit (GotoCaseStatement _)\x0a    {\x0a        typeName = \"GotoCaseStatement\";\x0a    }\x0a\x0a    override void visit (GotoStatement _)\x0a    {\x0a        typeName = \"GotoStatement\";\x0a    }\x0a\x0a    override void visit (SynchronizedStatement _)\x0a    {\x0a        typeName = \"SynchronizedStatement\";\x0a    }\x0a\x0a    override void visit (WithStatement _)\x0a    {\x0a        typeName = \"WithStatement\";\x0a    }\x0a\x0a    override void visit (TryCatchStatement _)\x0a    {\x0a        typeName = \"TryCatchStatement\";\x0a    }\x0a\x0a    override void visit (TryFinallyStatement _)\x0a    {\x0a        typeName = \"TryFinallyStatement\";\x0a    }\x0a\x0a    override void visit (ThrowStatement _)\x0a    {\x0a        typeName = \"ThrowStatement\";\x0a    }\x0a\x0a    override void visit (AsmStatement _)\x0a    {\x0a        typeName = \"AsmStatement\";\x0a    }\x0a\x0a    override void visit (ExpStatement _)\x0a    {\x0a        typeName = \"ExpStatement\";\x0a    }\x0a\x0a    override void visit (CompoundStatement _)\x0a    {\x0a        typeName = \"CompoundStatement\";\x0a    }\x0a\x0a    override void visit (CompoundDeclarationStatement _)\x0a    {\x0a        typeName = \"CompoundDeclarationStatement\";\x0a    }\x0a\x0a    override void visit (CompoundAsmStatement _)\x0a    {\x0a        typeName = \"CompoundAsmStatement\";\x0a    }\x0a\x0a    override void visit (InlineAsmStatement _)\x0a    {\x0a        typeName = \"InlineAsmStatement\";\x0a    }\x0a\x0a    override void visit (GccAsmStatement _)\x0a    {\x0a        typeName = \"GccAsmStatement\";\x0a    }\x0a\x0a    override void visit (TypeBasic _)\x0a    {\x0a        typeName = \"TypeBasic\";\x0a    }\x0a\x0a    override void visit (TypeError _)\x0a    {\x0a        typeName = \"TypeError\";\x0a    }\x0a\x0a    override void visit (TypeNull _)\x0a    {\x0a        typeName = \"TypeNull\";\x0a    }\x0a\x0a    override void visit (TypeVector _)\x0a    {\x0a        typeName = \"TypeVector\";\x0a    }\x0a\x0a    override void visit (TypeEnum _)\x0a    {\x0a        typeName = \"TypeEnum\";\x0a    }\x0a\x0a    override void visit (TypeTuple _)\x0a    {\x0a        typeName = \"TypeTuple\";\x0a    }\x0a\x0a    override void visit (TypeClass _)\x0a    {\x0a        typeName = \"TypeClass\";\x0a    }\x0a\x0a    override void visit (TypeStruct _)\x0a    {\x0a        typeName = \"TypeStruct\";\x0a    }\x0a\x0a    override void visit (TypeNext _)\x0a    {\x0a        typeName = \"TypeNext\";\x0a    }\x0a\x0a    override void visit (TypeQualified _)\x0a    {\x0a        typeName = \"TypeQualified\";\x0a    }\x0a\x0a    override void visit (TypeTraits _)\x0a    {\x0a        typeName = \"TypeTraits\";\x0a    }\x0a\x0a    override void visit (TypeMixin _)\x0a    {\x0a        typeName = \"TypeMixin\";\x0a    }\x0a\x0a    override void visit (TypeReference _)\x0a    {\x0a        typeName = \"TypeReference\";\x0a    }\x0a\x0a    override void visit (TypeSlice _)\x0a    {\x0a        typeName = \"TypeSlice\";\x0a    }\x0a\x0a    override void visit (TypeDelegate _)\x0a    {\x0a        typeName = \"TypeDelegate\";\x0a    }\x0a\x0a    override void visit (TypePointer _)\x0a    {\x0a        typeName = \"TypePointer\";\x0a    }\x0a\x0a    override void visit (TypeFunction _)\x0a    {\x0a        typeName = \"TypeFunction\";\x0a    }\x0a\x0a    override void visit (TypeArray _)\x0a    {\x0a        typeName = \"TypeArray\";\x0a    }\x0a\x0a    override void visit (TypeDArray _)\x0a    {\x0a        typeName = \"TypeDArray\";\x0a    }\x0a\x0a    override void visit (TypeAArray _)\x0a    {\x0a        typeName = \"TypeAArray\";\x0a    }\x0a\x0a    override void visit (TypeSArray _)\x0a    {\x0a        typeName = \"TypeSArray\";\x0a    }\x0a\x0a    override void visit (TypeIdentifier _)\x0a    {\x0a        typeName = \"TypeIdentifier\";\x0a    }\x0a\x0a    override void visit (TypeReturn _)\x0a    {\x0a        typeName = \"TypeReturn\";\x0a    }\x0a\x0a    override void visit (TypeTypeof _)\x0a    {\x0a        typeName = \"TypeTypeof\";\x0a    }\x0a\x0a    override void visit (TypeInstance _)\x0a    {\x0a        typeName = \"TypeInstance\";\x0a    }\x0a\x0a    override void visit (DeclarationExp _)\x0a    {\x0a        typeName = \"DeclarationExp\";\x0a    }\x0a\x0a    override void visit (IntegerExp _)\x0a    {\x0a        typeName = \"IntegerExp\";\x0a    }\x0a\x0a    override void visit (NewAnonClassExp _)\x0a    {\x0a        typeName = \"NewAnonClassExp\";\x0a    }\x0a\x0a    override void visit (IsExp _)\x0a    {\x0a        typeName = \"IsExp\";\x0a    }\x0a\x0a    override void visit (RealExp _)\x0a    {\x0a        typeName = \"RealExp\";\x0a    }\x0a\x0a    override void visit (NullExp _)\x0a    {\x0a        typeName = \"NullExp\";\x0a    }\x0a\x0a    override void visit (TypeidExp _)\x0a    {\x0a        typeName = \"TypeidExp\";\x0a    }\x0a\x0a    override void visit (TraitsExp _)\x0a    {\x0a        typeName = \"TraitsExp\";\x0a    }\x0a\x0a    override void visit (StringExp _)\x0a    {\x0a        typeName = \"StringExp\";\x0a    }\x0a\x0a    override void visit (NewExp _)\x0a    {\x0a        typeName = \"NewExp\";\x0a    }\x0a\x0a    override void visit (AssocArrayLiteralExp _)\x0a    {\x0a        typeName = \"AssocArrayLiteralExp\";\x0a    }\x0a\x0a    override void visit (ArrayLiteralExp _)\x0a    {\x0a        typeName = \"ArrayLiteralExp\";\x0a    }\x0a\x0a    override void visit (MixinExp _)\x0a    {\x0a        typeName = \"MixinExp\";\x0a    }\x0a\x0a    override void visit (FuncExp _)\x0a    {\x0a        typeName = \"FuncExp\";\x0a    }\x0a\x0a    override void visit (IntervalExp _)\x0a    {\x0a        typeName = \"IntervalExp\";\x0a    }\x0a\x0a    override void visit (TypeExp _)\x0a    {\x0a        typeName = \"TypeExp\";\x0a    }\x0a\x0a    override void visit (ScopeExp _)\x0a    {\x0a        typeName = \"ScopeExp\";\x0a    }\x0a\x0a    override void visit (IdentifierExp _)\x0a    {\x0a        typeName = \"IdentifierExp\";\x0a    }\x0a\x0a    override void visit (UnaExp _)\x0a    {\x0a        typeName = \"UnaExp\";\x0a    }\x0a\x0a    override void visit (DefaultInitExp _)\x0a    {\x0a        typeName = \"DefaultInitExp\";\x0a    }\x0a\x0a    override void visit (BinExp _)\x0a    {\x0a        typeName = \"BinExp\";\x0a    }\x0a\x0a    override void visit (DsymbolExp _)\x0a    {\x0a        typeName = \"DsymbolExp\";\x0a    }\x0a\x0a    override void visit (TemplateExp _)\x0a    {\x0a        typeName = \"TemplateExp\";\x0a    }\x0a\x0a    override void visit (SymbolExp _)\x0a    {\x0a        typeName = \"SymbolExp\";\x0a    }\x0a\x0a    override void visit (TupleExp _)\x0a    {\x0a        typeName = \"TupleExp\";\x0a    }\x0a\x0a    override void visit (ThisExp _)\x0a    {\x0a        typeName = \"ThisExp\";\x0a    }\x0a\x0a    override void visit (VarExp _)\x0a    {\x0a        typeName = \"VarExp\";\x0a    }\x0a\x0a    override void visit (DollarExp _)\x0a    {\x0a        typeName = \"DollarExp\";\x0a    }\x0a\x0a    override void visit (SuperExp _)\x0a    {\x0a        typeName = \"SuperExp\";\x0a    }\x0a\x0a    override void visit (AddrExp _)\x0a    {\x0a        typeName = \"AddrExp\";\x0a    }\x0a\x0a    override void visit (PreExp _)\x0a    {\x0a        typeName = \"PreExp\";\x0a    }\x0a\x0a    override void visit (PtrExp _)\x0a    {\x0a        typeName = \"PtrExp\";\x0a    }\x0a\x0a    override void visit (NegExp _)\x0a    {\x0a        typeName = \"NegExp\";\x0a    }\x0a\x0a    override void visit (UAddExp _)\x0a    {\x0a        typeName = \"UAddExp\";\x0a    }\x0a\x0a    override void visit (NotExp _)\x0a    {\x0a        typeName = \"NotExp\";\x0a    }\x0a\x0a    override void visit (ComExp _)\x0a    {\x0a        typeName = \"ComExp\";\x0a    }\x0a\x0a    override void visit (DeleteExp _)\x0a    {\x0a        typeName = \"DeleteExp\";\x0a    }\x0a\x0a    override void visit (CastExp _)\x0a    {\x0a        typeName = \"CastExp\";\x0a    }\x0a\x0a    override void visit (CallExp _)\x0a    {\x0a        typeName = \"CallExp\";\x0a    }\x0a\x0a    override void visit (DotIdExp _)\x0a    {\x0a        typeName = \"DotIdExp\";\x0a    }\x0a\x0a    override void visit (AssertExp _)\x0a    {\x0a        typeName = \"AssertExp\";\x0a    }\x0a\x0a    override void visit (ImportExp _)\x0a    {\x0a        typeName = \"ImportExp\";\x0a    }\x0a\x0a    override void visit (DotTemplateInstanceExp _)\x0a    {\x0a        typeName = \"DotTemplateInstanceExp\";\x0a    }\x0a\x0a    override void visit (ArrayExp _)\x0a    {\x0a        typeName = \"ArrayExp\";\x0a    }\x0a\x0a    override void visit (FuncInitExp _)\x0a    {\x0a        typeName = \"FuncInitExp\";\x0a    }\x0a\x0a    override void visit (PrettyFuncInitExp _)\x0a    {\x0a        typeName = \"PrettyFuncInitExp\";\x0a    }\x0a\x0a    override void visit (FileInitExp _)\x0a    {\x0a        typeName = \"FileInitExp\";\x0a    }\x0a\x0a    override void visit (LineInitExp _)\x0a    {\x0a        typeName = \"LineInitExp\";\x0a    }\x0a\x0a    override void visit (ModuleInitExp _)\x0a    {\x0a        typeName = \"ModuleInitExp\";\x0a    }\x0a\x0a    override void visit (CommaExp _)\x0a    {\x0a        typeName = \"CommaExp\";\x0a    }\x0a\x0a    override void visit (PostExp _)\x0a    {\x0a        typeName = \"PostExp\";\x0a    }\x0a\x0a    override void visit (PowExp _)\x0a    {\x0a        typeName = \"PowExp\";\x0a    }\x0a\x0a    override void visit (MulExp _)\x0a    {\x0a        typeName = \"MulExp\";\x0a    }\x0a\x0a    override void visit (DivExp _)\x0a    {\x0a        typeName = \"DivExp\";\x0a    }\x0a\x0a    override void visit (ModExp _)\x0a    {\x0a        typeName = \"ModExp\";\x0a    }\x0a\x0a    override void visit (AddExp _)\x0a    {\x0a        typeName = \"AddExp\";\x0a    }\x0a\x0a    override void visit (MinExp _)\x0a    {\x0a        typeName = \"MinExp\";\x0a    }\x0a\x0a    override void visit (CatExp _)\x0a    {\x0a        typeName = \"CatExp\";\x0a    }\x0a\x0a    override void visit (ShlExp _)\x0a    {\x0a        typeName = \"ShlExp\";\x0a    }\x0a\x0a    override void visit (ShrExp _)\x0a    {\x0a        typeName = \"ShrExp\";\x0a    }\x0a\x0a    override void visit (UshrExp _)\x0a    {\x0a        typeName = \"UshrExp\";\x0a    }\x0a\x0a    override void visit (EqualExp _)\x0a    {\x0a        typeName = \"EqualExp\";\x0a    }\x0a\x0a    override void visit (InExp _)\x0a    {\x0a        typeName = \"InExp\";\x0a    }\x0a\x0a    override void visit (IdentityExp _)\x0a    {\x0a        typeName = \"IdentityExp\";\x0a    }\x0a\x0a    override void visit (CmpExp _)\x0a    {\x0a        typeName = \"CmpExp\";\x0a    }\x0a\x0a    override void visit (AndExp _)\x0a    {\x0a        typeName = \"AndExp\";\x0a    }\x0a\x0a    override void visit (XorExp _)\x0a    {\x0a        typeName = \"XorExp\";\x0a    }\x0a\x0a    override void visit (OrExp _)\x0a    {\x0a        typeName = \"OrExp\";\x0a    }\x0a\x0a    override void visit (LogicalExp _)\x0a    {\x0a        typeName = \"LogicalExp\";\x0a    }\x0a\x0a    override void visit (CondExp _)\x0a    {\x0a        typeName = \"CondExp\";\x0a    }\x0a\x0a    override void visit (AssignExp _)\x0a    {\x0a        typeName = \"AssignExp\";\x0a    }\x0a\x0a    override void visit (BinAssignExp _)\x0a    {\x0a        typeName = \"BinAssignExp\";\x0a    }\x0a\x0a    override void visit (AddAssignExp _)\x0a    {\x0a        typeName = \"AddAssignExp\";\x0a    }\x0a\x0a    override void visit (MinAssignExp _)\x0a    {\x0a        typeName = \"MinAssignExp\";\x0a    }\x0a\x0a    override void visit (MulAssignExp _)\x0a    {\x0a        typeName = \"MulAssignExp\";\x0a    }\x0a\x0a    override void visit (DivAssignExp _)\x0a    {\x0a        typeName = \"DivAssignExp\";\x0a    }\x0a\x0a    override void visit (ModAssignExp _)\x0a    {\x0a        typeName = \"ModAssignExp\";\x0a    }\x0a\x0a    override void visit (PowAssignExp _)\x0a    {\x0a        typeName = \"PowAssignExp\";\x0a    }\x0a\x0a    override void visit (AndAssignExp _)\x0a    {\x0a        typeName = \"AndAssignExp\";\x0a    }\x0a\x0a    override void visit (OrAssignExp _)\x0a    {\x0a        typeName = \"OrAssignExp\";\x0a    }\x0a\x0a    override void visit (XorAssignExp _)\x0a    {\x0a        typeName = \"XorAssignExp\";\x0a    }\x0a\x0a    override void visit (ShlAssignExp _)\x0a    {\x0a        typeName = \"ShlAssignExp\";\x0a    }\x0a\x0a    override void visit (ShrAssignExp _)\x0a    {\x0a        typeName = \"ShrAssignExp\";\x0a    }\x0a\x0a    override void visit (UshrAssignExp _)\x0a    {\x0a        typeName = \"UshrAssignExp\";\x0a    }\x0a\x0a    override void visit (CatAssignExp _)\x0a    {\x0a        typeName = \"CatAssignExp\";\x0a    }\x0a\x0a    override void visit (TemplateAliasParameter _)\x0a    {\x0a        typeName = \"TemplateAliasParameter\";\x0a    }\x0a\x0a    override void visit (TemplateTypeParameter _)\x0a    {\x0a        typeName = \"TemplateTypeParameter\";\x0a    }\x0a\x0a    override void visit (TemplateTupleParameter _)\x0a    {\x0a        typeName = \"TemplateTupleParameter\";\x0a    }\x0a\x0a    override void visit (TemplateValueParameter _)\x0a    {\x0a        typeName = \"TemplateValueParameter\";\x0a    }\x0a\x0a    override void visit (TemplateThisParameter _)\x0a    {\x0a        typeName = \"TemplateThisParameter\";\x0a    }\x0a\x0a    override void visit (StaticIfCondition _)\x0a    {\x0a        typeName = \"StaticIfCondition\";\x0a    }\x0a\x0a    override void visit (DVCondition _)\x0a    {\x0a        typeName = \"DVCondition\";\x0a    }\x0a\x0a    override void visit (DebugCondition _)\x0a    {\x0a        typeName = \"DebugCondition\";\x0a    }\x0a\x0a    override void visit (VersionCondition _)\x0a    {\x0a        typeName = \"VersionCondition\";\x0a    }\x0a\x0a    override void visit (ExpInitializer _)\x0a    {\x0a        typeName = \"ExpInitializer\";\x0a    }\x0a\x0a    override void visit (StructInitializer _)\x0a    {\x0a        typeName = \"StructInitializer\";\x0a    }\x0a\x0a    override void visit (ArrayInitializer _)\x0a    {\x0a        typeName = \"ArrayInitializer\";\x0a    }\x0a\x0a    override void visit (VoidInitializer _)\x0a    {\x0a        typeName = \"VoidInitializer\";\x0a    }\x0a\x0a    override void visit (ErrorStatement _)\x0a    {\x0a        typeName = \"ErrorStatement\";\x0a    }\x0a\x0a    override void visit (PeelStatement _)\x0a    {\x0a        typeName = \"PeelStatement\";\x0a    }\x0a\x0a    override void visit (UnrolledLoopStatement _)\x0a    {\x0a        typeName = \"UnrolledLoopStatement\";\x0a    }\x0a\x0a    override void visit (SwitchErrorStatement _)\x0a    {\x0a        typeName = \"SwitchErrorStatement\";\x0a    }\x0a\x0a    override void visit (DebugStatement _)\x0a    {\x0a        typeName = \"DebugStatement\";\x0a    }\x0a\x0a    override void visit (DtorExpStatement _)\x0a    {\x0a        typeName = \"DtorExpStatement\";\x0a    }\x0a\x0a    override void visit (ForwardingStatement _)\x0a    {\x0a        typeName = \"ForwardingStatement\";\x0a    }\x0a\x0a    override void visit (OverloadSet _)\x0a    {\x0a        typeName = \"OverloadSet\";\x0a    }\x0a\x0a    override void visit (LabelDsymbol _)\x0a    {\x0a        typeName = \"LabelDsymbol\";\x0a    }\x0a\x0a    override void visit (WithScopeSymbol _)\x0a    {\x0a        typeName = \"WithScopeSymbol\";\x0a    }\x0a\x0a    override void visit (ArrayScopeSymbol _)\x0a    {\x0a        typeName = \"ArrayScopeSymbol\";\x0a    }\x0a\x0a    override void visit (OverDeclaration _)\x0a    {\x0a        typeName = \"OverDeclaration\";\x0a    }\x0a\x0a    override void visit (SymbolDeclaration _)\x0a    {\x0a        typeName = \"SymbolDeclaration\";\x0a    }\x0a\x0a    override void visit (ForwardingAttribDeclaration _)\x0a    {\x0a        typeName = \"ForwardingAttribDeclaration\";\x0a    }\x0a\x0a    override void visit (ThisDeclaration _)\x0a    {\x0a        typeName = \"ThisDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoStructDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoStructDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoClassDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoClassDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoInterfaceDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoInterfaceDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoPointerDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoPointerDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoArrayDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoArrayDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoStaticArrayDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoStaticArrayDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoAssociativeArrayDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoAssociativeArrayDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoEnumDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoEnumDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoFunctionDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoFunctionDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoDelegateDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoDelegateDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoTupleDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoTupleDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoConstDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoConstDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoInvariantDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoInvariantDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoSharedDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoSharedDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoWildDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoWildDeclaration\";\x0a    }\x0a\x0a    override void visit (TypeInfoVectorDeclaration _)\x0a    {\x0a        typeName = \"TypeInfoVectorDeclaration\";\x0a    }\x0a\x0a    override void visit (FuncAliasDeclaration _)\x0a    {\x0a        typeName = \"FuncAliasDeclaration\";\x0a    }\x0a\x0a    override void visit (ErrorInitializer _)\x0a    {\x0a        typeName = \"ErrorInitializer\";\x0a    }\x0a\x0a    override void visit (ErrorExp _)\x0a    {\x0a        typeName = \"ErrorExp\";\x0a    }\x0a\x0a    override void visit (ComplexExp _)\x0a    {\x0a        typeName = \"ComplexExp\";\x0a    }\x0a\x0a    override void visit (StructLiteralExp _)\x0a    {\x0a        typeName = \"StructLiteralExp\";\x0a    }\x0a\x0a    override void visit (ObjcClassReferenceExp _)\x0a    {\x0a        typeName = \"ObjcClassReferenceExp\";\x0a    }\x0a\x0a    override void visit (SymOffExp _)\x0a    {\x0a        typeName = \"SymOffExp\";\x0a    }\x0a\x0a    override void visit (OverExp _)\x0a    {\x0a        typeName = \"OverExp\";\x0a    }\x0a\x0a    override void visit (HaltExp _)\x0a    {\x0a        typeName = \"HaltExp\";\x0a    }\x0a\x0a    override void visit (DotTemplateExp _)\x0a    {\x0a        typeName = \"DotTemplateExp\";\x0a    }\x0a\x0a    override void visit (DotVarExp _)\x0a    {\x0a        typeName = \"DotVarExp\";\x0a    }\x0a\x0a    override void visit (DelegateExp _)\x0a    {\x0a        typeName = \"DelegateExp\";\x0a    }\x0a\x0a    override void visit (DotTypeExp _)\x0a    {\x0a        typeName = \"DotTypeExp\";\x0a    }\x0a\x0a    override void visit (VectorExp _)\x0a    {\x0a        typeName = \"VectorExp\";\x0a    }\x0a\x0a    override void visit (VectorArrayExp _)\x0a    {\x0a        typeName = \"VectorArrayExp\";\x0a    }\x0a\x0a    override void visit (SliceExp _)\x0a    {\x0a        typeName = \"SliceExp\";\x0a    }\x0a\x0a    override void visit (ArrayLengthExp _)\x0a    {\x0a        typeName = \"ArrayLengthExp\";\x0a    }\x0a\x0a    override void visit (DelegatePtrExp _)\x0a    {\x0a        typeName = \"DelegatePtrExp\";\x0a    }\x0a\x0a    override void visit (DelegateFuncptrExp _)\x0a    {\x0a        typeName = \"DelegateFuncptrExp\";\x0a    }\x0a\x0a    override void visit (DotExp _)\x0a    {\x0a        typeName = \"DotExp\";\x0a    }\x0a\x0a    override void visit (IndexExp _)\x0a    {\x0a        typeName = \"IndexExp\";\x0a    }\x0a\x0a    override void visit (ConstructExp _)\x0a    {\x0a        typeName = \"ConstructExp\";\x0a    }\x0a\x0a    override void visit (BlitExp _)\x0a    {\x0a        typeName = \"BlitExp\";\x0a    }\x0a\x0a    override void visit (RemoveExp _)\x0a    {\x0a        typeName = \"RemoveExp\";\x0a    }\x0a\x0a    override void visit (ClassReferenceExp _)\x0a    {\x0a        typeName = \"ClassReferenceExp\";\x0a    }\x0a\x0a    override void visit (VoidInitExp _)\x0a    {\x0a        typeName = \"VoidInitExp\";\x0a    }\x0a\x0a    override void visit (ThrownExceptionExp _)\x0a    {\x0a        typeName = \"ThrownExceptionExp\";\x0a    }\x0a}";
-
 class AttribDeclaration : public Dsymbol
 {
 public:
@@ -2355,8 +2353,6 @@ enum class CSX : uint16_t
     halt = 32u,
 };
 
-enum : bool { LOG = false };
-
 extern bool arrayTypeCompatibleWithoutCasting(Type* t1, Type* t2);
 
 enum class Abstract : uint8_t
@@ -2537,12 +2533,6 @@ enum class STC : uint64_t
     TYPECTOR = 2685403140LLU,
     FUNCATTR = 9011661828521984LLU,
 };
-
-static STC const STCStorageClass = (STC)12407095344775071LLU;
-
-static STC const STCFlowThruAggregate = (STC)60129542144LLU;
-
-static STC const STCFlowThruFunction = (STC)18446726413102348896LLU;
 
 class Declaration : public Dsymbol
 {
@@ -3095,8 +3085,6 @@ enum class SCOPE
     scanf = 524288,
 };
 
-static SCOPE const SCOPEpush = (SCOPE)788474;
-
 extern FuncDeclaration* search_toString(StructDeclaration* sd);
 
 extern void semanticTypeInfo(Scope* sc, Type* t);
@@ -3236,11 +3224,7 @@ public:
     DsymbolTable();
 };
 
-enum : bool { LOG = false };
-
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
-
-enum : int32_t { IDX_NOTFOUND = 305419896 };
 
 extern Expression* isExpression(RootObject* o);
 
@@ -3588,8 +3572,6 @@ public:
     void accept(Visitor* v);
 };
 
-enum : bool { LOGSEMANTIC = false };
-
 extern void expandTuples(Array<Expression* >* exps);
 
 struct UnionExp
@@ -3633,10 +3615,6 @@ enum class OwnedBy : uint8_t
     ctfe = 1u,
     cache = 2u,
 };
-
-enum : int32_t { WANTvalue = 0 };
-
-enum : int32_t { WANTexpand = 1 };
 
 class IntegerExp final : public Expression
 {
@@ -3835,18 +3813,6 @@ public:
     bool isBool(bool result);
     void accept(Visitor* v);
 };
-
-enum : int32_t { stageScrub = 1 };
-
-enum : int32_t { stageSearchPointers = 2 };
-
-enum : int32_t { stageOptimize = 4 };
-
-enum : int32_t { stageApply = 8 };
-
-enum : int32_t { stageInlineScan = 16 };
-
-enum : int32_t { stageToCBuffer = 32 };
 
 class StructLiteralExp final : public Expression
 {
@@ -4652,8 +4618,6 @@ public:
     void accept(Visitor* v);
 };
 
-enum : bool { LOGSEMANTIC = false };
-
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
@@ -4997,8 +4961,6 @@ public:
     static void initialize();
 };
 
-enum : int32_t { TEST_EMIT_ALL = 0 };
-
 extern void genhdrfile(Module* m);
 
 extern void moduleToBuffer(OutBuffer* buf, Module* m);
@@ -5083,15 +5045,9 @@ extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type* t, N
 
 extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr);
 
-enum : int32_t { COST_MAX = 250 };
-
 extern void json_generate(OutBuffer* buf, Array<Module* >* modules);
 
-static const char* const jsonFieldNames = "`compilerInfo`, `buildInfo`, `modules`, `semantics`";
-
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
-
-enum : bool { LOG = false };
 
 extern Library* LibElf_factory();
 
@@ -5110,12 +5066,6 @@ extern "C" int32_t _Dmain(_d_dynamicArray< _d_dynamicArray< char > > _param_0);
 extern "C" void printGlobalConfigs(_IO_FILE* stream);
 
 extern "C" void flushMixins();
-
-enum : int32_t { LOGDOTEXP = 0 };
-
-enum : int32_t { LOGDEFAULTINIT = 0 };
-
-enum : uint64_t { SIZE_INVALID = 18446744073709551615LLU };
 
 enum class ENUMTY
 {
@@ -6085,13 +6035,7 @@ public:
     void visit(LabelStatement* s);
 };
 
-enum : bool { LOG = false };
-
-enum : bool { LOG = false };
-
 extern void semantic2(Dsymbol* dsym, Scope* sc);
-
-enum : bool { LOG = false };
 
 extern void semantic3(Dsymbol* dsym, Scope* sc);
 
@@ -6814,8 +6758,6 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter* >* parameters);
 
-enum : bool { LOGSEMANTIC = false };
-
 template <typename AST>
 class ParseTimeTransitiveVisitor : public PermissiveVisitor<AST >
 {
@@ -7313,8 +7255,6 @@ struct Param
 };
 
 typedef uint32_t structalign_t;
-
-enum : uint32_t { STRUCTALIGN_DEFAULT = 4294967295u };
 
 struct Global
 {
@@ -7966,8 +7906,6 @@ struct Port
     }
 };
 
-enum : bool { isGCAvailable = true };
-
 struct Mem
 {
     static char* xstrdup(const char* s);
@@ -7991,10 +7929,6 @@ struct Mem
 };
 
 extern const Mem mem;
-
-enum : int32_t { CHUNK_SIZE = 1048512 };
-
-enum : bool { OVERRIDE_MEMALLOC = true };
 
 extern "C" void* _d_allocmemory(size_t m_size);
 
