@@ -148,9 +148,9 @@ enum class typedOpaque : int64_t;
 ---
 +/
 
-enum Anon = 10;
-enum Anon2 = true;
-enum Anon3 = "wow";
+extern(C++) enum Anon = 10;
+extern(C++) enum Anon2 = true;
+extern(C++) enum Anon3 = "wow";
 
 enum Enum
 {
@@ -223,26 +223,28 @@ enum STC
     b = 2,
 }
 
-enum STC_D = STC.a | STC.b;
+extern(C++) enum STC_D = STC.a | STC.b;
 
 struct Foo { int i; }
 enum MyEnum { A = Foo(42), B = Foo(84) }
-enum test = MyEnum.A;
+extern(C++) enum test = MyEnum.A;
 
 extern(C++) struct FooCpp { int i; }
 enum MyEnumCpp { A = FooCpp(42), B = FooCpp(84) }
-enum testCpp = MyEnum.A;
+extern(C++) enum testCpp = MyEnum.A;
 
 // currently unsupported enums
-enum b = [1, 2, 3];
-enum c = [2: 3];
+extern(C++) enum b = [1, 2, 3];
+extern(C++) enum c = [2: 3];
 
 extern(C) void foo();
-enum d = &foo;
+extern(C++) enum d = &foo;
 
 immutable bool e_b;
-enum e = &e_b;
+extern(C++) enum e = &e_b;
 
 enum opaque;
 enum typedOpaque : long;
 enum arrayOpaque : int[4]; // Cannot be exported to C++
+
+extern(D) enum hidden_d = 42; // Linkage prevents being exported to C++
