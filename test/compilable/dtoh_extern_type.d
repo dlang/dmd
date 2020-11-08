@@ -11,6 +11,7 @@ TEST_OUTPUT:
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 
 #ifdef CUSTOM_D_ARRAY_TYPE
 #define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
@@ -37,6 +38,9 @@ struct _d_dynamicArray
         return ptr[idx];
     }
 };
+#endif
+#if !defined(_d_real)
+# define _d_real long double
 #endif
 
 class ClassFromStruct
@@ -66,6 +70,25 @@ struct StructFromClass
 {
     virtual void foo();
 };
+
+struct Floats
+{
+    float f;
+    double d;
+    _d_real r;
+    double nan;
+    double inf;
+    double nInf;
+    Floats() :
+        f(1.23F),
+        d(4.56),
+        r(7.89L),
+        nan(NAN),
+        inf(INFINITY),
+        nInf(-INFINITY)
+    {
+    }
+};
 ---
 */
 
@@ -87,4 +110,15 @@ extern (C++, struct) struct StructFromStruct
 extern (C++, struct) class StructFromClass
 {
     void foo() {}
+}
+
+extern(C++) struct Floats
+{
+    float f = 1.23f;
+    double d = 4.56;
+    real r = 7.89L;
+
+    double nan = double.nan;
+    double inf = double.infinity;
+    double nInf = -double.infinity;
 }

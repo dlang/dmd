@@ -129,6 +129,7 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     hashInclude(buf, "<assert.h>");
     hashInclude(buf, "<stddef.h>");
     hashInclude(buf, "<stdint.h>");
+    hashInclude(buf, "<math.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
 //    buf.writestring("#include <string.h>\n");
 
@@ -2029,8 +2030,27 @@ public:
             scope(exit) printf("[AST.RealExp exit] %s\n", e.toChars());
         }
 
-        // TODO: Needs to implemented, properly switching on the e.type
-        buf.printf("%ff", cast(double)e.value);
+        import dmd.root.ctfloat : CTFloat;
+
+        // Special case NaN and Infinity because floatToBuffer
+        // uses D literals (`nan` and `infinity`)
+        if (CTFloat.isNaN(e.value))
+        {
+            buf.writestring("NAN");
+        }
+        else if (CTFloat.isInfinity(e.value))
+        {
+            if (e.value < 0)
+                buf.writeByte('-');
+            buf.writestring("INFINITY");
+        }
+        else
+        {
+            import dmd.hdrgen;
+            // Hex floating point literals were introduced in C++ 17
+            const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
+            floatToBuffer(e.type, e.value, buf, allowHex);
+        }
     }
 
     override void visit(AST.IntegerExp e)
