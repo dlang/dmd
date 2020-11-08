@@ -1886,41 +1886,36 @@ public:
          of 256 (3 characters). The string will be "-M.MMMMe-4932".
          (ie, 8 chars more than mantissa). Plus one for trailing \0.
          Plus one for rounding. */
-        const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
-        char[BUFFER_LEN] buffer;
+        enum BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
+        char[BUFFER_LEN] buffer = void;
+
+        Type tb = type ? type.toBasetype() : null;
+        const ty = tb ? tb.ty : Tfloat80;
+        const isFloat = ty == Tfloat32 || ty == Timaginary32 || ty == Tcomplex32;
+        const isReal = ty == Tfloat80 || ty == Timaginary80 || ty == Tcomplex80;
+
         CTFloat.sprint(buffer.ptr, 'g', value);
         assert(strlen(buffer.ptr) < BUFFER_LEN);
         if (hgs.hdrgen)
         {
-            real_t r = CTFloat.parse(buffer.ptr);
-            if (r != value) // if exact duplication
+            real_t r = isFloat ? CTFloat.parseFloat(buffer.ptr) :
+                       isReal  ? CTFloat.parseReal(buffer.ptr) :
+                                 CTFloat.parseDouble(buffer.ptr);
+            // print as %a hex literal if the %g decimal string is inexact
+            if (r != value)
                 CTFloat.sprint(buffer.ptr, 'a', value);
         }
         buf.writestring(buffer.ptr);
         if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')
             buf.remove(buf.length() - 1, 1);
 
-        if (type)
-        {
-            Type t = type.toBasetype();
-            switch (t.ty)
-            {
-            case Tfloat32:
-            case Timaginary32:
-            case Tcomplex32:
-                buf.writeByte('F');
-                break;
-            case Tfloat80:
-            case Timaginary80:
-            case Tcomplex80:
-                buf.writeByte('L');
-                break;
-            default:
-                break;
-            }
-            if (t.isimaginary())
-                buf.writeByte('i');
-        }
+        if (isFloat)
+            buf.writeByte('F');
+        else if (isReal)
+            buf.writeByte('L');
+
+        if (tb && tb.isimaginary())
+            buf.writeByte('i');
     }
 
     override void visit(RealExp e)

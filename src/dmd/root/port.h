@@ -21,9 +21,6 @@ struct Port
     static int memicmp(const char *s1, const char *s2, size_t n);
     static char *strupr(char *s);
 
-    static bool isFloat32LiteralOutOfRange(const char *s);
-    static bool isFloat64LiteralOutOfRange(const char *s);
-
     static void writelongLE(unsigned value, void *buffer);
     static unsigned readlongLE(const void *buffer);
     static void writelongBE(unsigned value, void *buffer);

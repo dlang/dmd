@@ -2219,25 +2219,27 @@ class Lexer
         auto sbufptr = cast(const(char)*)stringbuffer[].ptr;
         TOK result;
         bool isOutOfRange = false;
-        t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, &isOutOfRange) : CTFloat.zero);
+        t.floatvalue = CTFloat.zero;
         switch (*p)
         {
         case 'F':
         case 'f':
-            if (isWellformedString && !isOutOfRange)
-                isOutOfRange = Port.isFloat32LiteralOutOfRange(sbufptr);
+            if (isWellformedString)
+                t.floatvalue = CTFloat.parseFloat(sbufptr, &isOutOfRange);
             result = TOK.float32Literal;
             p++;
             break;
         default:
-            if (isWellformedString && !isOutOfRange)
-                isOutOfRange = Port.isFloat64LiteralOutOfRange(sbufptr);
+            if (isWellformedString)
+                t.floatvalue = CTFloat.parseDouble(sbufptr, &isOutOfRange);
             result = TOK.float64Literal;
             break;
         case 'l':
             error("use 'L' suffix instead of 'l'");
             goto case 'L';
         case 'L':
+            if (isWellformedString)
+                t.floatvalue = CTFloat.parseReal(sbufptr, &isOutOfRange);
             result = TOK.float80Literal;
             p++;
             break;

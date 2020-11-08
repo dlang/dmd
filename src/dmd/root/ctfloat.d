@@ -22,15 +22,15 @@ nothrow:
 // Type used by the front-end for compile-time reals
 public import dmd.root.longdouble : real_t = longdouble;
 
-private
+version (CRuntime_DigitalMars)
 {
-    version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
-
-    version(CRuntime_Microsoft) extern (C++)
-    {
-        public import dmd.root.longdouble : longdouble_soft, ld_sprint;
-        import dmd.root.strtold;
-    }
+    import dmd.root.strtold;
+    private __gshared extern (C) extern const(char)* __locale_decpoint;
+}
+version (CRuntime_Microsoft)
+{
+    public import dmd.root.longdouble : longdouble_soft, ld_sprint;
+    import dmd.root.strtold;
 }
 
 // Compile-time floating-point helper
@@ -167,24 +167,52 @@ extern (C++) struct CTFloat
     }
 
     @system
-    static real_t parse(const(char)* literal, bool* isOutOfRange = null)
+    extern (D) private static real_t parse(alias parseFn)(const(char)* literal, bool* isOutOfRange) nothrow
     {
         errno = 0;
         version(CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
+            scope(exit) __locale_decpoint = save;
         }
-        version(CRuntime_Microsoft)
-        {
-            auto r = cast(real_t) strtold_dm(literal, null);
-        }
-        else
-            auto r = strtold(literal, null);
-        version(CRuntime_DigitalMars) __locale_decpoint = save;
+        auto r = cast(real_t) parseFn(literal, null);
         if (isOutOfRange)
             *isOutOfRange = (errno == ERANGE);
         return r;
+    }
+
+    @system
+    static real_t parseFloat(const(char)* literal, bool* isOutOfRange = null)
+    {
+        // not suited for the DMC runtime (which uses strtold)
+        return parse!strtof(literal, isOutOfRange);
+    }
+
+    @system
+    static real_t parseDouble(const(char)* literal, bool* isOutOfRange = null)
+    {
+        // not suited for the DMC runtime (which uses strtold)
+        return parse!strtod(literal, isOutOfRange);
+    }
+
+    @system
+    static real_t parseReal(const(char)* literal, bool* isOutOfRange = null)
+    {
+        version (CRuntime_Microsoft)
+        {
+            // Microsoft's strtold is for 64-bit `long double`
+            alias parseFn = strtold_dm;
+        }
+        else version (CRuntime_DigitalMars)
+        {
+            // DMC's strtold might return a wrong last mantissa bit
+            alias parseFn = strtold_dm;
+        }
+        else
+            alias parseFn = strtold;
+
+        return parse!parseFn(literal, isOutOfRange);
     }
 
     @system
