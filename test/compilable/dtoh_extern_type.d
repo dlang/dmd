@@ -89,6 +89,15 @@ struct Floats
     {
     }
 };
+
+struct Null
+{
+    _d_dynamicArray< char > null_;
+    Null() :
+        null_({})
+    {
+    }
+};
 ---
 */
 
@@ -121,4 +130,9 @@ extern(C++) struct Floats
     double nan = double.nan;
     double inf = double.infinity;
     double nInf = -double.infinity;
+}
+
+extern (C++) struct Null
+{
+    string null_ = null;
 }
