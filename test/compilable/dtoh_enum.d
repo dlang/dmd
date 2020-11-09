@@ -54,6 +54,8 @@ enum class Enum
     Two = 1,
 };
 
+extern const Enum constEnum;
+
 enum class EnumDefaultType
 {
     One = 1,
@@ -158,6 +160,8 @@ enum Enum
     One,
     Two
 }
+
+extern(C++) __gshared const(Enum) constEnum;
 
 enum EnumDefaultType : int
 {

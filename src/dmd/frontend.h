@@ -5061,7 +5061,7 @@ extern void generateJson(Array<Module* >* modules);
 
 typedef int32_t(*MainFunc)(_d_dynamicArray< _d_dynamicArray< char > > args);
 
-extern "C" _d_dynamicArray< _d_dynamicArray< char > > rt_options;
+extern "C" _d_dynamicArray< _d_dynamicArray< const char > > rt_options;
 
 extern "C" int32_t main(int32_t argc, char** argv);
 
@@ -7263,19 +7263,19 @@ typedef uint32_t structalign_t;
 struct Global
 {
     _d_dynamicArray< const char > inifilename;
-    _d_dynamicArray< char > mars_ext;
+    _d_dynamicArray< const char > mars_ext;
     _d_dynamicArray< const char > obj_ext;
     _d_dynamicArray< const char > lib_ext;
     _d_dynamicArray< const char > dll_ext;
-    _d_dynamicArray< char > doc_ext;
-    _d_dynamicArray< char > ddoc_ext;
-    _d_dynamicArray< char > hdr_ext;
-    _d_dynamicArray< char > cxxhdr_ext;
-    _d_dynamicArray< char > json_ext;
-    _d_dynamicArray< char > map_ext;
+    _d_dynamicArray< const char > doc_ext;
+    _d_dynamicArray< const char > ddoc_ext;
+    _d_dynamicArray< const char > hdr_ext;
+    _d_dynamicArray< const char > cxxhdr_ext;
+    _d_dynamicArray< const char > json_ext;
+    _d_dynamicArray< const char > map_ext;
     bool run_noext;
-    _d_dynamicArray< char > copyright;
-    _d_dynamicArray< char > written;
+    _d_dynamicArray< const char > copyright;
+    _d_dynamicArray< const char > written;
     Array<const char* >* path;
     Array<const char* >* filePath;
     _d_dynamicArray< const char > vendor;

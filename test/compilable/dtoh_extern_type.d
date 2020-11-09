@@ -92,12 +92,14 @@ struct Floats
 
 struct Null
 {
-    _d_dynamicArray< char > null_;
+    _d_dynamicArray< const char > null_;
     Null() :
         null_({})
     {
     }
 };
+
+extern const _d_dynamicArray< const char > helloWorld;
 ---
 */
 
@@ -136,3 +138,5 @@ extern (C++) struct Null
 {
     string null_ = null;
 }
+
+extern(C++) __gshared immutable string helloWorld = `"Hello\World!"`;

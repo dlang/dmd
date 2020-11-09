@@ -57,5 +57,8 @@ int main()
     assert(templated(Templated<int>(4)).t == 4);
 #endif
 
+    int i;
+    assert(&i == inoutFunc(&i));
+
     return 0;
 }

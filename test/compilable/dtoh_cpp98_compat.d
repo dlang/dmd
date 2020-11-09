@@ -42,13 +42,13 @@ struct _d_dynamicArray
 struct Null
 {
     void* field;
-    _d_dynamicArray< char > null_;
+    _d_dynamicArray< const char > null_;
 private:
     Null(int32_t );
 public:
     Null() :
         field(NULL),
-        null_(_d_dynamicArray< char >())
+        null_(_d_dynamicArray< const char >())
     {
     }
 };
