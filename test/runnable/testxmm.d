@@ -2129,6 +2129,30 @@ void16 simd_stox(XMM opcode)(void16 op1, void16 op2)
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21364
+
+struct X21364
+{
+    float x0;
+    long  x1;
+}
+
+version (X86_64)
+    static assert(X21364.alignof == 8);
+
+void foo21364(int bar, X21364 x, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9)
+{
+    assert(i1 == 2);
+    assert(bar == 1);
+}
+
+void test21364()
+{
+    X21364 x = X21364();
+    foo21364(1, x, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -2174,6 +2198,7 @@ int main()
     test6();
     test7();
     test20981();
+    test21364();
 
     return 0;
 }

@@ -1247,7 +1247,7 @@ extern (C) int
  */
 void stackoffsets(int flags)
 {
-    //printf("stackoffsets() %s\n", funcsym_p.Sident);
+    //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
     Para.init();        // parameter offset
     Fast.init();        // SCfastpar offset
@@ -1310,7 +1310,7 @@ void stackoffsets(int flags)
         if (alignsize > STACKALIGN)
             alignsize = STACKALIGN;         // no point if the stack is less aligned
 
-        //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s.Sident,(long)sz, (int)alignsize, s.Sflags & SFLread);
+        //printf("symbol '%s', size = %d, alignsize = %d, read = %x\n",s.Sident.ptr, cast(int)sz, cast(int)alignsize, s.Sflags & SFLread);
         assert(cast(int)sz >= 0);
 
         switch (s.Sclass)
