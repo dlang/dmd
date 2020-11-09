@@ -3721,12 +3721,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         {
             return noMember(mt, sc, e, ident, flag);
         }
-        if (!s.isFuncDeclaration()) // because of overloading
-        {
-            s.checkDeprecated(e.loc, sc);
-            if (auto d = s.isDeclaration())
-                d.checkDisabled(e.loc, sc);
-        }
         s = s.toAlias();
 
         if (auto em = s.isEnumMember())
@@ -3735,6 +3729,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         if (auto v = s.isVarDeclaration())
         {
+            v.checkDeprecated(e.loc, sc);
+            v.checkDisabled(e.loc, sc);
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {
