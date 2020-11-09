@@ -2750,7 +2750,8 @@ uint el_alignsize(elem *e)
 {
     const tym = tybasic(e.Ety);
     uint alignsize = tyalignsize(tym);
-    if (alignsize == cast(uint)-1)
+    if (alignsize == cast(uint)-1 ||
+        (e.Ety & (mTYxmmgpr | mTYgprxmm)))
     {
         assert(e.ET);
         alignsize = type_alignsize(e.ET);
