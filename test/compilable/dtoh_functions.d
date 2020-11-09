@@ -108,8 +108,6 @@ extern int32_t(*f)(int32_t );
 
 extern void special(int32_t a = ptr->i, int32_t b = ptr->get(1, 2), int32_t j = (*f)(1));
 
-extern void strings(_d_dynamicArray< char > s = "\"Hello\\World!\"");
-
 extern void variadic(int32_t _param_0, ...);
 ---
 */
@@ -211,8 +209,6 @@ S* ptr;
 int function(int) f;
 
 void special(int a = ptr.i, int b = ptr.get(1, 2), int j = f(1)) {}
-
-void strings(string s = `"Hello\World!"`) {}
 
 import core.stdc.stdarg;
 void variadic(int, ...) {}

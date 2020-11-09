@@ -133,3 +133,8 @@ extern(C++) Templated!int templated(Templated!(Templated!int) i)
 {
     return typeof(return)(i.t.t);
 }
+
+inout(int)* inoutFunc(inout int* ptr)
+{
+    return ptr;
+}

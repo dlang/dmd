@@ -22,6 +22,7 @@ experimental C++ header generator:
 - The base type of floating point literals is propagated into the header
 - `NaN`, `Infinity` are emitted using `NAN`/`INFINITY` from `math.h`.
 - Final classes are marked as `final`
+- `immutable` is emitted as `const` instead of mutable
 - Identifier chains in templates are printed completely
 - Proper vtable layout is ensured by emitting hidden placeholders for
   virtual functions that are not `extern(C|C++)`.

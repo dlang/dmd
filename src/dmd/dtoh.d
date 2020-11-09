@@ -428,8 +428,8 @@ public:
     {
         debug (Debug_DtoH)
         {
-            printf("[AST.StorageClassDeclaration enter] %s\n", pd.toChars());
-            scope(exit) printf("[AST.StorageClassDeclaration exit] %s\n", pd.toChars());
+            printf("[AST.StorageClassDeclaration enter] %s\n", scd.toChars());
+            scope(exit) printf("[AST.StorageClassDeclaration exit] %s\n", scd.toChars());
         }
         const stcStash = this.storageClass;
         this.storageClass |= scd.stc;
@@ -555,13 +555,13 @@ public:
             writeProtection(AST.Prot.Kind.private_);
         funcToBuffer(tf, fd);
         // FIXME: How to determine if fd is const without tf?
-        if (adparent && tf && tf.isConst())
+        if (adparent && tf && (tf.isConst() || tf.isImmutable()))
         {
             bool fdOverridesAreConst = true;
             foreach (fdv; fd.foverrides)
             {
                 auto tfv = cast(AST.TypeFunction)fdv.type;
-                if (!tfv.isConst())
+                if (!tfv.isConst() && !tfv.isImmutable())
                 {
                     fdOverridesAreConst = false;
                     break;
@@ -1438,7 +1438,7 @@ public:
             printf("[AST.TypeBasic enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeBasic exit] %s\n", t.toChars());
         }
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         string typeName;
         switch (t.ty)
@@ -1485,7 +1485,7 @@ public:
         t.next.accept(this);
         if (t.next.ty != AST.Tfunction)
             buf.writeByte('*');
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring(" const");
     }
 
@@ -1594,7 +1594,7 @@ public:
             //printf("Visiting enum %s from module %s %s\n", t.sym.toPrettyChars(), t.toChars(), t.sym.loc.toChars());
             visitAsRoot(t.sym, fwdbuf);
         }
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         enumToBuffer(t.sym);
     }
@@ -1614,7 +1614,7 @@ public:
             fwdbuf.writestringln(";");
         }
 
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         if (auto ti = t.sym.parent.isTemplateInstance())
         {
@@ -1631,7 +1631,7 @@ public:
             printf("[AST.TypeDArray enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeDArray exit] %s\n", t.toChars());
         }
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         buf.writestring("_d_dynamicArray< ");
         t.next.accept(this);
@@ -1761,11 +1761,11 @@ public:
             fwdbuf.writestringln(";");
         }
 
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         buf.writestring(t.sym.toChars());
         buf.writeByte('*');
-        if (t.isConst())
+        if (t.isConst() || t.isImmutable())
             buf.writestring(" const");
     }
 
@@ -2006,6 +2006,7 @@ public:
             printf("[AST.StringExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.StringExp exit] %s\n", e.toChars());
         }
+
         if (e.sz == 2)
             buf.writeByte('u');
         else if (e.sz == 4)
