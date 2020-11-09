@@ -19,6 +19,8 @@ experimental C++ header generator:
 - Opaque enums no longer cause segfaults & are properly exported for C++ 11
 - C++11 constructs are avoided when compiling with `-extern-std=c++98`.
 - Using `typeof(null)` type no longer causes an assertion failure.
+- The base type of floating point literals is propagated into the header
+- `NaN`, `Infinity` are emitted using `NAN`/`INFINITY` from `math.h`.
 - Final classes are marked as `final`
 - Identifier chains in templates are printed completely
 - Proper vtable layout is ensured by emitting hidden placeholders for
