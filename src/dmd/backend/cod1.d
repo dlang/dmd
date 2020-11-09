@@ -2022,7 +2022,10 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
     if (forccs)                           // if return result in flags
     {
         if (retregs & (mST01 | mST0))
+        {
+            *pretregs |= forccs;
             fixresult87(cdb, e, retregs, pretregs);
+        }
         else
             tstresult(cdb, retregs, tym, forregs);
     }
