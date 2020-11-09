@@ -42,11 +42,13 @@ struct _d_dynamicArray
 struct Null
 {
     void* field;
+    _d_dynamicArray< char > null_;
 private:
     Null(int32_t );
 public:
     Null() :
-        field(NULL)
+        field(NULL),
+        null_(_d_dynamicArray< char >())
     {
     }
 };
@@ -54,13 +56,13 @@ public:
 extern void* typeof_null;
 
 extern void* inferred_null;
-
 ---
 */
 
 extern (C++) struct Null
 {
     void* field = null;
+    string null_ = null;
 
     @disable this(int);
 }

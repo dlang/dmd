@@ -1971,7 +1971,19 @@ public:
             printf("[AST.NullExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
         }
-        if (global.params.cplusplus >= CppStdRevision.cpp11)
+        if (auto ta = e.type.isTypeDArray)
+        {
+            if (global.params.cplusplus >= CppStdRevision.cpp11)
+                // Prefer initializer list
+                buf.writestring("{}");
+            else
+            {
+                buf.writestring("_d_dynamicArray< ");
+                ta.nextOf().accept(this);
+                buf.writestring(" >()");
+            }
+        }
+        else if (global.params.cplusplus >= CppStdRevision.cpp11)
             buf.writestring("nullptr");
         else
             buf.writestring("NULL");
