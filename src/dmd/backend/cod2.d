@@ -2520,6 +2520,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     memcpy(global87.stack.ptr,_8087old.ptr,global87.stack.sizeof);
 
     retregs |= psw;                     // PSW bit may have been trashed
+    *pretregs |= psw;
     CodeBuilder cdb2;
     cdb2.ctor();
     if (psw && jop2 != JNE)

@@ -2239,6 +2239,29 @@ void test21038()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=21325
+
+real f21325(const real x) pure @safe nothrow @nogc
+{
+    return (x != 0.0L) ? x : real.nan;
+}
+
+void test21325() @safe
+{
+    ulong x = 0uL;
+    while(true)
+    {
+        const y = f21325(x); // should set y to real.nan
+
+        assert(y != y);
+
+        if (++x)
+            return; // good
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 // https://issues.dlang.org/show_bug.cgi?id=19846
 
 alias Void = byte[0];
@@ -2438,6 +2461,7 @@ int main()
     testMulLea();
     testMulAssPair();
     test21038();
+    test21325();
     test19846();
     test16268();
     test11435a();
