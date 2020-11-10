@@ -286,5 +286,39 @@ template GetNamespaceTestTemplated2(T)
     struct GetNamespaceTestTemplated2 {}
 }
 
-static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated).length  == 1);
-static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated2).length == 1);
+template GetNamespaceTestTemplated3(T)
+{
+    extern(C++, `ns`)
+    struct GetNamespaceTestTemplated3 {}
+}
+
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated!int)  == Seq!("ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated2!int) == Seq!("ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated3!int) == Seq!("ns"));
+extern(C++, `ns2`)
+template GetNamespaceTestTemplated4(T)
+{
+    extern(C++, `ns`)
+    struct GetNamespaceTestTemplated4
+    {
+        struct GetNamespaceTestTemplated5 {}
+        struct GetNamespaceTestTemplated6(T) {}
+    }
+}
+
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated4!int) == Seq!("ns2","ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated4!int.GetNamespaceTestTemplated5) == Seq!("ns2","ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated4!int.GetNamespaceTestTemplated6!int) == Seq!("ns2","ns"));
+
+// Currently ignored due to https://issues.dlang.org/show_bug.cgi?id=21373
+extern(C++, `decl`)
+mixin template GetNamespaceTestTemplatedMixin()
+{
+    extern(C++, `f`)
+    void foo() {}
+}
+
+extern(C++, `inst`)
+mixin GetNamespaceTestTemplatedMixin!() GNTT;
+
+static assert (__traits(getCppNamespaces, GNTT.foo) == Seq!(`inst`,/*`decl`,*/ `f`));
