@@ -1960,26 +1960,23 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             d.inuse = 1;
         }
 
-        for (auto p = s; !p.isModule(); p = p.toParent())
+        /**
+         Prepend the namespaces in the linked list `ns` to `es`.
+
+         Returns: true if `ns` contains an `ErrorExp`.
+         */
+        bool prependNamespaces(Expressions* es, CPPNamespaceDeclaration ns)
         {
-            p.dsymbolSemantic(sc);
-
-            if (p.isTemplateInstance())
-                continue;
-
-            if (p.isNspace())
-                exps.insert(0, new StringExp(p.loc, p.ident.toString()));
-
             // Semantic processing will convert `extern(C++, "a", "b", "c")`
             // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
             // creating a linked list what `a`'s `cppnamespace` points to `b`,
             // and `b`'s points to `c`. Our entry point is `a`.
-            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
+            for (; ns !is null; ns = ns.cppnamespace)
             {
                 ns.dsymbolSemantic(sc);
 
                 if (ns.exp.isErrorExp())
-                    return ErrorExp.get();
+                    return true;
 
                 auto se = ns.exp.toStringExp();
                 // extern(C++, (emptyTuple))
@@ -1987,8 +1984,39 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // will produce a blank ident
                 if (!se.len)
                     continue;
-                exps.insert(0, se);
+                es.insert(0, se);
             }
+            return false;
+        }
+        for (auto p = s; !p.isModule(); p = p.toParent())
+        {
+            p.dsymbolSemantic(sc);
+            auto pp = p.toParent();
+            if (pp.isTemplateInstance())
+            {
+                if (!p.cppnamespace)
+                    continue;
+                //if (!p.toParent().cppnamespace)
+                //    continue;
+                auto inner = new Expressions(0);
+                auto outer = new Expressions(0);
+                if (prependNamespaces(inner,  p.cppnamespace)) return ErrorExp.get();
+                if (prependNamespaces(outer, pp.cppnamespace)) return ErrorExp.get();
+
+                size_t i = 0;
+                while(i < outer.dim && ((*inner)[i]) == (*outer)[i])
+                    i++;
+
+                foreach_reverse (ns; (*inner)[][i .. $])
+                    exps.insert(0, ns);
+                continue;
+            }
+
+            if (p.isNspace())
+                exps.insert(0, new StringExp(p.loc, p.ident.toString()));
+
+            if (prependNamespaces(exps, p.cppnamespace))
+                return ErrorExp.get();
         }
         if (auto d = s.isDeclaration())
             d.inuse = 0;
