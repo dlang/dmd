@@ -38,6 +38,14 @@ T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nog
     alias scalarizedExp = staticMap!(toElementType, Args);
     alias check = typeCheck!(true, T, scalarizedExp); // must support all scalar ops
 
+    foreach (argsIdx, arg; typeof(args))
+    {
+        static if (is(arg == U[], U))
+        {
+            assert(res.length == args[argsIdx].length, "Mismatched array lengths for vector operation");
+        }
+    }
+
     size_t pos;
     static if (vectorizeable!(T[], Args))
     {
@@ -634,4 +642,29 @@ unittest
     result.length = data.length;
     result[] = -data[];
     assert(result[0] == -0.5);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21110
+unittest
+{
+    import core.exception;
+
+    static void assertThrown(T : Throwable, E)(lazy E expression, string msg)
+    {
+        try
+            expression;
+        catch (T)
+            return;
+        assert(0, "msg");
+    }
+
+    int[] dst;
+    int[] a;
+    int[] b;
+    a.length = 3;
+    b.length = 3;
+    dst.length = 4;
+
+    void func() { dst[] = a[] + b[]; }
+    assertThrown!AssertError(func(), "Array operations with mismatched lengths must throw an error");
 }
