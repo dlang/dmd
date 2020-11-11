@@ -19,6 +19,7 @@
 class ClassDeclaration;
 class Dsymbol;
 class Expression;
+class FuncDeclaration;
 class Parameter;
 class Type;
 class TypeTuple;
