@@ -457,6 +457,11 @@ const char *TargetCPP::typeInfoMangle(ClassDeclaration *cd)
 #endif
 }
 
+const char *TargetCPP::thunkMangle(FuncDeclaration *fd, int offset)
+{
+    return NULL;
+}
+
 /******************************
  * For a vendor-specific type, return a string containing the C++ mangling.
  * In all other cases, return null.
