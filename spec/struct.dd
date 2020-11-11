@@ -105,7 +105,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
 
     $(OL
     $(LI it is not nested)
-    $(LI it has no postblits, destructors, or assignment operators)
+    $(LI it has no postblits, copy constructors, destructors, or assignment operators)
     $(LI it has no `ref` fields or fields that are themselves non-POD)
     )
 
