@@ -33,6 +33,8 @@ alias MEM_PH_FREEFP = mem_freefp;
 alias MEM_PH_STRDUP = mem_strdup;
 alias MEM_PH_REALLOC = mem_realloc;
 
+void stackoffsets(ref symtab_t, bool);
+
 private void err_nomem();
 
 struct symtab_t

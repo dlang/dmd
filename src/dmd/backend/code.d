@@ -368,7 +368,6 @@ extern __gshared bool anyiasm;
 extern __gshared char calledafunc;
 extern __gshared bool calledFinally;
 
-void stackoffsets(int);
 void codgen(Symbol *);
 
 debug
