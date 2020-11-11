@@ -528,15 +528,19 @@ enum
 
 
 // All flat memory models (no segment registers)
-enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
-                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
-                         EX_OPENBSD | EX_OPENBSD64 |
-                         EX_DRAGONFLYBSD64 |
-                         EX_SOLARIS | EX_SOLARIS64;
+enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_WIN64 | EX_posix;
 
 // All DOS executable types
 enum exefmt_t EX_dos =  EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
                          EX_COM | EX_MZ /*| EX_WIN16*/;
+
+// All POSIX systems
+enum exefmt_t EX_posix = EX_LINUX   | EX_LINUX64   |
+                         EX_OSX     | EX_OSX64     |
+                         EX_FREEBSD | EX_FREEBSD64 |
+                         EX_SOLARIS | EX_SOLARIS64 |
+                         EX_OPENBSD | EX_OPENBSD64 |
+                         EX_DRAGONFLYBSD64;
 
 alias config_flags_t = uint;
 enum
