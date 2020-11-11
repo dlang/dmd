@@ -1009,8 +1009,12 @@ $(GNAME Postblit):
 
     $(P WARNING: The postblit is considered legacy and is not recommended for new code.
     Code should use $(RELATIVE_LINK2 struct-copy-constructor, copy constructors)
-    defined in the previous section. For backward compatibility reasons, a `struct` that defines
-    both a copy constructor and a postblit will only use the postblit for implicit copying.)
+    defined in the previous section. For backward compatibility reasons, a `struct` that
+    explicitly defines both a copy constructor and a postblit will only use the postblit
+    for implicit copying. However, if the postblit is disabled, the copy constructor will
+    be used. If a struct defines a copy constructor and has fields that define
+    postblits, the user-defined copy constructor will have priority over the generated
+    postblit.)
 
         $(P $(I Copy construction) is defined as initializing
          a struct instance from another struct of the same type.
