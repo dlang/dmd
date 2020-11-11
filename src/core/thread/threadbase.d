@@ -353,7 +353,11 @@ class ThreadBase
     {
         static void resize(ref ThreadBase[] buf, size_t nlen)
         {
-            buf = (cast(ThreadBase*)realloc(buf.ptr, nlen * size_t.sizeof))[0 .. nlen];
+            import core.exception: onOutOfMemoryError;
+
+            auto newBuf = cast(ThreadBase*)realloc(buf.ptr, nlen * size_t.sizeof);
+            if (newBuf is null) onOutOfMemoryError();
+            buf = newBuf[0 .. nlen];
         }
         auto buf = getAllImpl!resize;
         scope(exit) if (buf.ptr) free(buf.ptr);
