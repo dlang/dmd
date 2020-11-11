@@ -2591,7 +2591,7 @@ regm_t cod3_useBP()
     if (tym == TYifunc)
         goto Lcant;
 
-    stackoffsets(0);
+    stackoffsets(globsym, true);                // estimate stack offsets
     localsize = Auto.offset + Fast.offset;                // an estimate only
 //    if (localsize)
     {
