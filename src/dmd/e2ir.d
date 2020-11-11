@@ -107,7 +107,7 @@ bool ISX64REF(Declaration var)
 
     if (var.isParameter())
     {
-        if (config.exe == EX_WIN64)
+        if (global.params.isWindows && global.params.is64bit)
         {
             return var.type.size(Loc.initial) > REGSIZE
                 || (var.storage_class & STC.lazy_)
@@ -126,7 +126,7 @@ bool ISX64REF(Declaration var)
  */
 bool ISX64REF(IRState* irs, Expression exp)
 {
-    if (config.exe == EX_WIN64)
+    if (irs.params.isWindows && irs.params.is64bit)
     {
         return exp.type.size(Loc.initial) > REGSIZE
             || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
@@ -263,7 +263,7 @@ private elem *callfunc(const ref Loc loc,
                 continue;
             }
 
-            if (config.exe == EX_WIN64 && tybasic(ea.Ety) == TYcfloat)
+            if (irs.params.isWindows && irs.params.is64bit && tybasic(ea.Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
                  */
@@ -1065,10 +1065,10 @@ Lagain:
                     type *t2 = evalue.ET.Ttag.Sstruct.Sarg2type;
                     if (!t1 && !t2)
                     {
-                        if (config.exe != EX_WIN64 || sz > 8)
+                        if (!irs.params.isWindows || sz > 8)
                             r = RTLSYM_MEMSETN;
                     }
-                    else if (config.exe != EX_WIN64 &&
+                    else if (!irs.params.isWindows &&
                              r == RTLSYM_MEMSET128ii &&
                              tyfloating(t1.Tty) &&
                              tyfloating(t2.Tty))
@@ -1094,7 +1094,7 @@ Lagain:
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
-    if (config.exe == EX_WIN64 && sz > REGSIZE)
+    if (irs.params.isWindows && irs.params.is64bit && sz > REGSIZE)
     {
         evalue = addressElem(evalue, tb);
     }
@@ -1931,7 +1931,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *earray = ExpressionsToStaticArray(ne.loc, ne.arguments, &sdata);
 
                     e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.dim), el_ptr(sdata));
-                    if (config.exe == EX_WIN64)
+                    if (irs.params.isWindows && irs.params.is64bit)
                         e = addressElem(e, Type.tsize_t.arrayOf());
                     e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
                     int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
@@ -2154,7 +2154,7 @@ elem *toElem(Expression e, IRState *irs)
                     size_t len = strlen(id);
                     Symbol *si = toStringSymbol(id, len, 1);
                     elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-                    if (config.exe == EX_WIN64)
+                    if (irs.params.isWindows && irs.params.is64bit)
                         efilename = addressElem(efilename, Type.tstring, true);
 
                     if (ae.msg)
@@ -2166,7 +2166,7 @@ elem *toElem(Expression e, IRState *irs)
                          */
                         elem *emsg = toElemDtor(ae.msg, irs);
                         emsg = array_toDarray(ae.msg.type, emsg);
-                        if (config.exe == EX_WIN64)
+                        if (irs.params.isWindows && irs.params.is64bit)
                             emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
 
                         ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG));
@@ -2325,7 +2325,7 @@ elem *toElem(Expression e, IRState *irs)
         {
             elem *ex = toElem(e, irs);
             ex = array_toDarray(e.type, ex);
-            if (config.exe == EX_WIN64)
+            if (irs.params.isWindows && irs.params.is64bit)
             {
                 ex = addressElem(ex, Type.tvoid.arrayOf(), false);
             }
@@ -2375,7 +2375,7 @@ elem *toElem(Expression e, IRState *irs)
                 elem *earr = ElemsToStaticArray(ce.loc, ce.type, &elems, &sdata);
 
                 elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
-                if (config.exe == EX_WIN64)
+                if (irs.params.isWindows && irs.params.is64bit)
                     ep = addressElem(ep, Type.tvoid.arrayOf());
                 ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
@@ -2951,7 +2951,7 @@ elem *toElem(Expression e, IRState *irs)
                          */
                         el_free(esize);
                         elem *eti = getTypeInfo(ae.e1.loc, t1.nextOf().toBasetype(), irs);
-                        if (config.exe == EX_WIN64)
+                        if (irs.params.isWindows && irs.params.is64bit)
                         {
                             eto   = addressElem(eto,   Type.tvoid.arrayOf());
                             efrom = addressElem(efrom, Type.tvoid.arrayOf());
@@ -2966,7 +2966,7 @@ elem *toElem(Expression e, IRState *irs)
                         // Generate:
                         //      _d_arraycopy(eto, efrom, esize)
 
-                        if (config.exe == EX_WIN64)
+                        if (irs.params.isWindows && irs.params.is64bit)
                         {
                             eto   = addressElem(eto,   Type.tvoid.arrayOf());
                             efrom = addressElem(efrom, Type.tvoid.arrayOf());
@@ -3259,7 +3259,7 @@ elem *toElem(Expression e, IRState *irs)
                      *      _d_arrayctor(ti, e2, e1)
                      */
                     elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                    if (config.exe == EX_WIN64)
+                    if (irs.params.isWindows && irs.params.is64bit)
                     {
                         e1 = addressElem(e1, Type.tvoid.arrayOf());
                         e2 = addressElem(e2, Type.tvoid.arrayOf());
@@ -3282,7 +3282,7 @@ elem *toElem(Expression e, IRState *irs)
                      *      _d_arrayassign_r(ti, e2, e1, etmp)
                      */
                     elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                    if (config.exe == EX_WIN64)
+                    if (irs.params.isWindows && irs.params.is64bit)
                     {
                         e1 = addressElem(e1, Type.tvoid.arrayOf());
                         e2 = addressElem(e2, Type.tvoid.arrayOf());
@@ -3362,7 +3362,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(tb1n.equals(tb2.nextOf().toBasetype()));
 
                     e1 = el_una(OPaddr, TYnptr, e1);
-                    if (config.exe == EX_WIN64)
+                    if (irs.params.isWindows && irs.params.is64bit)
                         e2 = addressElem(e2, tb2, true);
                     else
                         e2 = useOPstrpar(e2);
@@ -5594,7 +5594,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
                 elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-                if (config.exe == EX_WIN64)
+                if (irs.params.isWindows && irs.params.is64bit)
                 {
                     ev = addressElem(ev, Type.tvoid.arrayOf());
                     ek = addressElem(ek, Type.tvoid.arrayOf());
@@ -6167,7 +6167,7 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
     size_t len = strlen(id);
     Symbol *si = toStringSymbol(id, len, 1);
     elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-    if (config.exe == EX_WIN64)
+    if (irs.params.isWindows && irs.params.is64bit)
         efilename = addressElem(efilename, Type.tstring, true);
 
     elem *elinnum = el_long(TYint, loc.linnum);
@@ -6182,7 +6182,7 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
     len = strlen(s);
     si = toStringSymbol(s, len, 1);
     elem *efunction = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-    if (config.exe == EX_WIN64)
+    if (irs.params.isWindows && irs.params.is64bit)
         efunction = addressElem(efunction, Type.tstring, true);
 
     return el_params(efunction, elinnum, efilename, null);

@@ -175,7 +175,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.storage_class & STC.lazy_)
             {
-                if (config.exe == EX_WIN64 && vd.isParameter())
+                if (global.params.isWindows && global.params.is64bit && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
                     t = type_fake(TYdelegate);          // Tdelegate as C type
@@ -492,21 +492,21 @@ Symbol *toImport(Symbol *sym)
     import core.stdc.stdlib : alloca;
     char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
     int idlen;
-    if (config.exe != EX_WIN32 && config.exe != EX_WIN64)
+    if (!global.params.isWindows)
     {
         id = n;
         idlen = cast(int)strlen(n);
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
-        if (config.exe == EX_WIN64)
+        if (global.params.isWindows && global.params.is64bit)
             idlen = sprintf(id,"__imp_%s",n);
         else
             idlen = sprintf(id,"_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
     else
     {
-        idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
+        idlen = sprintf(id,(global.params.isWindows && global.params.is64bit) ? "__imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
