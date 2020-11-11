@@ -3492,7 +3492,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
     if (config.wflags & WFincbp && farfunc)
         cdb.gen1(0x40 + BP);      // INC  BP
     if (config.target_cpu < TARGET_80286 ||
-        config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_WIN64) ||
+        config.exe & (EX_posix | EX_WIN64) ||
         !localsize ||
         config.flags & CFGstack ||
         (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
