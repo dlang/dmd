@@ -753,6 +753,11 @@ version (OMFandMSCOFF)
                 :    OmfObj_tlv_bootstrap();
         }
 
+        Symbol *getGOTsym()
+        {
+            assert(0);
+        }
+
         void gotref(Symbol *s)
         {
         }

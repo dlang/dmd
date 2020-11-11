@@ -687,11 +687,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-            if (I32 && tybasic(tyf) == TYnfunc)
+            if (config.exe & EX_posix && I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
-}
             goto case TYcdouble;
 
         case TYcdouble:
@@ -1804,11 +1801,8 @@ void doswitch(ref CodeBuilder cdb, block *b)
         regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (I32 && config.flags3 & CFG3pic)
+        if (config.exe & EX_posix && I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
-}
         bool modify = (I16 || I64 || vmin);
         scodelem(cdb,e,&retregs,0,!modify);
         reg_t reg = findreg(retregs & IDXREGS); // reg that result is in
@@ -2009,9 +2003,8 @@ else
             genjmp(cdb,JNE,FLblock,b.nthSucc(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (config.flags3 & CFG3pic)
+
+        if (config.flags3 & CFG3pic && config.exe & EX_posix)
         {   // Add in GOT
             getregs(cdb,mDX);
             cdb.genc2(CALL,0,0);        //     CALL L1
@@ -2030,7 +2023,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             cdb.gencs(0x81,modregrm(3,0,DI),FLswitch,null);
             cdb.last().IEV2.Vswitch = b;
         }
-}
+
         if (!(config.flags3 & CFG3pic))
         {
                                         // MOV DI,offset of switch table
@@ -2085,15 +2078,15 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (config.flags3 & CFG3pic)
+
+        if (config.flags3 & CFG3pic &&
+            config.exe & EX_posix)
         {                               // ADD EDX,(ncases-1)*2[EDI]
             cdb.genc1(0x03,modregrm(mod,DX,7),FLconst,disp);
                                         // JMP EDX
             cdb.gen2(0xFF,modregrm(3,4,DX));
         }
-}
+
         if (!(config.flags3 & CFG3pic))
         {                               // JMP (ncases-1)*2[DI]
             cdb.genc1(0xFF,modregrm(mod,4,(I32 ? 7 : 5)),FLconst,disp);
@@ -2155,13 +2148,11 @@ void outjmptab(block *b)
                         break;
                 }
         }
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (I64)
+        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64))
         {
             if (config.flags3 & CFG3pic)
             {
-                objmod.reftodatseg(jmpseg,*poffset,targ + (u - vmin) * 4,funcsym_p.Sseg,CFswitch);
+                objmod.reftodatseg(jmpseg,*poffset,cast(targ_size_t)(targ + (u - vmin) * 4),funcsym_p.Sseg,CFswitch);
                 *poffset += 4;
             }
             else
@@ -2170,7 +2161,7 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                 *poffset += 8;
             }
         }
-        else
+        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
         {
             if (config.flags3 & CFG3pic)
             {
@@ -2184,31 +2175,28 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
             *poffset += 4;
         }
-}
-else static if (TARGET_OSX)
-{
-        targ_size_t val;
-        if (I64)
-            val = targ - b.Btableoffset;
-        else
-            val = targ - b.Btablebase;
-        objmod.write_bytes(SegData[jmpseg],4,&val);
-}
-else static if (TARGET_WINDOS)
-{
-        if (I64)
+        else if (config.exe & (EX_OSX | EX_OSX64))
         {
-            targ_size_t val = targ - b.Btableoffset;
+            targ_size_t val;
+            if (I64)
+                val = targ - b.Btableoffset;
+            else
+                val = targ - b.Btablebase;
             objmod.write_bytes(SegData[jmpseg],4,&val);
         }
         else
         {
-            objmod.reftocodeseg(jmpseg,*poffset,targ);
-            *poffset += tysize(TYnptr);
+            if (I64)
+            {
+                targ_size_t val = targ - b.Btableoffset;
+                objmod.write_bytes(SegData[jmpseg],4,&val);
+            }
+            else
+            {
+                objmod.reftocodeseg(jmpseg,*poffset,targ);
+                *poffset += tysize(TYnptr);
+            }
         }
-}
-else
-        assert(0);
 
         if (u == vmax)                  // for case that (vmax == ~0)
             break;
