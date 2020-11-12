@@ -43,6 +43,8 @@ struct _d_dynamicArray
 # define _d_real long double
 #endif
 
+struct Null;
+
 class ClassFromStruct
 {
 public:
@@ -94,7 +96,18 @@ struct Null
 {
     _d_dynamicArray< const char > null_;
     Null() :
-        null_({})
+        null_()
+    {
+    }
+};
+
+struct Wrapper
+{
+    Null n1;
+    Null n2;
+    Wrapper() :
+        n1(Null({ 5, "Hello" })),
+        n2(Null({}))
     {
     }
 };
@@ -137,6 +150,12 @@ extern(C++) struct Floats
 extern (C++) struct Null
 {
     string null_ = null;
+}
+
+extern (C++) struct Wrapper
+{
+    Null n1 = Null("Hello");
+    Null n2 = Null(null);
 }
 
 extern(C++) __gshared immutable string helloWorld = `"Hello\World!"`;

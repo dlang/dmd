@@ -779,7 +779,7 @@ struct Loc
     const char* filename;
     uint32_t linnum;
     uint32_t charnum;
-    const char* toChars(bool showColumns = global.params.showColumns, uint8_t messageStyle = global.params.messageStyle) const;
+    const char* toChars(bool showColumns = global.params.showColumns, uint8_t messageStyle = static_cast<uint8_t>(global.params.messageStyle)) const;
     bool equals(const Loc& loc) const;
     Loc() :
         filename(),
@@ -2661,7 +2661,7 @@ public:
     bool doNotInferScope;
     bool doNotInferReturn;
     uint8_t isdataseg;
-    static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = STC::undefined_);
+    static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     Dsymbol* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
     const char* kind() const;
@@ -7284,19 +7284,19 @@ struct Global
     ~Global();
     Global() :
         inifilename(),
-        mars_ext("d"),
+        mars_ext(1, "d"),
         obj_ext(),
         lib_ext(),
         dll_ext(),
-        doc_ext("html"),
-        ddoc_ext("ddoc"),
-        hdr_ext("di"),
-        cxxhdr_ext("h"),
-        json_ext("json"),
-        map_ext("map"),
+        doc_ext(4, "html"),
+        ddoc_ext(4, "ddoc"),
+        hdr_ext(2, "di"),
+        cxxhdr_ext(1, "h"),
+        json_ext(4, "json"),
+        map_ext(3, "map"),
         run_noext(),
-        copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
-        written("written by Walter Bright"),
+        copyright(73, "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
+        written(24, "written by Walter Bright"),
         path(),
         filePath(),
         vendor(),
