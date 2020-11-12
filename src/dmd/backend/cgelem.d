@@ -4876,7 +4876,7 @@ private elem * el64_32(elem *e, goal_t goal)
         break;
 
     case OPmul:
-        static if (TARGET_OSX) // https://issues.dlang.org/show_bug.cgi?id=21047
+        if (config.exe & (EX_OSX | EX_OSX64)) // https://issues.dlang.org/show_bug.cgi?id=21047
             break;
         else
             goto case;
@@ -5362,7 +5362,7 @@ private elem * elvalist(elem *e, goal_t goal)
         return e;
     }
 
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     assert(config.exe == EX_WIN64); // va_start is not an intrinsic on 32-bit
 
@@ -5393,7 +5393,7 @@ static if (TARGET_WINDOS)
 
 }
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
     assert(I64); // va_start is not an intrinsic on 32-bit
     // (OPva_start &va)
