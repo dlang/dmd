@@ -225,9 +225,10 @@ tryagain:
     calledFinally = false;
     usednteh = 0;
 
-    static if (MARS && TARGET_WINDOS)
+    static if (MARS)
     {
-        if (sfunc.Sfunc.Fflags3 & Fjmonitor)
+        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+            config.exe & EX_windos)
             usednteh |= NTEHjmonitor;
     }
     else version (SCPP)
@@ -635,7 +636,7 @@ tryagain:
             if (retoffset < sfunc.Ssize)
                 objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
 
-        static if (TARGET_WINDOS && MARS)
+        static if (MARS)
         {
             if (config.exe == EX_WIN64)
                 win64_pdata(sfunc);
@@ -850,7 +851,7 @@ Lagain:
         Fast.size -= nteh_contextsym_size();
         version (MARS)
         {
-            static if (TARGET_WINDOS)
+            if (config.exe & EX_windos)
             {
                 if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
                     Fast.size -= 5 * 4;
@@ -2739,12 +2740,14 @@ reload:                                 /* reload result from memory    */
             cdrelconst(cdb,e,pretregs);
             break;
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
         case OPgot:
-            cdgot(cdb,e,pretregs);
-            break;
-}
+            if (config.exe & EX_posix)
+            {
+                cdgot(cdb,e,pretregs);
+                break;
+            }
+            goto default;
+
         default:
             if (*pretregs == mPSW &&
                 config.fpxmmregs &&
