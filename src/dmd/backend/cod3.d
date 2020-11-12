@@ -396,14 +396,10 @@ void cod3_set64()
     inssize[0xA3] = T|5;                // MOV mem,RAX
     BPRM = 5;                           // [RBP] addressing mode
 
-static if (TARGET_WINDOS)
-{
-    fregsaved = mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7; // also XMM8..15;
-}
-else
-{
-    fregsaved = mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
-}
+    fregsaved = (config.exe & EX_windos)
+        ? mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7 // also XMM8..15;
+        : mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
+
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
@@ -479,28 +475,27 @@ void cod3_align_bytes(int seg, size_t nbytes)
  */
 void cod3_align(int seg)
 {
-    uint nbytes;
-static if (TARGET_WINDOS)
-{
-    if (config.flags4 & CFG4speed)      // if optimized for speed
+    if (config.exe & EX_windos)
     {
-        // Pick alignment based on CPU target
-        if (config.target_cpu == TARGET_80486 ||
-            config.target_cpu >= TARGET_PentiumPro)
-        {   // 486 does reads on 16 byte boundaries, so if we are near
-            // such a boundary, align us to it
+        if (config.flags4 & CFG4speed)      // if optimized for speed
+        {
+            // Pick alignment based on CPU target
+            if (config.target_cpu == TARGET_80486 ||
+                config.target_cpu >= TARGET_PentiumPro)
+            {   // 486 does reads on 16 byte boundaries, so if we are near
+                // such a boundary, align us to it
 
-            nbytes = -Offset(seg) & 15;
-            if (nbytes < 8)
-                cod3_align_bytes(seg, nbytes);
+                const nbytes = -Offset(seg) & 15;
+                if (nbytes < 8)
+                    cod3_align_bytes(seg, nbytes);
+            }
         }
     }
-}
-else
-{
-    nbytes = -Offset(seg) & 7;
-    cod3_align_bytes(seg, nbytes);
-}
+    else
+    {
+        const nbytes = -Offset(seg) & 7;
+        cod3_align_bytes(seg, nbytes);
+    }
 }
 
 
@@ -2745,7 +2740,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-    static if (TARGET_OSX)
+    if (config.exe & (EX_OSX | EX_OSX64))
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
@@ -2758,7 +2753,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
         fixresult(cdb,e,retregs,pretregs);
     }
-    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    else if (config.exe & EX_posix)
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
@@ -2794,9 +2789,9 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void load_localgot(ref CodeBuilder cdb)
 {
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // note: I32 only
     {
-        if (config.flags3 & CFG3pic && I32)
+        if (config.flags3 & CFG3pic)
         {
             if (localgot && !(localgot.Sflags & SFLdead))
             {
@@ -2818,15 +2813,13 @@ void load_localgot(ref CodeBuilder cdb)
     }
 }
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
 /*****************************
  * Returns:
  *      # of bytes stored
  */
 
 
-private int obj_namestring(char *p,const(char)* name)
+int obj_namestring(char *p,const(char)* name)
 {
     size_t len = strlen(name);
     if (len > 255)
@@ -2846,7 +2839,6 @@ private int obj_namestring(char *p,const(char)* name)
         len++;
     }
     return cast(int)len;
-}
 }
 
 void genregs(ref CodeBuilder cdb,opcode_t op,uint dstreg,uint srcreg)
@@ -3549,15 +3541,14 @@ void prolog_stackalign(ref CodeBuilder cdb)
 void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
 {
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
-static if (TARGET_LINUX)
-{
-    bool check = false;               // seems that Linux doesn't need to fault in stack pages
-}
-else
-{
-    bool check = (config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
-        || (TARGET_WINDOS && xlocalsize >= 0x1000 && config.exe & EX_flat);
-}
+
+    bool check;
+    if (config.exe & (EX_LINUX | EX_LINUX64))
+        check = false;               // seems that Linux doesn't need to fault in stack pages
+    else
+        check = (config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
+            || (config.exe & (EX_windos & EX_flat) && xlocalsize >= 0x1000);
+
     if (check)
     {
         if (I16)
@@ -4861,14 +4852,10 @@ static if (0)
     sthunk.Soffset = thunkoffset;
     sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
     sthunk.Sseg = seg;
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & EX_posix ||
+       config.objfmt == OBJ_MSCOFF)
     {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
-    }
-    static if (TARGET_WINDOS)
-    {
-        if (config.objfmt == OBJ_MSCOFF)
-            objmod.pubdef(seg,sthunk,sthunk.Soffset);
     }
     searchfixlist(sthunk);              // resolve forward refs
 }
@@ -7067,13 +7054,12 @@ else
                                     else
                                         val = -8;
                                 }
-static if (TARGET_OSX || TARGET_WINDOS)
-{
-                                /* Mach-O and Win64 fixups already take the 4 byte size
-                                 * into account, so bias by 4
-        `                        */
-                                val += 4;
-}
+
+                                if (config.exe & (EX_OSX64 | EX_WIN64))
+                                    /* Mach-O and Win64 fixups already take the 4 byte size
+                                     * into account, so bias by 4
+                                     */
+                                    val += 4;
                             }
                         }
                         do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
@@ -7313,23 +7299,42 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        case FLgot:
-        case FLgotoff:
-}
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
             objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
             break;
 
-static if (TARGET_OSX)
-{
+        case FLgotoff:
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                assert(0);
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                break;
+            }
+            else
+                assert(0);
+
         case FLgot:
-            funcsym_p.Slocalgotoffset = pbuf.getOffset();
-            ad = 0;
-            goto L1;
-}
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                funcsym_p.Slocalgotoffset = pbuf.getOffset();
+                ad = 0;
+                goto L1;
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                break;
+            }
+            else
+                assert(0);
 
         case FLfunc:                        /* function call                */
             s = uev.Vsym;               /* symbol pointer               */
@@ -7389,7 +7394,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             ad = uev.Vswitch.Btableoffset;
             if (config.flags & CFGromable)
             {
-                static if (TARGET_OSX)
+                if (config.exe & (EX_OSX | EX_OSX64))
                 {
                     // These are magic values based on the exact code generated for the switch jump
                     if (I64)
@@ -7399,7 +7404,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                     ad -= uev.Vswitch.Btablebase;
                     goto L1;
                 }
-                else static if (TARGET_WINDOS)
+                else if (config.exe & EX_windos)
                 {
                     if (I64)
                     {
@@ -7435,14 +7440,9 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        case FLgot:
-        case FLgotoff:
-    }
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
-            if (TARGET_WINDOS && I64 && (flags & CFpc32))
+            if (config.exe & EX_windos && I64 && (flags & CFpc32))
             {
                 /* This is for those funky fixups where the location to be fixed up
                  * is a 'val' amount back from the current RIP, biased by adding 4.
@@ -7456,13 +7456,37 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
             break;
 
-    static if (TARGET_OSX)
-    {
+        case FLgotoff:
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                assert(0);
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                break;
+            }
+            else
+                assert(0);
+
         case FLgot:
-            funcsym_p.Slocalgotoffset = pbuf.getOffset();
-            ad = 0;
-            goto L1;
-    }
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                funcsym_p.Slocalgotoffset = pbuf.getOffset();
+                ad = 0;
+                goto L1;
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                break;
+            }
+            else
+                assert(0);
 
         case FLfunc:                        /* function call                */
             s = uev.Vsym;               /* symbol pointer               */

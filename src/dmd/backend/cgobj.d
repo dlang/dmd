@@ -99,6 +99,8 @@ else
     pragma(printf) void error(Loc loc, const(char)* format, ...);
 }
 
+int obj_namestring(char *p,const(char)* name);
+
 version (MARS)
 {
 // C++ name mangling is handled by front end
@@ -410,6 +412,7 @@ version (MARS)
     Barray!(Symbol*) resetSymbols;  // reset symbols
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
+
 version (MARS)
 {
     Barray!PtrRef ptrrefs;      // buffer for pointer references
@@ -565,32 +568,7 @@ int getindex(ubyte* p)
     : *p);
 }
 
-/*****************************
- * Returns:
- *      # of bytes stored
- */
-
 enum ONS_OHD = 4;               // max # of extra bytes added by obj_namestring()
-
-private int obj_namestring(char *p,const(char)* name)
-{   uint len;
-
-    len = cast(uint)strlen(name);
-    if (len > 255)
-    {   p[0] = 0xFF;
-        p[1] = 0;
-        debug assert(len <= 0xFFFF);
-        TOWORD(p + 2,len);
-        memcpy(p + 4,name,len);
-        len += ONS_OHD;
-    }
-    else
-    {   p[0] = cast(char)len;
-        memcpy(p + 1,name,len);
-        len++;
-    }
-    return len;
-}
 
 /******************************
  * Allocate a new segment.
