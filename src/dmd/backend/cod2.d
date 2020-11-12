@@ -129,8 +129,6 @@ regm_t idxregm(const code* c)
 }
 
 
-static if (TARGET_WINDOS)
-{
 /***************************
  * Gen code for call to floating point routine.
  */
@@ -169,7 +167,6 @@ void opdouble(ref CodeBuilder cdb, elem *e,regm_t *pretregs,uint clib)
     if (retregs1 & mSTACK)
         cgstate.stackclean--;
     callclib(cdb, e, clib, pretregs, 0);
-}
 }
 
 /*****************************
@@ -210,7 +207,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             orth87(cdb,e,pretregs);
             return;
         }
-        static if (TARGET_WINDOS)
+        if (config.exe & EX_windos)
         {
             opdouble(cdb,e,pretregs,(e.Eoper == OPadd) ? CLIB.dadd
                                                        : CLIB.dsub);
@@ -934,7 +931,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
             orth87(cdb,e,pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
@@ -1321,7 +1318,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
             orth87(cdb,e,pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
@@ -3483,12 +3480,6 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 
 
-static if (!TARGET_SEGMENTED)
-{
-private code *cod2_setES(tym_t ty) { return null; }
-}
-else
-{
 /********************************
  * Generate code to load ES with the right segment value,
  * do nothing if e is a far pointer.
@@ -3496,6 +3487,9 @@ else
 
 private code *cod2_setES(tym_t ty)
 {
+    if (config.exe & EX_flat)
+        return null;
+
     int push;
 
     CodeBuilder cdb;
@@ -3526,7 +3520,6 @@ private code *cod2_setES(tym_t ty)
             break;
     }
     return cdb.finish();
-}
 }
 
 /********************************
@@ -4643,10 +4636,9 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
             goto L4;
 
         case FLtlsdata:
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
+        if (config.exe & EX_posix)
         {
-          L5:
+          Lposix:
             if (config.flags3 & CFG3pic)
             {
                 if (I64)
@@ -4750,12 +4742,11 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
             }
             break;
         }
-    }
-    else static if (TARGET_WINDOS)
-    {
+        else if (config.exe & EX_windos)
+        {
             if (I64)
             {
-            L5:
+            Lwin64:
                 assert(reg != STACK);
                 cs.IEV2.Vsym = e.EV.Vsym;
                 cs.IEV2.Voffset = e.EV.Voffset;
@@ -4768,27 +4759,21 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
                 break;
             }
             goto L4;
-    }
-    else
-    {
+        }
+        else
+        {
             goto L4;
-    }
+        }
 
         case FLfunc:
             fl = FLextern;                  /* don't want PC relative addresses */
             goto L4;
 
         case FLextern:
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-            if (e.EV.Vsym.ty() & mTYthread)
-                goto L5;
-    }
-    static if (TARGET_WINDOS)
-    {
-            if (I64 && e.EV.Vsym.ty() & mTYthread)
-                goto L5;
-    }
+            if (config.exe & EX_posix && e.EV.Vsym.ty() & mTYthread)
+                goto Lposix;
+            if (config.exe & EX_WIN64 && e.EV.Vsym.ty() & mTYthread)
+                goto Lwin64;
             goto L4;
 
         case FLdata:
@@ -5113,7 +5098,7 @@ void cdpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             post87(cdb,e,pretregs);
             return;
         }
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
         assert(sz <= 8);
         getlvalue(cdb,&cs,e.EV.E1,DOUBLEREGS);
@@ -5553,6 +5538,7 @@ version (SCPP)
 
 /*******************************************
  * D constructor.
+ * OPdctor
  */
 
 void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -5580,6 +5566,7 @@ void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 /*******************************************
  * D destructor.
+ * OPddtor
  */
 
 void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -5686,6 +5673,9 @@ version (SCPP)
 }
 }
 
+/******
+ * OPdtor
+ */
 void cddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
 version (SCPP)
