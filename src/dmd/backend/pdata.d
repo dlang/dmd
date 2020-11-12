@@ -290,4 +290,7 @@ static if (1)
 }
 
 }
+else
+void win64_pdata(Symbol *sf) { }
+
 }
