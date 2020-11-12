@@ -32,7 +32,7 @@ extern(C++, "std"):
 
 extern(C++, class) struct vector(T, Alloc = allocator!T)
 {
-    import core.lifetime : forward, move, moveEmplace, core_emplace = emplace;
+    import core.lifetime : forward, move, core_emplace = emplace;
 
     static assert(!is(T == bool), "vector!bool not supported!");
 extern(D):
@@ -114,6 +114,18 @@ extern(D):
     ///
     void append(T[] array)                                                  { insert(length, array); }
 
+    /// Performs elementwise equality check.
+    bool opEquals(this This, That)(auto ref That rhs)
+    if (is(immutable That == immutable vector))                             { return as_array == rhs.as_array; }
+
+    /// Performs lexicographical comparison.
+    static if (is(typeof((ref T a, ref T b) => a < b)))
+    int opCmp(this This, That)(auto ref That rhs)
+    if (is(immutable That == immutable vector))                             { return __cmp(as_array, rhs.as_array); }
+
+    /// Hash to allow `vector`s to be used as keys for built-in associative arrays.
+    /// **The result will generally not be the same as C++ `std::hash<std::vector<T>>`.**
+    size_t toHash() const                                                   { return .hashOf(as_array); }
 
     // Modifiers
     ///
@@ -579,6 +591,8 @@ extern(D):
 
         void _Reallocate_exactly(const size_type _Newcapacity)
         {
+            import core.lifetime : moveEmplace;
+
             const size_type _Size = size();
             pointer _Newvec = _Getal().allocate(_Newcapacity);
 
@@ -587,7 +601,7 @@ extern(D):
                 for (size_t i = _Size; i > 0; )
                 {
                     --i;
-                    _Get_data()._Myfirst[i].moveEmplace(_Newvec[i]);
+                    moveEmplace(_Get_data()._Myfirst[i], _Newvec[i]);
                 }
             }
             catch (Throwable e)

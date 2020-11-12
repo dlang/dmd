@@ -167,6 +167,20 @@ extern(D):
     ///
     inout(T)[] opIndex() inout pure nothrow @safe @nogc                     { return as_array(); }
 
+    /// Two `basic_string`s are equal if they represent the same sequence of code units.
+    bool opEquals(scope const ref basic_string s) const pure nothrow @safe  { return as_array == s.as_array; }
+    /// ditto
+    bool opEquals(scope const T[] s) const pure nothrow @safe               { return as_array == s; }
+
+    /// Performs lexicographical comparison.
+    int opCmp(scope const ref basic_string rhs) const pure nothrow @safe    { return __cmp(as_array, rhs.as_array); }
+    /// ditto
+    int opCmp(scope const T[] rhs) const pure nothrow @safe                 { return __cmp(as_array, rhs); }
+
+    /// Hash to allow `basic_string`s to be used as keys for built-in associative arrays.
+    /// **The result will generally not be the same as C++ `std::hash<std::basic_string<T>>`.**
+    size_t toHash() const @nogc nothrow pure @safe                          { return .hashOf(as_array); }
+
     ///
     void clear()                                                            { eos(0); } // TODO: bounds-check
     ///

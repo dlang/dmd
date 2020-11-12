@@ -374,8 +374,22 @@ class TypeInfo
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2) const
     {
-        immutable size_t n = tsize;
-        for (size_t i = 0; i < n; i++)
+        size_t remaining = tsize;
+        // If the type might contain pointers perform the swap in pointer-sized
+        // chunks in case a garbage collection pass interrupts this function.
+        if ((cast(size_t) p1 | cast(size_t) p2) % (void*).alignof == 0)
+        {
+            while (remaining >= (void*).sizeof)
+            {
+                void* tmp = *cast(void**) p1;
+                *cast(void**) p1 = *cast(void**) p2;
+                *cast(void**) p2 = tmp;
+                p1 += (void*).sizeof;
+                p2 += (void*).sizeof;
+                remaining -= (void*).sizeof;
+            }
+        }
+        for (size_t i = 0; i < remaining; i++)
         {
             byte t = (cast(byte *)p1)[i];
             (cast(byte*)p1)[i] = (cast(byte*)p2)[i];
