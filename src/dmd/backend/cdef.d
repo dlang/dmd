@@ -522,6 +522,33 @@ enum
     EX_DRAGONFLYBSD64 = 0x1000000,
 }
 
+// All of them
+enum exefmt_t EX_all =
+    EX_DOSX      |
+    EX_ZPM       |
+    EX_RATIONAL  |
+    EX_PHARLAP   |
+    EX_COM       |
+    EX_OS2       |
+    EX_OS1       |
+    EX_WIN32     |
+    EX_MZ        |
+    EX_LINUX     |
+    EX_WIN64     |
+    EX_LINUX64   |
+    EX_OSX       |
+    EX_OSX64     |
+    EX_FREEBSD   |
+    EX_FREEBSD64 |
+    EX_SOLARIS   |
+    EX_SOLARIS64 |
+    EX_OPENBSD   |
+    EX_OPENBSD64 |
+    EX_DRAGONFLYBSD64;
+
+// All segmented memory models
+enum exefmt_t EX_segmented = EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
+                        EX_COM | EX_OS1 | EX_MZ;
 
 // All flat memory models (no segment registers)
 enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_WIN64 | EX_posix;
@@ -540,6 +567,33 @@ enum exefmt_t EX_posix = EX_LINUX   | EX_LINUX64   |
                          EX_SOLARIS | EX_SOLARIS64 |
                          EX_OPENBSD | EX_OPENBSD64 |
                          EX_DRAGONFLYBSD64;
+
+// All 16 bit targets
+enum exefmt_t EX_16 = EX_ZPM | EX_RATIONAL | EX_COM | EX_OS1 | EX_MZ;
+
+// All 32 bit targets
+enum exefmt_t EX_32 = EX_DOSX | EX_OS2 | EX_PHARLAP |
+                EX_WIN32   |
+                EX_LINUX   |
+                EX_OSX     |
+                EX_FREEBSD |
+                EX_SOLARIS |
+                EX_OPENBSD;
+
+// All 64 bit targets
+enum exefmt_t EX_64 =
+                EX_WIN64     |
+                EX_LINUX64   |
+                EX_OSX64     |
+                EX_FREEBSD64 |
+                EX_SOLARIS64 |
+                EX_OPENBSD64 |
+                EX_DRAGONFLYBSD64;
+
+// Constraints
+static assert(EX_all == (EX_segmented ^ EX_flat));
+static assert(EX_all == (EX_16 ^ EX_32 ^ EX_64));
+static assert(EX_all == (EX_windos ^ EX_posix));
 
 alias config_flags_t = uint;
 enum
