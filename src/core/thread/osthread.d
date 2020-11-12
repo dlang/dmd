@@ -1182,8 +1182,6 @@ else version (Posix)
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
     in
     {
-        assert(suspendSignalNumber == 0);
-        assert(resumeSignalNumber  == 0);
         assert(suspendSignalNo != 0);
         assert(resumeSignalNo  != 0);
     }
@@ -1201,8 +1199,8 @@ else version (Posix)
 
 version (Posix)
 {
-    __gshared int suspendSignalNumber;
-    __gshared int resumeSignalNumber;
+    __gshared int suspendSignalNumber = SIGUSR1;
+    __gshared int resumeSignalNumber  = SIGUSR2;
 }
 
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
@@ -1941,16 +1939,6 @@ extern (C) void thread_init() @nogc
     }
     else version (Posix)
     {
-        if ( suspendSignalNumber == 0 )
-        {
-            suspendSignalNumber = SIGUSR1;
-        }
-
-        if ( resumeSignalNumber == 0 )
-        {
-            resumeSignalNumber = SIGUSR2;
-        }
-
         int         status;
         sigaction_t sigusr1 = void;
         sigaction_t sigusr2 = void;
