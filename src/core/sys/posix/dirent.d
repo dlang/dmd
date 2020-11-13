@@ -155,15 +155,34 @@ else version (FreeBSD)
         DT_WHT      = 14
     }
 
-    align(4)
-    struct dirent
+    version (FreeBSD_12)
     {
-        uint      d_fileno;
-        ushort    d_reclen;
-        ubyte     d_type;
-        ubyte     d_namlen;
-        char[256] d_name = 0;
+        struct dirent
+        {
+            ino_t     d_fileno;
+            off_t     d_off;
+            ushort    d_reclen;
+            ubyte     d_type;
+            ubyte     d_pad0;
+            ushort    d_namlen;
+            ushort    d_pad1;
+            char[256] d_name = 0;
+        }
     }
+    else version (FreeBSD_11)
+    {
+        align(4)
+        struct dirent
+        {
+            uint      d_fileno;
+            ushort    d_reclen;
+            ubyte     d_type;
+            ubyte     d_namlen;
+            char[256] d_name = 0;
+        }
+    }
+    else
+        static assert(0, "Unsupported version of FreeBSD");
 
     alias void* DIR;
 
