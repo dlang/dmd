@@ -762,6 +762,10 @@ version (OMFandMSCOFF)
         {
         }
 
+        void refGOTsym()
+        {
+        }
+
         int seg_debugT()           // where the symbolic debug type data goes
         {
             return config.objfmt == OBJ_MSCOFF
