@@ -186,10 +186,17 @@ else version (FreeBSD)
 
     alias void* DIR;
 
-    static if (__FreeBSD_version >= 1200000)
-        pragma(mangle, "readdir@FBSD_1.5") dirent* readdir(DIR*);
+    version (GNU)
+    {
+        dirent* readdir(DIR*);
+    }
     else
-        pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
+    {
+        static if (__FreeBSD_version >= 1200000)
+            pragma(mangle, "readdir@FBSD_1.5") dirent* readdir(DIR*);
+        else
+            pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
+    }
 }
 else version (NetBSD)
 {
@@ -507,10 +514,17 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    static if (__FreeBSD_version >= 1200000)
-        pragma(mangle, "readdir_r@FBSD_1.5") int readdir_r(DIR*, dirent*, dirent**);
+    version (GNU)
+    {
+        int readdir_r(DIR*, dirent*, dirent**);
+    }
     else
-        pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);
+    {
+        static if (__FreeBSD_version >= 1200000)
+            pragma(mangle, "readdir_r@FBSD_1.5") int readdir_r(DIR*, dirent*, dirent**);
+        else
+            pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);
+    }
 }
 else version (DragonFlyBSD)
 {
@@ -577,8 +591,16 @@ version (CRuntime_Glibc)
 }
 else version (FreeBSD)
 {
-    pragma(mangle, "seekdir@@FBSD_1.0") void seekdir(DIR*, c_long);
-    pragma(mangle, "telldir@@FBSD_1.0") c_long telldir(DIR*);
+    version (GNU)
+    {
+        void seekdir(DIR*, c_long);
+        c_long telldir(DIR*);
+    }
+    else
+    {
+        pragma(mangle, "seekdir@@FBSD_1.0") void seekdir(DIR*, c_long);
+        pragma(mangle, "telldir@@FBSD_1.0") c_long telldir(DIR*);
+    }
 }
 else version (NetBSD)
 {
