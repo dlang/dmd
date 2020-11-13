@@ -11,6 +11,7 @@ module core.sys.freebsd.sys.mount;
 
 version (FreeBSD):
 
+import core.sys.freebsd.config;
 import core.stdc.config : c_long;
 import core.sys.posix.sys.stat : stat_t;
 import core.sys.posix.sys.types : uid_t;
@@ -33,12 +34,12 @@ struct fid
 
 enum MFSNAMELEN = 16;
 
-version (FreeBSD_12)
+static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
 {
     enum MNAMELEN   = 1024;
     enum STATFS_VERSION = 0x20140518;
 }
-else version (FreeBSD_11)
+else static if (__FreeBSD_version < 1200000)
 {
     enum MNAMELEN   = 88;
     enum STATFS_VERSION = 0x20030518;

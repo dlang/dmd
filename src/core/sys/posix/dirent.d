@@ -141,6 +141,8 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    import core.sys.freebsd.config;
+
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/dirent.h
     enum
     {
@@ -155,7 +157,7 @@ else version (FreeBSD)
         DT_WHT      = 14
     }
 
-    version (FreeBSD_12)
+    static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
     {
         struct dirent
         {
@@ -169,7 +171,7 @@ else version (FreeBSD)
             char[256] d_name = 0;
         }
     }
-    else version (FreeBSD_11)
+    else static if (__FreeBSD_version < 1200000)
     {
         align(4)
         struct dirent

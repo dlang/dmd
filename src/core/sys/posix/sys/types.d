@@ -192,17 +192,19 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    import core.sys.freebsd.config;
+
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/_types.h
     alias long      blkcnt_t;
     alias uint      blksize_t;
 
-    version (FreeBSD_12)
+    static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
     {
         alias ulong dev_t;
         alias ulong ino_t;
         alias ulong nlink_t;
     }
-    else version (FreeBSD_11)
+    else static if (__FreeBSD_version < 1200000)
     {
         alias uint   dev_t;
         alias uint   ino_t;

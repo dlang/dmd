@@ -18,6 +18,7 @@ extern (C):
 nothrow:
 @nogc:
 
+import core.sys.freebsd.config;
 import core.stdc.stdint;    // intptr_t, uintptr_t
 import core.sys.posix.time; // timespec
 
@@ -38,12 +39,7 @@ enum
     EVFILT_SYSCOUNT =  11,
 }
 
-extern(D) void EV_SET(kevent_t* kevp, typeof(kevent_t.tupleof) args)
-{
-    *kevp = kevent_t(args);
-}
-
-version (FreeBSD_12)
+static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
 {
     struct kevent_t
     {
@@ -56,7 +52,7 @@ version (FreeBSD_12)
         ulong[4]  ext;
     }
 }
-else version (FreeBSD_11)
+else static if (__FreeBSD_version < 1200000)
 {
     struct kevent_t
     {
@@ -70,6 +66,11 @@ else version (FreeBSD_11)
 }
 else
     static assert(0, "Unsupported version of FreeBSD");
+
+extern(D) void EV_SET(kevent_t* kevp, typeof(kevent_t.tupleof) args)
+{
+    *kevp = kevent_t(args);
+}
 
 enum
 {

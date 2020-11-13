@@ -123,6 +123,7 @@ COPY=\
 	$(IMPDIR)\core\sys\darwin\sys\event.d \
 	$(IMPDIR)\core\sys\darwin\sys\mman.d \
 	\
+	$(IMPDIR)\core\sys\freebsd\config.d \
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
 	$(IMPDIR)\core\sys\freebsd\err.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
