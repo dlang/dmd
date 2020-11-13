@@ -1463,7 +1463,7 @@ struct ASTBase
 
         extern (D) this(StaticForeach sfe, Dsymbols* decl)
         {
-            super(decl);
+            super(sfe.loc, null, decl);
             this.sfe = sfe;
         }
 

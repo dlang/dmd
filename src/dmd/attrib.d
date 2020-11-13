@@ -1129,7 +1129,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     extern (D) this(StaticForeach sfe, Dsymbols* decl)
     {
-        super(decl);
+        super(sfe.loc, null, decl);
         this.sfe = sfe;
     }
 
@@ -1357,7 +1357,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     extern (D) this(Expressions* atts, Dsymbols* decl)
     {
         super(decl);
-        //printf("UserAttributeDeclaration()\n");
         this.atts = atts;
     }
 

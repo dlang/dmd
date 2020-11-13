@@ -2,7 +2,7 @@ module parser.conditionalcompilation_location;
 
 import dmd.frontend : parseModule;
 import support : afterEach, beforeEach;
-import dmd.attrib : ConditionalDeclaration, StaticIfDeclaration;
+import dmd.attrib : ConditionalDeclaration, StaticIfDeclaration, StaticForeachDeclaration;
 import dmd.globals : Loc;
 import dmd.visitor : SemanticTimeTransitiveVisitor;
 
@@ -34,6 +34,11 @@ extern (C++) class Visitor : SemanticTimeTransitiveVisitor
     override void visit(StaticIfDeclaration sif)
     {
         l = sif.loc;
+    }
+
+    override void visit(StaticForeachDeclaration sfd)
+    {
+        l = sfd.loc;
     }
 }
 
@@ -76,6 +81,16 @@ enum tests = [
     Test("`static if` and condition different lines", "static if\n(a)"),
     Test("`static if`, condition and parantheses on different lines", "static if\n(\na\n)"),
     Test("`static` and `if` on different lines", "static\nif\n(a)"),
+
+    Test("`static foreach` and condition on the same line", "static foreach(a; b)"),
+    Test("`static foreach` and condition different lines", "static foreach\n(a; b)"),
+    Test("`static foreach`, condition and parantheses on different lines", "static foreach\n(\na; b\n)"),
+    Test("`static` and `foreach` on different lines", "static\nforeach\n(a; b)"),
+
+    Test("`static foreach_reverse` and condition on the same line", "static foreach_reverse(a; b)"),
+    Test("`static foreach_reverse` and condition different lines", "static foreach_reverse\n(a; b)"),
+    Test("`static foreach_reverse`, condition and parantheses on different lines", "static foreach_reverse\n(\na; b\n)"),
+    Test("`static` and `foreach_reverse` on different lines", "static\nforeach_reverse\n(a; b)"),
 ];
 
 static foreach (test; tests)
