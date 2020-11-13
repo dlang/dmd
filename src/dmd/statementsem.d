@@ -2438,6 +2438,10 @@ else
             else
             {
                 Expression e = (*ps.args)[0];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
                 if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
                 {
                     ps.error("pragma(inline, true or false) expected, not `%s`", e.toChars());

@@ -33,7 +33,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.expression;
-import dmd.expressionsem : arrayExpressionSemantic;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen : protectionToBuffer;
@@ -888,6 +888,10 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             else
             {
                 Expression e = (*args)[0];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
                 if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
                 {
                     if (e.op != TOK.error)
