@@ -11,6 +11,8 @@ public import core.sys.posix.config;
 
 // https://svnweb.freebsd.org/base/head/sys/sys/param.h?view=markup
 // __FreeBSD_version numbers are documented in the Porter's Handbook.
+// NOTE: When adding newer versions of FreeBSD, verify all current versioned
+// bindings are still compatible with the release.
      version (FreeBSD_12) enum __FreeBSD_version = 1202000;
 else version (FreeBSD_11) enum __FreeBSD_version = 1104000;
 else version (FreeBSD_10) enum __FreeBSD_version = 1004000;

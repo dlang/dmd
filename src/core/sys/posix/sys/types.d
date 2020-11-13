@@ -198,20 +198,18 @@ else version (FreeBSD)
     alias long      blkcnt_t;
     alias uint      blksize_t;
 
-    static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
+    static if (__FreeBSD_version >= 1200000)
     {
         alias ulong dev_t;
         alias ulong ino_t;
         alias ulong nlink_t;
     }
-    else static if (__FreeBSD_version < 1200000)
+    else
     {
         alias uint   dev_t;
         alias uint   ino_t;
         alias ushort nlink_t;
     }
-    else
-        static assert(0, "Unsupported version of FreeBSD");
 
     alias uint      gid_t;
     alias ushort    mode_t;

@@ -39,7 +39,7 @@ enum
     EVFILT_SYSCOUNT =  11,
 }
 
-static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
+static if (__FreeBSD_version >= 1200000)
 {
     struct kevent_t
     {
@@ -52,7 +52,7 @@ static if (__FreeBSD_version >= 1200000 && __FreeBSD_version < 1300000)
         ulong[4]  ext;
     }
 }
-else static if (__FreeBSD_version < 1200000)
+else
 {
     struct kevent_t
     {
@@ -64,8 +64,6 @@ else static if (__FreeBSD_version < 1200000)
         void        *udata; /* opaque user data identifier */
     }
 }
-else
-    static assert(0, "Unsupported version of FreeBSD");
 
 extern(D) void EV_SET(kevent_t* kevp, typeof(kevent_t.tupleof) args)
 {
