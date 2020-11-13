@@ -1,0 +1,5 @@
+Variables `suspendSignalNumber` and `resumeSignalNumber` are now private
+
+These variables, which are in `core.thread.osthread`, were accidentally exposed.
+They shouldn't be accessed directly and have been made private.
+In order to set GC signals, one should call `thread_setGCSignals` instead.

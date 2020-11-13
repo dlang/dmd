@@ -1199,8 +1199,8 @@ else version (Posix)
 
 version (Posix)
 {
-    __gshared int suspendSignalNumber = SIGUSR1;
-    __gshared int resumeSignalNumber  = SIGUSR2;
+    private __gshared int suspendSignalNumber = SIGUSR1;
+    private __gshared int resumeSignalNumber  = SIGUSR2;
 }
 
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
