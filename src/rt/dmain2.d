@@ -450,15 +450,8 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
     version (CRuntime_Microsoft)
     {
         // enable full precision for reals
-        version (GNU)
+        version (D_InlineAsm_X86_64)
         {
-            size_t fpu_cw;
-            asm { "fstcw %0" : "=m" (fpu_cw); }
-            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
-                                       // 111111: mask all FP exceptions
-            asm { "fldcw %0" : "=m" (fpu_cw); }
-        }
-        else version (Win64)
             asm
             {
                 push    RAX;
@@ -468,7 +461,8 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
                 fldcw   word ptr [RSP];
                 pop     RAX;
             }
-        else version (Win32)
+        }
+        else version (D_InlineAsm_X86)
         {
             asm
             {
