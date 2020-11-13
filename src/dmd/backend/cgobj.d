@@ -104,7 +104,7 @@ int obj_namestring(char *p,const(char)* name);
 version (MARS)
 {
 // C++ name mangling is handled by front end
-const(char)* cpp_mangle(Symbol* s) { return s.Sident.ptr; }
+const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 }
 
 static if (TARGET_WINDOS)
