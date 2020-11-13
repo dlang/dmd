@@ -53,6 +53,12 @@ static if (MACHOBJ)
 import dmd.backend.dwarf;
 import dmd.backend.mach;
 
+version (MARS)
+{
+    // C++ name mangling is handled by front end
+    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+}
+
 alias nlist = dmd.backend.mach.nlist;   // avoid conflict with dmd.backend.dlist.nlist
 
 /****************************************
@@ -2130,13 +2136,7 @@ else
             break;
         case mTYman_std:
         {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
-else
-            bool cond = (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_WIN32 && tyfunc(s.ty()) &&
-                !variadic(s.Stype));
-
             if (cond)
             {
                 char *pstr = unsstr(type_paramsize(s.Stype));

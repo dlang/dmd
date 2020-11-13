@@ -80,11 +80,13 @@ enum DEST_LEN = (IDMAX + IDOHD + 1);
 char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 
 version (MARS)
-// C++ name mangling is handled by front end
-const(char)* cpp_mangle2(Symbol* s) { return s.Sident.ptr; }
+{
+    // C++ name mangling is handled by front end
+    const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
+    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+}
 else
-const(char)* cpp_mangle2(Symbol* s) { return cpp_mangle(s); }
-
+    const(char)* cpp_mangle2(Symbol* s) { return cpp_mangle(s); }
 
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
