@@ -1980,6 +1980,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else if (pd.ident == Id.Pinline)
         {
+            if (pd.args && pd.args.dim > 1)
+            {
+                pd.error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) pd.args.dim);
+                pd.args.setDim(1);
+                (*pd.args)[0] = ErrorExp.get();
+            }
+
+            // this pragma now gets evaluated on demand in function semantic
+
             return declarations();
         }
         else if (pd.ident == Id.mangle)
@@ -3275,7 +3284,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else
             funcdecl.linkage = sc.linkage;
-        funcdecl.inlining = sc.inlining;
+
+        // evaluate pragma(inline)
+        if (auto pragmadecl = sc.inlining)
+            funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
+
         funcdecl.protection = sc.protection;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);

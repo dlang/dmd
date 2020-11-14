@@ -177,6 +177,13 @@ enum class LINK : uint8_t
 };
 
 class LinkDeclaration;
+enum class PINLINE : uint8_t
+{
+    default_ = 0u,
+    never = 1u,
+    always = 2u,
+};
+
 class Condition;
 class StaticForeach;
 enum class BUILTIN : uint8_t
@@ -705,13 +712,6 @@ class ObjcClassReferenceExp;
 class ThrownExceptionExp;
 struct ASTCodegen;
 union __AnonStruct__u;
-enum class PINLINE : uint8_t
-{
-    default_ = 0u,
-    never = 1u,
-    always = 2u,
-};
-
 struct ObjcFuncDeclaration;
 struct ObjcSelector;
 enum class PURE : uint8_t
@@ -2074,6 +2074,7 @@ public:
     Array<Expression* >* args;
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
+    PINLINE evalPragmaInline(Scope* sc);
     const char* kind() const;
     void accept(Visitor* v);
 };

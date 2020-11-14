@@ -33,7 +33,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.expression;
-import dmd.expressionsem : arrayExpressionSemantic;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen : protectionToBuffer;
@@ -82,7 +82,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      */
     extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
         CPPMANGLE cppmangle, Prot protection, int explicitProtection,
-        AlignDeclaration aligndecl, PINLINE inlining)
+        AlignDeclaration aligndecl, PragmaDeclaration inlining)
     {
         Scope* sc2 = sc;
         if (stc != sc.stc ||
@@ -876,32 +876,9 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
         if (ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINE.default_;
-            if (!args || args.dim == 0)
-                inlining = PINLINE.default_;
-            else if (args.dim != 1)
-            {
-                error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.dim);
-                args.setDim(1);
-                (*args)[0] = ErrorExp.get();
-            }
-            else
-            {
-                Expression e = (*args)[0];
-                if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
-                {
-                    if (e.op != TOK.error)
-                    {
-                        error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
-                        (*args)[0] = ErrorExp.get();
-                    }
-                }
-                else if (e.isBool(true))
-                    inlining = PINLINE.always;
-                else if (e.isBool(false))
-                    inlining = PINLINE.never;
-            }
-            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
+            // We keep track of this pragma inside scopes,
+            // then it's evaluated on demand in function semantic
+            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, this);
         }
         if (ident == Id.printf || ident == Id.scanf)
         {
@@ -916,6 +893,34 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             return sc2;
         }
         return sc;
+    }
+
+    PINLINE evalPragmaInline(Scope* sc)
+    {
+        if (!args || args.dim == 0)
+            return PINLINE.default_;
+
+        Expression e = (*args)[0];
+        if (!e.type)
+        {
+
+            sc = sc.startCTFE();
+            e = e.expressionSemantic(sc);
+            e = resolveProperties(sc, e);
+            sc = sc.endCTFE();
+            e = e.ctfeInterpret();
+            e = e.toBoolean(sc);
+            if (e.isErrorExp())
+                error("pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toChars());
+            (*args)[0] = e;
+        }
+
+        if (e.isBool(true))
+            return PINLINE.always;
+        else if (e.isBool(false))
+            return PINLINE.never;
+        else
+            return PINLINE.default_;
     }
 
     override const(char)* kind() const

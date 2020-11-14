@@ -154,6 +154,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    PINLINE evalPragmaInline(Scope* sc);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
