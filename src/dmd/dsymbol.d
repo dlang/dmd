@@ -768,6 +768,10 @@ extern (C++) class Dsymbol : ASTNode
         parent = sds;
         if (isAnonymous()) // no name, so can't add it to symbol table
             return;
+        // Symbol should not be visible, even within the module
+        // This happens for e.g. compiler-generated symbols
+        if (this.prot().kind == Prot.Kind.none)
+            return;
 
         if (!sds.symtabInsert(this)) // if name is already defined
         {

@@ -3741,12 +3741,14 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
+        this(loc, endloc, "_staticCtor", stc);
     }
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
+    /// Exposing the `name` is needed for `SharedStaticCtorDeclaration`
+    extern (D) private this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
+        this.protection = Prot(Prot.Kind.none);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3827,12 +3829,14 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateIdWithLoc("_staticDtor", loc), STC.static_ | stc, null);
+        this(loc, endloc, "_staticDtor", stc);
     }
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
+    /// Exposing the `name` is needed for `SharedStaticDtorDeclaration`
+    extern (D) private this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
+        this.protection = Prot(Prot.Kind.none);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

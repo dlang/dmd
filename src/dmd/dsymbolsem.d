@@ -3276,9 +3276,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         else
             funcdecl.linkage = sc.linkage;
         funcdecl.inlining = sc.inlining;
-        funcdecl.protection = sc.protection;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
+
+        // Symbols which shouldn't be visible to the user under their identifer,
+        // e.g. `[shared] static [~]this`, `invariant`, or `unittest`
+        // can be marked as such with Prot.none in their constructor
+        // so they won't be inserted in the symtab.
+        if (funcdecl.prot().kind != Prot.Kind.none)
+            funcdecl.protection = sc.protection;
 
         if (!funcdecl.originalType)
             funcdecl.originalType = funcdecl.type.syntaxCopy();
