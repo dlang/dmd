@@ -1178,10 +1178,10 @@ void foo(int i) { }
 import A;
 import B;
 
-void bar(C c)
+void bar(C c , long i)
 {
     foo();    // calls A.foo()
-    foo(1L);  // calls A.foo(long)
+    foo(i);  // calls A.foo(long)
     foo(c);   // calls B.foo(C)
     foo(1,2); // error, does not match any foo
     foo(1);   // error, matches A.foo(long) and B.foo(int)
