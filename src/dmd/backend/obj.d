@@ -1200,6 +1200,9 @@ else version (ELFandMACH)
             return Obj_refGOTsym();
         }
 
+        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2) { }
+
+        int seg_debugT() { assert(0); }
 
         version (OSX)
         {

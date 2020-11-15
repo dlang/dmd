@@ -1955,6 +1955,7 @@ static if (ELFOBJ || MACHOBJ)
     /******************************************
      * Write out any deferred symbols.
      */
+    static if (0)
     void cv_outlist()
     {
     }

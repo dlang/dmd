@@ -12,13 +12,10 @@
 
 module dmd.backend.dcgcv;
 
-version (Windows)
-{
 version (SCPP)
     version = COMPILE;
 version (MARS)
     version = COMPILE;
-}
 
 version (COMPILE)
 {
