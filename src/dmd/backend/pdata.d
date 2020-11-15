@@ -36,11 +36,8 @@ extern (C++):
 
 nothrow:
 
-static if (TARGET_WINDOS)
-{
-
 // Determine if this Symbol is stored in a COMDAT
-bool symbol_iscomdat3(Symbol* s)
+private bool symbol_iscomdat3(Symbol* s)
 {
     version (MARS)
     {
@@ -65,14 +62,12 @@ enum ALLOCA_LIMIT = 0x10000;
  * Creates an instance of struct RUNTIME_FUNCTION:
  *   http://msdn.microsoft.com/en-US/library/ft9x1kdx(v=vs.80).aspx
  *
- * Input:
- *      sf      function to generate unwind data for
+ * Params:
+ *      sf = function to generate unwind data for
  */
 
-void win64_pdata(Symbol *sf)
+public void win64_pdata(Symbol *sf)
 {
-//    return; // doesn't work yet
-
     //printf("win64_pdata()\n");
     assert(config.exe == EX_WIN64);
 
@@ -108,6 +103,8 @@ void win64_pdata(Symbol *sf)
     if (sflen >= ALLOCA_LIMIT) free(pdata_name);
 }
 
+private:
+
 /**************************************************
  * Unwind data symbol goes in the .xdata section.
  * Input:
@@ -116,7 +113,7 @@ void win64_pdata(Symbol *sf)
  *      generated symbol referring to unwind data
  */
 
-Symbol *win64_unwind(Symbol *sf)
+private Symbol *win64_unwind(Symbol *sf)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf.Sident.ptr);
@@ -213,7 +210,7 @@ static if (0)
 
 
 
-dt_t *unwind_data()
+private dt_t *unwind_data()
 {
     UNWIND_INFO ui;
 
@@ -288,9 +285,4 @@ static if (1)
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
 }
-
-}
-else
-void win64_pdata(Symbol *sf) { }
-
 }

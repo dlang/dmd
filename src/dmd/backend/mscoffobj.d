@@ -2494,5 +2494,14 @@ extern (D) private void objflush_pointerRefs()
 }
 
 }
+else
+{
+segidx_t MsCoffObj_seg_pdata() { assert(0); }
+segidx_t MsCoffObj_seg_xdata() { assert(0); }
+segidx_t MsCoffObj_seg_pdata_comdat(Symbol *sfunc) { assert(0); }
+segidx_t MsCoffObj_seg_xdata_comdat(Symbol *sfunc) { assert(0); }
+segidx_t MsCoffObj_seg_debugS() { assert(0); }
+segidx_t MsCoffObj_seg_debugS_comdat(Symbol *sfunc) { assert(0); }
+}
 
 }

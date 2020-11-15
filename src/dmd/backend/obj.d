@@ -184,13 +184,14 @@ version (Windows)
     void MsCoffObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
                           uint targseg, int rtype, int val);
     int  MsCoffObj_seg_drectve();
-    int  MsCoffObj_seg_pdata();
-    int  MsCoffObj_seg_xdata();
-    int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
-    int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
-    int  MsCoffObj_seg_debugS();
-    int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
 }
+
+int  MsCoffObj_seg_pdata();
+int  MsCoffObj_seg_xdata();
+int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
+int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
+int  MsCoffObj_seg_debugS();
+int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
 
 version (Posix)
 {
