@@ -433,7 +433,7 @@ nothrow:
     {
         dt_t *dt = dt_calloc(DT_coff);
 
-        static if (TARGET_SEGMENTED)
+        if (config.exe & EX_segmented)
             dt.Dty = TYcptr;
         else
             dt.Dty = TYnptr;

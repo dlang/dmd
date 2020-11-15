@@ -1361,8 +1361,8 @@ auto sourceFiles()
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
             cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d
-            " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d" : "aarray.d")
+            machobj.d elfobj.d mscoffobj.d
+            " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d newman.d" : "aarray.d")
         ),
     };
 
