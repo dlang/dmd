@@ -234,7 +234,7 @@ struct seg_data
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
 
-    static if (TARGET_WINDOS)
+    static if (1) // for Windows
     {
         bool isfarseg;
         int segidx;                     // internal object file segment number
