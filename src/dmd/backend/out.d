@@ -1413,16 +1413,9 @@ version (SCPP)
         else if (config.flags & CFGsegs) // if user set switch for this
         {
             version (SCPP)
-            {
-                objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
-            }
+                objmod.codeseg(cpp_mangle(funcsym_p),1);
             else
-            {
-                if (config.exe & EX_windos)
-                    objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
-                else
-                    objmod.codeseg(cast(char*)funcsym_p.Sident.ptr, 1);
-            }
+                objmod.codeseg(&funcsym_p.Sident[0], 1);
                                         // generate new code segment
         }
         cod3_align(cseg);               // align start of function

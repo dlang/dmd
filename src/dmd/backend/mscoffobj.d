@@ -1691,12 +1691,12 @@ char *obj_mangle2(Symbol *s,char *dest)
     assert(dest);
 
 version (SCPP)
-    name = CPP ? cpp_mangle(s) : s.Sident.ptr;
+    name = CPP ? cpp_mangle(s) : &s.Sident[0];
 else version (MARS)
     // C++ name mangling is handled by front end
-    name = s.Sident.ptr;
+    name = &s.Sident[0];
 else
-    name = s.Sident.ptr;
+    name = &s.Sident[0];
 
     len = strlen(name);                 // # of bytes in name
     //dbg_printf("len %d\n",len);

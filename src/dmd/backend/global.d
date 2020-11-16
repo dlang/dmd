@@ -103,12 +103,7 @@ else
 Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
-version (SCPP)
-    const(char)* cpp_mangle(Symbol* s);
-else version (MARS)
-    const(char)* cpp_mangle(Symbol* s);
-else
-    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+const(char)* cpp_mangle(Symbol* s);
 
 // ee.c
 void eecontext_convs(SYMIDX marksi);
