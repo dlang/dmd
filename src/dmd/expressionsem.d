@@ -61,7 +61,6 @@ import dmd.root.ctfloat;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.semantic2;
@@ -464,7 +463,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     if (ue.op == TOK.dotTemplateInstance)
     {
         DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)ue;
-        auto ti = Pool!TemplateInstance.make(loc, s.ident, dti.ti.tiargs);
+        auto ti = new TemplateInstance(loc, s.ident, dti.ti.tiargs);
         if (!ti.updateTempDecl(sc, s))
             return ErrorExp.get();
         return new ScopeExp(loc, ti);
@@ -1455,6 +1454,13 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
             Expression ex = condexp.expressionSemantic(sc);
             if (ex.op == TOK.error)
                 e = ex;
+            else if (e.op == TOK.function_ || e.op == TOK.delegate_)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=21285
+                // Functions and delegates don't convert correctly with castTo below
+                (*exps)[j0] = condexp.e1;
+                e = condexp.e2;
+            }
             else
             {
                 // Convert to common type
@@ -2590,7 +2596,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* See if the symbol was a member of an enclosing 'with'
              */
             WithScopeSymbol withsym = scopesym.isWithScopeSymbol();
-            if (withsym && withsym.withstate.wthis)
+            if (withsym && withsym.withstate.wthis && symbolIsVisible(sc, s))
             {
                 /* Disallow shadowing
                  */
@@ -2625,13 +2631,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (withsym)
                 {
-                    if (auto t = withsym.withstate.exp.isTypeExp())
+                    if (withsym.withstate.exp.type.ty != Tvoid)
                     {
-                        e = new TypeExp(exp.loc, t.type);
-                        e = new DotIdExp(exp.loc, e, exp.ident);
-                        result = e.expressionSemantic(sc);
-                        return;
+                        // 'with (exp)' is a type expression
+                        // or 's' is not visible there (for error message)
+                        e = new TypeExp(exp.loc, withsym.withstate.exp.type);
                     }
+                    else
+                    {
+                        // 'with (exp)' is a Package/Module
+                        e = withsym.withstate.exp;
+                    }
+                    e = new DotIdExp(exp.loc, e, exp.ident);
+                    result = e.expressionSemantic(sc);
+                    return;
                 }
 
                 /* If f is really a function template,
@@ -4179,7 +4192,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            auto ti = Pool!TemplateInstance.make(exp.loc, exp.td, tiargs);
+            auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
             return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
         }
         return exp.expressionSemantic(sc);

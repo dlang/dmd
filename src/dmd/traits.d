@@ -1813,7 +1813,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             s = imp.mod;
 
         auto sds = s.isScopeDsymbol();
-        if (!sds)
+        if (!sds || sds.isTemplateDeclaration())
         {
             e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
                 s.toChars(), s.kind());
@@ -1830,6 +1830,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (auto ad = s.isAttribDeclaration())
                 {
                     ad.include(null).foreachDsymbol(&symbolDg);
+                }
+                else if (auto tm = s.isTemplateMixin())
+                {
+                    tm.members.foreachDsymbol(&symbolDg);
                 }
                 else if (auto ud = s.isUnitTestDeclaration())
                 {

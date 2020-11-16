@@ -49,7 +49,6 @@ import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
 import dmd.root.outbuffer;
-import dmd.root.rmem;
 import dmd.root.string;
 import dmd.semantic2;
 import dmd.sideeffect;
@@ -4225,7 +4224,7 @@ else
                 if (!_alias)
                     _alias = name;
 
-                auto tname = Pool!TypeIdentifier.make(s.loc, name);
+                auto tname = new TypeIdentifier(s.loc, name);
                 auto ad = new AliasDeclaration(s.loc, _alias, tname);
                 ad._import = s;
                 s.aliasdecls.push(ad);
