@@ -1,7 +1,7 @@
 /*
 REQUIRED_ARGS: -sktf
 */
-alias type = __type; 
+alias type = __type__; 
 
 bool isType(type t)
 {

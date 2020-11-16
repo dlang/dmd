@@ -1,1 +1,4 @@
-bool isSameSymbol(alias X, alias Y);
+/*
+REQUIRED_ARGS: -sktf
+*/
+bool isSameSymbol(__type__ X,__type__ Y);
