@@ -101,12 +101,6 @@ else
 
 int obj_namestring(char *p,const(char)* name);
 
-version (MARS)
-{
-// C++ name mangling is handled by front end
-const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
-}
-
 static if (TARGET_WINDOS)
 {
 
@@ -2406,9 +2400,9 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
 version (SCPP)
-    name = CPP ? cpp_mangle(s) : s.Sident.ptr;
+    name = CPP ? cpp_mangle(s) : &s.Sident[0];
 else version (MARS)
-    name = cast(char*)cpp_mangle(s);
+    name = &s.Sident[0];
 else
     static assert(0);
 
