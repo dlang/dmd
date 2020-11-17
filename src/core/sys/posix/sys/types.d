@@ -140,10 +140,33 @@ else version (CRuntime_Musl)
     alias int        pid_t;
     alias uint       uid_t;
     alias uint       gid_t;
+
+    /**
+     * Musl versions before v1.2.0 (up to v1.1.24) had different
+     * definitions for `time_t` for 32 bits.
+     * This was changed to always be 64 bits in v1.2.0:
+     * https://musl.libc.org/time64.html
+     * This change was only for 32 bits system and
+     * didn't affect 64 bits systems
+     *
+     * To check previous definitions, `grep` for `time_t` in `arch/`,
+     * and the result should be (in v1.1.24):
+     * ---
+     * // arch/riscv64/bits/alltypes.h.in:20:TYPEDEF long time_t;
+     * // arch/s390x/bits/alltypes.h.in:17:TYPEDEF long time_t;
+     * // arch/sh/bits/alltypes.h.in:21:TYPEDEF long time_t;
+     * ---
+     *
+     * In order to be compatible with old versions of Musl,
+     * one can recompile druntime with `CRuntime_Musl_Pre_Time64`.
+     */
     version (D_X32)
         alias long   time_t;
-    else
+    else version (CRuntime_Musl_Pre_Time64)
         alias c_long time_t;
+    else
+        alias long   time_t;
+
     alias c_long     clock_t;
     alias c_ulong    pthread_t;
     version (D_LP64)

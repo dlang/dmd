@@ -99,6 +99,23 @@ jobs:
       with:
           compiler: dmd-2.091.0
 
+    ##############################################
+    # Find out which branch we need to check out #
+    ##############################################
+    - name: Determine base branch
+      id: base_branch
+      shell: bash
+      run: |
+        # For pull requests, base_ref will not be empty
+        if [ ! -z ${{ github.base_ref }} ]; then
+            echo "::set-output name=branch::${{ github.base_ref }}"
+        # Otherwise, use whatever ref we have:
+        # For branches this in the format 'refs/heads/<branch_name>',
+        # and for tags it is refs/tags/<tag_name>.
+        else
+            echo "::set-output name=branch::${{ github.ref }}"
+        fi
+
     #########################################
     # Checking out up DMD, druntime, Phobos #
     #########################################
@@ -107,7 +124,7 @@ jobs:
       with:
         path: dmd
         repository: dlang/dmd
-        ref: ${{ github.base_ref }}
+        ref: ${{ steps.base_branch.outputs.branch }}
         persist-credentials: false
     - name: Checkout druntime
       uses: actions/checkout@v2
@@ -119,7 +136,7 @@ jobs:
       with:
         path: phobos
         repository: dlang/phobos
-        ref: ${{ github.base_ref }}
+        ref: ${{ steps.base_branch.outputs.branch }}
         persist-credentials: false
 
 
@@ -148,12 +165,12 @@ jobs:
         ${TMP_CC}++ -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ \$@
         EOF
           chmod +x ${TMP_CC}-wrapper ${TMP_CC}++-wrapper
-          echo ::set-env name=CC::${TMP_CC}-wrapper
-          echo ::set-env name=CXX::${TMP_CC}++-wrapper
+          echo "CC=${TMP_CC}-wrapper" >> $GITHUB_ENV
+          echo "CXX=${TMP_CC}++-wrapper" >> $GITHUB_ENV
         else
           # Note: druntime's tests use `CXX` and DMD uses `CC`
-          echo ::set-env name=CC::${TMP_CC}
-          echo ::set-env name=CXX::${TMP_CC}++
+          echo "CC=${TMP_CC}" >> $GITHUB_ENV
+          echo "CXX=${TMP_CC}++" >> $GITHUB_ENV
         fi
 
     # On OSX and Linux, clang is installed by default and in the path,
@@ -184,8 +201,8 @@ jobs:
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt-get update
         sudo apt-get install ${{ matrix.target }} ${{ matrix.target }}-multilib
-        echo ::set-env name=CC::${{ matrix.target }}
-        echo ::set-env name=CXX::${{ matrix.target }}
+        echo "CC=${{ matrix.target }}" >> $GITHUB_ENV
+        echo "CXX=${{ matrix.target }}" >> $GITHUB_ENV
 
     # Make sure ${CC} works and we don't use the $PATH one
     - name: '[Linux] Verifying installed g++ version'
@@ -228,7 +245,7 @@ jobs:
     - name: '[Windows] Set environment variables'
       if: runner.os == 'Windows'
       run: |
-        echo ::add-path::${{ github.workspace }}\tools\dm\bin\
+        echo "${{ github.workspace }}\tools\dm\bin\" >> $GITHUB_PATH
 
     ########################################
     #    Building DMD, druntime, Phobos    #
