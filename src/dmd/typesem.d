@@ -4203,7 +4203,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
 
         TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+
+        Expression toTemplateExp(TemplateDeclaration td)
         {
             if (e.op == TOK.type)
                 e = new TemplateExp(e.loc, td);
@@ -4211,6 +4212,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 e = new DotTemplateExp(e.loc, e, td);
             e = e.expressionSemantic(sc);
             return e;
+        }
+
+        if (td)
+        {
+            return toTemplateExp(td);
         }
 
         TemplateInstance ti = s.isTemplateInstance();
@@ -4353,17 +4359,28 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             // If static function, get the most visible overload.
             // Later on the call is checked for correctness.
             // https://issues.dlang.org/show_bug.cgi?id=12511
+            Dsymbol d2 = d;
             if (auto fd = d.isFuncDeclaration())
             {
                 import dmd.access : mostVisibleOverload;
-                d = cast(Declaration)mostVisibleOverload(fd, sc._module);
+                d2 = mostVisibleOverload(fd, sc._module);
             }
 
-            checkAccess(e.loc, sc, e, d);
-            auto ve = new VarExp(e.loc, d);
-            if (d.isVarDeclaration() && d.needThis())
-                ve.type = d.type.addMod(e.type.mod);
-            return ve;
+            checkAccess(e.loc, sc, e, d2);
+            if (d2.isDeclaration())
+            {
+                d = cast(Declaration)d2;
+                auto ve = new VarExp(e.loc, d);
+                if (d.isVarDeclaration() && d.needThis())
+                    ve.type = d.type.addMod(e.type.mod);
+                return ve;
+            }
+            else if (d2.isTemplateDeclaration())
+            {
+                return toTemplateExp(cast(TemplateDeclaration)d2);
+            }
+            else
+                assert(0);
         }
 
         bool unreal = e.op == TOK.variable && (cast(VarExp)e).var.isField();

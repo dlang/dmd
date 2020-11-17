@@ -163,7 +163,7 @@ private bool hasProtectedAccess(Scope *sc, Dsymbol s)
  * Check access to d for expression e.d
  * Returns true if the declaration is not accessible.
  */
-bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
+bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
 {
     if (sc.flags & SCOPE.noaccesscheck)
         return false;
