@@ -556,7 +556,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.frontend ~ .sources.root)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.driver ~ .sources.dmd.frontend ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
         .command([ env["CXX"], "-xc++", "-std=c++11",
@@ -568,7 +568,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
         .deps([lexer(null, null), cxxFrontend])
-        .sources(sources.dmd.frontend ~ sources.root)
+        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
@@ -1292,7 +1292,7 @@ auto sourceFiles()
 {
     static struct DmdSources
     {
-        string[] all, frontend, glue, backendHeaders;
+        string[] all, driver, frontend, glue, backendHeaders;
     }
     static struct Sources
     {
@@ -1308,19 +1308,22 @@ auto sourceFiles()
             dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
+        driver: fileArray(env["D"], "dinifile.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
+            link.d mars.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
+        "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
             arraytypes.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
-            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dtoh.d dversion.d env.d escape.d expression.d expressionsem.d func.d gluelayer.d hdrgen.d impcnvtab.d
-            imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
-            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
-            scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            dtemplate.d dtoh.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
+            mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
+            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d
+            semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
