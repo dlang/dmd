@@ -740,8 +740,6 @@ enum class JsonFieldFlags : uint32_t
     semantics = 8u,
 };
 
-class Library;
-struct _IO_FILE;
 struct ObNode;
 class StoppableVisitor;
 struct Token;
@@ -4960,12 +4958,6 @@ public:
     ~NewDeclaration();
 };
 
-class ObjcGlue
-{
-public:
-    static void initialize();
-};
-
 extern void genhdrfile(Module* m);
 
 extern void moduleToBuffer(OutBuffer* buf, Module* m);
@@ -5053,24 +5045,6 @@ extern Expression* initializerToExpression(Initializer* init, Type* itype = null
 extern void json_generate(OutBuffer* buf, Array<Module* >* modules);
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
-
-extern Library* LibElf_factory();
-
-extern "C" void printInternalFailure(_IO_FILE* stream);
-
-extern void generateJson(Array<Module* >* modules);
-
-typedef int32_t(*MainFunc)(_d_dynamicArray< _d_dynamicArray< char > > args);
-
-extern "C" _d_dynamicArray< _d_dynamicArray< const char > > rt_options;
-
-extern "C" int32_t main(int32_t argc, char** argv);
-
-extern "C" int32_t _Dmain(_d_dynamicArray< _d_dynamicArray< char > > _param_0);
-
-extern "C" void printGlobalConfigs(_IO_FILE* stream);
-
-extern "C" void flushMixins();
 
 enum class ENUMTY
 {
