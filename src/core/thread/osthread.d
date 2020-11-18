@@ -2676,7 +2676,10 @@ nothrow @nogc unittest
 
     ThreadID[8] tids;
     for (int i = 0; i < tids.length; i++)
+    {
         tids[i] = createLowLevelThread(&task.run);
+        assert(tids[i] != ThreadID.init);
+    }
 
     for (int i = 0; i < tids.length; i++)
         joinLowLevelThread(tids[i]);
