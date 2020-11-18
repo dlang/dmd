@@ -2568,14 +2568,7 @@ version (CoreDdoc)
         ulong size;
     }
 }
-
-else version (OSX)
-    version = Darwin;
-else version (iOS)
-    version = Darwin;
-else version (TVOS)
-    version = Darwin;
-else version (WatchOS)
+else
     version = Darwin;
 
 version (Darwin):
