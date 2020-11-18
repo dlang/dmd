@@ -11,13 +11,13 @@
 
 module dmd.scanmach;
 
-version(OSX):
-
 import core.stdc.string;
 import core.stdc.stdint;
-import core.sys.darwin.mach.loader;
 import dmd.globals;
 import dmd.errors;
+
+//import core.sys.darwin.mach.loader;
+import dmd.backend.mach;
 
 private enum LOG = false;
 
