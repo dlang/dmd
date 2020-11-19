@@ -53,8 +53,6 @@ version (SCPP)
     import msgs2;
     import scopeh;
 
-    extern(C) char* strupr(char*);
-    extern(C) char* itoa(int,char*,int);
     extern(C) char* getcwd(char*,size_t);
 }
 
@@ -75,8 +73,6 @@ version (MARS)
     else
         alias filespeccmp = strcmp;
 
-    extern(C) char* strupr(char*);
-    extern(C) char* itoa(int,char*,int);
     extern(C) char* getcwd(char*,size_t);
 
 struct Loc
@@ -99,10 +95,25 @@ else
     pragma(printf) void error(Loc loc, const(char)* format, ...);
 }
 
-int obj_namestring(char *p,const(char)* name);
-
-static if (TARGET_WINDOS)
+version (Windows)
 {
+    extern(C) char* strupr(char*);
+}
+version (Posix)
+{
+    extern(C) char* strupr(char* s)
+    {
+        for (char* p = s; *p; ++p)
+        {
+            char c = *p;
+            if ('a' <= c && c <= 'z')
+                *p = cast(char)(c - 'a' + 'A');
+        }
+        return s;
+    }
+}
+
+int obj_namestring(char *p,const(char)* name);
 
 enum MULTISCOPE = 1;            /* account for bug in MultiScope debugger
                                    where it cannot handle a line number
@@ -415,7 +426,10 @@ version (MARS)
 
 __gshared
 {
-    Rarray!(seg_data*) SegData;
+    version (Windows)
+        Rarray!(seg_data*) SegData;
+    else
+        extern Rarray!(seg_data*) SegData;
     Objstate obj;
 }
 
@@ -2497,7 +2511,7 @@ else
                 dest[1] = '_';
                 memcpy(dest + 2,name,len);
                 dest[1 + 1 + len] = '@';
-                itoa(type_paramsize(s.Stype),dest + 3 + len,10);
+                sprintf(dest + 3 + len, "%d", type_paramsize(s.Stype));
                 len = strlen(dest + 1);
                 assert(isdigit(dest[len]));
                 break;
@@ -4003,8 +4017,6 @@ version (MARS)
         objflush_pointerRef(pr.sym, pr.offset);
     obj.ptrrefs.reset();
 }
-}
-
 }
 
 }
