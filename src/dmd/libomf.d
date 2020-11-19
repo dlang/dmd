@@ -11,11 +11,10 @@
 
 module dmd.libomf;
 
-version(Windows):
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
+import core.bitop;
 
 import dmd.globals;
 import dmd.utils;
@@ -55,9 +54,6 @@ struct OmfObjSymbol
 
 alias OmfObjModules = Array!(OmfObjModule*);
 alias OmfObjSymbols = Array!(OmfObjSymbol*);
-
-extern (C) uint _rotl(uint value, int shift);
-extern (C) uint _rotr(uint value, int shift);
 
 final class LibOMF : Library
 {
@@ -534,10 +530,10 @@ bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
     u = entrylen;
     while (u--)
     {
-        uStartPage = cast(ushort)_rotl(uStartPage, 2) ^ (*aP | 0x20);
-        uStep = cast(ushort)_rotr(uStep, 2) ^ (*aP++ | 0x20);
-        uStartIndex = cast(ushort)_rotr(uStartIndex, 2) ^ (*zP | 0x20);
-        uPageStep = cast(ushort)_rotl(uPageStep, 2) ^ (*zP-- | 0x20);
+        uStartPage  = rol!(ushort)(uStartPage, 2)  ^ (*aP   | 0x20);
+        uStep       = ror!(ushort)(uStep, 2)       ^ (*aP++ | 0x20);
+        uStartIndex = ror!(ushort)(uStartIndex, 2) ^ (*zP   | 0x20);
+        uPageStep   = rol!(ushort)(uPageStep, 2)   ^ (*zP-- | 0x20);
     }
     uStartPage %= ndicpages;
     uPageStep %= ndicpages;

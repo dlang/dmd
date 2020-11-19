@@ -11,8 +11,6 @@
 
 module dmd.scanomf;
 
-version(Windows):
-
 import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
