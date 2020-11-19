@@ -11,9 +11,16 @@
 
 module dmd.scanmscoff;
 
-version(Windows):
+import core.stdc.string, core.stdc.stdlib;
 
-import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
+version (Windows)
+    import core.sys.windows.winnt;
+else
+{
+    alias BYTE  = ubyte;
+    alias WORD  = ushort;
+    alias DWORD = uint;
+}
 
 import dmd.root.rmem;
 import dmd.root.string;
