@@ -946,10 +946,9 @@ else version (ELFandMACH)
             return Obj_alias(n1, n2);
         }
 
-        /+void theadr(const(char)* modname)
+        void theadr(const(char)* modname)
         {
-            return Obj_theadr(modname);
-        }+/
+        }
 
         /+void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
         {
