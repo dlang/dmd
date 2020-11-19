@@ -1077,7 +1077,7 @@ void parseEnvironment()
         auto hostDMDVer = env.getDefault("HOST_DMD_VER", "2.088.0");
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
-        auto hostDMDBase = hostDMDVer~"."~os;
+        auto hostDMDBase = hostDMDVer~"."~(os == "freebsd" ? os~"-"~model : os);
         auto hostDMDURL = "http://downloads.dlang.org/releases/2.x/"~hostDMDVer~"/dmd."~hostDMDBase;
         env["HOST_DMD"] = hostDMDRoot.buildPath("dmd2", os, os == "osx" ? "bin" : "bin"~model, "dmd");
         env["HOST_DMD_PATH"] = env["HOST_DMD"];

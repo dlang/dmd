@@ -34,7 +34,7 @@ if [ "$uname_s" == "Darwin" ] ; then
 elif [ "$uname_s" == "Linux" ] ; then
     OS=linux
     MODEL_PATH="bin${MODEL}"
-elif [ "$uname_s" == "FreBSD" ] ; then
+elif [ "$uname_s" == "FreeBSD" ] ; then
     OS=freebsd
     MODEL_PATH="bin${MODEL}"
 else
@@ -43,8 +43,13 @@ else
 fi
 
 HOST_DMD_ROOT="${GENERATED}/host_dmd-${HOST_DMD_VER}"
-# dmd.2.088.0.osx.zip or dmd.2.088.0.linux.tar.xz
-HOST_DMD_BASENAME=dmd.${HOST_DMD_VER}.${OS}
+if [ "$OS" == "freebsd" ] ; then
+    # dmd.2.088.0.freebsd-64.tar.xz
+    HOST_DMD_BASENAME=dmd.${HOST_DMD_VER}.${OS}-${MODEL}
+else
+    # dmd.2.088.0.osx.zip or dmd.2.088.0.linux.tar.xz
+    HOST_DMD_BASENAME=dmd.${HOST_DMD_VER}.${OS}
+fi
 # http://downloads.dlang.org/releases/2.x/2.088.0/dmd.2.088.0.linux.tar.xz
 HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/${HOST_DMD_VER}/${HOST_DMD_BASENAME}
 HOST_RDMD="${HOST_DMD_ROOT}/dmd2/${OS}/${MODEL_PATH}/rdmd"
