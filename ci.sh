@@ -15,6 +15,8 @@ if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; 
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
 # HOST_DC: dmd[-<version>]|ldc[-<version>]|gdmd-<version>
 if [ -z ${HOST_DC+x} ] ; then echo "Variable 'HOST_DC' needs to be set."; exit 1; fi
+# CI_DFLAGS: Optional flags to pass to the build
+if [ -z ${CI_DFLAGS+x} ] ; then CI_DFLAGS=""; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 build_path=generated/$OS_NAME/release/$MODEL
@@ -50,7 +52,7 @@ clone() {
 # build dmd, druntime, phobos
 build() {
     source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
     deactivate # deactivate host compiler

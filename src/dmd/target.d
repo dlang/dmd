@@ -912,6 +912,25 @@ extern (C++) struct Target
             || params.isDragonFlyBSD
             || params.isSolaris;
     }
+
+    /**
+     * Returns:
+     *  FreeBSD major version string being targeted.
+     */
+    extern (D) @property string FreeBSDMajor() scope const nothrow @nogc
+    in { assert(params.isFreeBSD); }
+    do
+    {
+        // FIXME: Need better a way to statically set the major FreeBSD version?
+             version (TARGET_FREEBSD12) return "12";
+        else version (TARGET_FREEBSD11) return "11";
+        else version (TARGET_FREEBSD10) return "10";
+        else version (FreeBSD_12)       return "12";
+        else version (FreeBSD_11)       return "11";
+        else version (FreeBSD_10)       return "10";
+        // FIXME: Need a way to dynamically set the major FreeBSD version?
+        else /* default supported */    return "11";
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
