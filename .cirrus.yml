@@ -71,6 +71,7 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
+    CI_DFLAGS: -version=TARGET_FREEBSD12
   install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
 
@@ -84,5 +85,6 @@ task:
   environment:
     OS_NAME: freebsd
     HOST_DC: dmd-2.079.0
+    CI_DFLAGS: -version=TARGET_FREEBSD11
   install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
