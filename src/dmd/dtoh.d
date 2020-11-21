@@ -321,19 +321,19 @@ public:
         return EnumKind.Other;
     }
 
-    private void writeEnumTypeName(AST.Type type)
+    private AST.Type determineEnumType(AST.Type type)
     {
         if (auto arr = type.isTypeDArray())
         {
             switch (arr.next.ty)
             {
-                case AST.Tchar:  buf.writestring("const char*"); return;
-                case AST.Twchar: buf.writestring("const char16_t*"); return;
-                case AST.Tdchar: buf.writestring("const char32_t*"); return;
+                case AST.Tchar:  return AST.Type.tchar.constOf.pointerTo;
+                case AST.Twchar: return AST.Type.twchar.constOf.pointerTo;
+                case AST.Tdchar: return AST.Type.tdchar.constOf.pointerTo;
                 default: break;
             }
         }
-        type.accept(this);
+        return type;
     }
 
     void writeDeclEnd()
@@ -643,7 +643,7 @@ public:
                     if (global.params.cplusplus < CppStdRevision.cpp11)
                         goto case;
                     buf.writestring("enum : ");
-                    writeEnumTypeName(type);
+                    determineEnumType(type).accept(this);
                     buf.printf(" { %s = ", vd.ident.toChars());
                     auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
@@ -652,7 +652,8 @@ public:
 
                 case EnumKind.String, EnumKind.Enum:
                     buf.writestring("static ");
-                    writeEnumTypeName(type);
+                    auto target = determineEnumType(type);
+                    target.accept(this);
                     buf.printf(" const %s = ", vd.ident.toChars());
                     auto e = AST.initializerToExpression(vd._init);
                     e.accept(this);
@@ -1237,7 +1238,7 @@ public:
                     if (kind == EnumKind.Numeric)
                     {
                         buf.writestring(" : ");
-                        writeEnumTypeName(type);
+                        determineEnumType(type).accept(this);
                     }
                 }
                 else if (!isAnonymous)
@@ -1295,7 +1296,7 @@ public:
                      manifestConstants && (memberKind == EnumKind.Int || memberKind == EnumKind.Numeric))
             {
                 buf.writestring("enum : ");
-                writeEnumTypeName(memberType);
+                determineEnumType(memberType).accept(this);
                 buf.printf(" { %s = ", m.ident.toChars());
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
@@ -1304,7 +1305,8 @@ public:
             else
             {
                 buf.writestring("static ");
-                writeEnumTypeName(memberType);
+                auto target = determineEnumType(memberType);
+                target.accept(this);
                 buf.printf(" const %s = ", m.ident.toChars());
                 m.origValue.accept(this);
                 buf.writestring(";");
