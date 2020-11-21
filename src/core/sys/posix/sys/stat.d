@@ -123,11 +123,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -170,11 +170,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -252,11 +252,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -312,11 +312,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -376,11 +376,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -517,11 +517,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -599,11 +599,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -694,11 +694,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -779,11 +779,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -856,11 +856,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -920,11 +920,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -1236,11 +1236,11 @@ else version (OpenBSD)
         timespec  st_atim;
         timespec  st_mtim;
         timespec  st_ctim;
-        extern(D)
+        extern(D) @safe @property inout pure nothrow
         {
-            @property ref time_t st_atime() { return st_atim.tv_sec; }
-            @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-            @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+            ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+            ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+            ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
         }
       }
       else
@@ -1973,11 +1973,11 @@ else version (CRuntime_UClibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
