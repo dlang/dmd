@@ -34,6 +34,8 @@ version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
+// Workaround lack of 'vfork' in older druntime binding for non-Glibc
+version (Posix) extern(C) pid_t vfork();
 version (CRuntime_Microsoft)
 {
   // until the new windows bindings are available when building dmd.
