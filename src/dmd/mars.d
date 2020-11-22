@@ -902,23 +902,20 @@ else
      */
     extern (C) int main(int argc, char** argv)
     {
-        static if (isGCAvailable)
+        bool lowmem = false;
+        foreach (i; 1 .. argc)
         {
-            bool lowmem = false;
-            foreach (i; 1 .. argc)
+            if (strcmp(argv[i], "-lowmem") == 0)
             {
-                if (strcmp(argv[i], "-lowmem") == 0)
-                {
-                    lowmem = true;
-                    break;
-                }
+                lowmem = true;
+                break;
             }
-            if (!lowmem)
-            {
-                __gshared string[] disable_options = [ "gcopt=disable:1" ];
-                rt_options = disable_options;
-                mem.disableGC();
-            }
+        }
+        if (!lowmem)
+        {
+            __gshared string[] disable_options = [ "gcopt=disable:1" ];
+            rt_options = disable_options;
+            mem.disableGC();
         }
 
         // initialize druntime and call _Dmain() below
@@ -940,9 +937,6 @@ else
         }
 
         import core.runtime;
-        import core.memory;
-        static if (!isGCAvailable)
-            GC.disable();
 
         version(D_Coverage)
         {
@@ -1789,15 +1783,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
         {
-            static if (isGCAvailable)
-            {
-                // ignore, already handled in C main
-            }
-            else
-            {
-                error("switch '%s' requires DMD to be built with '-version=GC'", arg.ptr);
-                continue;
-            }
+            // ignore, already handled in C main
         }
         else if (arg.length > 6 && arg[0..6] == "--DRT-")
         {
