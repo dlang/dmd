@@ -31,265 +31,159 @@ version (SPP)
 else version (HTOD)
     version = STUB;
 else version (Windows)
-    version = OMFandMSCOFF;
+{
+}
 else version (Posix)
-    version = ELFandMACH;
+{
+}
 else
     static assert(0, "unsupported version");
 
+/******************************************************************/
 
-version (Windows)
-{
-    Obj  OmfObj_init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    void OmfObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
-    void OmfObj_termfile();
-    void OmfObj_term(const(char)* objfilename);
-    size_t OmfObj_mangle(Symbol *s,char *dest);
-    void OmfObj_import(elem *e);
-    void OmfObj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int  OmfObj_codeseg(const char *name,int suffix);
-    void OmfObj_dosseg();
-    void OmfObj_startaddress(Symbol *);
-    bool OmfObj_includelib(const(char)* );
-    bool OmfObj_linkerdirective(const(char)* );
-    bool OmfObj_allowZeroSize();
-    void OmfObj_exestr(const(char)* p);
-    void OmfObj_user(const(char)* p);
-    void OmfObj_compiler();
-    void OmfObj_wkext(Symbol *,Symbol *);
-    void OmfObj_lzext(Symbol *,Symbol *);
-    void OmfObj_alias(const(char)* n1,const(char)* n2);
-    void OmfObj_theadr(const(char)* modname);
-    void OmfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    void OmfObj_staticctor(Symbol *s,int dtor,int seg);
-    void OmfObj_staticdtor(Symbol *s);
-    void OmfObj_setModuleCtorDtor(Symbol *s, bool isCtor);
-    void OmfObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
-    void OmfObj_ehsections();
-    void OmfObj_moduleinfo(Symbol *scc);
-    int  OmfObj_comdat(Symbol *);
-    int  OmfObj_comdatsize(Symbol *, targ_size_t symsize);
-    int  OmfObj_readonly_comdat(Symbol *s);
-    void OmfObj_setcodeseg(int seg);
-    seg_data* OmfObj_tlsseg();
-    seg_data* OmfObj_tlsseg_bss();
-    seg_data* OmfObj_tlsseg_data();
-    int  OmfObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-    void OmfObj_export_symbol(Symbol *s, uint argsize);
-    void OmfObj_pubdef(int seg, Symbol *s, targ_size_t offset);
-    void OmfObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
-    int  OmfObj_external_def(const(char)* );
-    int  OmfObj_data_start(Symbol *sdata, targ_size_t datasize, int seg);
-    int  OmfObj_external(Symbol *);
-    int  OmfObj_common_block(Symbol *s, targ_size_t size, targ_size_t count);
-    int  OmfObj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count);
-    void OmfObj_lidata(int seg, targ_size_t offset, targ_size_t count);
-    void OmfObj_write_zeros(seg_data *pseg, targ_size_t count);
-    void OmfObj_write_byte(seg_data *pseg, uint _byte);
-    void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p);
-    void OmfObj_byte(int seg, targ_size_t offset, uint _byte);
-    uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void *p);
-    void OmfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-    void OmfObj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
-    void OmfObj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags);
-    void OmfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-    void OmfObj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val);
-    int  OmfObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags);
-    void OmfObj_far16thunk(Symbol *s);
-    void OmfObj_fltused();
-    int  OmfObj_data_readonly(char *p, int len, int *pseg);
-    int  OmfObj_data_readonly(char *p, int len);
-    int  OmfObj_string_literal_segment(uint sz);
-    Symbol* OmfObj_sym_cdata(tym_t, char *, int);
-    void OmfObj_func_start(Symbol *sfunc);
-    void OmfObj_func_term(Symbol *sfunc);
-    void OmfObj_write_pointerRef(Symbol* s, uint off);
-    int  OmfObj_jmpTableSegment(Symbol* s);
-    Symbol* OmfObj_tlv_bootstrap();
-    void OmfObj_gotref(Symbol *s);
-    int  OmfObj_seg_debugT();           // where the symbolic debug type data goes
+/* Functions common to all object formats
+ */
+mixin(ObjMemDecl("Obj $Obj_init(Outbuffer *, const(char)* filename, const(char)* csegname)"));
+mixin(ObjMemDecl("void $Obj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)"));
+mixin(ObjMemDecl("void $Obj_termfile()"));
+mixin(ObjMemDecl("void $Obj_term(const(char)* objfilename)"));
+mixin(ObjMemDecl("void $Obj_linnum(Srcpos srcpos, int seg, targ_size_t offset)"));
+mixin(ObjMemDecl("int  $Obj_codeseg(const char *name,int suffix)"));
+mixin(ObjMemDecl("void $Obj_startaddress(Symbol *)"));
+mixin(ObjMemDecl("bool $Obj_includelib(const(char)* )"));
+mixin(ObjMemDecl("bool $Obj_linkerdirective(const(char)* )"));
+mixin(ObjMemDecl("bool $Obj_allowZeroSize()"));
+mixin(ObjMemDecl("void $Obj_exestr(const(char)* p)"));
+mixin(ObjMemDecl("void $Obj_user(const(char)* p)"));
+mixin(ObjMemDecl("void $Obj_compiler()"));
+mixin(ObjMemDecl("void $Obj_wkext(Symbol *,Symbol *)"));
+mixin(ObjMemDecl("void $Obj_alias(const(char)* n1,const(char)* n2)"));
+mixin(ObjMemDecl("void $Obj_staticctor(Symbol *s,int dtor,int seg)"));
+mixin(ObjMemDecl("void $Obj_staticdtor(Symbol *s)"));
+mixin(ObjMemDecl("void $Obj_setModuleCtorDtor(Symbol *s, bool isCtor)"));
+mixin(ObjMemDecl("void $Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)"));
+mixin(ObjMemDecl("void $Obj_ehsections()"));
+mixin(ObjMemDecl("void $Obj_moduleinfo(Symbol *scc)"));
+mixin(ObjMemDecl("int  $Obj_comdat(Symbol *)"));
+mixin(ObjMemDecl("int  $Obj_comdatsize(Symbol *, targ_size_t symsize)"));
+mixin(ObjMemDecl("int  $Obj_readonly_comdat(Symbol *s)"));
+mixin(ObjMemDecl("void $Obj_setcodeseg(int seg)"));
+mixin(ObjMemDecl("seg_data* $Obj_tlsseg()"));
+mixin(ObjMemDecl("seg_data* $Obj_tlsseg_bss()"));
+mixin(ObjMemDecl("seg_data* $Obj_tlsseg_data()"));
+mixin(ObjMemDecl("void $Obj_export_symbol(Symbol *s, uint argsize)"));
+mixin(ObjMemDecl("void $Obj_pubdef(int seg, Symbol *s, targ_size_t offset)"));
+mixin(ObjMemDecl("void $Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)"));
+mixin(ObjMemDecl("int  $Obj_external_def(const(char)*)"));
+mixin(ObjMemDecl("int  $Obj_data_start(Symbol *sdata, targ_size_t datasize, int seg)"));
+mixin(ObjMemDecl("int  $Obj_external(Symbol *)"));
+mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, targ_size_t size, targ_size_t count)"));
+mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)"));
+mixin(ObjMemDecl("void $Obj_lidata(int seg, targ_size_t offset, targ_size_t count)"));
+mixin(ObjMemDecl("void $Obj_write_zeros(seg_data *pseg, targ_size_t count)"));
+mixin(ObjMemDecl("void $Obj_write_byte(seg_data *pseg, uint _byte)"));
+mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, void *p)"));
+mixin(ObjMemDecl("void $Obj_byte(int seg, targ_size_t offset, uint _byte)"));
+mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)"));
+mixin(ObjMemDecl("void $Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)"));
+mixin(ObjMemDecl("void $Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val)"));
+mixin(ObjMemDecl("int  $Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)"));
+mixin(ObjMemDecl("void $Obj_far16thunk(Symbol *s)"));
+mixin(ObjMemDecl("void $Obj_fltused()"));
+mixin(ObjMemDecl("int  $Obj_data_readonly(char *p, int len, int *pseg)"));
+mixin(ObjMemDecl("int  $Obj_data_readonly(char *p, int len)"));
+mixin(ObjMemDecl("int  $Obj_string_literal_segment(uint sz)"));
+mixin(ObjMemDecl("Symbol* $Obj_sym_cdata(tym_t, char *, int)"));
+mixin(ObjMemDecl("void $Obj_func_start(Symbol *sfunc)"));
+mixin(ObjMemDecl("void $Obj_func_term(Symbol *sfunc)"));
+mixin(ObjMemDecl("void $Obj_write_pointerRef(Symbol* s, uint off)"));
+mixin(ObjMemDecl("int  $Obj_jmpTableSegment(Symbol* s)"));
+mixin(ObjMemDecl("Symbol* $Obj_tlv_bootstrap()"));
 
-    Obj  MsCoffObj_init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
-    void MsCoffObj_termfile();
-    void MsCoffObj_term(const(char)* objfilename);
-//    size_t MsCoffObj_mangle(Symbol *s,char *dest);
-//    void MsCoffObj_import(elem *e);
-    void MsCoffObj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int  MsCoffObj_codeseg(const char *name,int suffix);
-//    void MsCoffObj_dosseg();
-    void MsCoffObj_startaddress(Symbol *);
-    bool MsCoffObj_includelib(const(char)* );
-    bool MsCoffObj_linkerdirective(const(char)* );
-    bool MsCoffObj_allowZeroSize();
-    void MsCoffObj_exestr(const(char)* p);
-    void MsCoffObj_user(const(char)* p);
-    void MsCoffObj_compiler();
-    void MsCoffObj_wkext(Symbol *,Symbol *);
-//    void MsCoffObj_lzext(Symbol *,Symbol *);
-    void MsCoffObj_alias(const(char)* n1,const(char)* n2);
-//    void MsCoffObj_theadr(const(char)* modname);
-//    void MsCoffObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    void MsCoffObj_staticctor(Symbol *s,int dtor,int seg);
-    void MsCoffObj_staticdtor(Symbol *s);
-    void MsCoffObj_setModuleCtorDtor(Symbol *s, bool isCtor);
-    void MsCoffObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
-    void MsCoffObj_ehsections();
-    void MsCoffObj_moduleinfo(Symbol *scc);
-    int  MsCoffObj_comdat(Symbol *);
-    int  MsCoffObj_comdatsize(Symbol *, targ_size_t symsize);
-    int  MsCoffObj_readonly_comdat(Symbol *s);
-    void MsCoffObj_setcodeseg(int seg);
-    seg_data* MsCoffObj_tlsseg();
-    seg_data* MsCoffObj_tlsseg_bss();
-    seg_data* MsCoffObj_tlsseg_data();
-//    int  MsCoffObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-    void MsCoffObj_export_symbol(Symbol *s, uint argsize);
-    void MsCoffObj_pubdef(int seg, Symbol *s, targ_size_t offset);
-    void MsCoffObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
-    int  MsCoffObj_external_def(const(char)* );
-    int  MsCoffObj_data_start(Symbol *sdata, targ_size_t datasize, int seg);
-    int  MsCoffObj_external(Symbol *);
-    int  MsCoffObj_common_block(Symbol *s, targ_size_t size, targ_size_t count);
-    int  MsCoffObj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count);
-    void MsCoffObj_lidata(int seg, targ_size_t offset, targ_size_t count);
-    void MsCoffObj_write_zeros(seg_data *pseg, targ_size_t count);
-    void MsCoffObj_write_byte(seg_data *pseg, uint _byte);
-    void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, void *p);
-    void MsCoffObj_byte(int seg, targ_size_t offset, uint _byte);
-    uint MsCoffObj_bytes(int seg, targ_size_t offset, uint nbytes, void *p);
-//    void MsCoffObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-//    void MsCoffObj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
-    void MsCoffObj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags);
-//    void MsCoffObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-    void MsCoffObj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val);
-    int  MsCoffObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags);
-    void MsCoffObj_far16thunk(Symbol *s);
-    void MsCoffObj_fltused();
-    int  MsCoffObj_data_readonly(char *p, int len, int *pseg);
-    int  MsCoffObj_data_readonly(char *p, int len);
-    int  MsCoffObj_string_literal_segment(uint sz);
-    Symbol* MsCoffObj_sym_cdata(tym_t, char *, int);
-    void MsCoffObj_func_start(Symbol *sfunc);
-    void MsCoffObj_func_term(Symbol *sfunc);
-    void MsCoffObj_write_pointerRef(Symbol* s, uint off);
-    int  MsCoffObj_jmpTableSegment(Symbol* s);
-    Symbol* MsCoffObj_tlv_bootstrap();
-//    void MsCoffObj_gotref(Symbol *s);
-    int  MsCoffObj_seg_debugT();           // where the symbolic debug type data goes
+/******************************************************************/
 
-    int  MsCoffObj_getsegment(const(char)* sectname, uint flags);
-    int  MsCoffObj_getsegment2( uint shtidx);
-    uint MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags);
-    void MsCoffObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
-                          uint targseg, int rtype, int val);
-    int  MsCoffObj_seg_drectve();
-}
+size_t OmfObj_mangle(Symbol *s,char *dest);
+void OmfObj_import(elem *e);
+void OmfObj_dosseg();
+void OmfObj_lzext(Symbol *,Symbol *);
+void OmfObj_theadr(const(char)* modname);
+void OmfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
+int  OmfObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
+void OmfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
+void OmfObj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
+void OmfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
+int  OmfObj_seg_debugT();           // where the symbolic debug type data goes
 
+/******************************************************************/
+
+int  MsCoffObj_getsegment(const(char)* sectname, uint flags);
+int  MsCoffObj_getsegment2(uint shtidx);
+uint MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags);
+void MsCoffObj_addrel(int seg, targ_size_t offset, Symbol *targsym, uint targseg, int rtype, int val);
+int  MsCoffObj_seg_drectve();
 int  MsCoffObj_seg_pdata();
 int  MsCoffObj_seg_xdata();
 int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
 int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
 int  MsCoffObj_seg_debugS();
 int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
+int  MsCoffObj_seg_debugT();           // where the symbolic debug type data goes
 
-version (Posix)
+/******************************************************************/
+
+void ElfObj_dosseg();
+size_t ElfObj_mangle(Symbol* s, char* dest);
+void ElfObj_import(elem* e);
+void ElfObj_lzext(Symbol*, Symbol*);
+void ElfObj_theadr(const(char)* modname);
+void ElfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
+int ElfObj_fardata(char *name, targ_size_t size, targ_size_t* poffset);
+void ElfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
+void ElfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
+void ElfObj_gotref(Symbol* s);
+uint ElfObj_addstr(Outbuffer* strtab, const(char)*);
+Symbol* ElfObj_getGOTsym();
+void ElfObj_refGOTsym();
+int ElfObj_getsegment(const(char)* sectname, const(char)* suffix, int type, int flags, int align_);
+void ElfObj_addrel(int seg, targ_size_t offset, uint type, uint symidx, targ_size_t val);
+size_t ElfObj_writerel(int targseg, size_t offset, uint type, uint symidx, targ_size_t val);
+
+/******************************************************************/
+
+void MachObj_dosseg();
+size_t MachObj_mangle(Symbol *s,char *dest);
+void MachObj_import(elem *e);
+void MachObj_lzext(Symbol *,Symbol *);
+void MachObj_theadr(const(char)* modname);
+void MachObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
+int MachObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
+void MachObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
+void MachObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
+void MachObj_gotref(Symbol *s);
+uint MachObj_addstr(Outbuffer *strtab, const(char)* );
+Symbol* MachObj_getGOTsym();
+void MachObj_refGOTsym();
+int MachObj_getsegment(const(char)* sectname, const(char)* segname, int align_, int flags);
+void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, int rtype, int val);
+
+/******************************************************************/
+
+version (STUB)
 {
-    Obj Obj_init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    void Obj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
-    void Obj_termfile();
-    void Obj_term(const(char)* objfilename);
-    void Obj_compiler();
-    void Obj_exestr(const(char)* p);
-    void Obj_dosseg();
-    void Obj_startaddress(Symbol *);
-    bool Obj_includelib(const(char)* );
-    bool Obj_linkerdirective(const(char)* p);
-    size_t Obj_mangle(Symbol *s,char *dest);
-    void Obj_alias(const(char)* n1,const(char)* n2);
-    void Obj_user(const(char)* p);
-
-    void Obj_import(elem *e);
-    void Obj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int Obj_codeseg(const char *name,int suffix);
-    bool Obj_allowZeroSize();
-    void Obj_wkext(Symbol *,Symbol *);
-    void Obj_lzext(Symbol *,Symbol *);
-    void Obj_theadr(const(char)* modname);
-    void Obj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    void Obj_staticctor(Symbol *s,int dtor,int seg);
-    void Obj_staticdtor(Symbol *s);
-    void Obj_setModuleCtorDtor(Symbol *s, bool isCtor);
-    void Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
-    void Obj_ehsections();
-    void Obj_moduleinfo(Symbol *scc);
-    int Obj_comdat(Symbol *);
-    int Obj_comdatsize(Symbol *, targ_size_t symsize);
-    int Obj_readonly_comdat(Symbol *s);
-    void Obj_setcodeseg(int seg);
-    seg_data* Obj_tlsseg();
-    seg_data* Obj_tlsseg_bss();
-    seg_data* Obj_tlsseg_data();
-    int Obj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-    void Obj_export_symbol(Symbol *s, uint argsize);
-    void Obj_pubdef(int seg, Symbol *s, targ_size_t offset);
-    void Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
-    int Obj_external_def(const(char)* );
-    int Obj_data_start(Symbol *sdata, targ_size_t datasize, int seg);
-    int Obj_external(Symbol *);
-    int Obj_common_block(Symbol *s, targ_size_t size, targ_size_t count);
-    int Obj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count);
-    void Obj_lidata(int seg, targ_size_t offset, targ_size_t count);
-    void Obj_write_zeros(seg_data *pseg, targ_size_t count);
-    void Obj_write_byte(seg_data *pseg, uint _byte);
-    void Obj_write_bytes(seg_data *pseg, uint nbytes, void *p);
-    void Obj_byte(int seg, targ_size_t offset, uint _byte);
-    uint Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p);
-    void Obj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-    void Obj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
-    void Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags);
-    void Obj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-    void Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val);
-    int Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags);
-    void Obj_far16thunk(Symbol *s);
-    void Obj_fltused();
-    int Obj_data_readonly(char *p, int len, int *pseg);
-    int Obj_data_readonly(char *p, int len);
-    int Obj_string_literal_segment(uint sz);
-    Symbol* Obj_sym_cdata(tym_t, char *, int);
-    void Obj_func_start(Symbol *sfunc);
-    void Obj_func_term(Symbol *sfunc);
-    void Obj_write_pointerRef(Symbol* s, uint off);
-    int Obj_jmpTableSegment(Symbol* s);
-
-    Symbol* Obj_tlv_bootstrap();
-
-    void Obj_gotref(Symbol *s);
-
-    uint Obj_addstr(Outbuffer *strtab, const(char)* );
-    Symbol* Obj_getGOTsym();
-    void Obj_refGOTsym();
-
-    version (OSX)
-    {
-        int Obj_getsegment(const(char)* sectname, const(char)* segname,
-                              int  _align, int flags);
-        void Obj_addrel(int seg, targ_size_t offset, Symbol *targsym,
-                           uint targseg, int rtype, int val = 0);
-    }
-    else
-    {
-        int Obj_getsegment(const(char)* name, const(char)* suffix,
-                              int type, int flags, int  _align);
-        void Obj_addrel(int seg, targ_size_t offset, uint type,
-                           uint symidx, targ_size_t val);
-        size_t Obj_writerel(int targseg, size_t offset, uint type,
-                               uint symidx, targ_size_t val);
-    }
+    public import stubobj;
 }
-
-version (OMFandMSCOFF)
+else
 {
+    /*******************************************
+     * Generic interface to the four object module file formats supported.
+     * Instead of using virtual functions (i.e. virtual dispatch) it uses
+     * static dispatch. Since config.objfmt never changes after initialization
+     * of the compiler, static branch prediction should make it faster than
+     * virtual dispatch.
+     *
+     * Making static dispatch work requires tediously repetitive boilerplate,
+     * which we accomplish via string mixins.
+     */
     class Obj
     {
       static
@@ -298,30 +192,22 @@ version (OMFandMSCOFF)
 
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_init(objbuf, filename, csegname)
-                :    OmfObj_init(objbuf, filename, csegname);
+            mixin(genRetVal("init(objbuf, filename, csegname)"));
         }
 
         void initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_initfile(filename, csegname, modname)
-                :    OmfObj_initfile(filename, csegname, modname);
+            mixin(genRetVoid("initfile(filename, csegname, modname)"));
         }
 
         void termfile()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_termfile()
-                :    OmfObj_termfile();
+            mixin(genRetVoid("termfile()"));
         }
 
         void term(const(char)* objfilename)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_term(objfilename)
-                :    OmfObj_term(objfilename);
+            mixin(genRetVoid("term(objfilename)"));
         }
 
         size_t mangle(Symbol *s,char *dest)
@@ -338,16 +224,12 @@ version (OMFandMSCOFF)
 
         void linnum(Srcpos srcpos, int seg, targ_size_t offset)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_linnum(srcpos, seg, offset)
-                :    OmfObj_linnum(srcpos, seg, offset);
+            mixin(genRetVoid("linnum(srcpos, seg, offset)"));
         }
 
         int codeseg(const char *name,int suffix)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_codeseg(name, suffix)
-                :    OmfObj_codeseg(name, suffix);
+            mixin(genRetVal("codeseg(name, suffix)"));
         }
 
         void dosseg()
@@ -358,177 +240,130 @@ version (OMFandMSCOFF)
 
         void startaddress(Symbol *s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_startaddress(s)
-                :    OmfObj_startaddress(s);
+            mixin(genRetVoid("startaddress(s)"));
         }
 
         bool includelib(const(char)* name)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_includelib(name)
-                :    OmfObj_includelib(name);
+            mixin(genRetVal("includelib(name)"));
         }
 
         bool linkerdirective(const(char)* p)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_linkerdirective(p)
-                :    OmfObj_linkerdirective(p);
+            mixin(genRetVal("linkerdirective(p)"));
         }
 
         bool allowZeroSize()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_allowZeroSize()
-                :    OmfObj_allowZeroSize();
+            mixin(genRetVal("allowZeroSize()"));
         }
 
         void exestr(const(char)* p)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_exestr(p)
-                :    OmfObj_exestr(p);
+            mixin(genRetVoid("exestr(p)"));
         }
 
         void user(const(char)* p)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_user(p)
-                :    OmfObj_user(p);
+            mixin(genRetVoid("user(p)"));
         }
 
         void compiler()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_compiler()
-                :    OmfObj_compiler();
+            mixin(genRetVoid("compiler()"));
         }
 
         void wkext(Symbol* s1, Symbol* s2)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_wkext(s1, s2)
-                :    OmfObj_wkext(s1, s2);
+            mixin(genRetVoid("wkext(s1, s2)"));
         }
 
         void lzext(Symbol* s1, Symbol* s2)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? assert(0)
-                : OmfObj_lzext(s1, s2);
+            assert(config.objfmt == OBJ_OMF);
+            OmfObj_lzext(s1, s2);
         }
 
         void _alias(const(char)* n1,const(char)* n2)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_alias(n1, n2)
-                :    OmfObj_alias(n1, n2);
+            mixin(genRetVoid("alias(n1, n2)"));
         }
 
         void theadr(const(char)* modname)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? assert(0)
-                : OmfObj_theadr(modname);
+            assert(config.objfmt == OBJ_OMF);
+            OmfObj_theadr(modname);
         }
 
         void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? assert(0)
-                : OmfObj_segment_group(codesize, datasize, cdatasize, udatasize);
+            assert(config.objfmt == OBJ_OMF);
+            OmfObj_segment_group(codesize, datasize, cdatasize, udatasize);
         }
 
         void staticctor(Symbol *s,int dtor,int seg)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_staticctor(s, dtor, seg)
-                :    OmfObj_staticctor(s, dtor, seg);
+            mixin(genRetVoid("staticctor(s, dtor, seg)"));
         }
 
         void staticdtor(Symbol *s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_staticdtor(s)
-                :    OmfObj_staticdtor(s);
+            mixin(genRetVoid("staticdtor(s)"));
         }
 
         void setModuleCtorDtor(Symbol *s, bool isCtor)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_setModuleCtorDtor(s, isCtor)
-                :    OmfObj_setModuleCtorDtor(s, isCtor);
+            mixin(genRetVoid("setModuleCtorDtor(s, isCtor)"));
         }
 
         void ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_ehtables(sfunc, size, ehsym)
-                :    OmfObj_ehtables(sfunc, size, ehsym);
+            mixin(genRetVoid("ehtables(sfunc, size, ehsym)"));
         }
 
         void ehsections()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_ehsections()
-                :    OmfObj_ehsections();
+            mixin(genRetVoid("ehsections()"));
         }
 
         void moduleinfo(Symbol *scc)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_moduleinfo(scc)
-                :    OmfObj_moduleinfo(scc);
+            mixin(genRetVoid("moduleinfo(scc)"));
         }
 
         int comdat(Symbol *s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_comdat(s)
-                :    OmfObj_comdat(s);
+            mixin(genRetVal("comdat(s)"));
         }
 
         int comdatsize(Symbol *s, targ_size_t symsize)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_comdatsize(s, symsize)
-                :    OmfObj_comdatsize(s, symsize);
+            mixin(genRetVal("comdatsize(s, symsize)"));
         }
 
         int readonly_comdat(Symbol *s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_comdat(s)
-                :    OmfObj_comdat(s);
+            mixin(genRetVal("comdat(s)"));
         }
 
         void setcodeseg(int seg)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_setcodeseg(seg)
-                :    OmfObj_setcodeseg(seg);
+            mixin(genRetVoid("setcodeseg(seg)"));
         }
 
         seg_data *tlsseg()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_tlsseg()
-                :    OmfObj_tlsseg();
+            mixin(genRetVal("tlsseg()"));
         }
 
         seg_data *tlsseg_bss()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_tlsseg_bss()
-                :    OmfObj_tlsseg_bss();
+            mixin(genRetVal("tlsseg_bss()"));
         }
 
         seg_data *tlsseg_data()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_tlsseg_data()
-                :    OmfObj_tlsseg_data();
+            mixin(genRetVal("tlsseg_data()"));
         }
 
         int  fardata(char *name, targ_size_t size, targ_size_t *poffset)
@@ -539,247 +374,250 @@ version (OMFandMSCOFF)
 
         void export_symbol(Symbol *s, uint argsize)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_export_symbol(s, argsize)
-                :    OmfObj_export_symbol(s, argsize);
+            mixin(genRetVoid("export_symbol(s, argsize)"));
         }
 
         void pubdef(int seg, Symbol *s, targ_size_t offset)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_pubdef(seg, s, offset)
-                :    OmfObj_pubdef(seg, s, offset);
+            mixin(genRetVoid("pubdef(seg, s, offset)"));
         }
 
         void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_pubdefsize(seg, s, offset, symsize)
-                :    OmfObj_pubdefsize(seg, s, offset, symsize);
+            mixin(genRetVoid("pubdefsize(seg, s, offset, symsize)"));
         }
 
         int external_def(const(char)* name)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_external_def(name)
-                :    OmfObj_external_def(name);
+            mixin(genRetVal("external_def(name)"));
         }
 
         int data_start(Symbol *sdata, targ_size_t datasize, int seg)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_data_start(sdata, datasize, seg)
-                :    OmfObj_data_start(sdata, datasize, seg);
+            mixin(genRetVal("data_start(sdata, datasize, seg)"));
         }
 
         int external(Symbol *s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_external(s)
-                :    OmfObj_external(s);
+            mixin(genRetVal("external(s)"));
         }
 
         int common_block(Symbol *s, targ_size_t size, targ_size_t count)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_common_block(s, size, count)
-                :    OmfObj_common_block(s, size, count);
+            mixin(genRetVal("common_block(s, size, count)"));
         }
 
         int common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_common_block(s, flag, size, count)
-                :    OmfObj_common_block(s, flag, size, count);
+            mixin(genRetVal("common_block(s, flag, size, count)"));
         }
 
         void lidata(int seg, targ_size_t offset, targ_size_t count)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_lidata(seg, offset, count)
-                :    OmfObj_lidata(seg, offset, count);
+            mixin(genRetVoid("lidata(seg, offset, count)"));
         }
 
         void write_zeros(seg_data *pseg, targ_size_t count)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_write_zeros(pseg, count)
-                :    OmfObj_write_zeros(pseg, count);
+            mixin(genRetVoid("write_zeros(pseg, count)"));
         }
 
         void write_byte(seg_data *pseg, uint _byte)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_write_byte(pseg, _byte)
-                :    OmfObj_write_byte(pseg, _byte);
+            mixin(genRetVoid("write_byte(pseg, _byte)"));
         }
 
         void write_bytes(seg_data *pseg, uint nbytes, void *p)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_write_bytes(pseg, nbytes, p)
-                :    OmfObj_write_bytes(pseg, nbytes, p);
+            mixin(genRetVoid("write_bytes(pseg, nbytes, p)"));
         }
 
         void _byte(int seg, targ_size_t offset, uint _byte)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_byte(seg, offset, _byte)
-                :    OmfObj_byte(seg, offset, _byte);
+            mixin(genRetVoid("byte(seg, offset, _byte)"));
         }
 
         uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_bytes(seg, offset, nbytes, p)
-                :    OmfObj_bytes(seg, offset, nbytes, p);
+            mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }
 
         void ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? assert(0)
-                : OmfObj_ledata(seg, offset, data, lcfd, idx1, idx2);
-        }
-
-        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2)
-        {
-            return config.objfmt == OBJ_MSCOFF
-                ? assert(0)
-                : OmfObj_write_long(seg, offset, data, lcfd, idx1, idx2);
+            assert(config.objfmt == OBJ_OMF);
+            OmfObj_ledata(seg, offset, data, lcfd, idx1, idx2);
         }
 
         void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_reftodatseg(seg, offset, val, targetdatum, flags)
-                :    OmfObj_reftodatseg(seg, offset, val, targetdatum, flags);
+            mixin(genRetVoid("reftodatseg(seg, offset, val, targetdatum, flags)"));
         }
 
         void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? assert(0)
-                : OmfObj_reftofarseg(seg, offset, val, farseg, flags);
+            assert(config.objfmt == OBJ_OMF);
+            OmfObj_reftofarseg(seg, offset, val, farseg, flags);
         }
 
         void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_reftocodeseg(seg, offset, val)
-                :    OmfObj_reftocodeseg(seg, offset, val);
+            mixin(genRetVoid("reftocodeseg(seg, offset, val)"));
         }
 
         int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_reftoident(seg, offset, s, val, flags)
-                :    OmfObj_reftoident(seg, offset, s, val, flags);
+            mixin(genRetVal("reftoident(seg, offset, s, val, flags)"));
         }
 
         void far16thunk(Symbol *s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_far16thunk(s)
-                :    OmfObj_far16thunk(s);
+            mixin(genRetVoid("far16thunk(s)"));
         }
 
         void fltused()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_fltused()
-                :    OmfObj_fltused();
+            mixin(genRetVoid("fltused()"));
         }
 
         int data_readonly(char *p, int len, int *pseg)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_data_readonly(p, len, pseg)
-                :    OmfObj_data_readonly(p, len, pseg);
+            mixin(genRetVal("data_readonly(p, len, pseg)"));
         }
 
         int data_readonly(char *p, int len)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_data_readonly(p, len)
-                :    OmfObj_data_readonly(p, len);
+            mixin(genRetVal("data_readonly(p, len)"));
         }
 
         int string_literal_segment(uint sz)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_string_literal_segment(sz)
-                :    OmfObj_string_literal_segment(sz);
+            mixin(genRetVal("string_literal_segment(sz)"));
         }
 
         Symbol *sym_cdata(tym_t ty, char *p, int len)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_sym_cdata(ty, p, len)
-                :    OmfObj_sym_cdata(ty, p, len);
+            mixin(genRetVal("sym_cdata(ty, p, len)"));
         }
 
         void func_start(Symbol *sfunc)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_func_start(sfunc)
-                :    OmfObj_func_start(sfunc);
+            mixin(genRetVoid("func_start(sfunc)"));
         }
 
         void func_term(Symbol *sfunc)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_func_term(sfunc)
-                :    OmfObj_func_term(sfunc);
+            mixin(genRetVoid("func_term(sfunc)"));
         }
 
         void write_pointerRef(Symbol* s, uint off)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_write_pointerRef(s, off)
-                :    OmfObj_write_pointerRef(s, off);
+            mixin(genRetVoid("write_pointerRef(s, off)"));
         }
 
         int jmpTableSegment(Symbol* s)
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_jmpTableSegment(s)
-                :    OmfObj_jmpTableSegment(s);
+            mixin(genRetVal("jmpTableSegment(s)"));
         }
 
         Symbol *tlv_bootstrap()
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_tlv_bootstrap()
-                :    OmfObj_tlv_bootstrap();
-        }
-
-        Symbol *getGOTsym()
-        {
-            assert(0);
+            mixin(genRetVal("tlv_bootstrap()"));
         }
 
         void gotref(Symbol *s)
         {
+            switch (config.objfmt)
+            {
+                case OBJ_ELF:     ElfObj_gotref(s); break;
+                case OBJ_MACH:   MachObj_gotref(s); break;
+                default:         assert(0);
+            }
+        }
+
+        Symbol *getGOTsym()
+        {
+            switch (config.objfmt)
+            {
+                case OBJ_ELF:    return  ElfObj_getGOTsym();
+                case OBJ_MACH:   return MachObj_getGOTsym();
+                default:         assert(0);
+            }
         }
 
         void refGOTsym()
         {
+            switch (config.objfmt)
+            {
+                case OBJ_ELF:     ElfObj_refGOTsym(); break;
+                case OBJ_MACH:   MachObj_refGOTsym(); break;
+                default:         assert(0);
+            }
         }
 
         int seg_debugT()           // where the symbolic debug type data goes
         {
-            return config.objfmt == OBJ_MSCOFF
-                ? MsCoffObj_seg_debugT()
-                :    OmfObj_seg_debugT();
+            switch (config.objfmt)
+            {
+                case OBJ_MSCOFF: return MsCoffObj_seg_debugT();
+                case OBJ_OMF:    return    OmfObj_seg_debugT();
+                default:         assert(0);
+            }
         }
 
-        /*******************************************/
+        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2)
+        {
+            assert(config.objfmt == OBJ_OMF);
+            return OmfObj_write_long(seg, offset, data, lcfd, idx1, idx2);
+        }
 
-        int  getsegment(const(char)* sectname, uint flags)
+        uint addstr(Outbuffer *strtab, const(char)* p)
+        {
+            switch (config.objfmt)
+            {
+                case OBJ_ELF:    return    ElfObj_addstr(strtab, p);
+                case OBJ_MACH:   return   MachObj_addstr(strtab, p);
+                default:         assert(0);
+            }
+        }
+
+        int getsegment(const(char)* sectname, const(char)* segname, int align_, int flags)
+        {
+            assert(config.objfmt == OBJ_MACH);
+            return MachObj_getsegment(sectname, segname, align_, flags);
+        }
+
+        int getsegment(const(char)* name, const(char)* suffix, int type, int flags, int  align_)
+        {
+            assert(config.objfmt == OBJ_ELF);
+            return ElfObj_getsegment(name, suffix, type, flags, align_);
+        }
+
+        int getsegment(const(char)* sectname, uint flags)
         {
             assert(config.objfmt == OBJ_MSCOFF);
             return MsCoffObj_getsegment(sectname, flags);
+        }
+
+        void addrel(int seg, targ_size_t offset, Symbol *targsym, uint targseg, int rtype, int val = 0)
+        {
+            switch (config.objfmt)
+            {
+                case OBJ_MSCOFF: return MsCoffObj_addrel(seg, offset, targsym, targseg, rtype, val);
+                case OBJ_MACH:   return   MachObj_addrel(seg, offset, targsym, targseg, rtype, val);
+                default:         assert(0);
+            }
+        }
+
+        void addrel(int seg, targ_size_t offset, uint type, uint symidx, targ_size_t val)
+        {
+            assert(config.objfmt == OBJ_ELF);
+            return ElfObj_addrel(seg, offset, type, symidx, val);
+        }
+
+        size_t writerel(int targseg, size_t offset, uint type, uint symidx, targ_size_t val)
+        {
+            assert(config.objfmt == OBJ_ELF);
+            return ElfObj_writerel(targseg, offset, type, symidx, val);
         }
 
         int  getsegment2(uint shtidx)
@@ -792,13 +630,6 @@ version (OMFandMSCOFF)
         {
             assert(config.objfmt == OBJ_MSCOFF);
             return MsCoffObj_addScnhdr(scnhdr_name, flags);
-        }
-
-        void addrel(int seg, targ_size_t offset, Symbol *targsym,
-                              uint targseg, int rtype, int val)
-        {
-            assert(config.objfmt == OBJ_MSCOFF);
-            return MsCoffObj_addrel(seg, offset, targsym, targseg, rtype, val);
         }
 
         int  seg_drectve()
@@ -845,409 +676,114 @@ version (OMFandMSCOFF)
       }
     }
 }
-else version (ELFandMACH)
-{
-    class Obj
-    {
-      static:
-      nothrow:
-        Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
-        {
-            return Obj_init(objbuf, filename, csegname);
-        }
-
-        void initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
-        {
-            return Obj_initfile(filename, csegname, modname);
-        }
-
-        void termfile()
-        {
-            return Obj_termfile();
-        }
-
-        void term(const(char)* objfilename)
-        {
-            return Obj_term(objfilename);
-        }
-
-        /+size_t mangle(Symbol *s,char *dest)
-        {
-            return Obj_mangle(s, dest);
-        }+/
-
-        /+void _import(elem *e)
-        {
-            return Obj_import(e);
-        }+/
-
-        void linnum(Srcpos srcpos, int seg, targ_size_t offset)
-        {
-            return Obj_linnum(srcpos, seg, offset);
-        }
-
-        int codeseg(const char *name,int suffix)
-        {
-            return Obj_codeseg(name, suffix);
-        }
-
-        /+void dosseg()
-        {
-            return Obj_dosseg();
-        }+/
-
-        void startaddress(Symbol *s)
-        {
-            return Obj_startaddress(s);
-        }
-
-        bool includelib(const(char)* name)
-        {
-            return Obj_includelib(name);
-        }
-
-        bool linkerdirective(const(char)* p)
-        {
-            return Obj_linkerdirective(p);
-        }
-
-        bool allowZeroSize()
-        {
-            return Obj_allowZeroSize();
-        }
-
-        void exestr(const(char)* p)
-        {
-            return Obj_exestr(p);
-        }
-
-        void user(const(char)* p)
-        {
-            return Obj_user(p);
-        }
-
-        void compiler()
-        {
-            return Obj_compiler();
-        }
-
-        void wkext(Symbol* s1, Symbol* s2)
-        {
-            return Obj_wkext(s1, s2);
-        }
-
-        /+void lzext(Symbol* s1, Symbol* s2)
-        {
-            return Obj_lzext(s1, s2);
-        }+/
-
-        void _alias(const(char)* n1,const(char)* n2)
-        {
-            return Obj_alias(n1, n2);
-        }
-
-        void theadr(const(char)* modname)
-        {
-        }
-
-        /+void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
-        {
-            return Obj_segment_group(codesize, datasize, cdatasize, udatasize);
-        }+/
-
-        void staticctor(Symbol *s,int dtor,int seg)
-        {
-            return Obj_staticctor(s, dtor, seg);
-        }
-
-        void staticdtor(Symbol *s)
-        {
-            return Obj_staticdtor(s);
-        }
-
-        void setModuleCtorDtor(Symbol *s, bool isCtor)
-        {
-            return Obj_setModuleCtorDtor(s, isCtor);
-        }
-
-        void ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
-        {
-            return Obj_ehtables(sfunc, size, ehsym);
-        }
-
-        void ehsections()
-        {
-            return Obj_ehsections();
-        }
-
-        void moduleinfo(Symbol *scc)
-        {
-            return Obj_moduleinfo(scc);
-        }
-
-        int comdat(Symbol *s)
-        {
-            return Obj_comdat(s);
-        }
-
-        int comdatsize(Symbol *s, targ_size_t symsize)
-        {
-            return Obj_comdatsize(s, symsize);
-        }
-
-        int readonly_comdat(Symbol *s)
-        {
-            return Obj_comdat(s);
-        }
-
-        void setcodeseg(int seg)
-        {
-            return Obj_setcodeseg(seg);
-        }
-
-        seg_data *tlsseg()
-        {
-            return Obj_tlsseg();
-        }
-
-        seg_data *tlsseg_bss()
-        {
-            return Obj_tlsseg_bss();
-        }
-
-        seg_data *tlsseg_data()
-        {
-            return Obj_tlsseg_data();
-        }
-
-        /+int fardata(char *name, targ_size_t size, targ_size_t *poffset)
-        {
-            return Obj_fardata(name, size, poffset);
-        }+/
-
-        void export_symbol(Symbol *s, uint argsize)
-        {
-            return Obj_export_symbol(s, argsize);
-        }
-
-        void pubdef(int seg, Symbol *s, targ_size_t offset)
-        {
-            return Obj_pubdef(seg, s, offset);
-        }
-
-        void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
-        {
-            return Obj_pubdefsize(seg, s, offset, symsize);
-        }
-
-        int external_def(const(char)* name)
-        {
-            return Obj_external_def(name);
-        }
-
-        int data_start(Symbol *sdata, targ_size_t datasize, int seg)
-        {
-            return Obj_data_start(sdata, datasize, seg);
-        }
-
-        int external(Symbol *s)
-        {
-            return Obj_external(s);
-        }
-
-        int common_block(Symbol *s, targ_size_t size, targ_size_t count)
-        {
-            return Obj_common_block(s, size, count);
-        }
-
-        int common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
-        {
-            return Obj_common_block(s, flag, size, count);
-        }
-
-        void lidata(int seg, targ_size_t offset, targ_size_t count)
-        {
-            return Obj_lidata(seg, offset, count);
-        }
-
-        void write_zeros(seg_data *pseg, targ_size_t count)
-        {
-            return Obj_write_zeros(pseg, count);
-        }
-
-        void write_byte(seg_data *pseg, uint _byte)
-        {
-            return Obj_write_byte(pseg, _byte);
-        }
-
-        void write_bytes(seg_data *pseg, uint nbytes, void *p)
-        {
-            return Obj_write_bytes(pseg, nbytes, p);
-        }
-
-        void _byte(int seg, targ_size_t offset, uint _byte)
-        {
-            return Obj_byte(seg, offset, _byte);
-        }
-
-        uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
-        {
-            return Obj_bytes(seg, offset, nbytes, p);
-        }
-
-        /+void ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2)
-        {
-            return Obj_ledata(seg, offset, data, lcfd, idx1, idx2);
-        }+/
-
-        /+void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2)
-        {
-            return Obj_write_long(seg, offset, data, lcfd, idx1, idx2);
-        }+/
-
-        void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
-        {
-            return Obj_reftodatseg(seg, offset, val, targetdatum, flags);
-        }
-
-        void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
-        {
-        }
-
-        void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
-        {
-            return Obj_reftocodeseg(seg, offset, val);
-        }
-
-        int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)
-        {
-            return Obj_reftoident(seg, offset, s, val, flags);
-        }
-
-        void far16thunk(Symbol *s)
-        {
-            return Obj_far16thunk(s);
-        }
-
-        void fltused()
-        {
-            return Obj_fltused();
-        }
-
-        int data_readonly(char *p, int len, int *pseg)
-        {
-            return Obj_data_readonly(p, len, pseg);
-        }
-
-        int data_readonly(char *p, int len)
-        {
-            return Obj_data_readonly(p, len);
-        }
-
-        int string_literal_segment(uint sz)
-        {
-            return Obj_string_literal_segment(sz);
-        }
-
-        Symbol *sym_cdata(tym_t ty, char *p, int len)
-        {
-            return Obj_sym_cdata(ty, p, len);
-        }
-
-        void func_start(Symbol *sfunc)
-        {
-            return Obj_func_start(sfunc);
-        }
-
-        void func_term(Symbol *sfunc)
-        {
-            return Obj_func_term(sfunc);
-        }
-
-        void write_pointerRef(Symbol* s, uint off)
-        {
-            return Obj_write_pointerRef(s, off);
-        }
-
-        int jmpTableSegment(Symbol* s)
-        {
-            return Obj_jmpTableSegment(s);
-        }
-
-        Symbol *tlv_bootstrap()
-        {
-            return Obj_tlv_bootstrap();
-        }
-
-        void gotref(Symbol *s)
-        {
-            return Obj_gotref(s);
-        }
-
-        uint addstr(Outbuffer *strtab, const(char)* p)
-        {
-            return Obj_addstr(strtab, p);
-        }
-
-        Symbol *getGOTsym()
-        {
-            return Obj_getGOTsym();
-        }
-
-        void refGOTsym()
-        {
-            return Obj_refGOTsym();
-        }
-
-        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2) { }
-
-        int seg_debugT() { assert(0); }
-
-        version (OSX)
-        {
-            int getsegment(const(char)* sectname, const(char)* segname,
-                                  int align_, int flags)
-            {
-                return Obj_getsegment(sectname, segname, align_, flags);
-            }
-
-            void addrel(int seg, targ_size_t offset, Symbol *targsym,
-                               uint targseg, int rtype, int val = 0)
-            {
-                return Obj_addrel(seg, offset, targsym, targseg, rtype, val);
-            }
-
-        }
-        else
-        {
-            int getsegment(const(char)* name, const(char)* suffix,
-                                  int type, int flags, int  align_)
-            {
-                return Obj_getsegment(name, suffix, type, flags, align_);
-            }
-
-            void addrel(int seg, targ_size_t offset, uint type,
-                               uint symidx, targ_size_t val)
-            {
-                return Obj_addrel(seg, offset, type, symidx, val);
-            }
-
-            size_t writerel(int targseg, size_t offset, uint type,
-                                   uint symidx, targ_size_t val)
-            {
-                return Obj_writerel(targseg, offset, type, symidx, val);
-            }
-
-        }
-    }
-}
-else version (STUB)
-{
-    public import stubobj;
-}
-else
-    static assert(0, "unsupported version");
 
 
 extern __gshared Obj objmod;
+
+/*****************************************
+ * Use to generate 4 function declarations, one for
+ * each object file format supported.
+ * Params:
+ *      pattern = function declaration
+ * Returns:
+ *      declarations as a string suitable for mixin
+ */
+private extern (D)
+string ObjMemDecl(string pattern)
+{
+    string r =
+        gen(pattern,    "Omf") ~ ";\n" ~
+        gen(pattern, "MsCoff") ~ ";\n" ~
+        gen(pattern,    "Elf") ~ ";\n" ~
+        gen(pattern,   "Mach") ~ ";\n";
+    return r;
+}
+
+/****************************************
+ * Generate boilerplate for static dispatch that
+ * returns a void.
+ * Params:
+ *      arg = string to insert where ever there's a '$'
+ * Returns:
+ *      mixin string with static dispatch
+ */
+private extern (D)
+string genRetVoid(string arg)
+{
+    string pattern =
+    "
+        switch (config.objfmt)
+        {
+            case OBJ_ELF:       ElfObj_$; break;
+            case OBJ_MSCOFF: MsCoffObj_$; break;
+            case OBJ_OMF:       OmfObj_$; break;
+            case OBJ_MACH:     MachObj_$; break;
+            default:     assert(0);
+        }
+    ";
+    return gen(pattern, arg);
+}
+
+/****************************************
+ * Generate boilerplate for static dispatch that
+ * returns a value. Don't care about type of the value.
+ * Params:
+ *      arg = string to insert where ever there's a '$'
+ * Returns:
+ *      mixin string with static dispatch
+ */
+private extern (D)
+string genRetVal(string arg)
+{
+    string pattern =
+    "
+        switch (config.objfmt)
+        {
+            case OBJ_ELF:    return    ElfObj_$;
+            case OBJ_MSCOFF: return MsCoffObj_$;
+            case OBJ_OMF:    return    OmfObj_$;
+            case OBJ_MACH:   return   MachObj_$;
+            default:     assert(0);
+        }
+    ";
+    return gen(pattern, arg);
+}
+
+/****************************************
+ * Generate boilerplate that replaces '$' in pattern with `arg`
+ * Params:
+ *      pattern = pattern to scan for '$'
+ *      arg = string to insert where ever '$' is found
+ * Returns:
+ *      boilerplate string
+ */
+private extern (D)
+string gen(string pattern, string arg)
+{
+    size_t count;               // number of '$' in pattern
+    foreach (c; pattern)
+        count += (c == '$');
+
+    // length of result
+    const length = pattern.length - count + arg.length * count;
+
+    char[] result = new char[length];
+    size_t i;
+    foreach (c; pattern)
+    {
+        if (c == '$')
+        {
+            result[i .. i + arg.length] = arg[]; // substitution
+            i += arg.length;
+        }
+        else
+        {
+            result[i] = c;
+            ++i;
+        }
+    }
+    assert(i == length);
+    return cast(string)result;
+}
+
 

@@ -56,7 +56,6 @@ extern (C) char* strupr(char*);
 private extern (D) __gshared Outbuffer *fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
-char *obj_mangle2(Symbol *s,char *dest);
 
 
 int elf_align(int size, int foffset);
@@ -119,7 +118,7 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER *)ScnhdrBuf
  * Returns !=0 if this segment is a code segment.
  */
 
-int seg_data_isCode(const ref seg_data sd)
+int mscoff_seg_data_isCode(const ref seg_data sd)
 {
     return (ScnhdrTab[sd.SDshtidx].Characteristics & IMAGE_SCN_CNT_CODE) != 0;
 }
@@ -410,16 +409,19 @@ version (SCPP)
  * pseg/offset to start of seg.
  */
 
+private extern (D)
 int32_t *patchAddr(int seg, targ_size_t offset)
 {
     return cast(int32_t *)(fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
 }
 
+private extern (D)
 int32_t *patchAddr64(int seg, targ_size_t offset)
 {
     return cast(int32_t *)(fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
 }
 
+private extern (D)
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", cast(uint)offset, seg, value);
@@ -1679,6 +1681,7 @@ private extern (D) char* unsstr(uint value)
  *      mangled name
  */
 
+private extern (D)
 char *obj_mangle2(Symbol *s,char *dest)
 {
     size_t len;
@@ -2118,7 +2121,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
  */
 
 extern (C) {
-private int rel_fp(scope const(void*) e1, scope const(void*) e2)
+private int mscoff_rel_fp(scope const(void*) e1, scope const(void*) e2)
 {   Relocation *r1 = cast(Relocation *)e1;
     Relocation *r2 = cast(Relocation *)e2;
 
@@ -2126,9 +2129,9 @@ private int rel_fp(scope const(void*) e1, scope const(void*) e2)
 }
 }
 
-void mach_relsort(Outbuffer *buf)
+void mscoff_relsort(Outbuffer *buf)
 {
-    qsort(buf.buf, buf.length() / (Relocation).sizeof, (Relocation).sizeof, &rel_fp);
+    qsort(buf.buf, buf.length() / (Relocation).sizeof, (Relocation).sizeof, &mscoff_rel_fp);
 }
 
 /*******************************

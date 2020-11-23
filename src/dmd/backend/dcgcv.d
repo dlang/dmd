@@ -3107,8 +3107,6 @@ else
  * Write out symbol table for current function.
  */
 
-static if (TARGET_WINDOS)
-{
 void cv_func(Funcsym *s)
 {
 version (SCPP)
@@ -3140,14 +3138,11 @@ else
             assert(0);
     }
 }
-}
 
 /******************************************
  * Write out symbol table for current function.
  */
 
-static if (TARGET_WINDOS)
-{
 void cv_outsym(Symbol *s)
 {
     //printf("cv_outsym('%s')\n",s.Sident.ptr);
@@ -3175,7 +3170,6 @@ version (MARS)
         default:
             assert(0);
     }
-}
 }
 
 /******************************************
