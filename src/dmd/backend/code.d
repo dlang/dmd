@@ -266,10 +266,11 @@ struct seg_data
     Barray!(linnum_data) SDlinnum_data;     // array of line number / offset data
 
   nothrow:
-    int isCode() { return seg_data_isCode(this); }
+    int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
 }
 
-extern int seg_data_isCode(const ref seg_data sd) @system;
+extern int mach_seg_data_isCode(const ref seg_data sd) @system;
+extern int mscoff_seg_data_isCode(const ref seg_data sd) @system;
 
 struct linnum_data
 {

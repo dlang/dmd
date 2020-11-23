@@ -32,6 +32,9 @@ uint cv_typidx(type* t);
 void cv_outsym(Symbol* s);
 void cv_func(Symbol* s);
 void cv_term();
+
+void dwarf_outsym(Symbol* s);
+
 uint cv4_struct(Classsym*, int);
 
 
