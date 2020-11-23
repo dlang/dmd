@@ -92,7 +92,6 @@ private immutable char[TMAX] mangleChar =
     Tstruct      : 'S',
     //              T   // Ttypedef
     //              U   // C function
-    //              V   // Pascal function
     //              W   // Windows function
     //              X   // variadic T t...)
     //              Y   // variadic T t,...)
@@ -369,9 +368,6 @@ public:
         case LINK.windows:
             mc = 'W';
             break;
-        case LINK.pascal:
-            mc = 'V';
-            break;
         case LINK.cpp:
             mc = 'R';
             break;
@@ -580,7 +576,6 @@ public:
                     break;
                 case LINK.c:
                 case LINK.windows:
-                case LINK.pascal:
                 case LINK.objc:
                     return d.ident.toString();
                 case LINK.cpp:

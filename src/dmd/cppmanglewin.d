@@ -1169,9 +1169,6 @@ extern(D):
             case LINK.windows:
                 tmp.buf.writeByte('G'); // stdcall
                 break;
-            case LINK.pascal:
-                tmp.buf.writeByte('C');
-                break;
             case LINK.d:
             case LINK.default_:
             case LINK.system:

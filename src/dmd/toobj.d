@@ -1002,9 +1002,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 case LINK.windows:
                     return global.params.is64bit ? mTYman_c : mTYman_std;
 
-                case LINK.pascal:
-                    return mTYman_pas;
-
                 case LINK.objc:
                 case LINK.c:
                     return mTYman_c;

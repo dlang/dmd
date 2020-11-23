@@ -1,0 +1,3 @@
+`extern(Pascal)` has been removed
+
+This unused linkage was deprecated in $(LINK2 v2.084.0, https://dlang.org/changelog/2.084.0.html#deprecated_extern_pascal) and has now been removed.

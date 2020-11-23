@@ -171,9 +171,8 @@ enum class LINK : uint8_t
     c = 2u,
     cpp = 3u,
     windows = 4u,
-    pascal = 5u,
-    objc = 6u,
-    system = 7u,
+    objc = 5u,
+    system = 6u,
 };
 
 class LinkDeclaration;
@@ -7453,7 +7452,6 @@ struct Id
     static Identifier* C;
     static Identifier* D;
     static Identifier* Windows;
-    static Identifier* Pascal;
     static Identifier* System;
     static Identifier* Objective;
     static Identifier* exit;

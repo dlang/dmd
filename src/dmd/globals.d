@@ -673,7 +673,6 @@ enum LINK : ubyte
     c,
     cpp,
     windows,
-    pascal,
     objc,
     system,
 }
