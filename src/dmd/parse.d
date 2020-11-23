@@ -2243,7 +2243,7 @@ final class Parser(AST) : Lexer
         }
         LINK invalidLinkage()
         {
-            error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
+            error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Windows`, `System`");
             return returnLinkage(LINK.d);
         }
 
@@ -2254,11 +2254,6 @@ final class Parser(AST) : Lexer
         nextToken();
         if (id == Id.Windows)
             return returnLinkage(LINK.windows);
-        else if (id == Id.Pascal)
-        {
-            deprecation("`extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.");
-            return returnLinkage(LINK.pascal);
-        }
         else if (id == Id.D)
             return returnLinkage(LINK.d);
         else if (id == Id.System)

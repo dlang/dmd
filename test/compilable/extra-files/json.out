@@ -855,18 +855,10 @@
                 "name": "vlinkageWindows"
             },
             {
-                "char": 20,
-                "deco": "VALUE_REMOVED_FOR_TEST",
-                "kind": "variable",
-                "line": 190,
-                "linkage": "pascal",
-                "name": "vlinkagePascal"
-            },
-            {
                 "char": 25,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "variable",
-                "line": 191,
+                "line": 190,
                 "linkage": "objc",
                 "name": "vlinkageObjc"
             },
@@ -874,7 +866,7 @@
                 "char": 12,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
-                "line": 193,
+                "line": 192,
                 "name": "flinkageDefault",
                 "storageClass": [
                     "extern"
@@ -884,14 +876,14 @@
                 "char": 15,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
-                "line": 194,
+                "line": 193,
                 "name": "flinkageD"
             },
             {
                 "char": 15,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
-                "line": 195,
+                "line": 194,
                 "linkage": "c",
                 "name": "linakgeC"
             },
@@ -899,7 +891,7 @@
                 "char": 17,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
-                "line": 196,
+                "line": 195,
                 "linkage": "cpp",
                 "name": "flinkageCpp"
             },
@@ -907,30 +899,22 @@
                 "char": 21,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
-                "line": 197,
+                "line": 196,
                 "linkage": "windows",
                 "name": "flinkageWindows"
-            },
-            {
-                "char": 20,
-                "deco": "VALUE_REMOVED_FOR_TEST",
-                "kind": "function",
-                "line": 198,
-                "linkage": "pascal",
-                "name": "flinkagePascal"
             },
             {
                 "char": 25,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
-                "line": 199,
+                "line": 197,
                 "linkage": "objc",
                 "name": "flinkageObjc"
             },
             {
                 "char": 7,
                 "kind": "template",
-                "line": 201,
+                "line": 199,
                 "members": [],
                 "name": "test18211",
                 "parameters": [
@@ -945,7 +929,7 @@
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
-                "line": 210,
+                "line": 208,
                 "name": "F",
                 "originalType": "size_t function(size_t a)"
             }

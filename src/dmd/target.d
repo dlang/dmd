@@ -728,7 +728,7 @@ extern (C++) struct Target
         }
         else if (params.isWindows &&
                  !params.is64bit &&
-                 (tf.linkage == LINK.cpp || tf.linkage == LINK.pascal) &&
+                 tf.linkage == LINK.cpp &&
                  tf.isfloating())
         {
             /* See DMC++ function exp2_retmethod()

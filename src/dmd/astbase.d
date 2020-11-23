@@ -6734,8 +6734,6 @@ struct ASTBase
             return "C++";
         case LINK.windows:
             return "Windows";
-        case LINK.pascal:
-            return "Pascal";
         case LINK.objc:
             return "Objective-C";
         }

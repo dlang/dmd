@@ -186,7 +186,6 @@ immutable Msgtable[] msgtable =
     { "C" },
     { "D" },
     { "Windows" },
-    { "Pascal" },
     { "System" },
     { "Objective" },
 

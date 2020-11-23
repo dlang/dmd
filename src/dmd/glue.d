@@ -663,7 +663,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             // functions without D or C++ name mangling mixed in at global scope
             // shouldn't have multiple definitions
             if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
-                fd.linkage == LINK.pascal || fd.linkage == LINK.objc))
+                fd.linkage == LINK.objc))
             {
                 const q = p.toParent();
                 if (q && q.isModule())
@@ -1328,10 +1328,6 @@ tym_t totym(Type tx)
                     if (global.params.is64bit)
                         goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
-                    break;
-
-                case LINK.pascal:
-                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:

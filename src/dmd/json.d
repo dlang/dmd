@@ -325,7 +325,6 @@ public:
         case LINK.c:        return property(name, "c");
         case LINK.cpp:      return property(name, "cpp");
         case LINK.windows:  return property(name, "windows");
-        case LINK.pascal:   return property(name, "pascal");
         case LINK.objc:     return property(name, "objc");
         }
     }
