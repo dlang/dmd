@@ -141,6 +141,8 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    import core.sys.freebsd.config;
+
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/dirent.h
     enum
     {
@@ -155,19 +157,39 @@ else version (FreeBSD)
         DT_WHT      = 14
     }
 
-    align(4)
-    struct dirent
+    static if (__FreeBSD_version >= 1200000)
     {
-        uint      d_fileno;
-        ushort    d_reclen;
-        ubyte     d_type;
-        ubyte     d_namlen;
-        char[256] d_name = 0;
+        struct dirent
+        {
+            ino_t     d_fileno;
+            off_t     d_off;
+            ushort    d_reclen;
+            ubyte     d_type;
+            ubyte     d_pad0;
+            ushort    d_namlen;
+            ushort    d_pad1;
+            char[256] d_name = 0;
+        }
+    }
+    else
+    {
+        align(4)
+        struct dirent
+        {
+            uint      d_fileno;
+            ushort    d_reclen;
+            ubyte     d_type;
+            ubyte     d_namlen;
+            char[256] d_name = 0;
+        }
     }
 
     alias void* DIR;
 
-    pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
+    static if (__FreeBSD_version >= 1200000)
+        pragma(mangle, "readdir@FBSD_1.5") dirent* readdir(DIR*);
+    else
+        pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
 }
 else version (NetBSD)
 {
@@ -485,7 +507,10 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);
+    static if (__FreeBSD_version >= 1200000)
+        pragma(mangle, "readdir_r@FBSD_1.5") int readdir_r(DIR*, dirent*, dirent**);
+    else
+        pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);
 }
 else version (DragonFlyBSD)
 {

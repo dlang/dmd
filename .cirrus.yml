@@ -60,5 +60,6 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
+    CI_DFLAGS: -version=TARGET_FREEBSD12
   install_bash_and_git_script: pkg install -y bash git
   << : *COMMON_STEPS_TEMPLATE
