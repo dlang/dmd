@@ -929,7 +929,7 @@ extern (C++) struct Target
         else version (FreeBSD_11)       return "11";
         else version (FreeBSD_10)       return "10";
         // FIXME: Need a way to dynamically set the major FreeBSD version?
-        else /* default supported */    return "11";
+        else /* default supported */    return "12";
     }
 }
 
