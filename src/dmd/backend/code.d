@@ -266,10 +266,7 @@ struct seg_data
     Barray!(linnum_data) SDlinnum_data;     // array of line number / offset data
 
   nothrow:
-    version (Windows)
-        int isCode() { return seg_data_isCode(this); }
-    version (OSX)
-        int isCode() { return seg_data_isCode(this); }
+    int isCode() { return seg_data_isCode(this); }
 }
 
 extern int seg_data_isCode(const ref seg_data sd) @system;
