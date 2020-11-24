@@ -274,6 +274,9 @@ int tryMain(size_t argc, const char *argv[])
 #elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
+    // FIXME: Need a way to statically and/or dynamically set the major FreeBSD version,
+    // to support FreeBSD 12.x and later releases both as a native and cross compiler.
+    VersionCondition::addPredefinedGlobalIdent("FreeBSD_11");
     VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isFreeBSD = true;
 #elif TARGET_OPENBSD
