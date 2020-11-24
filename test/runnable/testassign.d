@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -preview=rvaluerefparam
+REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
 \	S1	S2a	S2b	S3a	S3b	S4a	S4b
@@ -892,8 +892,8 @@ void test12211()
     // array ops should make rvalue
     int[3] sa, sb;
     void bar(ref int[]) {}
-    static assert(__traits(compiles, bar(sa[]  = sb[])));
-    static assert(__traits(compiles, bar(sa[] += sb[])));
+    static assert(!__traits(compiles, bar(sa[]  = sb[])));
+    static assert(!__traits(compiles, bar(sa[] += sb[])));
 }
 
 /***************************************************/

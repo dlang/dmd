@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -preview=rvaluerefparam
+REQUIRED_ARGS:
 RUN_OUTPUT:
 ---
 Success
@@ -327,8 +327,8 @@ int waz14(S)(ref S s) { return 2; }
 void test14()
 {
     // can not bind rvalue-sl with ref
-    static assert( __traits(compiles, foo14(S14a(0))));
-    static assert( __traits(compiles, foo14(S14b(0))));
+    static assert(!__traits(compiles, foo14(S14a(0))));
+    static assert(!__traits(compiles, foo14(S14b(0))));
     static assert(!__traits(compiles, hoo14(S14a(0))));
     static assert(!__traits(compiles, hoo14(S14b(0))));
     static assert(!__traits(compiles, poo14(S14a(0))));

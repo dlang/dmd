@@ -784,8 +784,6 @@ dmd -cov -unittest myprog.d
             "fix integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields",
             "destruct fields of partially constructed objects"),
-        Feature("rvaluerefparam", "rvalueRefParam",
-            "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
         Feature("in", "previewIn",
