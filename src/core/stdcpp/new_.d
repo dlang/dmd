@@ -69,7 +69,7 @@ void cpp_delete(T)(T* ptr) if (!is(T == class))
 void cpp_delete(T)(T instance) if (is(T == class))
 {
     destroy!false(instance);
-    __cpp_delete(instance);
+    __cpp_delete(cast(void*) instance);
 }
 
 
