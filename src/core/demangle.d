@@ -1007,7 +1007,6 @@ pure @safe:
         F       // D
         U       // C
         W       // Windows
-        V       // Pascal
         R       // C++
 
     FuncAttrs:
@@ -1086,10 +1085,6 @@ pure @safe:
         case 'W': // Windows
             popFront();
             put( "extern (Windows) " );
-            break;
-        case 'V': // Pascal
-            popFront();
-            put( "extern (Pascal) " );
             break;
         case 'R': // C++
             popFront();
@@ -2399,8 +2394,8 @@ private template isExternCPP(FT) if (is(FT == function))
 private template hasPlainMangling(FT) if (is(FT == function))
 {
     enum lnk = __traits(getLinkage, FT);
-    // C || Pascal || Windows
-    enum hasPlainMangling = lnk == "C" || lnk == "Pascal" || lnk == "Windows";
+    // C || Windows
+    enum hasPlainMangling = lnk == "C" || lnk == "Windows";
 }
 
 @safe pure nothrow unittest
@@ -2523,7 +2518,8 @@ else
          "pure @safe void testexpansion.s!(testexpansion.s!(int).s(int).Result).s(testexpansion.s!(int).s(int).Result).Result.foo()"],
         ["_D13testexpansion__T1sTSQw__TQjTiZQoFiZ6ResultZQBbFQBcZQq3fooMFNaNfZv",
          "pure @safe void testexpansion.s!(testexpansion.s!(int).s(int).Result).s(testexpansion.s!(int).s(int).Result).Result.foo()"],
-        // ambiguity on 'V', template value argument or pascal function
+        // formerly ambiguous on 'V', template value argument or pascal function
+        // pascal functions have now been removed (in v2.095.0)
         ["_D3std4conv__T7enumRepTyAaTEQBa12experimental9allocator15building_blocks15stats_collector7OptionsVQCti64ZQDnyQDh",
          "immutable(char[]) std.conv.enumRep!(immutable(char[]), std.experimental.allocator.building_blocks.stats_collector.Options, 64).enumRep"],
         // symbol back reference to location with symbol back reference
