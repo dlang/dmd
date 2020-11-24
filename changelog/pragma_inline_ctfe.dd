@@ -1,0 +1,39 @@
+Allow any compile-time argument in pragma(inline)
+
+Previously only `true` or `false` literals were allowed (the spec stated that integers worked, but they did not).
+
+Now the `pragma` can receive any compile-time expression convertible to `bool`, this expression will be evaluated only when the target function is actually used.
+
+For example, in the following code all three functions should be inlined:
+
+---
+pragma(inline, canInline("func1"))
+void func1() {}
+
+void func2()
+{
+    pragma(inline, canInline(__traits(identifier, __traits(parent, {}))));
+}
+
+pragma(inline, canInline("func3") || true)
+void func3() {}
+
+int canInline(string fname)
+{
+    switch (fname)
+    {
+        case "func1":
+        case "func2":
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+void main()
+{
+    func1();
+    func2();
+    func3();
+}
+---
