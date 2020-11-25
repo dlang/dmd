@@ -60,6 +60,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getOverloads)
     $(GLINK getParameterStorageClasses)
     $(GLINK getPointerBitmap)
+    $(GLINK getCppNamespaces)
     $(GLINK getProtection)
     $(GLINK getTargetInfo)
     $(GLINK getVirtualFunctions)
@@ -1127,6 +1128,25 @@ void main()
 ---
 )
 
+$(H2 $(GNAME getCppNamespaces))
+    $(P The argument is a symbol.
+    The result is a tuple of strings, possibly empty, that correspond to the namespaces the symbol resides in.
+    )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+extern(C++, "ns")
+struct Foo {}
+struct Bar {}
+extern(C++, __traits(getCppNamespaces, Foo)) struct Baz {}
+static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+void main()
+{
+    static assert(__traits(getCppNamespaces, Foo)[0] == "ns");
+    static assert(!__traits(getCppNamespaces, Bar).length);
+    static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+}
+---
+)
 
 $(H2 $(GNAME getProtection))
 

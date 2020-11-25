@@ -88,7 +88,7 @@ $(GNAME SymbolTail):
 
 $(GNAME TemplateSingleArgument):
     $(GLINK_LEX Identifier)
-    $(GLINK2 declaration, BasicTypeX)
+    $(GLINK2 declaration, FundamentalType)
     $(GLINK_LEX CharacterLiteral)
     $(GLINK_LEX StringLiteral)
     $(GLINK_LEX IntegerLiteral)

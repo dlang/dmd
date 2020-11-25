@@ -42,7 +42,7 @@ $(HEADERNAV_TOC)
     ---
 
 $(CONSOLE
-> dmd -betterC hello.d && ./hello
+$(GT) dmd -betterC hello.d && ./hello
 Hello betterC
 )
 
@@ -106,7 +106,7 @@ extern(C) void main()
 ---
 
 $(CONSOLE
-> dmd -betterC -unittest -run test.d
+$(GT) dmd -betterC -unittest -run test.d
 dmd_runpezoXK: foo.d:3: Assertion `0' failed.
 )
 

@@ -105,6 +105,46 @@ f = Foo.E;       // OK
 -------------------
 )
 
+    $(P A derived class can be implicitly converted to its base class, but going
+    the other way requires an explicit cast. For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+Base bd = new Derived();              // implicit conversion
+Derived db = cast(Derived)new Base(); // explicit conversion
+-------------------
+)
+
+    $(P A dynamic array, say `x`, of a derived class can be implicitly converted
+    to a dynamic array, say `y`, of a base class iff elements of `x` and `y` are
+    qualified as being either both `const` or `both` `immutable`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+const(Base)[] ca = (const(Derived)[]).init; // `const` elements
+immutable(Base)[] ia = (immutable(Derived)[]).init; // `immutable` elements
+-------------------
+)
+
+    $(P A static array, say `x`, of a derived class can be implicitly converted
+    to a static array, say `y`, of a base class iff elements of `x` and `y` are
+    qualified as being either both `const` or `both` `immutable` or both mutable
+    (neither `const` nor `immutable`).)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+Base[3] ma = (Derived[3]).init; // mutable elements
+const(Base)[3] ca = (const(Derived)[3]).init; // `const` elements
+immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
+-------------------
+)
+
 $(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
     $(P Integer Promotions are conversions of the following types:
@@ -227,8 +267,8 @@ $(P The bool type is a byte-size type that can only hold the value `true` or
 `false`.)
 
 $(P The only operators that can accept operands of type bool are: $(CODE_AMP)
-$(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =) $(D ^=) !
-$(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).)
+$(CODE_PIPE), $(D ^), $(CODE_AMP)$(D =), $(CODE_PIPE)$(D =), $(D ^=), !,
+$(CODE_AMP)$(CODE_AMP), $(CODE_PIPE)$(CODE_PIPE), and $(D ?:).)
 
 $(P A `bool` value can be implicitly converted to any integral type, with
 `false` becoming 0 and `true` becoming 1.)

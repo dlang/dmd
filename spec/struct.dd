@@ -105,7 +105,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
 
     $(OL
     $(LI it is not nested)
-    $(LI it has no postblits, destructors, or assignment operators)
+    $(LI it has no postblits, copy constructors, destructors, or assignment operators)
     $(LI it has no `ref` fields or fields that are themselves non-POD)
     )
 
@@ -902,8 +902,8 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     )
 
-    $(P When a copy constructor is defined for a `struct`, all
-    implicit blitting is disabled for that `struct`:
+    $(P When a copy constructor is defined for a `struct` (or marked `@disable`), the compiler no
+    longer implicitly generates default copy/blitting constructors for that `struct`:
     )
     ---
     struct A
@@ -917,7 +917,7 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     void main()
     {
         immutable A a;
-        fun(a);          // error: copy constructor cannot be called with types (immutable) immutable
+        fun(a);        // error: copy constructor cannot be called with types (immutable) immutable
     }
     ---
 
@@ -1009,8 +1009,12 @@ $(GNAME Postblit):
 
     $(P WARNING: The postblit is considered legacy and is not recommended for new code.
     Code should use $(RELATIVE_LINK2 struct-copy-constructor, copy constructors)
-    defined in the previous section. For backward compatibility reasons, a `struct` that defines
-    both a copy constructor and a postblit will only use the postblit for implicit copying.)
+    defined in the previous section. For backward compatibility reasons, a `struct` that
+    explicitly defines both a copy constructor and a postblit will only use the postblit
+    for implicit copying. However, if the postblit is disabled, the copy constructor will
+    be used. If a struct defines a copy constructor and has fields that define
+    postblits, the user-defined copy constructor will have priority over the generated
+    postblit.)
 
         $(P $(I Copy construction) is defined as initializing
          a struct instance from another struct of the same type.

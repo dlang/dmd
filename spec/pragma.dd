@@ -139,7 +139,7 @@ $(H3 $(LNAME2 inline, $(D pragma inline)))
      affects the functions declared in the block it controls. If inside a function, it
      affects the function it is enclosed by.)
 
-     $(P It takes three forms:)
+     $(P It takes two forms:)
      $(OL
         $(LI
 ---
@@ -149,15 +149,9 @@ pragma(inline)
         )
         $(LI
 ---
-pragma(inline, false)
+pragma(inline, boolean_expression)
 ---
-        Functions are never inlined.
-        )
-        $(LI
----
-pragma(inline, true)
----
-        Always inline the functions.
+        If the expression evaluates to false the functions are never inlined, otherwise they are always inlined.
         )
       )
 

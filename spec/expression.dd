@@ -1347,8 +1347,8 @@ $(GNAME PrimaryExpression):
     $(GLINK MixinExpression)
     $(GLINK ImportExpression)
     $(GLINK NewExpressionWithArgs)
-    $(GLINK2 declaration, BasicTypeX) $(D .) $(IDENTIFIER)
-    $(GLINK2 declaration, BasicTypeX) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 declaration, FundamentalType) $(D .) $(IDENTIFIER)
+    $(GLINK2 declaration, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 declaration, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
     $(GLINK2 declaration, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 declaration, Typeof)
@@ -1658,9 +1658,9 @@ $(GNAME FunctionLiteralBody):
         $(I Type) is the return type of the function or delegate,
         if omitted it is inferred from any $(I ReturnStatement)s
         in the $(I FunctionLiteralBody).
-        $(D $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
-        forms the arguments to the function.
-        If omitted it defaults to the empty argument list $(D ( )).
+        $(GLINK ParameterWithAttributes) or $(GLINK ParameterWithMemberAttributes)
+        can be used to specify the parameters for the function. If these are
+        omitted, the function defaults to the empty parameter list $(D ( )).
         The type of a function literal is pointer to function or
         pointer to delegate.
         If the keywords $(D function) or $(D delegate) are omitted,
