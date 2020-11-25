@@ -1,3 +1,4 @@
+
 // This file is part of Visual D
 //
 // Visual D integrates the D programming language into Visual Studio
@@ -110,7 +111,6 @@ enum AttrBits
     ExternCPP,
     ExternD,
     ExternWindows,
-    ExternPascal,
     ExternSystem,
     Export,
     Align,
@@ -124,7 +124,7 @@ enum AttrBits
 mixin(genFlagsEnum("", "Attr_", [__traits(allMembers,AttrBits)]));
 
 enum Attr_AlignMask  = Attr_Align | Attr_Align1 | Attr_Align2 | Attr_Align4 | Attr_Align8 | Attr_Align16;
-enum Attr_CallMask   = Attr_ExternC | Attr_ExternCPP | Attr_ExternD | Attr_ExternWindows | Attr_ExternPascal | Attr_ExternSystem;
+enum Attr_CallMask   = Attr_ExternC | Attr_ExternCPP | Attr_ExternD | Attr_ExternWindows | Attr_ExternSystem;
 enum Attr_ShareMask  = Attr_Shared | Attr_Gshared | Attr_Thread;
 
 alias uint Attribute;
@@ -219,7 +219,6 @@ string attrToString(Attribute attr)
         case Attr_ExternCPP:     return "extern(C++)";
         case Attr_ExternD:       return "extern(D)";
         case Attr_ExternWindows: return "extern(Windows)";
-        case Attr_ExternPascal:  return "extern(Pascal)";
         case Attr_ExternSystem:  return "extern(System)";
         case Attr_Export:        return "export";
         case Attr_Align:         return "align";
@@ -258,7 +257,6 @@ string attrToStringC(Attribute attr)
         case Attr_ExternCPP:     return "";
         case Attr_ExternD:       return "";
         case Attr_ExternWindows: return "__stdcall";
-        case Attr_ExternPascal:  return "__pascal";
         case Attr_ExternSystem:  return "__stdcall";
         case Attr_Export:        return "__declspec(dllexport)";
         case Attr_Align:         return "__declspec(align(4))";

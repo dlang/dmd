@@ -89,6 +89,7 @@ SRCS=\
 	src\core\stdcpp\string.d \
 	src\core\stdcpp\string_view.d \
 	src\core\stdcpp\type_traits.d \
+	src\core\stdcpp\utility.d \
 	src\core\stdcpp\vector.d \
 	src\core\stdcpp\xutility.d \
 	\
@@ -516,6 +517,8 @@ SRCS=\
 	src\rt\memset.d \
 	src\rt\minfo.d \
 	src\rt\monitor_.d \
+	src\rt\msvc.d \
+	src\rt\msvc_math.d \
 	src\rt\profilegc.d \
 	src\rt\qsort.d \
 	src\rt\sections.d \

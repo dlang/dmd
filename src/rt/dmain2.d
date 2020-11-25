@@ -11,29 +11,27 @@
 
 module rt.dmain2;
 
-private
-{
-    import rt.memory;
-    import rt.sections;
-    import core.atomic;
-    import core.stdc.stddef;
-    import core.stdc.stdlib;
-    import core.stdc.string;
-    import core.stdc.stdio;   // for printf()
-    import core.stdc.errno : errno;
-}
+import rt.memory;
+import rt.sections;
+import core.atomic;
+import core.stdc.stddef;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.stdio;   // for printf()
+import core.stdc.errno : errno;
 
 version (Windows)
 {
-    private import core.stdc.wchar_;
-    private import core.sys.windows.basetsd /+: HANDLE+/;
-    private import core.sys.windows.shellapi /+: CommandLineToArgvW+/;
-    private import core.sys.windows.winbase /+: FreeLibrary, GetCommandLineW, GetProcAddress,
-        IsDebuggerPresent, LoadLibraryA, LoadLibraryW, LocalFree, WriteFile+/;
-    private import core.sys.windows.wincon /+: CONSOLE_SCREEN_BUFFER_INFO, GetConsoleOutputCP, GetConsoleScreenBufferInfo+/;
-    private import core.sys.windows.winnls /+: CP_UTF8, MultiByteToWideChar, WideCharToMultiByte+/;
-    private import core.sys.windows.winnt /+: WCHAR+/;
-    private import core.sys.windows.winuser /+: MB_ICONERROR, MessageBoxW+/;
+    import core.stdc.wchar_;
+    import core.sys.windows.basetsd : HANDLE;
+    import core.sys.windows.shellapi : CommandLineToArgvW;
+    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress,
+        IsDebuggerPresent, LoadLibraryA, LoadLibraryW, LocalFree, WriteFile;
+    import core.sys.windows.wincon : CONSOLE_SCREEN_BUFFER_INFO, GetConsoleOutputCP,
+        GetConsoleScreenBufferInfo;
+    import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar, WideCharToMultiByte;
+    import core.sys.windows.winnt : WCHAR;
+    import core.sys.windows.winuser : MB_ICONERROR, MessageBoxW;
 
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
 }
@@ -452,15 +450,8 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
     version (CRuntime_Microsoft)
     {
         // enable full precision for reals
-        version (GNU)
+        version (D_InlineAsm_X86_64)
         {
-            size_t fpu_cw;
-            asm { "fstcw %0" : "=m" (fpu_cw); }
-            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
-                                       // 111111: mask all FP exceptions
-            asm { "fldcw %0" : "=m" (fpu_cw); }
-        }
-        else version (Win64)
             asm
             {
                 push    RAX;
@@ -470,7 +461,8 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
                 fldcw   word ptr [RSP];
                 pop     RAX;
             }
-        else version (Win32)
+        }
+        else version (D_InlineAsm_X86)
         {
             asm
             {

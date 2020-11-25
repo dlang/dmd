@@ -123,11 +123,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -170,11 +170,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -252,11 +252,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -312,11 +312,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -376,11 +376,11 @@ version (CRuntime_Glibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -517,11 +517,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -599,11 +599,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -694,11 +694,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -779,11 +779,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -856,11 +856,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -920,11 +920,11 @@ version (CRuntime_Glibc)
                 __timespec st_atim;
                 __timespec st_mtim;
                 __timespec st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -1078,36 +1078,82 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    import core.sys.freebsd.config;
+
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h
-
-    struct stat_t
+    static if (__FreeBSD_version >= INO64_FIRST)
     {
-        dev_t       st_dev;
-        ino_t       st_ino;
-        mode_t      st_mode;
-        nlink_t     st_nlink;
-        uid_t       st_uid;
-        gid_t       st_gid;
-        dev_t       st_rdev;
+        struct stat_t
+        {
+            dev_t     st_dev;
+            ino_t     st_ino;
+            nlink_t   st_nlink;
+            mode_t    st_mode;
+            short st_padding0;
+            uid_t     st_uid;
+            gid_t     st_gid;
+            int st_padding1;
+            dev_t     st_rdev;
 
-        time_t      st_atime;
-        c_long      __st_atimensec;
-        time_t      st_mtime;
-        c_long      __st_mtimensec;
-        time_t      st_ctime;
-        c_long      __st_ctimensec;
+            version (X86) int st_atim_ext;
+            timespec  st_atim;
 
-        off_t       st_size;
-        blkcnt_t    st_blocks;
-        blksize_t   st_blksize;
-        fflags_t    st_flags;
-        uint        st_gen;
-        int         st_lspare;
+            version (X86) int st_mtim_ext;
+            timespec  st_mtim;
 
-        time_t      st_birthtime;
-        c_long      st_birthtimensec;
+            version (X86) int st_ctim_ext;
+            timespec  st_ctim;
 
-        ubyte[16 - timespec.sizeof] padding;
+            version (X86) int st_btim_ext;
+            timespec  st_birthtim;
+
+            off_t     st_size;
+            blkcnt_t st_blocks;
+            blksize_t st_blksize;
+            fflags_t  st_flags;
+            ulong st_gen;
+            ulong[10] st_spare;
+
+            extern(D) @safe @property inout pure nothrow
+            {
+                ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                ref inout(time_t) st_birthtime() return { return st_birthtim.tv_sec; }
+            }
+        }
+    }
+    else
+    {
+        struct stat_t
+        {
+            uint        st_dev;
+            uint        st_ino;
+            mode_t      st_mode;
+            ushort      st_nlink;
+            uid_t       st_uid;
+            gid_t       st_gid;
+            uint        st_rdev;
+            timespec    st_atim;
+            timespec    st_mtim;
+            timespec    st_ctim;
+            off_t       st_size;
+            blkcnt_t    st_blocks;
+            blksize_t   st_blksize;
+            fflags_t    st_flags;
+            uint        st_gen;
+            int         st_lspare;
+            timespec    st_birthtim;
+            ubyte[16 - timespec.sizeof] padding;
+
+            extern(D) @safe @property inout pure nothrow
+            {
+                ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                ref inout(time_t) st_birthtime() return { return st_birthtim.tv_sec; }
+            }
+        }
     }
 
     enum S_IRUSR    = 0x100; // octal 0000400
@@ -1236,11 +1282,11 @@ else version (OpenBSD)
         timespec  st_atim;
         timespec  st_mtim;
         timespec  st_ctim;
-        extern(D)
+        extern(D) @safe @property inout pure nothrow
         {
-            @property ref time_t st_atime() { return st_atim.tv_sec; }
-            @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-            @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+            ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+            ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+            ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
         }
       }
       else
@@ -1973,11 +2019,11 @@ else version (CRuntime_UClibc)
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
-                extern(D)
+                extern(D) @safe @property inout pure nothrow
                 {
-                    @property ref time_t st_atime() { return st_atim.tv_sec; }
-                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
-                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
             else
@@ -2210,9 +2256,18 @@ else version (Darwin)
     // inode functions by appending $INODE64 to newer 64-bit inode functions.
     version (OSX)
     {
-        pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
-        pragma(mangle, "lstat$INODE64") int lstat(const scope char*, stat_t*);
-        pragma(mangle, "stat$INODE64")  int stat(const scope char*, stat_t*);
+        version (AArch64)
+        {
+            int fstat(int, stat_t*);
+            int lstat(const scope char*, stat_t*);
+            int stat(const scope char*, stat_t*);
+        }
+        else
+        {
+            pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
+            pragma(mangle, "lstat$INODE64") int lstat(const scope char*, stat_t*);
+            pragma(mangle, "stat$INODE64")  int stat(const scope char*, stat_t*);
+        }
     }
     else
     {
@@ -2223,9 +2278,18 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    pragma(mangle, "fstat@FBSD_1.0") int   fstat(int, stat_t*);
-    pragma(mangle, "lstat@FBSD_1.0") int   lstat(const scope char*, stat_t*);
-    pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
+    static if (__FreeBSD_version >= INO64_FIRST)
+    {
+        pragma(mangle, "fstat@FBSD_1.5") int   fstat(int, stat_t*);
+        pragma(mangle, "lstat@FBSD_1.5") int   lstat(const scope char*, stat_t*);
+        pragma(mangle, "stat@FBSD_1.5")  int   stat(const scope char*, stat_t*);
+    }
+    else
+    {
+        pragma(mangle, "fstat@FBSD_1.0") int   fstat(int, stat_t*);
+        pragma(mangle, "lstat@FBSD_1.0") int   lstat(const scope char*, stat_t*);
+        pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
+    }
 }
 else version (NetBSD)
 {
@@ -2345,7 +2409,10 @@ else version (FreeBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);
+    static if (__FreeBSD_version >= INO64_FIRST)
+        pragma(mangle, "mknod@FBSD_1.5") int mknod(const scope char*, mode_t, dev_t);
+    else
+        pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);
 }
 else version (NetBSD)
 {

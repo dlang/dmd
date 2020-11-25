@@ -1038,8 +1038,13 @@ struct GC
         GC.runFinalizers((cast(const void*)typeid(Resource).destructor)[0..1]);
         assert(Resource.outcome == Outcome.calledFromDruntime);
         Resource.outcome = Outcome.notCalled;
-        r.destroy;
-        assert(Resource.outcome == Outcome.notCalled);
+
+        debug(MEMSTOMP) {} else
+        {
+            // assume Resource data is still available
+            r.destroy;
+            assert(Resource.outcome == Outcome.notCalled);
+        }
 
         r = new Resource;
         assert(Resource.outcome == Outcome.notCalled);

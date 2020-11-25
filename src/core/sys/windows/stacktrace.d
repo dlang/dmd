@@ -14,7 +14,6 @@ version (Windows):
 @system:
 
 import core.demangle;
-import core.runtime;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.windows.dbghelp;

@@ -59,6 +59,23 @@ template Unqual(T)
     }
 }
 
+template BaseElemOf(T)
+{
+    static if (is(T == E[N], E, size_t N))
+        alias BaseElemOf = BaseElemOf!E;
+    else
+        alias BaseElemOf = T;
+}
+
+unittest
+{
+    static assert(is(BaseElemOf!(int) == int));
+    static assert(is(BaseElemOf!(int[1]) == int));
+    static assert(is(BaseElemOf!(int[1][2]) == int));
+    static assert(is(BaseElemOf!(int[1][]) == int[1][]));
+    static assert(is(BaseElemOf!(int[][1]) == int[]));
+}
+
 // [For internal use]
 template ModifyTypePreservingTQ(alias Modifier, T)
 {
@@ -250,9 +267,9 @@ if (is(T == class))
 /// See $(REF hasElaborateMove, std,traits)
 template hasElaborateMove(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (__traits(isStaticArray, S))
     {
-        enum bool hasElaborateMove = hasElaborateMove!(typeof(S.init[0]));
+        enum bool hasElaborateMove = S.sizeof && hasElaborateMove!(BaseElemOf!S);
     }
     else static if (is(S == struct))
     {
@@ -269,9 +286,9 @@ template hasElaborateMove(S)
 // std.traits.hasElaborateDestructor
 template hasElaborateDestructor(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (__traits(isStaticArray, S))
     {
-        enum bool hasElaborateDestructor = hasElaborateDestructor!(typeof(S.init[0]));
+        enum bool hasElaborateDestructor = S.sizeof && hasElaborateDestructor!(BaseElemOf!S);
     }
     else static if (is(S == struct))
     {
@@ -287,9 +304,9 @@ template hasElaborateDestructor(S)
 // std.traits.hasElaborateCopyDestructor
 template hasElaborateCopyConstructor(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (__traits(isStaticArray, S))
     {
-        enum bool hasElaborateCopyConstructor = hasElaborateCopyConstructor!(typeof(S.init[0]));
+        enum bool hasElaborateCopyConstructor = S.sizeof && hasElaborateCopyConstructor!(BaseElemOf!S);
     }
     else static if (is(S == struct))
     {
@@ -311,6 +328,7 @@ template hasElaborateCopyConstructor(S)
     }
 
     static assert(hasElaborateCopyConstructor!S);
+    static assert(!hasElaborateCopyConstructor!(S[0][1]));
 
     static struct S2
     {
@@ -332,9 +350,9 @@ template hasElaborateCopyConstructor(S)
 
 template hasElaborateAssign(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (__traits(isStaticArray, S))
     {
-        enum bool hasElaborateAssign = hasElaborateAssign!(typeof(S.init[0]));
+        enum bool hasElaborateAssign = S.sizeof && hasElaborateAssign!(BaseElemOf!S);
     }
     else static if (is(S == struct))
     {
@@ -352,8 +370,8 @@ template hasIndirections(T)
 {
     static if (is(T == struct) || is(T == union))
         enum hasIndirections = anySatisfy!(.hasIndirections, Fields!T);
-    else static if (__traits(isStaticArray, T) && is(T : E[N], E, size_t N))
-        enum hasIndirections = is(E == void) ? true : hasIndirections!E;
+    else static if (is(T == E[N], E, size_t N))
+        enum hasIndirections = T.sizeof && is(E == void) ? true : hasIndirections!(BaseElemOf!E);
     else static if (isFunctionPointer!T)
         enum hasIndirections = false;
     else

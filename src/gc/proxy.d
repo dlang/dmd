@@ -76,7 +76,7 @@ extern (C)
             }
             _instance = newInstance;
             // Transfer all ranges and roots to the real GC.
-            (cast(ProtoGC) protoInstance).term();
+            (cast(ProtoGC) protoInstance).transferRangesAndRoots();
             isInstanceInit = true;
         }
         instanceLock.unlock();

@@ -627,7 +627,6 @@ class DeclarationBlock
 //    "C" ++
 //    "D"
 //    "Windows"
-//    "Pascal"
 //    "System"
 class LinkageAttribute
 {
@@ -691,7 +690,6 @@ Attribute tokenToLinkageType(Token tok)
         case "C":       return Attr_ExternC;
         case "D":       return Attr_ExternD;
         case "Windows": return Attr_ExternWindows;
-        case "Pascal":  return Attr_ExternPascal;
         case "System":  return Attr_ExternSystem;
         default:        return 0;
     }

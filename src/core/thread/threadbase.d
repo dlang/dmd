@@ -353,7 +353,11 @@ class ThreadBase
     {
         static void resize(ref ThreadBase[] buf, size_t nlen)
         {
-            buf = (cast(ThreadBase*)realloc(buf.ptr, nlen * size_t.sizeof))[0 .. nlen];
+            import core.exception: onOutOfMemoryError;
+
+            auto newBuf = cast(ThreadBase*)realloc(buf.ptr, nlen * size_t.sizeof);
+            if (newBuf is null) onOutOfMemoryError();
+            buf = newBuf[0 .. nlen];
         }
         auto buf = getAllImpl!resize;
         scope(exit) if (buf.ptr) free(buf.ptr);
@@ -750,7 +754,7 @@ package(core.thread):
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
 
-private alias attachThread = externDFunc!("core.thread.osthread.attachThread", ThreadBase function(ThreadBase) @nogc);
+private alias attachThread = externDFunc!("core.thread.osthread.attachThread", ThreadBase function(ThreadBase) @nogc nothrow);
 
 extern (C) void _d_monitordelete_nogc(Object h) @nogc;
 
@@ -963,7 +967,7 @@ package __gshared bool multiThreadedFlag = false;
 // Used for suspendAll/resumeAll below.
 package __gshared uint suspendDepth = 0;
 
-private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow);
+private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow @nogc);
 
 /**
  * Resume all threads but the calling thread for "stop the world" garbage
@@ -1076,6 +1080,8 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
     {
         static if (isStackGrowingDown)
         {
+            assert(c.tstack <= c.bstack, "stack bottom can't be less than top");
+
             // NOTE: We can't index past the bottom of the stack
             //       so don't do the "+1" if isStackGrowingDown.
             if (c.tstack && c.tstack < c.bstack)
@@ -1083,6 +1089,8 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
         }
         else
         {
+            assert(c.bstack <= c.tstack, "stack top can't be less than bottom");
+
             if (c.bstack && c.bstack < c.tstack)
                 scan(ScanType.stack, c.bstack, c.tstack + 1);
         }
