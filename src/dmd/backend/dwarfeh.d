@@ -21,9 +21,6 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.outbuf;
 
-static if (ELFOBJ || MACHOBJ)
-{
-
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
 
@@ -222,12 +219,13 @@ static if (1)
         DwEhTableEntry *d = deh.index(i);
         if (d.start < d.end)
         {
-static if (ELFOBJ)
-                auto WRITE = &cstbuf.writeuLEB128;
-else static if (MACHOBJ)
-                auto WRITE = &cstbuf.write32;
-else
-                assert(0);
+                void WRITE(uint v)
+                {
+                    if (ELFOBJ)
+                        cstbuf.writeuLEB128(v);
+                    else
+                        cstbuf.write32(v);
+                }
 
                 uint CallSiteStart = cast(uint)(d.start - startblock.Boffset);
                 WRITE(CallSiteStart);
@@ -343,7 +341,7 @@ static if (ELFOBJ)
 else static if (MACHOBJ)
     const ubyte CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_udata4;
 else
-    assert(0);
+    const ubyte CallSiteFormat = 0;
 
     et.writeByte(CallSiteFormat);
     et.writeuLEB128(CallSiteTableSize);
@@ -368,7 +366,8 @@ else
          *         32: [0] address x004c pcrel 0 length 2 value x224 type 4 RELOC_LOCAL_SECTDIFF
          *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
          */
-        dwarf_reftoident(seg, et.length(), s, 0);
+        static if (ELFOBJ || MACHOBJ)
+            dwarf_reftoident(seg, et.length(), s, 0);
     }
     assert(TToffset == et.length() - startsize);
 }
@@ -589,4 +588,3 @@ void unittest_dwarfeh()
     unittest_actionTableInsert();
 }
 
-}

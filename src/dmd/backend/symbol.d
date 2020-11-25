@@ -44,6 +44,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -86,66 +87,6 @@ void struct_free(struct_t *st) { }
 func_t* func_calloc() { return cast(func_t *) calloc(1, func_t.sizeof); }
 void func_free(func_t* f) { free(f); }
 
-/*********************************
- * Allocate/free symbol table.
- */
-
-extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_REALLOC(tab, symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) realloc(tab, symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_malloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_MALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) malloc(symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_calloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_CALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) calloc(symmax, (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-void symtab_free(Symbol **tab)
-{
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-        MEM_PH_FREE(tab);
-    else if (tab)
-        free(tab);
-}
-
 /*******************************
  * Type out symbol information.
  */
@@ -159,7 +100,7 @@ version (COMPILE)
     if (!s) return;
     printf("symbol %p '%s'\n ",s,s.Sident.ptr);
     printf(" Sclass = "); WRclass(cast(SC) s.Sclass);
-    printf(" Ssymnum = %d",s.Ssymnum);
+    printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
     printf(" Sseg = %d\n",s.Sseg);
 //  printf(" Ssize   = x%02x\n",s.Ssize);
@@ -388,7 +329,7 @@ debug
     s.id = Symbol.IDsymbol;
 }
     memcpy(s.Sident.ptr,id,len + 1);
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     return s;
 }
 
@@ -468,13 +409,13 @@ version (SCPP_HTOD)
     //printf("symbol_genauto(t) '%s'\n", s.Sident.ptr);
     if (pstate.STdefertemps)
     {   symbol_keep(s);
-        s.Ssymnum = -1;
+        s.Ssymnum = SYMIDX.max;
     }
     else
     {   s.Sflags |= SFLfree;
         if (init_staticctor)
         {   // variable goes into _STI_xxxx
-            s.Ssymnum = -1;            // deferred allocation
+            s.Ssymnum = SYMIDX.max;            // deferred allocation
 //printf("test2\n");
 //if (s.Sident[4] == '2') *(char*)0=0;
         }
@@ -908,9 +849,9 @@ debug
 
                 debug assert(f);
                 blocklist_free(&f.Fstartblock);
-                freesymtab(f.Flocsym.tab,0,f.Flocsym.top);
+                freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
-                symtab_free(f.Flocsym.tab);
+                f.Flocsym.dtor();
               if (CPP)
               {
                 if (f.Fflags & Fnotparent)
@@ -1118,7 +1059,7 @@ static if (0)
 private void symbol_undef(Symbol *s)
 {
   s.Sclass = SCunde;
-  s.Ssymnum = -1;
+  s.Ssymnum = SYMIDX.max;
   type_free(s.Stype);                  /* free type data               */
   s.Stype = null;
 }
@@ -1130,46 +1071,37 @@ private void symbol_undef(Symbol *s)
 
 SYMIDX symbol_add(Symbol *s)
 {
-    return symbol_add(cstate.CSpsymtab, s);
+    return symbol_add(*cstate.CSpsymtab, s);
 }
 
-SYMIDX symbol_add(symtab_t* symtab, Symbol* s)
-{   SYMIDX sitop;
-
-    //printf("symbol_add('%s')\n", s.Sident.ptr);
-debug
+SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
 {
-    if (!s || !s.Sident[0])
-    {   printf("bad symbol\n");
-        assert(0);
+    //printf("symbol_add('%s')\n", s.Sident.ptr);
+    debug
+    {
+        if (!s || !s.Sident[0])
+        {   printf("bad symbol\n");
+            assert(0);
+        }
     }
-}
     symbol_debug(s);
     if (pstate.STinsizeof)
     {   symbol_keep(s);
-        return -1;
+        return SYMIDX.max;
     }
-    debug assert(symtab);
-    sitop = symtab.top;
-    assert(sitop <= symtab.symmax);
-    if (sitop == symtab.symmax)
-    {
-debug
-    enum SYMINC = 1;                       /* flush out reallocation bugs  */
-else
-    enum SYMINC = 99;
-
-        symtab.symmax += (symtab == &globsym) ? SYMINC : 1;
-        //assert(symtab.symmax * (Symbol *).sizeof < 4096 * 4);
-        symtab.tab = symtab_realloc(symtab.tab, symtab.symmax);
-    }
-    symtab.tab[sitop] = s;
+    const sitop = symtab.length;
+    symtab.setLength(sitop + 1);
+    symtab[sitop] = s;
 
     debug if (debugy)
-        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.top);
+        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr, cast(int) symtab.length);
 
-    assert(s.Ssymnum == -1);
-    return s.Ssymnum = symtab.top++;
+    debug if (s.Ssymnum != SYMIDX.max)
+        printf("symbol %s already added\n", s.Sident.ptr);
+    assert(s.Ssymnum == SYMIDX.max);
+    s.Ssymnum = sitop;
+
+    return sitop;
 }
 
 /********************************************
@@ -1177,50 +1109,47 @@ else
  * Returns:
  *      position in table
  */
-SYMIDX symbol_insert(symtab_t* symtab, Symbol* s, SYMIDX n)
+SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
 {
     const sinew = symbol_add(s);        // added at end, have to move it
     for (SYMIDX i = sinew; i > n; --i)
     {
-        symtab.tab[i] = symtab.tab[i - 1];
-        symtab.tab[i].Ssymnum += 1;
+        symtab[i] = symtab[i - 1];
+        symtab[i].Ssymnum += 1;
     }
-    globsym.tab[n] = s;
+    globsym[n] = s;
     s.Ssymnum = n;
     return n;
 }
 
 /****************************
- * Free up the symbol table, from symbols n1 through n2, not
- * including n2.
+ * Free up the symbols stab[n1 .. n2]
  */
 
 void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
-{   SYMIDX si;
-
+{
     if (!stab)
         return;
 
     debug if (debugy)
-        printf("freesymtab(from %d to %d)\n",n1,n2);
+        printf("freesymtab(from %d to %d)\n", cast(int) n1, cast(int) n2);
 
-    assert(stab != globsym.tab || (n1 <= n2 && n2 <= globsym.top));
-    for (si = n1; si < n2; si++)
-    {   Symbol *s;
-
-        s = stab[si];
+    assert(stab != globsym[].ptr || (n1 <= n2 && n2 <= globsym.length));
+    foreach (ref s; stab[n1 .. n2])
+    {
         if (s && s.Sflags & SFLfree)
-        {   stab[si] = null;
+        {
 
-debug
-{
-            if (debugy)
-                printf("Freeing %p '%s' (%d)\n",s,s.Sident.ptr,si);
-            symbol_debug(s);
-}
+            debug
+            {
+                if (debugy)
+                    printf("Freeing %p '%s'\n",s,s.Sident.ptr);
+                symbol_debug(s);
+            }
             s.Sl = s.Sr = null;
-            s.Ssymnum = -1;
+            s.Ssymnum = SYMIDX.max;
             symbol_free(s);
+            s = null;
         }
     }
 }
@@ -1238,7 +1167,7 @@ Symbol * symbol_copy(Symbol *s)
     scopy = symbol_calloc(s.Sident.ptr);
     memcpy(scopy,s,Symbol.sizeof - s.Sident.sizeof);
     scopy.Sl = scopy.Sr = scopy.Snext = null;
-    scopy.Ssymnum = -1;
+    scopy.Ssymnum = SYMIDX.max;
     if (scopy.Sdt)
     {
         auto dtb = DtBuilder(0);
@@ -1394,8 +1323,8 @@ Symbol *symbol_hydrate(Symbol **ps)
             blocklist_hydrate(&f.Fstartblock);
 
             ph_hydrate(cast(void**)&f.Flocsym.tab);
-            for (si = 0; si < f.Flocsym.top; si++)
-                symbol_hydrate(&f.Flocsym.tab[si]);
+            for (si = 0; si < f.Flocsym.length; si++)
+                symbol_hydrate(&f.Flocsym[].ptr[si]);
 
             srcpos_hydrate(&f.Fstartline);
             srcpos_hydrate(&f.Fendline);
@@ -1599,13 +1528,13 @@ version (DEBUG_XSYMGEN)
 
 version (DEBUG_XSYMGEN)
 {
-            if (!xsym_gen || !ph_in_head(f.Flocsym.tab))
-                for (si = 0; si < f.Flocsym.top; si++)
+            if (!xsym_gen || !ph_in_head(f.Flocsym[].ptr))
+                for (si = 0; si < f.Flocsym.length; si++)
                     symbol_dehydrate(&f.Flocsym.tab[si]);
 }
 else
 {
-            for (si = 0; si < f.Flocsym.top; si++)
+            for (si = 0; si < f.Flocsym.length; si++)
                 symbol_dehydrate(&f.Flocsym.tab[si]);
 }
             ph_dehydrate(&f.Flocsym.tab);
@@ -2231,8 +2160,8 @@ void symboltable_clean(Symbol *s)
                     debug assert(f);
 
                     list_apply(&f.Fsymtree,cast(list_free_fp)&symboltable_clean);
-                    for (si = 0; si < f.Flocsym.top; si++)
-                        symboltable_clean(f.Flocsym.tab[si]);
+                    for (si = 0; si < f.Flocsym.length; si++)
+                        symboltable_clean(f.Flocsym[si]);
                     if (f.Foversym)
                         symboltable_clean(f.Foversym);
                     if (f.Fexplicitspec)

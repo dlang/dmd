@@ -32,6 +32,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -458,14 +459,14 @@ void genObjFile(Module m, bool multiobj)
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
-        if (config.exe == EX_WIN64)
+        if (global.params.isWindows && global.params.is64bit)
         {
             ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
             ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
         elem *efilename = toEfilename(m);
-        if (config.exe == EX_WIN64)
+        if (global.params.isWindows && global.params.is64bit)
             efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_params(
@@ -662,7 +663,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             // functions without D or C++ name mangling mixed in at global scope
             // shouldn't have multiple definitions
             if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
-                fd.linkage == LINK.pascal || fd.linkage == LINK.objc))
+                fd.linkage == LINK.objc))
             {
                 const q = p.toParent();
                 if (q && q.isModule())
@@ -874,7 +875,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+                sp.Sclass = (global.params.isWindows && global.params.is64bit) ? SCshadowreg : SCfastpar;
                 sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
             }
         }
@@ -1128,7 +1129,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.external_def("main");
         }
-        else if (config.exe == EX_WIN32)
+        else if (global.params.isWindows && !global.params.is64bit)
         {
             objmod.external_def("_main");
             objmod.external_def("__acrtused_con");
@@ -1152,7 +1153,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
-        else if (config.exe == EX_WIN32)
+        else if (global.params.isWindows && !global.params.is64bit)
         {
             objmod.external_def("__acrtused_con");        // bring in C startup code
             objmod.includelib("snn.lib");          // bring in C runtime library
@@ -1208,7 +1209,7 @@ private bool onlyOneMain(Loc loc)
         if (global.params.addMain)
             msg = ", -main switch added another `main()`";
         const(char)* otherMainNames = "";
-        if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
+        if (global.params.isWindows)
             otherMainNames = ", `WinMain`, or `DllMain`";
         error(loc, "only one `main`%s allowed%s. Previously found `main` at %s",
             otherMainNames, msg, lastLoc.toChars());
@@ -1327,10 +1328,6 @@ tym_t totym(Type tx)
                     if (global.params.is64bit)
                         goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
-                    break;
-
-                case LINK.pascal:
-                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:

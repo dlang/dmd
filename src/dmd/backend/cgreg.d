@@ -31,6 +31,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -53,7 +54,7 @@ private __gshared
     Barray!int weights;
 }
 
-ref int WEIGHTS(int bi, int si) { return weights[bi * globsym.top + si]; }
+ref int WEIGHTS(int bi, int si) { return weights[bi * globsym.length + si]; }
 
 /******************************************
  */
@@ -64,8 +65,8 @@ void cgreg_init()
         return;
 
     // Use calloc() instead because sometimes the alloc is too large
-    //printf("1weights: dfo.length = %d, globsym.top = %d\n", dfo.length, globsym.top);
-    weights.setLength(dfo.length * globsym.top);
+    //printf("1weights: dfo.length = %d, globsym.length = %d\n", dfo.length, globsym.length);
+    weights.setLength(dfo.length * globsym.length);
     weights[] = 0;
 
     nretblocks = 0;
@@ -82,9 +83,9 @@ void cgreg_init()
     memset(regrange.ptr, 0, regrange.sizeof);
 
     // Make adjustments to symbols we might stick in registers
-    for (size_t i = 0; i < globsym.top; i++)
+    for (size_t i = 0; i < globsym.length; i++)
     {   uint sz;
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
 
         //printf("considering candidate '%s' for register\n",s.Sident);
 
@@ -153,9 +154,9 @@ void cgreg_term()
 {
     if (config.flags4 & CFG4optimized)
     {
-        for (size_t i = 0; i < globsym.top; i++)
+        for (size_t i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
             vec_free(s.Srange);
             vec_free(s.Slvreg);
             s.Srange = null;
@@ -239,12 +240,12 @@ private void el_weights(int bi,elem *e,uint weight)
             {
                 case OPvar:
                     Symbol *s = e.EV.Vsym;
-                    if (s.Ssymnum != -1 && s.Sflags & GTregcand)
+                    if (s.Ssymnum != SYMIDX.max && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
                         //printf("adding %d weight to '%s' (block %d, Ssymnum %d), giving Sweight %d\n",weight,s.Sident.ptr,bi,s.Ssymnum,s.Sweight);
                         if (weights)
-                            WEIGHTS(bi,s.Ssymnum) += weight;
+                            WEIGHTS(bi,cast(int)s.Ssymnum) += weight;
                     }
                     break;
 
@@ -274,7 +275,7 @@ private int cgreg_benefit(Symbol *s, reg_t reg, Symbol *retsym)
     //printf("cgreg_benefit(s = '%s', reg = %d)\n", s.Sident.ptr, reg);
 
     vec_sub(s.Slvreg,s.Srange,regrange[reg]);
-    int si = s.Ssymnum;
+    int si = cast(int)s.Ssymnum;
 
     reg_t dst_integer_reg;
     reg_t dst_float_reg;
@@ -421,7 +422,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
         benefit += benefit2;
     }
 
-    //printf("2weights: dfo.length = %d, globsym.top = %d\n", dfo.length, globsym.top);
+    //printf("2weights: dfo.length = %d, globsym.length = %d\n", dfo.length, globsym.length);
     debug if (benefit > s.Sweight + retsym_cnt + 1)
         printf("s = '%s', benefit = %d, Sweight = %d, retsym_cnt = x%x\n",s.Sident.ptr,benefit,s.Sweight, retsym_cnt);
 
@@ -745,8 +746,8 @@ void cgreg_unregister(regm_t conflict)
 {
     if (pass == PASSfinal)
         pass = PASSreg;                         // have to codegen at least one more time
-    for (int i = 0; i < globsym.top; i++)
-    {   Symbol *s = globsym.tab[i];
+    for (int i = 0; i < globsym.length; i++)
+    {   Symbol *s = globsym[i];
         if (s.Sfl == FLreg && s.Sregm & conflict)
         {
             s.Sflags |= GTunregister;
@@ -776,8 +777,8 @@ int cgreg_assign(Symbol *retsym)
     /* First do any 'unregistering' which might have happened in the last
      * code gen pass.
      */
-    for (size_t si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    for (size_t si = 0; si < globsym.length; si++)
+    {   Symbol *s = globsym[si];
 
         if (s.Sflags & GTunregister)
         {
@@ -835,8 +836,8 @@ int cgreg_assign(Symbol *retsym)
     /* Find all the parameters passed as named registers
      */
     regm_t regparams = 0;
-    for (size_t si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    for (size_t si = 0; si < globsym.length; si++)
+    {   Symbol *s = globsym[si];
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             regparams |= s.Spregm();
     }
@@ -854,8 +855,8 @@ int cgreg_assign(Symbol *retsym)
     Reg t;
     t.sym = null;
     t.benefit = 0;
-    for (size_t si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    for (size_t si = 0; si < globsym.length; si++)
+    {   Symbol *s = globsym[si];
 
         Reg u;
         u.sym = s;
@@ -1009,8 +1010,8 @@ Ltried:
         (mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
-        for (size_t si = 0; si < globsym.top; si++)
-        {   Symbol *s = globsym.tab[si];
+        for (size_t si = 0; si < globsym.length; si++)
+        {   Symbol *s = globsym[si];
 
             if (s.Sfl == FLreg &&                // if assigned to register
                 (1 << s.Sreglsw) & fregsaved &&   // and that register is not scratch

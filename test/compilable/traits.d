@@ -236,3 +236,89 @@ static assert(!__traits(isSame,
     Seq!(int, Seq!(a => a + a)),
     Seq!(int, Seq!(a => a * a))
 ));
+
+// Do these out of order to ensure there are no forward refencing bugs
+
+extern(C++, __traits(getCppNamespaces,GetNamespaceTest1)) struct GetNamespaceTest4 {}
+static assert (__traits(getCppNamespaces,GetNamespaceTest1) ==
+               __traits(getCppNamespaces,GetNamespaceTest4));
+
+extern(C++, "ns") struct GetNamespaceTest1 {}
+extern(C++, "multiple", "namespaces") struct GetNamespaceTest2 {}
+extern(C++, mixin("Seq!(`ns`, `nt`)")) struct GetNamespaceTest3 {}
+static assert(__traits(getCppNamespaces,GetNamespaceTest1)[0] == "ns");
+static assert(__traits(getCppNamespaces,GetNamespaceTest2) == Seq!("multiple","namespaces"));
+static assert(__traits(getCppNamespaces,GetNamespaceTest3) == Seq!("ns", "nt"));
+
+extern(C++, __traits(getCppNamespaces,GetNamespaceTest5)) struct GetNamespaceTest8 {}
+static assert (__traits(getCppNamespaces,GetNamespaceTest5) ==
+               __traits(getCppNamespaces,GetNamespaceTest8));
+
+extern(C++, ns) struct GetNamespaceTest5 {}
+extern(C++, multiple) extern(C++, namespaces) struct GetNamespaceTest6 {}
+static assert(__traits(getCppNamespaces,GetNamespaceTest5)[0] == "ns");
+static assert(__traits(getCppNamespaces,GetNamespaceTest6) == Seq!("multiple","namespaces"));
+
+extern(C++, NS)
+{
+    struct GetNamespaceTest9 {}
+    extern(C++, nested)
+    {
+        struct GetNamespaceTest10 {}
+        extern(C++,"nested2")
+            struct GetNamespaceTest11 {}
+    }
+    extern (C++, "nested3")
+    {
+        extern(C++, nested4)
+            struct GetNamespaceTest12 {}
+    }
+}
+static assert (__traits(getCppNamespaces,NS.GetNamespaceTest9)[0] == "NS");
+static assert (__traits(getCppNamespaces,NS.GetNamespaceTest10) == Seq!("NS", "nested"));
+static assert (__traits(getCppNamespaces,NS.GetNamespaceTest11) == Seq!("NS", "nested", "nested2"));
+static assert (__traits(getCppNamespaces,NS.GetNamespaceTest12) == Seq!("NS", "nested4", "nested3"));
+
+extern(C++, `ns`) struct GetNamespaceTestTemplated(T) {}
+extern(C++, `ns`)
+template GetNamespaceTestTemplated2(T)
+{
+    struct GetNamespaceTestTemplated2 {}
+}
+
+template GetNamespaceTestTemplated3(T)
+{
+    extern(C++, `ns`)
+    struct GetNamespaceTestTemplated3 {}
+}
+
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated!int)  == Seq!("ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated2!int) == Seq!("ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated3!int) == Seq!("ns"));
+extern(C++, `ns2`)
+template GetNamespaceTestTemplated4(T)
+{
+    extern(C++, `ns`)
+    struct GetNamespaceTestTemplated4
+    {
+        struct GetNamespaceTestTemplated5 {}
+        struct GetNamespaceTestTemplated6(T) {}
+    }
+}
+
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated4!int) == Seq!("ns2","ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated4!int.GetNamespaceTestTemplated5) == Seq!("ns2","ns"));
+static assert (__traits(getCppNamespaces,GetNamespaceTestTemplated4!int.GetNamespaceTestTemplated6!int) == Seq!("ns2","ns"));
+
+// Currently ignored due to https://issues.dlang.org/show_bug.cgi?id=21373
+extern(C++, `decl`)
+mixin template GetNamespaceTestTemplatedMixin()
+{
+    extern(C++, `f`)
+    void foo() {}
+}
+
+extern(C++, `inst`)
+mixin GetNamespaceTestTemplatedMixin!() GNTT;
+
+static assert (__traits(getCppNamespaces, GNTT.foo) == Seq!(`inst`,/*`decl`,*/ `f`));

@@ -69,6 +69,7 @@ static if (ELFOBJ || MACHOBJ)
     import dmd.backend.obj;
     import dmd.backend.oper;
     import dmd.backend.outbuf;
+    import dmd.backend.symtab;
     import dmd.backend.ty;
     import dmd.backend.type;
 
@@ -225,7 +226,7 @@ static if (ELFOBJ || MACHOBJ)
     void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
     {
         static if (ELFOBJ)
-            Obj.addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
+            Obj.addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, cast(int)MAP_SEG2SYMIDX(targseg), val);
         else static if (MACHOBJ)
             Obj.addrel(seg, offset, null, targseg, RELaddr, cast(uint)val);
         else
@@ -235,7 +236,7 @@ static if (ELFOBJ || MACHOBJ)
     void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
     {
         static if (ELFOBJ)
-            Obj.addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
+            Obj.addrel(seg, offset, R_X86_64_64, cast(int)MAP_SEG2SYMIDX(targseg), val);
         else static if (MACHOBJ)
             Obj.addrel(seg, offset, null, targseg, RELaddr, cast(uint)val);
         else
@@ -942,7 +943,7 @@ static if (ELFOBJ || MACHOBJ)
         {
             int fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
             buf.write32(cast(uint)(I64 ? 0 : sfunc.Soffset));             // address of function
-            Obj.addrel(dfseg, startsize + 8, fixup, MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
+            Obj.addrel(dfseg, startsize + 8, fixup, cast(int)MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
             //Obj.reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
             buf.write32(cast(uint)sfunc.Ssize);                         // PC Range
         }
@@ -967,7 +968,7 @@ static if (ELFOBJ || MACHOBJ)
                 buf.write32(I64 ? 0 : sfunc.Sfunc.LSDAoffset); // address of LSDA (".gcc_except_table")
                 if (config.flags3 & CFG3pic)
                 {
-                    Obj.addrel(dfseg, buf.length() - 4, fixup, MAP_SEG2SYMIDX(etseg), sfunc.Sfunc.LSDAoffset);
+                    Obj.addrel(dfseg, buf.length() - 4, fixup, cast(int)MAP_SEG2SYMIDX(etseg), sfunc.Sfunc.LSDAoffset);
                 }
                 else
                     dwarf_addrel(dfseg, buf.length() - 4, etseg, sfunc.Sfunc.LSDAoffset);      // and the fixup
@@ -1575,9 +1576,9 @@ static if (ELFOBJ || MACHOBJ)
         uint formalcode = 0;
         uint autocode = 0;
 
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *sa = globsym.tab[si];
+            Symbol *sa = globsym[si];
 
             version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
@@ -1704,9 +1705,9 @@ static if (ELFOBJ || MACHOBJ)
 
         if (haveparameters)
         {
-            for (SYMIDX si = 0; si < globsym.top; si++)
+            for (SYMIDX si = 0; si < globsym.length; si++)
             {
-                Symbol *sa = globsym.tab[si];
+                Symbol *sa = globsym[si];
 
                 version (MARS)
                     if (sa.Sflags & SFLnodebug)
@@ -1954,6 +1955,7 @@ static if (ELFOBJ || MACHOBJ)
     /******************************************
      * Write out any deferred symbols.
      */
+    static if (0)
     void cv_outlist()
     {
     }

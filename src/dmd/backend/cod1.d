@@ -1440,11 +1440,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
         case FLextern:
             if (s.Sident[0] == '_' && memcmp(s.Sident.ptr + 1,"tls_array".ptr,10) == 0)
             {
-                static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-                {
-                    assert(0);
-                }
-                else static if (TARGET_WINDOS)
+                if (config.exe & EX_windos)
                 {
                     if (I64)
                     {   // GS:[88]
@@ -1461,20 +1457,26 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                         pcs.Iflags |= CFfs;    // add FS: override
                     }
                 }
+                else if (config.exe & (EX_OSX | EX_OSX64))
+                {
+                }
+                else if (config.exe & EX_posix)
+                    assert(0);
             }
             if (s.ty() & mTYcs && cast(bool) LARGECODE)
                 goto Lfardata;
             goto L3;
+
+        case FLtlsdata:
+            if (config.exe & EX_posix)
+                goto L3;
+            assert(0);
 
         case FLdata:
         case FLudata:
         case FLcsdata:
         case FLgot:
         case FLgotoff:
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        case FLtlsdata:
-    }
         L3:
             pcs.Irm = modregrm(0, 0, BPRM);
         L2:
@@ -2022,7 +2024,10 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
     if (forccs)                           // if return result in flags
     {
         if (retregs & (mST01 | mST0))
+        {
+            *pretregs |= forccs;
             fixresult87(cdb, e, retregs, pretregs);
+        }
         else
             tstresult(cdb, retregs, tym, forregs);
     }
@@ -3769,13 +3774,10 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
     calledafunc = 1;
     // Determine if we need frame for function prolog/epilog
 
-    static if (TARGET_WINDOS)
+    if (config.memmodel == Vmodel)
     {
-        if (config.memmodel == Vmodel)
-        {
-            if (tyfarfunc(funcsym_p.ty()))
-                needframe = true;
-        }
+        if (tyfarfunc(funcsym_p.ty()))
+            needframe = true;
     }
 
     code cs;
@@ -3864,7 +3866,11 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                 fl = el_fl(e1);
             if (tym1 == TYifunc)
                 cdbe.gen1(0x9C);                             // PUSHF
-            static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+            if (config.exe & (EX_windos | EX_OSX | EX_OSX64))
+            {
+                cdbe.gencs(farfunc ? 0x9A : 0xE8,0,fl,s);    // CALL extern
+            }
+            else
             {
                 assert(!farfunc);
                 if (s != tls_get_addr_sym)
@@ -3886,10 +3892,6 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                 else
                     cdbe.gencs(0xE8, 0, fl, s);    // CALL extern
             }
-            else
-            {
-                cdbe.gencs(farfunc ? 0x9A : 0xE8,0,fl,s);    // CALL extern
-            }
             code_orflag(cdbe.last(), farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff));
         }
     }
@@ -3906,9 +3908,9 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         tym_t e11ty = tybasic(e11.Ety);
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
         load_localgot(cdb);
-        static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // 32 bit only
         {
-            if (config.flags3 & CFG3pic && I32)
+            if (config.flags3 & CFG3pic)
                 keepmsk |= mBX;
         }
 
@@ -3977,9 +3979,9 @@ static if (0)
         { }
         else
         {
-            for (SYMIDX si = 0; si < globsym.top; si++)
+            for (SYMIDX si = 0; si < globsym.length; si++)
             {
-                Symbol* s = globsym.tab[si];
+                Symbol* s = globsym[si];
 
                 if (s.Sflags & GTregcand && type_size(s.Stype) != 0)
                 {
@@ -4582,7 +4584,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
                 case OPstreq:
                 //case OPcond:
-                    if (!(config.exe & EX_flat))
+                    if (config.exe & EX_segmented)
                     {
                         seg = CFes;
                         retregs |= mES;
@@ -4654,13 +4656,15 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         case OPind:
             if (!e.Ecount)                         /* if *e1       */
             {
-                if (sz <= REGSIZE)
-                {   // Watch out for single byte quantities being up
-                    // against the end of a segment or in memory-mapped I/O
-                    if (!(config.exe & EX_flat) && szb == 1)
-                        break;
-                    goto L1;            // can handle it with loadea()
+                if (sz < REGSIZE)
+                {
+                    /* Don't push REGSIZE quantity because it may
+                     * straddle past the end of valid memory
+                     */
+                    break;
                 }
+                if (sz == REGSIZE)
+                    goto case OPvar;    // handle it with loadea()
 
                 // Avoid PUSH MEM on the Pentium when optimizing for speed
                 if (config.flags4 & CFG4speed &&
@@ -4749,7 +4753,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             break;
 
         case OPrelconst:
-            static if (TARGET_SEGMENTED)
+            if (config.exe & EX_segmented)
             {
                 /* Determine if we can just push the segment register           */
                 /* Test size of type rather than TYfptr because of (long)(&v)   */
@@ -5474,7 +5478,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             }
 
             opcode_t opmv = 0x8A;                               // byte MOV
-            static if (TARGET_OSX)
+            if (config.exe & (EX_OSX | EX_OSX64))
             {
                 if (movOnly(e))
                     opmv = 0x8B;

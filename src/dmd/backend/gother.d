@@ -33,6 +33,7 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -1317,8 +1318,8 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 debug if (debugc)
                 {
                     printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
-                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
+                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
+                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
                 }
 
                 type *nt = n.ET;
@@ -1771,16 +1772,16 @@ void deadvar()
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLunambig)
             {
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)
                 {
-                    s.Srange = vec_realloc(s.Srange, maxblks);
+                    s.Srange = vec_realloc(s.Srange, dfo.length);
                     vec_clear(s.Srange);
                 }
             }
@@ -1794,19 +1795,19 @@ void deadvar()
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
+            if (globsym[i].Srange /*&& globsym[i].Sclass != CLMOS*/)
                 foreach (j, b; dfo[])
                     if (vec_testbit(i,b.Binlv))
-                        vec_setbit(cast(uint)j,globsym.tab[i].Srange);
+                        vec_setbit(cast(uint)j,globsym[i].Srange);
         }
 
         /* Print results        */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             char *p;
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
@@ -1814,10 +1815,10 @@ void deadvar()
             {
                 p = cast(char *) s.Sident.ptr ;
                 if (s.Sflags & SFLdead)
-                    if (debugc) printf("Symbol %d '%s' is dead\n",i,p);
+                    if (debugc) printf("Symbol %d '%s' is dead\n",cast(int) i,p);
                 if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
                 {
-                    printf("Live range for %d '%s': ",i,p);
+                    printf("Live range for %d '%s': ",cast(int) i,p);
                     vec_println(s.Srange);
                 }
             }

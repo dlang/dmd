@@ -150,6 +150,7 @@ check_clean_git()
     rm -f install.sh
     # auto-removal of these files doesn't work on CirleCi
     rm -f test/compilable/vcg-ast.d.cg
+    rm -f test/compilable/vcg-ast-arraylength.d.cg
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
 }

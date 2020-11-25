@@ -186,7 +186,6 @@ immutable Msgtable[] msgtable =
     { "C" },
     { "D" },
     { "Windows" },
-    { "Pascal" },
     { "System" },
     { "Objective" },
 
@@ -462,6 +461,7 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "getCppNamespaces" },
     { "isReturnOnStack" },
     { "isZeroInit" },
     { "getTargetInfo" },

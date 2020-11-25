@@ -29,6 +29,7 @@ import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -64,7 +65,7 @@ struct SymInfo
  *      e = expression to scan
  *      sia = where to put gathered information
  */
-extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] sia, const(elem)* e)
+extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const(elem)* e)
 {
     while (1)
     {
@@ -73,9 +74,9 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
             case OPvar:
             {
                 const si = e.EV.Vsym.Ssymnum;
-                if (si >= 0 && sia[si].canSlice)
+                if (si != SYMIDX.max && sia[si].canSlice)
                 {
-                    assert(si < symtab.top);
+                    assert(si < symtab.length);
                     const n = nthSlice(e);
                     const sz = getSize(e);
                     if (sz == 2 * SLICESIZE && !tyfv(e.Ety) &&
@@ -127,9 +128,9 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                     {
                         const e1 = e.EV.E1;
                         const si = e1.EV.Vsym.Ssymnum;
-                        if (si >= 0 && sia[si].canSlice)
+                        if (si != SYMIDX.max && sia[si].canSlice)
                         {
-                            assert(si < symtab.top);
+                            assert(si < symtab.length);
                             if (nthSlice(e1) == NOTSLICE)
                             {
                                 sia[si].canSlice = false;
@@ -170,7 +171,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
  *      sia = slicing info
  *      e = expression tree to rewrite in place
  */
-extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] sia, elem *e)
+extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem *e)
 {
     while (1)
     {
@@ -182,7 +183,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                 const si = s.Ssymnum;
                 //printf("e: %d %d\n", si, sia[si].canSlice);
                 //elem_print(e);
-                if (si >= 0 && sia[si].canSlice)
+                if (si != SYMIDX.max && sia[si].canSlice)
                 {
                     const n = nthSlice(e);
                     if (getSize(e) == 2 * SLICESIZE)
@@ -194,7 +195,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
 
                         elem *e2 = el_calloc();
                         el_copy(e2, e);
-                        Symbol *s1 = symtab.tab[sia[si].si0 + 1]; // +1 for second slice
+                        Symbol *s1 = symtab[sia[si].si0 + 1]; // +1 for second slice
                         e2.Ety = sia[si].ty[1];
                         e2.EV.Vsym = s1;
                         e2.EV.Voffset = 0;
@@ -229,7 +230,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                     }
                     else // the nth slice
                     {
-                        e.EV.Vsym = symtab.tab[sia[si].si0 + n];
+                        e.EV.Vsym = symtab[sia[si].si0 + n];
                         e.EV.Voffset -= n * SLICESIZE;
                         //printf("replaced with:\n");
                         //elem_print(e);
@@ -255,10 +256,10 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
     }
 }
 
-void sliceStructs(symtab_t* symtab, block* startblock)
+void sliceStructs(ref symtab_t symtab, block* startblock)
 {
     if (debugc) printf("sliceStructs() %s\n", funcsym_p.Sident.ptr);
-    const sia_length = symtab.top;
+    const sia_length = symtab.length;
     /* 3 is because it is used for two arrays, sia[] and sia2[].
      * sia2[] can grow to twice the size of sia[], as symbols can get split into two.
      */
@@ -278,16 +279,16 @@ void sliceStructs(symtab_t* symtab, block* startblock)
     SymInfo[] sia = sip[0 .. sia_length];
     SymInfo[] sia2 = sip[sia_length .. sia_length * 3];
 
-    if (0) foreach (si; 0 .. symtab.top)
+    if (0) foreach (si; 0 .. symtab.length)
     {
-        Symbol *s = symtab.tab[si];
-        printf("[%d]: %p %d %s\n", si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
+        Symbol *s = symtab[si];
+        printf("[%d]: %p %d %s\n", cast(int)si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
     }
 
     bool anySlice = false;
-    foreach (si; 0 .. symtab.top)
+    foreach (si; 0 .. symtab.length)
     {
-        Symbol *s = symtab.tab[si];
+        Symbol *s = symtab[si];
         //printf("slice1: %s\n", s.Sident.ptr);
 
         if (!(s.Sflags & SFLunambig))   // if somebody took the address of s
@@ -364,7 +365,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
                 /* Split slice-able symbol sold into two symbols,
                  * (sold,snew) in adjacent slots in the symbol table.
                  */
-                Symbol *sold = symtab.tab[si + n];
+                Symbol *sold = symtab[si + n];
 
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
                 char *id = cast(char *)malloc(idlen + 1);
@@ -388,7 +389,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
                 snew.Stype = type_fake(sia[si].ty[1]);
                 snew.Stype.Tcount++;
 
-                // insert snew into symtab.tab[si + n + 1]
+                // insert snew into symtab[si + n + 1]
                 symbol_insert(symtab, snew, si + n + 1);
 
                 sia2[si + n].canSlice = true;
@@ -402,9 +403,9 @@ void sliceStructs(symtab_t* symtab, block* startblock)
             goto Ldone;
     }
 
-    foreach (si; 0 .. symtab.top)
+    foreach (si; 0 .. symtab.length)
     {
-        Symbol *s = symtab.tab[si];
+        Symbol *s = symtab[si];
         assert(s.Ssymnum == si);
     }
 

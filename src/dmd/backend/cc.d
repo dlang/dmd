@@ -19,6 +19,7 @@ import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.type;
 
 extern (C++):
@@ -59,7 +60,7 @@ enum WM
     WM_ccast        = 25,
     WM_obsolete     = 26,
 
-    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+    // Posix
     WM_skip_attribute   = 27, // skip GNUC attribute specification
     WM_warning_message  = 28, // preprocessor warning message
     WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -85,19 +86,6 @@ enum LANG
     LANGfrench,
     LANGjapanese,
 }
-
-
-//#if SPP || SCPP
-//#include        "msgs2.h"
-//#endif
-//#include        "ty.h"
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-//#include        "../tk/mem.h"
-//#else
-//#include        "mem.h"
-//#endif
-//#include        "list.h"
-//#include        "vec.h"
 
 version (SPP)
 {
@@ -702,13 +690,6 @@ struct BlockRange
  * Functions
  */
 
-struct symtab_t
-{
-    SYMIDX top;                 // 1 past end
-    SYMIDX symmax;              // max # of entries in tab[] possible
-    Symbol **tab;               // local Symbol table
-}
-
 alias func_flags_t = uint;
 enum
 {
@@ -765,6 +746,7 @@ enum
     Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
     Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
+    F3hiddenPtr      = 0x40000, // function has hidden pointer to return value
 }
 
 struct func_t
@@ -1415,7 +1397,7 @@ struct Symbol
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
 
     // CPP || OPTIMIZER
-    SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
+    SYMIDX Ssymnum;             // Symbol number (index into globsym[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
     int Sseg;                   // segment index

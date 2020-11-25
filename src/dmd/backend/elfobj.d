@@ -41,6 +41,7 @@ import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -56,19 +57,6 @@ import dmd.backend.melf;
 
 extern bool symbol_iscomdat2(Symbol* s) @system;
 
-static if (TARGET_LINUX)
-    enum ELFOSABI = ELFOSABI_LINUX;
-else static if (TARGET_FREEBSD)
-    enum ELFOSABI = ELFOSABI_FREEBSD;
-else static if (TARGET_SOLARIS)
-    enum ELFOSABI = ELFOSABI_SYSV;
-else static if (TARGET_OPENBSD)
-    enum ELFOSABI = ELFOSABI_OPENBSD;
-else static if (TARGET_DRAGONFLYBSD)
-    enum ELFOSABI = ELFOSABI_SYSV;
-else
-    static assert(0, "No ELF OS ABI defined.  Please fix");
-
 //#define DEBSYM 0x7E
 
 private __gshared Outbuffer *fobjbuf;
@@ -79,11 +67,12 @@ enum DEST_LEN = (IDMAX + IDOHD + 1);
 char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 
 version (MARS)
-// C++ name mangling is handled by front end
-const(char)* cpp_mangle2(Symbol* s) { return s.Sident.ptr; }
+{
+    // C++ name mangling is handled by front end
+    const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
+}
 else
-const(char)* cpp_mangle2(Symbol* s) { return cpp_mangle(s); }
-
+    const(char)* cpp_mangle2(Symbol* s) { return cpp_mangle(s); }
 
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
@@ -959,7 +948,7 @@ void *elf_renumbersyms()
     for (int i = 1; i < SegData.length; i++)
     {                           // Map indicies in the segment table
         seg_data *pseg = SegData[i];
-        pseg.SDsymidx = sym_map[pseg.SDsymidx];
+        pseg.SDsymidx = cast(uint) sym_map[pseg.SDsymidx];
 
         if (SecHdrTab[pseg.SDshtidx].sh_type == SHT_GROUP)
         {   // map symbol index of group section header
@@ -967,7 +956,7 @@ void *elf_renumbersyms()
             assert(oidx < symbol_idx);
             // we only have one symbol table
             assert(SecHdrTab[pseg.SDshtidx].sh_link == SHN_SYMTAB);
-            SecHdrTab[pseg.SDshtidx].sh_info = sym_map[oidx];
+            SecHdrTab[pseg.SDshtidx].sh_info = cast(uint) sym_map[oidx];
         }
 
         if (pseg.SDrel)
@@ -993,7 +982,7 @@ void *elf_renumbersyms()
                     uint t = ELF32_R_TYPE(rel.r_info);
                     uint si = ELF32_R_SYM(rel.r_info);
                     assert(si < symbol_idx);
-                    rel.r_info = ELF32_R_INFO(sym_map[si],t);
+                    rel.r_info = ELF32_R_INFO(cast(uint) sym_map[si],t);
                     rel++;
                 }
             }
@@ -1273,6 +1262,34 @@ debug
     // Now that we have correct offset to section header table, e_shoff,
     //  go back and re-output the elf header
     //
+    ubyte ELFOSABI;
+    switch (config.exe)
+    {
+        case EX_LINUX:
+        case EX_LINUX64:
+            ELFOSABI = ELFOSABI_LINUX;
+            break;
+
+        case EX_FREEBSD:
+        case EX_FREEBSD64:
+            ELFOSABI = ELFOSABI_FREEBSD;
+            break;
+
+        case EX_OPENBSD:
+        case EX_OPENBSD64:
+            ELFOSABI = ELFOSABI_OPENBSD;
+            break;
+
+        case EX_SOLARIS:
+        case EX_SOLARIS64:
+        case EX_DRAGONFLYBSD64:
+            ELFOSABI = ELFOSABI_SYSV;
+            break;
+
+        default:
+            assert(0);
+    }
+
     fobjbuf.position(0, hdrsize);
     if (I64)
     {
@@ -1283,7 +1300,7 @@ debug
                 ELFCLASS64,             // EI_CLASS
                 ELFDATA2LSB,            // EI_DATA
                 EV_CURRENT,             // EI_VERSION
-                ELFOSABI,0,             // EI_OSABI,EI_ABIVERSION
+                0,0,                    // EI_OSABI,EI_ABIVERSION
                 0,0,0,0,0,0,0
             ],
             ET_REL,                         // e_type
@@ -1300,6 +1317,7 @@ debug
             0,                              // e_shnum
             SHN_SECNAMES                    // e_shstrndx
         };
+        h64.EHident[EI_OSABI] = ELFOSABI;
         h64.e_shoff     = e_shoff;
         h64.e_shnum     = e_shnum;
         fobjbuf.write(&h64, hdrsize);
@@ -1313,7 +1331,7 @@ debug
                 ELFCLASS32,             // EI_CLASS
                 ELFDATA2LSB,            // EI_DATA
                 EV_CURRENT,             // EI_VERSION
-                ELFOSABI,0,             // EI_OSABI,EI_ABIVERSION
+                0,0,                    // EI_OSABI,EI_ABIVERSION
                 0,0,0,0,0,0,0
             ],
             ET_REL,                         // e_type
@@ -1330,6 +1348,7 @@ debug
             0,                              // e_shnum
             SHN_SECNAMES                    // e_shstrndx
         };
+        h32.EHident[EI_OSABI] = ELFOSABI;
         h32.e_shoff     = cast(uint)e_shoff;
         h32.e_shnum     = e_shnum;
         fobjbuf.write(&h32, hdrsize);
@@ -2140,13 +2159,7 @@ else
             break;
         case mTYman_std:
         {
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
-else
-            bool cond = (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_WIN32 && tyfunc(s.ty()) &&
-                !variadic(s.Stype));
-
             if (cond)
             {
                 char *pstr = unsstr(type_paramsize(s.Stype));

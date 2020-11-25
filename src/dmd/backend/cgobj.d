@@ -53,8 +53,6 @@ version (SCPP)
     import msgs2;
     import scopeh;
 
-    extern(C) char* strupr(char*);
-    extern(C) char* itoa(int,char*,int);
     extern(C) char* getcwd(char*,size_t);
 }
 
@@ -75,8 +73,6 @@ version (MARS)
     else
         alias filespeccmp = strcmp;
 
-    extern(C) char* strupr(char*);
-    extern(C) char* itoa(int,char*,int);
     extern(C) char* getcwd(char*,size_t);
 
 struct Loc
@@ -99,14 +95,25 @@ else
     pragma(printf) void error(Loc loc, const(char)* format, ...);
 }
 
-version (MARS)
+version (Windows)
 {
-// C++ name mangling is handled by front end
-const(char)* cpp_mangle(Symbol* s) { return s.Sident.ptr; }
+    extern(C) char* strupr(char*);
+}
+version (Posix)
+{
+    extern(C) char* strupr(char* s)
+    {
+        for (char* p = s; *p; ++p)
+        {
+            char c = *p;
+            if ('a' <= c && c <= 'z')
+                *p = cast(char)(c - 'a' + 'A');
+        }
+        return s;
+    }
 }
 
-static if (TARGET_WINDOS)
-{
+int obj_namestring(char *p,const(char)* name);
 
 enum MULTISCOPE = 1;            /* account for bug in MultiScope debugger
                                    where it cannot handle a line number
@@ -410,6 +417,7 @@ version (MARS)
     Barray!(Symbol*) resetSymbols;  // reset symbols
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
+
 version (MARS)
 {
     Barray!PtrRef ptrrefs;      // buffer for pointer references
@@ -418,7 +426,10 @@ version (MARS)
 
 __gshared
 {
-    Rarray!(seg_data*) SegData;
+    version (Windows)
+        Rarray!(seg_data*) SegData;
+    else
+        extern Rarray!(seg_data*) SegData;
     Objstate obj;
 }
 
@@ -565,32 +576,7 @@ int getindex(ubyte* p)
     : *p);
 }
 
-/*****************************
- * Returns:
- *      # of bytes stored
- */
-
 enum ONS_OHD = 4;               // max # of extra bytes added by obj_namestring()
-
-private int obj_namestring(char *p,const(char)* name)
-{   uint len;
-
-    len = cast(uint)strlen(name);
-    if (len > 255)
-    {   p[0] = 0xFF;
-        p[1] = 0;
-        debug assert(len <= 0xFFFF);
-        TOWORD(p + 2,len);
-        memcpy(p + 4,name,len);
-        len += ONS_OHD;
-    }
-    else
-    {   p[0] = cast(char)len;
-        memcpy(p + 1,name,len);
-        len++;
-    }
-    return len;
-}
 
 /******************************
  * Allocate a new segment.
@@ -2428,9 +2414,9 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
 version (SCPP)
-    name = CPP ? cpp_mangle(s) : s.Sident.ptr;
+    name = CPP ? cpp_mangle(s) : &s.Sident[0];
 else version (MARS)
-    name = cast(char*)cpp_mangle(s);
+    name = &s.Sident[0];
 else
     static assert(0);
 
@@ -2525,7 +2511,7 @@ else
                 dest[1] = '_';
                 memcpy(dest + 2,name,len);
                 dest[1 + 1 + len] = '@';
-                itoa(type_paramsize(s.Stype),dest + 3 + len,10);
+                sprintf(dest + 3 + len, "%d", type_paramsize(s.Stype));
                 len = strlen(dest + 1);
                 assert(isdigit(dest[len]));
                 break;
@@ -4031,8 +4017,6 @@ version (MARS)
         objflush_pointerRef(pr.sym, pr.offset);
     obj.ptrrefs.reset();
 }
-}
-
 }
 
 }

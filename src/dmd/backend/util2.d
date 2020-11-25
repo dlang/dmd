@@ -392,7 +392,7 @@ else
 
 version (Windows)
 {
-void *util_realloc(void *oldp,uint n,uint size)
+void *util_realloc(void *oldp,size_t n,size_t size)
 {
 static if (MEM_DEBUG)
 {
@@ -405,7 +405,7 @@ else static if (UTIL_PH)
 }
 else
 {
-    size_t nbytes = cast(size_t) n * cast(size_t) size;
+    const nbytes = n * size;
     void *p = realloc(oldp,nbytes);
     if (!p && nbytes)
         err_nomem();

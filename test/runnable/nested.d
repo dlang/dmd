@@ -2,7 +2,6 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/nested.d(800): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
 null
 ---
 */
@@ -797,18 +796,9 @@ void test33()
         return 3;
     }
 
-    extern (Pascal) int Foo4(int a, int b, int c)
-    {
-        assert(a == 1);
-        assert(b == 2);
-        assert(c == 3);
-        return 4;
-    }
-
     assert(Foo1(1, 2, 3) == 1);
     assert(Foo2(1, 2, 3) == 2);
     assert(Foo3(1, 2, 3) == 3);
-    assert(Foo4(1, 2, 3) == 4);
 
     printf("test33 success\n");
 }

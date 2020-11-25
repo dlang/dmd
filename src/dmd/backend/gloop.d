@@ -34,6 +34,7 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -233,12 +234,10 @@ int blockinit()
             hasasm = true;
                                         /* compute number of blocks     */
     }
-    assert(numblks == i && maxblks);
-    assert(i <= maxblks);
     foreach (j, b; dfo[])
     {
         assert(b.Bdfoidx == j);
-        b.Bdom = vec_realloc(b.Bdom, maxblks); /* alloc Bdom vectors */
+        b.Bdom = vec_realloc(b.Bdom, dfo.length); /* alloc Bdom vectors */
         vec_clear(b.Bdom);
     }
     return hasasm;
@@ -391,7 +390,7 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
             // Calculate loop contents separately so we get the Bweights
             // done accurately.
 
-            v = vec_calloc(maxblks);
+            v = vec_calloc(dfo.length);
             vec_setbit(head.Bdfoidx,v);
             head.Bweight = loop_weight(head.Bweight, 1);
             insert(tail,v);
@@ -407,8 +406,8 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
     /* Allocate loop entry        */
     l = ploops.push();
 
-    l.Lloop = vec_calloc(maxblks);       /* allocate loop bit vector     */
-    l.Lexit = vec_calloc(maxblks);       /* bit vector for exit blocks   */
+    l.Lloop = vec_calloc(dfo.length);    // allocate loop bit vector
+    l.Lexit = vec_calloc(dfo.length);    // bit vector for exit blocks
     l.Lhead = head;
     l.Ltail = tail;
     l.Lpreheader = null;
@@ -575,7 +574,6 @@ private int looprotate(ref loop l)
         // generated).
 
         auto head2 = block_calloc(); // create new head block
-        numblks++;                      // number of blocks in existence
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
         head.Bflags = BFLnomerg;       // move flags over to head2
@@ -729,8 +727,6 @@ restart:
             if (debugc) printf("Generating preheader for loop\n");
             addblk = true;              /* add one                       */
             p = block_calloc();         // the preheader
-            numblks++;
-            assert (numblks <= maxblks);
             h = l.Lhead;               /* loop header                   */
 
             /* Find parent of h */
@@ -1461,7 +1457,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
 {
     symbol_debug(v);
     assert(symbol_isintab(v));
-    assert(v.Ssymnum < globsym.top);
+    assert(v.Ssymnum < globsym.length);
     bool stop = false;
 
     // Walk tree in evaluation order
@@ -2087,8 +2083,8 @@ private void findbasivs(ref loop l)
     bool ambdone;
 
     ambdone = false;
-    poss = vec_calloc(globsym.top);
-    notposs = vec_calloc(globsym.top);  /* vector of all variables      */
+    poss = vec_calloc(globsym.length);
+    notposs = vec_calloc(globsym.length);  /* vector of all variables      */
                                         /* (initially all unmarked)     */
 
     /* for each def in go.defnod[] that is within loop l     */
@@ -2135,9 +2131,9 @@ private void findbasivs(ref loop l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                foreach (uint j; 0 .. globsym.top)
+                foreach (j; 0 .. globsym.length)
                 {
-                    if (!(globsym.tab[j].Sflags & SFLunambig))
+                    if (!(globsym[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2153,12 +2149,12 @@ private void findbasivs(ref loop l)
 
     /* create list of IVs */
     uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each basic IV
+    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each basic IV
     {
         Symbol *s;
 
         /* Skip if we don't want it to be a basic IV (see funcprev())   */
-        s = globsym.tab[i];
+        s = globsym[i];
         assert(symbol_isintab(s));
         if (s.Sflags & SFLnotbasiciv)
             continue;
@@ -2226,8 +2222,8 @@ private void findopeqs(ref loop l)
     bool ambdone;
 
     ambdone = false;
-    poss = vec_calloc(globsym.top);
-    notposs = vec_calloc(globsym.top);  // vector of all variables
+    poss = vec_calloc(globsym.length);
+    notposs = vec_calloc(globsym.length);  // vector of all variables
                                         // (initially all unmarked)
 
     // for each def in go.defnod[] that is within loop l
@@ -2268,9 +2264,9 @@ private void findopeqs(ref loop l)
 
             if (!ambdone)           // avoid redundant loops
             {
-                foreach (j; 0 .. globsym.top)
+                foreach (j; 0 .. globsym.length)
                 {
-                    if (!(globsym.tab[j].Sflags & SFLunambig))
+                    if (!(globsym[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2295,11 +2291,11 @@ private void findopeqs(ref loop l)
 
     // create list of IVs
     uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each opeq IV
+    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each opeq IV
     {
         Symbol *s;
 
-        s = globsym.tab[i];
+        s = globsym[i];
         assert(symbol_isintab(s));
 
         // Do not use aggregates as basic IVs. This is because the other loop
@@ -3096,8 +3092,6 @@ private void elimbasivs(ref loop l)
                     {
                         block *bn = block_calloc();
                         bn.Btry = b.Btry;
-                        numblks++;
-                        assert(numblks <= maxblks);
                         bn.BC = BCgoto;
                         bn.Bnext = dfo[i].Bnext;
                         dfo[i].Bnext = bn;
@@ -3401,10 +3395,10 @@ private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
     sincn = incn;
 
     debug
-      if (!(X.Ssymnum < globsym.top && incn))
-          printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.top,&l,incn);
+      if (!(X.Ssymnum < globsym.length && incn))
+          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",cast(int) X.Ssymnum,cast(int) globsym.length,&l,incn);
 
-    assert(X.Ssymnum < globsym.top && incn);
+    assert(X.Ssymnum < globsym.length && incn);
     count = 0;
     nd = null;
     for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop

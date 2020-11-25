@@ -417,7 +417,10 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     if (!fd.functionSemantic3())
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASS.semantic3done)
+    {
+        fd.error("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
+    }
 
     Type tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);

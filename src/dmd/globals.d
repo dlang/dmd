@@ -182,6 +182,7 @@ extern (C++) struct Param
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
+    bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
@@ -198,7 +199,7 @@ extern (C++) struct Param
                             // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                             // Implementation: https://github.com/dlang/dmd/pull/9817
 
-    CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
+    CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
     bool markdown = true;   // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
@@ -555,12 +556,19 @@ alias d_uns32 = uint32_t;
 alias d_int64 = int64_t;
 alias d_uns64 = uint64_t;
 
+version (DMDLIB)
+{
+    version = LocOffset;
+}
+
 // file location
 struct Loc
 {
     const(char)* filename; // either absolute or relative to cwd
     uint linnum;
     uint charnum;
+    version (LocOffset)
+        uint fileOffset;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
@@ -658,19 +666,18 @@ nothrow:
     }
 }
 
-enum LINK : int
+enum LINK : ubyte
 {
     default_,
     d,
     c,
     cpp,
     windows,
-    pascal,
     objc,
     system,
 }
 
-enum CPPMANGLE : int
+enum CPPMANGLE : ubyte
 {
     def,
     asStruct,
@@ -685,7 +692,7 @@ enum MATCH : int
     exact,     // exact match
 }
 
-enum PINLINE : int
+enum PINLINE : ubyte
 {
     default_,     // as specified on the command line
     never,   // never inline

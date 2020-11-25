@@ -44,6 +44,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
@@ -224,9 +225,10 @@ tryagain:
     calledFinally = false;
     usednteh = 0;
 
-    static if (MARS && TARGET_WINDOS)
+    static if (MARS)
     {
-        if (sfunc.Sfunc.Fflags3 & Fjmonitor)
+        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+            config.exe & EX_windos)
             usednteh |= NTEHjmonitor;
     }
     else version (SCPP)
@@ -268,9 +270,9 @@ tryagain:
     if (!config.fulltypes || (config.flags4 & CFG4optimized))
     {
         regm_t noparams = 0;
-        for (int i = 0; i < globsym.top; i++)
+        for (int i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
             s.Sflags &= ~SFLread;
             switch (s.Sclass)
             {
@@ -351,9 +353,9 @@ tryagain:
     }
 
     // See if we need to enforce a particular stack alignment
-    foreach (i; 0 .. globsym.top)
+    foreach (i; 0 .. globsym.length)
     {
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
 
         if (Symbol_Sisdead(s, anyiasm))
             continue;
@@ -379,7 +381,7 @@ tryagain:
         }
     }
 
-    stackoffsets(1);            // compute addresses of stack variables
+    stackoffsets(globsym, false);  // compute final offsets of stack variables
     cod5_prol_epi();            // see where to place prolog/epilog
     CSE.finish();               // compute addresses and sizes of CSE saves
 
@@ -634,7 +636,7 @@ tryagain:
             if (retoffset < sfunc.Ssize)
                 objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
 
-        static if (TARGET_WINDOS && MARS)
+        static if (MARS)
         {
             if (config.exe == EX_WIN64)
                 win64_pdata(sfunc);
@@ -647,7 +649,7 @@ tryagain:
                 // Do this before code is emitted because we patch some instructions
                 nteh_gentables(sfunc);
             }
-            if (usednteh & EHtry &&             // saw BCtry or BC_try (test EHcleanup too?)
+            if (usednteh & (EHtry | EHcleanup) &&   // saw BCtry or BC_try or OPddtor
                 config.ehmethod == EHmethod.EH_DM)
             {
                 except_gentables();
@@ -767,9 +769,9 @@ void prolog(ref CodeBuilder cdb)
          */
         /* Look for __va_argsave
          */
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *s = globsym.tab[si];
+            Symbol *s = globsym[si];
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
             {
                 if (!(s.Sflags & SFLdead))
@@ -849,7 +851,7 @@ Lagain:
         Fast.size -= nteh_contextsym_size();
         version (MARS)
         {
-            static if (TARGET_WINDOS)
+            if (config.exe & EX_windos)
             {
                 if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
                     Fast.size -= 5 * 4;
@@ -1149,8 +1151,8 @@ else
         {   Symbol *sthis;
 
             for (SYMIDX si = 0; 1; si++)
-            {   assert(si < globsym.top);
-                sthis = globsym.tab[si];
+            {   assert(si < globsym.length);
+                sthis = globsym[si];
                 if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                     break;
             }
@@ -1238,15 +1240,15 @@ extern (C) int
 }
 
 /******************************
- * Compute offsets for remaining tmp, automatic and register variables
+ * Compute stack frame offsets for local variables.
  * that did not make it into registers.
- * Input:
- *      flags   0: do estimate only
- *              1: final
+ * Params:
+ *      symtab = function's symbol table
+ *      estimate = true for do estimate only, false for final
  */
-void stackoffsets(int flags)
+void stackoffsets(ref symtab_t symtab, bool estimate)
 {
-    //printf("stackoffsets() %s\n", funcsym_p.Sident);
+    //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
     Para.init();        // parameter offset
     Fast.init();        // SCfastpar offset
@@ -1254,24 +1256,24 @@ void stackoffsets(int flags)
     EEStack.init();     // for SCstack's
 
     // Set if doing optimization of auto layout
-    bool doAutoOpt = flags && config.flags4 & CFG4optimized;
+    bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
 
     // Put autos in another array so we can do optimizations on the stack layout
-    Symbol*[10] autotmp;
+    Symbol*[10] autotmp = void;
     Symbol **autos = null;
     if (doAutoOpt)
     {
-        if (globsym.top <= autotmp.length)
+        if (symtab.length <= autotmp.length)
             autos = autotmp.ptr;
         else
-        {   autos = cast(Symbol **)malloc(globsym.top * (*autos).sizeof);
+        {   autos = cast(Symbol **)malloc(symtab.length * (*autos).sizeof);
             assert(autos);
         }
     }
     size_t autosi = 0;  // number used in autos[]
 
-    for (int si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    for (int si = 0; si < symtab.length; si++)
+    {   Symbol *s = symtab[si];
 
         /* Don't allocate space for dead or zero size parameters
          */
@@ -1309,7 +1311,7 @@ void stackoffsets(int flags)
         if (alignsize > STACKALIGN)
             alignsize = STACKALIGN;         // no point if the stack is less aligned
 
-        //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s.Sident,(long)sz, (int)alignsize, s.Sflags & SFLread);
+        //printf("symbol '%s', size = %d, alignsize = %d, read = %x\n",s.Sident.ptr, cast(int)sz, cast(int)alignsize, s.Sflags & SFLread);
         assert(cast(int)sz >= 0);
 
         switch (s.Sclass)
@@ -1512,10 +1514,10 @@ private void blcodgen(block *bl)
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(char *) alloca(globsym.top * char.sizeof);
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        sflsave = cast(char *) alloca(globsym.length * char.sizeof);
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
@@ -1538,7 +1540,7 @@ private void blcodgen(block *bl)
             {
                 if (vec_testbit(dfoidx,s.Srange))
                 {
-                    anyspill = i + 1;
+                    anyspill = cast(int)(i + 1);
                     cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
                     if (vec_testbit(dfoidx,s.Slvreg))
                     {
@@ -1582,7 +1584,7 @@ private void blcodgen(block *bl)
 
     for (int i = 0; i < anyspill; i++)
     {
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
     }
 
@@ -2738,12 +2740,14 @@ reload:                                 /* reload result from memory    */
             cdrelconst(cdb,e,pretregs);
             break;
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
         case OPgot:
-            cdgot(cdb,e,pretregs);
-            break;
-}
+            if (config.exe & EX_posix)
+            {
+                cdgot(cdb,e,pretregs);
+                break;
+            }
+            goto default;
+
         default:
             if (*pretregs == mPSW &&
                 config.fpxmmregs &&

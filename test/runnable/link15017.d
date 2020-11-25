@@ -46,6 +46,7 @@ void test()
     // OK <- in DeleteExp::semantic
     Variant10* p10;
     delete p10;
+    static assert(Variant10.__dtor.mangleof == "_D7imports15std15017variant__T8VariantNVki10ZQp6__dtorMFNaNbNiNfZv");
 }
 
 void main() {}

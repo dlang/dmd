@@ -23,12 +23,13 @@ import core.stdc.time;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
+import dmd.backend.symtab;
 import dmd.backend.type;
 import dmd.backend.oper;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.cgcv;
-
+import dmd.backend.symtab;
 version (SCPP)
 {
 import parser;
@@ -49,26 +50,28 @@ __gshared EEcontext eecontext;
 // Convert any symbols generated for the debugger expression to SCstack
 // storage class.
 
-void eecontext_convs(uint marksi)
-{   uint u;
-    uint top;
+void eecontext_convs(SYMIDX marksi)
+{
     symtab_t *ps;
 
     // Change all generated SCauto's to SCstack's
-version (SCPP)
-{
-    ps = &globsym;
-}
-else
-{
-    ps = cstate.CSpsymtab;
-}
-    top = ps.top;
+    version (SCPP)
+    {
+        ps = &globsym;
+    }
+    else version (HTOD)
+    {
+        ps = &globsym;
+    }
+    else
+    {
+        ps = cstate.CSpsymtab;
+    }
+    const top = ps.length;
     //printf("eecontext_convs(%d,%d)\n",marksi,top);
-    for (u = marksi; u < top; u++)
-    {   Symbol *s;
-
-        s = ps.tab[u];
+    foreach (u; marksi .. top)
+    {
+        auto s = (*ps)[u];
         switch (s.Sclass)
         {
             case SCauto:
@@ -92,11 +95,10 @@ void eecontext_parse()
 {
     if (eecontext.EEimminent)
     {   type *t;
-        uint marksi;
         Symbol *s;
 
         //printf("imminent\n");
-        marksi = globsym.top;
+        const marksi = globsym.length;
         eecontext.EEin++;
         s = symbol_genauto(tspvoid);
         eecontext.EEelem = func_expr_dtor(true);

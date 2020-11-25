@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -HC -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
@@ -7,103 +7,127 @@ TEST_OUTPUT:
 
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 
-#if !defined(BEGIN_ENUM)
-# define BEGIN_ENUM(name, upper, lower) enum class name {
-# define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,
-# define END_ENUM(name, upper, lower) };
-#endif
-#if !defined(BEGIN_ENUM_NUMERIC)
-# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
-# define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,
-# define END_ENUM_NUMERIC(type, name, upper, lower) };
-#endif
-#if !defined(BEGIN_ENUM_TYPE)
-# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
-# define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;
-# define END_ENUM_TYPE(type, name, upper, lower) };
-#endif
-#if !defined(BEGIN_ANON_ENUM)
-# define BEGIN_ANON_ENUM() enum {
-# define ANON_ENUM_KEY(type, name, value) name = value,
-# define END_ANON_ENUM() };
-#endif
-#if !defined(BEGIN_ANON_ENUM_NUMERIC)
-# define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {
-# define ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,
-# define END_ANON_ENUM_NUMERIC(type) };
-#endif
-#if !defined(ENUM_CONSTANT_NUMERIC)
-# define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
-#endif
-#if !defined(ENUM_CONSTANT)
-# define ENUM_CONSTANT(type, name, value) static type const name = value;
+#ifdef CUSTOM_D_ARRAY_TYPE
+#define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
+#else
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
+};
 #endif
 
 struct Foo;
 struct FooCpp;
 
-ENUM_CONSTANT_NUMERIC(int32_t, Anon, 10)
+enum : int32_t { Anon = 10 };
 
-ENUM_CONSTANT_NUMERIC(bool, Anon2, true)
+enum : bool { Anon2 = true };
 
-ENUM_CONSTANT(const char*, Anon3, "wow")
+static const char* const Anon3 = "wow";
 
-BEGIN_ENUM(Enum, ENUM, enum)
-    ENUM_KEY(int32_t, One, 0, Enum, ENUM, enum, E)
-    ENUM_KEY(int32_t, Two, 1, Enum, ENUM, enum, E)
-END_ENUM(Enum, ENUM, enum)
+enum class Enum
+{
+    One = 0,
+    Two = 1,
+};
 
-BEGIN_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
-    ENUM_KEY(int32_t, One, 1, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
-    ENUM_KEY(int32_t, Two, 2, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
-END_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
+extern const Enum constEnum;
 
-BEGIN_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
-    ENUM_KEY_NUMERIC(int8_t, One, 1, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
-    ENUM_KEY_NUMERIC(int8_t, Two, 2, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
-END_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
+enum class EnumDefaultType
+{
+    One = 1,
+    Two = 2,
+};
 
-BEGIN_ANON_ENUM()
-    ANON_ENUM_KEY(int32_t, AnonOne, 1)
-    ANON_ENUM_KEY(int32_t, AnonTwo, 2)
-END_ANON_ENUM()
+enum class EnumWithType : int8_t
+{
+    One = 1,
+    Two = 2,
+};
 
-BEGIN_ANON_ENUM_NUMERIC(int64_t)
-    ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeOne, 1LL)
-    ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeTwo, 2LL)
-END_ANON_ENUM_NUMERIC(int64_t)
+enum
+{
+    AnonOne = 1,
+    AnonTwo = 2,
+};
 
-BEGIN_ENUM_TYPE(const char*, EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype)
-    ENUM_KEY_TYPE(const char*, One, "1", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
-    ENUM_KEY_TYPE(const char*, Two, "2", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
-END_ENUM_TYPE(const char*, EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype)
+enum : int64_t
+{
+    AnonWithTypeOne = 1LL,
+    AnonWithTypeTwo = 2LL,
+};
 
-BEGIN_ENUM_TYPE(const char*, EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype)
-    ENUM_KEY_TYPE(const char*, One, "1", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
-    ENUM_KEY_TYPE(const char*, Two, "2", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
-END_ENUM_TYPE(const char*, EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype)
+namespace EnumWithStringType
+{
+    static const char* const One = "1";
+    static const char* const Two = "2";
+};
 
-ENUM_CONSTANT_NUMERIC(int32_t, AnonMixedOne, 1)
-ENUM_CONSTANT_NUMERIC(int64_t, AnonMixedTwo, 2LL)
-ENUM_CONSTANT(const char*, AnonMixedA, "a")
+namespace EnumWStringType
+{
+    static const char16_t* const One = u"1";
+};
+
+namespace EnumDStringType
+{
+    static const char32_t* const One = U"1";
+};
+
+namespace EnumWithImplicitType
+{
+    static const char* const One = "1";
+    static const char* const Two = "2";
+};
+
+namespace
+{
+    static const char* const AnonWithStringOne = "1";
+    static const char* const AnonWithStringTwo = "2";
+};
+
+enum : int32_t { AnonMixedOne = 1 };
+enum : int64_t { AnonMixedTwo = 2LL };
+static const char* const AnonMixedA = "a";
 
 
-BEGIN_ENUM(STC, STC, stc)
-    ENUM_KEY(int32_t, a, 1, STC, STC, stc, STC)
-    ENUM_KEY(int32_t, b, 2, STC, STC, stc, STC)
-END_ENUM(STC, STC, stc)
+enum class STC
+{
+    a = 1,
+    b = 2,
+};
 
-ENUM_CONSTANT(STC, STC_D, (STC)3)
+static STC const STC_D = (STC)3;
 
-BEGIN_ENUM_TYPE(Foo, MyEnum, MYENUM, myenum)
-    ENUM_KEY_TYPE(Foo, A, Foo(42), MyEnum, MYENUM, myenum, ME)
-    ENUM_KEY_TYPE(Foo, B, Foo(84), MyEnum, MYENUM, myenum, ME)
-END_ENUM_TYPE(Foo, MyEnum, MYENUM, myenum)
+namespace MyEnum
+{
+    static Foo const A = Foo(42);
+    static Foo const B = Foo(84);
+};
 
-ENUM_CONSTANT(MyEnum, test, Foo(42))
+static /* MyEnum */ Foo const test = Foo(42);
 
 struct FooCpp
 {
@@ -114,25 +138,30 @@ struct FooCpp
     }
 };
 
-BEGIN_ENUM_TYPE(FooCpp, MyEnumCpp, MYENUMCPP, myenumcpp)
-    ENUM_KEY_TYPE(FooCpp, A, FooCpp(42), MyEnumCpp, MYENUMCPP, myenumcpp, MEC)
-    ENUM_KEY_TYPE(FooCpp, B, FooCpp(84), MyEnumCpp, MYENUMCPP, myenumcpp, MEC)
-END_ENUM_TYPE(FooCpp, MyEnumCpp, MYENUMCPP, myenumcpp)
+namespace MyEnumCpp
+{
+    static FooCpp const A = FooCpp(42);
+    static FooCpp const B = FooCpp(84);
+};
 
-ENUM_CONSTANT(MyEnum, testCpp, Foo(42))
+static /* MyEnum */ Foo const testCpp = Foo(42);
 
+enum class opaque;
+enum class typedOpaque : int64_t;
 ---
-*/
++/
 
-enum Anon = 10;
-enum Anon2 = true;
-enum Anon3 = "wow";
+extern(C++) enum Anon = 10;
+extern(C++) enum Anon2 = true;
+extern(C++) enum Anon3 = "wow";
 
 enum Enum
 {
     One,
     Two
 }
+
+extern(C++) __gshared const(Enum) constEnum;
 
 enum EnumDefaultType : int
 {
@@ -164,10 +193,26 @@ enum EnumWithStringType : string
     Two = "2"
 }
 
+enum EnumWStringType : wstring
+{
+    One = "1"
+}
+
+enum EnumDStringType : dstring
+{
+    One = "1"
+}
+
 enum EnumWithImplicitType
 {
     One = "1",
     Two = "2"
+}
+
+enum : string
+{
+    AnonWithStringOne = "1",
+    AnonWithStringTwo = "2"
 }
 
 enum
@@ -183,22 +228,28 @@ enum STC
     b = 2,
 }
 
-enum STC_D = STC.a | STC.b;
+extern(C++) enum STC_D = STC.a | STC.b;
 
 struct Foo { int i; }
 enum MyEnum { A = Foo(42), B = Foo(84) }
-enum test = MyEnum.A;
+extern(C++) enum test = MyEnum.A;
 
 extern(C++) struct FooCpp { int i; }
 enum MyEnumCpp { A = FooCpp(42), B = FooCpp(84) }
-enum testCpp = MyEnum.A;
+extern(C++) enum testCpp = MyEnum.A;
 
 // currently unsupported enums
-enum b = [1, 2, 3];
-enum c = [2: 3];
+extern(C++) enum b = [1, 2, 3];
+extern(C++) enum c = [2: 3];
 
 extern(C) void foo();
-enum d = &foo;
+extern(C++) enum d = &foo;
 
 immutable bool e_b;
-enum e = &e_b;
+extern(C++) enum e = &e_b;
+
+enum opaque;
+enum typedOpaque : long;
+enum arrayOpaque : int[4]; // Cannot be exported to C++
+
+extern(D) enum hidden_d = 42; // Linkage prevents being exported to C++

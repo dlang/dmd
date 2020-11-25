@@ -104,7 +104,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
 
     Initializer visitStruct(StructInitializer i)
     {
-        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
+        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), i.toChars());
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
@@ -144,6 +144,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                             error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         return new ErrorInitializer();
                     }
+                    s.checkDeprecated(i.loc, sc);
+
                     s = s.toAlias();
                     // Find out which field index it is
                     for (fieldi = 0; 1; fieldi++)

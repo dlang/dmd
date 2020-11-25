@@ -1836,6 +1836,42 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(PragmaDeclaration pd)
     {
+        void declarations()
+        {
+            if (!pd.decl)
+                return;
+
+            Scope* sc2 = pd.newScope(sc);
+            for (size_t i = 0; i < pd.decl.dim; i++)
+            {
+                Dsymbol s = (*pd.decl)[i];
+                s.dsymbolSemantic(sc2);
+                if (pd.ident == Id.mangle)
+                {
+                    assert(pd.args && pd.args.dim == 1);
+                    if (auto se = (*pd.args)[0].toStringExp())
+                    {
+                        const name = (cast(const(char)[])se.peekData()).xarraydup;
+                        uint cnt = setMangleOverride(s, name);
+                        if (cnt > 1)
+                        pd.error("can only apply to a single declaration");
+                    }
+                }
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+
+        void noDeclarations()
+        {
+            if (pd.decl)
+            {
+                pd.error("is missing a terminating `;`");
+                declarations();
+                // do them anyway, to avoid segfaults.
+            }
+        }
+
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
         if (global.params.mscoff)
@@ -1848,12 +1884,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     auto se = semanticString(sc, (*pd.args)[0], "linker directive");
                     if (!se)
-                        goto Lnodecl;
+                        return noDeclarations();
                     (*pd.args)[0] = se;
                     if (global.params.verbose)
                         message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
                 }
-                goto Lnodecl;
+                return noDeclarations();
             }
         }
         if (pd.ident == Id.msg)
@@ -1890,7 +1926,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 fprintf(stderr, "\n");
             }
-            goto Lnodecl;
+            return noDeclarations();
         }
         else if (pd.ident == Id.lib)
         {
@@ -1900,7 +1936,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 auto se = semanticString(sc, (*pd.args)[0], "library name");
                 if (!se)
-                    goto Lnodecl;
+                    return noDeclarations();
                 (*pd.args)[0] = se;
 
                 auto name = se.peekString().xarraydup;
@@ -1920,7 +1956,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 mem.xfree(name.ptr);
             }
-            goto Lnodecl;
+            return noDeclarations();
         }
         else if (pd.ident == Id.startaddress)
         {
@@ -1940,11 +1976,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!sa || !sa.isFuncDeclaration())
                     pd.error("function name expected for start address, not `%s`", e.toChars());
             }
-            goto Lnodecl;
+            return noDeclarations();
         }
         else if (pd.ident == Id.Pinline)
         {
-            goto Ldecl;
+            if (pd.args && pd.args.dim > 1)
+            {
+                pd.error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) pd.args.dim);
+                pd.args.setDim(1);
+                (*pd.args)[0] = ErrorExp.get();
+            }
+
+            // this pragma now gets evaluated on demand in function semantic
+
+            return declarations();
         }
         else if (pd.ident == Id.mangle)
         {
@@ -1955,23 +2000,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 pd.error("string expected for mangled name");
                 pd.args.setDim(1);
                 (*pd.args)[0] = ErrorExp.get(); // error recovery
-                goto Ldecl;
+                return declarations();
             }
 
             auto se = semanticString(sc, (*pd.args)[0], "mangled name");
             if (!se)
-                goto Ldecl;
+                return declarations();
             (*pd.args)[0] = se; // Will be used later
 
             if (!se.len)
             {
                 pd.error("zero-length string not allowed for mangled name");
-                goto Ldecl;
+                return declarations();
             }
             if (se.sz != 1)
             {
                 pd.error("mangled name characters can only be of type `char`");
-                goto Ldecl;
+                return declarations();
             }
             version (all)
             {
@@ -2014,79 +2059,50 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
-            goto Ldecl;
+            return declarations();
         }
         else if (pd.ident == Id.printf || pd.ident == Id.scanf)
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
-            goto Ldecl;
+            return declarations();
         }
-        else if (global.params.ignoreUnsupportedPragmas)
+        else if (!global.params.ignoreUnsupportedPragmas)
         {
-            if (global.params.verbose)
-            {
-                /* Print unrecognized pragmas
-                 */
-                OutBuffer buf;
-                buf.writestring(pd.ident.toString());
-                if (pd.args)
-                {
-                    const errors_save = global.startGagging();
-                    for (size_t i = 0; i < pd.args.dim; i++)
-                    {
-                        Expression e = (*pd.args)[i];
-                        sc = sc.startCTFE();
-                        e = e.expressionSemantic(sc);
-                        e = resolveProperties(sc, e);
-                        sc = sc.endCTFE();
-                        e = e.ctfeInterpret();
-                        if (i == 0)
-                            buf.writestring(" (");
-                        else
-                            buf.writeByte(',');
-                        buf.writestring(e.toChars());
-                    }
-                    if (pd.args.dim)
-                        buf.writeByte(')');
-                    global.endGagging(errors_save);
-                }
-                message("pragma    %s", buf.peekChars());
-            }
-        }
-        else
             error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toChars());
-    Ldecl:
-        if (pd.decl)
+            return declarations();
+        }
+
+        if (!global.params.verbose)
+            return declarations();
+
+        /* Print unrecognized pragmas
+         */
+        OutBuffer buf;
+        buf.writestring(pd.ident.toString());
+        if (pd.args)
         {
-            Scope* sc2 = pd.newScope(sc);
-            for (size_t i = 0; i < pd.decl.dim; i++)
+            const errors_save = global.startGagging();
+            for (size_t i = 0; i < pd.args.dim; i++)
             {
-                Dsymbol s = (*pd.decl)[i];
-                s.dsymbolSemantic(sc2);
-                if (pd.ident == Id.mangle)
-                {
-                    assert(pd.args && pd.args.dim == 1);
-                    if (auto se = (*pd.args)[0].toStringExp())
-                    {
-                        const name = (cast(const(char)[])se.peekData()).xarraydup;
-                        uint cnt = setMangleOverride(s, name);
-                        if (cnt > 1)
-                            pd.error("can only apply to a single declaration");
-                    }
-                }
+                Expression e = (*pd.args)[i];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+                e = e.ctfeInterpret();
+                if (i == 0)
+                    buf.writestring(" (");
+                else
+                    buf.writeByte(',');
+                buf.writestring(e.toChars());
             }
-            if (sc2 != sc)
-                sc2.pop();
+            if (pd.args.dim)
+                buf.writeByte(')');
+            global.endGagging(errors_save);
         }
-        return;
-    Lnodecl:
-        if (pd.decl)
-        {
-            pd.error("is missing a terminating `;`");
-            goto Ldecl;
-            // do them anyway, to avoid segfaults.
-        }
+        message("pragma    %s", buf.peekChars());
+        return declarations();
     }
 
     override void visit(StaticIfDeclaration sid)
@@ -2199,12 +2215,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (auto se = ns.exp.toStringExp())
                 ns.ident = identFromSE(se);
+            // Empty Tuple
+            else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
+            {
+            }
             else
                 ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
                              ns.exp.toChars());
         }
-        if (ns.ident)
-            attribSemantic(ns);
+        attribSemantic(ns);
     }
 
     override void visit(UserAttributeDeclaration uad)
@@ -3265,7 +3284,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else
             funcdecl.linkage = sc.linkage;
-        funcdecl.inlining = sc.inlining;
+
+        // evaluate pragma(inline)
+        if (auto pragmadecl = sc.inlining)
+            funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
+
         funcdecl.protection = sc.protection;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
@@ -3953,6 +3976,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         OutBuffer buf1;
 
+                        if (fd.ident == funcdecl.ident)
+                            hgs.fullQual = true;
                         functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
                             new Identifier(fd.toPrettyChars()), &hgs, null);
 
@@ -6568,8 +6593,19 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // TypeTraits needs to know if it's located in an AliasDeclaration
     const oldflags = sc.flags;
     sc.flags |= SCOPE.alias_;
-    scope(exit)
+
+    void normalRet()
+    {
         sc.flags = oldflags;
+    }
+
+    void errorRet()
+    {
+        ds.aliassym = null;
+        ds.type = Type.terror;
+        ds.inuse = 0;
+        normalRet();
+    }
 
     // preserve the original type
     if (!ds.originalType && ds.type)
@@ -6582,39 +6618,35 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (fd || td && td.literal)
         {
             if (fd && fd.semanticRun >= PASS.semanticdone)
-                return;
+                return normalRet();
 
             Expression e = new FuncExp(ds.loc, ds.aliassym);
             e = e.expressionSemantic(sc);
-            if (e.op == TOK.function_)
+            if (auto fe = e.isFuncExp())
             {
-                FuncExp fe = cast(FuncExp)e;
                 ds.aliassym = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+                return normalRet();
             }
             else
-            {
-                ds.aliassym = null;
-                ds.type = Type.terror;
-            }
-            return;
+                return errorRet();
         }
 
         if (ds.aliassym.isTemplateInstance())
             ds.aliassym.dsymbolSemantic(sc);
-        return;
+        return normalRet();
     }
     ds.inuse = 1;
 
     // Given:
     //  alias foo.bar.abc def;
-    // it is not knowable from the syntax whether this is an alias
-    // for a type or an alias for a symbol. It is up to the semantic()
+    // it is not knowable from the syntax whether `def` is an alias
+    // for type `foo.bar.abc` or an alias for symbol `foo.bar.abc`. It is up to the semantic()
     // pass to distinguish.
-    // If it is a type, then type is set and getType() will return that
-    // type. If it is a symbol, then aliassym is set and type is NULL -
-    // toAlias() will return aliasssym.
+    // If it is a type, then `.type` is set and getType() will return that
+    // type. If it is a symbol, then `.aliassym` is set and type is `null` -
+    // toAlias() will return `.aliasssym`
 
-    uint errors = global.errors;
+    const errors = global.errors;
     Type oldtype = ds.type;
 
     // Ungag errors when not instantiated DeclDefs scope alias
@@ -6628,15 +6660,17 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
     // https://issues.dlang.org/show_bug.cgi?id=18480
     // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
-    // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
-    if (ds.type.ty == Tident && !ds._import)
+    if (auto tident = ds.type.isTypeIdentifier())
     {
-        auto tident = cast(TypeIdentifier)ds.type;
-        if (tident.ident is ds.ident && !tident.idents.dim)
+        // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
+        if (!ds._import)
         {
-            error(ds.loc, "`alias %s = %s;` cannot alias itself, use a qualified name to create an overload set",
-                ds.ident.toChars(), tident.ident.toChars());
-            ds.type = Type.terror;
+            if (tident.ident is ds.ident && !tident.idents.dim)
+            {
+                error(ds.loc, "`alias %s = %s;` cannot alias itself, use a qualified name to create an overload set",
+                    ds.ident.toChars(), tident.ident.toChars());
+                ds.type = Type.terror;
+            }
         }
     }
     /* This section is needed because Type.resolve() will:
@@ -6646,15 +6680,11 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
      */
     auto s = ds.type.toDsymbol(sc);
     if (errors != global.errors)
-    {
-        s = null;
-        ds.type = Type.terror;
-    }
-    if (s && s == ds)
+        return errorRet();
+    if (s == ds)
     {
         ds.error("cannot resolve");
-        s = null;
-        ds.type = Type.terror;
+        return errorRet();
     }
     if (!s || !s.isEnumMember())
     {
@@ -6669,7 +6699,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             sc2.stc |= ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
         }
         ds.type = ds.type.addSTC(ds.storage_class);
-        ds.type.resolve(ds.loc, sc2, &e, &t, &s);
+        ds.type.resolve(ds.loc, sc2, e, t, s);
         if (sc2 != sc)
             sc2.pop();
 
@@ -6685,7 +6715,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
                 {
                     if (e.op != TOK.error)
                         ds.error("cannot alias an expression `%s`", e.toChars());
-                    t = Type.terror;
+                    return errorRet();
                 }
             }
         }
@@ -6694,26 +6724,23 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     if (s == ds)
     {
         assert(global.errors);
-        ds.type = Type.terror;
-        s = null;
+        return errorRet();
     }
-    if (!s) // it's a type alias
-    {
-        //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
-        ds.type = ds.type.typeSemantic(ds.loc, sc);
-        ds.aliassym = null;
-    }
-    else    // it's a symbolic alias
+    if (s) // it's a symbolic alias
     {
         //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
         ds.type = null;
         ds.aliassym = s;
     }
-    if (global.gag && errors != global.errors)
+    else    // it's a type alias
     {
-        ds.type = Type.terror;
+        //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
+        ds.type = ds.type.typeSemantic(ds.loc, sc);
         ds.aliassym = null;
     }
+
+    if (global.gag && errors != global.errors)
+        return errorRet();
     ds.inuse = 0;
     ds.semanticRun = PASS.semanticdone;
 
@@ -6723,4 +6750,5 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (!ds.overloadInsert(sx))
             ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
     }
+    normalRet();
 }

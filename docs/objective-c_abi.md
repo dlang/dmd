@@ -14,11 +14,11 @@ There are several Objective-C runtimes and ABIs available:
 This document describes the Apple runtime with the modern ABI on macOS x86-64,
 as implemented by the Apple LLVM compiler (`9.0.0 (clang-900.0.39.2)`) shipped
 with Xcode 9.2. The information in this document has been obtained by reading
-documentation provided by Apple, looking at assembly outputs and object dumps
+the documentation provided by Apple, looking at assembly outputs and object dumps
 from the LLVM compiler.
 
 Objective-C is a superset of C, therefore any of the language constructs that
-also exists in C, like functions, structs and variables use the C ABI of the
+also exist in C, like functions, structs, and variables use the C ABI of the
 platform. This document only describes the ABI of the Objective-C specific
 language constructs.
 
@@ -26,12 +26,12 @@ language constructs.
 
 The Objective-C model of object-oriented programming is based on message passing
 to object instances. Unlike D or C++ where a method is called. The difference
-from implementation stand point is that in D and C++ a vtable is used which
+from an implementation standpoint is that in D and C++ a vtable is used which
 is an array of function pointers and the compiler uses an index into that array
-to determine which method to call. In Objective-C it's the runtime that is
+to determine which method to call. In Objective-C, it's the runtime that is
 responsible for finding the correct implementation when a message is sent to an
-object. A method is identified by a *selector*, a null terminated string
-representing it's name, which maps to a C function pointer that implements the
+object. A method is identified by a *selector*, a null-terminated string
+representing its name, which maps to a C function pointer that implements the
 method.
 
 ## Message Expression
@@ -75,13 +75,13 @@ int result = objc_msgSend(receiver, selector, arg1, arg2);
 ```
 
 The call to `objc_msgSend` should not be performed as a variadic call but
-instead as if the `objc_msgSend` function had the same signature as the method
-that should be called, but with the two additional parameter, `self` and `op`,
+instead, as if the `objc_msgSend` function had the same signature as the method
+that should be called but with the two additional parameters, `self` and `op`,
 added first. The implementation of `objc_msgSend` will jump to the method
 instead of calling it.
 
 Because of the above, multiple versions of `objc_msgSend` exist. Depending on
-the return type of the method that is called, the correct version will to be
+the return type of the method that is called, the correct version will be
 used. This depends on the platform C ABI. This is a list of functions for
 which return types they're used:
 
@@ -113,7 +113,7 @@ objc_msgSend_stret(&foo, receiver, selector);
 
 ### Super Calls
 
-Making a super call is similar as making a regular call to an instance method.
+Making a super call is similar to making a regular call to an instance method.
 Instead of the `objc_msgSend` family of functions, the `objc_msgSendSuper`
 family is used. There are two functions available:
 
@@ -237,13 +237,13 @@ Rename collisions when linking (static functions).
 
 #### Private Linkage
 
-Like [Internal](#internal-linkage), but omit from symbol table.
+Like [Internal](#internal-linkage), but omit from the symbol table.
 
 ### `L_OBJC_METH_VAR_NAME_`
 
 For each selector that is used, a symbol is generated in the resulting binary.
 The symbol has the name `L_OBJC_METH_VAR_NAME_.<number>`, where `<number>` is an
-incrementing number. The selector is stored as a null terminated C string as the
+incrementing number. The selector is stored as a null-terminated C string as the
 section data.
 
 | Section                                     | Linkage                      | Alignment |
@@ -255,7 +255,7 @@ section data.
 For each method that is defined, a symbol is generated in the resulting binary.
 The symbol has the name `L_OBJC_METH_VAR_TYPE_.<number>`, where `<number>` is an
 incrementing number. The section data contains the return type and the parameter
-types encoded as a null terminated C string as according to the [Type Encoding](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100)
+types encoded as a null-terminated C string as according to the [Type Encoding](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100)
 documentation provided by Apple.
 
 | Section                                     | Linkage                      | Alignment |
@@ -264,7 +264,7 @@ documentation provided by Apple.
 
 ### `l_OBJC_$_INSTANCE_METHODS_`/`l_OBJC_$_CLASS_METHODS_`
 
-For each class that is defined and contains at least a one class (static)
+For each class that is defined and contains at least one class (static)
 method, a symbol is generated in the resulting binary. The symbol has the name
 `l_OBJC_$_CLASS_METHODS_<class_name>`, where `<class_name>` is the name of the
 class. For each class that is defined and contains at least one instance method,
@@ -352,7 +352,7 @@ name of the class.
 
 ### `L_OBJC_IMAGE_INFO`
 
-For any binary that is built, the `L_OBJC_IMAGE_INFO` symbols is generated. The
+For any binary that is built, the `L_OBJC_IMAGE_INFO` symbols are generated. The
 section data that is stored corresponds to the following struct:
 
 ```d
@@ -369,7 +369,7 @@ Seems to always be fixed.
 
 #### `flags`
 
-Indicates if features like: garbage collector, automatic reference counting
+Indicates if features like garbage collector, automatic reference counting
 (ARC) or class properties are supported. These features can be enabled/disabled
 in the Clang compiler using command line switches. The exact values used, or the
 features supported, are not known. The value of `64` is what Clang 9.0 outputs
@@ -383,7 +383,7 @@ by default when no switches are specified.
 
 For each class defined, a symbol is generated in the resulting binary. The
 symbol has the name `L_OBJC_CLASS_NAME_.<number>`, where `<number>` is an
-incrementing number. The the name of the class is stored as a null terminated C
+incrementing number. The name of the class is stored as a null-terminated C
 string as the section data.
 
 | Section                                      | Linkage                      | Alignment |
@@ -392,7 +392,7 @@ string as the section data.
 
 ### `l_OBJC_CLASS_RO_$_`/`l_OBJC_METACLASS_RO_$_`
 
-For each class defined, two symbols is generated in the resulting binary. One
+For each class defined, two symbols are generated in the resulting binary. One
 symbols with the name `l_OBJC_CLASS_RO_$_<class_name>` and one with the name
 `l_OBJC_METACLASS_RO_$_<class_name>`, where `<class_name>` is the name of the
 class. The first symbol is for the class and the second symbol is for the
@@ -426,13 +426,13 @@ Possible flags:
 
 #### `instanceStart`
 
-The start of the instance, in bytes. For a metaclass this is always `40`. For a
+The start of the instance, in bytes. For a metaclass, this is always `40`. For a
 class without instance variables it's the size of the class declaration.
-Otherwise it's the offset of the first instance variable.
+Otherwise, it's the offset of the first instance variable.
 
 #### `instanceSize`
 
-The size of an instance of this class, in bytes. For a metaclass this is always
+The size of an instance of this class, in bytes. For a metaclass, this is always
 `40`.
 
 #### `reserved`
@@ -463,7 +463,7 @@ A list of the protocols this class implements.
 #### `ivars`
 
 A list of the instance variables this class contains. This is stored as a
-a reference to the `l_OBJC_$_INSTANCE_VARIABLES_<class_name>`, where
+reference to the `l_OBJC_$_INSTANCE_VARIABLES_<class_name>`, where
 `<class_name>` is the name of the class. For a metaclass or if the class doesn't
 have any instance variables, this will be `null`.
 
@@ -481,8 +481,8 @@ A list of the properties this class contains.
 
 ### `_OBJC_CLASS_$_`/`_OBJC_METACLASS_$_`
 
-For each class defined, two symbols is generated in the resulting binary. One
-symbols with the name `_OBJC_CLASS_$_<class_name>` and one with the name
+For each class defined, two symbols are generated in the resulting binary. One
+symbol with the name `_OBJC_CLASS_$_<class_name>` and one with the name
 `_OBJC_METACLASS_$_<class_name>`, where `<class_name>` is the name of the
 class. The first symbol is for the class and the second symbol is for the
 metaclass. The section data that is stored corresponds to the following struct:
@@ -646,7 +646,7 @@ Shipped with Apple's developer tools, Xcode.
 
 #### Assembly Output
 
-Outputs the assembly code, symbols and their data. Invoke Clang with the `-S`
+Outputs the assembly code, symbols, and their data. Invoke Clang with the `-S`
 flag:
 
 ```sh
@@ -659,7 +659,7 @@ main.m main.s
 
 #### LLVM IR Output
 
-Outputs the LLVM IR code, symbols and their data. Invoke Clang with the
+Outputs the LLVM IR code, symbols, and their data. Invoke Clang with the
 `-emit-llvm -S` flags:
 
 ```sh
@@ -712,5 +712,5 @@ Interactive disassembler for macOS and Linux with a GUI. Can pretty print the
 Objective-C sections, including visualizing the sections as structs including
 names of the fields.
 
-Third party tool that costs money. A 30 minutes demo session is available but it
+A third-party tool that costs money. A 30 minutes demo session is available but it
 can be restarted indefinitely. Available at https://www.hopperapp.com.

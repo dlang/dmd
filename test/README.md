@@ -1,8 +1,12 @@
 Running DMD's test suite
 -------------------------
 
-This is the documentation and guide for DMD's test suite.
-Maybe you are looking for the [contributing guide](../CONTRIBUTING.md) too?
+This is the documentation and guide for DMD's test suite. See
+[src/README.md](../src/README.md#major-targets) for additional
+checks performed alongside these dedicated tests.
+
+Maybe you are looking for the [contributing guide](../CONTRIBUTING.md)
+too?
 
 ---
 
@@ -187,7 +191,7 @@ void main(string[] args)
 The following is a list of all available settings:
 
     COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
-                         together in an extra setup. May specifiy additional parameters which
+                         together in an extra setup. May specify additional parameters which
                          are passed to $(DMD) when linking the generated object files.
                          default: (none, aka compile/link all in one step)
 

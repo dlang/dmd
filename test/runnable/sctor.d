@@ -1,6 +1,6 @@
 /*
-REQUIRED_ARGS:
-PERMUTE_ARGS: -w -d -de -dw
+REQUIRED_ARGS: -w -de
+PERMUTE_ARGS:
 RUN_OUTPUT:
 ---
 Success

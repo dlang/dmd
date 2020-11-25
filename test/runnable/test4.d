@@ -3,9 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/test4.d(616): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
-runnable/test4.d(629): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
-runnable/test4.d(767): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/test4.d(754): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 
@@ -613,11 +611,6 @@ extern (C) int cfc(int x, int y)
     return x * 10 + y;
 }
 
-extern (Pascal) int cfp(int x, int y)
-{
-    return x * 10 + y;
-}
-
 int cfd(int x, int y)
 {
     return x * 10 + y;
@@ -626,7 +619,6 @@ int cfd(int x, int y)
 
 extern (Windows) int function (int, int) fpw;
 extern (C) int function (int, int) fpc;
-extern (Pascal) int function (int, int) fpp;
 int function (int, int) fpd;
 
 void test20()
@@ -636,7 +628,6 @@ void test20()
 
     fpw = &cfw;
     fpc = &cfc;
-    fpp = &cfp;
     fpd = &cfd;
 
 //printf("test w\n");
@@ -646,10 +637,6 @@ void test20()
 //printf("test c\n");
     i = (*fpc)(3, 4);
     assert(i == 34);
-
-//printf("test p\n");
-    i = (*fpp)(5, 6);
-    assert(i == 56);
 
 //printf("test d\n");
     i = (*fpd)(7, 8);
@@ -1426,6 +1413,46 @@ void test59()
 
 
 /* ================================ */
+// https://issues.dlang.org/show_bug.cgi?id=10664
+
+Exception collectExceptionE(int delegate () expression, ref int result)
+{
+    try
+    {
+        result = expression();
+    }
+    catch (Exception e)
+    {
+        return e;
+    }
+    return null;
+}
+
+RangeError collectExceptionR(int delegate () expression, ref int result)
+{
+    try
+    {
+        result = expression();
+    }
+    catch (RangeError e)
+    {
+        return e;
+    }
+    return null;
+}
+
+void test10664()
+{
+    int b;
+    int foo() { throw new Exception("blah"); }
+    assert(collectExceptionE(&foo, b));
+
+    int[] a = new int[3];
+    int goo() { return a[4]; }
+    collectExceptionR(&goo, b);
+}
+
+/* ================================ */
 
 
 int main()
@@ -1487,8 +1514,8 @@ int main()
     test57();
     test58();
     test59();
+    test10664();
 
     printf("Success\n");
     return 0;
 }
-

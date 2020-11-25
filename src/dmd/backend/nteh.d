@@ -33,6 +33,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -262,8 +263,8 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
 Symbol *nteh_contextsym()
 {
     for (SYMIDX si = 0; 1; si++)
-    {   assert(si < globsym.top);
-        Symbol* sp = globsym.tab[si];
+    {   assert(si < globsym.length);
+        Symbol* sp = globsym[si];
         symbol_debug(sp);
         if (strcmp(sp.Sident.ptr,s_name_context) == 0)
             return sp;
@@ -318,8 +319,8 @@ Symbol *nteh_ecodesym()
     Symbol *sp;
 
     for (si = 0; 1; si++)
-    {   assert(si < globsym.top);
-        sp = globsym.tab[si];
+    {   assert(si < globsym.length);
+        sp = globsym[si];
         symbol_debug(sp);
         if (strcmp(sp.Sident.ptr, s_name_ecode) == 0)
             return sp;
@@ -361,7 +362,7 @@ void nteh_prolog(ref CodeBuilder cdb)
         /* An sindex value of -2 is a magic value that tells the
          * stack unwinder to skip this frame.
          */
-        assert(config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64));
+        assert(config.exe & EX_posix);
         cs.Iop = 0x68;
         cs.Iflags = 0;
         cs.Irex = 0;

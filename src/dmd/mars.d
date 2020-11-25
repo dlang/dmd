@@ -365,9 +365,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     setTarget(params);
 
-    // Predefined version identifiers
-    addDefaultVersionIdentifiers(params);
-
     setDefaultLibrary();
 
     // Initialization
@@ -387,6 +384,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     import dmd.root.ctfloat : CTFloat;
     CTFloat.initialize();
+
+    // Predefined version identifiers
+    addDefaultVersionIdentifiers(params);
 
     if (params.verbose)
     {
@@ -1241,6 +1241,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
+        VersionCondition.addPredefinedGlobalIdent("FreeBSD_" ~ target.FreeBSDMajor);
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
     }

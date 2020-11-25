@@ -1777,19 +1777,17 @@ public:
             case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
-                    if (hgs.fullDump)
+                    auto sym = te.sym;
+                    if (sym && sym.members && (!hgs.inEnumDecl || hgs.inEnumDecl != sym))
                     {
-                        auto sym = te.sym;
-                        if (hgs.inEnumDecl && sym && hgs.inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
+                        foreach (em; *sym.members)
                         {
-                            EnumMember em = cast(EnumMember) (*sym.members)[i];
-                            if (em.value.toInteger == v)
+                            if ((cast(EnumMember)em).value.toInteger == v)
                             {
                                 buf.printf("%s.%s", sym.toChars(), em.ident.toChars());
                                 return ;
                             }
                         }
-                        //assert(0, "We could not find the EmumMember");// for some reason it won't append char* ~ e.toChars() ~ " in " ~ sym.toChars() );
                     }
 
                     buf.printf("cast(%s)", te.sym.toChars());
@@ -1884,45 +1882,7 @@ public:
 
     void floatToBuffer(Type type, real_t value)
     {
-        /** sizeof(value)*3 is because each byte of mantissa is max
-         of 256 (3 characters). The string will be "-M.MMMMe-4932".
-         (ie, 8 chars more than mantissa). Plus one for trailing \0.
-         Plus one for rounding. */
-        const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
-        char[BUFFER_LEN] buffer;
-        CTFloat.sprint(buffer.ptr, 'g', value);
-        assert(strlen(buffer.ptr) < BUFFER_LEN);
-        if (hgs.hdrgen)
-        {
-            real_t r = CTFloat.parse(buffer.ptr);
-            if (r != value) // if exact duplication
-                CTFloat.sprint(buffer.ptr, 'a', value);
-        }
-        buf.writestring(buffer.ptr);
-        if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')
-            buf.remove(buf.length() - 1, 1);
-
-        if (type)
-        {
-            Type t = type.toBasetype();
-            switch (t.ty)
-            {
-            case Tfloat32:
-            case Timaginary32:
-            case Tcomplex32:
-                buf.writeByte('F');
-                break;
-            case Tfloat80:
-            case Timaginary80:
-            case Tcomplex80:
-                buf.writeByte('L');
-                break;
-            default:
-                break;
-            }
-            if (t.isimaginary())
-                buf.writeByte('i');
-        }
+        .floatToBuffer(type, value, buf, hgs.hdrgen);
     }
 
     override void visit(RealExp e)
@@ -2307,7 +2267,7 @@ public:
         expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
     }
 
-    override void visit(CompileExp e)
+    override void visit(MixinExp e)
     {
         buf.writestring("mixin(");
         argsToBuffer(e.exps, buf, hgs, null);
@@ -2543,6 +2503,58 @@ public:
     }
 }
 
+/**
+ * Formats `value` as a literal of type `type` into `buf`.
+ *
+ * Params:
+ *   type     = literal type (e.g. Tfloat)
+ *   value    = value to print
+ *   buf      = target buffer
+ *   allowHex = whether hex floating point literals may be used
+ *              for greater accuracy
+ */
+void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool allowHex)
+{
+    /** sizeof(value)*3 is because each byte of mantissa is max
+        of 256 (3 characters). The string will be "-M.MMMMe-4932".
+        (ie, 8 chars more than mantissa). Plus one for trailing \0.
+        Plus one for rounding. */
+    const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
+    char[BUFFER_LEN] buffer;
+    CTFloat.sprint(buffer.ptr, 'g', value);
+    assert(strlen(buffer.ptr) < BUFFER_LEN);
+    if (allowHex)
+    {
+        real_t r = CTFloat.parse(buffer.ptr);
+        if (r != value) // if exact duplication
+            CTFloat.sprint(buffer.ptr, 'a', value);
+    }
+    buf.writestring(buffer.ptr);
+    if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')
+        buf.remove(buf.length() - 1, 1);
+
+    if (type)
+    {
+        Type t = type.toBasetype();
+        switch (t.ty)
+        {
+        case Tfloat32:
+        case Timaginary32:
+        case Tcomplex32:
+            buf.writeByte('F');
+            break;
+        case Tfloat80:
+        case Timaginary80:
+        case Tcomplex80:
+            buf.writeByte('L');
+            break;
+        default:
+            break;
+        }
+        if (t.isimaginary())
+            buf.writeByte('i');
+    }
+}
 
 private void templateParameterToBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
@@ -2846,8 +2858,6 @@ string linkageToString(LINK linkage) pure nothrow
         return "C++";
     case LINK.windows:
         return "Windows";
-    case LINK.pascal:
-        return "Pascal";
     case LINK.objc:
         return "Objective-C";
     case LINK.system:

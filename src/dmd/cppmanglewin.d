@@ -27,6 +27,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
+import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
@@ -76,7 +77,7 @@ private final class VisualCPPMangler : Visitor
     enum VC_SAVED_IDENT_CNT = 10u;
 
     alias visit = Visitor.visit;
-    const(char)*[VC_SAVED_IDENT_CNT] saved_idents;
+    Identifier[VC_SAVED_IDENT_CNT] saved_idents;
     Type[VC_SAVED_TYPE_CNT] saved_types;
 
     // IS_NOT_TOP_TYPE: when we mangling one argument, we can call visit several times (for base types of arg type)
@@ -108,8 +109,8 @@ private final class VisualCPPMangler : Visitor
     extern (D) this(VisualCPPMangler rvl)
     {
         flags |= (rvl.flags & IS_DMC);
-        memcpy(&saved_idents, &rvl.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
-        memcpy(&saved_types, &rvl.saved_types, Type.sizeof * VC_SAVED_TYPE_CNT);
+        saved_idents[] = rvl.saved_idents[];
+        saved_types[] = rvl.saved_types[];
     }
 
 public:
@@ -119,8 +120,8 @@ public:
         {
             flags |= IS_DMC;
         }
-        memset(&saved_idents, 0, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
-        memset(&saved_types, 0, Type.sizeof * VC_SAVED_TYPE_CNT);
+        saved_idents[] = null;
+        saved_types[] = null;
     }
 
     override void visit(Type type)
@@ -486,6 +487,7 @@ public:
     }
 
 private:
+extern(D):
     void mangleFunction(FuncDeclaration d)
     {
         // <function mangle> ? <qualified name> <flags> <return type> <arg list>
@@ -632,7 +634,7 @@ private:
      *      mangling for special symbols,
      *      null if not a special symbol
      */
-    extern (D) static string mangleSpecialName(Dsymbol sym)
+    static string mangleSpecialName(Dsymbol sym)
     {
         string mangle;
         if (sym.isCtorDeclaration())
@@ -668,7 +670,7 @@ private:
      *      true if sym has no further mangling needed
      *      false otherwise
      */
-    bool mangleOperator(TemplateInstance ti, ref const(char)* symName, ref int firstTemplateArg)
+    bool mangleOperator(TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
     {
         auto whichOp = isCppOperator(ti.name);
         final switch (whichOp)
@@ -888,7 +890,6 @@ private:
     void mangleName(Dsymbol sym, bool dont_use_back_reference)
     {
         //printf("mangleName('%s')\n", sym.toChars());
-        const(char)* name = null;
         bool is_dmc_template = false;
 
         if (string s = mangleSpecialName(sym))
@@ -897,98 +898,87 @@ private:
             return;
         }
 
-        if (TemplateInstance ti = sym.isTemplateInstance())
+        void writeName(Identifier name)
         {
-            auto id = ti.tempdecl.ident;
-            const(char)* symName = id.toChars();
-
-            int firstTemplateArg = 0;
-
-            // test for special symbols
-            if (mangleOperator(ti,symName,firstTemplateArg))
-                return;
-
-            scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
-            tmp.buf.writeByte('?');
-            tmp.buf.writeByte('$');
-            tmp.buf.writestring(symName);
-            tmp.saved_idents[0] = symName;
-            if (symName == id.toChars())
-                tmp.buf.writeByte('@');
-            if (flags & IS_DMC)
-            {
-                tmp.mangleIdent(sym.parent, true);
-                is_dmc_template = true;
-            }
-            bool is_var_arg = false;
-            for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
-            {
-                RootObject o = (*ti.tiargs)[i];
-                TemplateParameter tp = null;
-                TemplateValueParameter tv = null;
-                TemplateTupleParameter tt = null;
-                if (!is_var_arg)
-                {
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                    assert(td);
-                    tp = (*td.parameters)[i];
-                    tv = tp.isTemplateValueParameter();
-                    tt = tp.isTemplateTupleParameter();
-                }
-                if (tt)
-                {
-                    is_var_arg = true;
-                    tp = null;
-                }
-                if (tv)
-                {
-                    tmp.manlgeTemplateValue(o, tv, sym, is_dmc_template);
-                }
-                else if (!tp || tp.isTemplateTypeParameter())
-                {
-                    tmp.mangleTemplateType(o);
-                }
-                else if (tp.isTemplateAliasParameter())
-                {
-                    tmp.mangleTemplateAlias(o, sym);
-                }
-                else
-                {
-                    sym.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                    fatal();
-                }
-            }
-            name = tmp.buf.extractChars();
-        }
-        else
-        {
-            // Not a template
-            name = sym.ident.toChars();
-        }
-        assert(name);
-        if (is_dmc_template)
-        {
-            if (checkAndSaveIdent(name))
-                return;
-        }
-        else
-        {
-            if (dont_use_back_reference)
-            {
+            assert(name);
+            if (!is_dmc_template && dont_use_back_reference)
                 saveIdent(name);
+            else if (checkAndSaveIdent(name))
+                return;
+
+            buf.writestring(name.toString());
+            buf.writeByte('@');
+        }
+        auto ti = sym.isTemplateInstance();
+        if (!ti)
+        {
+            writeName(sym.ident);
+            return;
+        }
+        auto id = ti.tempdecl.ident;
+        auto symName = id.toString();
+
+        int firstTemplateArg = 0;
+
+        // test for special symbols
+        if (mangleOperator(ti,symName,firstTemplateArg))
+            return;
+
+        scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
+        tmp.buf.writeByte('?');
+        tmp.buf.writeByte('$');
+        tmp.buf.writestring(symName);
+        tmp.saved_idents[0] = id;
+        if (symName == id.toString())
+            tmp.buf.writeByte('@');
+        if (flags & IS_DMC)
+        {
+            tmp.mangleIdent(sym.parent, true);
+            is_dmc_template = true;
+        }
+        bool is_var_arg = false;
+        for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
+        {
+            RootObject o = (*ti.tiargs)[i];
+            TemplateParameter tp = null;
+            TemplateValueParameter tv = null;
+            TemplateTupleParameter tt = null;
+            if (!is_var_arg)
+            {
+                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                assert(td);
+                tp = (*td.parameters)[i];
+                tv = tp.isTemplateValueParameter();
+                tt = tp.isTemplateTupleParameter();
+            }
+            if (tt)
+            {
+                is_var_arg = true;
+                tp = null;
+            }
+            if (tv)
+            {
+                tmp.manlgeTemplateValue(o, tv, sym, is_dmc_template);
+            }
+            else if (!tp || tp.isTemplateTypeParameter())
+            {
+                tmp.mangleTemplateType(o);
+            }
+            else if (tp.isTemplateAliasParameter())
+            {
+                tmp.mangleTemplateAlias(o, sym);
             }
             else
             {
-                if (checkAndSaveIdent(name))
-                    return;
+                sym.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
+                fatal();
             }
         }
-        buf.writestring(name);
-        buf.writeByte('@');
+        writeName(Identifier.idPool(tmp.buf.extractSlice()));
     }
 
     // returns true if name already saved
-    bool checkAndSaveIdent(const(char)* name)
+    bool checkAndSaveIdent(Identifier name)
     {
         foreach (i; 0 .. VC_SAVED_IDENT_CNT)
         {
@@ -997,7 +987,7 @@ private:
                 saved_idents[i] = name;
                 break;
             }
-            if (!strcmp(saved_idents[i], name)) // ok, we've found same name. use index instead of name
+            if (saved_idents[i] == name) // ok, we've found same name. use index instead of name
             {
                 buf.writeByte(i + '0');
                 return true;
@@ -1006,7 +996,7 @@ private:
         return false;
     }
 
-    void saveIdent(const(char)* name)
+    void saveIdent(Identifier name)
     {
         foreach (i; 0 .. VC_SAVED_IDENT_CNT)
         {
@@ -1015,7 +1005,7 @@ private:
                 saved_idents[i] = name;
                 break;
             }
-            if (!strcmp(saved_idents[i], name)) // ok, we've found same name. use index instead of name
+            if (saved_idents[i] == name) // ok, we've found same name. use index instead of name
             {
                 return;
             }
@@ -1045,8 +1035,9 @@ private:
         {
             mangleName(p, dont_use_back_reference);
             // Mangle our string namespaces as well
-            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
+            for (auto ns = p.cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
                 mangleName(ns, dont_use_back_reference);
+
             p = p.toParent();
             if (p.toParent() && p.toParent().isTemplateInstance())
             {
@@ -1178,9 +1169,6 @@ private:
             case LINK.windows:
                 tmp.buf.writeByte('G'); // stdcall
                 break;
-            case LINK.pascal:
-                tmp.buf.writeByte('C');
-                break;
             case LINK.d:
             case LINK.default_:
             case LINK.system:
@@ -1263,8 +1251,8 @@ private:
         }
         tmp.buf.writeByte('Z');
         const(char)* ret = tmp.buf.extractChars();
-        memcpy(&saved_idents, &tmp.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
-        memcpy(&saved_types, &tmp.saved_types, Type.sizeof * VC_SAVED_TYPE_CNT);
+        saved_idents[] = tmp.saved_idents[];
+        saved_types[] = tmp.saved_types[];
         return ret;
     }
 }

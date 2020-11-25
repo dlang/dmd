@@ -10,5 +10,5 @@ class Foo
 {
     public static { this() {}}
     public shared static { this() {}}
-    public {this() {}}
+    public {this(int) {}}
 }

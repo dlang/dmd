@@ -184,13 +184,14 @@ version (Windows)
     void MsCoffObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
                           uint targseg, int rtype, int val);
     int  MsCoffObj_seg_drectve();
-    int  MsCoffObj_seg_pdata();
-    int  MsCoffObj_seg_xdata();
-    int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
-    int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
-    int  MsCoffObj_seg_debugS();
-    int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
 }
+
+int  MsCoffObj_seg_pdata();
+int  MsCoffObj_seg_xdata();
+int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
+int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
+int  MsCoffObj_seg_debugS();
+int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
 
 version (Posix)
 {
@@ -753,7 +754,16 @@ version (OMFandMSCOFF)
                 :    OmfObj_tlv_bootstrap();
         }
 
+        Symbol *getGOTsym()
+        {
+            assert(0);
+        }
+
         void gotref(Symbol *s)
+        {
+        }
+
+        void refGOTsym()
         {
         }
 
@@ -936,10 +946,9 @@ else version (ELFandMACH)
             return Obj_alias(n1, n2);
         }
 
-        /+void theadr(const(char)* modname)
+        void theadr(const(char)* modname)
         {
-            return Obj_theadr(modname);
-        }+/
+        }
 
         /+void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
         {
@@ -1101,10 +1110,9 @@ else version (ELFandMACH)
             return Obj_reftodatseg(seg, offset, val, targetdatum, flags);
         }
 
-        /+void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
+        void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
         {
-            return Obj_reftofarseg(seg, offset, val, farseg, flags);
-        }+/
+        }
 
         void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
         {
@@ -1191,6 +1199,9 @@ else version (ELFandMACH)
             return Obj_refGOTsym();
         }
 
+        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2) { }
+
+        int seg_debugT() { assert(0); }
 
         version (OSX)
         {

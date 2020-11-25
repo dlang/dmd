@@ -140,21 +140,12 @@ enum RMstore = (1 << 31);
 extern (C++) extern __gshared regm_t ALLREGS;
 extern (C++) extern __gshared regm_t BYTEREGS;
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
     // To support positional independent code,
     // must be able to remove BX from available registers
     enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
     enum ALLREGS_INIT_PIC      = (mAX|mCX|mDX|mSI|mDI);
     enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
     enum BYTEREGS_INIT_PIC     = (mAX|mCX|mDX);
-}
-else
-{
-    enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
-    enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
-}
-
 
 /* We use the same IDXREGS for the 386 as the 8088, because if
    we used ALLREGS, it would interfere with mMSW

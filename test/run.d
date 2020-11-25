@@ -18,7 +18,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-immutable testDirs = ["runnable", "runnable_cxx", "compilable", "fail_compilation", "dshell"];
+immutable testDirs = ["runnable", "runnable_cxx", "dshell", "compilable", "fail_compilation"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
@@ -143,6 +143,13 @@ Options:
         return spawnProcess(unitTestRunnerCommand ~ args).wait();
     }
 
+    if (args == ["tools"])
+    {
+        verifyCompilerExists(env);
+        ensureToolsExists(env, EnumMembers!TestTools);
+        return 0;
+    }
+
     // default target
     if (!args.length)
         args = ["all"];
@@ -244,7 +251,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
             sourceFile = toolsDir.buildPath(tool ~ ".d");
         }
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
-            writefln("%s is already up-to-date", tool);
+            log("%s is already up-to-date", tool);
         else
         {
             string[] command;
@@ -431,7 +438,7 @@ auto filterTargets(Target[] targets, string[string] env)
         auto resultRunTime = resultsDir.buildPath(testName ~ ".out").timeLastModified.ifThrown(SysTime.init);
         if (!force && resultRunTime > testPath(testName).timeLastModified &&
                 resultRunTime > env["DMD"].timeLastModified.ifThrown(SysTime.init))
-            writefln("%s is already up-to-date", testName);
+            log("%s is already up-to-date", testName);
         else
             targetsThatNeedUpdating ~= t;
     }

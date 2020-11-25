@@ -37,6 +37,7 @@ import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -4875,7 +4876,7 @@ private elem * el64_32(elem *e, goal_t goal)
         break;
 
     case OPmul:
-        static if (TARGET_OSX) // https://issues.dlang.org/show_bug.cgi?id=21047
+        if (config.exe & (EX_OSX | EX_OSX64)) // https://issues.dlang.org/show_bug.cgi?id=21047
             break;
         else
             goto case;
@@ -5334,9 +5335,9 @@ private elem * elvalist(elem *e, goal_t goal)
         // Find last named parameter
         Symbol *lastNamed = null;
         Symbol *arguments_typeinfo = null;
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *s = globsym.tab[si];
+            Symbol *s = globsym[si];
 
             if (s.Sclass == SCparameter || s.Sclass == SCregpar)
                 lastNamed = s;
@@ -5361,7 +5362,7 @@ private elem * elvalist(elem *e, goal_t goal)
         return e;
     }
 
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     assert(config.exe == EX_WIN64); // va_start is not an intrinsic on 32-bit
 
@@ -5371,9 +5372,9 @@ static if (TARGET_WINDOS)
 
     // Find last named parameter
     Symbol *lastNamed = null;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             lastNamed = s;
@@ -5392,7 +5393,7 @@ static if (TARGET_WINDOS)
 
 }
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
     assert(I64); // va_start is not an intrinsic on 32-bit
     // (OPva_start &va)
@@ -5401,9 +5402,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
     // Find __va_argsave
     Symbol *va_argsave = null;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
         {
             va_argsave = s;

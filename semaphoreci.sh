@@ -17,6 +17,10 @@ export DMD=${DMD:-dmd}         # can be {dmd,ldc,gdc}
 export N=4
 export OS_NAME=linux
 export FULL_BUILD="${PULL_REQUEST_NUMBER+false}"
+
+export HOST_DC=$DMD
+if [ "$HOST_DC" == "gdc" ]; then export HOST_DC=gdmd-$GDC_VERSION; fi
+
 # SemaphoreCI doesn't provide a convenient way to the base branch (e.g. master or stable)
 if [ -n "${PULL_REQUEST_NUMBER:-}" ]; then
     BRANCH=$((curl -fsSL https://api.github.com/repos/dlang/dmd/pulls/$PULL_REQUEST_NUMBER || echo) | jq -r '.base.ref')
@@ -28,21 +32,12 @@ if [ -n "${PULL_REQUEST_NUMBER:-}" ]; then
 else
     BRANCH="${BRANCH_NAME}"
 fi
-export BRANCH
-
-source ci.sh
-
-################################################################################
-# Always source a DMD instance
-################################################################################
-
-install_d "$DMD"
 
 ################################################################################
 # Define commands
 ################################################################################
 
 case $1 in
-    setup) setup_repos ;;
-    testsuite) testsuite ;;
+    setup) ./ci.sh install_host_compiler && ./ci.sh setup_repos "$BRANCH" ;;
+    testsuite) ./ci.sh testsuite ;;
 esac

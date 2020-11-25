@@ -161,6 +161,7 @@ struct Param
     bool fix16997;      // fix integral promotions for unary + - ~ operators
                         // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;  // if the current scope has an alias this, check it before searching upper scopes
+    bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     bool vsafe;         // use enhanced @safe checking
     bool ehnogc;        // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
@@ -395,23 +396,23 @@ struct Loc
     bool equals(const Loc& loc) const;
 };
 
-enum LINK
+enum class LINK : uint8_t
 {
-    LINKdefault,
-    LINKd,
-    LINKc,
-    LINKcpp,
-    LINKwindows,
-    LINKpascal,
-    LINKobjc,
-    LINKsystem
+    default_,
+    d,
+    c,
+    cpp,
+    windows,
+    pascal,
+    objc,
+    system
 };
 
-enum CPPMANGLE
+enum class CPPMANGLE : uint8_t
 {
-    CPPMANGLEdefault,
-    CPPMANGLEstruct,
-    CPPMANGLEclass
+    def,
+    asStruct,
+    asClass
 };
 
 enum MATCH
@@ -422,11 +423,11 @@ enum MATCH
     MATCHexact          // exact match
 };
 
-enum PINLINE
+enum class PINLINE : uint8_t
 {
-    PINLINEdefault,      // as specified on the command line
-    PINLINEnever,        // never inline
-    PINLINEalways        // always inline
+    default_,     // as specified on the command line
+    never,        // never inline
+    always        // always inline
 };
 
 typedef uinteger_t StorageClass;

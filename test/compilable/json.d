@@ -187,7 +187,6 @@ extern(D) int vlinkageD;
 extern(C) int vlinakgeC;
 extern(C++) __gshared int vlinkageCpp;
 extern(Windows) int vlinkageWindows;
-extern(Pascal) int vlinkagePascal;
 extern(Objective-C) int vlinkageObjc;
 
 extern int flinkageDefault();
@@ -195,7 +194,6 @@ extern(D) int flinkageD();
 extern(C) int linakgeC();
 extern(C++) int flinkageCpp();
 extern(Windows) int flinkageWindows();
-extern(Pascal) int flinkagePascal();
 extern(Objective-C) int flinkageObjc();
 
 mixin template test18211(int n)

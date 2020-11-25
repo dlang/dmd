@@ -25,7 +25,7 @@ clone() {
 download() {
     local url="$1"
     local path="$2"
-    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 "$url" -o "$path"
+    curl -fsSL -A "$CURL_USER_AGENT" --retry 5 --retry-max-time 120  --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$url" -o "$path"
 }
 
 ################################################################################

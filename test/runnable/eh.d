@@ -981,6 +981,33 @@ void test10966()
 
 /****************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=11049
+
+void test11049()
+{
+    int[] arr = [1,2,3];
+
+#line 4100 "foo"
+    try { auto n = arr[3]; }
+    catch (Error e)
+    {
+        //printf("e.file = %s\n", e.file.ptr);
+        assert(e.file == "foo");  // fails
+        assert(e.line == 4100);
+    }
+
+#line 4200 "bar"
+    try { auto a = arr[3..9]; }
+    catch (Error e)
+    {
+        //printf("e.file = %s\n", e.file.ptr);
+        assert(e.file == "bar");  // fails
+        assert(e.line == 4200);
+    }
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -1008,6 +1035,7 @@ int main()
     test12();
     test13();
     test10966();
+    test11049();
 
     printf("finish\n");
     return 0;

@@ -43,6 +43,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
@@ -395,14 +396,10 @@ void cod3_set64()
     inssize[0xA3] = T|5;                // MOV mem,RAX
     BPRM = 5;                           // [RBP] addressing mode
 
-static if (TARGET_WINDOS)
-{
-    fregsaved = mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7; // also XMM8..15;
-}
-else
-{
-    fregsaved = mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
-}
+    fregsaved = (config.exe & EX_windos)
+        ? mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7 // also XMM8..15;
+        : mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
+
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
@@ -478,28 +475,27 @@ void cod3_align_bytes(int seg, size_t nbytes)
  */
 void cod3_align(int seg)
 {
-    uint nbytes;
-static if (TARGET_WINDOS)
-{
-    if (config.flags4 & CFG4speed)      // if optimized for speed
+    if (config.exe & EX_windos)
     {
-        // Pick alignment based on CPU target
-        if (config.target_cpu == TARGET_80486 ||
-            config.target_cpu >= TARGET_PentiumPro)
-        {   // 486 does reads on 16 byte boundaries, so if we are near
-            // such a boundary, align us to it
+        if (config.flags4 & CFG4speed)      // if optimized for speed
+        {
+            // Pick alignment based on CPU target
+            if (config.target_cpu == TARGET_80486 ||
+                config.target_cpu >= TARGET_PentiumPro)
+            {   // 486 does reads on 16 byte boundaries, so if we are near
+                // such a boundary, align us to it
 
-            nbytes = -Offset(seg) & 15;
-            if (nbytes < 8)
-                cod3_align_bytes(seg, nbytes);
+                const nbytes = -Offset(seg) & 15;
+                if (nbytes < 8)
+                    cod3_align_bytes(seg, nbytes);
+            }
         }
     }
-}
-else
-{
-    nbytes = -Offset(seg) & 7;
-    cod3_align_bytes(seg, nbytes);
-}
+    else
+    {
+        const nbytes = -Offset(seg) & 7;
+        cod3_align_bytes(seg, nbytes);
+    }
 }
 
 
@@ -538,11 +534,13 @@ void cod3_stackalign(ref CodeBuilder cdb, int nbytes)
     cdb.genc2(0x81, grex | rm, -nbytes);
 }
 
-static if (ELFOBJ)
-{
 /* Constructor that links the ModuleReference to the head of
  * the list pointed to by _Dmoduleref
+ *
+ * For ELF object files.
  */
+static if (0)
+{
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
 {
     /*      ret
@@ -600,9 +598,7 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
 
     buf.writeByte(0xC3); /* ret */
 }
-
 }
-
 
 /*****************************
  * Given a type, return a mask of
@@ -686,11 +682,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-            if (I32 && tybasic(tyf) == TYnfunc)
+            if (config.exe & EX_posix && I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
-}
             goto case TYcdouble;
 
         case TYcdouble:
@@ -995,7 +988,7 @@ version (MARS)
                 CodeBuilder cdbload;  cdbload.ctor();
 
                 for (int i = 0; i < anyspill; i++)
-                {   Symbol *s = globsym.tab[i];
+                {   Symbol *s = globsym[i];
 
                     if (s.Sflags & SFLspill &&
                         vec_testbit(dfoidx,s.Srange))
@@ -1803,11 +1796,8 @@ void doswitch(ref CodeBuilder cdb, block *b)
         regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (I32 && config.flags3 & CFG3pic)
+        if (config.exe & EX_posix && I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
-}
         bool modify = (I16 || I64 || vmin);
         scodelem(cdb,e,&retregs,0,!modify);
         reg_t reg = findreg(retregs & IDXREGS); // reg that result is in
@@ -1924,8 +1914,10 @@ static if (JMPJMPTABLE)
             cgstate.stackclean--;
             return;
 }
-else static if (TARGET_OSX)
+else
 {
+        if (config.exe & (EX_OSX | EX_OSX64))
+        {
             /*     CALL L1
              * L1: POP  R1
              *     ADD  R1,disp[reg*4][R1]
@@ -1942,9 +1934,9 @@ else static if (TARGET_OSX)
             cdb.last().IEV1.Vswitch = b;
             cdb.last().Isib = modregrm(2,reg,r1);
             cdb.gen2(0xFF,modregrm(3,4,r1));               // JMP R1
-}
-else
-{
+        }
+        else
+        {
             if (config.flags3 & CFG3pic)
             {
                 /* MOV  R1,EBX
@@ -1972,6 +1964,7 @@ else
                 cdb.last().IEV1.Vswitch = b;
                 cdb.last().Isib = modregrm(2,reg,5);
             }
+        }
 }
         }
         else if (I16)
@@ -2008,9 +2001,8 @@ else
             genjmp(cdb,JNE,FLblock,b.nthSucc(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (config.flags3 & CFG3pic)
+
+        if (config.flags3 & CFG3pic && config.exe & EX_posix)
         {   // Add in GOT
             getregs(cdb,mDX);
             cdb.genc2(CALL,0,0);        //     CALL L1
@@ -2029,7 +2021,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             cdb.gencs(0x81,modregrm(3,0,DI),FLswitch,null);
             cdb.last().IEV2.Vswitch = b;
         }
-}
+
         if (!(config.flags3 & CFG3pic))
         {
                                         // MOV DI,offset of switch table
@@ -2084,15 +2076,15 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (config.flags3 & CFG3pic)
+
+        if (config.flags3 & CFG3pic &&
+            config.exe & EX_posix)
         {                               // ADD EDX,(ncases-1)*2[EDI]
             cdb.genc1(0x03,modregrm(mod,DX,7),FLconst,disp);
                                         // JMP EDX
             cdb.gen2(0xFF,modregrm(3,4,DX));
         }
-}
+
         if (!(config.flags3 & CFG3pic))
         {                               // JMP (ncases-1)*2[DI]
             cdb.genc1(0xFF,modregrm(mod,4,(I32 ? 7 : 5)),FLconst,disp);
@@ -2154,13 +2146,11 @@ void outjmptab(block *b)
                         break;
                 }
         }
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (I64)
+        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64))
         {
             if (config.flags3 & CFG3pic)
             {
-                objmod.reftodatseg(jmpseg,*poffset,targ + (u - vmin) * 4,funcsym_p.Sseg,CFswitch);
+                objmod.reftodatseg(jmpseg,*poffset,cast(targ_size_t)(targ + (u - vmin) * 4),funcsym_p.Sseg,CFswitch);
                 *poffset += 4;
             }
             else
@@ -2169,7 +2159,7 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                 *poffset += 8;
             }
         }
-        else
+        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
         {
             if (config.flags3 & CFG3pic)
             {
@@ -2183,31 +2173,28 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
             *poffset += 4;
         }
-}
-else static if (TARGET_OSX)
-{
-        targ_size_t val;
-        if (I64)
-            val = targ - b.Btableoffset;
-        else
-            val = targ - b.Btablebase;
-        objmod.write_bytes(SegData[jmpseg],4,&val);
-}
-else static if (TARGET_WINDOS)
-{
-        if (I64)
+        else if (config.exe & (EX_OSX | EX_OSX64))
         {
-            targ_size_t val = targ - b.Btableoffset;
+            targ_size_t val;
+            if (I64)
+                val = targ - b.Btableoffset;
+            else
+                val = targ - b.Btablebase;
             objmod.write_bytes(SegData[jmpseg],4,&val);
         }
         else
         {
-            objmod.reftocodeseg(jmpseg,*poffset,targ);
-            *poffset += tysize(TYnptr);
+            if (I64)
+            {
+                targ_size_t val = targ - b.Btableoffset;
+                objmod.write_bytes(SegData[jmpseg],4,&val);
+            }
+            else
+            {
+                objmod.reftocodeseg(jmpseg,*poffset,targ);
+                *poffset += tysize(TYnptr);
+            }
         }
-}
-else
-        assert(0);
 
         if (u == vmax)                  // for case that (vmax == ~0)
             break;
@@ -2590,7 +2577,7 @@ regm_t cod3_useBP()
     if (tym == TYifunc)
         goto Lcant;
 
-    stackoffsets(0);
+    stackoffsets(globsym, true);                // estimate stack offsets
     localsize = Auto.offset + Fast.offset;                // an estimate only
 //    if (localsize)
     {
@@ -2756,7 +2743,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-    static if (TARGET_OSX)
+    if (config.exe & (EX_OSX | EX_OSX64))
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
@@ -2769,7 +2756,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
         fixresult(cdb,e,retregs,pretregs);
     }
-    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    else if (config.exe & EX_posix)
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
@@ -2805,9 +2792,9 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void load_localgot(ref CodeBuilder cdb)
 {
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // note: I32 only
     {
-        if (config.flags3 & CFG3pic && I32)
+        if (config.flags3 & CFG3pic)
         {
             if (localgot && !(localgot.Sflags & SFLdead))
             {
@@ -2829,15 +2816,13 @@ void load_localgot(ref CodeBuilder cdb)
     }
 }
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
 /*****************************
  * Returns:
  *      # of bytes stored
  */
 
 
-private int obj_namestring(char *p,const(char)* name)
+int obj_namestring(char *p,const(char)* name)
 {
     size_t len = strlen(name);
     if (len > 255)
@@ -2857,7 +2842,6 @@ private int obj_namestring(char *p,const(char)* name)
         len++;
     }
     return cast(int)len;
-}
 }
 
 void genregs(ref CodeBuilder cdb,opcode_t op,uint dstreg,uint srcreg)
@@ -3491,7 +3475,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
     if (config.wflags & WFincbp && farfunc)
         cdb.gen1(0x40 + BP);      // INC  BP
     if (config.target_cpu < TARGET_80286 ||
-        config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_WIN64) ||
+        config.exe & (EX_posix | EX_WIN64) ||
         !localsize ||
         config.flags & CFGstack ||
         (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
@@ -3560,15 +3544,14 @@ void prolog_stackalign(ref CodeBuilder cdb)
 void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
 {
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
-static if (TARGET_LINUX)
-{
-    bool check = false;               // seems that Linux doesn't need to fault in stack pages
-}
-else
-{
-    bool check = (config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
-        || (TARGET_WINDOS && xlocalsize >= 0x1000 && config.exe & EX_flat);
-}
+
+    bool check;
+    if (config.exe & (EX_LINUX | EX_LINUX64))
+        check = false;               // seems that Linux doesn't need to fault in stack pages
+    else
+        check = (config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
+            || (config.exe & (EX_windos & EX_flat) && xlocalsize >= 0x1000);
+
     if (check)
     {
         if (I16)
@@ -4066,9 +4049,9 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
 {
     //printf("prolog_loadparams()\n");
     debug
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
@@ -4085,109 +4068,108 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      * registers into their stack locations.
      */
     regm_t shadowregm = 0;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg)
-        {   // Argument is passed in a register
+        if (!((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg))
+            continue;
+        // Argument is passed in a register
 
-            type *t = s.Stype;
-            type *t2 = null;
+        type *t = s.Stype;
+        type *t2 = null;
 
-            tym_t tyb = tybasic(t.Tty);
+        tym_t tyb = tybasic(t.Tty);
 
-            // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
-            //
-            // Find suitable SROA based on the element type
-            // (Don't put volatile parameters in registers)
-            if (tyb == TYarray && !(t.Tty & mTYvolatile))
+        // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
+        //
+        // Find suitable SROA based on the element type
+        // (Don't put volatile parameters in registers)
+        if (tyb == TYarray && !(t.Tty & mTYvolatile))
+        {
+            type *targ1;
+            argtypes(t, targ1, t2);
+            if (targ1)
+                t = targ1;
+        }
+
+        // If struct just wraps another type
+        if (tyb == TYstruct)
+        {
+            // On windows 64 bits, structs occupy a general purpose register,
+            // regardless of the struct size or the number & types of its fields.
+            if (config.exe != EX_WIN64)
             {
-                type *targ1;
-                argtypes(t, targ1, t2);
+                type *targ1 = t.Ttag.Sstruct.Sarg1type;
+                t2 = t.Ttag.Sstruct.Sarg2type;
                 if (targ1)
                     t = targ1;
             }
+        }
 
-            // If struct just wraps another type
-            if (tyb == TYstruct)
+        if (Symbol_Sisdead(s, anyiasm))
+        {
+            // Ignore it, as it is never referenced
+            continue;
+        }
+
+        targ_size_t offset = Fast.size + BPoff;
+        if (s.Sclass == SCshadowreg)
+            offset = Para.size;
+        offset += s.Soffset;
+        if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
+            offset += EBPtoESP;
+
+        reg_t preg = s.Spreg;
+        foreach (i; 0 .. 2)     // twice, once for each possible parameter register
+        {
+            shadowregm |= mask(preg);
+            opcode_t op = 0x89;                  // MOV x[EBP],preg
+            if (isXMMreg(preg))
+                op = xmmstore((t.Tty & TYarray) && t.Tnext ? t.Tnext.Tty : t.Tty);
+            if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
             {
-                // On windows 64 bits, structs occupy a general purpose register,
-                // regardless of the struct size or the number & types of its fields.
-                if (config.exe != EX_WIN64)
+                if (hasframe && (!enforcealign || s.Sclass == SCshadowreg))
                 {
-                    type *targ1 = t.Ttag.Sstruct.Sarg1type;
-                    t2 = t.Ttag.Sstruct.Sarg2type;
-                    if (targ1)
-                        t = targ1;
-                }
-            }
-
-            if (Symbol_Sisdead(s, anyiasm))
-            {
-                // Ignore it, as it is never referenced
-            }
-            else
-            {
-                targ_size_t offset = Fast.size + BPoff;
-                if (s.Sclass == SCshadowreg)
-                    offset = Para.size;
-                offset += s.Soffset;
-                if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
-                    offset += EBPtoESP;
-
-                reg_t preg = s.Spreg;
-                foreach (i; 0 .. 2)     // twice, once for each possible parameter register
-                {
-                    shadowregm |= mask(preg);
-                    opcode_t op = 0x89;                  // MOV x[EBP],preg
+                    // MOV x[EBP],preg
+                    cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
                     if (isXMMreg(preg))
-                        op = xmmstore(t.Tty);
-                    if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
                     {
-                        if (hasframe && (!enforcealign || s.Sclass == SCshadowreg))
-                        {
-                            // MOV x[EBP],preg
-                            cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
-                            if (isXMMreg(preg))
-                            {
-                                checkSetVex(cdb.last(), t.Tty);
-                            }
-                            else
-                            {
-                                //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                                //         s.Sident, (int)Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
-                                if (I64 && sz > 4)
-                                    code_orrex(cdb.last(), REX_W);
-                            }
-                        }
-                        else
-                        {
-                            // MOV offset[ESP],preg
-                            // BUG: byte size?
-                            cdb.genc1(op,
-                                      (modregrm(0,4,SP) << 8) |
-                                       modregxrm(2,preg,4),FLconst,offset);
-                            if (isXMMreg(preg))
-                            {
-                                checkSetVex(cdb.last(), t.Tty);
-                            }
-                            else
-                            {
-                                if (I64 && sz > 4)
-                                    cdb.last().Irex |= REX_W;
-                            }
-                        }
+                        checkSetVex(cdb.last(), t.Tty);
                     }
-                    preg = s.Spreg2;
-                    if (preg == NOREG)
-                        break;
-                    if (t2)
-                        t = t2;
-                    offset += REGSIZE;
+                    else
+                    {
+                        //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
+                        //         s.Sident, (int)Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
+                        if (I64 && sz > 4)
+                            code_orrex(cdb.last(), REX_W);
+                    }
+                }
+                else
+                {
+                    // MOV offset[ESP],preg
+                    // BUG: byte size?
+                    cdb.genc1(op,
+                              (modregrm(0,4,SP) << 8) |
+                               modregxrm(2,preg,4),FLconst,offset);
+                    if (isXMMreg(preg))
+                    {
+                        checkSetVex(cdb.last(), t.Tty);
+                    }
+                    else
+                    {
+                        if (I64 && sz > 4)
+                            cdb.last().Irex |= REX_W;
+                    }
                 }
             }
+            preg = s.Spreg2;
+            if (preg == NOREG)
+                break;
+            if (t2)
+                t = t2;
+            offset += REGSIZE;
         }
     }
 
@@ -4233,57 +4215,59 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      * and Pb is passed in R2 but assigned to R1. Detect it and assert.
      */
     regm_t assignregs = 0;
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             namedargs |= s.Spregm();
 
-        if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg)
-        {   // Argument is passed in a register
+        if (!((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg))
+        {
+            // Argument is passed in a register
+            continue;
+        }
 
-            type *t = s.Stype;
-            type *t2 = null;
-            if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
-            {   type *targ1 = t.Ttag.Sstruct.Sarg1type;
-                t2 = t.Ttag.Sstruct.Sarg2type;
-                if (targ1)
-                    t = targ1;
-            }
+        type *t = s.Stype;
+        type *t2 = null;
+        if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
+        {   type *targ1 = t.Ttag.Sstruct.Sarg1type;
+            t2 = t.Ttag.Sstruct.Sarg2type;
+            if (targ1)
+                t = targ1;
+        }
 
-            reg_t preg = s.Spreg;
-            reg_t r = s.Sreglsw;
-            for (int i = 0; i < 2; ++i)
+        reg_t preg = s.Spreg;
+        reg_t r = s.Sreglsw;
+        for (int i = 0; i < 2; ++i)
+        {
+            if (preg == NOREG)
+                break;
+            assert(!(mask(preg) & assignregs));         // not already stepped on
+            assignregs |= mask(r);
+
+            // MOV reg,preg
+            if (r == preg)
             {
-                if (preg == NOREG)
-                    break;
-                assert(!(mask(preg) & assignregs));         // not already stepped on
-                assignregs |= mask(r);
-
-                // MOV reg,preg
-                if (r == preg)
-                {
-                }
-                else if (mask(preg) & XMMREGS)
-                {
-                    const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
-                    uint xreg = r - XMM0;
-                    cdb.gen2(op,modregxrmx(3,xreg,preg - XMM0));
-                }
-                else
-                {
-                    //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
-                    genmovreg(cdb,r,preg);
-                    if (I64 && sz == 8)
-                        code_orrex(cdb.last(), REX_W);
-                }
-                preg = s.Spreg2;
-                r = s.Sregmsw;
-                if (t2)
-                    t = t2;
             }
+            else if (mask(preg) & XMMREGS)
+            {
+                const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
+                uint xreg = r - XMM0;
+                cdb.gen2(op,modregxrmx(3,xreg,preg - XMM0));
+            }
+            else
+            {
+                //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
+                genmovreg(cdb,r,preg);
+                if (I64 && sz == 8)
+                    code_orrex(cdb.last(), REX_W);
+            }
+            preg = s.Spreg2;
+            r = s.Sregmsw;
+            if (t2)
+                t = t2;
         }
     }
 
@@ -4292,66 +4276,66 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
      * Do not use assignaddr(), as it will replace the stack reference with
      * the register.
      */
-    for (SYMIDX si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if ((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
+        if (!((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
             s.Sfl == FLreg &&
             (refparam
                 // This variable has been reference by a nested function
                 || MARS && s.Stype.Tty & mTYvolatile
-                ))
+                )))
         {
-            // MOV reg,param[BP]
-            //assert(refparam);
-            if (mask(s.Sreglsw) & XMMREGS)
-            {
-                const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
-                uint xreg = s.Sreglsw - XMM0;
-                cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s.Soffset);
-                if (!hasframe)
-                {   // Convert to ESP relative address rather than EBP
-                    code *c = cdb.last();
-                    c.Irm = cast(ubyte)modregxrm(2,xreg,4);
-                    c.Isib = modregrm(0,4,SP);
-                    c.IEV1.Vpointer += EBPtoESP;
-                }
-            }
-            else
-            {
-                cdb.genc1(sz == 1 ? 0x8A : 0x8B,
-                    modregxrm(2,s.Sreglsw,BPRM),FLconst,Para.size + s.Soffset);
+            continue;
+        }
+        // MOV reg,param[BP]
+        //assert(refparam);
+        if (mask(s.Sreglsw) & XMMREGS)
+        {
+            const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
+            uint xreg = s.Sreglsw - XMM0;
+            cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s.Soffset);
+            if (!hasframe)
+            {   // Convert to ESP relative address rather than EBP
                 code *c = cdb.last();
-                if (!I16 && sz == SHORTSIZE)
-                    c.Iflags |= CFopsize; // operand size
-                if (I64 && sz >= REGSIZE)
-                    c.Irex |= REX_W;
-                if (I64 && sz == 1 && s.Sreglsw >= 4)
-                    c.Irex |= REX;
-                if (!hasframe)
-                {   // Convert to ESP relative address rather than EBP
-                    assert(!I16);
-                    c.Irm = cast(ubyte)modregxrm(2,s.Sreglsw,4);
-                    c.Isib = modregrm(0,4,SP);
-                    c.IEV1.Vpointer += EBPtoESP;
-                }
-                if (sz > REGSIZE)
-                {
-                    cdb.genc1(0x8B,
-                        modregxrm(2,s.Sregmsw,BPRM),FLconst,Para.size + s.Soffset + REGSIZE);
-                    code *cx = cdb.last();
-                    if (I64)
-                        cx.Irex |= REX_W;
-                    if (!hasframe)
-                    {   // Convert to ESP relative address rather than EBP
-                        assert(!I16);
-                        cx.Irm = cast(ubyte)modregxrm(2,s.Sregmsw,4);
-                        cx.Isib = modregrm(0,4,SP);
-                        cx.IEV1.Vpointer += EBPtoESP;
-                    }
-                }
+                c.Irm = cast(ubyte)modregxrm(2,xreg,4);
+                c.Isib = modregrm(0,4,SP);
+                c.IEV1.Vpointer += EBPtoESP;
+            }
+            continue;
+        }
+
+        cdb.genc1(sz == 1 ? 0x8A : 0x8B,
+            modregxrm(2,s.Sreglsw,BPRM),FLconst,Para.size + s.Soffset);
+        code *c = cdb.last();
+        if (!I16 && sz == SHORTSIZE)
+            c.Iflags |= CFopsize; // operand size
+        if (I64 && sz >= REGSIZE)
+            c.Irex |= REX_W;
+        if (I64 && sz == 1 && s.Sreglsw >= 4)
+            c.Irex |= REX;
+        if (!hasframe)
+        {   // Convert to ESP relative address rather than EBP
+            assert(!I16);
+            c.Irm = cast(ubyte)modregxrm(2,s.Sreglsw,4);
+            c.Isib = modregrm(0,4,SP);
+            c.IEV1.Vpointer += EBPtoESP;
+        }
+        if (sz > REGSIZE)
+        {
+            cdb.genc1(0x8B,
+                modregxrm(2,s.Sregmsw,BPRM),FLconst,Para.size + s.Soffset + REGSIZE);
+            code *cx = cdb.last();
+            if (I64)
+                cx.Irex |= REX_W;
+            if (!hasframe)
+            {   // Convert to ESP relative address rather than EBP
+                assert(!I16);
+                cx.Irm = cast(ubyte)modregxrm(2,s.Sregmsw,4);
+                cx.Isib = modregrm(0,4,SP);
+                cx.IEV1.Vpointer += EBPtoESP;
             }
         }
     }
@@ -4719,6 +4703,8 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         p += I32 ? 8 : tysize(TYfptr);          // far function
     else
         p += tysize(TYnptr);
+    if (tybasic(sfunc.ty()) == TYhfunc)
+        p += tysize(TYnptr);                    // skip over hidden pointer
 
     CodeBuilder cdb; cdb.ctor();
     if (!I16)
@@ -4750,7 +4736,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
             if (config.exe == EX_WIN64)
                 rm = CX;
             else if (I64)
-                rm = DI;
+                rm = (thunkty == TYnfunc && (sfunc.Sfunc.Fflags3 & F3hiddenPtr)) ? SI : DI;
             if (d)
                 cdb.genc2(0x81,modregrm(3,reg,rm),d);
         }
@@ -4870,14 +4856,10 @@ static if (0)
     sthunk.Soffset = thunkoffset;
     sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
     sthunk.Sseg = seg;
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & EX_posix ||
+       config.objfmt == OBJ_MSCOFF)
     {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
-    }
-    static if (TARGET_WINDOS)
-    {
-        if (config.objfmt == OBJ_MSCOFF)
-            objmod.pubdef(seg,sthunk,sthunk.Soffset);
     }
     searchfixlist(sthunk);              // resolve forward refs
 }
@@ -5121,10 +5103,10 @@ void cod3_adjSymOffsets()
     SYMIDX si;
 
     //printf("cod3_adjSymOffsets()\n");
-    for (si = 0; si < globsym.top; si++)
+    for (si = 0; si < globsym.length; si++)
     {
-        //printf("\tglobsym.tab[%d] = %p\n",si,globsym.tab[si]);
-        Symbol *s = globsym.tab[si];
+        //printf("\tglobsym[%d] = %p\n",si,globsym[si]);
+        Symbol *s = globsym[si];
 
         switch (s.Sclass)
         {
@@ -7076,13 +7058,12 @@ else
                                     else
                                         val = -8;
                                 }
-static if (TARGET_OSX || TARGET_WINDOS)
-{
-                                /* Mach-O and Win64 fixups already take the 4 byte size
-                                 * into account, so bias by 4
-        `                        */
-                                val += 4;
-}
+
+                                if (config.exe & (EX_OSX64 | EX_WIN64))
+                                    /* Mach-O and Win64 fixups already take the 4 byte size
+                                     * into account, so bias by 4
+                                     */
+                                    val += 4;
                             }
                         }
                         do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
@@ -7322,23 +7303,42 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        case FLgot:
-        case FLgotoff:
-}
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
             objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
             break;
 
-static if (TARGET_OSX)
-{
+        case FLgotoff:
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                assert(0);
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                break;
+            }
+            else
+                assert(0);
+
         case FLgot:
-            funcsym_p.Slocalgotoffset = pbuf.getOffset();
-            ad = 0;
-            goto L1;
-}
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                funcsym_p.Slocalgotoffset = pbuf.getOffset();
+                ad = 0;
+                goto L1;
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                break;
+            }
+            else
+                assert(0);
 
         case FLfunc:                        /* function call                */
             s = uev.Vsym;               /* symbol pointer               */
@@ -7398,7 +7398,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             ad = uev.Vswitch.Btableoffset;
             if (config.flags & CFGromable)
             {
-                static if (TARGET_OSX)
+                if (config.exe & (EX_OSX | EX_OSX64))
                 {
                     // These are magic values based on the exact code generated for the switch jump
                     if (I64)
@@ -7408,7 +7408,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                     ad -= uev.Vswitch.Btablebase;
                     goto L1;
                 }
-                else static if (TARGET_WINDOS)
+                else if (config.exe & EX_windos)
                 {
                     if (I64)
                     {
@@ -7444,14 +7444,9 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        case FLgot:
-        case FLgotoff:
-    }
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
-            if (TARGET_WINDOS && I64 && (flags & CFpc32))
+            if (config.exe & EX_windos && I64 && (flags & CFpc32))
             {
                 /* This is for those funky fixups where the location to be fixed up
                  * is a 'val' amount back from the current RIP, biased by adding 4.
@@ -7465,13 +7460,37 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
             break;
 
-    static if (TARGET_OSX)
-    {
+        case FLgotoff:
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                assert(0);
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                break;
+            }
+            else
+                assert(0);
+
         case FLgot:
-            funcsym_p.Slocalgotoffset = pbuf.getOffset();
-            ad = 0;
-            goto L1;
-    }
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                funcsym_p.Slocalgotoffset = pbuf.getOffset();
+                ad = 0;
+                goto L1;
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                break;
+            }
+            else
+                assert(0);
 
         case FLfunc:                        /* function call                */
             s = uev.Vsym;               /* symbol pointer               */

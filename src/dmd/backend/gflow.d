@@ -49,7 +49,7 @@ char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 void util_free(void* p) { if (p) free(p); }
 void *util_calloc(uint n, uint size) { void* p = calloc(n, size); assert(!(n * size) || p); return p; }
-void *util_realloc(void* p, uint n, uint size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
+void *util_realloc(void* p, size_t n, size_t size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
 
 extern (C++):
 
@@ -1219,15 +1219,15 @@ private void accumaecpx(elem *n)
 void flowlv()
 {
     lvgenkill();            /* compute Bgen and Bkill for LVs.      */
-    //assert(globsym.top);  /* should be at least some symbols      */
+    //assert(globsym.length);  /* should be at least some symbols      */
 
     /* Create a vector of all the variables that are live on exit   */
     /* from the function.                                           */
 
-    vec_t livexit = vec_calloc(globsym.top);
-    foreach (uint i; 0 .. globsym.top)
+    vec_t livexit = vec_calloc(globsym.length);
+    foreach (i; 0 .. globsym.length)
     {
-        if (globsym.tab[i].Sflags & SFLlivexit)
+        if (globsym[i].Sflags & SFLlivexit)
             vec_setbit(i,livexit);
     }
 
@@ -1241,7 +1241,7 @@ void flowlv()
         vec_copy(b.Binlv, b.Bgen);   // Binlv = Bgen
     }
 
-    vec_t tmp = vec_calloc(globsym.top);
+    vec_t tmp = vec_calloc(globsym.length);
     uint cnt = 0;
     bool anychng;
     do
@@ -1310,9 +1310,9 @@ private void lvgenkill()
     /* referenced by a *e or a call.                                */
 
     assert(ambigsym == null);
-    ambigsym = vec_calloc(globsym.top);
-    foreach (uint i; 0 .. globsym.top)
-        if (!(globsym.tab[i].Sflags & SFLunambig))
+    ambigsym = vec_calloc(globsym.length);
+    foreach (i; 0 .. globsym.length)
+        if (!(globsym[i].Sflags & SFLunambig))
             vec_setbit(i,ambigsym);
 
     foreach (b; dfo[])
@@ -1328,8 +1328,8 @@ private void lvgenkill()
 
         vec_free(b.Binlv);
         vec_free(b.Boutlv);
-        b.Binlv = vec_calloc(globsym.top);
-        b.Boutlv = vec_calloc(globsym.top);
+        b.Binlv = vec_calloc(globsym.length);
+        b.Boutlv = vec_calloc(globsym.length);
     }
 
     vec_free(ambigsym);             /* dump any existing one        */
@@ -1342,9 +1342,9 @@ private void lvgenkill()
 
 private void lvelem(vec_t *pgen,vec_t *pkill,elem *n)
 {
-    *pgen = vec_calloc(globsym.top);
-    *pkill = vec_calloc(globsym.top);
-    if (n && globsym.top)
+    *pgen = vec_calloc(globsym.length);
+    *pkill = vec_calloc(globsym.length);
+    if (n && globsym.length)
         accumlv(*pgen,*pkill,n);
 }
 
@@ -1365,9 +1365,9 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPvar:
                 if (symbol_isintab(n.EV.Vsym))
                 {
-                    SYMIDX si = n.EV.Vsym.Ssymnum;
+                    const si = n.EV.Vsym.Ssymnum;
 
-                    assert(cast(uint)si < globsym.top);
+                    assert(cast(uint)si < globsym.length);
                     if (!vec_testbit(si,KILL))  // if not in KILL
                         vec_setbit(si,GEN);     // put in GEN
                 }
@@ -1464,7 +1464,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
                        )
                     {
                         // printf("%s\n", s.Sident);
-                        assert(cast(uint)s.Ssymnum < globsym.top);
+                        assert(cast(uint)s.Ssymnum < globsym.length);
                         vec_setbit(s.Ssymnum,KILL);
                     }
                 }

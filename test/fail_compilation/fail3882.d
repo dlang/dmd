@@ -7,8 +7,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3882.d(23): Warning: calling fail3882.strictlyPure!int.strictlyPure without side effects discards return value of type int, prepend a cast(void) if intentional
-fail_compilation/fail3882.d(27): Warning: calling fp without side effects discards return value of type int, prepend a cast(void) if intentional
+fail_compilation/fail3882.d(23): Warning: calling `fail3882.strictlyPure!int.strictlyPure` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
+fail_compilation/fail3882.d(27): Warning: calling `fp` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
 ---
 */
 
@@ -33,8 +33,8 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3882.d(46): Warning: calling fail3882.f1 without side effects discards return value of type int, prepend a cast(void) if intentional
-fail_compilation/fail3882.d(47): Warning: calling fail3882.f2 without side effects discards return value of type int, prepend a cast(void) if intentional
+fail_compilation/fail3882.d(46): Warning: calling `fail3882.f1` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
+fail_compilation/fail3882.d(47): Warning: calling `fail3882.f2` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
 ---
 */
 

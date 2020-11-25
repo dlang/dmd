@@ -878,7 +878,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
                         // if a copy constructor is present, the return type conversion will be handled by it
                         if (!(hasCopyCtor && exp.isLvalue()))
-                            exp = exp.implicitCastTo(sc2, tret);
+                        {
+                            if (f.isref && !MODimplicitConv(exp.type.mod, tret.mod) && !tret.isTypeSArray())
+                                error(exp.loc, "expression `%s` of type `%s` is not implicitly convertible to return type `ref %s`",
+                                      exp.toChars(), exp.type.toChars(), tret.toChars());
+                            else
+                                exp = exp.implicitCastTo(sc2, tret);
+                        }
 
                         if (f.isref)
                         {
@@ -929,7 +935,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sc2 = sc2.pop();
             }
 
-            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire, funcdecl.fdrequireParams);
+            if (global.params.inclusiveInContracts)
+            {
+                funcdecl.frequire = funcdecl.mergeFrequireInclusivePreview(
+                    funcdecl.frequire, funcdecl.fdrequireParams);
+            }
+            else
+            {
+                funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire, funcdecl.fdrequireParams);
+            }
             funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result, funcdecl.fdensureParams);
 
             Statement freq = funcdecl.frequire;

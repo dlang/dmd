@@ -49,13 +49,13 @@ extern (C++):
 
 nothrow:
 
-static if (TARGET_WINDOS)
+static if (1)
 {
 
 int REGSIZE();
 
 // Determine if this Symbol is stored in a COMDAT
-bool symbol_iscomdat(Symbol* s)
+private bool symbol_iscomdat4(Symbol* s)
 {
     version (MARS)
     {
@@ -271,7 +271,7 @@ void cv8_termfile(const(char)* objfilename)
         F2_buf.write(linepair.buf + fd.linepairstart, fd.linepairbytes);
 
         int f2seg = seg;
-        if (symbol_iscomdat(fd.sfunc))
+        if (symbol_iscomdat4(fd.sfunc))
         {
             f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
             objmod.bytes(f2seg, 0, 4, &value);
@@ -355,7 +355,7 @@ void cv8_func_start(Symbol *sfunc)
     currentfuncdata.linepairbytes = 0;
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
-    if (symbol_iscomdat(sfunc))
+    if (symbol_iscomdat4(sfunc))
     {
         // This leaks memory
         currentfuncdata.f1buf = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
@@ -497,7 +497,7 @@ void cv8_func_term(Symbol *sfunc)
             buf.write16(S_END);
         }
     }
-    varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
+    varStats_writeSymbolTable(globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)

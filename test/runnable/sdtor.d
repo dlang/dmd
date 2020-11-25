@@ -4692,6 +4692,56 @@ void test19676()
 
 /**********************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=14708
+
+__gshared bool dtor14078 = false;
+
+struct S14078
+{
+    int n;
+
+    void* get(void* p = null)
+    {
+        return null;
+    }
+
+    ~this()
+    {
+        //printf("dtor\n");
+        dtor14078 = true;
+    }
+}
+
+S14078 makeS14078(int n)
+{
+    return S14078(n);
+}
+
+void foo14078(void* x)
+{
+    throw new Exception("fail!");
+}
+
+void test(int len = 2)
+{
+    foo14078(makeS14078(1).get());
+    // A temporary is allocated on stack for the
+    // return value from makeS14078(1).
+    // When foo14078 throws exception, it's dtor should be called
+    // during unwinding stack, but it does not happen in Win64.
+}
+
+void test14078()
+{
+    try
+    {
+        test();
+    } catch (Exception e) {}
+    assert(dtor14078);   // fails!
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4827,6 +4877,7 @@ int main()
     test18045();
     test16652();
     test19676();
+    test14078();
 
     printf("Success\n");
     return 0;

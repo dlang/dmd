@@ -361,7 +361,6 @@ enum
 enum REGMAX = 29;      // registers are numbered 0..10
 
 alias tym_t = uint;    // data type big enough for type masks
-alias SYMIDX = int;    // symbol table index
 
 
 version (MARS)
@@ -505,14 +504,10 @@ enum
     EX_RATIONAL     = 4,       // RATIONAL 286 program
     EX_PHARLAP      = 8,       // PHARLAP 386 program
     EX_COM          = 0x10,    // MSDOS .COM program
-//  EX_WIN16        = 0x20,    // Windows 3.x 16 bit program (no longer supported)
     EX_OS2          = 0x40,    // OS/2 2.0 32 bit program
     EX_OS1          = 0x80,    // OS/2 1.x 16 bit program
     EX_WIN32        = 0x100,
     EX_MZ           = 0x200,   // MSDOS real mode program
-    EX_XENIX        = 0x400,
-    EX_SCOUNIX      = 0x800,
-    EX_UNIXSVR4     = 0x1000,
     EX_LINUX        = 0x2000,
     EX_WIN64        = 0x4000,  // AMD64 and Windows (64 bit mode)
     EX_LINUX64      = 0x8000,  // AMD64 and Linux (64 bit mode)
@@ -527,17 +522,78 @@ enum
     EX_DRAGONFLYBSD64 = 0x1000000,
 }
 
+// All of them
+enum exefmt_t EX_all =
+    EX_DOSX      |
+    EX_ZPM       |
+    EX_RATIONAL  |
+    EX_PHARLAP   |
+    EX_COM       |
+    EX_OS2       |
+    EX_OS1       |
+    EX_WIN32     |
+    EX_MZ        |
+    EX_LINUX     |
+    EX_WIN64     |
+    EX_LINUX64   |
+    EX_OSX       |
+    EX_OSX64     |
+    EX_FREEBSD   |
+    EX_FREEBSD64 |
+    EX_SOLARIS   |
+    EX_SOLARIS64 |
+    EX_OPENBSD   |
+    EX_OPENBSD64 |
+    EX_DRAGONFLYBSD64;
+
+// All segmented memory models
+enum exefmt_t EX_segmented = EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
+                        EX_COM | EX_OS1 | EX_MZ;
 
 // All flat memory models (no segment registers)
-enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
-                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
-                         EX_OPENBSD | EX_OPENBSD64 |
-                         EX_DRAGONFLYBSD64 |
-                         EX_SOLARIS | EX_SOLARIS64;
+enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_WIN64 | EX_posix;
 
 // All DOS executable types
 enum exefmt_t EX_dos =  EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
-                         EX_COM | EX_MZ /*| EX_WIN16*/;
+                         EX_COM | EX_MZ;
+
+// Windows and DOS executable types
+enum exefmt_t EX_windos = EX_dos | EX_OS1 | EX_OS2 | EX_WIN32 | EX_WIN64;
+
+// All POSIX systems
+enum exefmt_t EX_posix = EX_LINUX   | EX_LINUX64   |
+                         EX_OSX     | EX_OSX64     |
+                         EX_FREEBSD | EX_FREEBSD64 |
+                         EX_SOLARIS | EX_SOLARIS64 |
+                         EX_OPENBSD | EX_OPENBSD64 |
+                         EX_DRAGONFLYBSD64;
+
+// All 16 bit targets
+enum exefmt_t EX_16 = EX_ZPM | EX_RATIONAL | EX_COM | EX_OS1 | EX_MZ;
+
+// All 32 bit targets
+enum exefmt_t EX_32 = EX_DOSX | EX_OS2 | EX_PHARLAP |
+                EX_WIN32   |
+                EX_LINUX   |
+                EX_OSX     |
+                EX_FREEBSD |
+                EX_SOLARIS |
+                EX_OPENBSD;
+
+// All 64 bit targets
+enum exefmt_t EX_64 =
+                EX_WIN64     |
+                EX_LINUX64   |
+                EX_OSX64     |
+                EX_FREEBSD64 |
+                EX_SOLARIS64 |
+                EX_OPENBSD64 |
+                EX_DRAGONFLYBSD64;
+
+// Constraints
+static assert(EX_all == (EX_segmented ^ EX_flat));
+static assert(EX_all == (EX_16 ^ EX_32 ^ EX_64));
+static assert(EX_all == (EX_windos ^ EX_posix));
 
 alias config_flags_t = uint;
 enum

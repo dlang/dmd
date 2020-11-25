@@ -211,7 +211,7 @@ class IsExp;
 class UnaExp;
 class BinExp;
 class BinAssignExp;
-class CompileExp;
+class MixinExp;
 class ImportExp;
 class AssertExp;
 class DotIdExp;
@@ -466,7 +466,7 @@ public:
     virtual void visit(NewExp *e) { visit((Expression *)e); }
     virtual void visit(AssocArrayLiteralExp *e) { visit((Expression *)e); }
     virtual void visit(ArrayLiteralExp *e) { visit((Expression *)e); }
-    virtual void visit(CompileExp *e) { visit((Expression *)e); }
+    virtual void visit(MixinExp *e) { visit((Expression *)e); }
     virtual void visit(FuncExp *e) { visit((Expression *)e); }
     virtual void visit(IntervalExp *e) { visit((Expression *)e); }
     virtual void visit(TypeExp *e) { visit((Expression *)e); }

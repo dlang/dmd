@@ -125,8 +125,8 @@ profile:
 
 trace: debdmd-make
 
-unittest:
-	$(DMDMAKE) "ENABLE_DEBUG=1" "ENABLE_UNITTEST=1" "ENABLE_COVERAGE=1" $(TARGETEXE)
+unittest: $(GEN)\build.exe
+	$(RUN_BUILD) unittest
 
 ################################ Libraries ##################################
 

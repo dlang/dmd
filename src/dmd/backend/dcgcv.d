@@ -12,13 +12,10 @@
 
 module dmd.backend.dcgcv;
 
-version (Windows)
-{
 version (SCPP)
     version = COMPILE;
 version (MARS)
     version = COMPILE;
-}
 
 version (COMPILE)
 {
@@ -40,6 +37,7 @@ import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -2772,9 +2770,8 @@ private void cv_outlist()
  * Write out symbol table for current function.
  */
 
-private void cv4_func(Funcsym *s)
+private void cv4_func(Funcsym *s, ref symtab_t symtab)
 {
-    SYMIDX si;
     int endarg;
 
     cv4_outsym(s);              // put out function symbol
@@ -2830,17 +2827,14 @@ version (MARS)
         }
     }
 
-    varStats_writeSymbolTable(&globsym, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
+    varStats_writeSymbolTable(symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
 }
 else
 {
-    symtab_t* symtab = &globsym;
-
     // Put out local symbols
     endarg = 0;
-    for (si = 0; si < symtab.top; si++)
-    {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
-        Symbol *sa = symtab.tab[si];
+    foreach (sa; symtab[])
+    {   //printf("symtab[%d] = %p\n",si,symtab[si]);
         cv4_outsym(sa);
     }
 }
@@ -3139,7 +3133,7 @@ else
         case CV4:
         case CVSYM:
         case CVTDB:
-            cv4_func(s);
+            cv4_func(s, globsym);
             break;
 
         default:

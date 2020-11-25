@@ -1,0 +1,47 @@
+Deprecate bypassing of symbol visibility when doing overload resolution
+
+If an aggregate declaration contains a private method and a public method in the
+same overload set it is possible to call the private method from a different module.
+
+Example:
+```
+==============================
+module foo;
+
+struct Foo
+{
+  import std : writeln;
+
+  private int _x;
+
+  private ref int x() return
+  {
+    writeln("ref int");
+    return _x;
+  }
+
+  int x() const
+  {
+    writeln("int");
+    return _x;
+  }
+}
+============================
+
+---
+module main;
+
+void main()
+{
+  import std : writeln;
+  import foo : Foo;
+
+  auto f = Foo();
+  f.x = 3;              // ok to call private method
+  writeln(f);
+}
+===========================
+```
+
+Starting from this version a deprecation message will be issued
+in such situations.

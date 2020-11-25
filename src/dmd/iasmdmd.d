@@ -36,6 +36,7 @@ import dmd.target;
 import dmd.tokens;
 
 import dmd.root.ctfloat;
+import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 
@@ -3558,21 +3559,30 @@ code *asm_db_parse(OP *pop)
     uint op = pop.usNumops & ITSIZE;
     size_t usSize = opsize[op];
 
-    size_t usBytes = 0;
-    size_t usMaxbytes = 0;
-    byte *bytes = null;
+    OutBuffer bytes;
 
     while (1)
     {
-        size_t len;
-        ubyte *q;
-        ubyte *qstart = null;
-
-        if (usBytes+usSize > usMaxbytes)
+        void writeBytes(const char[] array)
         {
-            usMaxbytes = usBytes + usSize + 10;
-            bytes = cast(byte *)mem.xrealloc(bytes, usMaxbytes);
+            if (usSize == 1)
+                bytes.write(array);
+            else
+            {
+                foreach (b; array)
+                {
+                    switch (usSize)
+                    {
+                        case 2: bytes.writeword(b); break;
+                        case 4: bytes.write4(b);    break;
+                        default:
+                            asmerr("floating point expected");
+                            break;
+                    }
+                }
+            }
         }
+
         switch (asmstate.tokValue)
         {
             case TOK.int32Literal:
@@ -3620,58 +3630,11 @@ code *asm_db_parse(OP *pop)
                 goto L2;
 
             L2:
-                memcpy(bytes + usBytes, &dt, usSize);
-                usBytes += usSize;
+                bytes.write((cast(void*)&dt)[0 .. usSize]);
                 break;
 
             case TOK.string_:
-                len = asmstate.tok.len;
-                q = cast(ubyte*)asmstate.tok.ustring;
-            L3:
-                if (len)
-                {
-                    usMaxbytes += len * usSize;
-                    bytes = cast(byte *)mem.xrealloc(bytes, usMaxbytes);
-                    memcpy(bytes + usBytes, asmstate.tok.ustring, len);
-
-                    auto p = bytes + usBytes;
-                    for (size_t i = 0; i < len; i++)
-                    {
-                        // Be careful that this works
-                        memset(p, 0, usSize);
-                        switch (op)
-                        {
-                            case OPdb:
-                                *p = cast(ubyte)*q;
-                                if (*p != *q)
-                                    asmerr("character is truncated");
-                                break;
-
-                            case OPds:
-                                *cast(short *)p = *cast(ubyte *)q;
-                                if (*cast(short *)p != *q)
-                                    asmerr("character is truncated");
-                                break;
-
-                            case OPdi:
-                            case OPdl:
-                                *cast(int *)p = *q;
-                                break;
-
-                            default:
-                                asmerr("floating point expected");
-                        }
-                        q++;
-                        p += usSize;
-                    }
-
-                    usBytes += len * usSize;
-                }
-                if (qstart)
-                {
-                    mem.xfree(qstart);
-                    qstart = null;
-                }
+                writeBytes(asmstate.tok.ustring[0 .. asmstate.tok.len]);
                 break;
 
             case TOK.identifier:
@@ -3706,15 +3669,20 @@ code *asm_db_parse(OP *pop)
                 }
                 else if (auto se = e.isStringExp())
                 {
-                    len = se.numberOfCodeUnits();
-                    q = cast(ubyte *)se.peekString().ptr;
-                    if (!q)
+                    const len = se.numberOfCodeUnits();
+                    auto q = cast(char *)se.peekString().ptr;
+                    if (q)
                     {
-                        qstart = cast(ubyte *)mem.xmalloc(len * se.sz);
-                        se.writeTo(qstart, false);
-                        q = qstart;
+                        writeBytes(q[0 .. len]);
                     }
-                    goto L3;
+                    else
+                    {
+                        auto qstart = cast(char *)mem.xmalloc(len * se.sz);
+                        se.writeTo(qstart, false);
+                        writeBytes(qstart[0 .. len]);
+                        mem.xfree(qstart);
+                    }
+                    break;
                 }
                 goto default;
             }
@@ -3735,9 +3703,8 @@ code *asm_db_parse(OP *pop)
     cdb.ctor();
     if (global.params.symdebug)
         cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
-    cdb.genasm(cast(char*)bytes, cast(uint)usBytes);
+    cdb.genasm(bytes.peekChars(), cast(uint)bytes.length);
     code *c = cdb.finish();
-    mem.xfree(bytes);
 
     asmstate.statement.regs |= /* mES| */ ALLREGS;
     asmstate.bReturnax = true;
