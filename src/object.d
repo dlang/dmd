@@ -2378,16 +2378,16 @@ V[K] dup(T : V[K], K, V)(T aa)
         return *cast(V*)pv;
     }
 
-    static if (__traits(hasPostblit, V))
+    foreach (k, ref v; aa)
     {
-        auto postblit = _getPostblit!V();
-        foreach (k, ref v; aa)
-            postblit(duplicateElem(k, v));
-    }
-    else
-    {
-        foreach (k, ref v; aa)
+        static if (!__traits(hasPostblit, V))
             duplicateElem(k, v);
+        else static if (__traits(isStaticArray, V))
+            _doPostblit(duplicateElem(k, v)[]);
+        else static if (!is(typeof(v.__xpostblit())) && is(immutable V == immutable UV, UV))
+            (() @trusted => *cast(UV*) &duplicateElem(k, v))().__xpostblit();
+        else
+            duplicateElem(k, v).__xpostblit();
     }
 
     return result;
@@ -3328,41 +3328,20 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 
 private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
 
-
-/**************
- * Get the postblit for type T.
- * Returns:
- *      null if no postblit is necessary
- *      function pointer for struct postblits
- *      delegate for class postblits
- */
-private auto _getPostblit(T)() @trusted pure nothrow @nogc
-{
-    // infer static postblit type, run postblit if any
-    static if (is(T == struct))
-    {
-        import core.internal.traits : Unqual;
-        // use typeid(Unqual!T) here to skip TypeInfo_Const/Shared/...
-        alias _PostBlitType = typeof(function (ref T t){ T a = t; });
-        return cast(_PostBlitType)typeid(Unqual!T).xpostblit;
-    }
-    else if ((&typeid(T).postblit).funcptr !is &TypeInfo.postblit)
-    {
-        alias _PostBlitType = typeof(delegate (ref T t){ T a = t; });
-        return cast(_PostBlitType)&typeid(T).postblit;
-    }
-    else
-        return null;
-}
-
 private void _doPostblit(T)(T[] arr)
 {
     // infer static postblit type, run postblit if any
     static if (__traits(hasPostblit, T))
     {
-        auto postblit = _getPostblit!T();
-        foreach (ref elem; arr)
-            postblit(elem);
+        static if (__traits(isStaticArray, T))
+            foreach (ref elem; arr)
+                _doPostblit(elem[]);
+        else static if (!is(typeof(arr[0].__xpostblit())) && is(immutable T == immutable U, U))
+            foreach (ref elem; arr)
+                (() @trusted => *(cast(U*) &elem))().__xpostblit();
+        else
+            foreach (ref elem; arr)
+                elem.__xpostblit();
     }
 }
 
