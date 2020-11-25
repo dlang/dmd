@@ -965,9 +965,6 @@ private:
                 case LINKwindows:
                     tmp.buf.writeByte('G'); // stdcall
                     break;
-                case LINKpascal:
-                    tmp.buf.writeByte('C');
-                    break;
                 default:
                     tmp.visit((Type*)type);
                     break;

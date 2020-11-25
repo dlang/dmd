@@ -1417,10 +1417,6 @@ unsigned totym(Type *tx)
                     t = (tf->parameterList.varargs == VARARGvariadic) ? TYnfunc : TYnsfunc;
                     break;
 
-                case LINKpascal:
-                    t = (tf->parameterList.varargs == VARARGvariadic) ? TYnfunc : TYnpfunc;
-                    break;
-
                 case LINKc:
                 case LINKcpp:
                 case LINKobjc:
