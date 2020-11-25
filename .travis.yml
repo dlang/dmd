@@ -1,8 +1,0 @@
-language: cpp
-compiler:
-  - gcc
-  - clang
-branches:
-  only:
-    - dmd-cxx
-script: ./travis.sh

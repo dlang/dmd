@@ -1,0 +1,85 @@
+# Github action to test C++ implementation of DMD
+#
+# Based-on:
+#  - Github C/C++ with Make
+#  - DMD C++ interop tests
+name: DMD C++
+
+on:
+  pull_request:
+    branches: [ dmd-cxx ]
+  push:
+    branches: [ dmd-cxx ]
+
+jobs:
+  main:
+    name: Run
+    strategy:
+      matrix:
+        os: [ ubuntu-16.04 ]
+        target: [ clang, g++ ]
+
+    # We're using the latest available images at the time of this commit.
+    # Using a specific version for reproductibility.
+    # Feel free to update when a new release has matured.
+    runs-on: ${{ matrix.os }}
+    steps:
+
+    #########################################
+    # Checking out up DMD, druntime, Phobos #
+    #########################################
+    - name: Checkout DMD
+      uses: actions/checkout@v2
+      with:
+        path: dmd
+        persist-credentials: false
+    - name: Checkout druntime
+      uses: actions/checkout@v2
+      with:
+        path: druntime
+        repository: dlang/druntime
+        ref: dmd-cxx
+        persist-credentials: false
+    - name: Checkout Phobos
+      uses: actions/checkout@v2
+      with:
+        path: phobos
+        repository: dlang/phobos
+        ref: dmd-cxx
+        persist-credentials: false
+    - name: Checkout DMD-master
+      uses: actions/checkout@v2
+      with:
+        path: dmd-master
+        repository: dlang/dmd
+        ref: master
+        persist-credentials: false
+
+    ########################################
+    #    Building DMD, druntime, Phobos    #
+    ########################################
+    - name: '[Posix] Build compiler & standard library'
+      # By default, VMs have 2 processors available, hence the `-j2`:
+      # https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources
+      run: |
+        # All hosts are 64 bits but let's be explicit
+        make -j2 -C dmd/src  -f posix.mak dmd HOST_CC=${{ matrix.target }} MODEL=64
+        make -j2 -C dmd/src  -f posix.mak dmd.conf
+        make -j2 -C druntime -f posix.mak DMD=../dmd/src/dmd MODEL=64
+        make -j2 -C phobos   -f posix.mak DMD=../dmd/src/dmd MODEL=64
+
+    ########################################
+    #        Running the test suite        #
+    ########################################
+    - name: Run test suite
+      run: |
+        make -j2 -C druntime -f posix.mak DMD=../dmd/src/dmd MODEL=64 unittest
+        make -j2 -C phobos   -f posix.mak DMD=../dmd/src/dmd MODEL=64 unittest
+        #make -j2 -C dmd/test DMD=../src/dmd MODEL=64
+
+    ########################################
+    #           Build DMD master           #
+    ########################################
+    - name: Build DMD master
+      run: |
+        make -j2 -C dmd-master -f posix.mak HOST_DMD=../../dmd/src/dmd MODEL=64

@@ -1,7 +1,7 @@
 DMD
 ===
 
-[![Build Status](https://travis-ci.org/dlang/dmd.svg?branch=dmd-cxx)](https://travis-ci.org/dlang/dmd)
+[![Build Status](https://github.com/dlang/dmd/workflows/DMD%20C%2B%2B/badge.svg?event=push)](https://github.com/dlang/dmd/actions?query=workflow%3ADMD+C%2B%2B)
 
 DMD is the reference compiler for the D programming language.
 
