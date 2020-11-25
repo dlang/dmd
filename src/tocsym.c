@@ -234,10 +234,6 @@ Symbol *toSymbol(Dsymbol *s)
                     m = global.params.is64bit ? mTYman_c : mTYman_std;
                     break;
 
-                case LINKpascal:
-                    m = mTYman_pas;
-                    break;
-
                 case LINKobjc:
                 case LINKc:
                     m = mTYman_c;
@@ -328,11 +324,6 @@ Symbol *toSymbol(Dsymbol *s)
                 {
                     case LINKwindows:
                         t->Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
-                        break;
-
-                    case LINKpascal:
-                        t->Tty = TYnpfunc;
-                        t->Tmangle = mTYman_pas;
                         break;
 
                     case LINKc:
