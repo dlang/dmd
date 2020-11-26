@@ -2961,6 +2961,7 @@ else
             lval = fval;
         }
 
+        version (none)
         if (lval - fval > 256)
         {
             crs.error("had %llu cases which is more than 256 cases in case range", lval - fval);
