@@ -2581,19 +2581,16 @@ extern (C++) class FuncDeclaration : Declaration
      * using NRVO is possible.
      *
      * Returns:
-     *      true if the result cannot be returned by hidden reference.
+     *      `false` if the result cannot be returned by hidden reference.
      */
-    final bool checkNrvo()
+    final bool checkNRVO()
     {
-        if (!nrvo_can)
-            return true;
-
-        if (returns is null)
-            return true;
+        if (!nrvo_can || returns is null)
+            return false;
 
         auto tf = type.toTypeFunction();
         if (tf.isref)
-            return true;
+            return false;
 
         foreach (rs; *returns)
         {
@@ -2601,24 +2598,23 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 auto v = ve.var.isVarDeclaration();
                 if (!v || v.isOut() || v.isRef())
-                    return true;
+                    return false;
                 else if (nrvo_var is null)
                 {
-                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == this)
-                    {
-                        //printf("Setting nrvo to %s\n", v.toChars());
-                        nrvo_var = v;
-                    }
-                    else
-                        return true;
+                    // Variables in the data segment (e.g. globals, TLS or not),
+                    // parameters and closure variables cannot be NRVOed.
+                    if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
+                        return false;
+                    //printf("Setting nrvo to %s\n", v.toChars());
+                    nrvo_var = v;
                 }
                 else if (nrvo_var != v)
-                    return true;
+                    return false;
             }
             else //if (!exp.isLvalue())    // keep NRVO-ability
-                return true;
+                return false;
         }
-        return false;
+        return true;
     }
 
     override final inout(FuncDeclaration) isFuncDeclaration() inout
