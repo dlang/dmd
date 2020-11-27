@@ -73,11 +73,8 @@ static if (ELFOBJ || MACHOBJ)
     import dmd.backend.ty;
     import dmd.backend.type;
 
-    static if (ELFOBJ)
-        import dmd.backend.melf;
-
-    static if (MACHOBJ)
-        import dmd.backend.mach;
+    import dmd.backend.melf;
+    import dmd.backend.mach;
 
     extern (C++):
 
@@ -87,13 +84,11 @@ static if (ELFOBJ || MACHOBJ)
 
     __gshared
     {
-        static if (MACHOBJ)
-        {
+        //static if (MACHOBJ)
             int except_table_seg = UNKNOWN; // __gcc_except_tab segment
             int except_table_num = 0;       // sequence number for GCC_except_table%d symbols
             int eh_frame_seg = UNKNOWN;     // __eh_frame segment
             Symbol *eh_frame_sym = null;    // past end of __eh_frame
-        }
 
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
@@ -228,7 +223,7 @@ static if (ELFOBJ || MACHOBJ)
         static if (ELFOBJ)
             Obj.addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, cast(int)MAP_SEG2SYMIDX(targseg), val);
         else static if (MACHOBJ)
-            Obj.addrel(seg, offset, null, targseg, RELaddr, cast(uint)val);
+            Obj.addrel(seg, offset, cast(Symbol*) null, targseg, RELaddr, cast(int)val);
         else
             assert(0);
     }
@@ -535,11 +530,24 @@ static if (ELFOBJ || MACHOBJ)
             Section debug_str      = { name: ".debug_str" };
             Section debug_line     = { name: ".debug_line" };
         }
+        else
+        {
+            Section debug_pubnames;
+            Section debug_aranges;
+            Section debug_ranges;
+            Section debug_loc;
+            Section debug_abbrev;
+            Section debug_info;
+            Section debug_str;
+            Section debug_line;
+        }
 
         static if (MACHOBJ)
             const char* debug_frame_name = "__debug_frame";
         else static if (ELFOBJ)
             const char* debug_frame_name = ".debug_frame";
+        else
+            const char* debug_frame_name = null;
 
         /* DWARF 7.5.3: "Each declaration begins with an unsigned LEB128 number
          * representing the abbreviation code itself."
@@ -738,6 +746,13 @@ static if (ELFOBJ || MACHOBJ)
                     const ubyte address_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_ptr;
             }
+            else
+            {
+                    const ubyte personality_pointer_encoding = 0;
+                    const ubyte LSDA_pointer_encoding = 0;
+                    const ubyte address_pointer_encoding = 0;
+            }
+
             buf.writeByten(7);                                  // Augmentation Length
             buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
             /* MACHOBJ 64: pcrel 1 length 2 extern 1 RELOC_GOT
@@ -932,6 +947,8 @@ static if (ELFOBJ || MACHOBJ)
             const uint fdelen = 4 + 4
                 + (I64 ? 8 + 8 : 4 + 4)                         // PC_Begin + PC_Range
                 + (ehunwind ? (I64 ? 9 : 5) : 1) + cast(uint)cfa_buf.length();
+        else
+            const uint fdelen = 0;
 
             const uint pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
             const uint length = fdelen + pad - 4;
@@ -1019,6 +1036,8 @@ static if (ELFOBJ || MACHOBJ)
                 int flags = S_ATTR_DEBUG;
             else static if (ELFOBJ)
                 int flags = SHT_PROGBITS;
+            else
+                int flags = 0;
 
             int seg = dwarf_getsegment(debug_frame_name, 1, flags);
             Outbuffer *buf = SegData[seg].SDbuf;
@@ -1554,6 +1573,8 @@ static if (ELFOBJ || MACHOBJ)
                 int flags = S_ATTR_DEBUG;
             else static if (ELFOBJ)
                 int flags = SHT_PROGBITS;
+            else
+                int flags = 0;
 
             IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1, flags);
             writeDebugFrameFDE(dfseg, sfunc);
