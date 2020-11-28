@@ -70,7 +70,10 @@ void initSections() nothrow @nogc
     const success = SharedObject.findForAddress(&_sections, object);
     safeAssert(success, "cannot find ELF object");
 
-    _staticTLSRange = getStaticTLSRange(object);
+    _staticTLSRange = getStaticTLSRange(object, _tlsAlignment);
+    // prevent the linker from stripping the TLS alignment symbols
+    if (_staticTLSRange is null) // should never happen
+        safeAssert(alignmentForTDATA == alignmentForTBSS, "unreachable");
 
     version (LDC)
     {
@@ -127,14 +130,14 @@ void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) noth
 }
 
 /* NOTE: The Bionic C library ignores thread-local data stored in the normal
- *       .tbss/.tdata ELF sections, which are marked with the SHF_TLS/STT_TLS
- *       flags.  So instead we roll our own by keeping TLS data in the
- *       .tdata/.tbss sections but removing the SHF_TLS/STT_TLS flags, and
- *       access the TLS data using this function.
+ *       .tdata/.tbss ELF sections, which are marked with the SHF_TLS/STT_TLS
+ *       flags.  So instead we roll our own emulation (e.g., in LDC's LLVM fork)
+ *       by keeping static TLS data in the .tdata/.tbss sections but removing
+ *       the SHF_TLS/STT_TLS flags, and access the TLS data using this function.
  *
- *       This function is called by the code emitted by the compiler.  It
- *       is expected to translate an address in the TLS static data to
- *       the corresponding address in the TLS dynamic per-thread data.
+ *       This function is called by the code emitted by the compiler.  It is
+ *       expected to translate an address in the TLS static data to the
+ *       corresponding address in the TLS dynamic per-thread data.
  */
 extern(C) void* __tls_get_addr(void* p) nothrow @nogc
 {
@@ -152,7 +155,30 @@ private:
 
 __gshared pthread_key_t _tlsKey;
 __gshared void[] _staticTLSRange;
+__gshared uint _tlsAlignment;
 __gshared SectionGroup _sections;
+
+/* The following code relies on the .tdata (non-zero initialized) and .tbss
+ * (zero-initialized) sections to end up adjacent to each other in the final
+ * linked binary.
+ * This allows to merge both (and thus all TLS data) to a single contiguous
+ * memory block.
+ */
+
+/* Enforce some minimum alignment for both sections.
+ * The relative offset of the 2nd section from the first (in memory) needs to be
+ * a multiple of the 2nd section's alignment, so that the 2nd section ends up
+ * suitably aligned in each thread's TLS block.
+ */
+enum minAlignment = 16;
+align(minAlignment)
+{
+    byte alignmentForTDATA = 1;
+    byte alignmentForTBSS;
+}
+
+// aligned_alloc is only available since API level 28
+extern(C) int posix_memalign(void** memptr, size_t alignment, size_t size) nothrow @nogc;
 
 ref void[] getTLSBlock() nothrow @nogc
 {
@@ -181,8 +207,9 @@ ref void[] getTLSBlock() nothrow @nogc
         safeAssert(_staticTLSRange.ptr !is null, "initSections() not called yet");
         if (const size = _staticTLSRange.length)
         {
-            auto p = malloc(size);
-            safeAssert(p !is null, "cannot allocate TLS block");
+            void* p;
+            const error = posix_memalign(&p, _tlsAlignment, size);
+            safeAssert(error == 0, "cannot allocate TLS block");
             memcpy(p, _staticTLSRange.ptr, size);
             *pary = p[0 .. size];
         }
@@ -191,7 +218,10 @@ ref void[] getTLSBlock() nothrow @nogc
     return *pary;
 }
 
-void[] getStaticTLSRange(const ref SharedObject object) nothrow @nogc
+// Returns the static TLS data range (.tdata and .tbss sections).
+// `alignment` is set to the max overall TLS alignment, to be used to align each
+// thread's TLS block.
+void[] getStaticTLSRange(const ref SharedObject object, out uint alignment) nothrow @nogc
 {
     import core.internal.elf.io;
 
@@ -209,13 +239,18 @@ void[] getStaticTLSRange(const ref SharedObject object) nothrow @nogc
     safeAssert(success, "cannot open ELF file");
 
     void* start, end;
+    alignment = minAlignment;
     foreach (index, name, sectionHeader; file.namedSections)
     {
         if (name == ".tdata" || name == ".tbss")
         {
             void* sectionStart = object.baseAddress + sectionHeader.sh_addr;
             void* sectionEnd = sectionStart + sectionHeader.sh_size;
-            debug(PRINTF) printf("section %s: %p - %p\n", name.ptr, sectionStart, sectionEnd);
+            const sectionAlignment = cast(uint) sectionHeader.sh_addralign;
+            debug(PRINTF) printf("section %s: %p - %p, alignment: %u\n", name.ptr, sectionStart, sectionEnd, sectionAlignment);
+
+            if (sectionAlignment > alignment)
+                alignment = sectionAlignment;
 
             if (!start)
             {
@@ -224,7 +259,11 @@ void[] getStaticTLSRange(const ref SharedObject object) nothrow @nogc
             }
             else
             {
-                safeAssert(sectionStart == end, "expected .tdata and .tbss sections to be contiguous");
+                const bytesInbetweenSections = sectionStart - end;
+                safeAssert(bytesInbetweenSections >= 0 && bytesInbetweenSections < alignment,
+                    "expected .tdata and .tbss sections to be adjacent (hint: try ld.bfd linker)");
+                safeAssert(sectionAlignment == 0 || ((sectionStart - start) & (sectionAlignment - 1)) == 0,
+                    "offset of .tbss section from .tdata isn't a multiple of the .tbss alignment (workaround: align .tdata manually)");
                 end = sectionEnd;
                 break; // we've found both sections
             }
