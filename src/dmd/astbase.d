@@ -6745,12 +6745,11 @@ struct ASTBase
 
         extern (C++) static Type va_listType(const ref Loc loc, Scope* sc)
         {
-            if (global.params.isWindows)
+            if (global.params.targetOS == TargetOS.Windows)
             {
                 return Type.tchar.pointerTo();
             }
-            else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD  || global.params.isDragonFlyBSD ||
-                global.params.isSolaris || global.params.isOSX)
+            else if (global.params.targetOS & TargetOS.Posix)
             {
                 if (global.params.is64bit)
                 {

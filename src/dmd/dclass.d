@@ -566,7 +566,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
-            if (classKind == ClassKind.cpp && global.params.isWindows)
+            if (classKind == ClassKind.cpp && global.params.targetOS == TargetOS.Windows)
                 structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
         }
         else if (isInterfaceDeclaration())
