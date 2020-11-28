@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail217.d(22): Error: mutable method `fail217.Message.this` is not callable using a `immutable` object
-fail_compilation/fail217.d(22):        Consider adding `const` or `inout` to fail217.Message.this
+fail_compilation/fail217.d(13):        Consider adding `const` or `inout` here
 ---
 */
 

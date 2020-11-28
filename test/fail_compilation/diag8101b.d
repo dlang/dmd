@@ -10,7 +10,7 @@ fail_compilation/diag8101b.d(33): Error: none of the overloads of `foo` are call
 fail_compilation/diag8101b.d(19):        `diag8101b.S.foo(int _param_0)`
 fail_compilation/diag8101b.d(20):        `diag8101b.S.foo(int _param_0, int _param_1)`
 fail_compilation/diag8101b.d(35): Error: mutable method `diag8101b.S.bar` is not callable using a `const` object
-fail_compilation/diag8101b.d(35):        Consider adding `const` or `inout` to diag8101b.S.bar
+fail_compilation/diag8101b.d(22):        Consider adding `const` or `inout` here
 ---
 */
 

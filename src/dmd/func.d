@@ -3059,14 +3059,13 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return null;
         }
 
-        auto fullFdPretty = fd.toPrettyChars();
         .error(loc, "%smethod `%s` is not callable using a %sobject",
-               funcBuf.peekChars(), fullFdPretty, thisBuf.peekChars());
+               funcBuf.peekChars(), fd.toPrettyChars(), thisBuf.peekChars());
 
         if (mismatches.isNotShared)
-            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+            .errorSupplemental(fd.loc, "Consider adding `shared` here");
         else if (mismatches.isMutable)
-            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+            .errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
         return null;
     }
 
