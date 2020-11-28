@@ -20,6 +20,64 @@ import rt.unwind;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
+/* These are the register numbers for _Unwind_SetGR().
+ * Hints for these can be found by looking at the EH_RETURN_DATA_REGNO macro in
+ * GCC. If you have a native gcc you can try the following:
+ *
+ * #include <stdio.h>
+ *
+ * int main(int argc, char *argv[])
+ * {
+ *     printf("EH_RETURN_DATA_REGNO(0) = %d\n", __builtin_eh_return_data_regno(0));
+ *     printf("EH_RETURN_DATA_REGNO(1) = %d\n", __builtin_eh_return_data_regno(1));
+ *     return 0;
+ * }
+ */
+version (X86_64)
+{
+    enum eh_exception_regno = 0;
+    enum eh_selector_regno = 1;
+}
+else version (X86)
+{
+    enum eh_exception_regno = 0;
+    enum eh_selector_regno = 2;
+}
+else version (AArch64)
+{
+    enum eh_exception_regno = 0;
+    enum eh_selector_regno = 1;
+}
+else version (ARM)
+{
+    enum eh_exception_regno = 0;
+    enum eh_selector_regno = 1;
+}
+else version (PPC64)
+{
+    enum eh_exception_regno = 3;
+    enum eh_selector_regno = 4;
+}
+else version (PPC)
+{
+    enum eh_exception_regno = 3;
+    enum eh_selector_regno = 4;
+}
+else version (MIPS64)
+{
+    enum eh_exception_regno = 4;
+    enum eh_selector_regno = 5;
+}
+else version (MIPS32)
+{
+    enum eh_exception_regno = 4;
+    enum eh_selector_regno = 5;
+}
+else
+{
+    static assert(0, "Unknown EH register numbers for this architecture");
+}
+
 extern (C)
 {
     int _d_isbaseof(ClassInfo b, ClassInfo c);
@@ -475,10 +533,8 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     }
 
     // Set up registers and jump to cleanup or handler
-    int reg0 = 0;       // EAX/RAX is __exception_object
-    int reg1 = (size_t.sizeof == 4) ? 2 : 1;       // EDX/RDX is __handler
-    _Unwind_SetGR(context, reg0, cast(_Unwind_Ptr)exceptionObject);
-    _Unwind_SetGR(context, reg1, handler);
+    _Unwind_SetGR(context, eh_exception_regno, cast(_Unwind_Ptr)exceptionObject);
+    _Unwind_SetGR(context, eh_selector_regno, handler);
     _Unwind_SetIP(context, landing_pad);
 
     return _URC_INSTALL_CONTEXT;
