@@ -1182,8 +1182,6 @@ else version (Posix)
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
     in
     {
-        assert(suspendSignalNumber == 0);
-        assert(resumeSignalNumber  == 0);
         assert(suspendSignalNo != 0);
         assert(resumeSignalNo  != 0);
     }
@@ -1201,8 +1199,8 @@ else version (Posix)
 
 version (Posix)
 {
-    __gshared int suspendSignalNumber;
-    __gshared int resumeSignalNumber;
+    private __gshared int suspendSignalNumber = SIGUSR1;
+    private __gshared int resumeSignalNumber  = SIGUSR2;
 }
 
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
@@ -1941,52 +1939,41 @@ extern (C) void thread_init() @nogc
     }
     else version (Posix)
     {
-        if ( suspendSignalNumber == 0 )
-        {
-            suspendSignalNumber = SIGUSR1;
-        }
-
-        if ( resumeSignalNumber == 0 )
-        {
-            resumeSignalNumber = SIGUSR2;
-        }
-
         int         status;
-        sigaction_t sigusr1 = void;
-        sigaction_t sigusr2 = void;
+        sigaction_t suspend = void;
+        sigaction_t resume = void;
 
         // This is a quick way to zero-initialize the structs without using
         // memset or creating a link dependency on their static initializer.
-        (cast(byte*) &sigusr1)[0 .. sigaction_t.sizeof] = 0;
-        (cast(byte*) &sigusr2)[0 .. sigaction_t.sizeof] = 0;
+        (cast(byte*) &suspend)[0 .. sigaction_t.sizeof] = 0;
+        (cast(byte*)  &resume)[0 .. sigaction_t.sizeof] = 0;
 
         // NOTE: SA_RESTART indicates that system calls should restart if they
         //       are interrupted by a signal, but this is not available on all
         //       Posix systems, even those that support multithreading.
         static if ( __traits( compiles, SA_RESTART ) )
-            sigusr1.sa_flags = SA_RESTART;
-        else
-            sigusr1.sa_flags   = 0;
-        sigusr1.sa_handler = &thread_suspendHandler;
+            suspend.sa_flags = SA_RESTART;
+
+        suspend.sa_handler = &thread_suspendHandler;
         // NOTE: We want to ignore all signals while in this handler, so fill
         //       sa_mask to indicate this.
-        status = sigfillset( &sigusr1.sa_mask );
+        status = sigfillset( &suspend.sa_mask );
         assert( status == 0 );
 
         // NOTE: Since resumeSignalNumber should only be issued for threads within the
         //       suspend handler, we don't want this signal to trigger a
         //       restart.
-        sigusr2.sa_flags   = 0;
-        sigusr2.sa_handler = &thread_resumeHandler;
+        resume.sa_flags   = 0;
+        resume.sa_handler = &thread_resumeHandler;
         // NOTE: We want to ignore all signals while in this handler, so fill
         //       sa_mask to indicate this.
-        status = sigfillset( &sigusr2.sa_mask );
+        status = sigfillset( &resume.sa_mask );
         assert( status == 0 );
 
-        status = sigaction( suspendSignalNumber, &sigusr1, null );
+        status = sigaction( suspendSignalNumber, &suspend, null );
         assert( status == 0 );
 
-        status = sigaction( resumeSignalNumber, &sigusr2, null );
+        status = sigaction( resumeSignalNumber, &resume, null );
         assert( status == 0 );
 
         status = sem_init( &suspendCount, 0, 0 );
