@@ -11,6 +11,8 @@
 
 module rt.dwarfeh;
 
+// debug = EH_personality;
+
 version (Posix):
 
 import rt.dmain2: _d_print_throwable;
@@ -22,6 +24,20 @@ extern (C)
 {
     int _d_isbaseof(ClassInfo b, ClassInfo c);
     void _d_createTrace(Throwable o, void* context);
+}
+
+debug (EH_personality)
+{
+    private void writeln(in char* format, ...) @nogc nothrow
+    {
+        import core.stdc.stdarg;
+
+        va_list args;
+        va_start(args, format);
+        vfprintf(stdout, format, args);
+        fprintf(stdout, "\n");
+        fflush(stdout);
+    }
 }
 
 /* High 4 bytes = vendor, low 4 bytes = language
@@ -76,7 +92,7 @@ struct ExceptionHeader
         }
         eh.object = o;
         eh.exception_object.exception_class = dmdExceptionClass;
-        //printf("create(): %p\n", eh);
+        debug (EH_personality) writeln("create(): %p", eh);
         return eh;
     }
 
@@ -87,7 +103,7 @@ struct ExceptionHeader
      */
     static void free(ExceptionHeader* eh)
     {
-        //printf("free(%p)\n", eh);
+        debug (EH_personality) writeln("free(%p)", eh);
         /* Smite contents even if subsequently free'd,
          * to ward off dangling pointer bugs.
          */
@@ -139,7 +155,7 @@ struct ExceptionHeader
 extern(C) Throwable __dmd_begin_catch(_Unwind_Exception* exceptionObject)
 {
     ExceptionHeader *eh = ExceptionHeader.toExceptionHeader(exceptionObject);
-    //printf("__dmd_begin_catch(%p), object = %p\n", eh, eh.object);
+    debug (EH_personality) writeln("__dmd_begin_catch(%p), object = %p", eh, eh.object);
 
     auto o = eh.object;
     // Remove our reference to the exception. We should not decrease its refcount,
@@ -184,7 +200,7 @@ extern(C) void _d_throwdwarf(Throwable o)
     ExceptionHeader *eh = ExceptionHeader.create(o);
 
     eh.push();  // add to thrown exception stack
-    //printf("_d_throwdwarf: eh = %p, eh.next = %p\n", eh, eh.next);
+    debug (EH_personality) writeln("_d_throwdwarf: eh = %p, eh.next = %p", eh, eh.next);
 
     /* Increment reference count if `o` is a refcounted Throwable
      */
@@ -196,7 +212,7 @@ extern(C) void _d_throwdwarf(Throwable o)
      */
     extern (C) static void exception_cleanup(_Unwind_Reason_Code reason, _Unwind_Exception* eo)
     {
-        //printf("exception_cleanup()\n");
+        debug (EH_personality) writeln("exception_cleanup()");
         switch (reason)
         {
             case _URC_FATAL_PHASE1_ERROR:       // unknown error code
@@ -291,8 +307,6 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
                _Unwind_Exception_Class exceptionClass, _Unwind_Exception* exceptionObject,
                _Unwind_Context* context)
 {
-    //printf("__dmd_personality_v0(actions = x%x, eo = %p, context = %p)\n", cast(int)actions, exceptionObject, context);
-    //printf("exceptionClass = x%08lx\n", exceptionClass);
     if (ver != 1)
       return _URC_FATAL_PHASE1_ERROR;
     assert(context);
@@ -301,11 +315,21 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     int handler;
     _Unwind_Ptr landing_pad;
 
-    //for (auto ehx = eh; ehx; ehx = ehx.next)
-        //printf(" eh: %p next=%014p lsda=%p '%.*s'\n", ehx, ehx.next, ehx.languageSpecificData, ehx.object.msg.length, ehx.object.msg.ptr);
+    debug (EH_personality)
+    {
+        writeln("__dmd_personality_v0(actions = x%x, eo = %p, context = %p)", cast(int)actions, exceptionObject, context);
+        writeln("exceptionClass = x%08llx", exceptionClass);
+
+        if (exceptionClass == dmdExceptionClass)
+        {
+            auto eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+            for (auto ehx = eh; ehx; ehx = ehx.next)
+                writeln(" eh: %p next=%014p lsda=%p '%.*s'", ehx, ehx.next, ehx.languageSpecificData, ehx.object.msg.length, ehx.object.msg.ptr);
+        }
+    }
 
     language_specific_data = cast(const(ubyte)*)_Unwind_GetLanguageSpecificData(context);
-    //printf("lsda = %p\n", language_specific_data);
+    debug (EH_personality) writeln("lsda = %p", language_specific_data);
 
     auto Start = _Unwind_GetRegionStart(context);
 
@@ -326,8 +350,8 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
         auto ip = _Unwind_GetIP(context);
         --ip;
     }
-    //printf("ip = x%x\n", cast(int)(ip - Start));
-    //printf("\tStart = %p, ipoff = %p, lsda = %p\n", Start, ip - Start, language_specific_data);
+    debug (EH_personality) writeln("ip = x%x", cast(int)(ip - Start));
+    debug (EH_personality) writeln("\tStart = %p, ipoff = %p, lsda = %p", Start, ip - Start, language_specific_data);
 
     auto result = scanLSDA(language_specific_data, ip - Start, exceptionClass,
         (actions & _UA_FORCE_UNWIND) != 0,          // don't catch when forced unwinding
@@ -354,11 +378,11 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             assert(0);
 
         case LsdaResult.noAction:
-            //printf("  no action\n");
+            debug (EH_personality) writeln("  no action");
             return _URC_CONTINUE_UNWIND;
 
         case LsdaResult.cleanup:
-            //printf("  cleanup\n");
+            debug (EH_personality) writeln("  cleanup");
             if (actions & _UA_SEARCH_PHASE)
             {
                 return _URC_CONTINUE_UNWIND;
@@ -366,14 +390,14 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             break;
 
         case LsdaResult.handler:
-            //printf("  handler\n");
-            //printf("   eh.lsda = %p, lsda = %p\n", eh.languageSpecificData, language_specific_data);
+            debug (EH_personality) writeln("  handler");
             assert(!(actions & _UA_FORCE_UNWIND));
             if (actions & _UA_SEARCH_PHASE)
             {
                 if (exceptionClass == dmdExceptionClass)
                 {
                     auto eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+                    debug (EH_personality) writeln("   eh.lsda = %p, lsda = %p", eh.languageSpecificData, language_specific_data);
                     eh.handler = handler;
                     eh.languageSpecificData = language_specific_data;
                     eh.landingPad = landing_pad;
@@ -383,13 +407,13 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             break;
     }
 
-    //printf("  lsda = %p, landing_pad = %p, handler = %d\n", language_specific_data, landing_pad, handler);
-    //printf( '%.*s' next = %p\n", eh.object.msg.length, eh.object.msg.ptr, eh.next);
+    debug (EH_personality) writeln("  lsda = %p, landing_pad = %p, handler = %d", language_specific_data, landing_pad, handler);
 
     // Figure out what to do when there are multiple exceptions in flight
     if (exceptionClass == dmdExceptionClass)
     {
         auto eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+        debug (EH_personality) writeln(" '%.*s' next = %p", eh.object.msg.length, eh.object.msg.ptr, eh.next);
         auto currentLsd = language_specific_data;
         bool bypassed = false;
         while (eh.next)
@@ -401,7 +425,7 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             {
                 /* eh is an Error, ehn is not. Skip ehn.
                  */
-                //printf("bypass\n");
+                debug (EH_personality) writeln("bypass");
                 currentLsd = ehn.languageSpecificData;
 
                 // Continuing to construct the bypassed chain
@@ -413,13 +437,13 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             // Don't combine when the exceptions are from different functions
             if (currentLsd != ehn.languageSpecificData)
             {
-                //printf("break: %p %p\n", currentLsd, ehn.languageSpecificData);
+                debug (EH_personality) writeln("break: %p %p", currentLsd, ehn.languageSpecificData);
                 break;
             }
 
             else
             {
-                //printf("chain\n");
+                debug (EH_personality) writeln("chain");
                 // Append eh's object to ehn's object chain
                 // And replace our exception object with in-flight one
                 eh.object = Throwable.chainTogether(ehn.object, eh.object);
@@ -436,7 +460,7 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
 
             // Remove ehn from threaded chain
             eh.next = ehn.next;
-            //printf("delete %p\n", ehn);
+            debug (EH_personality) writeln("delete %p", ehn);
             _Unwind_DeleteException(&ehn.exception_object); // discard ehn
         }
         if (bypassed)
@@ -473,26 +497,25 @@ ClassInfo getClassInfo(_Unwind_Exception* exceptionObject, const(ubyte)* current
 {
     ExceptionHeader* eh = ExceptionHeader.toExceptionHeader(exceptionObject);
     Throwable ehobject = eh.object;
-    //printf("start: %p '%.*s'\n", ehobject, ehobject.classinfo.info.name.length, ehobject.classinfo.info.name.ptr);
+    debug (EH_personality) writeln("start: %p '%.*s'", ehobject, cast(int)ehobject.classinfo.info.name.length, ehobject.classinfo.info.name.ptr);
     for (ExceptionHeader* ehn = eh.next; ehn; ehn = ehn.next)
     {
         // like __dmd_personality_v0, don't combine when the exceptions are from different functions
         // (fixes issue 19831, exception thrown and caught while inside finally block)
         if (currentLsd != ehn.languageSpecificData)
         {
-            // printf("break: %p %p\n", currentLsd, ehn.languageSpecificData);
+            debug (EH_personality) writeln("break: %p %p", currentLsd, ehn.languageSpecificData);
             break;
         }
 
-        //printf("ehn =   %p '%.*s'\n", ehn.object, cast(int)ehn.object.classinfo.info.name.length, ehn.object.classinfo.info.name.ptr);
+        debug (EH_personality) writeln("ehn =   %p '%.*s'", ehn.object, cast(int)ehn.object.classinfo.info.name.length, ehn.object.classinfo.info.name.ptr);
         Error e = cast(Error)ehobject;
         if (e is null || (cast(Error)ehn.object) !is null)
         {
-            currentLsd = ehn.languageSpecificData;
             ehobject = ehn.object;
         }
     }
-    //printf("end  : %p\n", ehobject);
+    debug (EH_personality) writeln("end  : %p", ehobject);
     return ehobject.classinfo;
 }
 
@@ -652,16 +675,15 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
         TTbase = uLEB128(&p);
         TToffset = (p - lsda) + TTbase;
     }
-    ///*printf("  TType = "); print_dw_pe(TType);*/ printf(" TTbase = x%08llx\n", TTbase);
+    debug (EH_personality) writeln("  TType = x%x, TTbase = x%x", TType, cast(int)TTbase);
 
     ubyte CallSiteFormat = *p++;
 
     _Unwind_Ptr CallSiteTableSize = dw_pe_value(DW_EH_PE_uleb128);
-    ///*printf("  CallSiteFormat = "); print_dw_pe(CallSiteFormat);*/ printf(" CallSiteTableSize = x%08llx\n", CallSiteTableSize);
+    debug (EH_personality) writeln("  CallSiteFormat = x%x, CallSiteTableSize = x%x", CallSiteFormat, cast(int)CallSiteTableSize);
 
-    //printf("  Call Site Table\n");
     _Unwind_Ptr ipoffset = ip - LPbase;
-    //printf("ipoffset = x%x\n", cast(int)ipoffset);
+    debug (EH_personality) writeln("ipoffset = x%x", cast(int)ipoffset);
     bool noAction = false;
     auto tt = lsda + TToffset;
     const(ubyte)* pActionTable = p + CallSiteTableSize;
@@ -681,8 +703,11 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
         _Unwind_Ptr LandingPad    = dw_pe_value(CallSiteFormat);
         _uleb128_t ActionRecordPtr = uLEB128(&p);
 
-        //printf(" XT: start = x%x, range = x%x, landing pad = x%x, action = x%x\n",
-                //cast(int)CallSiteStart, cast(int)CallSiteRange, cast(int)LandingPad, cast(int)ActionRecordPtr);
+        debug (EH_personality)
+        {
+            writeln(" XT: start = x%x, range = x%x, landing pad = x%x, action = x%x",
+                cast(int)CallSiteStart, cast(int)CallSiteRange, cast(int)LandingPad, cast(int)ActionRecordPtr);
+        }
 
         if (ipoffset < CallSiteStart)
             break;
@@ -690,7 +715,7 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
         // The most nested entry will be the last one that ip is in
         if (ipoffset < CallSiteStart + CallSiteRange)
         {
-            //printf("\tmatch\n");
+            debug (EH_personality) writeln("\tmatch");
             if (ActionRecordPtr)                // if saw a catch
             {
                 if (cleanupsOnly)
@@ -753,8 +778,11 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
 int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, const(ubyte)* pActionTable,
                       const(ubyte)* tt, ubyte TType, _Unwind_Exception_Class exceptionClass, const(ubyte)* lsda)
 {
-    //printf("actionTableLookup(catchType = %p, actionRecordPtr = %d, pActionTable = %p, tt = %p)\n",
-        //catchType, actionRecordPtr, pActionTable, tt);
+    debug (EH_personality)
+    {
+        writeln("actionTableLookup(actionRecordPtr = %d, pActionTable = %p, tt = %p)",
+            actionRecordPtr, pActionTable, tt);
+    }
     assert(pActionTable < tt);
 
     ClassInfo thrownType;
@@ -771,7 +799,7 @@ int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, 
         auto apn = ap;
         auto NextRecordPtr = sLEB128(&ap);
 
-        //printf(" at: TypeFilter = %d, NextRecordPtr = %d\n", cast(int)TypeFilter, cast(int)NextRecordPtr);
+        debug (EH_personality) writeln(" at: TypeFilter = %d, NextRecordPtr = %d", cast(int)TypeFilter, cast(int)NextRecordPtr);
 
         if (TypeFilter <= 0)                    // should never happen with DMD generated tables
         {
