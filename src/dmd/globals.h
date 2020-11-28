@@ -19,6 +19,26 @@
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 
+typedef unsigned char TargetOS;
+enum
+{
+    /* These are mutually exclusive; one and only one is set.
+     * Match spelling and casing of corresponding version identifiers
+     */
+    TargetOS_linux        = 1,
+    TargetOS_Windows      = 2,
+    TargetOS_OSX          = 4,
+    TargetOS_OpenBSD      = 8,
+    TargetOS_FreeBSD      = 0x10,
+    TargetOS_Solaris      = 0x20,
+    TargetOS_DragonFlyBSD = 0x40,
+
+    // Combination masks
+    all = TargetOS_linux | TargetOS_Windows | TargetOS_OSX | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
+    Posix = TargetOS_linux | TargetOS_OSX | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
+};
+
+
 typedef unsigned char Diagnostic;
 enum
 {
@@ -124,13 +144,7 @@ struct Param
     bool map;           // generate linker .map file
     bool is64bit;       // generate 64 bit code
     bool isLP64;        // generate code for LP64
-    bool isLinux;       // generate code for linux
-    bool isOSX;         // generate code for Mac OSX
-    bool isWindows;     // generate code for Windows
-    bool isFreeBSD;     // generate code for FreeBSD
-    bool isOpenBSD;     // generate code for OpenBSD
-    bool isDragonFlyBSD;// generate code for DragonFlyBSD
-    bool isSolaris;     // generate code for Solaris
+    TargetOS targetOS;      // operating system to generate code for
     bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
     Diagnostic useDeprecated;

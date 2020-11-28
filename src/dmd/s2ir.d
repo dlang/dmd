@@ -1107,7 +1107,7 @@ private extern (C++) class S2irVisitor : Visitor
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
 
-                if (cs.type && irs.params.isWindows && irs.params.is64bit) // Win64
+                if (cs.type && irs.params.targetOS == TargetOS.Windows && irs.params.is64bit) // Win64
                 {
                     /* The linker will attempt to merge together identical functions,
                      * even if the catch types differ. So add a reference to the

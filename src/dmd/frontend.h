@@ -2184,15 +2184,17 @@ extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression* 
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
-enum class TargetOS
+enum class TargetOS : uint8_t
 {
-    all = 2147483647,
-    linux = 1,
-    windows = 2,
-    macOS = 4,
-    freeBSD = 8,
-    solaris = 16,
-    dragonFlyBSD = 32,
+    linux = 1u,
+    Windows = 2u,
+    OSX = 4u,
+    OpenBSD = 8u,
+    FreeBSD = 16u,
+    Solaris = 32u,
+    DragonFlyBSD = 64u,
+    all = 119u,
+    Posix = 117u,
 };
 
 extern Module* rootHasMain;
@@ -6861,6 +6863,19 @@ enum class HIGHLIGHT : uint8_t
     Other = 6u,
 };
 
+enum class TargetOS : uint8_t
+{
+    linux = 1u,
+    Windows = 2u,
+    OSX = 4u,
+    OpenBSD = 8u,
+    FreeBSD = 16u,
+    Solaris = 32u,
+    DragonFlyBSD = 64u,
+    all = 119u,
+    Posix = 117u,
+};
+
 enum class TARGET : bool
 {
     Linux = true,
@@ -6966,13 +6981,7 @@ struct Param
     bool map;
     bool is64bit;
     bool isLP64;
-    bool isLinux;
-    bool isOSX;
-    bool isWindows;
-    bool isFreeBSD;
-    bool isOpenBSD;
-    bool isDragonFlyBSD;
-    bool isSolaris;
+    TargetOS targetOS;
     bool hasObjectiveC;
     bool mscoff;
     DiagnosticReporting useDeprecated;
@@ -7111,13 +7120,6 @@ struct Param
         map(),
         is64bit(true),
         isLP64(),
-        isLinux(),
-        isOSX(),
-        isWindows(),
-        isFreeBSD(),
-        isOpenBSD(),
-        isDragonFlyBSD(),
-        isSolaris(),
         hasObjectiveC(),
         mscoff(false),
         useDeprecated((DiagnosticReporting)1u),

@@ -251,7 +251,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.ls:     // pointer to wchar_t string
-                const twchar_t = global.params.isWindows ? Twchar : Tdchar;
+                const twchar_t = global.params.targetOS == TargetOS.Windows ? Twchar : Tdchar;
                 if (!(t.ty == Tpointer && tnext.ty == twchar_t))
                     errorMsg(null, slice, e, "wchar_t*", t);
                 break;
@@ -456,7 +456,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.lc:
             case Format.ls:     // pointer to wchar_t string
-                const twchar_t = global.params.isWindows ? Twchar : Tdchar;
+                const twchar_t = global.params.targetOS == TargetOS.Windows ? Twchar : Tdchar;
                 if (!(t.ty == Tpointer && tnext.ty == twchar_t))
                     errorMsg(null, slice, e, "wchar_t*", t);
                 break;
