@@ -84,6 +84,28 @@ extern (C)
     void _d_createTrace(Throwable o, void* context);
 }
 
+private _Unwind_Ptr readUnaligned(T, bool consume)(ref const(ubyte)* p)
+{
+    version (X86)         enum hasUnalignedLoads = true;
+    else version (X86_64) enum hasUnalignedLoads = true;
+    else                  enum hasUnalignedLoads = false;
+
+    static if (hasUnalignedLoads)
+    {
+        T value = *cast(T*) p;
+    }
+    else
+    {
+        import core.stdc.string : memcpy;
+        T value = void;
+        memcpy(&value, p, T.sizeof);
+    }
+
+    static if (consume)
+        p += T.sizeof;
+    return cast(_Unwind_Ptr) value;
+}
+
 debug (EH_personality)
 {
     private void writeln(in char* format, ...) @nogc nothrow
@@ -694,25 +716,24 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
 
     _Unwind_Ptr dw_pe_value(ubyte pe)
     {
-        _Unwind_Ptr value = void;
         switch (pe)
         {
-            case DW_EH_PE_uleb128:  value = cast(_Unwind_Ptr) uLEB128(&p);             break;
-            case DW_EH_PE_udata2:   value = cast(_Unwind_Ptr) *cast(ushort*)p; p += 2; break;
-            case DW_EH_PE_udata4:   value = cast(_Unwind_Ptr) *cast(uint*)p;   p += 4; break;
-            case DW_EH_PE_udata8:   value = cast(_Unwind_Ptr) *cast(ulong*)p;  p += 8; break;
-            case DW_EH_PE_sleb128:  value = cast(_Unwind_Ptr) sLEB128(&p);             break;
-            case DW_EH_PE_sdata2:   value = cast(_Unwind_Ptr) *cast(short*)p;  p += 2; break;
-            case DW_EH_PE_sdata4:   value = cast(_Unwind_Ptr) *cast(int*)p;    p += 4; break;
-            case DW_EH_PE_sdata8:   value = cast(_Unwind_Ptr) *cast(long*)p;   p += 8; break;
+            case DW_EH_PE_sdata2:   return readUnaligned!(short,  true)(p);
+            case DW_EH_PE_udata2:   return readUnaligned!(ushort, true)(p);
+            case DW_EH_PE_sdata4:   return readUnaligned!(int,    true)(p);
+            case DW_EH_PE_udata4:   return readUnaligned!(uint,   true)(p);
+            case DW_EH_PE_sdata8:   return readUnaligned!(long,   true)(p);
+            case DW_EH_PE_udata8:   return readUnaligned!(ulong,  true)(p);
+            case DW_EH_PE_sleb128:  return cast(_Unwind_Ptr) sLEB128(&p);
+            case DW_EH_PE_uleb128:  return cast(_Unwind_Ptr) uLEB128(&p);
             case DW_EH_PE_ptr:      if (size_t.sizeof == 8)
                                         goto case DW_EH_PE_udata8;
                                     else
                                         goto case DW_EH_PE_udata4;
             default:
                 terminate(__LINE__);
+                return 0;
         }
-        return value;
     }
 
     ubyte LPstart = *p++;
@@ -870,12 +891,12 @@ int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, 
         const(ubyte)* tt2;
         switch (TType & DW_EH_PE_FORMAT_MASK)
         {
-            case DW_EH_PE_udata2:   entry = cast(_Unwind_Ptr) *cast(ushort*)(tt2 = tt - TypeFilter * 2); break;
-            case DW_EH_PE_udata4:   entry = cast(_Unwind_Ptr) *cast(uint*)  (tt2 = tt - TypeFilter * 4); break;
-            case DW_EH_PE_udata8:   entry = cast(_Unwind_Ptr) *cast(ulong*) (tt2 = tt - TypeFilter * 8); break;
-            case DW_EH_PE_sdata2:   entry = cast(_Unwind_Ptr) *cast(short*) (tt2 = tt - TypeFilter * 2); break;
-            case DW_EH_PE_sdata4:   entry = cast(_Unwind_Ptr) *cast(int*)   (tt2 = tt - TypeFilter * 4); break;
-            case DW_EH_PE_sdata8:   entry = cast(_Unwind_Ptr) *cast(long*)  (tt2 = tt - TypeFilter * 8); break;
+            case DW_EH_PE_sdata2:   entry = readUnaligned!(short,  false)(tt2 = tt - TypeFilter * 2); break;
+            case DW_EH_PE_udata2:   entry = readUnaligned!(ushort, false)(tt2 = tt - TypeFilter * 2); break;
+            case DW_EH_PE_sdata4:   entry = readUnaligned!(int,    false)(tt2 = tt - TypeFilter * 4); break;
+            case DW_EH_PE_udata4:   entry = readUnaligned!(uint,   false)(tt2 = tt - TypeFilter * 4); break;
+            case DW_EH_PE_sdata8:   entry = readUnaligned!(long,   false)(tt2 = tt - TypeFilter * 8); break;
+            case DW_EH_PE_udata8:   entry = readUnaligned!(ulong,  false)(tt2 = tt - TypeFilter * 8); break;
             case DW_EH_PE_ptr:      if (size_t.sizeof == 8)
                                         goto case DW_EH_PE_udata8;
                                     else
