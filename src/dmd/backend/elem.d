@@ -671,8 +671,8 @@ static if (0)
                 break;
 }
             case OPasm:
-                d.EV.Vstring = cast(char *) mem_malloc(cast(uint)d.EV.Vstrlen);
-                memcpy(d.EV.Vstring,e.EV.Vstring,cast(uint)e.EV.Vstrlen);
+                d.EV.Vstring = cast(char *) mem_malloc(d.EV.Vstrlen);
+                memcpy(d.EV.Vstring,e.EV.Vstring,e.EV.Vstrlen);
                 break;
 
             default:
@@ -1578,14 +1578,13 @@ elem *el_convstring(elem *e)
     int i;
     Symbol *s;
     char *p;
-    targ_size_t len;
 
     assert(!PARSER);
     elem_debug(e);
     assert(e.Eoper == OPstring);
     p = e.EV.Vstring;
     e.EV.Vstring = null;
-    len = e.EV.Vstrlen;
+    size_t len = e.EV.Vstrlen;
 
     // Handle strings that go into the code segment
     if (tybasic(e.Ety) == TYcptr ||
@@ -1617,7 +1616,7 @@ elem *el_convstring(elem *e)
     for (i = 0; i < stable.length; i++)
     {
         if (stable[i].str.length == len &&
-            memcmp(stable[i].str.ptr,p,cast(uint)len) == 0)
+            memcmp(stable[i].str.ptr,p,len) == 0)
         {
             // Replace e with that symbol
             MEM_PH_FREE(p);
@@ -2359,7 +2358,7 @@ else
                 const n = n2.EV.Vstrlen;
                 if (n1.EV.Vstrlen != n ||
                     n1.EV.Voffset != n2.EV.Voffset ||
-                    memcmp(n1.EV.Vstring, n2.EV.Vstring, cast(size_t)n))
+                    memcmp(n1.EV.Vstring, n2.EV.Vstring, n))
                         return false;   /* check bytes in the string    */
                 break;
             }
