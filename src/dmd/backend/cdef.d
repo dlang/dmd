@@ -284,28 +284,10 @@ enum
 enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
-version (SCPP)
-{
-    // No 64 bit support yet
-    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_uns;     // size_t for the target machine
-}
-else version (SPP)
-{
-    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_uns;     // size_t for the target machine
-}
-else version (HTOD)
-{
-    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_uns;     // size_t for the target machine
-}
-else
-{
-    // Support 64 bit targets
-    alias targ_ptrdiff_t = int64_t;  // ptrdiff_t for target machine
-    alias targ_size_t = uint64_t;    // size_t for the target machine
-}
+
+// 64 bit support
+alias targ_ptrdiff_t = int64_t;   // ptrdiff_t for target machine
+alias targ_size_t = uint64_t;     // size_t for the target machine
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
