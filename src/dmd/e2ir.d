@@ -838,12 +838,12 @@ elem *array_toDarray(Type t, elem *e)
             {
                 case OPconst:
                 {
-                    size_t len = tysize(e.Ety);
+                    const size_t len = tysize(e.Ety);
                     elem *es = el_calloc();
                     es.Eoper = OPstring;
 
                     // freed in el_free
-                    es.EV.Vstring = cast(char*)mem_malloc2(cast(uint)len);
+                    es.EV.Vstring = cast(char*)mem_malloc2(cast(uint) len);
                     memcpy(es.EV.Vstring, &e.EV, len);
 
                     es.EV.Vstrlen = len;
@@ -1642,8 +1642,8 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_calloc();
                 e.Eoper = OPstring;
                 // freed in el_free
-                uint len = cast(uint)((se.numberOfCodeUnits() + 1) * se.sz);
-                e.EV.Vstring = cast(char *)mem_malloc2(cast(uint)len);
+                const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
+                e.EV.Vstring = cast(char *)mem_malloc2(cast(uint) len);
                 se.writeTo(e.EV.Vstring, true);
                 e.EV.Vstrlen = len;
                 e.Ety = TYnptr;
