@@ -503,7 +503,7 @@ extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
  * Lookup *pkey in aa.
  * Called only from implementation of (aa[key]) expressions when value is mutable.
  * Params:
- *      aa = associative array opaque pointer
+ *      paa = associative array opaque pointer
  *      ti = TypeInfo for the associative array
  *      valsz = ignored
  *      pkey = pointer to the key value
@@ -512,18 +512,18 @@ extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti,
+extern (C) void* _aaGetY(AA* paa, const TypeInfo_AssociativeArray ti,
     const size_t valsz, scope const void* pkey)
 {
     bool found;
-    return _aaGetX(aa, ti, valsz, pkey, found);
+    return _aaGetX(paa, ti, valsz, pkey, found);
 }
 
 /******************************
  * Lookup *pkey in aa.
  * Called only from implementation of require
  * Params:
- *      aa = associative array opaque pointer
+ *      paa = associative array opaque pointer
  *      ti = TypeInfo for the associative array
  *      valsz = ignored
  *      pkey = pointer to the key value
@@ -533,12 +533,16 @@ extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti,
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetX(AA* aa, const TypeInfo_AssociativeArray ti,
+extern (C) void* _aaGetX(AA* paa, const TypeInfo_AssociativeArray ti,
     const size_t valsz, scope const void* pkey, out bool found)
 {
     // lazily alloc implementation
-    if (aa.impl is null)
-        aa.impl = new Impl(ti);
+    AA aa = *paa;
+    if (aa is null)
+    {
+        aa = new Impl(ti);
+        *paa = aa;
+    }
 
     // get hash and bucket for key
     immutable hash = calcHash(pkey, ti.key);
@@ -564,7 +568,7 @@ extern (C) void* _aaGetX(AA* aa, const TypeInfo_AssociativeArray ti,
     // update search cache and allocate entry
     aa.firstUsed = min(aa.firstUsed, cast(uint)(p - aa.buckets.ptr));
     p.hash = hash;
-    p.entry = allocEntry(aa.impl, pkey);
+    p.entry = allocEntry(aa, pkey);
     // postblit for key
     if (aa.flags & Impl.Flags.keyHasPostblit)
     {
@@ -641,16 +645,17 @@ extern (C) void _aaClear(AA aa) pure nothrow
 {
     if (!aa.empty)
     {
-        aa.impl.clear();
+        aa.clear();
     }
 }
 
 /// Rehash AA
 extern (C) void* _aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
 {
-    if (!paa.empty)
-        paa.resize(nextpow2(INIT_DEN * paa.length / INIT_NUM));
-    return *paa;
+    AA aa = *paa;
+    if (!aa.empty)
+        aa.resize(nextpow2(INIT_DEN * aa.length / INIT_NUM));
+    return aa;
 }
 
 /// Return a GC allocated array of all values
@@ -788,7 +793,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
 /// compares 2 AAs for equality
 extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2)
 {
-    if (aa1.impl is aa2.impl)
+    if (aa1 is aa2)
         return true;
 
     immutable len = _aaLen(aa1);
@@ -816,8 +821,10 @@ extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope co
 }
 
 /// compute a hash
-extern (C) hash_t _aaGetHash(scope const AA* aa, scope const TypeInfo tiRaw) nothrow
+extern (C) hash_t _aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) nothrow
 {
+    const AA aa = *paa;
+
     if (aa.empty)
         return 0;
 
@@ -862,7 +869,7 @@ extern (C) pure nothrow @nogc @safe
         foreach (i; aa.firstUsed .. aa.dim)
         {
             if (aa.buckets[i].filled)
-                return Range(aa.impl, i);
+                return Range(aa, i);
         }
         return Range(aa, aa.dim);
     }
