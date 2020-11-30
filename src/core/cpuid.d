@@ -774,7 +774,10 @@ void cpuidX86()
     if (cf.miscfeatures & OSXSAVE_BIT)
     {
         version (GNU_OR_LDC) asm pure nothrow @nogc {
-            "xgetbv" : "=a" (a), "=d" (d) : "c" (0);
+            /* Old assemblers do not recognize xgetbv, and there is no easy way
+             * to conditionally compile based on the assembler used, so use the
+             * raw .byte sequence instead.  */
+            ".byte 0x0f, 0x01, 0xd0" : "=a" (a), "=d" (d) : "c" (0);
         } else asm pure nothrow @nogc {
             mov ECX, 0;
             xgetbv;
