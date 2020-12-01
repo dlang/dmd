@@ -7076,6 +7076,8 @@ struct Param
     _d_dynamicArray< const char > mscrtlib;
     _d_dynamicArray< const char > moduleDepsFile;
     OutBuffer* moduleDeps;
+    _d_dynamicArray< const char > makeDepsFile;
+    OutBuffer* makeDeps;
     MessageStyle messageStyle;
     bool debugb;
     bool debugc;
@@ -7212,6 +7214,8 @@ struct Param
         mscrtlib(),
         moduleDepsFile(),
         moduleDeps(),
+        makeDepsFile(),
+        makeDeps(),
         messageStyle((MessageStyle)0u),
         debugb(),
         debugc(),

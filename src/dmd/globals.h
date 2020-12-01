@@ -255,6 +255,10 @@ struct Param
 
     DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
+
+    DString makeDepsFile;       // filename for makedeps output
+    OutBuffer *makeDeps;        // contents to be written to makedeps file
+
     MessageStyle messageStyle;  // style of file/line annotations on messages
 
     // Hidden debug switches

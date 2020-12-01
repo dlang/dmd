@@ -425,6 +425,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
+    if (params.makeDeps && params.oneobj)
+    {
+        assert(params.objname);
+        OutBuffer* ob = params.makeDeps;
+        ob.writestring(toPosixPath(params.objname));
+        ob.writestring(":");
+    }
+
     if (params.addMain)
         files.push("__main.d");
     // Create Modules
@@ -622,6 +630,19 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         const data = (*ob)[];
         if (params.moduleDepsFile)
             writeFile(Loc.initial, params.moduleDepsFile, data);
+        else
+            printf("%.*s", cast(int)data.length, data.ptr);
+    }
+
+    // All imports are resolved at this stage
+    // output the makefile module dependencies
+    if (params.makeDeps && params.oneobj)
+    {
+        OutBuffer* ob = params.makeDeps;
+        ob.writenl();
+        const data = (*ob)[];
+        if (params.makeDepsFile)
+            writeFile(Loc.initial, params.makeDepsFile, data);
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
@@ -2478,6 +2499,29 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             params.moduleDeps = new OutBuffer();
         }
+        else if (startsWith(p + 1, "makedeps"))          // https://dlang.org/dmd.html#switch-makedeps
+        {
+            if (params.makeDeps)
+            {
+                error("-makedeps[=file] can only be provided once!");
+                break;
+            }
+            if (p[9] == '=')
+            {
+                if (p[10] == '\0')
+                {
+                    error("expected filename after -makedeps=");
+                    break;
+                }
+                params.makeDepsFile = (p + 10).toDString;
+            }
+            else if (p[9] != '\0')
+            {
+                goto Lerror;
+            }
+            // Else output to stdout.
+            params.makeDeps = new OutBuffer();
+        }
         else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
         {
             params.addMain = true;
@@ -2670,6 +2714,9 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             //fatal();
         }
     }
+
+    if (params.makeDeps && !params.oneobj)
+        error(Loc.initial, "-makedeps switch is not compatible with multiple objects mode");
 
     if (params.noDIP25)
         params.useDIP25 = false;
