@@ -250,64 +250,72 @@ else version (Solaris)
 /*
 L_ctermid
 
-char*  ctermid(char*);
-FILE*  fdopen(int, const scope char*);
-int    fileno(FILE*);
-int    fseeko(FILE*, off_t, int);
-off_t  ftello(FILE*);
-char*  gets(char*);
-int    pclose(FILE*);
-FILE*  popen(const scope char*, const scope char*);
+char*   ctermid(char*);
+FILE*   fdopen(int, const scope char*);
+int     fileno(FILE*);
+int     fseeko(FILE*, off_t, int);
+off_t   ftello(FILE*);
+ssize_t getdelim(char**, size_t*, int, FILE*);
+ssize_t getline(char**, size_t*, FILE*);
+char*   gets(char*);
+int     pclose(FILE*);
+FILE*   popen(const scope char*, const scope char*);
 */
 
 version (CRuntime_Glibc)
 {
     enum L_ctermid = 9;
 
-  static if ( __USE_FILE_OFFSET64 )
-  {
-    int   fseeko64(FILE*, off_t, int);
-    alias fseeko64 fseeko;
-  }
-  else
-  {
-    int   fseeko(FILE*, off_t, int);
-  }
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        int   fseeko64(FILE*, off_t, int);
+        alias fseeko64 fseeko;
+    }
+    else
+    {
+        int   fseeko(FILE*, off_t, int);
+    }
 
-  static if ( __USE_FILE_OFFSET64 )
-  {
-    off_t ftello64(FILE*);
-    alias ftello64 ftello;
-  }
-  else
-  {
-    off_t ftello(FILE*);
-  }
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        off_t ftello64(FILE*);
+        alias ftello64 ftello;
+    }
+    else
+    {
+        off_t ftello(FILE*);
+    }
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
 }
 else version (CRuntime_UClibc)
 {
     enum L_ctermid = 9;
     enum L_cuserid = 9;
 
-  static if ( __USE_FILE_OFFSET64 )
-  {
-    int   fseeko64(FILE*, off_t, int);
-    alias fseeko64 fseeko;
-  }
-  else
-  {
-    int   fseeko(FILE*, off_t, int);
-  }
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        int   fseeko64(FILE*, off_t, int);
+        alias fseeko64 fseeko;
+    }
+    else
+    {
+        int   fseeko(FILE*, off_t, int);
+    }
 
-  static if ( __USE_FILE_OFFSET64 )
-  {
-    off_t ftello64(FILE*);
-    alias ftello64 ftello;
-  }
-  else
-  {
-    off_t ftello(FILE*);
-  }
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        off_t ftello64(FILE*);
+        alias ftello64 ftello;
+    }
+    else
+    {
+        off_t ftello(FILE*);
+    }
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
 }
 else version (CRuntime_Musl)
 {
@@ -332,6 +340,91 @@ else version (CRuntime_Musl)
     {
         off_t ftello(FILE*);
     }
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
+}
+else version (CRuntime_Bionic)
+{
+    enum L_ctermid = 1024;
+
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        int   fseeko64(FILE*, off_t, int);
+        alias fseeko64 fseeko;
+    }
+    else
+    {
+        int   fseeko(FILE*, off_t, int);
+    }
+
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        off_t ftello64(FILE*);
+        alias ftello64 ftello;
+    }
+    else
+    {
+        off_t ftello(FILE*);
+    }
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
+}
+else version (Darwin)
+{
+    enum L_ctermid = 1024;
+
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
+}
+else version (FreeBSD)
+{
+    import core.sys.freebsd.config;
+
+    enum L_ctermid = 1024;
+
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
+
+    static if (__FreeBSD_version >= 800000)
+    {
+        ssize_t getdelim(char**, size_t*, int, FILE*);
+        ssize_t getline(char**, size_t*, FILE*);
+    }
+}
+else version (NetBSD)
+{
+    enum L_ctermid = 1024;
+
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
+}
+else version (OpenBSD)
+{
+    enum L_ctermid = 1024;
+
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
+}
+else version (DragonFlyBSD)
+{
+    enum L_ctermid = 1024;
+
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
 }
 else version (Solaris)
 {
@@ -357,6 +450,9 @@ else version (Solaris)
     {
         off_t ftello(FILE*);
     }
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
 }
 else version (Posix)
 {
@@ -367,8 +463,6 @@ else version (Posix)
 char*  ctermid(char*);
 FILE*  fdopen(int, const scope char*);
 int    fileno(FILE*);
-//int    fseeko(FILE*, off_t, int);
-//off_t  ftello(FILE*);
 char*  gets(char*);
 int    pclose(FILE*);
 FILE*  popen(const scope char*, const scope char*);
@@ -547,7 +641,3 @@ unittest
     assert(memcmp(ptr, testdata.ptr, testdata.length*wchar_t.sizeof) == 0);
     assert(fclose(f) == 0);
 }
-
-
-ssize_t getdelim (char** lineptr, size_t* n, int delimiter, FILE* stream);
-ssize_t getline (char** lineptr, size_t* n, FILE* stream);
