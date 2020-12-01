@@ -103,10 +103,12 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc = sc.pop();
         if (errors)
         {
+            sa.errors = true;
             errorSupplemental(sa.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
         }
         else if (!result)
         {
+            sa.errors = true;
             if (sa.msg)
             {
                 sc = sc.startCTFE();
