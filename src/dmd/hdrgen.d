@@ -2290,21 +2290,26 @@ public:
         // are used for other constructs
         auto vd = ve.var.isVarDeclaration();
         assert(vd && vd._init);
-        auto exp = vd._init.isExpInitializer.exp;
-        assert(exp);
-        Expression commaExtract;
-        if (auto ce = exp.isConstructExp())
-            commaExtract = ce.e2;
-        else if (auto se = exp.isStructLiteralExp)
-            commaExtract = se;
+
+        if (auto ei = vd._init.isExpInitializer())
+        {
+            Expression commaExtract;
+            auto exp = ei.exp;
+            if (auto ce = exp.isConstructExp())
+                commaExtract = ce.e2;
+            else if (auto se = exp.isStructLiteralExp)
+                commaExtract = se;
+
+            if (commaExtract)
+            {
+                expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+                return ;
+            }
+        }
 
         // not one of the known cases, go on the old path
-        if (!commaExtract)
-        {
-            visit(cast(BinExp)e);
-            return;
-        }
-        expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+        visit(cast(BinExp)e);
+        return; 
     }
 
     override void visit(CompileExp e)
