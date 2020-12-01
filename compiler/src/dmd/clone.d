@@ -388,9 +388,10 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         // Disable generated opAssign, because some members forbid identity assignment.
         fop.storage_class |= STC.disable;
         fop.fbody = null; // remove fbody which contains the error
+        fop.errors = false;  // the disabling takes care of errors
     }
 
-    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STC.disable) != 0);
+    //printf("-StructDeclaration::buildOpAssign() %s, @disable = %d\n", sd.toChars(), (fop.storage_class & STC.disable) != 0);
     //printf("fop.type: %s\n", fop.type.toPrettyChars());
     return fop;
 }
@@ -1702,6 +1703,7 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     {
         ccd.storage_class |= STC.disable;
         ccd.fbody = null;
+        ccd.errors = false;  // the disabling takes care of errors
     }
     return true;
 }
