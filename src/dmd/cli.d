@@ -496,6 +496,12 @@ dmd -cov -unittest myprog.d
             unittesting a library, as it enables running the unittests
             in a library without having to manually define an entry-point function.`,
         ),
+        Option("makedeps",
+            "print module dependencies in Makefile compatible format to stdout"
+        ),
+        Option("makedeps=<filename>",
+            "write module dependencies in Makefile compatible format to filename (only imports)"
+        ),
         Option("man",
             "open web browser on manual page",
             `$(WINDOWS

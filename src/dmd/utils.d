@@ -44,6 +44,76 @@ const(char)* toWinPath(const(char)* src)
     return result;
 }
 
+/**
+ * Normalize path by turning backslashes into forward slashes
+ *
+ * Params:
+ *   src = Source path, using window-style ('\') or mixed path separators
+ *
+ * Returns:
+ *   A newly-allocated string with '\' turned into '/'
+ */
+@trusted nothrow const(char)* toPosixPath(const(char)* src)
+{
+    if (src is null)
+        return null;
+    char* result = strdup(src);
+    char* p = result;
+    while (*p != '\0')
+    {
+        if (*p == '\\')
+            *p = '/';
+        p++;
+    }
+    return result;
+}
+
+/**
+ * ditto
+ */
+@safe pure nothrow const(char)[] toPosixPath(const(char)[] src)
+{
+    if (!src)
+        return null;
+    char[] result = src.dup;
+    foreach (ref c; result)
+    {
+        if (c == '\\')
+            c = '/';
+    }
+    return result;
+}
+
+///
+@safe nothrow unittest
+{
+    const(char)[] nullStr;
+    const(char)* nullStrP;
+
+    assert(toPosixPath(nullStrP) == null);
+    assert(toPosixPath(nullStr) == null);
+
+    @trusted nothrow void assertion(const(char)[] s1, const(char)[] s2)
+    {
+        assert(toPosixPath(s1) == s2);
+        assert(strcmp(toPosixPath(s1.ptr), s2.ptr) == 0);
+    }
+
+    const posixAbsPath = `/some/path`;
+    const posixRelPath = `some/path`;
+
+    const windowsAbsPath = `C:\some\path`;
+    const windowsAbsMixedPath = `C:\some/path`;
+    const windowsAbsPosixPath = `C:/some/path`;
+    const windowsRelPath = `some\path`;
+
+    assertion(posixAbsPath, posixAbsPath);
+    assertion(posixRelPath, posixRelPath);
+    assertion(windowsAbsPath, windowsAbsPosixPath);
+    assertion(windowsAbsMixedPath, windowsAbsPosixPath);
+    assertion(windowsAbsPosixPath, windowsAbsPosixPath);
+    assertion(windowsRelPath, posixRelPath);
+}
 
 /**
  * Reads a file, terminate the program on error

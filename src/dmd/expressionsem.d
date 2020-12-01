@@ -5981,6 +5981,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(")");
             ob.writenl();
         }
+        if (global.params.makeDeps && global.params.oneobj)
+        {
+            OutBuffer* ob = global.params.makeDeps;
+            ob.writestringln(" \\");
+            ob.writestring("  ");
+            escapePath(ob, toPosixPath(name));
+        }
 
         {
             auto readResult = File.read(name);

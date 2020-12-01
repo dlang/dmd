@@ -287,6 +287,10 @@ extern (C++) struct Param
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
+
+    const(char)[] makeDepsFile;          // filename for makedeps output
+    OutBuffer* makeDeps;                 // contents to be written to makedeps file
+
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     // Hidden debug switches
