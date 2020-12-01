@@ -87,6 +87,7 @@ DOCS=\
 	\
 	$(DOCDIR)\core_internal_backtrace_dwarf.html \
 	$(DOCDIR)\core_internal_backtrace_elf.html \
+	$(DOCDIR)\core_internal_backtrace_libunwind.html \
 	$(DOCDIR)\core_internal_backtrace_macho.html \
 	\
 	$(DOCDIR)\core_internal_container_array.html \

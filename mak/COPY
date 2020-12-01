@@ -53,6 +53,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\backtrace\dwarf.d \
 	$(IMPDIR)\core\internal\backtrace\elf.d \
+	$(IMPDIR)\core\internal\backtrace\libunwind.d \
 	$(IMPDIR)\core\internal\backtrace\macho.d \
 	\
 	$(IMPDIR)\core\internal\elf\dl.d \
