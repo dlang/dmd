@@ -31,6 +31,7 @@ void main()
     issue16974();
     issue18071();
     issue20440();
+    issue21442();
     testIterationWithConst();
     testStructArrayKey();
     miscTests1();
@@ -707,6 +708,40 @@ void issue20440() @safe
     S[S] aa;
     assert(aa.require(S(1), S(2)) == S(2));
     assert(aa[S(1)] == S(2));
+}
+
+///
+void issue21442()
+{
+    import core.memory;
+
+    size_t[size_t] glob;
+
+    class Foo
+    {
+        size_t count;
+
+        this (size_t entries) @safe
+        {
+            this.count = entries;
+            foreach (idx; 0 .. entries)
+                glob[idx] = idx;
+        }
+
+        ~this () @safe
+        {
+            foreach (idx; 0 .. this.count)
+                glob.remove(idx);
+        }
+    }
+
+    void bar () @safe
+    {
+        Foo f = new Foo(16);
+    }
+
+    bar();
+    GC.collect(); // Needs to happen from a GC collection
 }
 
 /// Verify iteration with const.
