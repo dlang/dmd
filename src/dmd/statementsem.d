@@ -250,6 +250,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 (*cs.statements)[i] = s;
                 if (s)
                 {
+                    if (s.isErrorStatement())
+                    {
+                        result = s;     // propagate error up the AST
+                        ++i;
+                        continue;       // look for errors in rest of statements
+                    }
                     Statement sentry;
                     Statement sexception;
                     Statement sfinally;
@@ -2484,6 +2490,8 @@ else
     override void visit(StaticAssertStatement s)
     {
         s.sa.semantic2(sc);
+        if (s.sa.errors)
+            return setError();
     }
 
     override void visit(SwitchStatement ss)
