@@ -6030,7 +6030,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     {
         // If the first instantiation had failed, re-run semantic,
         // so that error messages are shown.
-        errinst = tempinst.inst;
+//        errinst = tempinst.inst;
     }
     else
     {
