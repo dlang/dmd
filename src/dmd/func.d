@@ -387,10 +387,12 @@ extern (C++) class FuncDeclaration : Declaration
     /****************************************************
      * Resolve forward reference of function signature -
      * parameter types, return type, and attributes.
-     * Returns false if any errors exist in the signature.
+     * Returns:
+     *  false if any errors exist in the signature.
      */
     final bool functionSemantic()
     {
+        //printf("functionSemantic() %p %s\n", this, toChars());
         if (!_scope)
             return !errors;
 

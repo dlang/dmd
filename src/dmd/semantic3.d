@@ -206,6 +206,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(FuncDeclaration funcdecl)
     {
+        //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", funcdecl.kind(), funcdecl.toChars(), sc);
         /* Determine if function should add `return 0;`
          */
         bool addReturn0()
