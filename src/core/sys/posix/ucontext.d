@@ -24,6 +24,15 @@ nothrow:
 @nogc:
 @system:
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (MIPS32)  version = MIPS_Any;
 version (MIPS64)  version = MIPS_Any;
 version (PPC)     version = PPC_Any;
@@ -909,6 +918,22 @@ else version (CRuntime_Musl)
     }
     else
         static assert(0, "unimplemented");
+}
+else version (Darwin)
+{
+    alias mcontext_t = void;
+
+    struct ucontext
+    {
+        int         uc_onstack;
+        sigset_t    uc_sigmask;
+        stack_t     uc_stack;
+        ucontext*   uc_link;
+        size_t      uc_mcsize;
+        mcontext_t* uc_mcontext;
+    }
+
+    alias ucontext_t = ucontext;
 }
 else version (FreeBSD)
 {
