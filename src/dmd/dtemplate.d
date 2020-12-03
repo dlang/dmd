@@ -2448,7 +2448,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) TemplateInstance findExistingInstance(TemplateInstance tithis, Expressions* fargs)
     {
-        //printf("findExistingInstance(%p)\n", tithis);
+        //printf("findExistingInstance() %s\n", tithis.toChars());
         tithis.fargs = fargs;
         auto tibox = TemplateInstanceBox(tithis);
         auto p = tibox in instances;
@@ -2463,7 +2463,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) TemplateInstance addInstance(TemplateInstance ti)
     {
-        //printf("addInstance() %p %p\n", instances, ti);
+        //printf("addInstance() %p %s\n", instances, ti.toChars());
         auto tibox = TemplateInstanceBox(ti);
         instances[tibox] = ti;
         debug (FindExistingInstance) ++nAdded;
@@ -2477,7 +2477,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) void removeInstance(TemplateInstance ti)
     {
-        //printf("removeInstance()\n");
+        //printf("removeInstance() %s\n", ti.toChars());
         auto tibox = TemplateInstanceBox(ti);
         debug (FindExistingInstance) ++nRemoved;
         instances.remove(tibox);
