@@ -1,5 +1,7 @@
 /**
- * Try to detect typos in identifiers.
+ * Spell checker
+ *
+ * Does not have any dependencies on the rest of DMD.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
@@ -17,7 +19,7 @@ module dmd.root.speller;
  * This does an exhaustive search, so can potentially be very slow.
  * Params:
  *      seed = wrongly spelled word
- *      dg = search delegate of the form `T delegate(const(char)[] p, ref int cost)`
+ *      dg = search delegate of the form `T delegate(const(char)[] p, out int cost)`
  * Returns:
  *      T.init = no correct spellings found,
  *      otherwise the value returned by dg() for first possible correct spelling
@@ -25,11 +27,10 @@ module dmd.root.speller;
 auto speller(alias dg)(const(char)[] seed)
 if (isSearchFunction!dg)
 {
-    size_t maxdist = seed.length < 4 ? seed.length / 2 : 2;
-    for (int distance = 0; distance < maxdist; distance++)
+    const size_t maxdist = seed.length < 4 ? seed.length / 2 : 2;
+    foreach (distance; 0 .. maxdist)
     {
-        auto p = spellerX!dg(seed, distance > 0);
-        if (p)
+        if (auto p = spellerX!dg(seed, distance != 0))
             return p;
         //      if (seedlen > 10)
         //          break;
@@ -50,7 +51,7 @@ alias searchFunctionType(alias fun) = typeof(() {int x; return fun("", x);}());
  * Params:
  *      dg = delegate that looks up string in dictionary AA and returns value found
  *      seed = starting string
- *      flag = if true, do 2 level lookup
+ *      flag = if true, do 2 level lookup otherwise 1 level
  * Returns:
  *      whatever dg returns, null if no match
  */
@@ -68,21 +69,21 @@ auto spellerX(alias dg)(const(char)[] seed, bool flag)
     else
     {
         buf = (cast(char*)alloca(seed.length + 1))[0 .. seed.length + 1]; // leave space for extra char
+        if (!buf.ptr)
+            return null; // no matches
     }
 
     int cost = int.max;
-    int ncost;
-    searchFunctionType!dg p = null, np;
+    searchFunctionType!dg p = null;
 
     /* Deletions */
     buf[0 .. seed.length - 1] = seed[1 .. $];
-    for (size_t i = 0; i < seed.length; i++)
+    foreach (i; 0 .. seed.length)
     {
         //printf("del buf = '%s'\n", buf);
-        if (flag)
-            np = spellerY!dg(buf[0 .. seed.length - 1], i, ncost);
-        else
-            np = dg(buf[0 .. seed.length - 1], ncost);
+        int ncost;
+        auto np = flag ? spellerY!dg(buf[0 .. seed.length - 1], i, ncost)
+                       : dg(buf[0 .. seed.length - 1], ncost);
         if (combineSpellerResult(p, cost, np, ncost))
             return p;
         buf[i] = seed[i];
@@ -98,7 +99,9 @@ auto spellerX(alias dg)(const(char)[] seed, bool flag)
             buf[i] = seed[i + 1];
             buf[i + 1] = seed[i];
             //printf("tra buf = '%s'\n", buf);
-            if (combineSpellerResult(p, cost, dg(buf[0 .. seed.length], ncost), ncost))
+            int ncost;
+            auto np = dg(buf[0 .. seed.length], ncost);
+            if (combineSpellerResult(p, cost, np, ncost))
                 return p;
             buf[i] = seed[i];
         }
@@ -106,16 +109,15 @@ auto spellerX(alias dg)(const(char)[] seed, bool flag)
 
     /* Substitutions */
     buf[0 .. seed.length] = seed;
-    for (size_t i = 0; i < seed.length; i++)
+    foreach (i; 0 .. seed.length)
     {
         foreach (s; idchars)
         {
             buf[i] = s;
             //printf("sub buf = '%s'\n", buf);
-            if (flag)
-                np = spellerY!dg(buf[0 .. seed.length], i + 1, ncost);
-            else
-                np = dg(buf[0 .. seed.length], ncost);
+            int ncost;
+            auto np = flag ? spellerY!dg(buf[0 .. seed.length], i + 1, ncost)
+                           : dg(buf[0 .. seed.length], ncost);
             if (combineSpellerResult(p, cost, np, ncost))
                 return p;
         }
@@ -124,16 +126,15 @@ auto spellerX(alias dg)(const(char)[] seed, bool flag)
 
     /* Insertions */
     buf[1 .. seed.length + 1] = seed;
-    for (size_t i = 0; i <= seed.length; i++) // yes, do seed.length+1 iterations
+    foreach (i; 0 .. seed.length + 1) // yes, do seed.length+1 iterations
     {
         foreach (s; idchars)
         {
             buf[i] = s;
             //printf("ins buf = '%s'\n", buf);
-            if (flag)
-                np = spellerY!dg(buf[0 .. seed.length + 1], i + 1, ncost);
-            else
-                np = dg(buf[0 .. seed.length + 1], ncost);
+            int ncost;
+            auto np = flag ? spellerY!dg(buf[0 .. seed.length + 1], i + 1, ncost)
+                           : dg(buf[0 .. seed.length + 1], ncost);
             if (combineSpellerResult(p, cost, np, ncost))
                 return p;
         }
@@ -150,11 +151,11 @@ auto spellerX(alias dg)(const(char)[] seed, bool flag)
  *      dg = delegate that looks up string in dictionary AA and returns value found
  *      seed = starting string
  *      index = index into seed[] that is where we will mutate it
- *      cost = current best match, will update it
+ *      cost = set to cost of match
  * Returns:
  *      whatever dg returns, null if no match
  */
-auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
+auto spellerY(alias dg)(const(char)[] seed, size_t index, out int cost)
 {
     if (!seed.length)
         return null;
@@ -176,12 +177,12 @@ auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
 
     cost = int.max;             // start with worst possible match
     searchFunctionType!dg p = null;
-    int ncost;
 
     /* Delete character at seed[index] */
     if (index < seed.length)
     {
         buf[index .. seed.length - 1] = seed[index + 1 .. $]; // seed[] with deleted character
+        int ncost;
         auto np = dg(buf[0 .. seed.length - 1], ncost); // look it up
         if (combineSpellerResult(p, cost, np, ncost))   // compare with prev match
             return p;                                   // cannot get any better
@@ -195,6 +196,7 @@ auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
         {
             buf[index] = s;     // seed[] with substituted character
             //printf("sub buf = '%s'\n", buf);
+            int ncost;
             auto np = dg(buf[0 .. seed.length], ncost);
             if (combineSpellerResult(p, cost, np, ncost))
                 return p;
@@ -207,6 +209,7 @@ auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
     {
         buf[index] = s;
         //printf("ins buf = '%s'\n", buf);
+        int ncost;
         auto np = dg(buf[0 .. seed.length + 1], ncost);
         if (combineSpellerResult(p, cost, np, ncost))
             return p;

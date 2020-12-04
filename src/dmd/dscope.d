@@ -513,8 +513,13 @@ struct Scope
         /************************************************
          * Given the failed search attempt, try to find
          * one with a close spelling.
+         * Params:
+         *      seed = identifier to search for
+         *      cost = set to the cost, which rises with each outer scope
+         * Returns:
+         *      Dsymbol if found, null if not
          */
-        extern (D) Dsymbol scope_search_fp(const(char)[] seed, ref int cost)
+        extern (D) Dsymbol scope_search_fp(const(char)[] seed, out int cost)
         {
             //printf("scope_search_fp('%s')\n", seed);
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
