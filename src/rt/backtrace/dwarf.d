@@ -75,10 +75,38 @@ debug(DwarfDebugMachine) import core.stdc.stdio : printf;
 
 struct Location
 {
-    const(char)[] file = null;
-    const(char)[] directory = null;
-    int line = -1;
+    /**
+     * Address of the instruction for which this location is for.
+     */
     const(void)* address;
+
+    /**
+     * Path to the file this location references, relative to `directory`
+     *
+     * Note that depending on implementation, this could be just a name,
+     * a relative path, or an absolute path.
+     *
+     * If no debug info is present, this may be `null`.
+     */
+    const(char)[] file;
+
+    /**
+     * Directory where `file` resides
+     *
+     * This may be `null`, either if there is no debug info,
+     * or if the compiler implementation doesn't use this feature (e.g. DMD).
+     */
+    const(char)[] directory;
+
+    /**
+     * Line within the file that correspond to this `location`.
+     *
+     * Note that in addition to a positive value, the values `0` and `-1`
+     * are to be expected by consumers. A value of `0` means that the code
+     * is not attributable to a specific line in the file, e.g. module-specific
+     * generated code, and `-1` means that no debug info could be found.
+     */
+    int line = -1;
 }
 
 int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
