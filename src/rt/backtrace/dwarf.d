@@ -81,6 +81,11 @@ struct Location
     const(void)* address;
 
     /**
+     * The name of the procedure, or function, this address is in.
+     */
+    const(char)[] procedure;
+
+    /**
      * Path to the file this location references, relative to `directory`
      *
      * Note that depending on implementation, this could be just a name,
@@ -123,14 +128,15 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
     {
         // find address -> file, line mapping using dwarf debug_line
         Array!Location locations;
-        if (debugLineSectionData)
+        locations.length = callstack.length;
+        foreach (size_t i; 0 .. callstack.length)
         {
-            locations.length = callstack.length;
-            foreach (size_t i; 0 .. callstack.length)
-                locations[i].address = callstack[i];
-
-            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
+            locations[i].address = callstack[i];
+            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
         }
+
+        if (debugLineSectionData)
+            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
 
         int ret = 0;
         foreach (size_t i; 0 .. callstack.length)
@@ -166,8 +172,10 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
                 bufferLength = 5;
             }
 
+            import core.demangle;
             char[1024] symbolBuffer = void;
-            auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
+            auto symbol = locations[i].procedure.length ?
+                demangle(locations[i].procedure, symbolBuffer) : symbolBuffer[0 .. 0];
             if (symbol.length > 0)
                 appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
 
@@ -486,13 +494,6 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
     }
 
     return true;
-}
-
-const(char)[] getDemangledSymbol(const(char)[] btSymbol, return ref char[1024] buffer)
-{
-    import core.demangle;
-    const mangledName = getMangledSymbolName(btSymbol);
-    return !mangledName.length ? buffer[0..0] : demangle(mangledName, buffer[]);
 }
 
 T read(T)(ref const(ubyte)[] buffer) @nogc nothrow
