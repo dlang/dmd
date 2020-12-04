@@ -11,110 +11,39 @@
 
 module dmd.root.speller;
 
+/**************************************************
+ * Looks for correct spelling.
+ * Looks a distance of up to two.
+ * This does an exhaustive search, so can potentially be very slow.
+ * Params:
+ *      seed = wrongly spelled word
+ *      dg = search delegate of the form `T delegate(const(char)[] p, ref int cost)`
+ * Returns:
+ *      T.init = no correct spellings found,
+ *      otherwise the value returned by dg() for first possible correct spelling
+ */
+auto speller(alias dg)(const(char)[] seed)
+if (isSearchFunction!dg)
+{
+    size_t maxdist = seed.length < 4 ? seed.length / 2 : 2;
+    for (int distance = 0; distance < maxdist; distance++)
+    {
+        auto p = spellerX!dg(seed, distance > 0);
+        if (p)
+            return p;
+        //      if (seedlen > 10)
+        //          break;
+    }
+    return null; // didn't find it
+}
+
+private:
+
 import core.stdc.stdlib;
 import core.stdc.string;
 
-/* Characters used to substitute ones in the string we're checking
- * the spelling on.
- */
-private immutable string idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-
-/**************************************************
- * Combine a new result from the spell checker to
- * find the one with the closest symbol with
- * respect to the cost defined by the search function
- * Params:
- *      p = best found spelling so far, T.init if none found yet.
- *          If np is better, p is replaced with np
- *      cost = cost of p (int.max if none found yet).
- *          If np is better, cost is replaced with ncost
- *      np = current spelling to check against p, T.init if none
- *      ncost = cost of np if np is not T.init
- * Returns:
- *      true    if the cost is less or equal 0, meaning we can stop looking
- *      false   otherwise
- */
-private bool combineSpellerResult(T)(ref T p, ref int cost, T np, int ncost)
-{
-    if (np && ncost < cost) // if np is better
-    {
-        p = np;             // np is new best match
-        cost = ncost;
-        if (cost <= 0)
-            return true;    // meaning we can stop looking
-    }
-    return false;
-}
-
-/**********************************************
- * Do second level of spell matching.
- * Params:
- *      dg = delegate that looks up string in dictionary AA and returns value found
- *      seed = starting string
- *      index = index into seed[] that is where we will mutate it
- *      cost = current best match, will update it
- * Returns:
- *      whatever dg returns, null if no match
- */
-private auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
-{
-    if (!seed.length)
-        return null;
-
-    /* Allocate a buf to store the new string to play with, needs
-     * space for an extra char for insertions
-     */
-    char[30] tmp = void;        // stack allocations are fastest
-    char[] buf;
-    if (seed.length <= tmp.sizeof - 1)
-        buf = tmp;
-    else
-    {
-        buf = (cast(char*)alloca(seed.length + 1))[0 .. seed.length + 1]; // leave space for extra char
-        if (!buf.ptr)
-            return null; // no matches
-    }
-    buf[0 .. index] = seed[0 .. index];
-
-    cost = int.max;             // start with worst possible match
-    searchFunctionType!dg p = null;
-    int ncost;
-
-    /* Delete character at seed[index] */
-    if (index < seed.length)
-    {
-        buf[index .. seed.length - 1] = seed[index + 1 .. $]; // seed[] with deleted character
-        auto np = dg(buf[0 .. seed.length - 1], ncost); // look it up
-        if (combineSpellerResult(p, cost, np, ncost))   // compare with prev match
-            return p;                                   // cannot get any better
-    }
-
-    /* Substitute character at seed[index] */
-    if (index < seed.length)
-    {
-        buf[0 .. seed.length] = seed;
-        foreach (s; idchars)
-        {
-            buf[index] = s;     // seed[] with substituted character
-            //printf("sub buf = '%s'\n", buf);
-            auto np = dg(buf[0 .. seed.length], ncost);
-            if (combineSpellerResult(p, cost, np, ncost))
-                return p;
-        }
-    }
-
-    /* Insert character at seed[index] */
-    buf[index + 1 .. seed.length + 1] = seed[index .. $];
-    foreach (s; idchars)
-    {
-        buf[index] = s;
-        //printf("ins buf = '%s'\n", buf);
-        auto np = dg(buf[0 .. seed.length + 1], ncost);
-        if (combineSpellerResult(p, cost, np, ncost))
-            return p;
-    }
-    return p; // return "best" result
-}
+enum isSearchFunction(alias fun) = is(searchFunctionType!fun);
+alias searchFunctionType(alias fun) = typeof(() {int x; return fun("", x);}());
 
 /*************************************
  * Spell check level 1.
@@ -125,7 +54,7 @@ private auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
  * Returns:
  *      whatever dg returns, null if no match
  */
-private auto spellerX(alias dg)(const(char)[] seed, bool flag)
+auto spellerX(alias dg)(const(char)[] seed, bool flag)
 {
     if (!seed.length)
         return null;
@@ -215,34 +144,110 @@ private auto spellerX(alias dg)(const(char)[] seed, bool flag)
     return p; // return "best" result
 }
 
-/**************************************************
- * Looks for correct spelling.
- * Looks a distance of up to two.
- * This does an exhaustive search, so can potentially be very slow.
+/**********************************************
+ * Do second level of spell matching.
  * Params:
- *      seed = wrongly spelled word
- *      dg = search delegate of the form `T delegate(const(char)[] p, ref int cost)`
+ *      dg = delegate that looks up string in dictionary AA and returns value found
+ *      seed = starting string
+ *      index = index into seed[] that is where we will mutate it
+ *      cost = current best match, will update it
  * Returns:
- *      T.init = no correct spellings found,
- *      otherwise the value returned by dg() for first possible correct spelling
+ *      whatever dg returns, null if no match
  */
-auto speller(alias dg)(const(char)[] seed)
-if (isSearchFunction!dg)
+auto spellerY(alias dg)(const(char)[] seed, size_t index, ref int cost)
 {
-    size_t maxdist = seed.length < 4 ? seed.length / 2 : 2;
-    for (int distance = 0; distance < maxdist; distance++)
+    if (!seed.length)
+        return null;
+
+    /* Allocate a buf to store the new string to play with, needs
+     * space for an extra char for insertions
+     */
+    char[30] tmp = void;        // stack allocations are fastest
+    char[] buf;
+    if (seed.length <= tmp.sizeof - 1)
+        buf = tmp;
+    else
     {
-        auto p = spellerX!dg(seed, distance > 0);
-        if (p)
-            return p;
-        //      if (seedlen > 10)
-        //          break;
+        buf = (cast(char*)alloca(seed.length + 1))[0 .. seed.length + 1]; // leave space for extra char
+        if (!buf.ptr)
+            return null; // no matches
     }
-    return null; // didn't find it
+    buf[0 .. index] = seed[0 .. index];
+
+    cost = int.max;             // start with worst possible match
+    searchFunctionType!dg p = null;
+    int ncost;
+
+    /* Delete character at seed[index] */
+    if (index < seed.length)
+    {
+        buf[index .. seed.length - 1] = seed[index + 1 .. $]; // seed[] with deleted character
+        auto np = dg(buf[0 .. seed.length - 1], ncost); // look it up
+        if (combineSpellerResult(p, cost, np, ncost))   // compare with prev match
+            return p;                                   // cannot get any better
+    }
+
+    /* Substitute character at seed[index] */
+    if (index < seed.length)
+    {
+        buf[0 .. seed.length] = seed;
+        foreach (s; idchars)
+        {
+            buf[index] = s;     // seed[] with substituted character
+            //printf("sub buf = '%s'\n", buf);
+            auto np = dg(buf[0 .. seed.length], ncost);
+            if (combineSpellerResult(p, cost, np, ncost))
+                return p;
+        }
+    }
+
+    /* Insert character at seed[index] */
+    buf[index + 1 .. seed.length + 1] = seed[index .. $];
+    foreach (s; idchars)
+    {
+        buf[index] = s;
+        //printf("ins buf = '%s'\n", buf);
+        auto np = dg(buf[0 .. seed.length + 1], ncost);
+        if (combineSpellerResult(p, cost, np, ncost))
+            return p;
+    }
+    return p; // return "best" result
 }
 
-enum isSearchFunction(alias fun) = is(searchFunctionType!fun);
-alias searchFunctionType(alias fun) = typeof(() {int x; return fun("", x);}());
+
+/* Characters used to substitute ones in the string we're checking
+ * the spelling on.
+ */
+immutable string idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+
+/**************************************************
+ * Combine a new result from the spell checker to
+ * find the one with the closest symbol with
+ * respect to the cost defined by the search function
+ * Params:
+ *      p = best found spelling so far, T.init if none found yet.
+ *          If np is better, p is replaced with np
+ *      cost = cost of p (int.max if none found yet).
+ *          If np is better, cost is replaced with ncost
+ *      np = current spelling to check against p, T.init if none
+ *      ncost = cost of np if np is not T.init
+ * Returns:
+ *      true    if the cost is less or equal 0, meaning we can stop looking
+ *      false   otherwise
+ */
+bool combineSpellerResult(T)(ref T p, ref int cost, T np, int ncost)
+{
+    if (np && ncost < cost) // if np is better
+    {
+        p = np;             // np is new best match
+        cost = ncost;
+        if (cost <= 0)
+            return true;    // meaning we can stop looking
+    }
+    return false;
+}
+
+/************************************* Tests ***********************/
 
 unittest
 {
