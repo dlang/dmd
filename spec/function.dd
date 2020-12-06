@@ -157,6 +157,9 @@ $(H2 $(LNAME2 contracts, Contracts))
     $(P The $(D in) and $(D out) blocks or expressions of a function declaration specify
     the pre- and post-conditions of the function. They are used in
     $(LINK2 contracts.html, Contract Programming).
+    )
+
+    $(BEST_PRACTICE
     The code inside these blocks should
     not have any side-effects, including modifying function parameters
     and/or return values.
@@ -1066,10 +1069,11 @@ void main()
 $(H2 $(LNAME2 inline-functions, Inline Functions))
 
         $(P The compiler makes the decision whether to inline a function or not.
-        This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
-        assuming that the compiler implements it, which is not mandatory.)
+        This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`).)
 
-        $(P Note that any $(GLINK2 expression, FunctionLiteral) should be inlined
+        $(IMPLEMENTATION_DEFINED
+        Whether a function is inlined or not is implementation defined, though
+        any $(GLINK2 expression, FunctionLiteral) should be inlined
         when used in its declaration scope.
         )
 
@@ -2098,9 +2102,10 @@ void main()
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
         $(P It is an error to use a local variable without first assigning it a
-        value. The implementation may not always be able to detect these
-        cases. Other language compilers sometimes issue a warning for this,
-        but since it is always a bug, it should be an error.
+        value.)
+
+        $(IMPLEMENTATION_DEFINED The implementation may not always be able
+        to detect these cases.
         )
 
         $(P It is an error to declare a local variable that hides another local
