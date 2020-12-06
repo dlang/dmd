@@ -346,19 +346,43 @@ $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
 
 $(H2 $(LNAME2 ref-functions, Ref Functions))
 
-        $(P Ref functions allow functions to return by reference.
-        This is analogous to ref function parameters.
+        $(P Ref functions allow functions to return by reference,
+        meaning that the return value must be an lvalue, and
+        the lvalue is returned, not the rvalue.
         )
 
 ---
 ref int foo()
 {
-    auto p = new int;
+    auto p = new int(2);
     return *p;
 }
 ...
-foo() = 3;  // reference returns can be lvalues
+int i = foo(); // i is set to 2
+foo() = 3;     // reference returns can be lvalues
 ---
+
+        $(P Returning a reference to an expired function context is not allowed.
+        This includes local variables, temporaries and parameters that are part
+        of an expired function context.
+        )
+
+---
+ref int sun()
+{
+    int i;
+    return i;  // error, escaping a reference to local variable i
+}
+---
+
+        $(P A `ref` parameter may not be returned by `ref`.)
+---
+ref int moon(ref int i)
+{
+    return i; // error
+}
+---
+
 
 $(H2 $(LNAME2 auto-functions, Auto Functions))
 
