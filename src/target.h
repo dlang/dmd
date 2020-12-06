@@ -107,6 +107,7 @@ public:
     LINK systemLinkage();
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
+    Expression *getTargetInfo(const char* name, const Loc& loc);
 };
 
 extern Target target;

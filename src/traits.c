@@ -362,6 +362,7 @@ TraitsInitializer::TraitsInitializer()
         "getVirtualIndex",
         "getPointerBitmap",
         "isZeroInit",
+        "getTargetInfo",
         NULL
     };
 
@@ -1693,6 +1694,28 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Type *tb = t->baseElemOf();
         return tb->isZeroInit(e->loc) ? True(e) : False(e);
+    }
+    else if (e->ident == Id::getTargetInfo)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        Expression *ex = isExpression((*e->args)[0]);
+        StringExp *se = ex ? ex->ctfeInterpret()->toStringExp() : NULL;
+        if (!ex || !se || se->len == 0)
+        {
+            e->error("string expected as argument of __traits `%s` instead of `%s`", e->ident->toChars(), ex->toChars());
+            return new ErrorExp();
+        }
+        se = se->toUTF8(sc);
+
+        Expression *r = target.getTargetInfo(se->toPtr(), e->loc);
+        if (!r)
+        {
+            e->error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se->toPtr());
+            return new ErrorExp();
+        }
+        return semantic(r, sc);
     }
 
     if (const char *sub = (const char *)speller(e->ident->toChars(), &trait_search_fp, NULL, idchars))

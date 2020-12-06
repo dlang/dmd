@@ -367,7 +367,8 @@ Msgtable msgtable[] =
     { "getVirtualIndex", NULL },
     { "getPointerBitmap", NULL },
     { "isReturnOnStack", NULL },
-    { "isZeroInit" },
+    { "isZeroInit", NULL },
+    { "getTargetInfo", NULL },
 
     // For C++ mangling
     { "allocator", NULL },
