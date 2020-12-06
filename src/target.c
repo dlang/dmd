@@ -412,6 +412,7 @@ bool Target::isVectorOpSupported(Type *type, TOK op, Type *)
     }
     return supported;
 }
+
 /******************************
  * Return the default system linkage for the target.
  */
@@ -567,6 +568,53 @@ L2:
         //printf("  4 false\n");
         return false;
     }
+}
+
+/**
+ * Get targetInfo by key
+ * Params:
+ *  name = name of targetInfo to get
+ *  loc = location to use for error messages
+ * Returns:
+ *  Expression for the requested targetInfo
+ */
+Expression *Target::getTargetInfo(const char* name, const Loc& loc)
+{
+    switch (strlen(name))
+    {
+        case 6:
+            if (strcmp(name, "cppStd") == 0)
+                return new IntegerExp(loc, global.params.cplusplus, Type::tint32);
+            break;
+
+        case 8:
+            if (strcmp(name, "floatAbi") == 0)
+                return new StringExp(loc, const_cast<char*>("hard"));
+            break;
+
+        case 12:
+            if (strcmp(name, "objectFormat") == 0)
+            {
+                if (global.params.isWindows)
+                    return new StringExp(loc, const_cast<char*>(global.params.mscoff ? "coff" : "omf"));
+                else if (global.params.isOSX)
+                    return new StringExp(loc, const_cast<char*>("macho"));
+                else
+                    return new StringExp(loc, const_cast<char*>("elf"));
+            }
+            break;
+
+        case 17:
+            if (strcmp(name, "cppRuntimeLibrary") == 0)
+            {
+                if (global.params.mscoff)
+                    return new StringExp(loc, const_cast<char*>("msvcrt"));
+                return new StringExp(loc, const_cast<char*>("snn"));
+            }
+            return new StringExp(loc, const_cast<char*>(""));
+    }
+
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
