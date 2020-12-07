@@ -1781,6 +1781,12 @@ int MachObj_comdat(Symbol *s)
         flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
         s.Sseg = getsegment2(seg_textcoal_nt, sectname, segname, align_, flags);
     }
+    else if ((s.ty() & mTYLINK) == mTYweakLinkage)
+    {
+        s.Sfl = FLdata;
+        align_ = 4;              // 16 byte alignment
+        MachObj_data_start(s, 1 << align_, s.Sseg);
+    }
     else if ((s.ty() & mTYLINK) == mTYthread)
     {
         s.Sfl = FLtlsdata;

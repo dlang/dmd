@@ -164,15 +164,31 @@ struct DiagnosticCollector
     ) nothrow
     {
         import std.array : replace;
+        import std.string : strip;
         import dmd.root.outbuffer : OutBuffer;
 
-        auto argsBuffer = OutBuffer();
-        argsBuffer.vprintf(messageFormat, args);
-
         auto buffer = OutBuffer();
-        buffer.printf("%s%s %s %s", header, prefix1, prefix2, argsBuffer.peekChars);
 
-        const string message = buffer.extractSlice.replace("`", "");
+        void appendPrefix(const(char)* prefix)
+        {
+            if (!prefix)
+                return;
+
+            buffer.writestring(prefix);
+            buffer.writestring(" ");
+        }
+
+        buffer.writestring(header);
+        appendPrefix(prefix1);
+        appendPrefix(prefix2);
+
+        buffer.vprintf(messageFormat, args);
+
+        const string message = buffer
+            .extractSlice
+            .replace("`", "")
+            .strip;
+
         diagnostics_ ~= Diagnostic(location, message);
 
         return true;

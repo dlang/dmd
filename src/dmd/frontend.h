@@ -1137,7 +1137,7 @@ struct ObjcClassDeclaration
     Identifier* identifier;
     ClassDeclaration* classDeclaration;
     ClassDeclaration* metaclass;
-    Array<FuncDeclaration* >* methodList;
+    _d_dynamicArray< FuncDeclaration* > methodList;
     bool isRootClass() const;
     ObjcClassDeclaration() :
         isMeta(false),
@@ -1725,9 +1725,11 @@ struct ObjcFuncDeclaration
 {
     ObjcSelector* selector;
     VarDeclaration* selectorParameter;
+    bool isOptional;
     ObjcFuncDeclaration() :
         selector(),
-        selectorParameter()
+        selectorParameter(),
+        isOptional()
     {
     }
 };
@@ -2427,6 +2429,7 @@ public:
     ObjcClassDeclaration objc;
     Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
+    const char* toPrettyChars(bool qualifyTypes = false);
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf2(ClassDeclaration* cd);
@@ -5698,11 +5701,13 @@ public:
     static void deinitialize();
     virtual void setObjc(ClassDeclaration* cd) = 0;
     virtual void setObjc(InterfaceDeclaration* ) = 0;
-    virtual void deprecate(InterfaceDeclaration* interfaceDeclaration) const = 0;
+    virtual const char* toPrettyChars(ClassDeclaration* classDeclaration, bool qualifyTypes) const = 0;
     virtual void setSelector(FuncDeclaration* , Scope* sc) = 0;
     virtual void validateSelector(FuncDeclaration* fd) = 0;
     virtual void checkLinkage(FuncDeclaration* fd) = 0;
     virtual bool isVirtual(const FuncDeclaration* const fd) const = 0;
+    virtual void setAsOptional(FuncDeclaration* functionDeclaration, Scope* sc) const = 0;
+    virtual void validateOptional(FuncDeclaration* functionDeclaration) const = 0;
     virtual ClassDeclaration* getParent(FuncDeclaration* fd, ClassDeclaration* cd) const = 0;
     virtual void addToClassMethodList(FuncDeclaration* fd, ClassDeclaration* cd) const = 0;
     virtual AggregateDeclaration* isThis(FuncDeclaration* funcDeclaration) const = 0;
@@ -7723,6 +7728,7 @@ struct Id
     static Identifier* char_traits;
     static Identifier* udaGNUAbiTag;
     static Identifier* udaSelector;
+    static Identifier* udaOptional;
     static Identifier* NULL;
     static Identifier* TRUE;
     static Identifier* FALSE;
