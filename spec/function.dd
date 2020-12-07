@@ -726,32 +726,27 @@ $(H2 $(LNAME2 property-functions, Property Functions))
 
 $(H2 $(LNAME2 virtual-functions, Virtual Functions))
 
-        $(P Virtual functions are functions that are called indirectly through a
-        function pointer table, called a vtbl[], rather than directly. All
-        $(D public) and $(D protected) member functions which are non-static and
-        are not templatized are virtual unless the compiler can determine that
-        they will never be overridden (e.g. they are marked with $(D final) and
-        do not override any functions in a base class), in which case, it will
-        make them non-virtual. Static or `final` functions with `Objective-C`
-        linkage are virtual as well. This results in fewer bugs caused by not
-        declaring a function virtual and then overriding it anyway.
+        $(P Virtual functions are class member functions that are called indirectly through a
+        function pointer table, called a `vtbl[]`, rather than directly.
         )
 
-        $(P Member functions which are $(D private) or $(D package) are never
-        virtual, and hence cannot be overridden.
+        $(P Member functions that are virtual can be overridden, unless they are `final`.
         )
 
-        $(P Functions with non-D linkage cannot be virtual and hence cannot be
-        overridden.
+        $(P Struct and union member functions are not virtual.
         )
 
-        $(P Member template functions cannot be virtual and hence cannot be
-        overridden.
+        $(P Static member functions are not virtual.
         )
 
-        $(P Functions marked as $(D final) may not be overridden in a
-        derived class, unless they are also $(D private).
-        For example:
+        $(P Member functions which are $(D private) or $(D package) are not virtual.
+        )
+
+        $(P Member template functions are not virtual.
+        )
+
+        $(P Member functions with `Objective-C` linkage are virtual even if marked
+        with `final` or `static`.
         )
 
 ------
@@ -786,10 +781,9 @@ void func()
 }
 ------
 
-        $(P Covariant return types
-        are supported, which means that the
-        overriding function in a derived class can return a type
-        that is derived from the type returned by the overridden function:
+        $(P The overriding function may be covariant with the overridden function.
+        A covariant function has a type that is implicitly convertible to the
+        type of the overridden function.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -811,7 +805,7 @@ class Bar : Foo
 )
 
         $(P Virtual functions all have a hidden parameter called the
-        $(I this) reference, which refers to the class object for which
+        $(I this) reference, which refers to the class object instance for which
         the function is called.
         )
 
@@ -820,7 +814,7 @@ class Bar : Foo
             unnamed, parameter which is the selector it was called with.
         )
 
-        $(P To avoid dynamic binding on member function call, insert
+        $(P To directly call a base member function, insert
         base class name before the member function name. For example:
         )
 
@@ -856,6 +850,12 @@ void main()
 }
 ------
 )
+
+        $(IMPLEMENTATION_DEFINED Normally calling a virtual function implies getting the
+        address of the function at runtime by indexing into the class's `vtbl[]`.
+        If the implementation can determine that the called virtual function will be statically
+        known, such as if it is `final`, it can use a direct call instead.
+        )
 
 $(H3 $(LNAME2 function-inheritance, Function Inheritance and Overriding))
 
