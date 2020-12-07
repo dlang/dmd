@@ -336,7 +336,7 @@ pure List* make(int a, int b)
 $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
 
         $(P Nothrow functions can only throw exceptions derived
-        from class $(I Error).
+        from $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D class $Error)).
         )
 
         $(P Nothrow functions are covariant with throwing ones.)
