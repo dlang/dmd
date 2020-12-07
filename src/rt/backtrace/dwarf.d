@@ -50,6 +50,7 @@
 module rt.backtrace.dwarf;
 
 import core.internal.execinfo;
+import core.internal.string;
 
 static if (hasExecinfo):
 
@@ -112,6 +113,50 @@ struct Location
      * generated code, and `-1` means that no debug info could be found.
      */
     int line = -1;
+
+    /// Format this location into a human-readable string
+    void toString (scope void delegate(scope const char[]) sink) const
+    {
+        import core.demangle;
+
+        // If there's no file information, there shouldn't be any directory
+        // information. If there is we will simply ignore it.
+        if (this.file.length)
+        {
+            // Note: Sink needs to handle empty data
+            sink(this.directory);
+            // Only POSIX path because this module is not used on Windows
+            if (this.directory.length && this.directory[$ - 1] != '/')
+                sink("/");
+            sink(this.file);
+        }
+        else
+            // Most likely, no debug information
+            sink("??");
+
+        // Also no debug infos
+        if (this.line < 0)
+            sink(":?");
+        // Line can be 0, e.g. if the frame is in generated code
+        else if (this.line)
+        {
+            sink(":");
+            sink(signedToTempString(this.line));
+        }
+
+        char[1024] symbolBuffer = void;
+        // When execinfo style is used, procedure can be null if the format
+        // of the line cannot be read, but it generally should not happen
+        if (this.procedure.length)
+        {
+            sink(" ");
+            sink(demangle(this.procedure, symbolBuffer));
+        }
+
+        sink(" [0x");
+        sink(unsignedToTempString!16(cast(size_t) this.address));
+        sink("]");
+    }
 }
 
 int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
@@ -138,63 +183,42 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
         if (debugLineSectionData)
             resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
 
-        int ret = 0;
-        foreach (size_t i; 0 .. callstack.length)
+        char[1536] buffer = void;
+        size_t bufferLength;
+        scope sink = (scope const char[] data) {
+                // We cannot write anymore
+                if (bufferLength > buffer.length)
+                    return;
+
+                if (bufferLength + data.length > buffer.length)
+                {
+                    buffer[bufferLength .. $] = data[0 .. buffer.length - bufferLength];
+                    buffer[$ - 3 .. $] = "...";
+                    // +1 is a marker for the '...', otherwise if the symbol
+                    // name was to exactly fill the buffer,
+                    // we'd discard anything else without printing the '...'.
+                    bufferLength = buffer.length + 1;
+                    return;
+                }
+
+                buffer[bufferLength .. bufferLength + data.length] = data;
+                bufferLength += data.length;
+        };
+
+        foreach (idx, const ref loc; locations)
         {
-            char[1536] buffer = void;
-            size_t bufferLength = 0;
+            bufferLength = 0;
+            loc.toString(sink);
 
-            void appendToBuffer(Args...)(const(char)* format, Args args)
-            {
-                const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
-                assert(count >= 0);
-                bufferLength += count;
-                if (bufferLength >= buffer.length)
-                    bufferLength = buffer.length - 1;
-            }
+            auto lvalue = buffer[0 .. bufferLength > $ ? $ : bufferLength];
+            if (auto ret = dg(idx, lvalue))
+                return ret;
 
-
-            if (locations.length > 0 && locations[i].line != -1)
-            {
-                bool includeSlash = locations[i].directory.length > 0 && locations[i].directory[$ - 1] != '/';
-                string printFormat = includeSlash ? "%.*s/%.*s:%d " : "%.*s%.*s:%d ";
-
-                appendToBuffer(
-                    printFormat.ptr,
-                    cast(int) locations[i].directory.length, locations[i].directory.ptr,
-                    cast(int) locations[i].file.length, locations[i].file.ptr,
-                    locations[i].line,
-                );
-            }
-            else
-            {
-                buffer[0 .. 5] = "??:? ";
-                bufferLength = 5;
-            }
-
-            import core.demangle;
-            char[1024] symbolBuffer = void;
-            auto symbol = locations[i].procedure.length ?
-                demangle(locations[i].procedure, symbolBuffer) : symbolBuffer[0 .. 0];
-            if (symbol.length > 0)
-                appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
-
-            const addressLength = 20;
-            const maxBufferLength = buffer.length - addressLength;
-            if (bufferLength > maxBufferLength)
-            {
-                buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
-                bufferLength = maxBufferLength;
-            }
-            appendToBuffer("[%p]", callstack[i]);
-
-            auto output = buffer[0 .. bufferLength];
-            auto pos = i;
-            ret = dg(pos, output);
-            if (ret || symbol == "_Dmain") break;
+            if (loc.procedure == "_Dmain")
+                break;
         }
 
-        return ret;
+        return 0;
     }
 
     return image.isValid
