@@ -14,9 +14,9 @@
  */
 module core.sys.posix.ucontext;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.sys.posix.signal; // for sigset_t, stack_t
-private import core.stdc.stdint : uintptr_t;
+import core.stdc.stdint : uintptr_t;
 
 version (Posix):
 extern (C):
@@ -1415,7 +1415,7 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    private import core.stdc.stdint;
+    import core.stdc.stdint;
 
     alias uint[4] upad128_t;
 

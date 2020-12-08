@@ -14,7 +14,7 @@
  */
 module core.sys.posix.sys.mman;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (OSX)

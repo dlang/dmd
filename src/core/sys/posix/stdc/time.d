@@ -17,7 +17,7 @@ module core.sys.posix.stdc.time;
 
 version (Posix):
 
-private import core.stdc.config;
+import core.stdc.config;
 
 version (OSX)
     version = Darwin;

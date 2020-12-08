@@ -12,7 +12,7 @@ version (Windows):
 @system:
 
 public import core.sys.windows.winnt;
-private import core.sys.windows.w32api;
+import core.sys.windows.w32api;
 
 enum size_t MAX_PATH = 260;
 

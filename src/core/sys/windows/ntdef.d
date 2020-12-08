@@ -11,7 +11,7 @@ module core.sys.windows.ntdef;
 version (Windows):
 @system:
 
-private import core.sys.windows.basetsd, core.sys.windows.subauth, core.sys.windows.windef, core.sys.windows.winnt;
+import core.sys.windows.basetsd, core.sys.windows.subauth, core.sys.windows.windef, core.sys.windows.winnt;
 
 enum uint
     OBJ_INHERIT          = 0x0002,

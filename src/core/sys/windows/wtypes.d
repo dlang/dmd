@@ -11,8 +11,8 @@ version (Windows):
 @system:
 
 import core.sys.windows.rpc, core.sys.windows.rpcndr;
-private import core.sys.windows.windef;
-private import core.sys.windows.uuid; // for GUID_NULL
+import core.sys.windows.windef;
+import core.sys.windows.uuid; // for GUID_NULL
 
 alias GUID_NULL IID_NULL, CLSID_NULL;
 

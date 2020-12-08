@@ -17,7 +17,7 @@ version (Windows):
 */
 // TODO: 5 macros
 
-private import core.sys.windows.lmcons, core.sys.windows.lmsname, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.lmsname, core.sys.windows.windef;
 
 const TCHAR[] SERVICE_DOS_ENCRYPTION = "ENCRYPT";
 

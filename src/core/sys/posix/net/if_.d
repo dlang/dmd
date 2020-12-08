@@ -14,7 +14,7 @@
  */
 module core.sys.posix.net.if_;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 
 version (OSX)
     version = Darwin;

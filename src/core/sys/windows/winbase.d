@@ -34,7 +34,7 @@ int wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int);
 */
 
 import core.sys.windows.windef, core.sys.windows.winver;
-private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.winnt;
+import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.winnt;
 
 // FIXME:
 //alias void va_list;

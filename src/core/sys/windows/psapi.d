@@ -17,9 +17,9 @@ version (Windows):
 
 version (ANSI) {} else version = Unicode;
 
-private import core.sys.windows.w32api;
-private import core.sys.windows.winbase;
-private import core.sys.windows.windef;
+import core.sys.windows.w32api;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
 struct MODULEINFO {
     LPVOID lpBaseOfDll;

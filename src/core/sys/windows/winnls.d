@@ -14,7 +14,7 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 pragma(lib, "kernel32");
 
-private import core.sys.windows.basetsd, core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
+import core.sys.windows.basetsd, core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 alias DWORD LCTYPE, CALTYPE, CALID, LGRPID, GEOID, GEOTYPE, GEOCLASS;
 

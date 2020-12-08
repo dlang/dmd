@@ -14,8 +14,8 @@
  */
 module core.sys.posix.semaphore;
 
-private import core.sys.posix.config;
-private import core.sys.posix.time;
+import core.sys.posix.config;
+import core.sys.posix.time;
 
 version (OSX)
     version = Darwin;

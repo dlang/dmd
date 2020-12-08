@@ -16,7 +16,7 @@ version (Windows):
    really part of Platform SDK.
  */
 
-private import core.sys.windows.winbase, core.sys.windows.windef;
+import core.sys.windows.winbase, core.sys.windows.windef;
 
 extern (Windows):
 

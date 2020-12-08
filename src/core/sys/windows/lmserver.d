@@ -11,7 +11,7 @@ version (Windows):
 @system:
 
 import core.sys.windows.winsvc;
-private import core.sys.windows.lmcons, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.windef;
 
 struct SERVER_INFO_100 {
     DWORD  sv100_platform_id;

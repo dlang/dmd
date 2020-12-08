@@ -29,25 +29,25 @@ else version (WatchOS)
 
 version (Windows)
 {
-    private import core.sys.windows.basetsd /+: HANDLE+/;
-    private import core.sys.windows.winbase /+: CloseHandle, CreateSemaphoreA, INFINITE,
+    import core.sys.windows.basetsd /+: HANDLE+/;
+    import core.sys.windows.winbase /+: CloseHandle, CreateSemaphoreA, INFINITE,
         ReleaseSemaphore, WAIT_OBJECT_0, WaitForSingleObject+/;
-    private import core.sys.windows.windef /+: BOOL, DWORD+/;
-    private import core.sys.windows.winerror /+: WAIT_TIMEOUT+/;
+    import core.sys.windows.windef /+: BOOL, DWORD+/;
+    import core.sys.windows.winerror /+: WAIT_TIMEOUT+/;
 }
 else version (Darwin)
 {
-    private import core.sync.config;
-    private import core.stdc.errno;
-    private import core.sys.posix.time;
-    private import core.sys.darwin.mach.semaphore;
+    import core.sync.config;
+    import core.stdc.errno;
+    import core.sys.posix.time;
+    import core.sys.darwin.mach.semaphore;
 }
 else version (Posix)
 {
-    private import core.sync.config;
-    private import core.stdc.errno;
-    private import core.sys.posix.pthread;
-    private import core.sys.posix.semaphore;
+    import core.sync.config;
+    import core.stdc.errno;
+    import core.sys.posix.pthread;
+    import core.sys.posix.semaphore;
 }
 else
 {

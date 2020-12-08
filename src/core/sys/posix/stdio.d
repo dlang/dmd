@@ -14,7 +14,7 @@
  */
 module core.sys.posix.stdio;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.stdc.stdio;
 public import core.sys.posix.sys.types; // for off_t
 

@@ -17,8 +17,8 @@ module core.sync.barrier;
 
 
 public import core.sync.exception;
-private import core.sync.condition;
-private import core.sync.mutex;
+import core.sync.condition;
+import core.sync.mutex;
 
 
 ////////////////////////////////////////////////////////////////////////////////

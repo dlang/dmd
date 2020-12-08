@@ -17,13 +17,13 @@ module core.sync.rwmutex;
 
 
 public import core.sync.exception;
-private import core.sync.condition;
-private import core.sync.mutex;
-private import core.memory;
+import core.sync.condition;
+import core.sync.mutex;
+import core.memory;
 
 version (Posix)
 {
-    private import core.sys.posix.pthread;
+    import core.sys.posix.pthread;
 }
 
 

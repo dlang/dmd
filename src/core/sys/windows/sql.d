@@ -11,7 +11,7 @@ version (Windows):
 @system:
 
 public import core.sys.windows.sqltypes;
-private import core.sys.windows.windef;
+import core.sys.windows.windef;
 
 enum ODBCVER = 0x0351;
 

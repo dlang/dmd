@@ -11,7 +11,7 @@ module core.sys.windows.mciavi;
 version (Windows):
 @system:
 
-private import core.sys.windows.mmsystem;
+import core.sys.windows.mmsystem;
 
 // FIXME: check types and grouping of constants
 

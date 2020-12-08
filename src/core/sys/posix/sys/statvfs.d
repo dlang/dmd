@@ -8,8 +8,8 @@
                       The Open Group Base Specifications Issue 7 IEEE Std 1003.1, 2018 Edition)
  +/
 module core.sys.posix.sys.statvfs;
-private import core.stdc.config;
-private import core.sys.posix.config;
+import core.stdc.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types;
 
 version (Posix):

@@ -13,7 +13,7 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 
 import core.sys.windows.commdlg, core.sys.windows.dlgs, core.sys.windows.ole2, core.sys.windows.prsht, core.sys.windows.shellapi;
-private import core.sys.windows.winbase, core.sys.windows.objidl, core.sys.windows.objfwd, core.sys.windows.winnt;
+import core.sys.windows.winbase, core.sys.windows.objidl, core.sys.windows.objfwd, core.sys.windows.winnt;
 
 // FIXME: remove inherited methods from interface definitions
 

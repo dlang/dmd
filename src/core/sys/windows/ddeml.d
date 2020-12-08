@@ -14,7 +14,7 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 pragma(lib, "user32");
 
-private import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winnt;
+import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winnt;
 
 enum : int {
     CP_WINANSI    = 1004,

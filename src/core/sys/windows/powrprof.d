@@ -12,8 +12,8 @@ version (Windows):
 @system:
 pragma(lib, "powrprof");
 
-private import core.sys.windows.windef;
-private import core.sys.windows.ntdef;
+import core.sys.windows.windef;
+import core.sys.windows.ntdef;
 
 // FIXME: look up Windows version support
 

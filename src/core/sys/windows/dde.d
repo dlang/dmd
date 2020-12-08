@@ -12,7 +12,7 @@ version (Windows):
 @system:
 pragma(lib, "user32");
 
-private import core.sys.windows.windef;
+import core.sys.windows.windef;
 
 enum : uint {
     WM_DDE_FIRST     = 0x03E0,

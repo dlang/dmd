@@ -12,7 +12,7 @@ version (Windows):
 
 // All functions in this file are deprecated!
 
-private import core.sys.windows.lmcons, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.windef;
 
 deprecated {
     struct CONFIG_INFO_0 {

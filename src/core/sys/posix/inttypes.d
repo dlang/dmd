@@ -14,7 +14,7 @@
  */
 module core.sys.posix.inttypes;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.stdc.inttypes;
 
 version (Posix):

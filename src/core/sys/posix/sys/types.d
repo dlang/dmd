@@ -15,8 +15,8 @@
  */
 module core.sys.posix.sys.types;
 
-private import core.sys.posix.config;
-private import core.stdc.stdint;
+import core.sys.posix.config;
+import core.stdc.stdint;
 public import core.stdc.stddef;
 
 version (OSX)

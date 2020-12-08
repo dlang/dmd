@@ -10,7 +10,7 @@
 
 module core.runtime;
 
-private import core.internal.execinfo;
+import core.internal.execinfo;
 
 version (OSX)
     version = Darwin;

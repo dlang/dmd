@@ -8,7 +8,7 @@
  */
 module core.sys.posix.sys.select;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.stdc.time;           // for timespec
 public import core.sys.posix.sys.time;  // for timeval
 public import core.sys.posix.sys.types; // for time_t

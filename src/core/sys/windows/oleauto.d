@@ -12,8 +12,8 @@ version (Windows):
 pragma(lib, "oleaut32");
 
 import core.sys.windows.oaidl;
-private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
-private import core.sys.windows.winbase; // for SYSTEMTIME
+import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
+import core.sys.windows.winbase; // for SYSTEMTIME
 
 align(8):
 enum STDOLE_MAJORVERNUM = 1;
