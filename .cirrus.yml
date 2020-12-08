@@ -14,7 +14,7 @@ environment:
   CIRRUS_CLONE_DEPTH: 50
   # for ci.sh:
   MODEL: 64
-  HOST_DC: dmd
+  HOST_DMD: dmd
   N: 4
   OS_NAME: linux
   FULL_BUILD: true
@@ -33,14 +33,14 @@ task:
         MODEL: 32
       - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
         MODEL: 32
-        HOST_DC: dmd-2.079.0
+        HOST_DMD: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, DMD (latest)
       - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
-        HOST_DC: dmd-2.079.0
+        HOST_DMD: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, LDC
-        HOST_DC: ldc
+        HOST_DC: ldc #TODO: Update to HOST_DMD when support for HOST_DC is removed
       - TASK_NAME_SUFFIX: x64, GDC
-        HOST_DC: gdmd-9
+        HOST_DMD: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
@@ -58,7 +58,7 @@ task:
       - TASK_NAME_SUFFIX: DMD (bootstrap)
         # de-facto bootstrap version on OSX
         # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
-        HOST_DC: dmd-2.088.0
+        HOST_DMD: dmd-2.088.0
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
@@ -84,7 +84,7 @@ task:
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
-    HOST_DC: dmd-2.079.0
+    HOST_DMD: dmd-2.079.0
     CI_DFLAGS: -version=TARGET_FREEBSD11
   install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE

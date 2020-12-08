@@ -13,8 +13,9 @@ if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
 # MODEL: 32|64
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
-# HOST_DC: dmd[-<version>]|ldc[-<version>]|gdmd-<version>
-if [ -z ${HOST_DC+x} ] ; then echo "Variable 'HOST_DC' needs to be set."; exit 1; fi
+# HOST_DMD: dmd[-<version>]|ldc[-<version>]|gdmd-<version>
+if [ ! -z ${HOST_DC+x} ] ; then HOST_DMD=${HOST_DC}; fi
+if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit 1; fi
 # CI_DFLAGS: Optional flags to pass to the build
 if [ -z ${CI_DFLAGS+x} ] ; then CI_DFLAGS=""; fi
 
@@ -185,8 +186,8 @@ download_install_sh() {
 
 # install D host compiler
 install_host_compiler() {
-  if [ "${HOST_DC:0:5}" == "gdmd-" ] ; then
-    local gdc_version="${HOST_DC:5}"
+  if [ "${HOST_DMD:0:5}" == "gdmd-" ] ; then
+    local gdc_version="${HOST_DMD:5}"
     if [ ! -e ~/dlang/gdc-$gdc_version/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update
@@ -202,7 +203,7 @@ install_host_compiler() {
   else
     local install_sh="install.sh"
     download_install_sh "$install_sh"
-    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DC"
+    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DMD"
   fi
 }
 
