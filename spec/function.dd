@@ -3065,11 +3065,11 @@ $(H3 $(LNAME2 system-functions, System Functions))
 
 $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
-        $(P Given that it is only called with $(RELATIVE_LINK2 safe-values, safe
+        $(P When it is only called with $(RELATIVE_LINK2 safe-values, safe
         values) and $(RELATIVE_LINK2 safe-aliasing, safe aliasing), a
         function has a safe interface when:)
         $(OL
-            $(LI it cannot possibly exhibit
+            $(LI it cannot exhibit
                 $(DDSUBLINK glossary, undefined_behavior, undefined behavior),
                 and)
             $(LI it cannot create unsafe values that are accessible from other
@@ -3104,9 +3104,9 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
                 ---
                 because they iterate pointers based on unverified assumptions
                 (`strlen` assumes that `s` is zero-terminated; `memcpy` assumes
-                that `dst` and `src` are at least `nbytes` long). Any function
+                that the memory objects pointed to by `dst` and `src` are at least `nbytes` big). Any function
                 that traverses a C string passed as an argument can only be
-                `@system`. Any function that trusts a seperate parameter for
+                `@system`. Any function that trusts a separate parameter for
                 array bounds can only be `@system`.
             )
             $(LI
@@ -3118,6 +3118,7 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
                 either a valid pointer, which is safe, or `null` which is also
                 safe. It returns a pointer to a fresh allocation, so it cannot
                 introduce any unsafe aliasing.
+                $(NOTE The implementation of `malloc` is most likely @system code.)
             )
             $(LI
                 A D version of `memcpy` can have a safe interface:
@@ -3133,7 +3134,7 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
                 }
                 ---
                 )
-                because the rules for safe $(RELATIVE_LINK2 safe-values, safe
+                because the rules for $(RELATIVE_LINK2 safe-values, safe
                 values) ensure that the lengths of the arrays are correct.
             )
         )
