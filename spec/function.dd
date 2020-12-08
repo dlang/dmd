@@ -2995,7 +2995,9 @@ $(H2 $(LNAME2 function-safety, Function Safety))
 
 $(H3 $(LNAME2 safe-functions, Safe Functions))
 
-        $(P Safe functions are marked with the $(CODE @safe) attribute.)
+        $(P Safe functions are marked with the $(CODE @safe) attribute.
+        `@safe` can be inferred,
+        see $(RELATIVE_LINK2 function-attribute-inference, Function Attribute Inference).)
 
         $(P Safe functions have $(RELATIVE_LINK2 safe-interfaces, safe
         interfaces). An implementation must enforce this by restricting the
@@ -3010,21 +3012,21 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No pointer arithmetic (including pointer indexing).)
         $(LI Cannot access unions that have pointers or references overlapping
         with other types.)
-        $(LI Calling any system functions.)
-        $(LI No catching of exceptions that are not derived from $(CODE class Exception).)
-        $(LI Disallow $(CODE @system) asm statements.)
+        $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
+        $(LI No catching of exceptions that are not derived from
+        $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
+        $(LI No inline assembler.)
         $(LI No explicit casting of mutable objects to immutable.)
         $(LI No explicit casting of immutable objects to mutable.)
         $(LI No explicit casting of thread local objects to shared.)
         $(LI No explicit casting of shared objects to thread local.)
-        $(LI No taking the address of a local variable or function parameter.)
         $(LI Cannot access $(D __gshared) variables.)
         $(LI Cannot use $(D void) initializers for pointers.)
         $(LI Cannot use $(D void) initializers for class or interface references.)
         )
 
-        $(P When indexing and slicing an array, an out of bounds access
-            will cause a runtime error, in order to prevent undefined behavior.
+        $(P When indexing or slicing an array, an out of bounds access
+            will cause a runtime error.)
         )
 
         $(P Functions nested inside safe functions default to being
@@ -3033,10 +3035,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
 
         $(P Safe functions are covariant with trusted or system functions.)
 
-        $(P $(B Note:) The verifiable safety of functions may be compromised by
-        bugs in the compiler and specification. Please report all such errors
-        so they can be corrected.
-        )
+        $(BEST_PRACTICE Mark as many functions `@safe` as practical.)
 
 $(H4 Safe External Functions)
 
