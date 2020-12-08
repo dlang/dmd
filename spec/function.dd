@@ -3311,24 +3311,33 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
 $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
-        $(P A free function can be called with a syntax that looks as if the function
-        were a member function of its first parameter type.
+        $(P A free function can be called with a syntax equivalent to that of
+        a member function of its first parameter type. The free function is
+        called a $(I UFCS function).
         )
 
         ---
-        void func(X thisObj);
+        void sun(T, int);
 
-        X obj;
-        obj.func();
-        // If 'obj' does not have regular member 'func',
-        // it's automatically rewritten to 'func(obj)'
+        void moon(T t)
+        {
+            t.sun(1);
+            // If `T` does not have member function `sun`,
+            // `t.sun(1)` is interpreted as if it were written `sun(t, 1)`
+        }
         ---
 
-    $(P This provides a way to add functions to a class externally as if they were
-    public final member functions, which enables
-    $(HTTP www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
-    function chaining and component programming).
-    )
+        $(RATIONALE This provides a way to add external functions to a class as if they were
+        public final member functions.
+        This enables minimizing the number of functions in a class to only the essentials that
+        are needed to take care of the object's private state, without the temptation to add
+        a kitchen-sink's worth of member functions.
+        It also enables
+        $(HTTP www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
+        function chaining and component programming).
+        )
+
+        $(P A more complex example:)
 
         ---
         stdin.byLine(KeepTerminator.yes)
@@ -3338,22 +3347,30 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
             .copy(stdout.lockingTextWriter());
         ---
 
-        $(P It also works with $(D @property) functions:)
+        $(P is the equivalent of:)
+
+        ---
+        copy(sort(array(map!(a => a.idup)(byLine(stdin, KeepTerminator.yes))), lockingTextWriter(stdout));
+        ---
+
+        $(P UFCS works with $(D @property) functions:)
 
         ---
         @property prop(X thisObj);
         @property prop(X thisObj, int value);
 
         X obj;
-        obj.prop;      // Rewrites to: prop(obj);
-        obj.prop = 1;  // Rewrites to: prop(obj, 1);
+        obj.prop;      // if X does not have member prop, reinterpret as prop(obj);
+        obj.prop = 1;  // similarly, reinterpret as prop(obj, 1);
         ---
 
-        $(P Syntactically parenthesis-less check for $(D @property)
-        functions is done at the same time as UFCS rewrite.)
+        $(P Functions declared in a local scope are not found when searching for a matching
+        UFCS function.)
 
-        $(P When UFCS rewrite is necessary, compiler searches the name
-        on accessible module level scope, in order from the innermost scope.)
+        $(P Member functions are not found when searching for a matching
+        UFCS function.)
+
+        $(P Otherwise, UFCS function lookup proceeds normally.)
 
         ---
         module a;
@@ -3361,7 +3378,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         alias boo = foo;
         void main()
         {
-            void bar(X);
+            void bar(X);     // bar declared in local scope
             import b : baz;  // void baz(X);
 
             X obj;
@@ -3377,8 +3394,8 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         }
         class C
         {
-            void mfoo(X);
-            static void sbar(X);
+            void mfoo(X);           // member function
+            static void sbar(X);    // static member function
             import b : ibaz = baz;  // void baz(X);
             void test()
             {
@@ -3391,7 +3408,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         }
         ---
 
-        $(P The reason why local symbols are not considered by UFCS, is
+        $(RATIONALE Local function symbols are not considered by UFCS
         to avoid unexpected name conflicts. See below problematic examples.)
 
         ---
