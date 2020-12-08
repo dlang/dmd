@@ -33,6 +33,8 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (ARM)     version = ARM_Any;
+version (AArch64) version = ARM_Any;
 version (MIPS32)  version = MIPS_Any;
 version (MIPS64)  version = MIPS_Any;
 version (PPC)     version = PPC_Any;
@@ -921,16 +923,66 @@ else version (CRuntime_Musl)
 }
 else version (Darwin)
 {
-    alias mcontext_t = void;
+    private
+    {
+        version (X86_64)
+        {
+            struct __darwin_mcontext
+            {
+                ulong[89] __opaque;
+            }
+            static assert(__darwin_mcontext.sizeof == 712);
+        }
+        else version (X86)
+        {
+            struct __darwin_mcontext
+            {
+                uint[150] __opaque;
+            }
+            static assert(__darwin_mcontext.sizeof == 600);
+        }
+        else version (AArch64)
+        {
+            struct __darwin_mcontext
+            {
+                align(16) ulong[102] __opaque;
+            }
+            static assert(__darwin_mcontext.sizeof == 816);
+        }
+        else version (ARM)
+        {
+            struct __darwin_mcontext
+            {
+                uint[85] __opaque;
+            }
+            static assert(__darwin_mcontext.sizeof == 340);
+        }
+        else version (PPC_Any)
+        {
+            struct __darwin_mcontext
+            {
+                version (PPC64)
+                    ulong[129] __opaque;
+                else
+                    uint[258] __opaque;
+            }
+            static assert(__darwin_mcontext.sizeof == 1032);
+        }
+        else
+            static assert(false, "mcontext_t unimplemented for this platform.");
+    }
+
+    alias mcontext_t = __darwin_mcontext*;
 
     struct ucontext
     {
-        int         uc_onstack;
-        sigset_t    uc_sigmask;
-        stack_t     uc_stack;
-        ucontext*   uc_link;
-        size_t      uc_mcsize;
-        mcontext_t* uc_mcontext;
+        int                uc_onstack;
+        sigset_t           uc_sigmask;
+        stack_t            uc_stack;
+        ucontext*          uc_link;
+        size_t             uc_mcsize;
+        __darwin_mcontext* uc_mcontext;
+        __darwin_mcontext  __mcontext_data;
     }
 
     alias ucontext_t = ucontext;
