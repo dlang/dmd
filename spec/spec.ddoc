@@ -9,10 +9,17 @@ $(COMMENT While not part of the spec, best practices offers advice on how to bes
 BEST_PRACTICE= $(DIVC spec-boxes best-practice, $(B Best Practices:) $0)
 
 $(COMMENT Identifies implementation-defined behavior in the spec)
-IMPLEMENTATION_DEFINED=$(DIVC spec-boxes implementation-defined, $(B Implementation Defined): $0)
+IMPLEMENTATION_DEFINED=$(DIVC spec-boxes implementation-defined, $(B Implementation Defined:) $0)
 
 $(COMMENT Identifies undefined-defined behavior in the spec)
-UNDEFINED_BEHAVIOR=$(DIVC spec-boxes undefined-behavior, $(B Undefined Behavior): $0)
+UNDEFINED_BEHAVIOR=$(DIVC spec-boxes undefined-behavior, $(B Undefined Behavior:) $0)
+
+$(COMMENT While not part of the spec, an explanation for something unexpected)
+RATIONALE= $(DIVC spec-boxes rationale, $(B Rationale:) $0)
+
+$(COMMENT While not part of the spec, provides additional relevant information)
+NOTE= $(DIVC spec-boxes note, $(B Note:) $0)
+
 _ =
 
 BODY_PREFIX =
