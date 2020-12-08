@@ -3242,7 +3242,7 @@ $(H3 $(LNAME2 safe-values, Safe Values))
 $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 
     $(P When one memory location is accessible with two different types, that
-    aliasing is considered safe in these cases:)
+    aliasing is considered safe if:)
     $(OL
         $(LI both types are `const` or `immutable`; or)
         $(LI one of the types is mutable while the other is a `const`-qualified
@@ -3257,27 +3257,26 @@ $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 
     $(P All other cases of aliasing are considered unsafe.)
 
-    $(P $(B Note:) Safe aliasing may be exposed to functions with
+    $(NOTE Safe aliasing may be exposed to functions with
     $(RELATIVE_LINK2 safe-interfaces, safe interfaces) without affecting their
-    guaranteed safety. But when unsafe aliasing is exposed to such functions,
-    their safety is no longer guaranteed.)
+    guaranteed safety. Unsafe aliasing does not guarantee safety.)
 
-    $(P $(B Note:) An aliasing relation being safe does not imply that both
-    views of the data have $(RELATIVE_LINK2 safe-values, safe values). That must
-    be examined separately when safety is of concern.)
+    $(NOTE Safe aliasing does not imply that all aliased
+    views of the data have $(RELATIVE_LINK2 safe-values, safe values).
+    Those must examined separately for safety.)
 
     $(P Examples:)
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     void f1(ref ubyte x, ref float y) @safe { x = 0; y = float.init; }
-    union U1 { ubyte x; float y; } /* This aliasing is safe. */
+    union U1 { ubyte x; float y; } // safe aliasing
     U1 u1;
-    f1(u1.x, u1.y); /* So calling f1 like this is ok. */
+    f1(u1.x, u1.y); // Ok
 
     void f2(ref int* x, ref int y) @trusted { x = new int; y = 0xDEADBEEF; }
-    union U2 { int* x; int y; } /* This aliasing is unsafe. */
+    union U2 { int* x; int y; } // unsafe aliasing
     U2 u2;
-    version (none) f1(u2.x, u2.y); /* So calling f2 like this is not ok. */
+    version (none) f1(u2.x, u2.y); // not safe
     ---
     )
 
