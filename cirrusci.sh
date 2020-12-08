@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Installs the OS-specific prerequisites for Cirrus CI jobs.
-# This file is invoked by .cirrus.yml and sets up the machine for
-# the later steps with ci.sh.
+# This file is invoked by DMD, druntime and Phobos' .cirrus.yml
+# and sets up the machine for the later steps with ci.sh.
 
 set -uexo pipefail
 
