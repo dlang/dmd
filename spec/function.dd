@@ -3047,17 +3047,21 @@ $(H3 $(LNAME2 system-functions, System Functions))
         and are not nested inside $(CODE @safe) functions.
         System functions may be marked with the $(CODE @system) attribute.
         A function being system does not mean it actually is unsafe, it just
-        means that the compiler is unable to verify that it cannot exhibit
-        undefined behavior.
+        means that its safety must be manually verified.
         )
 
         $(P System functions are $(B not) covariant with trusted or safe functions.
         )
 
+        $(P System functions can call safe and trusted functions.)
+
         $(BEST_PRACTICE When in doubt, mark `extern (C)` and `extern (C++)` functions as
         `@system` when their implementations are not in D, as the D compiler will be
         unable to check them. Most of them are `@safe`, but will need to be manually
         checked.)
+
+        $(BEST_PRACTICE The number and size of system functions should be minimized.
+        This minimizes the work necessary to manually check for safety.)
 
 $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
