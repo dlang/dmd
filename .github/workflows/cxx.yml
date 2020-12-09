@@ -269,7 +269,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       env:
-        HOST_DC: ${{ env.DC }}
+        HOST_DMD: ${{ env.DC }}
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         dmd -run ./dmd/src/build.d -j2 MODEL=64
@@ -300,7 +300,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       env:
-        HOST_DC: ${{ env.DC }}
+        HOST_DMD: ${{ env.DC }}
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cd druntime
