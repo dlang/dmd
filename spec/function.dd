@@ -2748,10 +2748,11 @@ $(H2 $(LNAME2 function-templates, Function Templates))
 
 $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
-    $(P Functions which are both portable and free of global side-effects can be
-    executed at compile time. In certain contexts, such compile time execution
-    is guaranteed. It is called Compile Time Function Execution (CTFE) then.
-    The contexts that trigger CTFE are:)
+    $(P In contexts where a compile time value is required, functions
+    can be used to compute those values. This is called $(I Compile Time Function
+    Execution), or $(I CTFE).)
+
+    $(P These contexts are:)
 
     $(UL
     $(LI initialization of a static variable or a
@@ -2766,6 +2767,7 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI $(DDSUBLINK spec/statement, mixin-statement,
         `mixin` statement))
     $(LI $(DDLINK spec/pragma, Pragmas, `pragma` argument))
+    $(LI $(DDLINK spec/traits, Traits, `__traits` argument))
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -2782,58 +2784,55 @@ void foo()
     static j = square(3);      // CTFE
     writeln(j);
     assert(square(4));         // run time
+    static assert(square(3) == 9); // CTFE
     writeln(eval!(square(5))); // CTFE
 }
 ---
 )
 
+    $(P The function must have a $(GLINK SpecifiedFunctionBody).)
+
     $(P CTFE is subject to the following restrictions:)
 
     $(OL
-    $(LI The function source code must be available to the compiler. Functions
-        which exist in the source code only as $(D_KEYWORD extern) declarations
-        cannot be executed in CTFE.)
-
-    $(LI Executed expressions may not reference any global or local
+    $(LI Expressions may not reference any global or local
         static variables.)
 
-    $(LI $(D_KEYWORD asm) statements are not permitted)
+    $(LI $(DDSUBLINK iasm, asmstatements, AsmStatements) are not permitted)
 
     $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
-        Casts between signed and unsigned types are permitted)
-    $(LI Reinterpretation of overlapped fields in a Union is not permitted.)
+        Casts between signed and unsigned types are permitted.)
+
+    $(LI Reinterpretation of overlapped fields in a union is not permitted.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
 
     $(UL
         $(LI
-        C-style semantics on pointer arithmetic are strictly enforced.
         Pointer arithmetic is permitted only on pointers which point to static
-        or dynamic array elements. Such pointers must point to an element of
-        the array, or to the first element past the array.
-        Pointer arithmetic is completely forbidden on pointers which are null,
-        or which point to a non-array.
+        or dynamic array elements.
+        A pointer may also point to the first element past the array, although
+        such pointers cannot be dereferenced.
+        Pointer arithmetic on pointers which are null,
+        or which point to a non-array, is not allowed.
         )
 
         $(LI
-        The memory location of different memory blocks is not defined.
         Ordered comparison ($(D <), $(D <)$(D =), $(D >), $(D >=)) between two pointers is permitted
         when both pointers point to the same array, or when at least one
         pointer is $(D null).
         )
 
         $(LI
-        Pointer comparisons between independent memory blocks will generate
-        a compile-time error, unless two such comparisons are combined
+        Pointer comparisons between discontiguous memory blocks are illegal,
+        unless two such comparisons are combined
         using $(D &&) or $(CODE_PIPE)$(CODE_PIPE) to yield a result which is independent of the
         ordering of memory blocks. Each comparison must consist of two pointer
         expressions compared with $(D <), $(D <)$(D =), $(D >),
         or $(D >)$(D =), and may optionally be
         negated with $(D !).
-
-        $(P
         For example, the expression $(D (p1 > q1 && p2 <= q2))
         is permitted when $(D p1), $(D p2) are expressions yielding pointers
         to memory block $(I P), and $(D q1), $(D q2) are expressions yielding
@@ -2842,7 +2841,6 @@ void foo()
         It returns true if $(D [p1..p2]) lies inside $(D [q1..q2]), and false otherwise.
         Similarly, the expression $(D (p1 < q1 || p2 > q2)) is true if
         $(D [p1..p2]) lies outside $(D [q1..q2]), and false otherwise.
-        )
         )
 
         $(LI
@@ -2853,11 +2851,11 @@ void foo()
         $(LI
         Any pointer may be cast to $(D void*) and from $(D void*) back to
         its original type. Casting between pointer and non-pointer types is
-        prohibited.
+        illegal.
         )
     )
 
-    $(P Note that the above restrictions apply only to expressions which are
+    $(P The above restrictions apply only to expressions which are
         actually executed. For example:
     )
 ---
@@ -2866,53 +2864,43 @@ static int y = 0;
 int countTen(int x)
 {
     if (x > 10)
-        ++y;
+        ++y;    // access static variable
     return x;
 }
 
 static assert(countTen(6) == 6);    // OK
 static assert(countTen(12) == 12);  // invalid, modifies y.
 ---
-    $(P The $(D __ctfe) boolean pseudo-variable, which evaluates to $(D_KEYWORD true)
-        in CTFE, but $(D_KEYWORD false) otherwise, can be used to provide
+    $(P The $(D __ctfe) boolean pseudo-variable evaluates to $(D_KEYWORD true)
+        during CTFE but $(D_KEYWORD false) otherwise.
+    )
+
+    $(NOTE `__ctfe` can be used to provide
         an alternative execution path to avoid operations which are forbidden
-        in CTFE. Every usage of $(D __ctfe) is evaluated before
-        code generation and therefore has no run-time cost, even if no optimizer
-        is used.
+        in CTFE. Every usage of $(D __ctfe) is statically evaluated
+        and has no run-time cost.)
     )
 
-    $(P Executing functions via CTFE can take considerably
+    $(P Non-recoverable errors (such as $(D_KEYWORD assert) failures) are illegal.
+    )
+
+    $(IMPLEMENTATION_DEFINED Executing functions via CTFE can take considerably
     longer than executing it at run time.
-    If the function goes into an infinite loop, it will hang at
-    compile time (rather than hanging at run time).
+    If the function goes into an infinite loop, it may cause the compiler to hang.
     )
 
-    $(P Non-recoverable errors (such as $(D_KEYWORD assert) failures) do not
-    throw exceptions; instead, they end interpretation immediately.
+    $(IMPLEMENTATION_DEFINED
+    Functions executed via CTFE can give different results
+    from run time when implementation-defined or undefined-behavior occurs.
     )
 
-    $(P Functions executed via CTFE can give different results
-    from run time in the following scenarios:
-    )
-
-    $(UL
-
-    $(LI floating point computations may be done at a higher
-    precision than run time)
-    $(LI dependency on implementation defined order of evaluation)
-    $(LI use of uninitialized variables)
-
-    )
-
-    $(P These are the same kinds of scenarios where different
-    optimization settings affect the results.)
 
 $(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
 
-        $(P Any functions that execute in CTFE must also
+        $(P All functions that execute in CTFE must also
         be executable at run time. The compile time evaluation of
         a function does the equivalent of running the function at
-        run time. This means that the semantics of a function cannot
+        run time. The semantics of a function cannot
         depend on compile time values of the function. For example:)
 
 ---
@@ -2926,9 +2914,15 @@ const int x = foo("1");
 
         $(COMMENT Intentionally not a $(P ...) so that it doesn't get a
         paragraph number, because this continues the paragraph above.)
+
         is illegal, because the runtime code for `foo` cannot be
-        generated. A function template would be the appropriate
+        generated.
+
+        $(BEST_PRACTICE A function template, where `s` is a template argument,
+        would be the appropriate
         method to implement this sort of thing.
+        )
+
 
 $(H2 $(LNAME2 nogc-functions, No-GC Functions))
 
