@@ -6548,7 +6548,7 @@ final class Parser(AST) : Lexer
         AST.Expression e;
         Identifier id;
         AST.Initializer value;
-        int comma;
+        bool commaExpected = false;
         const loc = token.loc;
         Token* t;
         int braces;
@@ -6643,13 +6643,12 @@ final class Parser(AST) : Lexer
 
             _is = new AST.StructInitializer(loc);
             nextToken();
-            comma = 2;
             while (1)
             {
                 switch (token.value)
                 {
                 case TOK.identifier:
-                    if (comma == 1)
+                    if (commaExpected)
                         error("comma expected separating field initializers");
                     t = peek(&token);
                     if (t.value == TOK.colon)
@@ -6664,14 +6663,14 @@ final class Parser(AST) : Lexer
                     }
                     value = parseInitializer();
                     _is.addInit(id, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
 
                 case TOK.comma:
-                    if (comma == 2)
+                    if (!commaExpected)
                         error("expression expected, not `,`");
                     nextToken();
-                    comma = 2;
+                    commaExpected = false;
                     continue;
 
                 case TOK.rightCurly: // allow trailing comma's
@@ -6683,11 +6682,11 @@ final class Parser(AST) : Lexer
                     break;
 
                 default:
-                    if (comma == 1)
+                    if (commaExpected)
                         error("comma expected separating field initializers");
                     value = parseInitializer();
                     _is.addInit(null, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
                     //error("found `%s` instead of field initializer", token.toChars());
                     //break;
@@ -6731,13 +6730,12 @@ final class Parser(AST) : Lexer
 
             ia = new AST.ArrayInitializer(loc);
             nextToken();
-            comma = 2;
             while (1)
             {
                 switch (token.value)
                 {
                 default:
-                    if (comma == 1)
+                    if (commaExpected)
                     {
                         error("comma expected separating array initializers, not `%s`", token.toChars());
                         nextToken();
@@ -6757,12 +6755,12 @@ final class Parser(AST) : Lexer
                         e = null;
                     }
                     ia.addInit(e, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
 
                 case TOK.leftCurly:
                 case TOK.leftBracket:
-                    if (comma == 1)
+                    if (commaExpected)
                         error("comma expected separating array initializers, not `%s`", token.toChars());
                     value = parseInitializer();
                     if (token.value == TOK.colon)
@@ -6779,14 +6777,14 @@ final class Parser(AST) : Lexer
                     else
                         e = null;
                     ia.addInit(e, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
 
                 case TOK.comma:
-                    if (comma == 2)
+                    if (!commaExpected)
                         error("expression expected, not `,`");
                     nextToken();
-                    comma = 2;
+                    commaExpected = false;
                     continue;
 
                 case TOK.rightBracket: // allow trailing comma's
