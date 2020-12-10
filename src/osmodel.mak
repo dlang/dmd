@@ -8,7 +8,7 @@
 #
 # Note:
 #   Keep this file in sync between druntime, phobos, and dmd repositories!
-# Source: https://github.com/dlang/dmd/blob/master/osmodel.mak
+# Source: https://github.com/dlang/dmd/blob/master/src/osmodel.mak
 
 
 ifeq (,$(OS))
