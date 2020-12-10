@@ -2452,13 +2452,13 @@ void test()
 
     $(P Nested functions cannot be overloaded.)
 
-$(H2 $(LNAME2 closures, Delegates, Function Pointers, and  Closures))
+$(H2 $(LNAME2 closures, Delegates, Function Pointers, and Closures))
 
         $(P A function pointer can point to a static nested function:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
-int function() fp;
+int function() fp;  // fp is a pointer to a function returning an int
 
 void test()
 {
@@ -2476,18 +2476,18 @@ void bar()
 ------
 )
 
-        $(P $(B Note:) Two functions with identical bodies, or two functions
+        $(IMPLEMENTATION_DEFINED Two functions with identical bodies, or two functions
         that compile to identical assembly code, are not guaranteed to have
-        distinct function pointer values. The compiler is free to merge
+        distinct function pointer values. The implementation may merge
         functions bodies into one if they compile to identical code.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
-int abc(int x) { return x + 1; }
-int def(int y) { return y + 1; }
+int abc(int x)   { return x + 1; }
+uint def(uint y) { return y + 1; }
 
-int delegate(int) fp1 = &abc;
-int delegate(int) fp2 = &def;
+int delegate(int)   fp1 = &abc;
+uint delegate(uint) fp2 = &def;
 // Do not rely on fp1 and fp2 being different values; the compiler may merge
 // them.
 ------
@@ -2510,33 +2510,36 @@ void test()
 ------
 )
 
-
         $(P The stack variables referenced by a nested function are
-        still valid even after the function exits (this is different
-        from D 1.0). This is called a $(I closure).
-        Returning addresses of stack variables, however, is not
+        still valid even after the function exits (NOTE this is different
+        from D 1.0.) This is called a $(I closure).
+        )
+
+        $(P Those referenced stack variables that make up the closure
+        are allocated on the GC heap. Closures are not allowed for
+        `@nogc` functions.)
+
+        $(NOTE Returning addresses of stack variables, however, is not
         a closure and is an error.
         )
 
 ------
-int* bar()
+void bar()
 {
     int b;
     test();
     int i = dg(); // ok, test.a is in a closure and still exists
-    return &b;    // error, bar.b not valid after bar() exits
 }
 ------
 
-
         $(P Delegates to non-static nested functions contain two pieces of
         data: the pointer to the stack frame of the lexically enclosing
-        function (called the $(I frame pointer)) and the address of the
+        function (called the $(I context pointer)) and the address of the
         function. This is analogous to struct/class non-static member
         function delegates consisting of a $(I this) pointer and
         the address of the member function.
-        Both forms of delegates are interchangeable, and are actually
-        the same type:
+        Both forms of delegates are indistinguishable, and are
+        the same type.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -2570,39 +2573,85 @@ void test()
         )
 
         $(P The $(D .ptr) property of a delegate will return the
-        $(I frame pointer) value as a $(D void*).
+        $(I context pointer) value as a $(D void*).
         )
 
         $(P The $(D .funcptr) property of a delegate will return the
         $(I function pointer) value as a function type.
         )
-        $(P Functions and delegates declared at module scope are zero-initialized by default.
-        However both can be initialized to any function pointer (including a function literal).
-        For delegates, the context pointer $(D .ptr) is initialized to null.
+
+        $(P Function pointers are zero-initialized by default.
+        They can be initialized to the address of any function (including a function literal).
+        Initialization with the address of a function that requires a context pointer
+        is not allowed in @safe functions.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-int function() foo = { return 42; };
-int delegate() bar = { return 43; };
-int delegate() baz;
-void main()
-{
-    assert(foo() == 42);
-    assert(bar() == 43);
-    assert(baz is null);
-}
----
-)
+        ---
+        struct S
+        {
+            static int sfunc();
+            int member();   // has hidden `this` reference parameter
+        }
 
-        $(P Function pointers can be passed to functions taking a delegate argument by passing
+        @safe void sun()
+        {
+            int function() fp = &S.sfunc;
+            fp(); // Ok
+            fp = &S.member; // error
+        }
+
+        @system void moon()
+        {
+            int function() fp = &S.member; // Ok because @system
+            fp(); // undefined behavior
+        }
+        ---
+
+        $(P Delegates are zero-initialized by default.
+        They can be initialized by taking the address of a non-static member function,
+        but a context pointer must be supplied.
+        They can be initialized by taking the address of a non-static nested function
+        or function literal,
+        where the context pointer will be set to point to the stack frame, closure, or `null`.
+        )
+
+        $(P Delegates cannot be initialized by taking the address of a global function,
+        a static member function, or a static nested function.
+        )
+
+        ---
+        struct S
+        {
+            static int sfunc();
+            int member() { return 1; }
+        }
+
+        void main()
+        {
+            S s;
+            int delegate() dg = &s.member; // Ok, s supplies context pointer
+            assert(dg() == 1);
+
+            dg = &S.sfunc;  // error
+            dg = &S.member; // error
+
+            int moon() { return 2; }
+            dg = &moon;     // Ok
+            assert(dg() == 2);
+
+            static int mars() { return 3; }
+            dg = &mars;     // error
+
+            dg = () { return 4; }; // Ok
+            assert(dg() == 4);
+        }
+        ---
+
+        $(NOTE Function pointers can be passed to functions taking a delegate argument by passing
         them through the $(REF toDelegate, std,functional) template, which converts any callable
-        to a delegate without context.
+        to a delegate with a `null` context pointer.
         )
 
-        $(P $(B Future directions:) Function pointers and delegates may merge
-        into a common syntax and be interchangeable with each other.
-        )
 
 $(H3 $(LNAME2 anonymous, Anonymous Functions and Anonymous Delegates))
 
