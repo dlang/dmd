@@ -2627,42 +2627,9 @@ int main(string[] args) { ... }
 
 $(H2 $(LNAME2 function-templates, Function Templates))
 
-    $(P Template functions are useful for avoiding code duplication -
-    instead of writing several copies of a function, each with a
-    different parameter type, a single function template can be sufficient.
-    For example:
-    )
+        $(P Functions can have compile time arguments in the form of a template.
+        See $(DDSUBLINK spec/template, function-templates, function templates).)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-// Only one copy of func needs to be written
-void func(T)(T x)
-{
-    writeln(x);
-}
-void main()
-{
-    func!(int)(1); // pass an int
-    func(1);    // pass an int, inferring T = int
-    func("x");  // pass a string
-    func(1.0);  // pass a float
-    struct S {}
-    S s;
-    func(s);    // pass a struct
-}
----
-)
-
-    $(P $(D func) takes a template parameter $(D T) and a runtime
-    parameter, $(D x). $(D T) is a placeholder identifier that can accept
-    any type. In this case $(D T) can be inferred from the runtime argument
-    type.)
-
-    $(P $(B Note:) Using the name $(D T) is just a convention. The name
-    $(D TypeOfX) could have been used instead.)
-
-    $(P For more information, see
-    $(DDSUBLINK spec/template, function-templates, function templates).)
 
 $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
