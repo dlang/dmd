@@ -81,6 +81,7 @@ DOCS=\
 	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_osthread.html \
 	\
+	$(DOCDIR)\core_internal_dassert.html \
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_qsort.html \
 	\
