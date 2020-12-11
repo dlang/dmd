@@ -51,6 +51,10 @@ COPY=\
 	$(IMPDIR)\core\internal\array\operations.d \
 	$(IMPDIR)\core\internal\array\utils.d \
 	\
+	$(IMPDIR)\core\internal\backtrace\dwarf.d \
+	$(IMPDIR)\core\internal\backtrace\elf.d \
+	$(IMPDIR)\core\internal\backtrace\macho.d \
+	\
 	$(IMPDIR)\core\internal\elf\dl.d \
 	$(IMPDIR)\core\internal\elf\io.d \
 	\

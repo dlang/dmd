@@ -51,6 +51,10 @@ SRCS=\
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
 	\
+	src\core\internal\backtrace\dwarf.d \
+	src\core\internal\backtrace\elf.d \
+	src\core\internal\backtrace\macho.d \
+	\
 	src\core\internal\container\array.d \
 	src\core\internal\container\common.d \
 	src\core\internal\container\hashtab.d \
@@ -539,10 +543,6 @@ SRCS=\
 	src\rt\trace.d \
 	src\rt\tracegc.d \
 	src\rt\unwind.d \
-	\
-	src\rt\backtrace\dwarf.d \
-	src\rt\backtrace\elf.d \
-	src\rt\backtrace\macho.d \
 	\
 	src\rt\util\typeinfo.d \
 	src\rt\util\utility.d \

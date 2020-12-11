@@ -47,7 +47,7 @@
  * Source: $(DRUNTIMESRC rt/backtrace/dwarf.d)
  */
 
-module rt.backtrace.dwarf;
+module core.internal.backtrace.dwarf;
 
 import core.internal.execinfo;
 import core.internal.string;
@@ -64,9 +64,9 @@ else version (WatchOS)
     version = Darwin;
 
 version (Darwin)
-    import rt.backtrace.macho;
+    import core.internal.backtrace.macho;
 else
-    import rt.backtrace.elf;
+    import core.internal.backtrace.elf;
 
 import core.internal.container.array;
 import core.stdc.string : strlen, memcpy;

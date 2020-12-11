@@ -816,12 +816,7 @@ static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
 
         static if (enableDwarf)
         {
-            import core.internal.traits : externDFunc;
-
-            alias traceHandlerOpApplyImpl = externDFunc!(
-                "rt.backtrace.dwarf.traceHandlerOpApplyImpl",
-                int function(const(void*)[], scope int delegate(ref size_t, ref const(char[])))
-                );
+            import core.internal.backtrace.dwarf;
 
             if (numframes >= FIRSTFRAME)
             {

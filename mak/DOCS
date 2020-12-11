@@ -84,6 +84,10 @@ DOCS=\
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_qsort.html \
 	\
+	$(DOCDIR)\core_internal_backtrace_dwarf.html \
+	$(DOCDIR)\core_internal_backtrace_elf.html \
+	$(DOCDIR)\core_internal_backtrace_macho.html \
+	\
 	$(DOCDIR)\core_internal_container_array.html \
 	$(DOCDIR)\core_internal_container_common.html \
 	$(DOCDIR)\core_internal_container_hashtab.html \
@@ -97,10 +101,6 @@ DOCS=\
 	\
 	$(DOCDIR)\rt_arrayassign.html \
 	$(DOCDIR)\rt_arraycat.html \
-	\
-	$(DOCDIR)\rt_backtrace_dwarf.html \
-	$(DOCDIR)\rt_backtrace_elf.html \
-	$(DOCDIR)\rt_backtrace_macho.html \
 	\
 	$(DOCDIR)\rt_cast_.html \
 	$(DOCDIR)\rt_cmath2.html \

@@ -6,7 +6,7 @@
  * Authors:   Jacob Carlborg
  * Source:    $(DRUNTIMESRC rt/backtrace/macho.d)
  */
-module rt.backtrace.macho;
+module core.internal.backtrace.macho;
 
 version (OSX)
     version = Darwin;
