@@ -2081,47 +2081,59 @@ test(x);    // error, type mismatch
 
 $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
 
-        $(P If the variadic parameter is an array of delegates
-        with no parameters:
+        $(P If the variadic parameter of a function is an array of delegates
+        with no parameters,
+        then each of the arguments whose type does not match that
+        of the delegate is converted to a delegate of that type.
         )
 
----
-void foo(int delegate()[] dgs ...);
----
+        ---
+        void hal(scope int delegate()[] dgs ...);
 
-        $(P Then each of the arguments whose type does not match that
-        of the delegate is converted to a delegate.
-        )
+        void dave()
+        {
+            int delegate() dg;
+            hal(1, 3+x, dg, cast(int delegate())null);   // (1)
+            hal( { return 1; }, { return 3+x; }, dg, null ); // same as (1)
+        }
+        ---
 
----
-int delegate() dg;
-foo(1, 3+x, dg, cast(int delegate())null);
----
+        $(P The variadic delegate array differs from using a lazy
+        variadic array. With the former each array element access
+        would evaluate every array element.
+        With the latter, only the element being accessed would be evaluated.)
 
-        $(P is the same as:)
+        ---
+        import std.stdio;
 
----
-foo( { return 1; }, { return 3+x; }, dg, null );
----
+        void main()
+        {
+            int x;
+            ming(++x, ++x);
 
-        $(P The lazy variadic delegate solution is preferable to using a lazy
-        variadic array, because each array index would evaluate every element:)
+            int y;
+            flash(++y, ++y);
+        }
 
----
-import std.stdio;
+        // lazy variadic array
+        void ming(lazy int[] arr...)
+        {
+            writeln(arr[0]); // 1
+            writeln(arr[1]); // 4
+        }
 
-void foo(lazy int[] arr...)
-{
-    writeln(arr[0]); // 1
-    writeln(arr[1]); // 4, not 2
-}
+        // variadic delegate array
+        void flash(scope int delegate()[] arr ...)
+        {
+            writeln(arr[0]); // 1
+            writeln(arr[1]); // 2
+        }
+        ---
 
-void main()
-{
-    int x;
-    foo(++x, ++x);
-}
----
+        $(BEST_PRACTICE Use `scope` when declaring the array of delegates
+        parameter. This will prevent a closure being generated for the delegate,
+        as `scope` means the delegate will not escape the function.)
+
 
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
