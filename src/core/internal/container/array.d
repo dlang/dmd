@@ -5,9 +5,9 @@
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  */
-module rt.util.container.array;
+module core.internal.container.array;
 
-static import common = rt.util.container.common;
+static import common = core.internal.container.common;
 
 import core.exception : onOutOfMemoryErrorNoGC;
 

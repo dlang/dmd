@@ -33,6 +33,7 @@ SRCS=\
 	src\core\internal\moving.d \
 	src\core\internal\parseoptions.d \
 	src\core\internal\postblit.d \
+	src\core\internal\qsort.d \
 	src\core\internal\spinlock.d \
 	src\core\internal\string.d \
 	src\core\internal\switch_.d \
@@ -49,6 +50,15 @@ SRCS=\
 	src\core\internal\array\concatenation.d \
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
+	\
+	src\core\internal\backtrace\dwarf.d \
+	src\core\internal\backtrace\elf.d \
+	src\core\internal\backtrace\macho.d \
+	\
+	src\core\internal\container\array.d \
+	src\core\internal\container\common.d \
+	src\core\internal\container\hashtab.d \
+	src\core\internal\container\treap.d \
 	\
 	src\core\internal\elf\dl.d \
 	src\core\internal\elf\io.d \
@@ -520,7 +530,6 @@ SRCS=\
 	src\rt\msvc.d \
 	src\rt\msvc_math.d \
 	src\rt\profilegc.d \
-	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
 	src\rt\sections_darwin_64.d \
@@ -535,16 +544,7 @@ SRCS=\
 	src\rt\tracegc.d \
 	src\rt\unwind.d \
 	\
-	src\rt\backtrace\dwarf.d \
-	src\rt\backtrace\elf.d \
-	src\rt\backtrace\macho.d \
-	\
-	src\rt\util\random.d \
 	src\rt\util\typeinfo.d \
 	src\rt\util\utility.d \
-	src\rt\util\container\array.d \
-	src\rt\util\container\common.d \
-	src\rt\util\container\hashtab.d \
-	src\rt\util\container\treap.d \
 	\
 	src\etc\linux\memoryerror.d

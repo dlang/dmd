@@ -40,7 +40,7 @@ import gc.os;
 import core.gc.config;
 import core.gc.gcinterface;
 
-import rt.util.container.treap;
+import core.internal.container.treap;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;

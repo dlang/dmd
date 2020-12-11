@@ -5,10 +5,10 @@
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  */
-module rt.util.container.hashtab;
+module core.internal.container.hashtab;
 
-import rt.util.container.array;
-static import common = rt.util.container.common;
+import core.internal.container.array;
+static import common = core.internal.container.common;
 
 struct HashTab(Key, Value)
 {

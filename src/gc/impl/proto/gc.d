@@ -3,7 +3,7 @@ module gc.impl.proto.gc;
 
 import core.gc.gcinterface;
 
-import rt.util.container.array;
+import core.internal.container.array;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 static import core.memory;
