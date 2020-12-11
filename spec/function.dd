@@ -2167,11 +2167,14 @@ void func(int x)
 
 $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Static Variables))
 
-    $(P Local variables in functions can be declared as static
-    or $(D __gshared) in which case they are statically allocated
-    rather than being allocated on the stack.
-    As such, their value persists beyond the exit of the function.
-    )
+        $(P Local variables in functions declared as `static`, `shared static`
+        or $(D __gshared) are statically allocated
+        rather than being allocated on the stack.
+        The lifetime of `__gshared` and `shared static` variables begins
+        when the function is first executed and ends when the program ends.
+        The lifetime of `static` variables begins when the function is first
+        executed within the thread and ends when that thread terminates.
+        )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -2185,8 +2188,7 @@ void foo()
 )
 
     $(P The initializer for a static variable must be evaluatable at
-    compile time, and they are initialized upon the start of the thread
-    (or the start of the program for $(D __gshared)).
+    compile time.
     There are no static constructors or static destructors
     for static local variables.
     )
