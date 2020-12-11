@@ -1216,75 +1216,86 @@ $(H2 $(LNAME2 parameters, Function Parameters))
 
 $(H3 $(LNAME2 param-storage, Parameter Storage Classes))
 
-        $(P Parameter storage classes are $(D in), $(D out), $(D ref), $(D lazy), $(D scope) and $(D inout).
-        Parameters can also take the type constructors $(D const), $(D immutable) and $(D shared).)
+        $(P Parameter storage classes are $(D in), $(D out), $(D ref), $(D lazy), `return` and $(D scope).
+        Parameters can also take the type constructors $(D const), $(D immutable), $(D shared) and `inout`.
+        )
 
-        $(P $(D in), $(D ref), $(D out) and $(D lazy) are mutually exclusive. The first three are used to
+        $(P $(D in), `out`, $(D ref) and $(D lazy) are mutually exclusive. The first three are used to
         denote input, input/output, and output parameters, respectively.
         For example:
         )
-------
-int read(in char[] input, ref size_t count, out int errno);
-------
 
-        $(P In this example, $(D input) will only be read and no reference to it will be kept around,
-        while $(D count) will be read and written to, and $(D errno) will be set to a value from
-        within the function.
-        This approach gives a semantic meaning to the parameters and allows the compiler to potentially
-        optimize the generated code.)
+        ---
+        int read(in char[] input, ref size_t count, out int errno);
 
-        $(P When talking about function parameters, the $(I parameter) is what the function prototype defines,
-        and the $(I argument) is the value that will $(I bind) to it.
-        For example, using the previous definition of $(D read):
+        void main()
+        {
+            size_t a = 42;
+            int b;
+            int r = read("Hello World", a, b);
+        }
+        ---
+
+        $(P `read` has three parameters. $(D input) will only be read and no reference to it will be retained.
+        $(D count) may be read and written to, and $(D errno) will be set to a value from
+        within the function.)
+
+        $(P The argument $(D "Hello World") gets bound to parameter $(D input),
+        $(D a) gets bound to $(D count) and $(D b) to $(D errno).
         )
-------
-void main()
-{
-    size_t a = 42;
-    int b;
-    int r = read("Hello World", a, b);
-}
-------
-       $(P In this example, the argument $(D "Hello World") gets bind to $(D input),
-       $(D a) gets bind to $(D count) and $(D b) to $(D errno).
-       )
 
-    $(TABLE_2COLS Parameter Storage Classes,
-    $(THEAD Storage Class, Description)
-    $(TROW $(I none), The parameter will be a mutable copy of its argument)
-    $(TROW $(D in), The parameter is an input to the function. Input parameters behaves as if they have
-    the $(D const scope) storage classes. Input parameters may be passed by reference by the compiler.
-    Unlike $(D ref) parameters$(COMMA) $(D in) parameters can bind to both lvalues and rvalues (such as literals).
-    Types that would trigger a side effect if passed by value (such as types with postblit$(COMMA)
-    copy constructor$(COMMA) or destructor)$(COMMA) and types which cannot be copied$(COMMA)
-    e.g. if their copy constructor is marked as $(D @disable)$(COMMA) will always be passed by reference.
-    Dynamic arrays$(COMMA) classes$(COMMA) associative arrays$(COMMA) function pointers$(COMMA) and delegates
-    will always be passed by value$(COMMA) to allow for covariance.
-    If the type of the parameter does not fall in one of those categories$(COMMA)
-    whether or not it is passed by reference is implementation defined$(COMMA) and the backend is free
-    to choose the method that will best fit the ABI of the platform.
-    $(B Note: This requires the $(D -preview=in) switch$(COMMA) available in v2.094.0 or higher.))
-    $(TROW $(D ref), The parameter is an $(I input/output) parameter$(COMMA) passed by reference.
-    It is expected that the function will both read and write to this parameter.)
-    $(TROW $(D out), The argument must be an lvalue$(COMMA) which will be passed by reference and initialized
-    upon function entry with the default value (`T.init`) of its type)
+        $(TABLE_2COLS Parameter Storage Class and Type Constructor Overview,
+        $(THEAD Storage Class, Description)
 
-    $(TROW $(D scope), $(ARGS
-    The parameter must not escape the function call
-    (e.g. by being assigned to a global variable).
-    Ignored for any parameter that is not a reference type.
-    ))
-    $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
-    but otherwise does not escape from the function.
-    Such copies are required not to outlive the argument(s) they were derived from.
-    Ignored for parameters with no references.
-    See $(DDSUBLINK spec/memory-safe-d, scope-return-params, Scope Parameters).))
-    $(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
-    $(TROW $(D const), argument is implicitly converted to a const type)
-    $(TROW $(D immutable), argument is implicitly converted to an immutable type)
-    $(TROW $(D shared), argument is implicitly converted to a shared type)
-    $(TROW $(D inout), argument is implicitly converted to an inout type)
-    )
+        $(TROW $(I none), The parameter will be a mutable copy of its argument.)
+
+        $(TROW $(D in), The parameter is an input to the function.)
+
+        $(TROW $(D out), The argument must be an lvalue$(COMMA) which will be passed by reference and initialized
+        upon function entry with the default value (`T.init`) of its type.
+        )
+
+        $(TROW $(D ref), The parameter is an $(I input/output) parameter$(COMMA) passed by reference.
+        )
+
+        $(TROW $(D scope), $(ARGS
+        The parameter must not escape the function call
+        (e.g. by being assigned to a global variable).
+        Ignored for any parameter that is not a reference type.
+        ))
+
+        $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
+        but otherwise does not escape from the function.
+        Such copies are required not to outlive the argument(s) they were derived from.
+        Ignored for parameters with no references.
+        See $(DDSUBLINK spec/memory-safe-d, scope-return-params, Scope Parameters).))
+
+        $(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
+
+        $(THEAD Type Constructor, Description)
+
+        $(TROW $(D const), argument is implicitly converted to a const type)
+        $(TROW $(D immutable), argument is implicitly converted to an immutable type)
+        $(TROW $(D shared), argument is implicitly converted to a shared type)
+        $(TROW $(D inout), argument is implicitly converted to an inout type)
+        )
+
+$(H3 $(LNAME2 in-params, In Parameters))
+
+        $(P The parameter is an input to the function. Input parameters behave as if they have
+        the $(D const scope) storage classes. Input parameters may be passed by reference by the compiler.
+        Unlike $(D ref) parameters$(COMMA) $(D in) parameters can bind to both lvalues and rvalues (such as literals).
+        Types that would trigger a side effect if passed by value (such as types with copy constructor$(COMMA)
+        postblit$(COMMA) or destructor)$(COMMA) and types which cannot be copied$(COMMA)
+        e.g. if their copy constructor is marked as $(D @disable)$(COMMA) they will always be passed by reference.
+        Dynamic arrays$(COMMA) classes$(COMMA) associative arrays$(COMMA) function pointers$(COMMA) and delegates
+        will always be passed by value$(COMMA) to allow for covariance.
+        If the type of the parameter does not fall in one of those categories$(COMMA)
+        whether or not it is passed by reference is implementation defined$(COMMA) and the backend is free
+        to choose the method that will best fit the ABI of the platform.
+        $(B Note: This requires the $(D -preview=in) switch$(COMMA) available in v2.094.0 or higher.)
+        )
+
 
 $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
 
