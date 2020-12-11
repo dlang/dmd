@@ -1966,118 +1966,138 @@ Bar
 
 $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
-        $(P Typesafe variadic functions are used when the variable argument
-        portion of the arguments are used to construct an array or
-        class object.)
+        $(P A typesafe variadic function has D linkage and a variadic
+        parameter declared as either an array or a class.
+        The array or class is constructed from the arguments, and
+        is passed as an array or class object.
+        )
 
-        $(P For arrays:)
+        $(P For dynamic arrays:)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
-------
-int main()
-{
-    return sum(1, 2, 3) + sum(); // returns 6+0
-}
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        int sum(int[] ar ...) // typesafe variadic function
+        {
+            int s;
+            foreach (int x; ar)
+                s += x;
+            return s;
+        }
 
-int func()
-{
-    int[3] ii = [4, 5, 6];
-    return sum(ii);             // returns 15
-}
+        import std.stdio;
 
-int sum(int[] ar ...)
-{
-    int s;
-    foreach (int x; ar)
-        s += x;
-    return s;
-}
-------
-)
+        void main()
+        {
+            writeln(stan());  // 6
+            writeln(ollie()); // 15
+        }
 
-        $(P For static arrays:)
+        int stan()
+        {
+            return sum(1, 2, 3) + sum(); // returns 6+0
+        }
 
-------
-int test()
-{
-    return sum(2, 3);   // error, need 3 values for array
-    return sum(1, 2, 3); // returns 6
-}
+        int ollie()
+        {
+            int[3] ii = [4, 5, 6];
+            return sum(ii);             // returns 15
+        }
+        ---
+        )
 
-int func()
-{
-    int[3] ii = [4, 5, 6];
-    int[] jj = ii;
-    return sum(ii); // returns 15
-    return sum(jj); // error, type mismatch
-}
+        $(P For static arrays, the number of arguments must
+        match the array dimension.)
 
-int sum(int[3] ar ...)
-{
-    int s;
-    foreach (int x; ar)
-        s += x;
-    return s;
-}
-------
+        ---
+        int sum(int[3] ar ...) // typesafe variadic function
+        {
+            int s;
+            foreach (int x; ar)
+                s += x;
+            return s;
+        }
+
+        int frank()
+        {
+            return sum(2, 3);    // error, need 3 values for array
+            return sum(1, 2, 3); // returns 6
+        }
+
+        int dave()
+        {
+            int[3] ii = [4, 5, 6];
+            int[] jj = ii;
+            return sum(ii); // returns 15
+            return sum(jj); // error, type mismatch
+        }
+        ---
 
         $(P For class objects:)
 
-------
-class Foo
-{
-    int x;
-    string s;
+        ---
+        int tesla(int x, C c ...)
+        {
+            return x + c.x;
+        }
 
-    this(int x, string s)
-    {
-        this.x = x;
-        this.s = s;
-    }
-}
+        class C
+        {
+            int x;
+            string s;
 
-void test(int x, Foo f ...);
+            this(int x, string s)
+            {
+                this.x = x;
+                this.s = s;
+            }
+        }
 
-...
+        void edison()
+        {
+            C g = new C(3, "abc");
+            tesla(1, c);         // ok, since c is an instance of C
+            tesla(1, 4, "def");  // ok
+            tesla(1, 5);         // error, no matching constructor for C
+        }
+        ---
 
-Foo g = new Foo(3, "abc");
-test(1, g);         // ok, since g is an instance of Foo
-test(1, 4, "def");  // ok
-test(1, 5);         // error, no matching constructor for Foo
-------
+        $(P The lifetime of the variadic class object or array
+        instance ends at the end of the function.
+        )
 
-        $(P An implementation may construct the object or array instance
-        on the stack. Therefore, it is an error to refer to that
-        instance after the variadic function has returned:)
+        ---
+        C orville(C c ...)
+        {
+            return c;   // error, c instance contents invalid after return
+        }
 
-------
-Foo test(Foo f ...)
-{
-    return f;   // error, f instance contents invalid after return
-}
+        int[] wilbur(int[] a ...)
+        {
+            return a;       // error, array contents invalid after return
+            return a[0..1]; // error, array contents invalid after return
+            return a.dup;   // ok, since copy is made
+        }
+        ---
 
-int[] test(int[] a ...)
-{
-    return a;       // error, array contents invalid after return
-    return a[0..1]; // error, array contents invalid after return
-    return a.dup;   // ok, since copy is made
-}
-------
+        $(IMPLEMENTATION_DEFINED the variadic object or array instance
+        may be constructed on the stack.)
 
-        $(P For other types, the argument is built with itself, as in:)
+        $(P For other types, the argument is passed by value.)
 
-------
-int test(int i ...)
-{
-    return i;
-}
+        ---
+        int neil(int i ...)
+        {
+            return i;
+        }
 
-...
-test(3);    // returns 3
-test(3, 4); // error, too many arguments
-int[] x;
-test(x);    // error, type mismatch
-------
+        void buzz()
+        {
+            neil(3);    // returns 3
+            neil(3, 4); // error, too many arguments
+            int[] x;
+            neil(x);    // error, type mismatch
+        }
+        ---
 
 $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
 
