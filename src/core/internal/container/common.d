@@ -5,7 +5,7 @@
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  */
-module rt.util.container.common;
+module core.internal.container.common;
 
 import core.stdc.stdlib : malloc, realloc;
 public import core.stdc.stdlib : free;

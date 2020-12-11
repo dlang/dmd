@@ -20,7 +20,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import core.exception : onOutOfMemoryError;
-import rt.util.container.hashtab;
+import core.internal.container.hashtab;
 
 struct Entry { ulong count, size; }
 

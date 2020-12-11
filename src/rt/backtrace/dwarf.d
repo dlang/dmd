@@ -68,7 +68,7 @@ version (Darwin)
 else
     import rt.backtrace.elf;
 
-import rt.util.container.array;
+import core.internal.container.array;
 import core.stdc.string : strlen, memcpy;
 
 //debug = DwarfDebugMachine;

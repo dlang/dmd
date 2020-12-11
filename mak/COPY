@@ -33,6 +33,7 @@ COPY=\
 	$(IMPDIR)\core\internal\moving.d \
 	$(IMPDIR)\core\internal\parseoptions.d \
 	$(IMPDIR)\core\internal\postblit.d \
+	$(IMPDIR)\core\internal\qsort.d \
 	$(IMPDIR)\core\internal\spinlock.d \
 	$(IMPDIR)\core\internal\string.d \
 	$(IMPDIR)\core\internal\switch_.d \
@@ -52,6 +53,11 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\elf\dl.d \
 	$(IMPDIR)\core\internal\elf\io.d \
+	\
+	$(IMPDIR)\core\internal\container\array.d \
+	$(IMPDIR)\core\internal\container\common.d \
+	$(IMPDIR)\core\internal\container\hashtab.d \
+	$(IMPDIR)\core\internal\container\treap.d \
 	\
 	$(IMPDIR)\core\internal\util\array.d \
 	\
