@@ -1320,52 +1320,59 @@ void main()
 
 $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
 
-    $(P By default, parameters take rvalue arguments.
-    A ref parameter takes an lvalue argument, so changes to its value will operate
-    on the caller's argument.)
+        $(P By default, parameters take rvalue arguments.
+        A `ref` parameter takes an lvalue argument, so changes to its value will operate
+        on the caller's argument.)
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
----
-void inc(ref int x)
-{
-    x += 1;
-}
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        void inc(ref int x)
+        {
+            x += 1;
+        }
 
-int z = 3;
-inc(z);
-assert(z == 4);
-------------
-)
-    $(P A ref parameter can also be returned by reference - see:
-    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref) parameters.))
+        void seattle()
+        {
+            int z = 3;
+            inc(z);
+            assert(z == 4);
+        }
+        ---
+        )
 
-    $(P An out parameter `x` is similar to a ref parameter, except it is initialized
-    with `x.init` upon function invocation.)
+        $(P A `ref` parameter can also be returned by reference, see
+        $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters.))
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
-------
-void foo(out int x)
-{
-    assert(x == 0);
-}
+        $(P An `out` parameter is similar to a `ref` parameter, except it is initialized
+        with `x.init` upon function invocation.)
 
-int a = 3;
-foo(a);
-assert(a == 0);
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        void zero(out int x)
+        {
+            assert(x == 0);
+        }
 
-void abc(out int x)
-{
-    x = 2;
-}
+        void two(out int x)
+        {
+            x = 2;
+        }
 
-int y = 3;
-abc(y);
-assert(y == 2);
----
-)
+        void tacoma()
+        {
+            int a = 3;
+            zero(a);
+            assert(a == 0);
 
-        $(P For dynamic array and object parameters, which are always passed
-        by reference, in/out/ref
+            int y = 3;
+            two(y);
+            assert(y == 2);
+        }
+        ---
+        )
+
+        $(P For dynamic array and class object parameters, which are always passed
+        by reference, `out` and `ref`
         apply only to the reference and not the contents.
         )
 
