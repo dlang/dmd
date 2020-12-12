@@ -1776,67 +1776,80 @@ See also: $(GLINK2_ALTTEXT attribute, UserDefinedAttribute, User-Defined Attribu
 
 $(H3 $(LNAME2 variadic, Variadic Functions))
 
-        $(P Functions taking a variable number of arguments are called
-        variadic functions. A variadic function can take one of
-        three forms:)
+        $(P $(I Variadic Functions) take a variable number of arguments.
+        There are three forms:)
 
         $(OL
-        $(LI C-style variadic functions)
-        $(LI Variadic functions with type info)
-        $(LI Typesafe variadic functions)
+        $(LI $(RELATIVE_LINK2 c_style_variadic_functions, C-style variadic functions))
+        $(LI $(RELATIVE_LINK2 d_style_variadic_functions, Variadic functions with type info))
+        $(LI $(RELATIVE_LINK2 typesafe-variadic_functions, Typesafe variadic functions))
         )
 
 
-$(H4 $(LNAME2 c_style_cariadic_functions, C-style Variadic Functions))
+$(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
 
-        $(P A C-style variadic function is declared as taking
-        a parameter of ... after the required function parameters.
-        It has non-D linkage, such as $(D extern (C)):)
+        $(P A C-style variadic function is declared with
+        a parameter `...` as the last function parameter.
+        It has non-D linkage, such as $(D extern (C)).)
 
-------
-extern (C) void foo(int x, int y, ...);
+        $(P To access the variadic arguments,
+        import the standard library
+        module $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)).
+        )
 
-foo(3, 4);      // ok
-foo(3, 4, 6.8); // ok, one variadic argument
-foo(2);         // error, y is a required argument
-------
+        ---
+        import core.stdc.stdarg;
+
+        extern (C) void dry(int x, int y, ...); // C-style Variadic Function
+
+        void spin()
+        {
+            dry(3, 4);      // ok, no variadic arguments
+            dry(3, 4, 6.8); // ok, one variadic argument
+            dry(2);         // error, no argument for parameter y
+        }
+        ---
 
         $(P There must be at least one non-variadic parameter declared.)
 
-------
-extern (C) int def(...); // error, must have at least one parameter
-------
+        ---
+        extern (C) int def(...); // error, must have at least one parameter
+        ---
 
         $(P
         C-style variadic functions match the C calling convention for
-        variadic functions, and is most useful for calling C library
+        variadic functions, and can call C Standard library
         functions like $(D printf).
-    )
+        )
 
-    $(P C-style variadic functions cannot be marked as $(D @safe).)
+        ---
+        extern (C) int printf(const(char)*, ...);
 
-    $(P Access to variadic arguments is done using the standard library
-    module $(D core.stdc.stdarg).
-    )
+        void main()
+        {
+            printf("hello world\n");
+        }
+        ---
 
-------
-import core.stdc.stdarg;
+        $(P C-style variadic functions cannot be marked as $(D @safe).)
 
-void test()
-{
-    foo(3, 4, 5);   // first variadic argument is 5
-}
 
-void foo(int x, int y, ...)
-{
-    va_list args;
+        ---
+        void wash()
+        {
+            rinse(3, 4, 5);   // first variadic argument is 5
+        }
 
-    va_start(args, y);  // y is the last named parameter
-
-    int z;
-    va_arg(args, z);  // z is set to 5
-}
-------
+        import core.stdc.stdarg;
+        extern (C) void rinse(int x, int y, ...)
+        {
+            va_list args;
+            va_start(args, y); // y is the last named parameter
+            int z;
+            va_arg(args, z);   // z is set to 5
+            va_end(args);
+        }
+        ---
 
 
 $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
