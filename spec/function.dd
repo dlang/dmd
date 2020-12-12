@@ -1602,7 +1602,7 @@ $(H3 $(LNAME2 scope-parameters, Scope Parameters))
     (e.g. by being assigned to a global variable). It has no effect for non-reference types.
     `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
     semantics must be manually enforced.)
-    $(P $(B Note): `scope` escape analysis is currently only done by `dmd`
+    $(NOTE `scope` escape analysis is currently only done by the `dmd` compiler
     when the `-dip1000` switch is passed.)
 
 ---
@@ -1632,7 +1632,7 @@ int* balin(scope int* q, int* r)
     literal or a $(GLINK2 expression, NewExpression) to a scope parameter may be allowed in a
     `@nogc` context, depending on the compiler implementation.)
 
-$(H4 $(LNAME2 return-scope-parameters, Return Scope Parameters))
+$(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
 
         $(P Parameters marked as `return scope` that contain indirections
         can only escape those indirections via the function's return value.)
@@ -1693,13 +1693,13 @@ class C
         $(P Template functions, auto functions, nested functions and lambdas can deduce
         the `return scope` attribute.)
 
-$(H4 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
+$(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
 
         $(P Parameters marked as `ref return scope` come in two forms:)
 
 ---
 U xerxes(ref return scope V v);      // (1) ref and return scope
-ref U xerxes(ref return scope V v);  // (2) return ref and scope
+ref U sargon(ref return scope V v);  // (2) return ref and scope
 ---
 
         $(P The first form attaches the `return` to the `scope`, and has
