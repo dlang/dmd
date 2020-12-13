@@ -1103,10 +1103,10 @@ $(H2 $(LNAME2 inline-functions, Inline Functions))
 
 $(H2 $(LNAME2 function-overloading, Function Overloading))
 
-        $(P Functions are overloaded based on how well the arguments
-        to a function can match up with the parameters.
-        The function with the $(I best) match is selected.
-        The levels of matching are:
+        $(P $(I Function overloading) occurs when two or more functions in the same scope
+        have the same name.
+        The function selected is the one that is the $(I best match) to the arguments.
+        The matching levels are:
         )
 
         $(OL
@@ -1117,27 +1117,26 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
         $(LI exact match)
         )
 
-        $(P Each argument (including any $(CODE this) pointer) is
-        compared against the function's corresponding parameter, to
+        $(P Each argument (including any $(CODE this) reference) is
+        compared against the function's corresponding parameter to
         determine the match level for that argument. The match level
         for a function is the $(I worst) match level of each of its
         arguments.)
 
         $(P Literals do not match $(CODE ref) or $(CODE out) parameters.)
 
-
         $(P If two or more functions have the same match level,
         then $(LNAME2 partial-ordering, $(I partial ordering))
-        is used to try to find the best match.
+        is used to disambiguate to find the best match.
         Partial ordering finds the most specialized function.
         If neither function is more specialized than the other,
         then it is an ambiguity error.
-        Partial ordering is determined for functions $(CODE f())
-        and $(CODE g()) by taking the parameter types of $(CODE f()),
+        Partial ordering is determined for functions $(I f)
+        and $(I g) by taking the parameter types of $(I f),
         constructing a list of arguments by taking the default values
-        of those types, and attempting to match them against $(CODE g()).
-        If it succeeds, then $(CODE g()) is at least as specialized
-        as $(CODE f()).
+        of those types, and attempting to match them against $(I g).
+        If it succeeds, then $(I g) is at least as specialized
+        as $(I f).
         For example:
         )
 ---
@@ -1150,7 +1149,7 @@ void foo(B);
 void test()
 {
     C c;
-    /* Both foo(A) and foo(B) match with implicit conversion rules.
+    /* Both foo(A) and foo(B) match with implicit conversions (level 2).
      * Applying partial ordering rules,
      * foo(B) cannot be called with an A, and foo(A) can be called
      * with a B. Therefore, foo(B) is more specialized, and is selected.
@@ -1163,16 +1162,11 @@ void test()
         )
 
 
-        $(P Functions defined with non-D linkage cannot be overloaded.
-        This is because the name mangling might not take the parameter types
-        into account.
-        )
-
 $(H3 $(LNAME2 overload-sets, Overload Sets))
 
         $(P Functions declared at the same scope overload against each
         other, and are called an $(I Overload Set).
-        A typical example of an overload set are functions defined
+        An example of an overload set are functions defined
         at module level:
         )
 
@@ -1185,7 +1179,8 @@ void foo(long i) { }
 )
 
         $(P $(CODE A.foo()) and $(CODE A.foo(long)) form an overload set.
-        A different module can also define functions with the same name:
+        A different module can also define another overload set of
+        functions with the same name:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1199,7 +1194,8 @@ void foo(int i) { }
 
         $(P and A and B can be imported by a third module, C.
         Both overload sets, the $(CODE A.foo) overload set and the $(CODE B.foo)
-        overload set, are found. An instance of $(CODE foo) is selected
+        overload set, are found when searching for symbol `foo`.
+        An instance of $(CODE foo) is selected
         based on it matching in exactly one overload set:
         )
 
@@ -1243,6 +1239,7 @@ void bar(C c)
     A.foo(1); // calls A.foo(long)
 }
 ---
+
 
 $(H2 $(LNAME2 parameters, Function Parameters))
 
