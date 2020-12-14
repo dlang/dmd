@@ -95,6 +95,7 @@ class Nspace;
 class Declaration;
 class StorageClassDeclaration;
 class ExpressionDsymbol;
+class AliasAssign;
 class ThisDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
@@ -879,6 +880,7 @@ public:
     virtual Declaration* isDeclaration();
     virtual StorageClassDeclaration* isStorageClassDeclaration();
     virtual ExpressionDsymbol* isExpressionDsymbol();
+    virtual AliasAssign* isAliasAssign();
     virtual ThisDeclaration* isThisDeclaration();
     virtual TypeInfoDeclaration* isTypeInfoDeclaration();
     virtual TupleDeclaration* isTupleDeclaration();
@@ -1411,6 +1413,7 @@ public:
     virtual void visit(StaticAssert* s);
     virtual void visit(DebugSymbol* s);
     virtual void visit(VersionSymbol* s);
+    virtual void visit(AliasAssign* s);
     virtual void visit(Package* s);
     virtual void visit(EnumDeclaration* s);
     virtual void visit(AggregateDeclaration* s);
@@ -2549,7 +2552,12 @@ public:
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int32_t inuse;
+    int16_t inuse;
+    uint8_t adFlags;
+    enum : int32_t { wasRead = 1 };
+
+    enum : int32_t { ignoreRead = 2 };
+
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const;
     d_uns64 size(const Loc& loc);
@@ -3217,6 +3225,17 @@ public:
     Expression* exp;
     ExpressionDsymbol(Expression* exp);
     ExpressionDsymbol* isExpressionDsymbol();
+};
+
+class AliasAssign final : public Dsymbol
+{
+public:
+    Identifier* ident;
+    Type* type;
+    Dsymbol* syntaxCopy(Dsymbol* s);
+    AliasAssign* isAliasAssign();
+    const char* kind() const;
+    void accept(Visitor* v);
 };
 
 class DsymbolTable final : public RootObject
@@ -5771,6 +5790,7 @@ public:
     virtual void visit(typename AST::StaticAssert s);
     virtual void visit(typename AST::DebugSymbol s);
     virtual void visit(typename AST::VersionSymbol s);
+    virtual void visit(typename AST::AliasAssign s);
     virtual void visit(typename AST::Package s);
     virtual void visit(typename AST::EnumDeclaration s);
     virtual void visit(typename AST::AggregateDeclaration s);

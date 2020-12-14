@@ -4435,6 +4435,24 @@ final class Parser(AST) : Lexer
         if (!comment)
             comment = token.blockComment.ptr;
 
+        /* Look for AliasAssignment:
+         *   identifier = type;
+         */
+        if (token.value == TOK.identifier && peekNext() == TOK.assign)
+        {
+            const loc = token.loc;
+            auto ident = token.ident;
+            nextToken();
+            nextToken();        // advance past =
+            auto t = parseType();
+            AST.Dsymbol s = new AST.AliasAssign(loc, ident, t);
+            check(TOK.semicolon);
+            addComment(s, comment);
+            auto a = new AST.Dsymbols();
+            a.push(s);
+            return a;
+        }
+
         if (token.value == TOK.alias_)
         {
             const loc = token.loc;

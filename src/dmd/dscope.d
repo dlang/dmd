@@ -138,6 +138,9 @@ struct Scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
+    AliasDeclaration aliasAsg; /// if set, then aliasAsg is being assigned a new value,
+                               /// do not set wasRead for it
+
     extern (D) __gshared Scope* freelist;
 
     extern (D) static Scope* alloc()

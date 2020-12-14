@@ -100,7 +100,8 @@ public:
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int inuse;                  // used to detect cycles
+    short inuse;                // used to detect cycles
+    uint8_t adFlags;
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const;
