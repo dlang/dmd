@@ -594,7 +594,7 @@ struct ASTBase
 
     extern (C++) class Import : Dsymbol
     {
-        Identifiers* packages;
+        Identifier[] packages;
         Identifier id;
         Identifier aliasId;
         int isstatic;
@@ -603,7 +603,7 @@ struct ASTBase
         Identifiers names;
         Identifiers aliases;
 
-        extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
+        extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
         {
             super(null);
             this.loc = loc;
@@ -618,10 +618,10 @@ struct ASTBase
                 // import [cstdio] = std.stdio;
                 this.ident = aliasId;
             }
-            else if (packages && packages.dim)
+            else if (packages.length > 0)
             {
                 // import [std].stdio;
-                this.ident = (*packages)[0];
+                this.ident = packages[0];
             }
             else
             {
@@ -1399,7 +1399,7 @@ struct ASTBase
     extern (C++) final class VisibilityDeclaration : AttribDeclaration
     {
         Visibility visibility;
-        Identifiers* pkg_identifiers;
+        Identifier[] pkg_identifiers;
 
         extern (D) this(const ref Loc loc, Visibility v, Dsymbols* decl)
         {
@@ -1407,7 +1407,7 @@ struct ASTBase
             this.loc = loc;
             this.visibility = v;
         }
-        extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -6570,11 +6570,11 @@ struct ASTBase
     {
         Loc loc;
         Identifier id;
-        Identifiers *packages;
+        Identifier[] packages;
         bool isdeprecated;
         Expression msg;
 
-        extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
+        extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Expression msg, bool isdeprecated)
         {
             this.loc = loc;
             this.packages = packages;
@@ -6586,14 +6586,10 @@ struct ASTBase
         extern (C++) const(char)* toChars() const
         {
             OutBuffer buf;
-            if (packages && packages.dim)
+            foreach (const pid; packages)
             {
-                for (size_t i = 0; i < packages.dim; i++)
-                {
-                    const Identifier pid = (*packages)[i];
-                    buf.writestring(pid.toString());
-                    buf.writeByte('.');
-                }
+                buf.writestring(pid.toString());
+                buf.writeByte('.');
             }
             buf.writestring(id.toString());
             return buf.extractChars();

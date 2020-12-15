@@ -30,7 +30,7 @@ extern (C++) final class Import : Dsymbol
 {
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
-    Identifiers* packages;  // array of Identifier's representing packages
+    Identifier[] packages;  // array of Identifier's representing packages
     Identifier id;          // module Identifier
     Identifier aliasId;
     int isstatic;           // !=0 if static import
@@ -46,7 +46,7 @@ extern (C++) final class Import : Dsymbol
     // corresponding AliasDeclarations for alias=name pairs
     AliasDeclarations aliasdecls;
 
-    extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
+    extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
     {
         Identifier selectIdent()
         {
@@ -56,10 +56,10 @@ extern (C++) final class Import : Dsymbol
                 // import [aliasId] = std.stdio;
                 return aliasId;
             }
-            else if (packages && packages.dim)
+            else if (packages.length > 0)
             {
                 // import [std].stdio;
-                return (*packages)[0];
+                return packages[0];
             }
             else
             {
@@ -74,13 +74,9 @@ extern (C++) final class Import : Dsymbol
         version (none)
         {
             printf("Import::Import(");
-            if (packages && packages.dim)
+            foreach (id; packages)
             {
-                for (size_t i = 0; i < packages.dim; i++)
-                {
-                    Identifier id = (*packages)[i];
-                    printf("%s.", id.toChars());
-                }
+                printf("%s.", id.toChars());
             }
             printf("%s)\n", id.toChars());
         }
@@ -252,12 +248,12 @@ extern (C++) final class Import : Dsymbol
     extern (D) void addPackageAccess(ScopeDsymbol scopesym)
     {
         //printf("Import::addPackageAccess('%s') %p\n", toPrettyChars(), this);
-        if (packages)
+        if (packages.length > 0)
         {
             // import a.b.c.d;
             auto p = pkg; // a
             scopesym.addAccessiblePackage(p, visibility);
-            foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
+            foreach (id; packages[1 .. $]) // [b, c]
             {
                 p = cast(Package) p.symtab.lookup(id);
                 // https://issues.dlang.org/show_bug.cgi?id=17991

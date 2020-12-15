@@ -582,7 +582,7 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
 extern (C++) final class VisibilityDeclaration : AttribDeclaration
 {
     Visibility visibility;          /// the visibility
-    Identifiers* pkg_identifiers;   /// identifiers for `package(foo.bar)` or null
+    Identifier[] pkg_identifiers;   /// identifiers for `package(foo.bar)` or null
 
     /**
      * Params:
@@ -603,12 +603,12 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      *  pkg_identifiers = list of identifiers for a qualified package name
      *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
     {
         super(loc, null, decl);
         this.visibility.kind = Visibility.Kind.package_;
         this.pkg_identifiers = pkg_identifiers;
-        if (pkg_identifiers !is null && pkg_identifiers.dim > 0)
+        if (pkg_identifiers.length > 0)
         {
             Dsymbol tmp;
             Package.resolve(pkg_identifiers, &tmp, null);

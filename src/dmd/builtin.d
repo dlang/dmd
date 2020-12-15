@@ -92,12 +92,10 @@ BUILTIN determine_builtin(FuncDeclaration func)
     if (id2 != Id.math && id2 != Id.bitop)
         return BUILTIN.unimp;
 
-    if (!md.packages)
-        return BUILTIN.unimp;
     if (md.packages.length != 1)
         return BUILTIN.unimp;
 
-    const id1 = (*md.packages)[0];
+    const id1 = md.packages[0];
     if (id1 != Id.core && id1 != Id.std)
         return BUILTIN.unimp;
     const id3 = fd.ident;

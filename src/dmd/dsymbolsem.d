@@ -1647,6 +1647,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     scopesym.importScope(imp.mod, imp.visibility);
                 }
 
+
                 imp.addPackageAccess(scopesym);
             }
 
@@ -1732,13 +1733,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 ob.writeByte(' ');
             }
             ob.writestring(": ");
-            if (imp.packages)
+            foreach (pid; imp.packages)
             {
-                for (size_t i = 0; i < imp.packages.dim; i++)
-                {
-                    Identifier pid = (*imp.packages)[i];
-                    ob.printf("%s.", pid.toChars());
-                }
+                ob.printf("%s.", pid.toChars());
             }
             ob.writestring(imp.id.toString());
             ob.writestring(" (");

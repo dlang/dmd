@@ -2031,7 +2031,7 @@ class VisibilityDeclaration final : public AttribDeclaration
 {
 public:
     Visibility visibility;
-    Array<Identifier* >* pkg_identifiers;
+    _d_dynamicArray< Identifier* > pkg_identifiers;
     VisibilityDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -2897,7 +2897,7 @@ public:
 class Import final : public Dsymbol
 {
 public:
-    Array<Identifier* >* packages;
+    _d_dynamicArray< Identifier* > packages;
     Identifier* id;
     Identifier* aliasId;
     int32_t isstatic;
@@ -3060,7 +3060,7 @@ struct ModuleDeclaration
 {
     Loc loc;
     Identifier* id;
-    Array<Identifier* >* packages;
+    _d_dynamicArray< Identifier* > packages;
     bool isdeprecated;
     Expression* msg;
     const char* toChars() const;
@@ -7948,4 +7948,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-
