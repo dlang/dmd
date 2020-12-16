@@ -126,7 +126,8 @@ enum CppStdRevision : uint
     cpp98 = 1997_11,
     cpp11 = 2011_03,
     cpp14 = 2014_02,
-    cpp17 = 2017_03
+    cpp17 = 2017_03,
+    cpp20 = 2020_02,
 }
 
 /// Configuration for the C++ header generator
