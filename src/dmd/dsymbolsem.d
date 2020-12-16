@@ -6705,7 +6705,10 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     normalRet();
 }
 
-// function used to perform semantic on AliasDeclaration
+/********************
+ * Perform semantic on AliasAssignment.
+ * Has a lot of similarities to aliasSemantic(). Perhaps they should share code.
+ */
 private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
 {
     //printf("AliasAssign::semantic() %p,  %s\n", ds, ds.ident.toChars());
@@ -6718,48 +6721,55 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         return;
     }
 
-    Dsymbol scopesym;
-    Dsymbol as = sc.search(ds.loc, ds.ident, &scopesym);
-    if (!as)
+    /* Find the AliasDeclaration corresponding to ds.
+     * Returns: AliasDeclaration if found, null if error
+     */
+    AliasDeclaration findAliasDeclaration(AliasAssign ds, Scope* sc)
     {
-        ds.error("undefined identifier `%s`", ds.ident.toChars());
-        return errorRet();
-    }
-    if (as.errors)
-    {
-        return errorRet();
+        Dsymbol scopesym;
+        Dsymbol as = sc.search(ds.loc, ds.ident, &scopesym);
+        if (!as)
+        {
+            ds.error("undefined identifier `%s`", ds.ident.toChars());
+            return null;
+        }
+        if (as.errors)
+            return null;
+
+        auto ad = as.isAliasDeclaration();
+        if (!ad)
+        {
+            ds.error("identifier `%s` must be an alias declaration", as.toChars());
+            return null;
+        }
+
+        if (ad.overnext)
+        {
+            ds.error("cannot reassign overloaded alias");
+            return null;
+        }
+
+        // Check constraints on the parent
+        auto adParent = ad.toParent();
+        if (adParent != ds.toParent())
+        {
+            if (!adParent)
+                adParent = ds.toParent();
+            error(ds.loc, "`%s` must have same parent `%s` as alias `%s`", ds.ident.toChars(), adParent.toChars(), ad.toChars());
+            return null;
+        }
+        if (!adParent.isTemplateInstance())
+        {
+            ds.error("must be a member of a template");
+            return null;
+        }
+
+        return ad;
     }
 
-    AliasDeclaration aliassym = as.isAliasDeclaration();
+    auto aliassym = findAliasDeclaration(ds, sc);
     if (!aliassym)
-    {
-        ds.error("identifier `%s` must be an alias declaration", as.toChars());
         return errorRet();
-    }
-
-    if (aliassym.overnext)
-    {
-        ds.error("cannot reassign overloaded alias");
-        return errorRet();
-    }
-
-    auto aliassymParent = aliassym.toParent();
-    if (aliassymParent != ds.toParent())
-    {
-        ds.error("must have same parent `%s` as alias `%s`", aliassymParent.toChars(), aliassym.toChars());
-        return errorRet();
-    }
-    if (!aliassymParent.isTemplateInstance())
-    {
-        ds.error("must be a member of a template");
-        return errorRet();
-    }
-
-    if (!aliassym.type)
-    {
-        ds.error("alias assignment can only apply to type aliases");
-        return errorRet();
-    }
 
     if (aliassym.adFlags & Declaration.wasRead)
     {
@@ -6769,12 +6779,43 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         return errorRet();
     }
 
-    const errors = global.errors;
     aliassym.adFlags |= Declaration.ignoreRead; // temporarilly allow reads of aliassym
 
     const storage_class = sc.stc & (STC.deprecated_ | STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
 
-//<<>>
+    if (ds.aliassym)
+    {
+        auto fd = ds.aliassym.isFuncLiteralDeclaration();
+        auto td = ds.aliassym.isTemplateDeclaration();
+        if (fd && fd.semanticRun >= PASS.semanticdone)
+        {
+        }
+        else if (fd || td && td.literal)
+        {
+
+            Expression e = new FuncExp(ds.loc, ds.aliassym);
+            e = e.expressionSemantic(sc);
+            auto fe = e.isFuncExp();
+            if (!fe)
+                return errorRet();
+            ds.aliassym = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+        }
+        else if (ds.aliassym.isTemplateInstance())
+            ds.aliassym.dsymbolSemantic(sc);
+
+        aliassym.type = null;
+        aliassym.aliassym = ds.aliassym;
+        return;
+    }
+
+    /* Given:
+     *    abc = def;
+     * it is not knownable from the syntax whether `def` is a type or a symbol.
+     * It appears here as `ds.type`. Do semantic analysis on `def` to disambiguate.
+     */
+
+    const errors = global.errors;
+
     /* This section is needed because Type.resolve() will:
      *   const x = 3;
      *   alias y = x;
@@ -6808,12 +6849,18 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
 
         if (e)  // Try to convert Expression to Dsymbol
         {
-            s = getDsymbol(e);
-            if (!s)
+            // TupleExp is naturally converted to a TupleDeclaration
+            if (auto te = e.isTupleExp())
+                s = new TupleDeclaration(te.loc, ds.ident, cast(Objects*)te.exps);
+            else
             {
-                if (e.op != TOK.error)
-                    ds.error("cannot alias an expression `%s`", e.toChars());
-                return errorRet();
+                s = getDsymbol(e);
+                if (!s)
+                {
+                    if (e.op != TOK.error)
+                        ds.error("cannot alias an expression `%s`", e.toChars());
+                    return errorRet();
+                }
             }
         }
         ds.type = t;
@@ -6829,7 +6876,6 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
         aliassym.type = null;
         aliassym.aliassym = s;
-
         aliassym.storage_class |= sc.stc & STC.deprecated_;
         aliassym.visibility = sc.visibility;
         aliassym.userAttribDecl = sc.userAttribDecl;

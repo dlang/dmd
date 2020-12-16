@@ -3230,6 +3230,7 @@ class AliasAssign final : public Dsymbol
 public:
     Identifier* ident;
     Type* type;
+    Dsymbol* aliassym;
     AliasAssign* syntaxCopy(Dsymbol* s);
     AliasAssign* isAliasAssign();
     const char* kind() const;
