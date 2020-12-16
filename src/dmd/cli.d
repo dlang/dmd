@@ -334,6 +334,8 @@ dmd -cov -unittest myprog.d
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`)
                 $(LI $(I c++17): Use C++17 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
+                $(LI $(I c++20): Use C++20 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`)
             )",
         ),
         Option("extern-std=[h|help|?]",
@@ -912,6 +914,7 @@ struct CLIUsage
   =c++11                Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`
   =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
   =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
+  =c++20                Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`
 ";
 
     /// Options supported by -HC

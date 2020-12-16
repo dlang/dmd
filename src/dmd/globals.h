@@ -106,7 +106,8 @@ enum CppStdRevision
     CppStdRevisionCpp98 = 199711,
     CppStdRevisionCpp11 = 201103,
     CppStdRevisionCpp14 = 201402,
-    CppStdRevisionCpp17 = 201703
+    CppStdRevisionCpp17 = 201703,
+    CppStdRevisionCpp20 = 202002
 };
 
 /// Configuration for the C++ header generator

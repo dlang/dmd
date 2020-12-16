@@ -6971,6 +6971,7 @@ enum class CppStdRevision : uint32_t
     cpp11 = 201103u,
     cpp14 = 201402u,
     cpp17 = 201703u,
+    cpp20 = 202002u,
 };
 
 enum class CxxHeaderMode : uint32_t

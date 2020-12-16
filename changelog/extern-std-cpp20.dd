@@ -1,0 +1,5 @@
+The compiler now accepts `-extern-std=c++20`
+
+The compiler now accepts c++20 as a supported standard for `-extern-std=`.
+Currently this only changes the value of `__traits(getTargetInfo, "cppStd")`,
+though new types may be added in the future.
