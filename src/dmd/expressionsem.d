@@ -2486,9 +2486,11 @@ Package resolveIsPackage(Dsymbol sym)
 private Module loadStdMath()
 {
     __gshared Import impStdMath = null;
+    __gshared Identifier[1] stdID;
     if (!impStdMath)
     {
-        auto s = new Import(Loc.initial, [Id.std], Id.math, null, false);
+        stdID[0] = Id.std;
+        auto s = new Import(Loc.initial, stdID[], Id.math, null, false);
         // Module.load will call fatal() if there's no std.math available.
         // Gag the error here, pushing the error handling to the caller.
         uint errors = global.startGagging();

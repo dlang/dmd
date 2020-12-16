@@ -34,6 +34,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.parse;
+import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
@@ -388,7 +389,8 @@ extern (C++) class Package : ScopeDsymbol
 
         Identifier[] packages;
         for (Dsymbol s = this.parent; s; s = s.parent)
-            packages = s.ident ~ packages;
+            packages ~= s.ident;
+        reverse(packages);
 
         if (lookForSourceFile(getFilename(packages, ident)))
             Module.load(Loc(), packages, this.ident);
