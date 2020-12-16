@@ -1445,7 +1445,10 @@ public:
     {
         buf.writestring(d.ident.toString());
         buf.writestring(" = ");
-        typeToBuffer(d.type, null, buf, hgs);
+        if (d.aliassym)
+            d.aliassym.accept(this);
+        else // d.type
+            typeToBuffer(d.type, null, buf, hgs);
         buf.writeByte(';');
         buf.writenl();
     }

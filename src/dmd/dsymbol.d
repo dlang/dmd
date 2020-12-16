@@ -2158,24 +2158,30 @@ extern (C++) final class ExpressionDsymbol : Dsymbol
 /**********************************************
  * Encapsulate assigning to an alias:
  *      `identifier = type;`
+ *      `identifier = symbol;`
  * where `identifier` is an AliasDeclaration in scope.
  */
 extern (C++) final class AliasAssign : Dsymbol
 {
     Identifier ident; /// Dsymbol's ident will be null, as this class is anonymous
     Type type;        /// replace previous RHS of AliasDeclaration with `type`
+    Dsymbol aliassym; /// replace previous RHS of AliasDeclaration with `aliassym`
+                      /// only one of type and aliassym can be != null
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type type)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliasssym)
     {
         super(loc, null);
         this.ident = ident;
         this.type = type;
+        this.aliassym = aliassym;
     }
 
     override AliasAssign syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        AliasAssign aa = new AliasAssign(loc, ident, type.syntaxCopy());
+        AliasAssign aa = new AliasAssign(loc, ident,
+                type     ? type.syntaxCopy()         : null,
+                aliassym ? aliassym.syntaxCopy(null) : null);
         return aa;
     }
 
@@ -2186,7 +2192,7 @@ extern (C++) final class AliasAssign : Dsymbol
 
     override const(char)* kind() const
     {
-        return "aliasAssign";
+        return "alias assignment";
     }
 
     override void accept(Visitor v)

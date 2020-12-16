@@ -784,7 +784,10 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.AliasAssign d)
     {
         //printf("Visting AliasAssign\n");
-        visitType(d.type);
+        if (d.aliassym)
+            d.aliassym.accept(this);
+        else
+            visitType(d.type);
     }
 
     override void visit(AST.VarDeclaration d)

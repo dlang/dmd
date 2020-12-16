@@ -529,13 +529,15 @@ struct ASTBase
     {
         Identifier ident;
         Type type;
+        Dsymbol aliassym;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Type type)
+        extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym)
         {
             super(null);
             this.loc = loc;
             this.ident = ident;
             this.type = type;
+            this.aliassym = aliassym;
         }
 
         override inout(AliasAssign) isAliasAssign() inout

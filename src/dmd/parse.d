@@ -4442,7 +4442,7 @@ final class Parser(AST) : Lexer
             nextToken();
             nextToken();        // advance past =
             auto t = parseType();
-            AST.Dsymbol s = new AST.AliasAssign(loc, ident, t);
+            AST.Dsymbol s = new AST.AliasAssign(loc, ident, t, null);
             check(TOK.semicolon);
             addComment(s, comment);
             auto a = new AST.Dsymbols();
