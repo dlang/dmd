@@ -5978,7 +5978,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     if (tempdecl.isTrivialAliasSeq)
     {
         tempinst.inst = tempinst;
-        return aliasSeqInstanceSemantic(tempinst, sc, fargs, tempdecl);
+        return aliasSeqInstanceSemantic(tempinst, sc, tempdecl);
     }
 
     /* Greatly simplified semantic processing for Alias templates
@@ -5986,7 +5986,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     else if (tempdecl.isTrivialAlias)
     {
         tempinst.inst = tempinst;
-        return aliasInstanceSemantic(tempinst, sc, fargs, tempdecl);
+        return aliasInstanceSemantic(tempinst, sc, tempdecl);
     }
 
     /* See if there is an existing TemplateInstantiation that already
@@ -6506,7 +6506,7 @@ Laftersemantic:
  * This is a greatly simplified version of templateInstanceSemantic().
  */
 private
-void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs, TemplateDeclaration tempdecl)
+void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl)
 {
     //printf("[%s] aliasSeqInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
@@ -6531,7 +6531,7 @@ void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
  * This is a greatly simplified version of templateInstanceSemantic().
  */
 private
-void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs, TemplateDeclaration tempdecl)
+void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl)
 {
     //printf("[%s] aliasInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
