@@ -835,28 +835,28 @@ public:
         property("size_t", size_t.sizeof);
         propertyStart("platforms");
         arrayStart();
-        if (global.params.isWindows)
+        if (global.params.targetOS == TargetOS.Windows)
         {
             item("windows");
         }
         else
         {
             item("posix");
-            if (global.params.isLinux)
+            if (global.params.targetOS == TargetOS.linux)
                 item("linux");
-            else if (global.params.isOSX)
+            else if (global.params.targetOS == TargetOS.OSX)
                 item("osx");
-            else if (global.params.isFreeBSD)
+            else if (global.params.targetOS == TargetOS.FreeBSD)
             {
                 item("freebsd");
                 item("bsd");
             }
-            else if (global.params.isOpenBSD)
+            else if (global.params.targetOS == TargetOS.OpenBSD)
             {
                 item("openbsd");
                 item("bsd");
             }
-            else if (global.params.isSolaris)
+            else if (global.params.targetOS == TargetOS.Solaris)
             {
                 item("solaris");
                 item("bsd");

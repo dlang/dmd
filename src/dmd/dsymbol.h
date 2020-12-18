@@ -68,6 +68,7 @@ class ArrayScopeSymbol;
 class SymbolDeclaration;
 class Expression;
 class ExpressionDsymbol;
+class AliasAssign;
 class OverloadSet;
 struct AA;
 #ifdef IN_GCC
@@ -238,6 +239,7 @@ public:
     virtual Declaration *isDeclaration() { return NULL; }
     virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
     virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
+    virtual AliasAssign *isAliasAssign() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }

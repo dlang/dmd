@@ -95,6 +95,7 @@ class Nspace;
 class Declaration;
 class StorageClassDeclaration;
 class ExpressionDsymbol;
+class AliasAssign;
 class ThisDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
@@ -779,7 +780,7 @@ struct Loc
     const char* filename;
     uint32_t linnum;
     uint32_t charnum;
-    const char* toChars(bool showColumns = global.params.showColumns, uint8_t messageStyle = global.params.messageStyle) const;
+    const char* toChars(bool showColumns = global.params.showColumns, uint8_t messageStyle = static_cast<uint8_t>(global.params.messageStyle)) const;
     bool equals(const Loc& loc) const;
     Loc() :
         filename(),
@@ -879,6 +880,7 @@ public:
     virtual Declaration* isDeclaration();
     virtual StorageClassDeclaration* isStorageClassDeclaration();
     virtual ExpressionDsymbol* isExpressionDsymbol();
+    virtual AliasAssign* isAliasAssign();
     virtual ThisDeclaration* isThisDeclaration();
     virtual TypeInfoDeclaration* isTypeInfoDeclaration();
     virtual TupleDeclaration* isTupleDeclaration();
@@ -1137,7 +1139,7 @@ struct ObjcClassDeclaration
     Identifier* identifier;
     ClassDeclaration* classDeclaration;
     ClassDeclaration* metaclass;
-    Array<FuncDeclaration* >* methodList;
+    _d_dynamicArray< FuncDeclaration* > methodList;
     bool isRootClass() const;
     ObjcClassDeclaration() :
         isMeta(false),
@@ -1411,6 +1413,7 @@ public:
     virtual void visit(StaticAssert* s);
     virtual void visit(DebugSymbol* s);
     virtual void visit(VersionSymbol* s);
+    virtual void visit(AliasAssign* s);
     virtual void visit(Package* s);
     virtual void visit(EnumDeclaration* s);
     virtual void visit(AggregateDeclaration* s);
@@ -1725,9 +1728,11 @@ struct ObjcFuncDeclaration
 {
     ObjcSelector* selector;
     VarDeclaration* selectorParameter;
+    bool isOptional;
     ObjcFuncDeclaration() :
         selector(),
-        selectorParameter()
+        selectorParameter(),
+        isOptional()
     {
     }
 };
@@ -2184,15 +2189,17 @@ extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression* 
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
-enum class TargetOS
+enum class TargetOS : uint8_t
 {
-    all = 2147483647,
-    linux = 1,
-    windows = 2,
-    macOS = 4,
-    freeBSD = 8,
-    solaris = 16,
-    dragonFlyBSD = 32,
+    linux = 1u,
+    Windows = 2u,
+    OSX = 4u,
+    OpenBSD = 8u,
+    FreeBSD = 16u,
+    Solaris = 32u,
+    DragonFlyBSD = 64u,
+    all = 119u,
+    Posix = 117u,
 };
 
 extern Module* rootHasMain;
@@ -2425,6 +2432,7 @@ public:
     ObjcClassDeclaration objc;
     Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
+    const char* toPrettyChars(bool qualifyTypes = false);
     Dsymbol* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf2(ClassDeclaration* cd);
@@ -2544,7 +2552,12 @@ public:
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int32_t inuse;
+    int16_t inuse;
+    uint8_t adFlags;
+    enum : int32_t { wasRead = 1 };
+
+    enum : int32_t { ignoreRead = 2 };
+
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const;
     d_uns64 size(const Loc& loc);
@@ -2656,7 +2669,7 @@ public:
     bool doNotInferScope;
     bool doNotInferReturn;
     uint8_t isdataseg;
-    static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = STC::undefined_);
+    static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     Dsymbol* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
     const char* kind() const;
@@ -3212,6 +3225,17 @@ public:
     Expression* exp;
     ExpressionDsymbol(Expression* exp);
     ExpressionDsymbol* isExpressionDsymbol();
+};
+
+class AliasAssign final : public Dsymbol
+{
+public:
+    Identifier* ident;
+    Type* type;
+    Dsymbol* syntaxCopy(Dsymbol* s);
+    AliasAssign* isAliasAssign();
+    const char* kind() const;
+    void accept(Visitor* v);
 };
 
 class DsymbolTable final : public RootObject
@@ -4780,7 +4804,7 @@ public:
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
-    bool checkNrvo();
+    bool checkNRVO();
     FuncDeclaration* isFuncDeclaration();
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
@@ -5696,11 +5720,13 @@ public:
     static void deinitialize();
     virtual void setObjc(ClassDeclaration* cd) = 0;
     virtual void setObjc(InterfaceDeclaration* ) = 0;
-    virtual void deprecate(InterfaceDeclaration* interfaceDeclaration) const = 0;
+    virtual const char* toPrettyChars(ClassDeclaration* classDeclaration, bool qualifyTypes) const = 0;
     virtual void setSelector(FuncDeclaration* , Scope* sc) = 0;
     virtual void validateSelector(FuncDeclaration* fd) = 0;
     virtual void checkLinkage(FuncDeclaration* fd) = 0;
     virtual bool isVirtual(const FuncDeclaration* const fd) const = 0;
+    virtual void setAsOptional(FuncDeclaration* functionDeclaration, Scope* sc) const = 0;
+    virtual void validateOptional(FuncDeclaration* functionDeclaration) const = 0;
     virtual ClassDeclaration* getParent(FuncDeclaration* fd, ClassDeclaration* cd) const = 0;
     virtual void addToClassMethodList(FuncDeclaration* fd, ClassDeclaration* cd) const = 0;
     virtual AggregateDeclaration* isThis(FuncDeclaration* funcDeclaration) const = 0;
@@ -5764,6 +5790,7 @@ public:
     virtual void visit(typename AST::StaticAssert s);
     virtual void visit(typename AST::DebugSymbol s);
     virtual void visit(typename AST::VersionSymbol s);
+    virtual void visit(typename AST::AliasAssign s);
     virtual void visit(typename AST::Package s);
     virtual void visit(typename AST::EnumDeclaration s);
     virtual void visit(typename AST::AggregateDeclaration s);
@@ -6861,6 +6888,19 @@ enum class HIGHLIGHT : uint8_t
     Other = 6u,
 };
 
+enum class TargetOS : uint8_t
+{
+    linux = 1u,
+    Windows = 2u,
+    OSX = 4u,
+    OpenBSD = 8u,
+    FreeBSD = 16u,
+    Solaris = 32u,
+    DragonFlyBSD = 64u,
+    all = 119u,
+    Posix = 117u,
+};
+
 enum class TARGET : bool
 {
     Linux = true,
@@ -6931,6 +6971,7 @@ enum class CppStdRevision : uint32_t
     cpp11 = 201103u,
     cpp14 = 201402u,
     cpp17 = 201703u,
+    cpp20 = 202002u,
 };
 
 enum class CxxHeaderMode : uint32_t
@@ -6966,13 +7007,7 @@ struct Param
     bool map;
     bool is64bit;
     bool isLP64;
-    bool isLinux;
-    bool isOSX;
-    bool isWindows;
-    bool isFreeBSD;
-    bool isOpenBSD;
-    bool isDragonFlyBSD;
-    bool isSolaris;
+    TargetOS targetOS;
     bool hasObjectiveC;
     bool mscoff;
     DiagnosticReporting useDeprecated;
@@ -7067,6 +7102,8 @@ struct Param
     _d_dynamicArray< const char > mscrtlib;
     _d_dynamicArray< const char > moduleDepsFile;
     OutBuffer* moduleDeps;
+    _d_dynamicArray< const char > makeDepsFile;
+    OutBuffer* makeDeps;
     MessageStyle messageStyle;
     bool debugb;
     bool debugc;
@@ -7111,13 +7148,6 @@ struct Param
         map(),
         is64bit(true),
         isLP64(),
-        isLinux(),
-        isOSX(),
-        isWindows(),
-        isFreeBSD(),
-        isOpenBSD(),
-        isDragonFlyBSD(),
-        isSolaris(),
         hasObjectiveC(),
         mscoff(false),
         useDeprecated((DiagnosticReporting)1u),
@@ -7210,6 +7240,8 @@ struct Param
         mscrtlib(),
         moduleDepsFile(),
         moduleDeps(),
+        makeDepsFile(),
+        makeDeps(),
         messageStyle((MessageStyle)0u),
         debugb(),
         debugc(),
@@ -7273,19 +7305,19 @@ struct Global
     ~Global();
     Global() :
         inifilename(),
-        mars_ext("d"),
+        mars_ext(1, "d"),
         obj_ext(),
         lib_ext(),
         dll_ext(),
-        doc_ext("html"),
-        ddoc_ext("ddoc"),
-        hdr_ext("di"),
-        cxxhdr_ext("h"),
-        json_ext("json"),
-        map_ext("map"),
+        doc_ext(4, "html"),
+        ddoc_ext(4, "ddoc"),
+        hdr_ext(2, "di"),
+        cxxhdr_ext(1, "h"),
+        json_ext(4, "json"),
+        map_ext(3, "map"),
         run_noext(),
-        copyright("Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
-        written("written by Walter Bright"),
+        copyright(73, "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved"),
+        written(24, "written by Walter Bright"),
         path(),
         filePath(),
         vendor(),
@@ -7717,6 +7749,7 @@ struct Id
     static Identifier* char_traits;
     static Identifier* udaGNUAbiTag;
     static Identifier* udaSelector;
+    static Identifier* udaOptional;
     static Identifier* NULL;
     static Identifier* TRUE;
     static Identifier* FALSE;

@@ -367,7 +367,12 @@ else
          *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
          */
         static if (ELFOBJ || MACHOBJ)
-            dwarf_reftoident(seg, et.length(), s, 0);
+        {
+            if (config.objfmt == OBJ_ELF)
+                elf_dwarf_reftoident(seg, et.length(), s, 0);
+            else
+                mach_dwarf_reftoident(seg, et.length(), s, 0);
+        }
     }
     assert(TToffset == et.length() - startsize);
 }

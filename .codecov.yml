@@ -19,7 +19,6 @@ codecov:
     - !auto-tester.puremagic.com
     - !appveyor.com
     - !ci.dlang.io
-    - !travis-ci.org
 
   # At CircleCi, the PR is merged into `master` before the testsuite is run.
   # This allows CodeCov to adjust the resulting coverage diff, s.t. it matches

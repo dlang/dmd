@@ -387,10 +387,12 @@ extern (C++) class FuncDeclaration : Declaration
     /****************************************************
      * Resolve forward reference of function signature -
      * parameter types, return type, and attributes.
-     * Returns false if any errors exist in the signature.
+     * Returns:
+     *  false if any errors exist in the signature.
      */
     final bool functionSemantic()
     {
+        //printf("functionSemantic() %p %s\n", this, toChars());
         if (!_scope)
             return !errors;
 
@@ -1185,7 +1187,7 @@ extern (C++) class FuncDeclaration : Declaration
     final const(char)* toFullSignature()
     {
         OutBuffer buf;
-        functionToBufferWithIdent(type.toTypeFunction(), &buf, toChars());
+        functionToBufferWithIdent(type.toTypeFunction(), &buf, toChars(), isStatic);
         return buf.extractChars();
     }
 
@@ -1708,8 +1710,8 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (!isMember || !p.isClassDeclaration)
             return false;
-                                                             // https://issues.dlang.org/show_bug.cgi?id=19654
-        if (p.isClassDeclaration.classKind == ClassKind.objc && !p.isInterfaceDeclaration)
+
+        if (p.isClassDeclaration.classKind == ClassKind.objc)
             return .objc.isVirtual(this);
 
         version (none)
@@ -2581,19 +2583,16 @@ extern (C++) class FuncDeclaration : Declaration
      * using NRVO is possible.
      *
      * Returns:
-     *      true if the result cannot be returned by hidden reference.
+     *      `false` if the result cannot be returned by hidden reference.
      */
-    final bool checkNrvo()
+    final bool checkNRVO()
     {
-        if (!nrvo_can)
-            return true;
-
-        if (returns is null)
-            return true;
+        if (!nrvo_can || returns is null)
+            return false;
 
         auto tf = type.toTypeFunction();
         if (tf.isref)
-            return true;
+            return false;
 
         foreach (rs; *returns)
         {
@@ -2601,24 +2600,23 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 auto v = ve.var.isVarDeclaration();
                 if (!v || v.isOut() || v.isRef())
-                    return true;
+                    return false;
                 else if (nrvo_var is null)
                 {
-                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == this)
-                    {
-                        //printf("Setting nrvo to %s\n", v.toChars());
-                        nrvo_var = v;
-                    }
-                    else
-                        return true;
+                    // Variables in the data segment (e.g. globals, TLS or not),
+                    // parameters and closure variables cannot be NRVOed.
+                    if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
+                        return false;
+                    //printf("Setting nrvo to %s\n", v.toChars());
+                    nrvo_var = v;
                 }
                 else if (nrvo_var != v)
-                    return true;
+                    return false;
             }
             else //if (!exp.isLvalue())    // keep NRVO-ability
-                return true;
+                return false;
         }
-        return false;
+        return true;
     }
 
     override final inout(FuncDeclaration) isFuncDeclaration() inout
@@ -3063,14 +3061,13 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return null;
         }
 
-        auto fullFdPretty = fd.toPrettyChars();
         .error(loc, "%smethod `%s` is not callable using a %sobject",
-               funcBuf.peekChars(), fullFdPretty, thisBuf.peekChars());
+               funcBuf.peekChars(), fd.toPrettyChars(), thisBuf.peekChars());
 
         if (mismatches.isNotShared)
-            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+            .errorSupplemental(fd.loc, "Consider adding `shared` here");
         else if (mismatches.isMutable)
-            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+            .errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
         return null;
     }
 

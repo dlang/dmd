@@ -321,19 +321,19 @@ public:
         return EnumKind.Other;
     }
 
-    private void writeEnumTypeName(AST.Type type)
+    private AST.Type determineEnumType(AST.Type type)
     {
         if (auto arr = type.isTypeDArray())
         {
             switch (arr.next.ty)
             {
-                case AST.Tchar:  buf.writestring("const char*"); return;
-                case AST.Twchar: buf.writestring("const char16_t*"); return;
-                case AST.Tdchar: buf.writestring("const char32_t*"); return;
+                case AST.Tchar:  return AST.Type.tchar.constOf.pointerTo;
+                case AST.Twchar: return AST.Type.twchar.constOf.pointerTo;
+                case AST.Tdchar: return AST.Type.tdchar.constOf.pointerTo;
                 default: break;
             }
         }
-        type.accept(this);
+        return type;
     }
 
     void writeDeclEnd()
@@ -643,7 +643,7 @@ public:
                     if (global.params.cplusplus < CppStdRevision.cpp11)
                         goto case;
                     buf.writestring("enum : ");
-                    writeEnumTypeName(type);
+                    determineEnumType(type).accept(this);
                     buf.printf(" { %s = ", vd.ident.toChars());
                     auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
@@ -652,10 +652,11 @@ public:
 
                 case EnumKind.String, EnumKind.Enum:
                     buf.writestring("static ");
-                    writeEnumTypeName(type);
+                    auto target = determineEnumType(type);
+                    target.accept(this);
                     buf.printf(" const %s = ", vd.ident.toChars());
                     auto e = AST.initializerToExpression(vd._init);
-                    e.accept(this);
+                    printExpressionFor(target, e);
                     buf.writestring(";");
                     break;
 
@@ -968,7 +969,8 @@ public:
 
                     if (vd._init)
                     {
-                        AST.initializerToExpression(vd._init).accept(this);
+                        auto e = AST.initializerToExpression(vd._init);
+                        printExpressionFor(vd.type, e, true);
                     }
                     buf.printf(")");
                 }
@@ -1237,7 +1239,7 @@ public:
                     if (kind == EnumKind.Numeric)
                     {
                         buf.writestring(" : ");
-                        writeEnumTypeName(type);
+                        determineEnumType(type).accept(this);
                     }
                 }
                 else if (!isAnonymous)
@@ -1295,7 +1297,7 @@ public:
                      manifestConstants && (memberKind == EnumKind.Int || memberKind == EnumKind.Numeric))
             {
                 buf.writestring("enum : ");
-                writeEnumTypeName(memberType);
+                determineEnumType(memberType).accept(this);
                 buf.printf(" { %s = ", m.ident.toChars());
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
@@ -1304,9 +1306,10 @@ public:
             else
             {
                 buf.writestring("static ");
-                writeEnumTypeName(memberType);
+                auto target = determineEnumType(memberType);
+                target.accept(this);
                 buf.printf(" const %s = ", m.ident.toChars());
-                m.origValue.accept(this);
+                printExpressionFor(target, m.origValue);
                 buf.writestring(";");
             }
             buf.writenl();
@@ -1853,7 +1856,107 @@ public:
         {
             //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
             buf.writestring(" = ");
-            p.defaultArg.accept(this);
+            printExpressionFor(p.type, p.defaultArg);
+        }
+    }
+
+    /**
+     * Prints `exp` as an expression of type `target` while inserting
+     * appropriate code when implicit conversion does not translate
+     * directly to C++, e.g. from an enum to it's base type.
+     *
+     * Params:
+     *   target = the type `exp` is converted to
+     *   exp    = the expression to print
+     *   isCtor = if `exp` is a ctor argument
+     */
+    private void printExpressionFor(AST.Type target, AST.Expression exp, const bool isCtor = false)
+    {
+        /// Determines if a static_cast is required
+        static bool needsCast(AST.Type target, AST.Expression exp)
+        {
+            // import std.stdio;
+            // writefln("%s:%s: target = %s, type = %s (%s)", exp.loc.linnum, exp.loc.charnum, target, exp.type, exp.op);
+
+            auto source = exp.type;
+
+            // DotVarExp resolve conversions, e.g from an enum to it's base type
+            if (auto dve = exp.isDotVarExp())
+                source = dve.var.type;
+
+            if (!source)
+                // Defensively assume that the cast is required
+                return true;
+
+            // Conversions from enum class to base type require static_cast
+            if (global.params.cplusplus >= CppStdRevision.cpp11 &&
+                source.isTypeEnum && !target.isTypeEnum)
+                return true;
+
+            return false;
+        }
+
+        // Slices are emitted as a special struct, hence we need to fix up
+        // any expression initialising a slice variable/member
+        if (auto ta = target.isTypeDArray())
+        {
+            if (exp.isNullExp())
+            {
+                if (isCtor)
+                {
+                    // Don't emit, use default ctor
+                }
+                else if (global.params.cplusplus >= CppStdRevision.cpp11)
+                {
+                    // Prefer initializer list
+                    buf.writestring("{}");
+                }
+                else
+                {
+                    // Write __d_dynamic_array<TYPE>()
+                    visit(ta);
+                    buf.writestring("()");
+                }
+                return;
+            }
+
+            if (auto se = exp.isStringExp())
+            {
+                // Rewrite as <length> + <literal> pair optionally
+                // wrapped in a initializer list/ctor call
+
+                const initList = global.params.cplusplus >= CppStdRevision.cpp11;
+                if (!isCtor)
+                {
+                    if (initList)
+                        buf.writestring("{ ");
+                    else
+                    {
+                        visit(ta);
+                        buf.writestring("( ");
+                    }
+                }
+
+                buf.printf("%zu, ", se.len);
+                visit(se);
+
+                if (!isCtor)
+                    buf.writestring(initList ? " }" : " )");
+
+                return;
+            }
+        }
+        else if (needsCast(target, exp))
+        {
+            buf.writestring("static_cast<");
+            target.accept(this);
+            buf.writestring(">(");
+            exp.accept(this);
+            buf.writeByte(')');
+        }
+        else
+        {
+            exp.accept(this);
         }
     }
 
@@ -1971,19 +2074,7 @@ public:
             printf("[AST.NullExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
         }
-        if (auto ta = e.type.isTypeDArray)
-        {
-            if (global.params.cplusplus >= CppStdRevision.cpp11)
-                // Prefer initializer list
-                buf.writestring("{}");
-            else
-            {
-                buf.writestring("_d_dynamicArray< ");
-                ta.nextOf().accept(this);
-                buf.writestring(" >()");
-            }
-        }
-        else if (global.params.cplusplus >= CppStdRevision.cpp11)
+        if (global.params.cplusplus >= CppStdRevision.cpp11)
             buf.writestring("nullptr");
         else
             buf.writestring("NULL");
@@ -2151,7 +2242,7 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            e.accept(this);
+            printExpressionFor(sle.sd.fields[i].type, e);
         }
         buf.writeByte(')');
     }

@@ -14,16 +14,27 @@
  */
 module dmd.cli;
 
+/* The enum TargetOS is an exact copy of the one in dmd.globals.
+ * Duplicated here because this file is stand-alone.
+ */
+
 /// Bit decoding of the TargetOS
-enum TargetOS
+enum TargetOS : ubyte
 {
-    all = int.max,
-    linux = 1,
-    windows = 2,
-    macOS = 4,
-    freeBSD = 8,
-    solaris = 16,
-    dragonFlyBSD = 32,
+    /* These are mutually exclusive; one and only one is set.
+     * Match spelling and casing of corresponding version identifiers
+     */
+    linux        = 1,
+    Windows      = 2,
+    OSX          = 4,
+    OpenBSD      = 8,
+    FreeBSD      = 0x10,
+    Solaris      = 0x20,
+    DragonFlyBSD = 0x40,
+
+    // Combination masks
+    all = linux | Windows | OSX | FreeBSD | Solaris | DragonFlyBSD,
+    Posix = linux | OSX | FreeBSD | Solaris | DragonFlyBSD,
 }
 
 // Detect the current TargetOS
@@ -33,23 +44,23 @@ version (linux)
 }
 else version(Windows)
 {
-    private enum targetOS = TargetOS.windows;
+    private enum targetOS = TargetOS.Windows;
 }
 else version(OSX)
 {
-    private enum targetOS = TargetOS.macOS;
+    private enum targetOS = TargetOS.OSX;
 }
 else version(FreeBSD)
 {
-    private enum targetOS = TargetOS.freeBSD;
+    private enum targetOS = TargetOS.FreeBSD;
 }
 else version(DragonFlyBSD)
 {
-    private enum targetOS = TargetOS.dragonFlyBSD;
+    private enum targetOS = TargetOS.DragonFlyBSD;
 }
 else version(Solaris)
 {
-    private enum targetOS = TargetOS.solaris;
+    private enum targetOS = TargetOS.Solaris;
 }
 else
 {
@@ -323,6 +334,8 @@ dmd -cov -unittest myprog.d
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`)
                 $(LI $(I c++17): Use C++17 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
+                $(LI $(I c++20): Use C++20 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`)
             )",
         ),
         Option("extern-std=[h|help|?]",
@@ -330,7 +343,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("fPIC",
             "generate position independent code",
-            TargetOS.all & ~(TargetOS.windows | TargetOS.macOS)
+            cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
         ),
         Option("g",
             "add symbolic debug info",
@@ -466,11 +479,11 @@ dmd -cov -unittest myprog.d
             $(WINDOWS Compile a 32 bit executable. This is the default.
             The generated object code is in OMF and is meant to be used with the
             $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
-            (TargetOS.all & ~TargetOS.dragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
+            cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
             "generate 32 bit code and write MS-COFF object files",
-            TargetOS.windows
+            TargetOS.Windows
         ),
         Option("m64",
             "generate 64 bit code",
@@ -484,6 +497,12 @@ dmd -cov -unittest myprog.d
             `Add a default $(D main()) function when compiling. This is useful when
             unittesting a library, as it enables running the unittests
             in a library without having to manually define an entry-point function.`,
+        ),
+        Option("makedeps",
+            "print module dependencies in Makefile compatible format to stdout"
+        ),
+        Option("makedeps=<filename>",
+            "write module dependencies in Makefile compatible format to filename (only imports)"
         ),
         Option("man",
             "open web browser on manual page",
@@ -545,7 +564,7 @@ dmd -cov -unittest myprog.d
             The detection can be skipped explicitly if $(TT msvcrt120) is specified as
             $(I libname).
             If $(I libname) is empty, no C runtime library is automatically linked in.",
-            TargetOS.windows,
+            TargetOS.Windows,
         ),
         Option("mv=<package.module>=<filespec>",
             "use <filespec> as source file for <package.module>",
@@ -716,7 +735,7 @@ dmd -cov -unittest myprog.d
         Option("Xcc=<driverflag>",
             "pass driverflag to linker driver (cc)",
             "Pass $(I driverflag) to the linker driver (`$CC` or `cc`)",
-            TargetOS.all & ~TargetOS.windows
+            cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
     ];
 
@@ -895,6 +914,7 @@ struct CLIUsage
   =c++11                Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`
   =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
   =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
+  =c++20                Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`
 ";
 
     /// Options supported by -HC

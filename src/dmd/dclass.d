@@ -380,6 +380,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
 
+    override const(char)* toPrettyChars(bool qualifyTypes = false)
+    {
+        if (objc.isMeta)
+            return .objc.toPrettyChars(this, qualifyTypes);
+
+        return super.toPrettyChars(qualifyTypes);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());
@@ -566,9 +574,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
-            if (classKind == ClassKind.cpp && global.params.isWindows)
+            if (classKind == ClassKind.cpp && global.params.targetOS == TargetOS.Windows)
                 structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
         }
+        else if (classKind == ClassKind.objc)
+            structsize = 0; // no hidden member for an Objective-C class
         else if (isInterfaceDeclaration())
         {
             if (interfaces.length == 0)

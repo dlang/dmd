@@ -4435,6 +4435,24 @@ final class Parser(AST) : Lexer
         if (!comment)
             comment = token.blockComment.ptr;
 
+        /* Look for AliasAssignment:
+         *   identifier = type;
+         */
+        if (token.value == TOK.identifier && peekNext() == TOK.assign)
+        {
+            const loc = token.loc;
+            auto ident = token.ident;
+            nextToken();
+            nextToken();        // advance past =
+            auto t = parseType();
+            AST.Dsymbol s = new AST.AliasAssign(loc, ident, t);
+            check(TOK.semicolon);
+            addComment(s, comment);
+            auto a = new AST.Dsymbols();
+            a.push(s);
+            return a;
+        }
+
         if (token.value == TOK.alias_)
         {
             const loc = token.loc;
@@ -6537,55 +6555,44 @@ final class Parser(AST) : Lexer
         return s;
     }
 
-    /*****************************************
-     * Parse initializer for variable declaration.
-     */
-    private AST.Initializer parseInitializer()
-    {
-        AST.StructInitializer _is;
-        AST.ArrayInitializer ia;
-        AST.ExpInitializer ie;
-        AST.Expression e;
-        Identifier id;
-        AST.Initializer value;
-        int comma;
-        const loc = token.loc;
-        Token* t;
-        int braces;
-        int brackets;
-        int parens;
 
-        switch (token.value)
+    private  AST.ExpInitializer parseExpInitializer(Loc loc)
+    {
+        auto ae = parseAssignExp();
+        return new AST.ExpInitializer(loc, ae);
+    }
+
+    private AST.Initializer parseStructInitializer(Loc loc)
+    {
+        /* Scan ahead to discern between a struct initializer and
+         * parameterless function literal.
+         *
+         * We'll scan the topmost curly bracket level for statement-related
+         * tokens, thereby ruling out a struct initializer.  (A struct
+         * initializer which itself contains function literals may have
+         * statements at nested curly bracket levels.)
+         *
+         * It's important that this function literal check not be
+         * pendantic, otherwise a function having the slightest syntax
+         * error would emit confusing errors when we proceed to parse it
+         * as a struct initializer.
+         *
+         * The following two ambiguous cases will be treated as a struct
+         * initializer (best we can do without type info):
+         *     {}
+         *     {{statements...}}  - i.e. it could be struct initializer
+         *        with one function literal, or function literal having an
+         *        extra level of curly brackets
+         * If a function literal is intended in these cases (unlikely),
+         * source can use a more explicit function literal syntax
+         * (e.g. prefix with "()" for empty parameter list).
+         */
+        int braces = 1;
+        int parens = 0;
+        for (auto t = peek(&token); 1; t = peek(t))
         {
-        case TOK.leftCurly:
-            /* Scan ahead to discern between a struct initializer and
-             * parameterless function literal.
-             *
-             * We'll scan the topmost curly bracket level for statement-related
-             * tokens, thereby ruling out a struct initializer.  (A struct
-             * initializer which itself contains function literals may have
-             * statements at nested curly bracket levels.)
-             *
-             * It's important that this function literal check not be
-             * pendantic, otherwise a function having the slightest syntax
-             * error would emit confusing errors when we proceed to parse it
-             * as a struct initializer.
-             *
-             * The following two ambiguous cases will be treated as a struct
-             * initializer (best we can do without type info):
-             *     {}
-             *     {{statements...}}  - i.e. it could be struct initializer
-             *        with one function literal, or function literal having an
-             *        extra level of curly brackets
-             * If a function literal is intended in these cases (unlikely),
-             * source can use a more explicit function literal syntax
-             * (e.g. prefix with "()" for empty parameter list).
-             */
-            braces = 1;
-            for (t = peek(&token); 1; t = peek(t))
+            switch (t.value)
             {
-                switch (t.value)
-                {
                 case TOK.leftParentheses:
                     parens++;
                     continue;
@@ -6620,7 +6627,7 @@ final class Parser(AST) : Lexer
                 case TOK.while_:
                 case TOK.with_:
                     if (braces == 1)
-                        goto Lexpression;
+                        return parseExpInitializer(loc);
                     continue;
 
                 case TOK.leftCurly:
@@ -6637,41 +6644,40 @@ final class Parser(AST) : Lexer
 
                 default:
                     continue;
-                }
-                break;
             }
+            break;
+        }
 
-            _is = new AST.StructInitializer(loc);
-            nextToken();
-            comma = 2;
-            while (1)
+        auto _is = new AST.StructInitializer(loc);
+        bool commaExpected = false;
+        nextToken();
+        while (1)
+        {
+            switch (token.value)
             {
-                switch (token.value)
-                {
                 case TOK.identifier:
-                    if (comma == 1)
+                {
+
+                    if (commaExpected)
                         error("comma expected separating field initializers");
-                    t = peek(&token);
+                    const t = peek(&token);
+                    Identifier id;
                     if (t.value == TOK.colon)
                     {
                         id = token.ident;
                         nextToken();
                         nextToken(); // skip over ':'
                     }
-                    else
-                    {
-                        id = null;
-                    }
-                    value = parseInitializer();
+                    auto value = parseInitializer();
                     _is.addInit(id, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
-
+                }
                 case TOK.comma:
-                    if (comma == 2)
+                    if (!commaExpected)
                         error("expression expected, not `,`");
                     nextToken();
-                    comma = 2;
+                    commaExpected = false;
                     continue;
 
                 case TOK.rightCurly: // allow trailing comma's
@@ -6683,26 +6689,38 @@ final class Parser(AST) : Lexer
                     break;
 
                 default:
-                    if (comma == 1)
+                    if (commaExpected)
                         error("comma expected separating field initializers");
-                    value = parseInitializer();
+                    auto value = parseInitializer();
                     _is.addInit(null, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
-                    //error("found `%s` instead of field initializer", token.toChars());
-                    //break;
-                }
-                break;
             }
-            return _is;
+            break;
+        }
+        return _is;
+
+    }
+
+    /*****************************************
+     * Parse initializer for variable declaration.
+     */
+    private AST.Initializer parseInitializer()
+    {
+        const loc = token.loc;
+
+        switch (token.value)
+        {
+        case TOK.leftCurly:
+            return parseStructInitializer(loc);
 
         case TOK.leftBracket:
             /* Scan ahead to see if it is an array initializer or
              * an expression.
              * If it ends with a ';' ',' or '}', it is an array initializer.
              */
-            brackets = 1;
-            for (t = peek(&token); 1; t = peek(t))
+            int brackets = 1;
+            for (auto t = peek(&token); 1; t = peek(t))
             {
                 switch (t.value)
                 {
@@ -6715,7 +6733,7 @@ final class Parser(AST) : Lexer
                     {
                         t = peek(t);
                         if (t.value != TOK.semicolon && t.value != TOK.comma && t.value != TOK.rightBracket && t.value != TOK.rightCurly)
-                            goto Lexpression;
+                            return parseExpInitializer(loc);
                         break;
                     }
                     continue;
@@ -6729,23 +6747,26 @@ final class Parser(AST) : Lexer
                 break;
             }
 
-            ia = new AST.ArrayInitializer(loc);
+            auto ia = new AST.ArrayInitializer(loc);
+            bool commaExpected = false;
+
             nextToken();
-            comma = 2;
             while (1)
             {
                 switch (token.value)
                 {
                 default:
-                    if (comma == 1)
+                    if (commaExpected)
                     {
                         error("comma expected separating array initializers, not `%s`", token.toChars());
                         nextToken();
                         break;
                     }
-                    e = parseAssignExp();
+                    auto e = parseAssignExp();
                     if (!e)
                         break;
+
+                    AST.Initializer value;
                     if (token.value == TOK.colon)
                     {
                         nextToken();
@@ -6757,14 +6778,16 @@ final class Parser(AST) : Lexer
                         e = null;
                     }
                     ia.addInit(e, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
 
                 case TOK.leftCurly:
                 case TOK.leftBracket:
-                    if (comma == 1)
+                    if (commaExpected)
                         error("comma expected separating array initializers, not `%s`", token.toChars());
-                    value = parseInitializer();
+                    auto value = parseInitializer();
+                    AST.Expression e;
+
                     if (token.value == TOK.colon)
                     {
                         nextToken();
@@ -6776,17 +6799,15 @@ final class Parser(AST) : Lexer
                         else
                             error("initializer expression expected following colon, not `%s`", token.toChars());
                     }
-                    else
-                        e = null;
                     ia.addInit(e, value);
-                    comma = 1;
+                    commaExpected = true;
                     continue;
 
                 case TOK.comma:
-                    if (comma == 2)
+                    if (!commaExpected)
                         error("expression expected, not `,`");
                     nextToken();
-                    comma = 2;
+                    commaExpected = false;
                     continue;
 
                 case TOK.rightBracket: // allow trailing comma's
@@ -6808,13 +6829,10 @@ final class Parser(AST) : Lexer
                 nextToken();
                 return new AST.VoidInitializer(loc);
             }
-            goto Lexpression;
+            return parseExpInitializer(loc);
 
         default:
-        Lexpression:
-            e = parseAssignExp();
-            ie = new AST.ExpInitializer(loc, e);
-            return ie;
+            return parseExpInitializer(loc);
         }
     }
 

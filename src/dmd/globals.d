@@ -17,6 +17,25 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.identifier;
 
+/// Bit decoding of the TargetOS
+enum TargetOS : ubyte
+{
+    /* These are mutually exclusive; one and only one is set.
+     * Match spelling and casing of corresponding version identifiers
+     */
+    linux        = 1,
+    Windows      = 2,
+    OSX          = 4,
+    OpenBSD      = 8,
+    FreeBSD      = 0x10,
+    Solaris      = 0x20,
+    DragonFlyBSD = 0x40,
+
+    // Combination masks
+    all = linux | Windows | OSX | FreeBSD | Solaris | DragonFlyBSD,
+    Posix = linux | OSX | FreeBSD | Solaris | DragonFlyBSD,
+}
+
 template xversion(string s)
 {
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
@@ -107,7 +126,8 @@ enum CppStdRevision : uint
     cpp98 = 1997_11,
     cpp11 = 2011_03,
     cpp14 = 2014_02,
-    cpp17 = 2017_03
+    cpp17 = 2017_03,
+    cpp20 = 2020_02,
 }
 
 /// Configuration for the C++ header generator
@@ -145,13 +165,7 @@ extern (C++) struct Param
     bool map;               // generate linker .map file
     bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
     bool isLP64;            // generate code for LP64
-    bool isLinux;           // generate code for linux
-    bool isOSX;             // generate code for Mac OSX
-    bool isWindows;         // generate code for Windows
-    bool isFreeBSD;         // generate code for FreeBSD
-    bool isOpenBSD;         // generate code for OpenBSD
-    bool isDragonFlyBSD;    // generate code for DragonFlyBSD
-    bool isSolaris;         // generate code for Solaris
+    TargetOS targetOS;      // operating system to generate code for
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
@@ -274,6 +288,10 @@ extern (C++) struct Param
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
+
+    const(char)[] makeDepsFile;          // filename for makedeps output
+    OutBuffer* makeDeps;                 // contents to be written to makedeps file
+
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     // Hidden debug switches

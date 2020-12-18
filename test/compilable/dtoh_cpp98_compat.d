@@ -39,6 +39,8 @@ struct _d_dynamicArray
 };
 #endif
 
+struct MyString;
+
 struct Null
 {
     void* field;
@@ -48,7 +50,7 @@ private:
 public:
     Null() :
         field(NULL),
-        null_(_d_dynamicArray< const char >())
+        null_()
     {
     }
 };
@@ -56,6 +58,26 @@ public:
 extern void* typeof_null;
 
 extern void* inferred_null;
+
+struct MyString
+{
+    _d_dynamicArray< const char > str;
+    MyString() :
+        str()
+    {
+    }
+};
+
+struct Wrapper
+{
+    MyString s1;
+    MyString s2;
+    Wrapper() :
+        s1(MyString(_d_dynamicArray< const char >( 5, "Hello" ))),
+        s2(MyString(_d_dynamicArray< const char >()))
+    {
+    }
+};
 ---
 */
 
@@ -69,3 +91,14 @@ extern (C++) struct Null
 
 extern (C++) __gshared typeof(null) typeof_null = null;
 extern (C++) __gshared inferred_null = null;
+
+extern (C++) struct MyString
+{
+    string str;
+}
+
+extern (C++) struct Wrapper
+{
+    MyString s1 = MyString("Hello");
+    MyString s2 = MyString(null);
+}

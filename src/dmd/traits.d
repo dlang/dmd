@@ -2028,12 +2028,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return tup.expressionSemantic(sc);
     }
 
-    static const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
+    static const(char)[] trait_search_fp(const(char)[] seed, out int cost)
     {
         //printf("trait_search_fp('%s')\n", seed);
         if (!seed.length)
             return null;
-        cost = 0;
+        cost = 0;       // all the same cost
         const sv = traitsStringTable.lookup(seed);
         return sv ? sv.toString() : null;
     }

@@ -43,7 +43,7 @@ struct ObjcClassDeclaration
     Identifier* identifier;
     ClassDeclaration* classDeclaration;
     ClassDeclaration* metaclass;
-    Dsymbols* methodList;
+    DArray<FuncDeclaration*> methodList;
 
     bool isRootClass() const;
 };

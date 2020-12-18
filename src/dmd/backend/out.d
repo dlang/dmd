@@ -280,7 +280,12 @@ version (SCPP)
                     searchfixlist(s);
                     if (config.fulltypes &&
                         !(s.Sclass == SCstatic && funcsym_p)) // not local static
-                        cv_outsym(s);
+                    {
+                        if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+                            dwarf_outsym(s);
+                        else
+                            cv_outsym(s);
+                    }
 version (SCPP)
 {
                     out_extdef(s);
@@ -340,6 +345,10 @@ version (SCPP)
 
             case mTYthread:
                 s.Sfl = FLtlsdata;
+                break;
+
+            case mTYweakLinkage:
+                s.Sfl = FLdata;        // initialized data
                 break;
 
             default:
@@ -412,7 +421,12 @@ version (SCPP)
     assert(s.Sseg != UNKNOWN);
     if (config.fulltypes &&
         !(s.Sclass == SCstatic && funcsym_p)) // not local static
-        cv_outsym(s);
+    {
+        if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+            dwarf_outsym(s);
+        else
+            cv_outsym(s);
+    }
     searchfixlist(s);
 
     /* Go back through list, now that we know its size, and send out    */
@@ -601,7 +615,12 @@ version (SCPP)
                 objmod.common_block(s, 0, n, 1);
         }
         if (config.fulltypes)
-            cv_outsym(s);
+        {
+            if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+                dwarf_outsym(s);
+            else
+                cv_outsym(s);
+        }
     }
 }
 
@@ -1539,7 +1558,10 @@ version (Win32)
         objmod.export_symbol(sfunc,cast(uint)Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
-        cv_func(sfunc);                 // debug info for function
+    {
+        if (config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF)
+            cv_func(sfunc);                 // debug info for function
+    }
 
 version (MARS)
 {

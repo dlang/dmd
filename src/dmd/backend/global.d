@@ -165,7 +165,6 @@ void parc_free(void *p);
 
 void swap(int *, int *);
 //void crlf(FILE *);
-char *unsstr(uint);
 int isignore(int);
 int isillegal(int);
 

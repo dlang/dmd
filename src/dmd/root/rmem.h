@@ -22,14 +22,12 @@ struct Mem
     static void *xrealloc(void *p, d_size_t size);
     static void error();
 
-#if 1 // version (GC)
     static bool _isGCEnabled;
 
     static bool isGCEnabled();
     static void disableGC();
     static void addRange(const void *p, d_size_t size);
     static void removeRange(const void *p);
-#endif
 };
 
 extern Mem mem;

@@ -206,6 +206,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(FuncDeclaration funcdecl)
     {
+        //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", funcdecl.kind(), funcdecl.toChars(), sc);
         /* Determine if function should add `return 0;`
          */
         bool addReturn0()
@@ -620,7 +621,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 // handle NRVO
-                if (!target.isReturnOnStack(f, funcdecl.needThis()) || funcdecl.checkNrvo())
+                if (!target.isReturnOnStack(f, funcdecl.needThis()) || !funcdecl.checkNRVO())
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -729,7 +730,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     /* Disable optimization on Win32 due to
                      * https://issues.dlang.org/show_bug.cgi?id=17997
                      */
-//                    if (!global.params.isWindows || global.params.is64bit)
+//                    if (!global.params.targetOS == TargetOS.Windows || global.params.is64bit)
                         funcdecl.eh_none = true;         // don't generate unwind tables for this function
                 }
 
@@ -1148,7 +1149,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration();
                     if (cd)
                     {
-                        if (!global.params.is64bit && global.params.isWindows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
+                        if (!global.params.is64bit && global.params.targetOS == TargetOS.Windows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
                         {
                             /* The back end uses the "jmonitor" hack for syncing;
                              * no need to do the sync at this level.

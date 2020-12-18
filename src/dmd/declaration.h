@@ -100,7 +100,8 @@ public:
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int inuse;                  // used to detect cycles
+    short inuse;                // used to detect cycles
+    uint8_t adFlags;
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const;
@@ -636,7 +637,7 @@ public:
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 
-    bool checkNrvo();
+    bool checkNRVO();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 

@@ -426,10 +426,7 @@ version (MARS)
 
 __gshared
 {
-    version (Windows)
-        Rarray!(seg_data*) SegData;
-    else
-        extern Rarray!(seg_data*) SegData;
+    Rarray!(seg_data*) SegData;
     Objstate obj;
 }
 

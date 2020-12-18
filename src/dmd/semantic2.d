@@ -602,6 +602,66 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         sc2.pop();
     }
+
+    override void visit(ClassDeclaration cd)
+    {
+        /// Checks that the given class implements all methods of its interfaces.
+        static void checkInterfaceImplementations(ClassDeclaration cd)
+        {
+            foreach (base; cd.interfaces)
+            {
+                // first entry is ClassInfo reference
+                auto methods = base.sym.vtbl[base.sym.vtblOffset .. $];
+
+                foreach (m; methods)
+                {
+                    auto ifd = m.isFuncDeclaration;
+                    assert(ifd);
+
+                    if (ifd.objc.isOptional)
+                        continue;
+
+                    auto type = ifd.type.toTypeFunction();
+                    auto fd = cd.findFunc(ifd.ident, type);
+
+                    if (fd && !fd.isAbstract)
+                    {
+                        //printf("            found\n");
+                        // Check that calling conventions match
+                        if (fd.linkage != ifd.linkage)
+                            fd.error("linkage doesn't match interface function");
+
+                        // Check that it is current
+                        //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
+                            //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
+                        if (fd.toParent() != cd && ifd.toParent() == base.sym)
+                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                    }
+
+                    else
+                    {
+                        //printf("            not found %p\n", fd);
+                        // BUG: should mark this class as abstract?
+                        if (!cd.isAbstract())
+                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                    }
+                }
+            }
+        }
+
+        if (cd.semanticRun >= PASS.semantic2done)
+            return;
+        assert(cd.semanticRun <= PASS.semantic2);
+        cd.semanticRun = PASS.semantic2;
+
+        checkInterfaceImplementations(cd);
+        visit(cast(AggregateDeclaration) cd);
+    }
+
+    override void visit(InterfaceDeclaration cd)
+    {
+        visit(cast(AggregateDeclaration) cd);
+    }
 }
 
 /**

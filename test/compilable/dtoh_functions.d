@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -HC -c -o-
 PERMUTE_ARGS:
 TEST_OUTPUT:
@@ -40,6 +40,8 @@ struct _d_dynamicArray
 #endif
 
 struct S;
+struct W1;
+struct W2;
 struct S2;
 
 extern "C" int32_t bar(int32_t x);
@@ -63,7 +65,37 @@ enum class E : int64_t
     m = 1LL,
 };
 
-extern void enums(uint64_t e = $?:32=1LLU|64=E::m$);
+enum class MS : uint8_t
+{
+    dm = 0u,
+};
+
+namespace MSN
+{
+    static S const s = S(42);
+};
+
+struct W1
+{
+    MS ms;
+    /* MSN */ S msn;
+    W1()
+    {
+    }
+};
+
+struct W2
+{
+    W1 w1;
+    W2() :
+        w1()
+    {
+    }
+};
+
+extern W2 w2;
+
+extern void enums(uint64_t e = $?:32=1LLU|64=static_cast<uint64_t>(E::m)$, uint8_t e2 = static_cast<uint8_t>(w2.w1.ms), S s = static_cast<S>(w2.w1.msn));
 
 struct S
 {
@@ -110,7 +142,7 @@ extern void special(int32_t a = ptr->i, int32_t b = ptr->get(1, 2), int32_t j = 
 
 extern void variadic(int32_t _param_0, ...);
 ---
-*/
++/
 
 int foo(int x)
 {
@@ -177,7 +209,13 @@ enum E : long
     m = 1
 }
 
-void enums(ulong e = E.m) {}
+enum MS : ubyte { dm }
+enum MSN : S { s = S(42) }
+struct W1 { MS ms; MSN msn; }
+struct W2 { W1 w1; }
+W2 w2;
+
+void enums(ulong e = E.m, ubyte e2 = w2.w1.ms, S s = w2.w1.msn) {}
 
 struct S
 {

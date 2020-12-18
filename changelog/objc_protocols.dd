@@ -1,0 +1,75 @@
+Add support for Objective-C protocols
+
+It's now possible to declare [Objective-C protocols][objc_protocol]. In D, this
+is declared using the `interface` keyword.
+
+To match the behavior of protocols in Objective-C, some additional changes have
+been made:
+
+* It's possible to declare optional methods in an interface. This is done
+with the `@optional` User Defined Attribute, available in the `core.attributes`
+module. An optional method is a method that does **not** have to be implemented
+in the class that implements the interface. To safely call an optional method,
+a runtime check should be performed to make sure the receiver implements the
+method.
+
+* It's possible to have `static` methods in an interface. This method is
+required to be implemented in the class that implements the interface (unless
+it's declared optional). Unlike in `extern (D)` interfaces, `static` methods in
+`extern (Objective-C)` cannot have a body.
+
+Example:
+
+---
+import core.attribute : optional, selector;
+import std.stdio : writeln;
+
+struct objc_selector;
+alias SEL = objc_selector*;
+
+extern (C) SEL sel_registerName(in char* str);
+
+extern (Objective-C)
+extern class NSObject
+{
+    static NSObject alloc() @selector("alloc");
+    NSObject init() @selector("init");
+}
+
+extern (Objective-C)
+interface Foo
+{
+    bool respondsToSelector(SEL sel) @selector("respondsToSelector:");
+    void foo() @selector("foo");
+
+    // this is an optional method
+    @optional void bar() @selector("bar");
+}
+
+extern (Objective-C)
+class Bar : NSObject, Foo
+{
+    override static Bar alloc() @selector("alloc");
+    override Bar init() @selector("init");
+
+    bool respondsToSelector(SEL sel) @selector("respondsToSelector:");
+
+    void foo() @selector("foo")
+    {
+        writeln("foo");
+    }
+}
+
+void main()
+{
+    Foo f = Bar.alloc.init;
+
+    // check, at runtime, if the instance `f` implements the method `bar`
+    if (f.respondsToSelector(sel_registerName("bar")))
+        f.bar();
+    else
+        f.foo();
+}
+---
+
+[objc_protocol][https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/WorkingwithProtocols/WorkingwithProtocols.html]

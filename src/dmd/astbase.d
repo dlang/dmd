@@ -477,6 +477,11 @@ struct ASTBase
             return null;
         }
 
+        inout(AliasAssign) isAliasAssign() inout
+        {
+            return null;
+        }
+
         inout(ClassDeclaration) isClassDeclaration() inout
         {
             return null;
@@ -520,12 +525,38 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class AliasAssign : Dsymbol
+    {
+        Identifier ident;
+        Type type;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Type type)
+        {
+            super(null);
+            this.loc = loc;
+            this.ident = ident;
+            this.type = type;
+        }
+
+        override inout(AliasAssign) isAliasAssign() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) abstract class Declaration : Dsymbol
     {
         StorageClass storage_class;
         Prot protection;
         LINK linkage;
         Type type;
+        short inuse;
+        ubyte adFlags;
 
         final extern (D) this(Identifier id)
         {
@@ -6745,12 +6776,11 @@ struct ASTBase
 
         extern (C++) static Type va_listType(const ref Loc loc, Scope* sc)
         {
-            if (global.params.isWindows)
+            if (global.params.targetOS == TargetOS.Windows)
             {
                 return Type.tchar.pointerTo();
             }
-            else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD  || global.params.isDragonFlyBSD ||
-                global.params.isSolaris || global.params.isOSX)
+            else if (global.params.targetOS & TargetOS.Posix)
             {
                 if (global.params.is64bit)
                 {

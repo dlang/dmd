@@ -12,8 +12,8 @@ There are several Objective-C runtimes and ABIs available:
 * GNU runtime - used on non-Apple platforms
 
 This document describes the Apple runtime with the modern ABI on macOS x86-64,
-as implemented by the Apple LLVM compiler (`9.0.0 (clang-900.0.39.2)`) shipped
-with Xcode 9.2. The information in this document has been obtained by reading
+as implemented by the Apple LLVM compiler (`11.0.3 (clang-1103.0.32.62)`) shipped
+with Xcode 11.7. The information in this document has been obtained by reading
 the documentation provided by Apple, looking at assembly outputs and object dumps
 from the LLVM compiler.
 
@@ -223,6 +223,205 @@ The symbol has the name `_OBJC_IVAR_$_<class_name>.<ivar_name>` symbol,
 where `<class_name>` is the name of the class the instance variable belongs to
 and `<ivar_name>` is the name of the instance variable.
 
+## Protocols
+
+Protocols in Objective-C corresponds to interfaces in a language like D or Java.
+Protocols support some features not available in these other languages:
+
+* **Properties**
+* **Class Methods** - Since class methods are virtual and overridable in
+    Objective-C, it falls natural that protocols can have class methods that can
+    be implemented.
+* **Optional Methods** - An optional method is a method that does not need to be
+    implemented when the protocol is implemented. The class that implements the
+    protocol is free to implement the optional method if it's suitable. When
+    calling an optional method on a protocol, no compile time check will be
+    performed to verify that the method is implemented. Instead, a runtime check
+    is performed. If the method is not implemented an exception will be thrown.
+    It's possible to check at runtime if a method is implemented by calling the
+    `respondsToSelector:` method.
+
+## Section Data Types
+
+This describes the various types that are store as data for various sections.
+
+### `__method_list_t`
+
+This type is used to store a list of methods.
+
+```d
+struct __method_list_t
+{
+  int entsize;
+  int count;
+  _objc_method first;
+}
+```
+
+####  `entsize`
+
+The size of [`_objc_method`](#_objc_method-section-data-types) in bytes,
+always `24`.
+
+#### `count`
+
+The number of methods in the list.
+
+#### `first`
+
+The first method.
+
+### `_objc_method`
+
+This type is used to a single method.
+
+```d
+struct _objc_method
+{
+  char* name;
+  char* types;
+  void* imp;
+}
+```
+
+#### `name`
+
+The name of the method. This is stored as a reference to the
+`L_OBJC_METH_VAR_NAME_.<number>` symbol, where `<number>` is an incrementing
+number.
+
+#### `types`
+
+The type encoding of the method. This is stored as a reference to the
+`L_OBJC_METH_VAR_TYPE_.<number>` symbol, where `<number>` is an incrementing
+number.
+
+#### `imp`
+
+The actual method implementation. The address to the function that is the method
+implementation.
+
+### `_objc_protocol_list`
+
+This type is used to store a list of protocols.
+
+```d
+struct _objc_protocol_list
+{
+    long count;
+    _protocol_t*[count] list;
+    _protocol_t* __unknown;
+}
+```
+
+#### `count`
+
+The number of protocols in the list.
+
+#### `list`
+
+The list of protocols. Each item in the list is store as a reference to a
+[`__OBJC_PROTOCOL_$_`](#__objc_protocol__) symbol.
+
+#### `__unknown`
+
+Unknown. Seems to always be `null`.
+
+### `_protocol_t`
+
+This type is used to store a protocol.
+
+```d
+struct _protocol_t
+{
+    void* isa;
+    char* name;
+    _objc_protocol_list* protocols;
+    __method_list_t* instanceMethods;
+    __method_list_t* classMethods;
+    __method_list_t* optionalInstanceMethods;
+    __method_list_t* optionalClassMethods;
+    _prop_list_t* instanceProperties;
+    int size = _protocol_t.sizeof;
+    int flags;
+    char** extendedMethodTypes;
+    char* demangledName;
+    _prop_list_t* classProperties;
+}
+```
+
+#### `isa`
+
+Unknown. Seems to always be `null`.
+
+#### `name`
+
+The name of the protocol. This is stored as a reference to a
+[`L_OBJC_CLASS_NAME_`](#l_objc_class_name_) symbol.
+
+#### `protocols`
+
+A list of the protocols this protocols inherits from. This is stored as a
+reference to a [`__OBJC_$_PROTOCOL_REFS_`](#__objc__protocol_refs_). If the
+protocol doesn't inherit from any protocols, `null` is stored instead.
+
+#### `instanceMethods`
+
+A list of the instance methods this protocol contains. This is stored as a
+reference to a
+[`__OBJC_$_PROTOCOL_INSTANCE_METHODS_`](#__objc__protocol_instance_methods_)
+symbol. If the protocol doesn't contain any instance methods, null is stored
+instead.
+
+#### `classMethods`
+
+A list of the class methods this protocol contains. This is stored as a
+reference to a
+[`__OBJC_$_PROTOCOL_CLASS_METHODS_`](#__objc__protocol_class_methods_) symbol.
+If the protocol doesn't contain any class methods, `null` is stored instead.
+
+#### `optionalInstanceMethods`
+
+A list of the optional instance methods this protocol contains. This is stored
+as a reference to a
+[`__OBJC_$_PROTOCOL_INSTANCE_METHODS_OPT_`](#__objc__protocol_instance_methods_opt_)
+symbol. If the protocol doesn't contain any optional instance methods, null is
+stored instead.
+
+#### `optionalClassMethods`
+
+A list of the optional class methods this protocol contains. This is stored as a
+reference to a
+[`__OBJC_$_PROTOCOL_CLASS_METHODS_OPT_`](#__objc__protocol_class_methods_opt_)
+symbol. If the protocol doesn't contain any class methods, `null` is stored instead.
+
+#### `instanceProperties`
+
+A list of the instance properties this protocol contains.
+
+#### `size`
+
+The size of `_protocol_t` in bytes, always `96`.
+
+#### `flags`
+
+Unknown. Seems to always be `0`.
+
+#### `extendedMethodTypes`
+
+A list of the method types for the methods this protocol contains. This is
+stored as a reference to a
+[`__OBJC_$_PROTOCOL_METHOD_TYPES_`](#__objc__protocol_method_types_) symbol.
+If the protocol doesn't contain any methods, `null` is stored instead.
+
+#### `demangledName`
+
+Unknown. Seems to always be `null`.
+
+#### `classProperties`
+
+A list of the class properties this protocol contains.
+
 ## Symbols
 
 ### Linkages
@@ -238,6 +437,30 @@ Rename collisions when linking (static functions).
 #### Private Linkage
 
 Like [Internal](#internal-linkage), but omit from the symbol table.
+
+#### Linkeonce Linkage
+
+Globals with `linkonce` linkage are merged with other globals of the same name
+when linkage occurs. Unreferenced `linkonce` globals are allowed to be discarded.
+
+#### Weak Linkage
+
+`weak` linkage has the same merging semantics as [Linkeonce](#linkonce-linkage)
+linkage, except that unreferenced globals with `weak` linkage may not be discarded.
+
+### Visibility
+
+#### Default
+
+The default visibility style. This means that the declaration is visible to
+other modules.
+
+#### Hidden
+
+Two declarations of an object with hidden visibility refer to the same object if
+they are in the same shared object. Usually, hidden visibility indicates that
+the symbol will not be placed into the dynamic symbol table, so no other module
+(executable or shared library) can reference it directly.
 
 ### `L_OBJC_METH_VAR_NAME_`
 
@@ -270,56 +493,7 @@ method, a symbol is generated in the resulting binary. The symbol has the name
 class. For each class that is defined and contains at least one instance method,
 a symbol is generated with the name `l_OBJC_$_INSTANCE_METHODS_<class_name>`,
 where `<class_name>` is the name of the class. The section data that is stored
-corresponds to the following structs:
-
-```d
-struct __method_list_t
-{
-  int entsize;
-  int count;
-  _objc_method first;
-}
-```
-
-```d
-struct _objc_method
-{
-  char* name;
-  char* types;
-  void* imp;
-}
-```
-
-#### `__method_list_t`
-#####  `entsize`
-
-The size of `_objc_method` in bytes, always `24`.
-
-##### `count`
-
-The number of methods in the list.
-
-##### `first`
-
-The first method.
-
-#### `_objc_method`
-##### `name`
-
-The name of the method. This is stored as a reference to the
-`L_OBJC_METH_VAR_NAME_.<number>` symbol, where `<number>` is an incrementing
-number.
-
-##### `types`
-
-The type encoding of the method. This is stored as a reference to the
-`L_OBJC_METH_VAR_TYPE_.<number>` symbol, where `<number>` is an incrementing
-number.
-
-##### `imp`
-
-The actual method implementation. The address to the function that is the method
-implementation.
+corresponds to the [`__method_list_t`](#__method_list_t-section-data-types) type.
 
 | Section                                  | Linkage                      | Alignment |
 |------------------------------------------|------------------------------|-----------|
@@ -458,7 +632,10 @@ methods, `null` is stored instead.
 
 #### `baseProtocols`
 
-A list of the protocols this class implements.
+A list of the protocols this class implements. This is stored a references to the
+`__OBJC_CLASS_PROTOCOLS_$_<class_name>` symbol, where `<class_name>` is the name
+of the class. If the class doesn't implement any protocols, `null` is stored
+instead.
 
 #### `ivars`
 
@@ -615,6 +792,118 @@ The size of the instance variable.
 |------------------------------------------|------------------------------|-----------|
 | [`__objc_const`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
 
+### `__OBJC_CLASS_PROTOCOLS_$_`
+
+For each class that is defined and implements at least one protocol, a symbol is
+generated in the resulting binary. The symbol has the name
+`__OBJC_CLASS_PROTOCOLS_$_<class_name>` where `<class_name>` is the name of the
+class. The section data that is stored corresponds to the
+[`_objc_protocol_list`](#_objc_protocol_list) type.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
+### `__OBJC_PROTOCOL_$_`
+
+For each protocol that is defined or referenced, a symbol is generated in the
+resulting binary. The symbol has the name `__OBJC_PROTOCOL_$_<protocol_name>`,
+where `<protocol_name>` is the name of the protocol. The section data that is
+stored corresponds to the [`_protocol_t`](#_protocol_t) type.
+
+| Section                            | Linkage                | Visibility                   | Global | Alignment |
+|------------------------------------|------------------------|------------------------------|--------|-----------|
+| [`__data`](#segments-and-sections) | [Weak](#weak-linkage)  | [Hidden](#hidden-visibility) | ✓      | 8         |
+
+
+### `__OBJC_LABEL_PROTOCOL_$_`
+
+For each protocol that is defined or referenced, a symbol is generated in the
+resulting binary. The symbol has the name `__OBJC_LABEL_PROTOCOL_$_<protocol_name>`,
+where `<protocol_name>` is the name of the protocol. The section data that is
+stored corresponds to the [`_protocol_t*`](#_protocol_t) type. This is stored as
+a reference to the [`__OBJC_PROTOCOL_$_<protocol_name>`](#__objc_protocol__)
+symbol, where `<protocol_name>` is the name of the protocol.
+
+| Section                                      | Linkage                | Visibility                   | Global | Alignment |
+|----------------------------------------------|------------------------|------------------------------|--------|-----------|
+| [`__objc_protolist`](#segments-and-sections) | [Weak](#weak-linkage)  | [Hidden](#hidden-visibility) | ✓      | 8         |
+
+### `__OBJC_$_PROTOCOL_REFS_`
+
+For each protocol that inherits from other protocols, a symbol is generated in
+the resulting binary. The symbol has the name
+`__OBJC_$_PROTOCOL_REFS_<protocol_name>` symbol, where `<protocol_name>` is the
+name of the protocol. The section data contains a list of protocols that the
+protocol inherits from and is stored as the
+[`_objc_protocol_list`](#_objc_protocol_list) type.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
+### `__OBJC_$_PROTOCOL_INSTANCE_METHODS_`
+
+For each protocol that is defined or referenced and contains at least one
+instance method, a symbol is generated in the resulting binary. The symbol has
+the name `__OBJC_$_PROTOCOL_INSTANCE_METHODS_<protocol_name>`, where
+`<protocol_name>` is the name of the protocol. The section data that is stored
+corresponds to the [`__method_list_t`](#__method_list_t-section-data-types) type.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
+### `__OBJC_$_PROTOCOL_CLASS_METHODS_`
+
+For each protocol that is defined or referenced and contains at least one
+class method, a symbol is generated in the resulting binary. The symbol has
+the name `__OBJC_$_PROTOCOL_CLASS_METHODS_<protocol_name>`, where
+`<protocol_name>` is the name of the protocol. The section data that is stored
+corresponds to the [`__method_list_t`](#__method_list_t-section-data-types) type.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
+### `__OBJC_$_PROTOCOL_INSTANCE_METHODS_OPT_`
+
+For each protocol that is defined or referenced and contains at least one
+optional instance method, a symbol is generated in the resulting binary. The
+symbol has the name `__OBJC_$_PROTOCOL_INSTANCE_METHODS_OPT_<protocol_name>`,
+where `<protocol_name>` is the name of the protocol. The section data that is
+stored corresponds to the [`__method_list_t`](#__method_list_t-section-data-types)
+type.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
+### `__OBJC_$_PROTOCOL_CLASS_METHODS_OPT_`
+
+For each protocol that is defined or referenced and contains at least one
+optional class method, a symbol is generated in the resulting binary. The symbol
+has the name `__OBJC_$_PROTOCOL_CLASS_METHODS_OPT_<protocol_name>`, where
+`<protocol_name>` is the name of the protocol. The section data that is stored
+corresponds to the [`__method_list_t`](#__method_list_t-section-data-types) type.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
+### `__OBJC_$_PROTOCOL_METHOD_TYPES_`
+
+For each protocol that is defined or referenced and contains at least one
+method, a symbol is generated in the resulting binary. The symbol
+has the name `__OBJC_$_PROTOCOL_METHOD_TYPES_<protocol_name>`, where
+`<protocol_name>` is the name of the protocol. The section data that is stored
+is a list of symbols, where each element in the list is a reference to a
+[`L_OBJC_METH_VAR_TYPE_`](#l_objc_meth_var_type_) symbol.
+
+| Section                                  | Linkage                     | Global | Alignment |
+|------------------------------------------|-----------------------------|--------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage) | ✓      | 8         |
+
 ## Segments and Sections
 
 The following segments and sections are used to store data in the binary. This
@@ -630,7 +919,9 @@ table also includes properties of these sections:
 | `__objc_classname` | `__TEXT` | `cstring_literals` |                 | 0         |
 | `__objc_const`     | `__DATA` | `regular`          |                 | 8         |
 | `__objc_data`      | `__DATA` | `regular`          |                 | 8         |
-| `__objc_methtype`  | `__TEXT` | `cstring_literals` |                 | 0        |
+| `__objc_methtype`  | `__TEXT` | `cstring_literals` |                 | 0         |
+| `__objc_protolist` | `__DATA` | `regular`          | `no_dead_strip` | 8         |
+| `__data`           | `__DATA` | `regular`          |                 | 8         |
 
 For more information about the different section types and attributes, see
 the documentation for [Assembler Directives](https://developer.apple.com/library/content/documentation/DeveloperTools/Reference/Assembler/040-Assembler_Directives/asm_directives.html) from Apple.
