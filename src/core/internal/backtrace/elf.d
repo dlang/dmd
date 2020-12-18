@@ -9,7 +9,7 @@
  * Source: $(DRUNTIMESRC rt/backtrace/elf.d)
  */
 
-module rt.backtrace.elf;
+module core.internal.backtrace.elf;
 
 version (linux)
 {

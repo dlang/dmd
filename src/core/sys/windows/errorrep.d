@@ -13,7 +13,7 @@ version (Windows):
 
 version (ANSI) {} else version = Unicode;
 
-private import core.sys.windows.w32api, core.sys.windows.windef;
+import core.sys.windows.w32api, core.sys.windows.windef;
 
 static assert (_WIN32_WINNT >= 0x501,
     "core.sys.windows.errorrep is available only if version WindowsXP, Windows2003 "

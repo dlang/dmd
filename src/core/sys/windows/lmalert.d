@@ -11,7 +11,7 @@ version (Windows):
 @system:
 pragma(lib, "netapi32");
 
-private import core.sys.windows.lmcons, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const TCHAR[]
     ALERTER_MAILSLOT     = `\\.\MAILSLOT\Alerter`,

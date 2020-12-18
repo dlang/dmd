@@ -17,7 +17,7 @@ import core.sys.windows.sdkddkver;
 version (ANSI) {} else version = Unicode;
 pragma(lib, "version");
 
-private import core.sys.windows.windef;
+import core.sys.windows.windef;
 
 // FIXME: type weirdness
 enum {

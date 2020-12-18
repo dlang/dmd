@@ -14,7 +14,7 @@
  */
 module core.sys.posix.poll;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 
 version (OSX)
     version = Darwin;

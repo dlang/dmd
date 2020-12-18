@@ -13,7 +13,7 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 
 import core.sys.windows.rpcdce;
-private import core.sys.windows.basetyps;
+import core.sys.windows.basetyps;
 
 // FIXME: deal with RPC_UNICODE_SUPPORTED
 // FIXME: check types of constants

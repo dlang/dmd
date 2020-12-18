@@ -10,7 +10,7 @@ module core.sys.windows.basetyps;
 version (Windows):
 @system:
 
-private import core.sys.windows.windef, core.sys.windows.basetsd;
+import core.sys.windows.windef, core.sys.windows.basetsd;
 
 align(1) struct GUID {  // size is 16
     align(1):

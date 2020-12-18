@@ -165,7 +165,7 @@ struct ModuleGroup
     void sortCtors(string cycleHandling)
     {
         import core.bitop : bts, btr, bt, BitRange;
-        import rt.util.container.hashtab;
+        import core.internal.container.hashtab;
 
         enum OnCycle
         {
@@ -566,7 +566,7 @@ struct ModuleGroup
         }
 
         auto stack = (cast(StackRec*).calloc(len, StackRec.sizeof))[0 .. len];
-        // TODO: reuse GCBits by moving it to rt.util.container or core.internal
+        // TODO: reuse GCBits by moving it to core.internal.container
         immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
         auto ctorstart = cast(size_t*).malloc(nwords * size_t.sizeof);
         auto ctordone = cast(size_t*).malloc(nwords * size_t.sizeof);

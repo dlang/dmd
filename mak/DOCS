@@ -81,7 +81,18 @@ DOCS=\
 	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_osthread.html \
 	\
+	$(DOCDIR)\core_internal_dassert.html \
 	$(DOCDIR)\core_internal_execinfo.html \
+	$(DOCDIR)\core_internal_qsort.html \
+	\
+	$(DOCDIR)\core_internal_backtrace_dwarf.html \
+	$(DOCDIR)\core_internal_backtrace_elf.html \
+	$(DOCDIR)\core_internal_backtrace_macho.html \
+	\
+	$(DOCDIR)\core_internal_container_array.html \
+	$(DOCDIR)\core_internal_container_common.html \
+	$(DOCDIR)\core_internal_container_hashtab.html \
+	$(DOCDIR)\core_internal_container_treap.html \
 	\
 	$(DOCDIR)\rt_aaA.html \
 	$(DOCDIR)\rt_aApply.html \
@@ -91,10 +102,6 @@ DOCS=\
 	\
 	$(DOCDIR)\rt_arrayassign.html \
 	$(DOCDIR)\rt_arraycat.html \
-	\
-	$(DOCDIR)\rt_backtrace_dwarf.html \
-	$(DOCDIR)\rt_backtrace_elf.html \
-	$(DOCDIR)\rt_backtrace_macho.html \
 	\
 	$(DOCDIR)\rt_cast_.html \
 	$(DOCDIR)\rt_cmath2.html \
@@ -115,7 +122,6 @@ DOCS=\
 	$(DOCDIR)\rt_minfo.html \
 	$(DOCDIR)\rt_monitor_.html \
 	$(DOCDIR)\rt_profilegc.html \
-	$(DOCDIR)\rt_qsort.html \
 	$(DOCDIR)\rt_sections_android.html \
 	$(DOCDIR)\rt_sections.html \
 	$(DOCDIR)\rt_sections_darwin_64.html \
@@ -131,10 +137,5 @@ DOCS=\
 	\
 	$(DOCDIR)\rt_unwind.html \
 	\
-	$(DOCDIR)\rt_util_container_array.html \
-	$(DOCDIR)\rt_util_container_common.html \
-	$(DOCDIR)\rt_util_container_hashtab.html \
-	$(DOCDIR)\rt_util_container_treap.html \
 	$(DOCDIR)\rt_util_utility.html \
-	$(DOCDIR)\rt_util_random.html \
 	$(DOCDIR)\rt_util_typeinfo.html \

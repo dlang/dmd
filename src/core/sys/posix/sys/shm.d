@@ -14,7 +14,7 @@
  */
 module core.sys.posix.sys.shm;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for pid_t, time_t, key_t
 public import core.sys.posix.sys.ipc;
 

@@ -12,8 +12,8 @@ version (Windows):
 
 version (ANSI) {} else version = Unicode;
 
-private import core.sys.windows.windef, core.sys.windows.winuser;
-private import core.sys.windows.wingdi; // for LF_FACESIZE
+import core.sys.windows.windef, core.sys.windows.winuser;
+import core.sys.windows.wingdi; // for LF_FACESIZE
 
 align(4):
 

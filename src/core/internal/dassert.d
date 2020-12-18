@@ -1,10 +1,40 @@
 /*
-Provides light-weight formatting utilities for pretty-printing
-on assertion failures
-*/
+ * Support for rich error messages generation with `assert`
+ *
+ * This module provides the `_d_assert_fail` hooks which are instantiated
+ * by the compiler whenever `-checkaction=context` is used.
+ * There are two hooks, one for unary expressions, and one for binary.
+ * When used, the compiler will rewrite `assert(a >= b)` as
+ * `assert(a >= b, _d_assert_fail!">="(a, b))`.
+ * Temporaries will be created to avoid side effects if deemed necessary
+ * by the compiler.
+ *
+ * For more information, refer to the implementation in DMD frontend
+ * for `AssertExpression`'s semantic analysis.
+ *
+ * Copyright: D Language Foundation 2018 - 2020
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(LINK2 https://github.com/dlang/druntime/blob/master/src/core/internal/dassert.d, _dassert.d)
+ * Documentation: https://dlang.org/phobos/core_internal_dassert.html
+ */
 module core.internal.dassert;
 
-/// Allows customized assert error messages for unary expressions
+/**
+ * Generates rich assert error messages for unary expressions
+ *
+ * The unary expression `assert(!una)` will be turned into
+ * `assert(!una, _d_assert_fail!"!"(una))`.
+ * This routine simply acts as if the user wrote `assert(una == false)`.
+ *
+ * Params:
+ *   op = Operator that was used in the expression, currently only "!"
+ *        is supported.
+ *   a  = Result of the expression that was used in `assert` before
+ *        its implicit conversion to `bool`.
+ *
+ * Returns:
+ *   A string such as "$a != true" or "$a == true".
+ */
 string _d_assert_fail(string op, A)(auto ref const scope A a)
 {
     string val = miniFormatFakeAttributes(a);
@@ -12,7 +42,20 @@ string _d_assert_fail(string op, A)(auto ref const scope A a)
     return combine(val, token, "true");
 }
 
-/// Allows customized assert error messages for binary expressions
+/**
+ * Generates rich assert error messages for binary expressions
+ *
+ * The binary expression `assert(x == y)` will be turned into
+ * `assert(x == y, _d_assert_fail!"=="(x, y))`.
+ *
+ * Params:
+ *   comp = Comparison operator that was used in the expression.
+ *   a  = Left hand side operand.
+ *   b  = Right hand side operand.
+ *
+ * Returns:
+ *   A string such as "$a $comp $b".
+ */
 string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
 {
     /*

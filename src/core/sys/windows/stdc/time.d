@@ -17,7 +17,7 @@ module core.sys.windows.stdc.time;
 
 version (Windows):
 
-private import core.stdc.config;
+import core.stdc.config;
 
 extern (C):
 @trusted: // There are only a few functions here that use unsafe C strings.

@@ -958,6 +958,13 @@ private:
         {
             version (Posix) import core.sys.posix.sys.mman; // mmap, MAP_ANON
 
+            static if ( __traits( compiles, ucontext_t ) )
+            {
+                // Stack size must be at least the minimum allowable by the OS.
+                if (sz < MINSIGSTKSZ)
+                    sz = MINSIGSTKSZ;
+            }
+
             static if ( __traits( compiles, mmap ) )
             {
                 // Allocate more for the memory guard

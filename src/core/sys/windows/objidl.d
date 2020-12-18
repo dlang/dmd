@@ -16,12 +16,12 @@ version (Windows):
 
 import core.sys.windows.unknwn;
 import core.sys.windows.objfwd;
-private import core.sys.windows.windef;
-private import core.sys.windows.basetyps;
-private import core.sys.windows.oleidl;
-private import core.sys.windows.wtypes;
-private import core.sys.windows.winbase; // for FILETIME
-private import core.sys.windows.rpcdce;
+import core.sys.windows.windef;
+import core.sys.windows.basetyps;
+import core.sys.windows.oleidl;
+import core.sys.windows.wtypes;
+import core.sys.windows.winbase; // for FILETIME
+import core.sys.windows.rpcdce;
 
 struct  STATSTG {
     LPOLESTR pwcsName;

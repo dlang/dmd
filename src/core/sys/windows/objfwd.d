@@ -10,7 +10,7 @@ module core.sys.windows.objfwd;
 version (Windows):
 @system:
 
-private import core.sys.windows.objidl;
+import core.sys.windows.objidl;
 
 /+
 // Forward declararions are not necessary in D.

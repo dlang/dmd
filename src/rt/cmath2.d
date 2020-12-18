@@ -13,7 +13,7 @@
  */
 module rt.cmath2;
 
-private import core.stdc.math;
+import core.stdc.math;
 
 extern (C):
 

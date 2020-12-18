@@ -18,10 +18,10 @@ module core.sync.config;
 
 version (Posix)
 {
-    private import core.sys.posix.pthread;
-    private import core.sys.posix.time;
-    private import core.sys.posix.sys.time;
-    private import core.time;
+    import core.sys.posix.pthread;
+    import core.sys.posix.time;
+    import core.sys.posix.sys.time;
+    import core.time;
 
 
     void mktspec( ref timespec t ) nothrow @nogc

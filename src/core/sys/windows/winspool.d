@@ -13,8 +13,8 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 pragma(lib, "winspool");
 
-private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.wingdi;
-private import core.sys.windows.winbase; // for SYSTEMTIME
+import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.wingdi;
+import core.sys.windows.winbase; // for SYSTEMTIME
 
 // FIXME: clean up Windows version support
 

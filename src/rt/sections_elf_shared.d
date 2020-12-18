@@ -58,8 +58,8 @@ import core.sys.posix.pthread;
 import rt.deh;
 import rt.dmain2;
 import rt.minfo;
-import rt.util.container.array;
-import rt.util.container.hashtab;
+import core.internal.container.array;
+import core.internal.container.hashtab;
 import rt.util.utility : safeAssert;
 
 alias DSO SectionGroup;

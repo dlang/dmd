@@ -14,7 +14,7 @@
  */
 module core.sys.posix.sys.time;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types;  // for time_t, suseconds_t
 public import core.sys.posix.sys.select; // for fd_set, FD_CLR() FD_ISSET() FD_SET() FD_ZERO() FD_SETSIZE, select()
 

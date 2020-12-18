@@ -10,7 +10,7 @@ module core.sys.windows.lmbrowsr;
 version (Windows):
 @system:
 
-private import core.sys.windows.lmcons, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.windef;
 
 enum BROWSER_ROLE_PDC = 1;
 enum BROWSER_ROLE_BDC = 2;

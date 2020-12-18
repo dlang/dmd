@@ -12,7 +12,7 @@ version (Windows):
 pragma(lib, "netapi32");
 
 import core.sys.windows.lmuseflg;
-private import core.sys.windows.lmcons, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.windef;
 
 enum {
     USE_LOCAL_PARMNUM = 1,

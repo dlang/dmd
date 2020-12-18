@@ -161,13 +161,23 @@ enum
 }
 
 int kqueue();
-static if (__FreeBSD_version >= 1200000)
-    pragma(mangle, "kevent@@FBSD_1.5")
+
+version (GNU)
+{
     int kevent(int kq, const kevent_t *changelist, int nchanges,
                kevent_t *eventlist, int nevents,
                const timespec *timeout);
+}
 else
-    pragma(mangle, "kevent@FBSD_1.0")
-    int kevent(int kq, const kevent_t *changelist, int nchanges,
-               kevent_t *eventlist, int nevents,
-               const timespec *timeout);
+{
+    static if (__FreeBSD_version >= 1200000)
+        pragma(mangle, "kevent@@FBSD_1.5")
+        int kevent(int kq, const kevent_t *changelist, int nchanges,
+                   kevent_t *eventlist, int nevents,
+                   const timespec *timeout);
+    else
+        pragma(mangle, "kevent@FBSD_1.0")
+        int kevent(int kq, const kevent_t *changelist, int nchanges,
+                   kevent_t *eventlist, int nevents,
+                   const timespec *timeout);
+}

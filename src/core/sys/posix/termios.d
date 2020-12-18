@@ -14,7 +14,7 @@
  */
 module core.sys.posix.termios;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for pid_t
 
 version (OSX)

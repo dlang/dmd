@@ -17,7 +17,7 @@ pragma(lib, "winmm");
  *  compile-time constants, so they are implemented as templates.
  */
 
-private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winver;
+import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winver;
 
 align(1):
 

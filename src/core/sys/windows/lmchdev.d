@@ -12,7 +12,7 @@ version (Windows):
 
 // COMMENT: This file might be deprecated.
 
-private import core.sys.windows.lmcons, core.sys.windows.windef;
+import core.sys.windows.lmcons, core.sys.windows.windef;
 
 enum CHARDEVQ_NO_REQUESTS  = -1;
 enum CHARDEV_CLOSE         = 0;

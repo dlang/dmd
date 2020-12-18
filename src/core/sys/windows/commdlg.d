@@ -13,7 +13,7 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 pragma(lib, "comdlg32");
 
-private import core.sys.windows.w32api;
+import core.sys.windows.w32api;
 import core.sys.windows.windef, core.sys.windows.winuser;
 import core.sys.windows.wingdi; // for LPLOGFONTA
 

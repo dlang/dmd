@@ -13,7 +13,7 @@ version (Windows):
 version (ANSI) {} else version = Unicode;
 pragma(lib, "oleacc");
 
-private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.unknwn, core.sys.windows.wtypes,
+import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.unknwn, core.sys.windows.wtypes,
   core.sys.windows.windef;
 
 enum {

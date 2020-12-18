@@ -14,7 +14,7 @@ version (Windows):
  * WAIT_TIMEOUT is also defined in winbase.h
  */
 
-private import core.sys.windows.windef;
+import core.sys.windows.windef;
 
 alias int SCODE; // was in core.sys.windows.wtypes.
 

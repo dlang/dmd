@@ -14,9 +14,9 @@
  */
 module core.sys.posix.sys.stat;
 
-private import core.sys.posix.config;
-private import core.stdc.stdint;
-private import core.sys.posix.time;     // for timespec
+import core.sys.posix.config;
+import core.stdc.stdint;
+import core.sys.posix.time;     // for timespec
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (OSX)
@@ -2278,17 +2278,26 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    static if (__FreeBSD_version >= INO64_FIRST)
+    version (GNU)
     {
-        pragma(mangle, "fstat@FBSD_1.5") int   fstat(int, stat_t*);
-        pragma(mangle, "lstat@FBSD_1.5") int   lstat(const scope char*, stat_t*);
-        pragma(mangle, "stat@FBSD_1.5")  int   stat(const scope char*, stat_t*);
+        int   fstat(int, stat_t*);
+        int   lstat(const scope char*, stat_t*);
+        int   stat(const scope char*, stat_t*);
     }
     else
     {
-        pragma(mangle, "fstat@FBSD_1.0") int   fstat(int, stat_t*);
-        pragma(mangle, "lstat@FBSD_1.0") int   lstat(const scope char*, stat_t*);
-        pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
+        static if (__FreeBSD_version >= INO64_FIRST)
+        {
+            pragma(mangle, "fstat@FBSD_1.5") int   fstat(int, stat_t*);
+            pragma(mangle, "lstat@FBSD_1.5") int   lstat(const scope char*, stat_t*);
+            pragma(mangle, "stat@FBSD_1.5")  int   stat(const scope char*, stat_t*);
+        }
+        else
+        {
+            pragma(mangle, "fstat@FBSD_1.0") int   fstat(int, stat_t*);
+            pragma(mangle, "lstat@FBSD_1.0") int   lstat(const scope char*, stat_t*);
+            pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
+        }
     }
 }
 else version (NetBSD)
@@ -2409,10 +2418,17 @@ else version (FreeBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    static if (__FreeBSD_version >= INO64_FIRST)
-        pragma(mangle, "mknod@FBSD_1.5") int mknod(const scope char*, mode_t, dev_t);
+    version (GNU)
+    {
+        int mknod(const scope char*, mode_t, dev_t);
+    }
     else
-        pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);
+    {
+        static if (__FreeBSD_version >= INO64_FIRST)
+            pragma(mangle, "mknod@FBSD_1.5") int mknod(const scope char*, mode_t, dev_t);
+        else
+            pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);
+    }
 }
 else version (NetBSD)
 {

@@ -12,7 +12,7 @@ version (Windows):
 
 // TODO: fix possible conflict with shloj. Sort out NEC_98 issue.
 
-private import core.sys.windows.windef;
+import core.sys.windows.windef;
 
 enum REGSTR_MAX_VALUE_LENGTH = 256;
 

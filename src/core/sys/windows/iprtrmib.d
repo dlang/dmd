@@ -12,7 +12,7 @@ version (Windows):
 @system:
 
 import core.sys.windows.ipifcons;
-private import core.sys.windows.windef;
+import core.sys.windows.windef;
 
 // FIXME: check types of constants
 

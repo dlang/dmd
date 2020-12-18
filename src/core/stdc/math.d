@@ -13,7 +13,7 @@
 
 module core.stdc.math;
 
-private import core.stdc.config;
+import core.stdc.config;
 
 version (OSX)
     version = Darwin;

@@ -14,7 +14,7 @@
  */
 module core.sys.posix.pthread;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types;
 public import core.sys.posix.sched;
 public import core.sys.posix.time;

@@ -11,7 +11,7 @@
 
 module core.sys.posix.signal;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.stdc.signal;
 public import core.sys.posix.sys.types; // for pid_t
 //public import core.sys.posix.time;      // for timespec, now defined here
@@ -1442,7 +1442,7 @@ else version (Solaris)
 else version (CRuntime_Bionic)
 {
     public import core.sys.posix.time: timer_t;
-    private import core.stdc.string : memset;
+    import core.stdc.string : memset;
 
     version (X86)
     {

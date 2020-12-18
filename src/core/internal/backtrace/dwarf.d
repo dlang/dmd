@@ -47,9 +47,10 @@
  * Source: $(DRUNTIMESRC rt/backtrace/dwarf.d)
  */
 
-module rt.backtrace.dwarf;
+module core.internal.backtrace.dwarf;
 
 import core.internal.execinfo;
+import core.internal.string;
 
 static if (hasExecinfo):
 
@@ -63,11 +64,11 @@ else version (WatchOS)
     version = Darwin;
 
 version (Darwin)
-    import rt.backtrace.macho;
+    import core.internal.backtrace.macho;
 else
-    import rt.backtrace.elf;
+    import core.internal.backtrace.elf;
 
-import rt.util.container.array;
+import core.internal.container.array;
 import core.stdc.string : strlen, memcpy;
 
 //debug = DwarfDebugMachine;
@@ -75,10 +76,87 @@ debug(DwarfDebugMachine) import core.stdc.stdio : printf;
 
 struct Location
 {
-    const(char)[] file = null;
-    const(char)[] directory = null;
-    int line = -1;
+    /**
+     * Address of the instruction for which this location is for.
+     */
     const(void)* address;
+
+    /**
+     * The name of the procedure, or function, this address is in.
+     */
+    const(char)[] procedure;
+
+    /**
+     * Path to the file this location references, relative to `directory`
+     *
+     * Note that depending on implementation, this could be just a name,
+     * a relative path, or an absolute path.
+     *
+     * If no debug info is present, this may be `null`.
+     */
+    const(char)[] file;
+
+    /**
+     * Directory where `file` resides
+     *
+     * This may be `null`, either if there is no debug info,
+     * or if the compiler implementation doesn't use this feature (e.g. DMD).
+     */
+    const(char)[] directory;
+
+    /**
+     * Line within the file that correspond to this `location`.
+     *
+     * Note that in addition to a positive value, the values `0` and `-1`
+     * are to be expected by consumers. A value of `0` means that the code
+     * is not attributable to a specific line in the file, e.g. module-specific
+     * generated code, and `-1` means that no debug info could be found.
+     */
+    int line = -1;
+
+    /// Format this location into a human-readable string
+    void toString (scope void delegate(scope const char[]) sink) const
+    {
+        import core.demangle;
+
+        // If there's no file information, there shouldn't be any directory
+        // information. If there is we will simply ignore it.
+        if (this.file.length)
+        {
+            // Note: Sink needs to handle empty data
+            sink(this.directory);
+            // Only POSIX path because this module is not used on Windows
+            if (this.directory.length && this.directory[$ - 1] != '/')
+                sink("/");
+            sink(this.file);
+        }
+        else
+            // Most likely, no debug information
+            sink("??");
+
+        // Also no debug infos
+        if (this.line < 0)
+            sink(":?");
+        // Line can be 0, e.g. if the frame is in generated code
+        else if (this.line)
+        {
+            sink(":");
+            sink(signedToTempString(this.line));
+        }
+
+        char[1024] symbolBuffer = void;
+        // When execinfo style is used, procedure can be null if the format
+        // of the line cannot be read, but it generally should not happen
+        if (this.procedure.length)
+        {
+            sink(" ");
+            sink(demangle(this.procedure, symbolBuffer));
+        }
+
+        sink(" [0x");
+        sink(unsignedToTempString!16(cast(size_t) this.address));
+        sink("]");
+    }
 }
 
 int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
@@ -95,70 +173,52 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
     {
         // find address -> file, line mapping using dwarf debug_line
         Array!Location locations;
-        if (debugLineSectionData)
-        {
-            locations.length = callstack.length;
-            foreach (size_t i; 0 .. callstack.length)
-                locations[i].address = callstack[i];
-
-            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
-        }
-
-        int ret = 0;
+        locations.length = callstack.length;
         foreach (size_t i; 0 .. callstack.length)
         {
-            char[1536] buffer = void;
-            size_t bufferLength = 0;
-
-            void appendToBuffer(Args...)(const(char)* format, Args args)
-            {
-                const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
-                assert(count >= 0);
-                bufferLength += count;
-                if (bufferLength >= buffer.length)
-                    bufferLength = buffer.length - 1;
-            }
-
-
-            if (locations.length > 0 && locations[i].line != -1)
-            {
-                bool includeSlash = locations[i].directory.length > 0 && locations[i].directory[$ - 1] != '/';
-                string printFormat = includeSlash ? "%.*s/%.*s:%d " : "%.*s%.*s:%d ";
-
-                appendToBuffer(
-                    printFormat.ptr,
-                    cast(int) locations[i].directory.length, locations[i].directory.ptr,
-                    cast(int) locations[i].file.length, locations[i].file.ptr,
-                    locations[i].line,
-                );
-            }
-            else
-            {
-                buffer[0 .. 5] = "??:? ";
-                bufferLength = 5;
-            }
-
-            char[1024] symbolBuffer = void;
-            auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
-            if (symbol.length > 0)
-                appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
-
-            const addressLength = 20;
-            const maxBufferLength = buffer.length - addressLength;
-            if (bufferLength > maxBufferLength)
-            {
-                buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
-                bufferLength = maxBufferLength;
-            }
-            appendToBuffer("[%p]", callstack[i]);
-
-            auto output = buffer[0 .. bufferLength];
-            auto pos = i;
-            ret = dg(pos, output);
-            if (ret || symbol == "_Dmain") break;
+            locations[i].address = callstack[i];
+            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
         }
 
-        return ret;
+        if (debugLineSectionData)
+            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
+
+        char[1536] buffer = void;
+        size_t bufferLength;
+        scope sink = (scope const char[] data) {
+                // We cannot write anymore
+                if (bufferLength > buffer.length)
+                    return;
+
+                if (bufferLength + data.length > buffer.length)
+                {
+                    buffer[bufferLength .. $] = data[0 .. buffer.length - bufferLength];
+                    buffer[$ - 3 .. $] = "...";
+                    // +1 is a marker for the '...', otherwise if the symbol
+                    // name was to exactly fill the buffer,
+                    // we'd discard anything else without printing the '...'.
+                    bufferLength = buffer.length + 1;
+                    return;
+                }
+
+                buffer[bufferLength .. bufferLength + data.length] = data;
+                bufferLength += data.length;
+        };
+
+        foreach (idx, const ref loc; locations)
+        {
+            bufferLength = 0;
+            loc.toString(sink);
+
+            auto lvalue = buffer[0 .. bufferLength > $ ? $ : bufferLength];
+            if (auto ret = dg(idx, lvalue))
+                return ret;
+
+            if (loc.procedure == "_Dmain")
+                break;
+        }
+
+        return 0;
     }
 
     return image.isValid
@@ -458,13 +518,6 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
     }
 
     return true;
-}
-
-const(char)[] getDemangledSymbol(const(char)[] btSymbol, return ref char[1024] buffer)
-{
-    import core.demangle;
-    const mangledName = getMangledSymbolName(btSymbol);
-    return !mangledName.length ? buffer[0..0] : demangle(mangledName, buffer[]);
 }
 
 T read(T)(ref const(ubyte)[] buffer) @nogc nothrow

@@ -15,7 +15,7 @@
  */
 module core.sys.posix.time;
 
-private import core.sys.posix.config;
+import core.sys.posix.config;
 public import core.stdc.time;
 public import core.sys.posix.sys.types;
 public import core.sys.posix.signal; // for sigevent

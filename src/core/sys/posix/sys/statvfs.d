@@ -8,8 +8,8 @@
                       The Open Group Base Specifications Issue 7 IEEE Std 1003.1, 2018 Edition)
  +/
 module core.sys.posix.sys.statvfs;
-private import core.stdc.config;
-private import core.sys.posix.config;
+import core.stdc.config;
+import core.sys.posix.config;
 public import core.sys.posix.sys.types;
 
 version (Posix):
@@ -278,8 +278,16 @@ else version (FreeBSD)
     enum uint ST_RDONLY = 0x1;
     enum uint ST_NOSUID = 0x2;
 
-    pragma(mangle, "fstatvfs@FBSD_1.0") int fstatvfs(int, statvfs_t*);
-    pragma(mangle, "statvfs@FBSD_1.0")  int statvfs(const char*, statvfs_t*);
+    version (GNU)
+    {
+        int fstatvfs(int, statvfs_t*);
+        int statvfs(const char*, statvfs_t*);
+    }
+    else
+    {
+        pragma(mangle, "fstatvfs@FBSD_1.0") int fstatvfs(int, statvfs_t*);
+        pragma(mangle, "statvfs@FBSD_1.0")  int statvfs(const char*, statvfs_t*);
+    }
 }
 else
 {
