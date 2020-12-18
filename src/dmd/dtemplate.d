@@ -6125,55 +6125,80 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         the template could be expanded in a region allocator, deemed trivial,
         the end result copied back out independently and the entire region freed),
         and can be elided entirely from the binary.
-
-        The current implementation affects code that generally looks like:
-
-        ---
-        template foo(args...) {
-            some_basic_type_or_string helper() { .... }
-            enum foo = helper();
-        }
-        ---
-
-        since it was the easiest starting point of implementation but it can and
-        should be expanded more later.
     */
     final bool isDiscardable()
     {
-        if (aliasdecl is null)
+        if (aliasdecl is null) // not eponymous
             return false;
 
-        auto v = aliasdecl.isVarDeclaration();
-        if (v is null)
-            return false;
-
-        if (!(v.storage_class & STC.manifest))
-            return false;
-
-        // Currently only doing basic types here because it is the easiest proof-of-concept
-        // implementation with minimal risk of side effects, but it could likely be
-        // expanded to any type that already exists outside this particular instance.
-        if (!(v.type.equals(Type.tstring) || (v.type.isTypeBasic() !is null)))
-            return false;
-
-        // Static ctors and dtors, even in an eponymous enum template, are still run,
-        // so if any of them are in here, we'd better not assume it is trivial lest
-        // we break useful code
-        foreach(member; *members)
+        if (auto v = aliasdecl.isVarDeclaration())
         {
-            if(member.hasStaticCtorOrDtor())
+            /** Detect & discard:
+                ---
+                template foo(args...) {
+                    some_basic_type_or_string helper() { .... }
+                    enum foo = helper();
+                }
+                ---
+            */
+
+            if (!(v.storage_class & STC.manifest))
                 return false;
-            if(member.isStaticDtorDeclaration())
+
+            // Currently only doing basic types here because it is the easiest proof-of-concept
+            // implementation with minimal risk of side effects, but it could likely be
+            // expanded to any type that already exists outside this particular instance.
+            if (!(v.type.equals(Type.tstring) || v.type.isTypeBasic()))
                 return false;
-            if(member.isStaticCtorDeclaration())
+
+            // Static ctors and dtors, even in an eponymous enum template, are still run,
+            // so if any of them are in here, we'd better not assume it is trivial lest
+            // we break useful code
+            foreach (member; *members)
+            {
+                if (member.hasStaticCtorOrDtor() ||
+                    member.isStaticDtorDeclaration() ||
+                    member.isStaticCtorDeclaration())
+                {
+                    return false;
+                }
+            }
+        }
+        else if (auto a = aliasdecl.isAliasDeclaration())
+        {
+            /** Detect & discard:
+                ---
+                template foo(args...) {
+                    import bar : Symbol;
+                    alias foo = Symbol!args;
+                }
+                ---
+            */
+
+            // Only *type* aliases
+            if (a.aliassym)
                 return false;
+
+            // Only allow the eponymous member + import members, as the aliased type might be
+            // an inner aggregate requiring codegen.
+            size_t numNonImportMembers;
+            foreach (member; *members)
+                if (!member.isImport())
+                    numNonImportMembers++;
+
+            assert(numNonImportMembers >= 1);
+            if (numNonImportMembers > 1)
+                return false;
+        }
+        else
+        {
+            return false;
         }
 
         // but if it passes through this gauntlet... it should be fine. D code will
         // see only the eponymous member, outside stuff can never access it, even through
         // reflection; the outside world ought to be none the wiser. Even dmd should be
         // able to simply free the memory of everything except the final result.
-
         return true;
     }
 
@@ -6187,6 +6212,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        if (isDiscardable())
+            return false;
+
         if (!minst)
         {
             // If this is a speculative instantiation,
@@ -6229,11 +6257,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (global.params.allInst)
         {
             return true;
-        }
-
-        if (isDiscardable())
-        {
-            return false;
         }
 
         /* Even when this is reached to the codegen pass,
