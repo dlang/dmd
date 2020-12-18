@@ -45,7 +45,7 @@ void release(int*); // deallocate a memory object
 
 @live void test()
 {
-    auto p = void;
+    int* p = void;
     release(p); // error, p does not have a defined value
 }
 
