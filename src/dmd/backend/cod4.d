@@ -684,6 +684,12 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             !(sz == 1 && e1.EV.Voffset == 1)
            )
         {
+            if (varregm & XMMREGS)
+            {
+                // Could be an integer vector in the XMMREGS
+                xmmeq(cdb, e, CMP, e1, e2, pretregs);
+                return;
+            }
             regvar = true;
             retregs = varregm;
             reg = varreg;       // evaluate directly in target register
