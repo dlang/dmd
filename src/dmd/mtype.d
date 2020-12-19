@@ -5419,6 +5419,7 @@ extern (C++) final class TypeMixin : Type
 {
     Loc loc;
     Expressions* exps;
+    RootObject obj; // cached result of semantic analysis.
 
     extern (D) this(const ref Loc loc, Expressions* exps)
     {

@@ -1969,22 +1969,16 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
     Type visitMixin(TypeMixin mtype)
     {
         //printf("TypeMixin::semantic() %s\n", toChars());
-        auto o = mtype.compileTypeMixin(loc, sc);
-        if (auto t = o.isType())
-        {
-            return t.typeSemantic(loc, sc).addMod(mtype.mod);
-        }
-        else if (auto e = o.isExpression())
-        {
-            e = e.expressionSemantic(sc);
-            if (auto et = e.isTypeExp())
-                return et.type.addMod(mtype.mod);
-            else
-            {
-                if (!global.errors)
-                    .error(e.loc, "`%s` does not give a valid type", o.toChars);
-            }
-        }
+
+        Expression e;
+        Type t;
+        Dsymbol s;
+        mtype.resolve(loc, sc, e, t, s);
+
+        if (t && t.ty != Terror)
+            return t;
+
+        .error(mtype.loc, "`mixin(%s)` does not give a valid type", mtype.obj.toChars);
         return error();
     }
 
@@ -3079,8 +3073,18 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
 
     void visitMixin(TypeMixin mt)
     {
-        auto o = mt.compileTypeMixin(loc, sc);
+        RootObject o = mt.obj;
 
+        // if already resolved just set pe/pt/ps and return.
+        if (o)
+        {
+            pe = o.isExpression();
+            pt = o.isType();
+            ps = o.isDsymbol();
+            return;
+        }
+
+        o = mt.compileTypeMixin(loc, sc);
         if (auto t = o.isType())
         {
             resolve(t, loc, sc, pe, pt, ps, intypeid);
@@ -3091,12 +3095,15 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         {
             e = e.expressionSemantic(sc);
             if (auto et = e.isTypeExp())
-                return returnType(et.type.addMod(mt.mod));
+                returnType(et.type.addMod(mt.mod));
             else
                 returnExp(e);
         }
         else
             returnError();
+
+        // save the result
+        mt.obj = pe ? pe : (pt ? pt : ps);
     }
 
     void visitTraits(TypeTraits tt)

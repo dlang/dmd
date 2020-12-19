@@ -4459,6 +4459,7 @@ struct ASTBase
     {
         Loc loc;
         Expressions* exps;
+        RootObject obj;
 
         extern (D) this(const ref Loc loc, Expressions* exps)
         {
