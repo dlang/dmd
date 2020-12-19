@@ -78,6 +78,11 @@ import dmd.visitor;
 
 enum LOGSEMANTIC = false;
 
+version (DMDLIB)
+{
+    version = UseFileManager;
+}
+
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
  * a string.
@@ -5990,17 +5995,39 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         {
-            auto readResult = File.read(name);
-            if (!readResult.success)
+            FileBuffer* fmResult = null;
+            version (UseFileManager)
             {
-                e.error("cannot read file `%s`", name);
-                return setError();
+                if (e.filemanager)
+                {
+                    fmResult = e.filemanager.opIndex(FileName(name.toDString));
+                    if (fmResult)
+                    {
+                        se = new StringExp(e.loc, fmResult.data);
+                    }
+                }
             }
-            else
+            if (!fmResult)
             {
-                // take ownership of buffer (probably leaking)
-                auto data = readResult.extractSlice();
-                se = new StringExp(e.loc, data);
+                auto readResult = File.read(name);
+                if (!readResult.success)
+                {
+                    e.error("cannot read file `%s`", name);
+                    return setError();
+                }
+                else
+                {
+                    // take ownership of buffer (probably leaking)
+                    auto data = readResult.extractSlice();
+                    se = new StringExp(e.loc, data);
+
+                    version (UseFileManager)
+                    {
+                        FileBuffer* fb = FileBuffer.create();
+                        fb.data = data;
+                        e.filemanager.addPair(FileName(name.toDString), fb);
+                    }
+                }
             }
         }
         result = se.expressionSemantic(sc);

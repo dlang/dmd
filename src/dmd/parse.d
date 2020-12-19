@@ -25,6 +25,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
+import dmd.root.filemanager : FileManager;
 import dmd.tokens;
 
 // How multiple declarations are parsed.
@@ -273,6 +274,11 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
     return true;
 }
 
+version (DMDLIB)
+{
+    version = UseFileManager;
+}
+
 /***********************************************************
  */
 final class Parser(AST) : Lexer
@@ -288,6 +294,22 @@ final class Parser(AST) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
+    }
+
+    version (UseFileManager)
+    {
+        FileManager *filemanager = null;
+
+        void setFileManager(FileManager *fm)
+        {
+            filemanager = fm;
+            mod.filemanager = fm;
+        }
+
+        void disableFileManager()
+        {
+            filemanager = null;
+        }
     }
 
     /*********************
@@ -8253,7 +8275,19 @@ final class Parser(AST) : Lexer
                 check(TOK.leftParentheses, "`import`");
                 e = parseAssignExp();
                 check(TOK.rightParentheses);
-                e = new AST.ImportExp(loc, e);
+
+                version (UseFileManager)
+                {
+                    if (filemanager)
+                    {
+                        e = new AST.ImportExp(loc, e, filemanager);
+                    }
+                }
+                else
+                {
+                    e = new AST.ImportExp(loc, e);
+                }
+
                 break;
             }
         case TOK.new_:
