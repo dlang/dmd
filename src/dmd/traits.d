@@ -1072,8 +1072,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
             else if (ex.op == TOK.template_)
             {
-                VarExp ve = cast(VarExp)ex;
-                auto td = ve.var.isTemplateDeclaration();
+                TemplateExp te = cast(TemplateExp)ex;
+                auto td = te.td;
                 f = td;
                 if (td && td.funcroot)
                     f = td.funcroot;
