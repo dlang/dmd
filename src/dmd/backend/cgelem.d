@@ -1000,7 +1000,8 @@ L1:
         return e;
     }
     // Replace (e + e) with (e * 2)
-    else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1.Ety))
+    else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1.Ety) &&
+        !tyvector(e1.Ety))      // not all CPUs support XMM multiply
     {
         e.Eoper = OPmul;
         el_free(e2);
