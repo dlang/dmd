@@ -32,3 +32,106 @@ unittest
     s.c = cast(MyStruct*)__cpp_new(MyStruct.sizeof);
     cpp_delete(s);
 }
+
+@nogc unittest
+{
+    // Test cpp_new and cpp_delete for a struct infer @nogc.
+    import core.stdcpp.new_: cpp_new, cpp_delete;
+    extern(C++) static struct MyStructNoGC
+    {
+        __gshared int numDeleted;
+        int x = 3;
+        this(int x) @nogc { this.x = x; }
+        ~this() @nogc { ++numDeleted; }
+    }
+
+    MyStructNoGC* c1 = cpp_new!MyStructNoGC(4);
+    assert(c1.x == 4);
+    assert(MyStructNoGC.numDeleted == 0);
+    cpp_delete(c1);
+    assert(MyStructNoGC.numDeleted == 1);
+}
+
+/+
+// BUG: @nogc not being applied to __xdtor for extern(C++) class.
+extern(C++) class MyClassNoGC
+{
+    __gshared int numDeleted;
+    int x = 3;
+    this(int x) @nogc { this.x = x; }
+    ~this() @nogc { ++numDeleted; }
+}
+
+@nogc unittest
+{
+    // Test cpp_new and cpp_delete for a class infer @nogc.
+    import core.stdcpp.new_: cpp_new, cpp_delete;
+
+    MyClassNoGC c1 = cpp_new!MyClassNoGC(4);
+    assert(c1.x == 4);
+    assert(MyClassNoGC.numDeleted == 0);
+    cpp_delete(c1);
+    assert(MyClassNoGC.numDeleted == 1);
+}
++/
+
+unittest
+{
+    import core.stdcpp.new_: cpp_new, cpp_delete;
+
+    // Test cpp_new & cpp_delete are callable with a struct whose destructor
+    // is not @nogc.
+    {
+        extern(C++) static struct MyStructGC
+        {
+            __gshared int numDeleted;
+            int x = 5;
+            this(int x)
+            {
+                if (x == int.min)
+                    throw new Exception("forbidden number");
+                this.x = x;
+            }
+            ~this()
+            {
+                if (++numDeleted < 0)
+                    throw new Exception("overflow in dtor");
+            }
+        }
+        static assert(!is(typeof(() @nogc => cpp_new!MyStructGC(6))));
+        MyStructGC* c2 = cpp_new!MyStructGC(6);
+        assert(c2.x == 6);
+        static assert(!is(typeof(() @nogc => cpp_delete(c2))));
+        assert(MyStructGC.numDeleted == 0);
+        cpp_delete(c2);
+        assert(MyStructGC.numDeleted == 1);
+    }
+
+    // Test cpp_new & cpp_delete are callable with a class whose destructor
+    // is not @nogc.
+    {
+        extern(C++) static class MyClassGC
+        {
+            __gshared int numDeleted;
+            int x = 5;
+            this(int x)
+            {
+                if (x == int.min)
+                    throw new Exception("forbidden number x");
+                this.x = x;
+            }
+            ~this()
+            {
+                if (++numDeleted < 0)
+                    throw new Exception("overflow in dtor for x");
+            }
+        }
+        static assert(!is(typeof(() @nogc => cpp_new!MyClassGC(6))));
+        MyClassGC c2 = cpp_new!MyClassGC(6);
+        assert(c2.x == 6);
+        static assert(!is(typeof(() @nogc => cpp_delete(c2))));
+        assert(MyClassGC.numDeleted == 0);
+        cpp_delete(c2);
+        assert(MyClassGC.numDeleted == 1);
+    }
+}

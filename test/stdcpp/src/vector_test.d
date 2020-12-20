@@ -2,6 +2,13 @@ import core.stdcpp.vector;
 
 alias TestIssue21323IsFixed = vector!(vector!int);
 
+void testIssue21468IsFixed(vector!StructWithAVector a) {}
+
+struct StructWithAVector
+{
+    vector!int a;
+}
+
 unittest
 {
     // test vector a bit

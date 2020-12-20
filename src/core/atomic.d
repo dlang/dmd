@@ -267,10 +267,11 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  * Performs either compare-and-set or compare-and-swap (or exchange).
  *
  * There are two categories of overloads in this template:
- * the first one does a simple compare-and-set, and returns a boolean if the
- * operation happened. The value this is written (`writeThis`) can be an rvalue.
- * the second category does a compare-and-swap, or compare-and-exchange,
- * and expects `writeThis` to be a pointer type, where the previous value
+ * The first category does a simple compare-and-set.
+ * The comparison value (`ifThis`) is treated as an rvalue.
+ *
+ * The second category does a compare-and-swap (a.k.a. compare-and-exchange),
+ * and expects `ifThis` to be a pointer type, where the previous value
  * of `here` will be written.
  *
  * This operation is both lock-free and atomic.

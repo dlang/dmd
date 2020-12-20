@@ -14,8 +14,6 @@ module core.stdcpp.new_;
 import core.stdcpp.xutility : __cpp_sized_deallocation, __cpp_aligned_new;
 import core.stdcpp.exception : exception;
 
-@nogc:
-
 // TODO: this really should come from __traits(getTargetInfo, "defaultNewAlignment")
 version (D_LP64)
     enum size_t __STDCPP_DEFAULT_NEW_ALIGNMENT__ = 16;
@@ -69,12 +67,13 @@ void cpp_delete(T)(T* ptr) if (!is(T == class))
 void cpp_delete(T)(T instance) if (is(T == class))
 {
     destroy!false(instance);
-    __cpp_delete(instance);
+    __cpp_delete(cast(void*) instance);
 }
 
 
 // raw C++ functions
 extern(C++):
+@nogc:
 
 /// Binding for ::operator new(std::size_t count)
 pragma(mangle, __new_mangle)
