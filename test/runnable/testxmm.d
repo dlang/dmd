@@ -1,5 +1,5 @@
 // REQUIRED_ARGS:
-// PERMUTE_ARGS: -mcpu=native -inline
+// PERMUTE_ARGS: -mcpu=native -inline -O
 
 version (D_SIMD)
 {
