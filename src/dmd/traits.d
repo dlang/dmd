@@ -1055,33 +1055,29 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
              */
             auto exps = new Expressions();
             Dsymbol f;
-            if (ex.op == TOK.variable)
+            if (auto ve = ex.isVarExp)
             {
-                VarExp ve = cast(VarExp)ex;
                 f = ve.var.isFuncDeclaration();
                 ex = null;
             }
-            else if (ex.op == TOK.dotVariable)
+            else if (auto dve = ex.isDotVarExp)
             {
-                DotVarExp dve = cast(DotVarExp)ex;
                 f = dve.var.isFuncDeclaration();
                 if (dve.e1.op == TOK.dotType || dve.e1.op == TOK.this_)
                     ex = null;
                 else
                     ex = dve.e1;
             }
-            else if (ex.op == TOK.template_)
+            else if (auto te = ex.isTemplateExp)
             {
-                TemplateExp te = cast(TemplateExp)ex;
                 auto td = te.td;
                 f = td;
                 if (td && td.funcroot)
                     f = td.funcroot;
                 ex = null;
             }
-            else if (ex.op == TOK.dotTemplateDeclaration)
+            else if (auto dte = ex.isDotTemplateExp)
             {
-                DotTemplateExp dte = cast(DotTemplateExp)ex;
                 auto td = dte.td;
                 f = td;
                 if (td && td.funcroot)
