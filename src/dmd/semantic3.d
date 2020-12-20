@@ -364,6 +364,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             funcdecl.declareThis(sc2);
 
+            // Reverts: https://issues.dlang.org/show_bug.cgi?id=5710
+            // No compiler supports this, and there was never any spec for it.
+            if (funcdecl.isThis2)
+            {
+                funcdecl.deprecation("function requires a dual-context, which is deprecated");
+                if (auto ti = sc2.parent ? sc2.parent.isInstantiated() : null)
+                    ti.printInstantiationTrace(Classification.deprecation);
+            }
+
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
 
