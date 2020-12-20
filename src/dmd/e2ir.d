@@ -3227,6 +3227,19 @@ elem *toElem(Expression e, IRState *irs)
                     return setResult2(e);
                 }
 
+                if (ae.op == TOK.assign)
+                {
+                    if (auto ve1 = ae.e1.isVectorArrayExp())
+                    {
+                        // Use an OPeq rather than an OPstreq
+                        e1 = toElem(ve1.e1, irs);
+                        elem* e2 = toElem(ae.e2, irs);
+                        e2.Ety = e1.Ety;
+                        elem* e = el_bin(OPeq, e2.Ety, e1, e2);
+                        return setResult2(e);
+                    }
+                }
+
                 /* https://issues.dlang.org/show_bug.cgi?id=13661
                  * Even if the elements in rhs are all rvalues and
                  * don't have to call postblits, this assignment should call
@@ -6451,6 +6464,9 @@ bool type_zeroCopy(type* t)
  */
 elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
 {
+    //printf("e1:\n"); elem_print(e1);
+    //printf("e2:\n"); elem_print(e2);
+    //if (t) printf("t: %s\n", t.toChars());
     elem *e = el_bin(OPeq, e2.Ety, e1, e2);
     switch (tybasic(e2.Ety))
     {
@@ -6462,6 +6478,7 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
             e.Eoper = OPstreq;
             if (!tx)
                 tx = Type_toCtype(t);
+            //printf("tx:\n"); type_print(tx);
             e.ET = tx;
 //            if (type_zeroCopy(tx))
 //                e.Eoper = OPcomma;
