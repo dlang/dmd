@@ -1,5 +1,8 @@
 module library;
 
+version (D_ObjectiveC)
+    import core.attribute : selector;
+
 extern (C++):
 
 int foo(ref const S s)
@@ -113,7 +116,8 @@ extern(C++) class VTable
 {
     extern(D) int hidden_1() { return 1; }
     int callable_2() { return 2; }
-    extern(Objective-C) int hidden_3() { return 3; }
+    version (D_ObjectiveC)
+        extern(Objective-C) int hidden_3() @selector("hidden_3") { return 3; }
     int callable_4() { return 4; }
     extern(D) final int hidden_5() { return 5; }
     int callable_6() { return 6; }

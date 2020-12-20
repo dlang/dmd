@@ -19,5 +19,5 @@ extern (Objective-C) extern class NSObject
 // Declaring a root class with a method with a body
 extern(Objective-C) class Test
 {
-   void foo() {}
+   void foo() @selector("foo") {}
 }
