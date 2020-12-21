@@ -6569,6 +6569,15 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     void normalRet()
     {
         sc.flags = oldflags;
+        ds.inuse = 0;
+        ds.semanticRun = PASS.semanticdone;
+
+        if (auto sx = ds.overnext)
+        {
+            ds.overnext = null;
+            if (!ds.overloadInsert(sx))
+                ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
+        }
     }
 
     void errorRet()
@@ -6713,15 +6722,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
     if (global.gag && errors != global.errors)
         return errorRet();
-    ds.inuse = 0;
-    ds.semanticRun = PASS.semanticdone;
 
-    if (auto sx = ds.overnext)
-    {
-        ds.overnext = null;
-        if (!ds.overloadInsert(sx))
-            ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
-    }
     normalRet();
 }
 
