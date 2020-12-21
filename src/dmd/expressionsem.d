@@ -1242,17 +1242,17 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = null;
         goto Lfd;
     }
-    else if (e1.op == TOK.dotVariable && e1.type && e1.type.toBasetype().ty == Tfunction)
+    else if (e1.op == TOK.dotVariable && e1.type && (e1.type.toBasetype().ty == Tfunction || (cast(DotVarExp)e1).var.isOverDeclaration()))
     {
         DotVarExp dve = cast(DotVarExp)e1;
-        s = dve.var.isFuncDeclaration();
+        s = dve.var;
         tiargs = null;
         tthis = dve.e1.type;
         goto Lfd;
     }
-    else if (e1.op == TOK.variable && e1.type && e1.type.toBasetype().ty == Tfunction)
+    else if (e1.op == TOK.variable && e1.type && (e1.type.toBasetype().ty == Tfunction || (cast(VarExp)e1).var.isOverDeclaration()))
     {
-        s = (cast(VarExp)e1).var.isFuncDeclaration();
+        s = (cast(VarExp)e1).var;
         tiargs = null;
         tthis = null;
     Lfd:
