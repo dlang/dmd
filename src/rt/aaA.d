@@ -632,7 +632,9 @@ extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pke
         p.entry = null;
 
         ++aa.deleted;
-        if (aa.length * SHRINK_DEN < aa.dim * SHRINK_NUM)
+        // `shrink` reallocates, and allocating from a finalizer leads to
+        // InvalidMemoryError: https://issues.dlang.org/show_bug.cgi?id=21442
+        if (aa.length * SHRINK_DEN < aa.dim * SHRINK_NUM && !GC.inFinalizer())
             aa.shrink(keyti);
 
         return true;

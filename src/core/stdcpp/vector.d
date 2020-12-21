@@ -30,7 +30,8 @@ enum Default = DefaultConstruct();
 
 extern(C++, "std"):
 
-extern(C++, class) struct vector(T, Alloc = allocator!T)
+alias vector(T) = vector!(T, allocator!T);
+extern(C++, class) struct vector(T, Alloc)
 {
     import core.lifetime : forward, move, core_emplace = emplace;
 

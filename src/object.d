@@ -459,6 +459,9 @@ class TypeInfo_Enum : TypeInfo
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
     override @property uint flags() nothrow pure const { return base.flags; }
+    override const(OffsetTypeInfo)[] offTi() const { return base.offTi; }
+    override void destroy(void* p) const { return base.destroy(p); }
+    override void postblit(void* p) const { return base.postblit(p); }
 
     override const(void)[] initializer() const
     {
