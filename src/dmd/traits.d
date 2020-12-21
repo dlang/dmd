@@ -1057,12 +1057,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             Dsymbol f;
             if (auto ve = ex.isVarExp)
             {
-                f = ve.var.isFuncDeclaration();
+                if (ve.var.isFuncDeclaration() || ve.var.isOverDeclaration())
+                    f = ve.var;
                 ex = null;
             }
             else if (auto dve = ex.isDotVarExp)
             {
-                f = dve.var.isFuncDeclaration();
+                if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
+                    f = dve.var;
                 if (dve.e1.op == TOK.dotType || dve.e1.op == TOK.this_)
                     ex = null;
                 else
