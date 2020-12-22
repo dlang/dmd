@@ -1210,21 +1210,30 @@ static if (0)
         }
 
         getregs(cdb,retregs);
+
+        switch (op)
+        {
+            case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
+            case PSHUFD:  case PSHUFHW: case PSHUFLW:
+            case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
+            case MPSADBW: case PBLENDW:
+            case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
+            case SHUFPD:  case SHUFPS:
+                if (n == 3)
+                {
+                    version (MARS)
+                        if (pass == PASSfinal)
+                            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
+                    cs.IFL2 = FLconst;
+                    cs.IEV2.Vsize_t = 0;
+                }
+                break;
+            default:
+                break;
+        }
+
         if (n == 4)
         {
-            switch (op)
-            {
-                case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
-                case PSHUFD:  case PSHUFHW: case PSHUFLW:
-                case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
-                case MPSADBW: case PBLENDW:
-                case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
-                case SHUFPD:  case SHUFPS:
-                    break;
-                default:
-                    printf("op = x%x\n", op);
-                    assert(0);
-            }
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
 version (MARS)
@@ -1658,6 +1667,7 @@ void checkSetVex3(code *c)
 
 void checkSetVex(code *c, tym_t ty)
 {
+    //printf("checkSetVex() %d %x\n", tysize(ty), c.Iop);
     if (config.avx || tysize(ty) == 32)
     {
         uint vreg = (c.Irm >> 3) & 7;
@@ -1786,6 +1796,8 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
         return;
     }
+
+    // See test/complex.d for cases winding up here
     cload87(cdb, e, pretregs);
 }
 
