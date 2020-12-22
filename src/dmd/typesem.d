@@ -728,6 +728,9 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             return (cast(Type)o).addMod(mtype.mod);
         }
 
+        if (t && t.ty == Terror)
+            return error();
+
         Type tn = mtype.next.typeSemantic(loc, sc);
         if (tn.ty == Terror)
             return error();
