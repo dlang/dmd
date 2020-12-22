@@ -68,7 +68,27 @@ $(H3 $(LNAME2 properties, Properties))
         $(TROW .array, Returns static array representation)
         )
 
-        $(P All the properties of the $(GLINK2 declaration, VectorBaseType) work.)
+        $(P Vectors support the following properties based
+        on the vector element type.
+        The value produced is that of a
+        vector of the same type with each element set to the
+        value corresponding to the property value for the element
+        type.)
+
+        $(TABLE2 Integral Vector Type Properties,
+        $(THEAD Property, Description)
+        $(TROW .min, minimum value)
+        $(TROW .max, maximum value)
+        )
+
+        $(TABLE2 Floating Point Vector Type Properties,
+        $(THEAD Property, Description)
+        $(TROW .epsilon, smallest increment to the value 1)
+        $(TROW .infinity, infinity value)
+        $(TROW .max, largest representable value that is not infinity)
+        $(TROW .min_normal, smallest representable value that is not 0)
+        $(TROW .nan, NaN value)
+        )
 
 $(H3 $(LNAME2 conversions, Conversions))
 
