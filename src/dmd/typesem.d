@@ -3347,6 +3347,16 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             // stringof should not add a cast to the output
             return visitType(mt);
         }
+
+        // Properties based on the vector element type and are values of the element type
+        if (ident == Id.max || ident == Id.min || ident == Id.min_normal ||
+            ident == Id.nan || ident == Id.infinity || ident == Id.epsilon)
+        {
+            auto vet = mt.basetype.isTypeSArray().next; // vector element type
+            if (auto ev = getProperty(vet, sc, e.loc, ident, DotExpFlag.gag))
+                return ev.castTo(sc, mt); // 'broadcast' ev to the vector elements
+        }
+
         return mt.basetype.dotExp(sc, e.castTo(sc, mt.basetype), ident, flag);
     }
 
