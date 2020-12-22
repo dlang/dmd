@@ -307,12 +307,12 @@ $(GNAME EscapeSequence):
     $(D \t)
     $(D \v)
     $(D \x) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \) $(GLINK OctalDigit)
-    $(D \) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(D \) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(D \\) $(GLINK OctalDigit)
+    $(D \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(D \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
     $(D \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(D \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \) $(GLINK2 entity, NamedCharacterEntity)
+    $(D \\) $(GLINK2 entity, NamedCharacterEntity)
 
 $(GNAME HexString):
     $(D x") $(GLINK HexStringChars) $(D ") $(GLINK StringPostfix)$(OPT)
