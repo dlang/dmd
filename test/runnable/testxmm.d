@@ -2139,6 +2139,14 @@ void16 simd_stox(XMM opcode)(void16 op1, void16 op2)
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21469
+
+int4 foo21469(short a)
+{
+    return cast(int4)(short8(a));
+}
+
+/*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21364
 
 struct X21364
