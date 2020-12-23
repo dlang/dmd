@@ -93,7 +93,8 @@ $(H3 $(LNAME2 properties, Properties))
 $(H3 $(LNAME2 conversions, Conversions))
 
         $(P Vector types of the same size can be implicitly converted among
-        each other. Vector types can be cast to their $(GLINK2 declaration, VectorBaseType).)
+        each other, this is done as a reinterpret cast (a type paint).
+        Vector types can be cast to their $(GLINK2 declaration, VectorBaseType).)
 
         $(P Integers and floating point values can be implicitly converted
         to their vector equivalents:)
