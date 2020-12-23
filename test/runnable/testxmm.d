@@ -2102,6 +2102,16 @@ void test7()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18867
+
+ulong2 foo18867(ulong s)
+{
+    ulong2 v;
+    v[0] = s;
+    return v;
+}
+
+/*****************************************/
 
 
 auto test20052()
