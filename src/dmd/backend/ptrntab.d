@@ -4517,8 +4517,8 @@ PTRNTAB2[3] aptb2VCVTPH2PS = /* VCVTPH2PS */ [
 ];
 
 PTRNTAB3[3] aptb3VCVTPS2PH = /* VCVTPS2PH */ [
-        { VEX_128_WIG(0x660F3A13), _r, _xmm_m64, _xmm, _imm8  },
-        { VEX_256_WIG(0x660F3A13), _r, _xmm_m128, _ymm, _imm8  },
+        { VEX_128_WIG(0x660F3A1D), _r, _xmm_m64, _xmm, _imm8  },
+        { VEX_256_WIG(0x660F3A1D), _r, _xmm_m128, _ymm, _imm8  },
         { ASM_END },
 ];
 
