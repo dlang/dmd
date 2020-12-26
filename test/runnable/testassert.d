@@ -267,6 +267,37 @@ void testAssignments()
     assert(getMessage(assert(--c())) == "0 != true");
 }
 
+/// https://issues.dlang.org/show_bug.cgi?id=21472
+void testTupleFormat()
+{
+    alias AliasSeq(T...) = T;
+
+    // Default usage
+    {
+        alias a = AliasSeq!(1, "ab");
+        alias b = AliasSeq!(false, "xyz");
+        assert(getMessage(assert(a == b)) == `(1, "ab") != (false, "xyz")`);
+    }
+
+    // Single elements work but are not formatted as tuples
+    // Is this acceptable? (a workaround would probably require a
+    // different name for the tuple formatting hook)
+    {
+        alias a = AliasSeq!(1, "ab", []);
+        alias b = AliasSeq!(false, "xyz", [1]);
+        assert(getMessage(assert(a == b)) == `(1, "ab", []) != (false, "xyz", [1])`);
+    }
+
+    // Also works with tupleof (as taken from the bug report)
+    {
+        static struct Var { int a, b; }
+        const a = Var(1, 2);
+        const b = Var(3, 4);
+        const msg = getMessage(assert(a.tupleof == b.tupleof));
+        assert(msg == `(1, 2) != (3, 4)`);
+    }
+}
+
 void main()
 {
     test8765();
@@ -277,4 +308,5 @@ void main()
     testMixinExpression();
     testUnaryFormat();
     testAssignments();
+    testTupleFormat();
 }
