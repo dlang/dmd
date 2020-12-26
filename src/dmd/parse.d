@@ -1664,7 +1664,6 @@ final class Parser(AST) : Lexer
         // Get array of TemplateParameters
         if (flag || token.value != TOK.rightParentheses)
         {
-            int isvariadic = 0;
             while (token.value != TOK.rightParentheses)
             {
                 AST.TemplateParameter tp;
@@ -1746,9 +1745,6 @@ final class Parser(AST) : Lexer
                 else if (token.value == TOK.identifier && tv == TOK.dotDotDot)
                 {
                     // ident...
-                    if (isvariadic)
-                        error("variadic template parameter must be last");
-                    isvariadic = 1;
                     loc = token.loc;
                     tp_ident = token.ident;
                     nextToken();
