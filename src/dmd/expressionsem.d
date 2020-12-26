@@ -6158,7 +6158,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 isEqualsCallExpression)
             {
                 es = new Expressions(3);
-                tiargs = new Objects(2);
+                tiargs = new Objects(1);
 
                 if (isEqualsCallExpression)
                 {
@@ -6198,7 +6198,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 comp = comp.expressionSemantic(sc);
                 (*es)[0] = comp;
                 (*tiargs)[0] = (*es)[1].type;
-                (*tiargs)[1] = (*es)[2].type;
             }
 
             // Format exp.e1 before any additional boolean conversion
