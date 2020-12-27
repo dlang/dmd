@@ -48,6 +48,18 @@ extern (C++) final class PrintASTVisitor : Visitor
         printf("%s %s\n", Token.toChars(e.op), e.type ? e.type.toChars() : "");
     }
 
+    override void visit(IntegerExp e)
+    {
+        printIndent(indent);
+        printf("Integer %lld %s\n", e.toInteger(), e.type ? e.type.toChars() : "");
+    }
+
+    override void visit(RealExp e)
+    {
+        printIndent(indent);
+        printf("Real %Lg %s\n", e.value, e.type ? e.type.toChars() : "");
+    }
+
     override void visit(StructLiteralExp e)
     {
         printIndent(indent);
@@ -56,7 +68,8 @@ extern (C++) final class PrintASTVisitor : Visitor
 
     override void visit(SymbolExp e)
     {
-        visit(cast(Expression)e);
+        printIndent(indent);
+        printf("Symbol %s\n", e.type ? e.type.toChars() : "");
         printIndent(indent + 2);
         printf(".var: %s\n", e.var ? e.var.toChars() : "");
     }
@@ -70,7 +83,8 @@ extern (C++) final class PrintASTVisitor : Visitor
 
     override void visit(DotIdExp e)
     {
-        visit(cast(Expression)e);
+        printIndent(indent);
+        printf("DotId %s\n", e.type ? e.type.toChars() : "");
         printIndent(indent + 2);
         printf(".ident: %s\n", e.ident.toChars());
         printAST(e.e1, indent + 2);
@@ -82,9 +96,57 @@ extern (C++) final class PrintASTVisitor : Visitor
         printAST(e.e1, indent + 2);
     }
 
+    override void visit(VectorExp e)
+    {
+        printIndent(indent);
+        printf("Vector %s\n", e.type ? e.type.toChars() : "");
+        printIndent(indent + 2);
+        printf(".to: %s\n", e.to.toChars());
+        printAST(e.e1, indent + 2);
+    }
+
+    override void visit(VectorArrayExp e)
+    {
+        printIndent(indent);
+        printf("VectorArray %s\n", e.type ? e.type.toChars() : "");
+        printAST(e.e1, indent + 2);
+    }
+
     override void visit(BinExp e)
     {
         visit(cast(Expression)e);
+        printAST(e.e1, indent + 2);
+        printAST(e.e2, indent + 2);
+    }
+
+    override void visit(AssignExp e)
+    {
+        printIndent(indent);
+        printf("Assign %s\n", e.type ? e.type.toChars() : "");
+        printAST(e.e1, indent + 2);
+        printAST(e.e2, indent + 2);
+    }
+
+    override void visit(ConstructExp e)
+    {
+        printIndent(indent);
+        printf("Construct %s\n", e.type ? e.type.toChars() : "");
+        printAST(e.e1, indent + 2);
+        printAST(e.e2, indent + 2);
+    }
+
+    override void visit(BlitExp e)
+    {
+        printIndent(indent);
+        printf("Blit %s\n", e.type ? e.type.toChars() : "");
+        printAST(e.e1, indent + 2);
+        printAST(e.e2, indent + 2);
+    }
+
+    override void visit(IndexExp e)
+    {
+        printIndent(indent);
+        printf("Index %s\n", e.type ? e.type.toChars() : "");
         printAST(e.e1, indent + 2);
         printAST(e.e2, indent + 2);
     }
