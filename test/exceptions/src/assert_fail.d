@@ -3,7 +3,7 @@ import core.internal.dassert : _d_assert_fail;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
-    test(_d_assert_fail!(comp, A, B)(a, b), msg, line);
+    test(_d_assert_fail!(A, B)(comp, a, b), msg, line);
 }
 
 void test(const string actual, const string expected, size_t line = __LINE__)
@@ -175,10 +175,10 @@ void testStruct()()
     }
 
     NoCopy n;
-    test(_d_assert_fail!"!="(n, n), "NoCopy() == NoCopy()");
+    test(_d_assert_fail("!=", n, n), "NoCopy() == NoCopy()");
 
     shared NoCopy sn;
-    test(_d_assert_fail!"!="(sn, sn), "NoCopy() == NoCopy()");
+    test(_d_assert_fail("!=", sn, sn), "NoCopy() == NoCopy()");
 }
 
 void testAA()()
@@ -192,8 +192,12 @@ void testAA()()
 void testAttributes() @safe pure @nogc nothrow
 {
     int a;
-    string s = _d_assert_fail!"=="(a, 0);
-    string s2 = _d_assert_fail!"!"(a);
+    string s = _d_assert_fail("==", a, 0);
+    string s2 = _d_assert_fail("!", a);
+
+    // Test instatiation of legacy hooks
+    s = _d_assert_fail!"=="(a, 0);
+    s2 = _d_assert_fail!"!"(a);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
@@ -231,13 +235,13 @@ void testEnum()
 
     ubyte[] data;
     enum ctfe = UUID();
-    test(_d_assert_fail!"=="(ctfe.data, data), "[1] != []");
+    test(_d_assert_fail("==", ctfe.data, data), "[1] != []");
 }
 
 void testUnary()
 {
-    test(_d_assert_fail!""(9), "9 != true");
-    test(_d_assert_fail!"!"([1, 2, 3]), "[1, 2, 3] == true");
+    test(_d_assert_fail("", 9), "9 != true");
+    test(_d_assert_fail("!", [1, 2, 3]), "[1, 2, 3] == true");
 }
 
 void main()

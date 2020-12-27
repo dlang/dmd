@@ -19,11 +19,23 @@
  */
 module core.internal.dassert;
 
+// Legacy hooks currently used by dmd, remove once dmd uses
+// the new runtime versions defined below
+string _d_assert_fail(string op, A)(auto ref const scope A a)
+{
+    return _d_assert_fail!(A)(op, a);
+}
+
+string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
+{
+    return _d_assert_fail!(A, B)(comp, a, b);
+}
+
 /**
  * Generates rich assert error messages for unary expressions
  *
  * The unary expression `assert(!una)` will be turned into
- * `assert(!una, _d_assert_fail!"!"(una))`.
+ * `assert(!una, _d_assert_fail("!", una))`.
  * This routine simply acts as if the user wrote `assert(una == false)`.
  *
  * Params:
@@ -35,10 +47,10 @@ module core.internal.dassert;
  * Returns:
  *   A string such as "$a != true" or "$a == true".
  */
-string _d_assert_fail(string op, A)(auto ref const scope A a)
+string _d_assert_fail(A)(const scope string op, auto ref const scope A a)
 {
     string val = miniFormatFakeAttributes(a);
-    enum token = op == "!" ? "==" : "!=";
+    immutable token = op == "!" ? "==" : "!=";
     return combine(val, token, "true");
 }
 
@@ -46,7 +58,7 @@ string _d_assert_fail(string op, A)(auto ref const scope A a)
  * Generates rich assert error messages for binary expressions
  *
  * The binary expression `assert(x == y)` will be turned into
- * `assert(x == y, _d_assert_fail!"=="(x, y))`.
+ * `assert(x == y, _d_assert_fail("==", x, y))`.
  *
  * Params:
  *   comp = Comparison operator that was used in the expression.
@@ -56,7 +68,7 @@ string _d_assert_fail(string op, A)(auto ref const scope A a)
  * Returns:
  *   A string such as "$a $comp $b".
  */
-string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
+string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, auto ref const scope B b)
 {
     /*
     The program will be terminated after the assertion error message has
@@ -67,7 +79,7 @@ string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref cons
 
     string valA = miniFormatFakeAttributes(a);
     string valB = miniFormatFakeAttributes(b);
-    enum token = invertCompToken(comp);
+    immutable token = invertCompToken(comp);
     return combine(valA, token, valB);
 }
 
@@ -319,7 +331,7 @@ private string miniFormat(V)(const scope ref V v)
 import core.atomic : atomicLoad;
 
 // Inverts a comparison token for use in _d_assert_fail
-private string invertCompToken(string comp)
+private string invertCompToken(string comp) pure nothrow @nogc @safe
 {
     switch (comp)
     {
@@ -344,7 +356,7 @@ private string invertCompToken(string comp)
         case "!in":
             return "in";
         default:
-            assert(0, "Invalid comparison operator: " ~ comp);
+            assert(0, combine("Invalid comparison operator", "-", comp));
     }
 }
 
