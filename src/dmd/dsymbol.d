@@ -405,6 +405,19 @@ extern (C++) class Dsymbol : ASTNode
         if (sc.isDeprecated())
             return false;
 
+        // https://issues.dlang.org/show_bug.cgi?id=7619
+        // Infer `deprecated` if the deprecated symbol is a template parameter
+        auto ti = sc.getTemplateInstanceScope();
+        if (!ti)
+        {
+            // Check if `this` originated from a mixin template
+            auto tti = this.isInstantiated();
+            if (tti && tti.isTemplateMixin())
+                ti = tti;
+        }
+        if (ti && (ti.isDeprecated || ti.inferDeprecatedFrom(this, sc)))
+            return false;
+
         const(char)* message = null;
         for (Dsymbol p = this; p; p = p.parent)
         {

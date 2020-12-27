@@ -660,6 +660,25 @@ struct Scope
         return null;
     }
 
+    /********************************************
+    * Search enclosing scopes for ClassDeclaration.
+    */
+    extern (C++) TemplateInstance getTemplateInstanceScope()
+    {
+        for (Scope* sc = &this; sc; sc = sc.enclosing)
+        {
+            if (sc.tinst)
+                return sc.tinst;
+
+            if (!sc.scopesym)
+                continue;
+
+            if (auto ti = sc.scopesym.isTemplateInstance)
+                return ti;
+        }
+        return null;
+    }
+
     /*******************************************
      * For TemplateDeclarations, we need to remember the Scope
      * where it was declared. So mark the Scope as not

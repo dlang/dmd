@@ -2044,7 +2044,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 }
 
 /// compare arguments of __traits(isSame)
-private bool isSame(RootObject o1, RootObject o2, Scope* sc)
+bool isSame(RootObject o1, RootObject o2, Scope* sc)
 {
     static FuncLiteralDeclaration isLambda(RootObject oarg)
     {

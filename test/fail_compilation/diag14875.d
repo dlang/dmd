@@ -36,8 +36,7 @@ template Baz(T)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag14875.d(47): Deprecation: class `diag14875.Dep` is deprecated
-fail_compilation/diag14875.d(51): Deprecation: variable `diag14875.depVar` is deprecated
+fail_compilation/diag14875.d(44): Deprecation: class `diag14875.Dep` is deprecated
 4: Dep
 fail_compilation/diag14875.d(58): Deprecation: variable `diag14875.depVar` is deprecated
 fail_compilation/diag14875.d(59): Deprecation: template `diag14875.Vaz(T)` is deprecated
@@ -48,15 +47,15 @@ alias Y = Voo!Dep;              // deprecation
 
 template Voo(T)
 {
-    enum n = depVar;            // deprecation
+    enum n = depVar;            // no deprecation, Voo!Dep is inferred as deprecated
     struct A { alias B = T; }   // no message
     pragma(msg, "4: ", A.B);    // B is not deprecated
     enum Voo = cast(void*)Var!T;
 }
 template Var(T)
 {
-    enum n = depVar;            // deprecation
-    enum Var = &Vaz!T;          // deprecation
+    enum n = depVar;            // no deprecation, Var!Dep is inferred as deprecated
+    enum Var = &Vaz!T;          // no deprecation
 }
 deprecated template Vaz(T)
 {
@@ -67,7 +66,7 @@ deprecated template Vaz(T)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag14875.d(75): Error: static assert:  `0` is false
+fail_compilation/diag14875.d(72): Error: static assert:  `0` is false
 ---
 */
 void main()
