@@ -1744,9 +1744,7 @@ public:
     {
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
-        buf.writestring("new");
-        parametersToBuffer(d.parameterList, buf, hgs);
-        bodyToBuffer(d);
+        buf.writestring("new();");
     }
 
     override void visit(Module m)
@@ -2056,12 +2054,6 @@ public:
             buf.writeByte('.');
         }
         buf.writestring("new ");
-        if (e.newargs && e.newargs.dim)
-        {
-            buf.writeByte('(');
-            argsToBuffer(e.newargs, buf, hgs);
-            buf.writeByte(')');
-        }
         typeToBuffer(e.newtype, null, buf, hgs);
         if (e.arguments && e.arguments.dim)
         {
@@ -2079,12 +2071,6 @@ public:
             buf.writeByte('.');
         }
         buf.writestring("new");
-        if (e.newargs && e.newargs.dim)
-        {
-            buf.writeByte('(');
-            argsToBuffer(e.newargs, buf, hgs);
-            buf.writeByte(')');
-        }
         buf.writestring(" class ");
         if (e.arguments && e.arguments.dim)
         {

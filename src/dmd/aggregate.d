@@ -127,6 +127,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     Prot protection;                /// visibility
     bool noDefaultCtor;             /// no default construction
+    bool isNewDisabled;             /// @disable new();
     Sizeok sizeok = Sizeok.none;    /// set when structsize contains valid data
 
     final extern (D) this(const ref Loc loc, Identifier id)

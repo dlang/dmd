@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/disable_new.d(23): Error: allocator `disable_new.C.new` cannot be used because it is annotated with `@disable`
-fail_compilation/disable_new.d(24): Error: allocator `disable_new.S.new` cannot be used because it is annotated with `@disable`
+fail_compilation/disable_new.d(24): Error: the `new` operator is disabled for type `disable_new.C`
+fail_compilation/disable_new.d(25): Error: the `new` operator is disabled for type `S`
+fail_compilation/disable_new.d(28): Error: allocator `disable_new.main.G.new` can only be `@disable`
 ---
 */
 
@@ -22,4 +23,8 @@ void main()
 {
     auto c = new C();
     auto s = new S();
+    class G
+    {
+        new();
+    }
 }

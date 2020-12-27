@@ -1,12 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_class_alloc.d(13): Error: class allocators are obsolete, consider moving the allocation strategy outside of the class
+fail_compilation/diag_class_alloc.d(15): Error: found `size_t` when expecting `)`
+fail_compilation/diag_class_alloc.d(15): Error: found `size` when expecting `;`
+fail_compilation/diag_class_alloc.d(15): Error: declaration expected, not `)`
+fail_compilation/diag_class_alloc.d(19): Error: unrecognized declaration
 ---
 */
 
-// This test exists to ensure class allocators and deallocators emit an appropriate error message.
-// This test can be deleted when class allocators and deallocators are removed from the language.
+// This test exists to ensure class allocators are now parse errors
 
 class C
 {

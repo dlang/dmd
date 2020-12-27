@@ -2819,20 +2819,19 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parse a new definition:
-     *      new(parameters) { body }
+     *      new();
      * Current token is 'new'.
      */
     private AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
-
         nextToken();
-
-        auto parameterList = parseParameterList(null);
-        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameterList);
-        AST.Dsymbol s = parseContracts(f);
-        return s;
+        check(TOK.leftParentheses);
+        check(TOK.rightParentheses);
+        check(TOK.semicolon);
+        auto f = new AST.NewDeclaration(loc, Loc.initial, stc);
+        return f;
     }
 
     /**********************************************
@@ -9138,12 +9137,7 @@ final class Parser(AST) : Lexer
         const loc = token.loc;
 
         nextToken();
-        AST.Expressions* newargs = null;
         AST.Expressions* arguments = null;
-        if (token.value == TOK.leftParentheses)
-        {
-            newargs = parseArguments();
-        }
 
         // An anonymous nested class starts with "class"
         if (token.value == TOK.class_)
@@ -9173,7 +9167,7 @@ final class Parser(AST) : Lexer
             }
 
             auto cd = new AST.ClassDeclaration(loc, id, baseclasses, members, false);
-            auto e = new AST.NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
+            auto e = new AST.NewAnonClassExp(loc, thisexp, cd, arguments);
             return e;
         }
 
@@ -9198,7 +9192,7 @@ final class Parser(AST) : Lexer
             arguments = parseArguments();
         }
 
-        auto e = new AST.NewExp(loc, thisexp, newargs, t, arguments);
+        auto e = new AST.NewExp(loc, thisexp, t, arguments);
         return e;
     }
 
