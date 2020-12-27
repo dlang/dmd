@@ -6104,8 +6104,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
-                es = new Expressions(2);
-                tiargs = new Objects(3);
+                es = new Expressions(3);
+                tiargs = new Objects(2);
 
                 if (isEqualsCallExpression)
                 {
@@ -6121,14 +6121,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         assert(dv);
 
                         // runtime args
-                        (*es)[0] = maybePromoteToTmp(dv.e1);
-                        (*es)[1] = maybePromoteToTmp((*args)[0]);
+                        (*es)[1] = maybePromoteToTmp(dv.e1);
+                        (*es)[2] = maybePromoteToTmp((*args)[0]);
                     }
                     else
                     {
                         // runtime args
-                        (*es)[0] = maybePromoteToTmp((*args)[0]);
-                        (*es)[1] = maybePromoteToTmp((*args)[1]);
+                        (*es)[1] = maybePromoteToTmp((*args)[0]);
+                        (*es)[2] = maybePromoteToTmp((*args)[1]);
                     }
                 }
                 else
@@ -6136,24 +6136,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     auto binExp = cast(EqualExp) exp.e1;
 
                     // runtime args
-                    (*es)[0] = maybePromoteToTmp(binExp.e1);
-                    (*es)[1] = maybePromoteToTmp(binExp.e2);
+                    (*es)[1] = maybePromoteToTmp(binExp.e1);
+                    (*es)[2] = maybePromoteToTmp(binExp.e2);
                 }
 
                 // template args
                 Expression comp = new StringExp(loc, isEqualsCallExpression ? "==" : Token.toString(exp.e1.op));
                 comp = comp.expressionSemantic(sc);
-                (*tiargs)[0] = comp;
-                (*tiargs)[1] = (*es)[0].type;
-                (*tiargs)[2] = (*es)[1].type;
+                (*es)[0] = comp;
+                (*tiargs)[0] = (*es)[1].type;
+                (*tiargs)[1] = (*es)[2].type;
             }
 
             // Format exp.e1 before any additional boolean conversion
             // Ignore &&/|| because "assert(...) failed" is more informative than "false != true"
             else if (tok != TOK.andAnd && tok != TOK.orOr)
             {
-                es = new Expressions(1);
-                tiargs = new Objects(2);
+                es = new Expressions(2);
+                tiargs = new Objects(1);
 
                 if (auto ne = exp.e1.isNotExp())
                 {
@@ -6165,24 +6165,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             ne = ne2;
                         else
                         {
-                            (*es)[0] = maybePromoteToTmp(ne.e1);
-                            (*tiargs)[0] = new StringExp(loc, neg ? "!" : "");
+                            (*es)[0] = new StringExp(loc, neg ? "!" : "");
+                            (*es)[1] = maybePromoteToTmp(ne.e1);
                             break;
                         }
                     }
                 }
                 else
                 {   // Simply format exp.e1
-                    (*es)[0] = maybePromoteToTmp(exp.e1);
-                    // No special treatment for other operators to avoid redundant template instantions
-                    (*tiargs)[0] = new StringExp(loc, "");
+                    (*es)[0] = new StringExp(loc, "");
+                    (*es)[1] = maybePromoteToTmp(exp.e1);
                 }
 
-                (*tiargs)[1] = (*es)[0].type;
+                (*tiargs)[0] = (*es)[1].type;
 
                 // Passing __ctfe to auto ref infers ref and aborts compilation:
                 // "cannot modify compiler-generated variable __ctfe"
-                auto ve = (*es)[0].isVarExp();
+                auto ve = (*es)[1].isVarExp();
                 if (ve && ve.var.ident == Id.ctfe)
                 {
                     exp.msg = new StringExp(loc, "assert(__ctfe) failed!");
