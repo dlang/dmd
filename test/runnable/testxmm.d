@@ -2147,6 +2147,30 @@ int4 foo21469(short a)
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20041
+
+immutable(float4) foo20041()
+{
+    float4 raw = 2.0f;
+    raw.array[0] = 1;
+    return cast(immutable)raw;
+}
+
+void test20041()
+{
+    static immutable float4 v = foo20041();
+
+    assert(v.array[0] == 1);
+    assert(v.array[1] == 2);
+    assert(v.array[2] == 2);
+    assert(v.array[3] == 2);
+
+//    foreach(d; 0 .. 4)
+//    	printf("%g ", v[d]);
+//    printf("\n");
+}
+
+/*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21364
 
 struct X21364
@@ -2225,6 +2249,7 @@ int main()
     test6();
     test7();
     test20981();
+    test20041();
     test21364();
     test19788();
 

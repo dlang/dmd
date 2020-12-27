@@ -38,6 +38,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
+import dmd.printast;
 import dmd.root.rmem;
 import dmd.root.array;
 import dmd.root.region;
@@ -308,6 +309,7 @@ public:
 
     extern (C++) Expression getValue(VarDeclaration v)
     {
+        //printf("getValue() %s\n", v.toChars());
         if ((v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE())
         {
             assert(v.ctfeAdrOnStack < globalValues.dim);
@@ -319,6 +321,7 @@ public:
 
     extern (C++) void setValue(VarDeclaration v, Expression e)
     {
+        //printf("setValue() %s : %s\n", v.toChars(), e.toChars());
         assert(!v.isDataseg() || v.isCTFE());
         assert(v.ctfeAdrOnStack < stackPointer());
         values[v.ctfeAdrOnStack] = e;
@@ -326,6 +329,7 @@ public:
 
     extern (C++) void push(VarDeclaration v)
     {
+        //printf("push() %s\n", v.toChars());
         assert(!v.isDataseg() || v.isCTFE());
         if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone && v.ctfeAdrOnStack >= framepointer)
         {
@@ -3694,6 +3698,7 @@ public:
 
     private Expression assignToLvalue(BinExp e, Expression e1, Expression newval)
     {
+        //printf("assignToLvalue() e: %s e1: %s newval: %s\n", e.toChars(), e1.toChars(), newval.toChars());
         VarDeclaration vd = null;
         Expression* payload = null; // dead-store to prevent spurious warning
         Expression oldval;
@@ -3785,6 +3790,17 @@ public:
 
         Type t1b = e1.type.toBasetype();
         bool wantCopy = t1b.baseElemOf().ty == Tstruct;
+
+        if (auto ve = newval.isVectorExp())
+        {
+            // Ensure ve is an array literal, and not a broadcast
+            if (ve.e1.op == TOK.int64 || ve.e1.op == TOK.float64) // if broadcast
+            {
+                UnionExp ue = void;
+                Expression ex = interpretVectorToArray(&ue, ve);
+                ve.e1 = (ex == ue.exp()) ? ue.copy() : ex;
+            }
+        }
 
         if (newval.op == TOK.structLiteral && oldval)
         {
@@ -4984,7 +5000,7 @@ public:
     static Expression interpretVectorToArray(UnionExp* pue, VectorExp e)
     {
         if (auto ale = e.e1.isArrayLiteralExp())
-            return ale;
+            return ale;         // it's already an array literal
         if (e.e1.op == TOK.int64 || e.e1.op == TOK.float64)
         {
             // Convert literal __vector(int) -> __vector([array])
@@ -7348,6 +7364,7 @@ private void setValueWithoutChecking(VarDeclaration vd, Expression newval)
 
 private void setValue(VarDeclaration vd, Expression newval)
 {
+    //printf("setValue() vd: %s newval: %s\n", vd.toChars(), newval.toChars());
     version (none)
     {
         if (!((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval)))
