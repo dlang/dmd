@@ -809,8 +809,11 @@ public:
         s.exp.expressionToBuffer(buf, hgs);
         if (s.msg)
         {
-            buf.writestring(", ");
-            s.msg.expressionToBuffer(buf, hgs);
+            foreach(m;(*s.msg)[])
+            {
+                buf.writestring(", ");
+                m.expressionToBuffer(buf, hgs);
+            }
         }
         buf.writestring(");");
         buf.writenl();

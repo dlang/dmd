@@ -18,7 +18,7 @@ class StaticAssert : public Dsymbol
 {
 public:
     Expression *exp;
-    Expression *msg;
+    Expressions *msg;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);

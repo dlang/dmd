@@ -6660,7 +6660,7 @@ class StaticAssert final : public Dsymbol
 {
 public:
     Expression* exp;
-    Expression* msg;
+    Array<Expression*>* msg;
     Dsymbol* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     bool oneMember(Dsymbol** ps, Identifier* ident);

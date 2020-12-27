@@ -2154,7 +2154,7 @@ final class Parser(AST) : Lexer
     {
         const loc = token.loc;
         AST.Expression exp;
-        AST.Expression msg = null;
+        AST.Expressions* msg = null;
 
         //printf("parseStaticAssert()\n");
         nextToken();
@@ -2163,15 +2163,16 @@ final class Parser(AST) : Lexer
         exp = parseAssignExp();
         if (token.value == TOK.comma)
         {
-            nextToken();
-            if (token.value != TOK.rightParentheses)
+            if(peekNext() == TOK.rightParentheses)
             {
-                msg = parseAssignExp();
-                if (token.value == TOK.comma)
-                    nextToken();
+                nextToken(); // consume `,`
+                nextToken(); // consume `)`
             }
+            else
+                msg = parseArguments();
         }
-        check(TOK.rightParentheses);
+        else
+            check(TOK.rightParentheses);
         check(TOK.semicolon);
         return new AST.StaticAssert(loc, exp, msg);
     }
