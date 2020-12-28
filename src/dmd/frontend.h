@@ -593,6 +593,7 @@ class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
 class ClassReferenceExp;
+class ThrownExceptionExp;
 class TypeInfoClassDeclaration;
 struct ObjcClassDeclaration;
 class TypeFunction;
@@ -709,7 +710,6 @@ class DtorExpStatement;
 class ForwardingStatement;
 class ErrorInitializer;
 class ObjcClassReferenceExp;
-class ThrownExceptionExp;
 struct ASTCodegen;
 union __AnonStruct__u;
 struct ObjcFuncDeclaration;
@@ -1129,6 +1129,7 @@ public:
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
+    ThrownExceptionExp* isThrownExceptionExp();
     void accept(Visitor* v);
 };
 
