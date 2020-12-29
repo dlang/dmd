@@ -838,13 +838,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             if (!isError(o))
-                e.error("argument `%s` has no protection", o.toChars());
+                e.error("argument `%s` has no visibility", o.toChars());
             return ErrorExp.get();
         }
         if (s.semanticRun == PASS.init)
             s.dsymbolSemantic(null);
 
-        auto protName = protectionToString(s.prot().kind); // TODO: How about package(names)
+        auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)
         assert(protName);
         auto se = new StringExp(e.loc, protName);
         return se.expressionSemantic(sc);
@@ -1153,7 +1153,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
 
                 auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
-                fa.protection = fd.protection;
+                fa.visibility = fd.visibility;
 
                 auto e = ex ? new DotVarExp(Loc.initial, ex, fa, false)
                             : new DsymbolExp(Loc.initial, fa, false);
@@ -1841,7 +1841,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     uniqueUnitTests[cast(void*)ud] = true;
 
                     auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
-                    ad.protection = ud.protection;
+                    ad.visibility = ud.visibility;
 
                     auto e = new DsymbolExp(Loc.initial, ad, false);
                     exps.push(e);

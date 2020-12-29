@@ -125,7 +125,7 @@ public:
     void importAll(Scope *sc);
     int needModuleInfo();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
-    bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
+    bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void runDeferredSemantic();

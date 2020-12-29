@@ -745,7 +745,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         assert(dsym.semanticRun <= PASS.semantic);
 
         dsym.storage_class |= sc.stc & STC.deprecated_;
-        dsym.protection = sc.protection;
+        dsym.visibility = sc.visibility;
         dsym.userAttribDecl = sc.userAttribDecl;
 
         if (!sc.func && dsym.inNonRoot())
@@ -871,7 +871,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         dsym.linkage = sc.linkage;
         dsym.parent = sc.parent;
         //printf("this = %p, parent = %p, '%s'\n", dsym, dsym.parent, dsym.parent.toChars());
-        dsym.protection = sc.protection;
+        dsym.visibility = sc.visibility;
 
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
@@ -1628,8 +1628,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!importer.aimports.contains(imp.mod))
                 importer.aimports.push(imp.mod);
 
-            if (sc.explicitProtection)
-                imp.protection = sc.protection;
+            if (sc.explicitVisibility)
+                imp.visibility = sc.visibility;
 
             if (!imp.aliasId && !imp.names.dim) // neither a selective nor a renamed import
             {
@@ -1644,7 +1644,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 if (!imp.isstatic)
                 {
-                    scopesym.importScope(imp.mod, imp.protection);
+                    scopesym.importScope(imp.mod, imp.visibility);
                 }
 
                 imp.addPackageAccess(scopesym);
@@ -1662,7 +1662,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             sc = sc.push(imp.mod);
-            sc.protection = imp.protection;
+            sc.visibility = imp.visibility;
             for (size_t i = 0; i < imp.aliasdecls.dim; i++)
             {
                 AliasDeclaration ad = imp.aliasdecls[i];
@@ -1722,9 +1722,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ob.writestring(" (");
             escapePath(ob, imod.srcfile.toChars());
             ob.writestring(") : ");
-            // use protection instead of sc.protection because it couldn't be
+            // use visibility instead of sc.visibility because it couldn't be
             // resolved yet, see the comment above
-            protectionToBuffer(ob, imp.protection);
+            visibilityToBuffer(ob, imp.visibility);
             ob.writeByte(' ');
             if (imp.isstatic)
             {
@@ -2319,7 +2319,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ed.parent = sc.parent;
         ed.type = ed.type.typeSemantic(ed.loc, sc);
 
-        ed.protection = sc.protection;
+        ed.visibility = sc.visibility;
         if (sc.stc & STC.deprecated_)
             ed.isdeprecated = true;
         ed.userAttribDecl = sc.userAttribDecl;
@@ -2498,7 +2498,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         em.semanticRun = PASS.semantic;
 
-        em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(Prot.Kind.public_);
+        em.visibility = em.ed.isAnonymous() ? em.ed.visibility : Visibility(Visibility.Kind.public_);
         em.linkage = LINK.d;
         em.storage_class |= STC.manifest;
 
@@ -2744,7 +2744,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tempdecl.semanticRun = PASS.semantic;
 
         tempdecl.parent = sc.parent;
-        tempdecl.protection = sc.protection;
+        tempdecl.visibility = sc.visibility;
         tempdecl.cppnamespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
         tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
@@ -2993,7 +2993,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ScopeDsymbol sds = sce.scopesym;
             if (sds)
             {
-                sds.importScope(tm, Prot(Prot.Kind.public_));
+                sds.importScope(tm, Visibility(Visibility.Kind.public_));
                 break;
             }
         }
@@ -3281,7 +3281,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (auto pragmadecl = sc.inlining)
             funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
 
-        funcdecl.protection = sc.protection;
+        funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
 
@@ -3473,8 +3473,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const(char)* sfunc;
             if (funcdecl.isStatic())
                 sfunc = "static";
-            else if (funcdecl.protection.kind == Prot.Kind.private_ || funcdecl.protection.kind == Prot.Kind.package_)
-                sfunc = protectionToChars(funcdecl.protection.kind);
+            else if (funcdecl.visibility.kind == Visibility.Kind.private_ || funcdecl.visibility.kind == Visibility.Kind.package_)
+                sfunc = visibilityToChars(funcdecl.visibility.kind);
             else
                 sfunc = "final";
             funcdecl.error("`%s` functions cannot be `abstract`", sfunc);
@@ -3482,9 +3482,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (funcdecl.isOverride() && !funcdecl.isVirtual() && !funcdecl.isFuncLiteralDeclaration())
         {
-            Prot.Kind kind = funcdecl.prot().kind;
-            if ((kind == Prot.Kind.private_ || kind == Prot.Kind.package_) && funcdecl.isMember())
-                funcdecl.error("`%s` method is not virtual and cannot override", protectionToChars(kind));
+            Visibility.Kind kind = funcdecl.visible().kind;
+            if ((kind == Visibility.Kind.private_ || kind == Visibility.Kind.package_) && funcdecl.isMember())
+                funcdecl.error("`%s` method is not virtual and cannot override", visibilityToChars(kind));
             else
                 funcdecl.error("cannot override a non-virtual function");
         }
@@ -3662,7 +3662,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (f2)
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
-                            if (f2 && f2.isFinalFunc() && f2.prot().kind != Prot.Kind.private_)
+                            if (f2 && f2.isFinalFunc() && f2.visible().kind != Visibility.Kind.private_)
                                 funcdecl.error("cannot override `final` function `%s`", f2.toPrettyChars());
                         }
                     }
@@ -4007,7 +4007,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (f2)
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
-                            if (f2 && f2.isFinalFunc() && f2.prot().kind != Prot.Kind.private_)
+                            if (f2 && f2.isFinalFunc() && f2.visible().kind != Visibility.Kind.private_)
                                 funcdecl.error("cannot override `final` function `%s.%s`", b.sym.toChars(), f2.toPrettyChars());
                         }
                     }
@@ -4544,7 +4544,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             utd._scope = null;
         }
 
-        utd.protection = sc.protection;
+        utd.visibility = sc.visibility;
 
         utd.parent = sc.parent;
         Dsymbol p = utd.parent.pastMixin();
@@ -4718,7 +4718,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sd.semanticRun == PASS.init)
         {
-            sd.protection = sc.protection;
+            sd.visibility = sc.visibility;
 
             sd.alignment = sc.alignment();
 
@@ -4932,7 +4932,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (cldec.semanticRun == PASS.init)
         {
-            cldec.protection = sc.protection;
+            cldec.visibility = sc.visibility;
 
             cldec.storage_class |= sc.stc;
             if (cldec.storage_class & STC.auto_)
@@ -5512,10 +5512,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             foreach (vd; cldec.fields)
             {
                 if (!vd.isThisDeclaration() &&
-                    !vd.prot().isMoreRestrictiveThan(Prot(Prot.Kind.public_)))
+                    !vd.visible().isMoreRestrictiveThan(Visibility(Visibility.Kind.public_)))
                 {
                     vd.error("Field members of a `synchronized` class cannot be `%s`",
-                        protectionToChars(vd.prot().kind));
+                        visibilityToChars(vd.visible().kind));
                 }
             }
         }
@@ -5584,7 +5584,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (idec.semanticRun == PASS.init)
         {
-            idec.protection = sc.protection;
+            idec.visibility = sc.visibility;
 
             idec.storage_class |= sc.stc;
             idec.userAttribDecl = sc.userAttribDecl;
@@ -6173,7 +6173,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     // Declare each template parameter as an alias for the argument type
     Scope* paramscope = _scope.push();
     paramscope.stc = 0;
-    paramscope.protection = Prot(Prot.Kind.public_); // https://issues.dlang.org/show_bug.cgi?id=14169
+    paramscope.visibility = Visibility(Visibility.Kind.public_); // https://issues.dlang.org/show_bug.cgi?id=14169
                                               // template parameters should be public
     tempinst.declareParameters(paramscope);
     paramscope.pop();
@@ -6490,7 +6490,7 @@ void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDecl
     //printf("[%s] aliasSeqInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
     paramscope.stc = 0;
-    paramscope.protection = Prot(Prot.Kind.public_);
+    paramscope.visibility = Visibility(Visibility.Kind.public_);
 
     TemplateTupleParameter ttp = (*tempdecl.parameters)[0].isTemplateTupleParameter();
     Tuple va = tempinst.tdtypes[0].isTuple();
@@ -6515,7 +6515,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
     //printf("[%s] aliasInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
     paramscope.stc = 0;
-    paramscope.protection = Prot(Prot.Kind.public_);
+    paramscope.visibility = Visibility(Visibility.Kind.public_);
 
     TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
     Type ta = tempinst.tdtypes[0].isType();
@@ -6538,7 +6538,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // as DsymbolSemanticVisitor::visit(AliasDeclaration), in case we're called first.
     // see https://issues.dlang.org/show_bug.cgi?id=21001
     ds.storage_class |= sc.stc & STC.deprecated_;
-    ds.protection = sc.protection;
+    ds.visibility = sc.visibility;
     ds.userAttribDecl = sc.userAttribDecl;
 
     // TypeTraits needs to know if it's located in an AliasDeclaration
@@ -6831,7 +6831,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         aliassym.aliassym = s;
 
         aliassym.storage_class |= sc.stc & STC.deprecated_;
-        aliassym.protection = sc.protection;
+        aliassym.visibility = sc.visibility;
         aliassym.userAttribDecl = sc.userAttribDecl;
     }
     else    // it's a type alias

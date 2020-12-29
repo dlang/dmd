@@ -122,9 +122,9 @@ struct Scope
     /// inlining strategy for functions
     PragmaDeclaration inlining;
 
-    /// protection for class members
-    Prot protection = Prot(Prot.Kind.public_);
-    int explicitProtection;         /// set if in an explicit protection attribute
+    /// visibility for class members
+    Visibility visibility = Visibility(Visibility.Kind.public_);
+    int explicitVisibility;         /// set if in an explicit visibility attribute
 
     StorageClass stc;               /// storage class
 
@@ -555,7 +555,7 @@ struct Scope
             if (scopesym != s.parent)
             {
                 ++cost; // got to the symbol through an import
-                if (s.prot().kind == Prot.Kind.private_)
+                if (s.visible().kind == Visibility.Kind.private_)
                     return null;
             }
             return s;

@@ -1307,7 +1307,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
              */
             Scope* argsc = sc.push();
             argsc.stc = 0; // don't inherit storage class
-            argsc.protection = Prot(Prot.Kind.public_);
+            argsc.visibility = Visibility(Visibility.Kind.public_);
             argsc.func = null;
 
             size_t dim = tf.parameterList.length;

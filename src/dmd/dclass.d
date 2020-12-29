@@ -528,7 +528,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                             continue;
                         else if (s == this) // happens if s is nested in this and derives from this
                             s = null;
-                        else if (!(flags & IgnoreSymbolVisibility) && !(s.prot().kind == Prot.Kind.protected_) && !symbolIsVisible(this, s))
+                        else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(this, s))
                             s = null;
                         else
                             break;

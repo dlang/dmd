@@ -587,7 +587,7 @@ private int cpp_cvidx(tym_t ty)
 }
 
 /******************************
- * Turn protection into 0..2
+ * Turn visibility into 0..2
  */
 
 private int cpp_protection(Symbol *s)
@@ -1496,10 +1496,10 @@ version (SCPPorMARS)
 {
         if (isclassmember(s))
         {   // Member function
-            int protection;
+            int visibility;
             int ftype;
 
-            protection = cpp_protection(s);
+            visibility = cpp_protection(s);
             if (s.Sfunc.Fthunk && !(s.Sfunc.Fflags & Finstance))
                 ftype = 3;
             else
@@ -1509,7 +1509,7 @@ version (SCPPorMARS)
                     case 0:             ftype = 0;      break;
                     default:            assert(0);
                 }
-            CHAR('A' + farfunc + protection * 8 + ftype * 2);
+            CHAR('A' + farfunc + visibility * 8 + ftype * 2);
             switch (ftype)
             {   case 0: cpp_member_function_type(s);            break;
                 case 1: cpp_static_member_function_type(s);     break;

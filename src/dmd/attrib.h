@@ -106,7 +106,7 @@ public:
 class VisibilityDeclaration : public AttribDeclaration
 {
 public:
-    Prot protection;
+    Visibility visibility;
     Identifiers* pkg_identifiers;
 
     VisibilityDeclaration *syntaxCopy(Dsymbol *s);

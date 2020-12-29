@@ -36,7 +36,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
-import dmd.hdrgen : protectionToBuffer;
+import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -81,15 +81,15 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * the scope after it used.
      */
     extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
-        CPPMANGLE cppmangle, Prot protection, int explicitProtection,
+        CPPMANGLE cppmangle, Visibility visibility, int explicitVisibility,
         AlignDeclaration aligndecl, PragmaDeclaration inlining)
     {
         Scope* sc2 = sc;
         if (stc != sc.stc ||
             linkage != sc.linkage ||
             cppmangle != sc.cppmangle ||
-            !protection.isSubsetOf(sc.protection) ||
-            explicitProtection != sc.explicitProtection ||
+            !visibility.isSubsetOf(sc.visibility) ||
+            explicitVisibility != sc.explicitVisibility ||
             aligndecl !is sc.aligndecl ||
             inlining != sc.inlining)
         {
@@ -98,8 +98,8 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
             sc2.stc = stc;
             sc2.linkage = linkage;
             sc2.cppmangle = cppmangle;
-            sc2.protection = protection;
-            sc2.explicitProtection = explicitProtection;
+            sc2.visibility = visibility;
+            sc2.explicitVisibility = explicitVisibility;
             sc2.aligndecl = aligndecl;
             sc2.inlining = inlining;
         }
@@ -256,7 +256,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
         return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
-            sc.protection, sc.explicitProtection, sc.aligndecl, sc.inlining);
+            sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -413,7 +413,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.protection, sc.explicitProtection,
+        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
@@ -460,7 +460,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.protection, sc.explicitProtection,
+        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
@@ -576,24 +576,24 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
 /***********************************************************
  * Visibility declaration for Dsymbols, e.g. `public int i;`
  *
- * `<protection> <decl...>` or
+ * `<visibility> <decl...>` or
  * `package(<pkg_identifiers>) <decl...>` if `pkg_identifiers !is null`
  */
 extern (C++) final class VisibilityDeclaration : AttribDeclaration
 {
-    Prot protection;                /// the visibility
+    Visibility visibility;          /// the visibility
     Identifiers* pkg_identifiers;   /// identifiers for `package(foo.bar)` or null
 
     /**
      * Params:
      *  loc = source location of attribute token
-     *  protection = protection attribute data
-     *  decl = declarations which are affected by this protection attribute
+     *  visibility = visibility attribute data
+     *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Prot protection, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Visibility visibility, Dsymbols* decl)
     {
         super(loc, null, decl);
-        this.protection = protection;
+        this.visibility = visibility;
         //printf("decl = %p\n", decl);
     }
 
@@ -601,35 +601,36 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      * Params:
      *  loc = source location of attribute token
      *  pkg_identifiers = list of identifiers for a qualified package name
-     *  decl = declarations which are affected by this protection attribute
+     *  decl = declarations which are affected by this visibility attribute
      */
     extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
     {
         super(loc, null, decl);
-        this.protection.kind = Prot.Kind.package_;
+        this.visibility.kind = Visibility.Kind.package_;
         this.pkg_identifiers = pkg_identifiers;
         if (pkg_identifiers !is null && pkg_identifiers.dim > 0)
         {
             Dsymbol tmp;
             Package.resolve(pkg_identifiers, &tmp, null);
-            protection.pkg = tmp ? tmp.isPackage() : null;
+            visibility.pkg = tmp ? tmp.isPackage() : null;
         }
     }
 
     override VisibilityDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        if (protection.kind == Prot.Kind.package_)
+
+        if (visibility.kind == Visibility.Kind.package_)
             return new VisibilityDeclaration(this.loc, pkg_identifiers, Dsymbol.arraySyntaxCopy(decl));
         else
-            return new VisibilityDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
+            return new VisibilityDeclaration(this.loc, visibility, Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
     {
         if (pkg_identifiers)
             dsymbolSemantic(this, sc);
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.protection, 1, sc.aligndecl, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -638,24 +639,24 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
         {
             Dsymbol tmp;
             Package.resolve(pkg_identifiers, &tmp, null);
-            protection.pkg = tmp ? tmp.isPackage() : null;
+            visibility.pkg = tmp ? tmp.isPackage() : null;
             pkg_identifiers = null;
         }
-        if (protection.kind == Prot.Kind.package_ && protection.pkg && sc._module)
+        if (visibility.kind == Visibility.Kind.package_ && visibility.pkg && sc._module)
         {
             Module m = sc._module;
 
             // While isAncestorPackageOf does an equality check, the fix for issue 17441 adds a check to see if
             // each package's .isModule() properites are equal.
             //
-            // Properties generated from `package(foo)` i.e. protection.pkg have .isModule() == null.
+            // Properties generated from `package(foo)` i.e. visibility.pkg have .isModule() == null.
             // This breaks package declarations of the package in question if they are declared in
             // the same package.d file, which _do_ have a module associated with them, and hence a non-null
             // isModule()
-            if (!m.isPackage() || !protection.pkg.ident.equals(m.isPackage().ident))
+            if (!m.isPackage() || !visibility.pkg.ident.equals(m.isPackage().ident))
             {
                 Package pkg = m.parent ? m.parent.isPackage() : null;
-                if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
+                if (!pkg || !visibility.pkg.isAncestorPackageOf(pkg))
                     error("does not bind to one of ancestor packages of module `%s`", m.toPrettyChars(true));
             }
         }
@@ -664,14 +665,14 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
 
     override const(char)* kind() const
     {
-        return "protection attribute";
+        return "visibility attribute";
     }
 
     override const(char)* toPrettyChars(bool)
     {
-        assert(protection.kind > Prot.Kind.undefined);
+        assert(visibility.kind > Visibility.Kind.undefined);
         OutBuffer buf;
-        protectionToBuffer(&buf, protection);
+        visibilityToBuffer(&buf, visibility);
         return buf.extractChars();
     }
 
@@ -719,7 +720,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
     }
 
     override void accept(Visitor v)
@@ -878,7 +879,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         {
             // We keep track of this pragma inside scopes,
             // then it's evaluated on demand in function semantic
-            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, this);
+            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
         }
         if (ident == Id.printf || ident == Id.scanf)
         {

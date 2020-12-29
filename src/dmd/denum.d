@@ -50,7 +50,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Type type;              // the TypeEnum
     Type memtype;           // type of the members
 
-    Prot protection;
+    Visibility visibility;
     Expression maxval;
     Expression minval;
     Expression defaultval;  // default initializer
@@ -64,7 +64,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         //printf("EnumDeclaration() %s\n", toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
     override EnumDeclaration syntaxCopy(Dsymbol s)
@@ -161,9 +161,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return isdeprecated;
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     /******************************

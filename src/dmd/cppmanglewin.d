@@ -502,12 +502,12 @@ extern(D):
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
             if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
-                switch (d.protection.kind)
+                switch (d.visibility.kind)
                 {
-                case Prot.Kind.private_:
+                case Visibility.Kind.private_:
                     buf.writeByte('E');
                     break;
-                case Prot.Kind.protected_:
+                case Visibility.Kind.protected_:
                     buf.writeByte('M');
                     break;
                 default:
@@ -517,12 +517,12 @@ extern(D):
             }
             else
             {
-                switch (d.protection.kind)
+                switch (d.visibility.kind)
                 {
-                case Prot.Kind.private_:
+                case Visibility.Kind.private_:
                     buf.writeByte('A');
                     break;
-                case Prot.Kind.protected_:
+                case Visibility.Kind.protected_:
                     buf.writeByte('I');
                     break;
                 default:
@@ -544,12 +544,12 @@ extern(D):
         else if (d.isMember2()) // static function
         {
             // <flags> ::= <virtual/protection flag> <calling convention flag>
-            switch (d.protection.kind)
+            switch (d.visibility.kind)
             {
-            case Prot.Kind.private_:
+            case Visibility.Kind.private_:
                 buf.writeByte('C');
                 break;
-            case Prot.Kind.protected_:
+            case Visibility.Kind.protected_:
                 buf.writeByte('K');
                 break;
             default:
@@ -590,12 +590,12 @@ extern(D):
         }
         else
         {
-            switch (d.protection.kind)
+            switch (d.visibility.kind)
             {
-            case Prot.Kind.private_:
+            case Visibility.Kind.private_:
                 buf.writeByte('0');
                 break;
-            case Prot.Kind.protected_:
+            case Visibility.Kind.protected_:
                 buf.writeByte('1');
                 break;
             default:

@@ -98,7 +98,7 @@ public:
     Type *type;
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
-    Prot protection;
+    Visibility visibility;
     LINK linkage;
     short inuse;                // used to detect cycles
     uint8_t adFlags;
@@ -135,7 +135,7 @@ public:
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
-    Prot prot();
+    Visibility visible();
 
     Declaration *isDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

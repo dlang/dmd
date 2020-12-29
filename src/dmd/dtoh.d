@@ -257,7 +257,8 @@ public:
     LINK linkage = LINK.d;
     bool forwardedAA;
     AST.Type* origType;
-    AST.Prot.Kind currentProt; /// Last written protection level
+    /// Last written visibility level
+    AST.Visibility.Kind currentVisibility;
     AST.STC storageClass; /// Currently applicable storage classes
 
     int ignoredCounter; /// How many symbols were ignored
@@ -345,39 +346,39 @@ public:
     }
 
     /// Writes the corresponding access specifier if necessary
-    private void writeProtection(const AST.Prot.Kind kind)
+    private void writeProtection(const AST.Visibility.Kind kind)
     {
-        // Don't write protection for global declarations
+        // Don't write visibility for global declarations
         if (!adparent)
             return;
 
         string token;
 
-        switch(kind) with(AST.Prot.Kind)
+        switch(kind) with(AST.Visibility.Kind)
         {
             case none, private_:
-                if (this.currentProt == AST.Prot.Kind.private_)
+                if (this.currentVisibility == AST.Visibility.Kind.private_)
                     return;
-                this.currentProt = AST.Prot.Kind.private_;
+                this.currentVisibility = AST.Visibility.Kind.private_;
                 token = "private:";
                 break;
 
             case package_, protected_:
-                if (this.currentProt == AST.Prot.Kind.protected_)
+                if (this.currentVisibility == AST.Visibility.Kind.protected_)
                     return;
-                this.currentProt = AST.Prot.Kind.protected_;
+                this.currentVisibility = AST.Visibility.Kind.protected_;
                 token = "protected:";
                 break;
 
             case undefined, public_, export_:
-                if (this.currentProt == AST.Prot.Kind.public_)
+                if (this.currentVisibility == AST.Visibility.Kind.public_)
                     return;
-                this.currentProt = AST.Prot.Kind.public_;
+                this.currentVisibility = AST.Visibility.Kind.public_;
                 token = "public:";
                 break;
 
             default:
-                printf("Unexpected protection: %d!\n", kind);
+                printf("Unexpected visibility: %d!\n", kind);
                 assert(0);
         }
 
@@ -419,7 +420,7 @@ public:
 
         foreach (s; *decl)
         {
-            if (adparent || s.prot().kind >= AST.Prot.Kind.public_)
+            if (adparent || s.visible().kind >= AST.Visibility.Kind.public_)
                 s.accept(this);
         }
     }
@@ -467,7 +468,7 @@ public:
         }
         foreach (s; *m.members)
         {
-            if (s.prot().kind < AST.Prot.Kind.public_)
+            if (s.visible().kind < AST.Visibility.Kind.public_)
                 continue;
             s.accept(this);
         }
@@ -497,7 +498,7 @@ public:
             if (fd.isVirtual() && fd.introducing)
             {
                 // Hide placeholders because they are not ABI compatible
-                writeProtection(AST.Prot.Kind.private_);
+                writeProtection(AST.Visibility.Kind.private_);
 
                 __gshared int counter; // Ensure unique names in all cases
                 buf.printf("virtual void __vtable_slot_%u();", counter++);
@@ -510,13 +511,13 @@ public:
             ignored("function %s because it is extern", fd.toPrettyChars());
             return;
         }
-        if (fd.protection.kind == AST.Prot.Kind.none || fd.protection.kind == AST.Prot.Kind.private_)
+        if (fd.visibility.kind == AST.Visibility.Kind.none || fd.visibility.kind == AST.Visibility.Kind.private_)
         {
             ignored("function %s because it is private", fd.toPrettyChars());
             return;
         }
 
-        writeProtection(fd.protection.kind);
+        writeProtection(fd.visibility.kind);
 
         if (tf && tf.linkage == LINK.c)
             buf.writestring("extern \"C\" ");
@@ -552,7 +553,7 @@ public:
         }
 
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
-            writeProtection(AST.Prot.Kind.private_);
+            writeProtection(AST.Visibility.Kind.private_);
         funcToBuffer(tf, fd);
         // FIXME: How to determine if fd is const without tf?
         if (adparent && tf && (tf.isConst() || tf.isImmutable()))
@@ -576,7 +577,7 @@ public:
             buf.writestring(" = delete");
         buf.writestringln(";");
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
-            writeProtection(AST.Prot.Kind.public_);
+            writeProtection(AST.Visibility.Kind.public_);
 
         if (!adparent)
             buf.writenl();
@@ -629,12 +630,12 @@ public:
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
 
-            if (vd.protection.kind == AST.Prot.Kind.none || vd.protection.kind == AST.Prot.Kind.private_) {
-                ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.protectionToChars(vd.protection.kind));
+            if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_) {
+                ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.visibilityToChars(vd.visibility.kind));
                 return;
             }
 
-            writeProtection(vd.protection.kind);
+            writeProtection(vd.visibility.kind);
 
             final switch (kind)
             {
@@ -676,7 +677,7 @@ public:
                 ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
             }
-            writeProtection(vd.protection.kind);
+            writeProtection(vd.visibility.kind);
             typeToBuffer(vd.type, vd.ident);
             buf.writestringln(";");
             return;
@@ -695,7 +696,7 @@ public:
                 ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
-            writeProtection(vd.protection.kind);
+            writeProtection(vd.visibility.kind);
             if (vd.linkage == LINK.c)
                 buf.writestring("extern \"C\" ");
             else if (!adparent)
@@ -709,7 +710,7 @@ public:
 
         if (adparent && vd.type && vd.type.deco)
         {
-            writeProtection(vd.protection.kind);
+            writeProtection(vd.visibility.kind);
             typeToBuffer(vd.type, vd.ident);
             buf.writestringln(";");
 
@@ -746,7 +747,7 @@ public:
             printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
             scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
         }
-        writeProtection(ad.protection.kind);
+        writeProtection(ad.visibility.kind);
 
         if (auto t = ad.type)
         {
@@ -900,7 +901,7 @@ public:
 
         pushAlignToBuffer(sd.alignment);
 
-        writeProtection(sd.protection.kind);
+        writeProtection(sd.visibility.kind);
 
         const structAsClass = sd.cppmangle == CPPMANGLE.asClass;
         if (sd.isUnionDeclaration())
@@ -919,9 +920,9 @@ public:
         buf.writenl();
         buf.writestring("{");
 
-        const protStash = this.currentProt;
-        this.currentProt = structAsClass ? AST.Prot.Kind.private_ : AST.Prot.Kind.public_;
-        scope (exit) this.currentProt = protStash;
+        const protStash = this.currentVisibility;
+        this.currentVisibility = structAsClass ? AST.Visibility.Kind.private_ : AST.Visibility.Kind.public_;
+        scope (exit) this.currentVisibility = protStash;
 
         buf.level++;
         buf.writenl();
@@ -935,7 +936,7 @@ public:
         // Generate default ctor
         if (!sd.noDefaultCtor && !sd.isUnionDeclaration())
         {
-            writeProtection(AST.Prot.Kind.public_);
+            writeProtection(AST.Visibility.Kind.public_);
             buf.printf("%s()", sd.ident.toChars());
             size_t varCount;
             bool first = true;
@@ -1096,7 +1097,7 @@ public:
             return;
         }
 
-        writeProtection(cd.protection.kind);
+        writeProtection(cd.visibility.kind);
 
         const classAsStruct = cd.cppmangle == CPPMANGLE.asStruct;
         buf.writestring(classAsStruct ? "struct " : "class ");
@@ -1137,9 +1138,9 @@ public:
         buf.writenl();
         buf.writestringln("{");
 
-        const protStash = this.currentProt;
-        this.currentProt = classAsStruct ? AST.Prot.Kind.public_ : AST.Prot.Kind.private_;
-        scope (exit) this.currentProt = protStash;
+        const protStash = this.currentVisibility;
+        this.currentVisibility = classAsStruct ? AST.Visibility.Kind.public_ : AST.Visibility.Kind.private_;
+        scope (exit) this.currentVisibility = protStash;
 
         auto save = adparent;
         adparent = cd;
@@ -1219,7 +1220,7 @@ public:
         bool manifestConstants = !isOpaque && (!type || (isAnonymous && kind == EnumKind.Other));
         assert(!manifestConstants || isAnonymous);
 
-        writeProtection(ed.protection.kind);
+        writeProtection(ed.visibility.kind);
 
         // write the enum header
         if (!manifestConstants)

@@ -89,7 +89,7 @@ void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
 void semantic2(Dsymbol *dsym, Scope *sc);
 void semantic3(Dsymbol *dsym, Scope* sc);
 
-struct Prot
+struct Visibility
 {
     enum Kind
     {
@@ -104,8 +104,8 @@ struct Prot
     Kind kind;
     Package *pkg;
 
-    bool isMoreRestrictiveThan(const Prot other) const;
-    bool isSubsetOf(const Prot& other) const;
+    bool isMoreRestrictiveThan(const Visibility other) const;
+    bool isSubsetOf(const Visibility& other) const;
 };
 
 /* State of symbol in winding its way through the passes of the compiler
@@ -213,7 +213,7 @@ public:
     ClassDeclaration *isClassMember();          // isMember() is a ClassDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
-    virtual Prot prot();
+    virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
     virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
@@ -293,15 +293,15 @@ public:
 
 private:
     Dsymbols *importedScopes;   // imported Dsymbol's
-    Prot::Kind *prots;            // array of PROTKIND, one for each import
+    Visibility::Kind *visibilities;   // array of `Visibility.Kind`, one for each import
 
     BitArray accessiblePackages, privateAccessiblePackages;
 
 public:
     ScopeDsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
-    virtual void importScope(Dsymbol *s, Prot protection);
-    virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
+    virtual void importScope(Dsymbol *s, Visibility visibility);
+    virtual bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0);
     bool isforwardRef();
     static void multiplyDefined(const Loc &loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind() const;
@@ -364,7 +364,7 @@ public:
 
     Dsymbol *symtabInsert(Dsymbol *s);
     Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
-    void importScope(Dsymbol *s, Prot protection);
+    void importScope(Dsymbol *s, Visibility visibility);
     const char *kind() const;
 
     ForwardingScopeDsymbol *isForwardingScopeDsymbol() { return this; }

@@ -561,7 +561,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAliasSeq; /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
-    Prot protection;
+    Visibility visibility;
     int inuse;              /// for recursive expansion detection
 
     // threaded list of previous instantiation attempts on stack
@@ -599,7 +599,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.literal = literal;
         this.ismixin = ismixin;
         this.isstatic = true;
-        this.protection = Prot(Prot.Kind.undefined);
+        this.visibility = Visibility(Visibility.Kind.undefined);
 
         // Compute in advance for Ddoc's use
         // https://issues.dlang.org/show_bug.cgi?id=11153: ident could be NULL if parsing fails.
@@ -772,9 +772,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return buf.extractChars();
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     /****************************
@@ -2756,7 +2756,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (tf.equals(m.lastf.type) &&
                 fd.storage_class == m.lastf.storage_class &&
                 fd.parent == m.lastf.parent &&
-                fd.protection == m.lastf.protection &&
+                fd.visibility == m.lastf.visibility &&
                 fd.linkage == m.lastf.linkage)
             {
                 if (fd.fbody && !m.lastf.fbody)

@@ -69,7 +69,7 @@ public:
     bool isTrivialAliasSeq;     // matches `template AliasSeq(T...) { alias AliasSeq = T; }
     bool isTrivialAlias;        // matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;           // this template declaration is deprecated
-    Prot protection;
+    Visibility visibility;
     int inuse;                  // for recursive expansion detection
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
@@ -80,7 +80,7 @@ public:
     const char *kind() const;
     const char *toChars() const;
 
-    Prot prot();
+    Visibility visible();
 
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);

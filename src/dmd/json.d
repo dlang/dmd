@@ -432,7 +432,7 @@ public:
                 property("kind", s.kind.toDString);
         }
         // TODO: How about package(names)?
-        property("protection", protectionToString(s.prot().kind));
+        property("protection", visibilityToString(s.visible().kind));
         if (EnumMember em = s.isEnumMember())
         {
             if (em.origValue)
@@ -523,8 +523,8 @@ public:
         property("kind", s.kind.toDString);
         property("comment", s.comment.toDString);
         property("line", "char", s.loc);
-        if (s.prot().kind != Prot.Kind.public_)
-            property("protection", protectionToString(s.prot().kind));
+        if (s.visible().kind != Visibility.Kind.public_)
+            property("protection", visibilityToString(s.visible().kind));
         if (s.aliasId)
             property("alias", s.aliasId.toString());
         bool hasRenamed = false;

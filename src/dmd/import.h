@@ -27,7 +27,7 @@ public:
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
-    Prot protection;
+    Visibility visibility;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -39,7 +39,7 @@ public:
     AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
     const char *kind() const;
-    Prot prot();
+    Visibility visible();
     Import *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void importAll(Scope *sc);

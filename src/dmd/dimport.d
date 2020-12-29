@@ -34,7 +34,7 @@ extern (C++) final class Import : Dsymbol
     Identifier id;          // module Identifier
     Identifier aliasId;
     int isstatic;           // !=0 if static import
-    Prot protection;
+    Visibility visibility;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -88,7 +88,7 @@ extern (C++) final class Import : Dsymbol
         this.id = id;
         this.aliasId = aliasId;
         this.isstatic = isstatic;
-        this.protection = Prot.Kind.private_; // default to private
+        this.visibility = Visibility.Kind.private_; // default to private
     }
 
     extern (D) void addAlias(Identifier name, Identifier _alias)
@@ -106,9 +106,9 @@ extern (C++) final class Import : Dsymbol
         return isstatic ? "static import" : "import";
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     // copy only syntax trees
@@ -233,10 +233,10 @@ extern (C++) final class Import : Dsymbol
             isstatic = true;
         mod.importAll(null);
         mod.checkImportDeprecation(loc, sc);
-        if (sc.explicitProtection)
-            protection = sc.protection;
+        if (sc.explicitVisibility)
+            visibility = sc.visibility;
         if (!isstatic && !aliasId && !names.dim)
-            sc.scopesym.importScope(mod, protection);
+            sc.scopesym.importScope(mod, visibility);
         // Enable access to pkgs/mod as soon as posible, because compiler
         // can traverse them before the import gets semantic (Issue: 21501)
         if (!aliasId && !names.dim)
@@ -256,7 +256,7 @@ extern (C++) final class Import : Dsymbol
         {
             // import a.b.c.d;
             auto p = pkg; // a
-            scopesym.addAccessiblePackage(p, protection);
+            scopesym.addAccessiblePackage(p, visibility);
             foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
             {
                 p = cast(Package) p.symtab.lookup(id);
@@ -266,10 +266,10 @@ extern (C++) final class Import : Dsymbol
                 // Package in the path conflicts with a module name
                 if (p is null)
                     break;
-                scopesym.addAccessiblePackage(p, protection);
+                scopesym.addAccessiblePackage(p, visibility);
             }
         }
-        scopesym.addAccessiblePackage(mod, protection); // d
+        scopesym.addAccessiblePackage(mod, visibility); // d
      }
 
     override Dsymbol toAlias()
@@ -315,7 +315,7 @@ extern (C++) final class Import : Dsymbol
                 importAll(sc);
 
             sc = sc.push(mod);
-            sc.protection = protection;
+            sc.visibility = visibility;
             foreach (ad; aliasdecls)
                 ad.setScope(sc);
             sc = sc.pop();

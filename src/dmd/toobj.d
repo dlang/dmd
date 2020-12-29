@@ -544,7 +544,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         override void visit(VarDeclaration vd)
         {
 
-            //printf("VarDeclaration.toObjFile(%p '%s' type=%s) protection %d\n", vd, vd.toChars(), vd.type.toChars(), vd.protection);
+            //printf("VarDeclaration.toObjFile(%p '%s' type=%s) visibility %d\n", vd, vd.toChars(), vd.type.toChars(), vd.visibility);
             //printf("\talign = %d\n", vd.alignment);
 
             if (vd.type.ty == Terror)
@@ -695,7 +695,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 //printf("-speculative '%s'\n", tid.toPrettyChars());
                 return;
             }
-            //printf("TypeInfoDeclaration.toObjFile(%p '%s') protection %d\n", tid, tid.toChars(), tid.protection);
+            //printf("TypeInfoDeclaration.toObjFile(%p '%s') visibility %d\n", tid, tid.toChars(), tid.visibility);
 
             if (multiobj)
             {
