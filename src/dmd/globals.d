@@ -127,7 +127,8 @@ extern (C++) struct Param
     bool vtemplatesListInstances; // collect and list statistics on template instantiations origins. TODO: make this an enum when we want to list other kinds of instances
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
-    bool vcomplex;          // identify complex/imaginary type usage
+    bool vcomplex;          // deprecate complex imaginary types
+    bool previewComplex;    // remove complex and imaginary types
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
     bool optimize;          // run optimizer
