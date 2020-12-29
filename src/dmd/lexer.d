@@ -478,6 +478,22 @@ class Lexer
                                 p++;
                         }
                     }
+                    if (global.params.previewComplex)
+                    {
+                        switch (t.value)
+                        {
+                            case TOK.imaginary32:
+                            case TOK.imaginary64:
+                            case TOK.imaginary80:
+                            case TOK.complex32:
+                            case TOK.complex64:
+                            case TOK.complex80:
+                                t.value = TOK.identifier;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                     //printf("t.value = %d\n",t.value);
                     return;
                 }
@@ -2519,7 +2535,7 @@ class Lexer
             result = TOK.float80Literal;
             break;
         }
-        if ((*p == 'i' || *p == 'I') && !Ccompile)
+        if ((*p == 'i' || *p == 'I') && !Ccompile && !global.params.previewComplex)
         {
             if (*p == 'I')
                 error("use 'i' suffix instead of 'I'");
