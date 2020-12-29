@@ -85,7 +85,7 @@ class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
 class Type;
-struct Prot;
+struct Visibility;
 class Package;
 class EnumMember;
 class TemplateDeclaration;
@@ -857,7 +857,7 @@ public:
     ClassDeclaration* isClassMember();
     virtual Type* getType();
     virtual bool needThis();
-    virtual Prot prot();
+    virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
     virtual bool oneMember(Dsymbol** ps, Identifier* ident);
     virtual void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
@@ -946,14 +946,14 @@ public:
     uint32_t endlinnum;
 private:
     Array<Dsymbol* >* importedScopes;
-    Kind* prots;
+    Kind* visibilities;
     BitArray accessiblePackages;
     BitArray privateAccessiblePackages;
 public:
     ScopeDsymbol* syntaxCopy(Dsymbol* s);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
-    virtual void importScope(Dsymbol* s, Prot protection);
-    virtual bool isPackageAccessible(Package* p, Prot protection, int32_t flags = 0);
+    virtual void importScope(Dsymbol* s, Visibility visibility);
+    virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
     bool isforwardRef();
     static void multiplyDefined(const Loc& loc, Dsymbol* s1, Dsymbol* s2);
     const char* kind() const;
@@ -966,14 +966,14 @@ public:
     ~ScopeDsymbol();
 };
 
-struct Prot
+struct Visibility
 {
     Kind kind;
     Package* pkg;
-    bool isMoreRestrictiveThan(const Prot other) const;
-    bool opEquals(const Prot& other) const;
-    bool isSubsetOf(const Prot& parent) const;
-    Prot() :
+    bool isMoreRestrictiveThan(const Visibility other) const;
+    bool opEquals(const Visibility& other) const;
+    bool isSubsetOf(const Visibility& parent) const;
+    Visibility() :
         pkg()
     {
     }
@@ -1850,7 +1850,7 @@ public:
     DtorDeclaration* tidtor;
     FuncDeclaration* fieldDtor;
     Expression* getRTInfo;
-    Prot protection;
+    Visibility visibility;
     bool noDefaultCtor;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
@@ -1867,7 +1867,7 @@ public:
     bool isNested() const;
     bool isExport() const;
     Dsymbol* searchCtor();
-    Prot prot();
+    Visibility visible();
     Type* handleType();
     Symbol* stag;
     Symbol* sinit;
@@ -2032,7 +2032,7 @@ public:
 class VisibilityDeclaration final : public AttribDeclaration
 {
 public:
-    Prot protection;
+    Visibility visibility;
     Array<Identifier* >* pkg_identifiers;
     VisibilityDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
@@ -2551,7 +2551,7 @@ public:
     Type* type;
     Type* originalType;
     StorageClass storage_class;
-    Prot protection;
+    Visibility visibility;
     LINK linkage;
     int16_t inuse;
     uint8_t adFlags;
@@ -2587,7 +2587,7 @@ public:
     bool isOut() const;
     bool isRef() const;
     bool isFuture() const;
-    Prot prot();
+    Visibility visible();
     Declaration* isDeclaration();
     void accept(Visitor* v);
 };
@@ -2855,7 +2855,7 @@ class EnumDeclaration final : public ScopeDsymbol
 public:
     Type* type;
     Type* memtype;
-    Prot protection;
+    Visibility visibility;
     Expression* maxval;
     Expression* minval;
     Expression* defaultval;
@@ -2870,7 +2870,7 @@ public:
     const char* kind() const;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     bool isDeprecated() const;
-    Prot prot();
+    Visibility visible();
     Expression* getMaxMinValue(const Loc& loc, Identifier* id);
     bool isSpecial() const;
     Expression* getDefaultValue(const Loc& loc);
@@ -2903,14 +2903,14 @@ public:
     Identifier* id;
     Identifier* aliasId;
     int32_t isstatic;
-    Prot protection;
+    Visibility visibility;
     Array<Identifier* > names;
     Array<Identifier* > aliases;
     Module* mod;
     Package* pkg;
     Array<AliasDeclaration* > aliasdecls;
     const char* kind() const;
-    Prot prot();
+    Visibility visible();
     Import* syntaxCopy(Dsymbol* s);
     bool load(Scope* sc);
     void importAll(Scope* sc);
@@ -3032,7 +3032,7 @@ public:
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
-    bool isPackageAccessible(Package* p, Prot protection, int32_t flags = 0);
+    bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
     Dsymbol* symtabInsert(Dsymbol* s);
     void deleteObjFile();
     static void runDeferredSemantic();
@@ -3213,7 +3213,7 @@ public:
     ScopeDsymbol* forward;
     Dsymbol* symtabInsert(Dsymbol* s);
     Dsymbol* symtabLookup(Dsymbol* s, Identifier* id);
-    void importScope(Dsymbol* s, Prot protection);
+    void importScope(Dsymbol* s, Visibility visibility);
     const char* kind() const;
     ForwardingScopeDsymbol* isForwardingScopeDsymbol();
     ~ForwardingScopeDsymbol();
@@ -3292,7 +3292,7 @@ public:
     bool isTrivialAliasSeq;
     bool isTrivialAlias;
     bool deprecated_;
-    Prot protection;
+    Visibility visibility;
     int32_t inuse;
     TemplatePrevious* previous;
 private:
@@ -3307,7 +3307,7 @@ public:
     const char* toChars() const;
     const char* toCharsNoConstraints() const;
     const char* toCharsMaybeConstraints(bool includeConstraints) const;
-    Prot prot();
+    Visibility visible();
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
     MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, Array<Expression* >* fargs);
@@ -3518,7 +3518,7 @@ public:
     LINK linkage;
     bool forwardedAA;
     Type** origType;
-    Kind currentProt;
+    Kind currentVisibility;
     STC storageClass;
     int32_t ignoredCounter;
     bool hasReal;

@@ -596,8 +596,8 @@ extern(C++) private final class Supported : Objc
         //   because the Objective-C runtime always use dynamic dispatch.
         // * static member functions are kept virtual too, as they represent
         //   methods of the metaclass.
-        with (fd.protection)
-            return !(kind == Prot.Kind.private_ || kind == Prot.Kind.package_);
+        with (fd.visibility)
+            return !(kind == Visibility.Kind.private_ || kind == Visibility.Kind.package_);
     }
 
     override void setAsOptional(FuncDeclaration fd, Scope* sc) const

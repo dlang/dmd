@@ -1287,7 +1287,7 @@ extern (C++) final class Module : Package
         return s;
     }
 
-    override bool isPackageAccessible(Package p, Prot protection, int flags = 0)
+    override bool isPackageAccessible(Package p, Visibility visibility, int flags = 0)
     {
         if (insearch) // don't follow import cycles
             return false;
@@ -1295,8 +1295,8 @@ extern (C++) final class Module : Package
         scope (exit)
             insearch = false;
         if (flags & IgnorePrivateImports)
-            protection = Prot(Prot.Kind.public_); // only consider public imports
-        return super.isPackageAccessible(p, protection);
+            visibility = Visibility(Visibility.Kind.public_); // only consider public imports
+        return super.isPackageAccessible(p, visibility);
     }
 
     override Dsymbol symtabInsert(Dsymbol s)

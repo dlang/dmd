@@ -292,7 +292,7 @@ extern (C++) abstract class Declaration : Dsymbol
     Type type;
     Type originalType;  // before semantic analysis
     StorageClass storage_class = STC.undefined_;
-    Prot protection;
+    Visibility visibility;
     LINK linkage = LINK.default_;
     short inuse;          // used to detect cycles
 
@@ -306,13 +306,13 @@ extern (C++) abstract class Declaration : Dsymbol
     final extern (D) this(Identifier ident)
     {
         super(ident);
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
     final extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(loc, ident);
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
     override const(char)* kind() const
@@ -568,9 +568,9 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.future) != 0;
     }
 
-    override final Prot prot() pure nothrow @nogc @safe
+    override final Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     override final inout(Declaration) isDeclaration() inout
@@ -790,7 +790,7 @@ extern (C++) final class AliasDeclaration : Declaration
             if (auto fd = sa.isFuncDeclaration())
             {
                 auto fa = new FuncAliasDeclaration(ident, fd);
-                fa.protection = protection;
+                fa.visibility = visibility;
                 fa.parent = parent;
                 aliassym = fa;
                 return aliassym.overloadInsert(s);
@@ -798,7 +798,7 @@ extern (C++) final class AliasDeclaration : Declaration
             if (auto td = sa.isTemplateDeclaration())
             {
                 auto od = new OverDeclaration(ident, td);
-                od.protection = protection;
+                od.visibility = visibility;
                 od.parent = parent;
                 aliassym = od;
                 return aliassym.overloadInsert(s);
@@ -808,7 +808,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 if (sa.ident != ident || sa.parent != parent)
                 {
                     od = new OverDeclaration(ident, od);
-                    od.protection = protection;
+                    od.visibility = visibility;
                     od.parent = parent;
                     aliassym = od;
                 }
@@ -819,7 +819,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 if (sa.ident != ident || sa.parent != parent)
                 {
                     os = new OverloadSet(ident, os);
-                    // TODO: protection is lost here b/c OverloadSets have no protection attribute
+                    // TODO: visibility is lost here b/c OverloadSets have no visibility attribute
                     // Might no be a practical issue, b/c the code below fails to resolve the overload anyhow.
                     // ----
                     // module os1;
@@ -834,7 +834,7 @@ extern (C++) final class AliasDeclaration : Declaration
                     // import os1, os2;
                     // void test() { merged(123); } // should only look at os2.merged
                     //
-                    // os.protection = protection;
+                    // os.visibility = visibility;
                     os.parent = parent;
                     aliassym = os;
                 }
@@ -1262,12 +1262,12 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isExport() const
     {
-        return protection.kind == Prot.Kind.export_;
+        return visibility.kind == Visibility.Kind.export_;
     }
 
     override final bool isImportedSymbol() const
     {
-        if (protection.kind == Prot.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
+        if (visibility.kind == Visibility.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
         return false;
     }
@@ -1695,7 +1695,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         super(Loc.initial, Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
         this.tinfo = tinfo;
         storage_class = STC.static_ | STC.gshared;
-        protection = Prot(Prot.Kind.public_);
+        visibility = Visibility(Visibility.Kind.public_);
         linkage = LINK.c;
         alignment = target.ptrsize;
     }

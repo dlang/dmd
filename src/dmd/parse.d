@@ -203,7 +203,7 @@ private struct PrefixAttributes(AST)
     StorageClass storageClass;
     AST.Expression depmsg;
     LINK link;
-    AST.Prot protection;
+    AST.Visibility visibility;
     bool setAlignment;
     AST.Expression ealign;
     AST.Expressions* udas;
@@ -494,7 +494,7 @@ final class Parser(AST) : Lexer
                 pAttrs = &attrs;
                 pAttrs.comment = token.blockComment.ptr;
             }
-            AST.Prot.Kind prot;
+            AST.Visibility.Kind prot;
             StorageClass stc;
             AST.Condition condition;
 
@@ -1005,41 +1005,41 @@ final class Parser(AST) : Lexer
                 }
 
             case TOK.private_:
-                prot = AST.Prot.Kind.private_;
+                prot = AST.Visibility.Kind.private_;
                 goto Lprot;
 
             case TOK.package_:
-                prot = AST.Prot.Kind.package_;
+                prot = AST.Visibility.Kind.package_;
                 goto Lprot;
 
             case TOK.protected_:
-                prot = AST.Prot.Kind.protected_;
+                prot = AST.Visibility.Kind.protected_;
                 goto Lprot;
 
             case TOK.public_:
-                prot = AST.Prot.Kind.public_;
+                prot = AST.Visibility.Kind.public_;
                 goto Lprot;
 
             case TOK.export_:
-                prot = AST.Prot.Kind.export_;
+                prot = AST.Visibility.Kind.export_;
                 goto Lprot;
             Lprot:
                 {
-                    if (pAttrs.protection.kind != AST.Prot.Kind.undefined)
+                    if (pAttrs.visibility.kind != AST.Visibility.Kind.undefined)
                     {
-                        if (pAttrs.protection.kind != prot)
-                            error("conflicting protection attribute `%s` and `%s`", AST.protectionToChars(pAttrs.protection.kind), AST.protectionToChars(prot));
+                        if (pAttrs.visibility.kind != prot)
+                            error("conflicting visibility attribute `%s` and `%s`", AST.visibilityToChars(pAttrs.visibility.kind), AST.visibilityToChars(prot));
                         else
-                            error("redundant protection attribute `%s`", AST.protectionToChars(prot));
+                            error("redundant visibility attribute `%s`", AST.visibilityToChars(prot));
                     }
-                    pAttrs.protection.kind = prot;
+                    pAttrs.visibility.kind = prot;
 
                     nextToken();
 
                     // optional qualified package identifier to bind
-                    // protection to
+                    // visibility to
                     AST.Identifiers* pkg_prot_idents = null;
-                    if (pAttrs.protection.kind == AST.Prot.Kind.package_ && token.value == TOK.leftParentheses)
+                    if (pAttrs.visibility.kind == AST.Visibility.Kind.package_ && token.value == TOK.leftParentheses)
                     {
                         pkg_prot_idents = parseQualifiedIdentifier("protection package");
                         if (pkg_prot_idents)
@@ -1055,14 +1055,14 @@ final class Parser(AST) : Lexer
 
                     const attrloc = token.loc;
                     a = parseBlock(pLastDecl, pAttrs);
-                    if (pAttrs.protection.kind != AST.Prot.Kind.undefined)
+                    if (pAttrs.visibility.kind != AST.Visibility.Kind.undefined)
                     {
-                        if (pAttrs.protection.kind == AST.Prot.Kind.package_ && pkg_prot_idents)
+                        if (pAttrs.visibility.kind == AST.Visibility.Kind.package_ && pkg_prot_idents)
                             s = new AST.VisibilityDeclaration(attrloc, pkg_prot_idents, a);
                         else
-                            s = new AST.VisibilityDeclaration(attrloc, pAttrs.protection, a);
+                            s = new AST.VisibilityDeclaration(attrloc, pAttrs.visibility, a);
 
-                        pAttrs.protection = AST.Prot(AST.Prot.Kind.undefined);
+                        pAttrs.visibility = AST.Visibility(AST.Visibility.Kind.undefined);
                     }
                     break;
                 }
@@ -1305,7 +1305,7 @@ final class Parser(AST) : Lexer
     }
 
     /********************************************
-     * Parse declarations after an align, protection, or extern decl.
+     * Parse declarations after an align, visibility, or extern decl.
      */
     private AST.Dsymbols* parseBlock(AST.Dsymbol* pLastDecl, PrefixAttributes!AST* pAttrs = null)
     {

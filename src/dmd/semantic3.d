@@ -315,8 +315,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINK.d;
             sc2.stc &= STCFlowThruFunction;
-            sc2.protection = Prot(Prot.Kind.public_);
-            sc2.explicitProtection = 0;
+            sc2.visibility = Visibility(Visibility.Kind.public_);
+            sc2.explicitVisibility = 0;
             sc2.aligndecl = null;
             if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
                 sc2.flags = sc.flags & ~SCOPE.contract;

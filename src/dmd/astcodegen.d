@@ -76,11 +76,11 @@ struct ASTCodegen
     alias STC                       = dmd.declaration.STC;
     alias Dsymbol                   = dmd.dsymbol.Dsymbol;
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;
-    alias Prot                      = dmd.dsymbol.Prot;
+    alias Visibility                = dmd.dsymbol.Visibility;
 
     alias stcToBuffer               = dmd.hdrgen.stcToBuffer;
     alias linkageToChars            = dmd.hdrgen.linkageToChars;
-    alias protectionToChars         = dmd.hdrgen.protectionToChars;
+    alias visibilityToChars         = dmd.hdrgen.visibilityToChars;
 
     alias isType                    = dmd.dtemplate.isType;
     alias isExpression              = dmd.dtemplate.isExpression;

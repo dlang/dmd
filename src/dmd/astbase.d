@@ -552,7 +552,7 @@ struct ASTBase
     extern (C++) abstract class Declaration : Dsymbol
     {
         StorageClass storage_class;
-        Prot protection;
+        Visibility visibility;
         LINK linkage;
         Type type;
         short inuse;
@@ -562,7 +562,7 @@ struct ASTBase
         {
             super(id);
             storage_class = STC.undefined_;
-            protection = Prot(Prot.Kind.undefined);
+            visibility = Visibility(Visibility.Kind.undefined);
             linkage = LINK.default_;
         }
 
@@ -598,7 +598,7 @@ struct ASTBase
         Identifier id;
         Identifier aliasId;
         int isstatic;
-        Prot protection;
+        Visibility visibility;
 
         Identifiers names;
         Identifiers aliases;
@@ -611,7 +611,7 @@ struct ASTBase
             this.id = id;
             this.aliasId = aliasId;
             this.isstatic = isstatic;
-            this.protection = Prot(Prot.Kind.private_);
+            this.visibility = Visibility(Visibility.Kind.private_);
 
             if (aliasId)
             {
@@ -1057,7 +1057,7 @@ struct ASTBase
     {
         Type type;
         Type memtype;
-        Prot protection;
+        Visibility visibility;
 
         extern (D) this(const ref Loc loc, Identifier id, Type memtype)
         {
@@ -1065,7 +1065,7 @@ struct ASTBase
             this.loc = loc;
             type = new TypeEnum(this);
             this.memtype = memtype;
-            protection = Prot(Prot.Kind.undefined);
+            visibility = Visibility(Visibility.Kind.undefined);
         }
 
         override void accept(Visitor v)
@@ -1076,7 +1076,7 @@ struct ASTBase
 
     extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
-        Prot protection;
+        Visibility visibility;
         Sizeok sizeok;
         Type type;
 
@@ -1084,7 +1084,7 @@ struct ASTBase
         {
             super(id);
             this.loc = loc;
-            protection = Prot(Prot.Kind.public_);
+            visibility = Visibility(Visibility.Kind.public_);
             sizeok = Sizeok.none;
         }
 
@@ -1107,7 +1107,7 @@ struct ASTBase
         bool literal;
         bool ismixin;
         bool isstatic;
-        Prot protection;
+        Visibility visibility;
         Dsymbol onemember;
 
         extern (D) this(const ref Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
@@ -1120,7 +1120,7 @@ struct ASTBase
             this.literal = literal;
             this.ismixin = ismixin;
             this.isstatic = true;
-            this.protection = Prot(Prot.Kind.undefined);
+            this.visibility = Visibility(Visibility.Kind.undefined);
 
             if (members && ident)
             {
@@ -1398,21 +1398,21 @@ struct ASTBase
 
     extern (C++) final class VisibilityDeclaration : AttribDeclaration
     {
-        Prot protection;
+        Visibility visibility;
         Identifiers* pkg_identifiers;
 
-        extern (D) this(const ref Loc loc, Prot p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Visibility v, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
-            this.protection = p;
+            this.visibility = v;
         }
         extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
-            this.protection.kind = Prot.Kind.package_;
-            this.protection.pkg = null;
+            this.visibility.kind = Visibility.Kind.package_;
+            this.visibility.pkg = null;
             this.pkg_identifiers = pkg_identifiers;
         }
 
@@ -6600,7 +6600,7 @@ struct ASTBase
         }
     }
 
-    struct Prot
+    struct Visibility
     {
         enum Kind : ubyte
         {
@@ -6651,23 +6651,23 @@ struct ASTBase
     }
 
 
-    static const(char)* protectionToChars(Prot.Kind kind)
+    static const(char)* visibilityToChars(Visibility.Kind kind)
     {
         final switch (kind)
         {
-        case Prot.Kind.undefined:
+        case Visibility.Kind.undefined:
             return null;
-        case Prot.Kind.none:
+        case Visibility.Kind.none:
             return "none";
-        case Prot.Kind.private_:
+        case Visibility.Kind.private_:
             return "private";
-        case Prot.Kind.package_:
+        case Visibility.Kind.package_:
             return "package";
-        case Prot.Kind.protected_:
+        case Visibility.Kind.protected_:
             return "protected";
-        case Prot.Kind.public_:
+        case Visibility.Kind.public_:
             return "public";
-        case Prot.Kind.export_:
+        case Visibility.Kind.export_:
             return "export";
         }
     }

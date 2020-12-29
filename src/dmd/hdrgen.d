@@ -974,7 +974,7 @@ public:
 
     override void visit(VisibilityDeclaration d)
     {
-        protectionToBuffer(buf, d.protection);
+        visibilityToBuffer(buf, d.visibility);
         buf.writeByte(' ');
         AttribDeclaration ad = cast(AttribDeclaration)d;
         if (ad.decl.dim == 1 && (*ad.decl)[0].isVisibilityDeclaration)
@@ -2867,13 +2867,13 @@ string linkageToString(LINK linkage) pure nothrow
     }
 }
 
-void protectionToBuffer(OutBuffer* buf, Prot prot)
+void visibilityToBuffer(OutBuffer* buf, Visibility vis)
 {
-    buf.writestring(protectionToString(prot.kind));
-    if (prot.kind == Prot.Kind.package_ && prot.pkg)
+    buf.writestring(visibilityToString(vis.kind));
+    if (vis.kind == Visibility.Kind.package_ && vis.pkg)
     {
         buf.writeByte('(');
-        buf.writestring(prot.pkg.toPrettyChars(true));
+        buf.writestring(vis.pkg.toPrettyChars(true));
         buf.writeByte(')');
     }
 }
@@ -2882,30 +2882,30 @@ void protectionToBuffer(OutBuffer* buf, Prot prot)
  * Returns:
  *   a human readable representation of `kind`
  */
-const(char)* protectionToChars(Prot.Kind kind)
+const(char)* visibilityToChars(Visibility.Kind kind)
 {
     // Null terminated because we return a literal
-    return protectionToString(kind).ptr;
+    return visibilityToString(kind).ptr;
 }
 
 /// Ditto
-extern (D) string protectionToString(Prot.Kind kind) nothrow pure
+extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure
 {
     final switch (kind)
     {
-    case Prot.Kind.undefined:
+    case Visibility.Kind.undefined:
         return null;
-    case Prot.Kind.none:
+    case Visibility.Kind.none:
         return "none";
-    case Prot.Kind.private_:
+    case Visibility.Kind.private_:
         return "private";
-    case Prot.Kind.package_:
+    case Visibility.Kind.package_:
         return "package";
-    case Prot.Kind.protected_:
+    case Visibility.Kind.protected_:
         return "protected";
-    case Prot.Kind.public_:
+    case Visibility.Kind.public_:
         return "public";
-    case Prot.Kind.export_:
+    case Visibility.Kind.export_:
         return "export";
     }
 }
