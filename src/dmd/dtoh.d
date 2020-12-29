@@ -389,25 +389,30 @@ public:
         buf.level++;
     }
 
-    private void warnCxxCompat(Dsymbol s, const(char)* reason)
+    private void writeIdentifier(const AST.Dsymbol s)
     {
-        static bool warned = false;
-        warning(s.loc, "%s `%s` is a %s", s.kind(), s.ident.toChars(), reason);
-
-        if (!warned)
-        {
-            warningSupplemental(s.loc, "The generated C++ header will contain " ~
-                                "identifiers that are keywords in C++");
-            warned = true;
-        }
+        writeIdentifier(s.ident, s.loc, s.kind());
     }
 
-    private void writeIdentifier(Dsymbol s)
+    private void writeIdentifier(const Identifier ident, const Loc loc, const char* kind)
     {
+        void warnCxxCompat(const(char)* reason)
+        {
+            static bool warned = false;
+            warning(loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
+
+            if (!warned)
+            {
+                warningSupplemental(loc, "The generated C++ header will contain " ~
+                                    "identifiers that are keywords in C++");
+                warned = true;
+            }
+        }
+
         if (global.params.warnings != DiagnosticReporting.off)
         {
             // Warn about identifiers that are keywords in C++.
-            switch (s.ident.toString())
+            switch (ident.toString())
             {
                 // C++ operators
                 case "and":
@@ -421,7 +426,7 @@ public:
                 case "or_eq":
                 case "xor":
                 case "xor_eq":
-                    warnCxxCompat(s, "special operator in C++");
+                    warnCxxCompat("special operator in C++");
                     break;
 
                 // C++ keywords
@@ -444,7 +449,7 @@ public:
                 case "using":
                 case "virtual":
                 case "volatile":
-                    warnCxxCompat(s, "keyword in C++");
+                    warnCxxCompat("keyword in C++");
                     break;
 
                 // C++11 keywords
@@ -459,7 +464,7 @@ public:
                 case "static_assert":
                 case "thread_local":
                     if (global.params.cplusplus >= CppStdRevision.cpp11)
-                        warnCxxCompat(s, "keyword in C++11");
+                        warnCxxCompat("keyword in C++11");
                     break;
 
                 // C++20 keywords
@@ -474,14 +479,14 @@ public:
                 case "co_yield":
                 case "co_return":
                     version (none)
-                        warnCxxCompat(s, "keyword in C++20");
+                        warnCxxCompat("keyword in C++20");
                     break;
 
                 default:
                     break;
             }
         }
-        buf.writestring(s.ident.toString());
+        buf.writestring(ident.toString());
     }
 
     override void visit(AST.Dsymbol s)
@@ -885,7 +890,7 @@ public:
             buf.writestring("typedef ");
             sd.type.accept(this);
             buf.writestring(" ");
-            buf.writestring(ad.ident.toChars());
+            writeIdentifier(ad);
             writeDeclEnd();
             return;
         }
@@ -898,7 +903,9 @@ public:
             }
 
             printTemplateParams(td);
-            buf.printf("using %s = %s<", ad.ident.toChars(), td.ident.toChars());
+            buf.writestring("using ");
+            writeIdentifier(ad);
+            buf.printf(" = %s<", td.ident.toChars());
 
             foreach (const idx, const p; *td.parameters)
             {
@@ -921,17 +928,18 @@ public:
 
     override void visit(AST.Nspace ns)
     {
-        handleNspace(ns.ident, ns.members);
+        handleNspace(ns, ns.members);
     }
 
     override void visit(AST.CPPNamespaceDeclaration ns)
     {
-        handleNspace(ns.ident, ns.decl);
+        handleNspace(ns, ns.decl);
     }
 
-    void handleNspace(Identifier name, Dsymbols* members)
+    void handleNspace(AST.Dsymbol namespace, Dsymbols* members)
     {
-        buf.printf("namespace %s", name.toChars());
+        buf.writestring("namespace ");
+        writeIdentifier(namespace);
         buf.writenl();
         buf.writestring("{");
         buf.writenl();
@@ -1457,12 +1465,12 @@ public:
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
-    private void typeToBuffer(AST.Type t, Dsymbol s)
+    private void typeToBuffer(AST.Type t, AST.Dsymbol s)
     {
         debug (Debug_DtoH)
         {
-            printf("[typeToBuffer(AST.Type) enter] %s sym %s\n", t.toChars(), s.toChars());
-            scope(exit) printf("[typeToBuffer(AST.Type) exit] %s sym %s\n", t.toChars(), s.toChars());
+            printf("[typeToBuffer(AST.Type, AST.Dsymbol) enter] %s sym %s\n", t.toChars(), s.toChars());
+            scope(exit) printf("[typeToBuffer(AST.Type, AST.Dsymbol) exit] %s sym %s\n", t.toChars(), s.toChars());
         }
 
         this.ident = s.ident;
@@ -1872,7 +1880,7 @@ public:
             else
                 buf.writestring(", ");
             buf.writestring("typename ");
-            buf.writestring(p.ident.toChars());
+            writeIdentifier(p.ident, p.loc, "template parameter");
         }
         buf.writestringln(">");
     }
@@ -1915,7 +1923,6 @@ public:
             scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", fd.toChars());
         }
 
-        Identifier ident = fd.ident;
         auto originalType = cast(AST.TypeFunction)fd.originalType;
 
         if (fd.isCtorDeclaration() || fd.isDtorDeclaration())
@@ -1941,7 +1948,7 @@ public:
             if (tf.isref)
                 buf.writeByte('&');
             buf.writeByte(' ');
-            buf.writestring(ident.toChars());
+            writeIdentifier(fd);
         }
 
         buf.writeByte('(');
@@ -1977,7 +1984,8 @@ public:
             buf.writeByte('&');
         buf.writeByte(' ');
         if (ident)
-            buf.writestring(ident.toChars());
+            // FIXME: Parameter is missing a Loc
+            writeIdentifier(ident, Loc.initial, "parameter");
         ident = null;
 
         if (p.defaultArg)
