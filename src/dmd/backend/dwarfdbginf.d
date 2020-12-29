@@ -568,21 +568,14 @@ static if (1)
         struct DebugInfoHeader
         {
           align (1):
-            uint total_length;
-            ushort version_;
-            uint abbrev_offset;
-            ubyte address_size;
+            uint total_length  = 0;
+            ushort version_    = 3;
+            uint abbrev_offset = 0;
+            ubyte address_size = 4;
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=16563
         static assert(DebugInfoHeader.alignof == 1 && DebugInfoHeader.sizeof == 11);
-
-        DebugInfoHeader debuginfo_init =
-        {       0,      // total_length
-                3,      // version_
-                0,      // abbrev_offset
-                4       // address_size
-        };
 
         DebugInfoHeader debuginfo;
 
@@ -592,29 +585,17 @@ static if (1)
         struct DebugLineHeader
         {
           align (1):
-            uint total_length;
-            ushort version_;
-            uint prologue_length;
-            ubyte minimum_instruction_length;
-            ubyte default_is_stmt;
-            byte line_base;
-            ubyte line_range;
-            ubyte opcode_base;
-            ubyte[9] standard_opcode_lengths;
+            uint total_length                = 0;
+            ushort version_                  = 2;
+            uint prologue_length             = 0;
+            ubyte minimum_instruction_length = 1;
+            ubyte default_is_stmt            = true;
+            byte line_base                   = -5;
+            ubyte line_range                 = 14;
+            ubyte opcode_base                = 10;
+            ubyte[9] standard_opcode_lengths = [ 0,1,1,1,1,0,0,0,1 ];
         }
         static assert(DebugLineHeader.sizeof == 24);
-
-        DebugLineHeader debugline_init =
-        {       0,      // total_length
-                2,      // version_
-                0,      // prologue_length
-                1,      // minimum_instruction_length
-                true,   // default_is_stmt
-                -5,     // line_base
-                14,     // line_range
-                10,     // opcode_base
-                [ 0,1,1,1,1,0,0,0,1 ]
-        };
 
         DebugLineHeader debugline;
 
@@ -1076,7 +1057,7 @@ static if (1)
 
         debug_line.initialize();
 
-        debugline = debugline_init;
+        debugline = DebugLineHeader.init;
 
         debug_line.buf.write(&debugline, debugline.sizeof);
 
@@ -1132,7 +1113,7 @@ static if (1)
 
         debug_info.initialize();
 
-        debuginfo = debuginfo_init;
+        debuginfo = DebugInfoHeader.init;
         if (I64)
             debuginfo.address_size = 8;
 
