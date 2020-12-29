@@ -6669,8 +6669,8 @@ struct ASTBase
             stc &= ~STC.scope_;
         while (stc)
         {
-            const(char)* p = stcToChars(stc);
-            if (!p) // there's no visible storage classes
+            const p = stcToString(stc);
+            if (!p.length) // there's no visible storage classes
                 break;
             if (!result)
                 result = true;
@@ -6686,64 +6686,59 @@ struct ASTBase
         return t.toExpression;
     }
 
-    static const(char)* stcToChars(ref StorageClass stc)
+    static string stcToString(ref StorageClass stc)
     {
-        struct SCstring
+        static struct SCstring
         {
             StorageClass stc;
-            TOK tok;
-            const(char)* id;
+            string id;
         }
 
-        __gshared SCstring* table =
+        // Note: The identifier needs to be `\0` terminated
+        // as some code assumes it (e.g. when printing error messages)
+        static immutable SCstring[] table =
         [
-            SCstring(STC.auto_, TOK.auto_),
-            SCstring(STC.scope_, TOK.scope_),
-            SCstring(STC.static_, TOK.static_),
-            SCstring(STC.extern_, TOK.extern_),
-            SCstring(STC.const_, TOK.const_),
-            SCstring(STC.final_, TOK.final_),
-            SCstring(STC.abstract_, TOK.abstract_),
-            SCstring(STC.synchronized_, TOK.synchronized_),
-            SCstring(STC.deprecated_, TOK.deprecated_),
-            SCstring(STC.override_, TOK.override_),
-            SCstring(STC.lazy_, TOK.lazy_),
-            SCstring(STC.alias_, TOK.alias_),
-            SCstring(STC.out_, TOK.out_),
-            SCstring(STC.in_, TOK.in_),
-            SCstring(STC.manifest, TOK.enum_),
-            SCstring(STC.immutable_, TOK.immutable_),
-            SCstring(STC.shared_, TOK.shared_),
-            SCstring(STC.nothrow_, TOK.nothrow_),
-            SCstring(STC.wild, TOK.inout_),
-            SCstring(STC.pure_, TOK.pure_),
-            SCstring(STC.ref_, TOK.ref_),
-            SCstring(STC.tls),
-            SCstring(STC.gshared, TOK.gshared),
-            SCstring(STC.nogc, TOK.at, "@nogc"),
-            SCstring(STC.property, TOK.at, "@property"),
-            SCstring(STC.safe, TOK.at, "@safe"),
-            SCstring(STC.trusted, TOK.at, "@trusted"),
-            SCstring(STC.system, TOK.at, "@system"),
-            SCstring(STC.live, TOK.at, "@live"),
-            SCstring(STC.disable, TOK.at, "@disable"),
-            SCstring(STC.future, TOK.at, "@__future"),
-            SCstring(0, TOK.reserved)
+            SCstring(STC.auto_, Token.toString(TOK.auto_)),
+            SCstring(STC.scope_, Token.toString(TOK.scope_)),
+            SCstring(STC.static_, Token.toString(TOK.static_)),
+            SCstring(STC.extern_, Token.toString(TOK.extern_)),
+            SCstring(STC.const_, Token.toString(TOK.const_)),
+            SCstring(STC.final_, Token.toString(TOK.final_)),
+            SCstring(STC.abstract_, Token.toString(TOK.abstract_)),
+            SCstring(STC.synchronized_, Token.toString(TOK.synchronized_)),
+            SCstring(STC.deprecated_, Token.toString(TOK.deprecated_)),
+            SCstring(STC.override_, Token.toString(TOK.override_)),
+            SCstring(STC.lazy_, Token.toString(TOK.lazy_)),
+            SCstring(STC.alias_, Token.toString(TOK.alias_)),
+            SCstring(STC.out_, Token.toString(TOK.out_)),
+            SCstring(STC.in_, Token.toString(TOK.in_)),
+            SCstring(STC.manifest, Token.toString(TOK.enum_)),
+            SCstring(STC.immutable_, Token.toString(TOK.immutable_)),
+            SCstring(STC.shared_, Token.toString(TOK.shared_)),
+            SCstring(STC.nothrow_, Token.toString(TOK.nothrow_)),
+            SCstring(STC.wild, Token.toString(TOK.inout_)),
+            SCstring(STC.pure_, Token.toString(TOK.pure_)),
+            SCstring(STC.ref_, Token.toString(TOK.ref_)),
+            SCstring(STC.return_, Token.toString(TOK.return_)),
+            SCstring(STC.tls, "__thread"),
+            SCstring(STC.gshared, Token.toString(TOK.gshared)),
+            SCstring(STC.nogc, "@nogc"),
+            SCstring(STC.property, "@property"),
+            SCstring(STC.safe, "@safe"),
+            SCstring(STC.trusted, "@trusted"),
+            SCstring(STC.system, "@system"),
+            SCstring(STC.disable, "@disable"),
+            SCstring(STC.future, "@__future"),
+            SCstring(STC.local, "__local"),
         ];
-        for (int i = 0; table[i].stc; i++)
+        foreach (ref entry; table)
         {
-            StorageClass tbl = table[i].stc;
+            const StorageClass tbl = entry.stc;
             assert(tbl & STCStorageClass);
             if (stc & tbl)
             {
                 stc &= ~tbl;
-                if (tbl == STC.tls) // TOKtls was removed
-                    return "__thread";
-                TOK tok = table[i].tok;
-                if (tok == TOK.at)
-                    return table[i].id;
-                else
-                    return Token.toChars(tok);
+                return entry.id;
             }
         }
         //printf("stc = %llx\n", stc);
