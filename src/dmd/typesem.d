@@ -1434,7 +1434,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                             auto stc = fparam.storageClass & (STC.ref_ | STC.out_);
                             .error(loc, "parameter `%s` is `return %s` but function does not return by `ref`",
                                 fparam.ident ? fparam.ident.toChars() : "",
-                                stcToChars(stc));
+                                stcToString(stc).ptr);
                             errors = true;
                         }
                     }
