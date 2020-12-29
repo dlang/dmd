@@ -1235,7 +1235,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             if (v.storage_class & STC.return_)
                 continue;
 
-            if (sc._module && sc._module.isRoot() &&
+            auto pfunc = p.isFuncDeclaration();
+            if (pfunc && sc._module && sc._module.isRoot() &&
                 /* This case comes up when the ReturnStatement of a __foreachbody is
                  * checked for escapes by the caller of __foreachbody. Skip it.
                  *
@@ -1245,13 +1246,13 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
                  *    return null; }
                  */
-                !(!refs && p.parent == sc.func && p.isFuncDeclaration() && p.isFuncDeclaration().fes) &&
+                !(!refs && p.parent == sc.func && pfunc.fes) &&
                 /*
                  *  auto p(scope string s) {
                  *      string scfunc() { return s; }
                  *  }
                  */
-                !(!refs && p.isFuncDeclaration() && sc.func.isFuncDeclaration().getLevel(p.isFuncDeclaration(), sc.intypeof) > 0)
+                !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
                 // Only look for errors if in module listed on command line
