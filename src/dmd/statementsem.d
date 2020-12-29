@@ -48,6 +48,7 @@ import dmd.intrange;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
+import dmd.printast;
 import dmd.root.outbuffer;
 import dmd.root.string;
 import dmd.semantic2;
@@ -1094,7 +1095,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         fs.aggr = fs.aggr.optimize(WANTvalue);
         if (fs.aggr.op == TOK.error)
             return setError();
-        Expression oaggr = fs.aggr;
+        Expression oaggr = fs.aggr;     // remember original for error messages
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOK.type && !fs.aggr.isLvalue())
@@ -1106,6 +1107,16 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             vinit.dsymbolSemantic(sc);
             fs.aggr = new VarExp(fs.aggr.loc, vinit);
         }
+
+        /* If aggregate is a vector type, add the .array to make it a static array
+         */
+        if (fs.aggr.type)
+            if (auto tv = fs.aggr.type.toBasetype().isTypeVector())
+            {
+                auto vae = new VectorArrayExp(fs.aggr.loc, fs.aggr);
+                vae.type = tv.basetype;
+                fs.aggr = vae;
+            }
 
         Dsymbol sapply = null;                  // the inferred opApply() or front() function
         if (!inferForeachAggregate(sc, fs.op == TOK.foreach_, fs.aggr, sapply))

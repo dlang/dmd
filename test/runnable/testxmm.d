@@ -2166,7 +2166,7 @@ void test20041()
     assert(v.array[3] == 2);
 
 //    foreach(d; 0 .. 4)
-//    	printf("%g ", v[d]);
+//      printf("%g ", v[d]);
 //    printf("\n");
 }
 
@@ -2192,6 +2192,19 @@ void test21364()
 {
     X21364 x = X21364();
     foo21364(1, x, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19632
+
+void test19632()
+{
+    int4 v = [1, 2, 3, 4];
+    int sum = 0;
+    foreach (ref e; v)
+        sum += (e *= 2);
+    assert(v.array[] == [2, 4, 6, 8]);
+    assert(sum == 20);
 }
 
 /*****************************************/
@@ -2251,6 +2264,7 @@ int main()
     test20981();
     test20041();
     test21364();
+    test19632();
     test19788();
 
     return 0;
