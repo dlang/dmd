@@ -859,7 +859,7 @@ debug
                     return;
                 }
 
-                /* We could be freeing the symbol before it's class is  */
+                /* We could be freeing the symbol before its class is   */
                 /* freed, so remove it from the class's field list      */
                 if (f.Fclass)
                 {   list_t tl;

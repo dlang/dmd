@@ -355,7 +355,7 @@ public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
                  * Usually aliases should not be resolved for visibility checking
                  * b/c public aliases to private symbols are public. But for the
                  * overloadable alias situation, the Alias (_ad_) has been moved
-                 * into it's own Aliasee, leaving a shell that we peel away here.
+                 * into its own Aliasee, leaving a shell that we peel away here.
                  */
                 auto aliasee = ad.toAlias();
                 if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
