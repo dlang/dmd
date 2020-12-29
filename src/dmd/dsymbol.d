@@ -138,20 +138,37 @@ struct Visibility
     Kind kind;
     Package pkg;
 
-    extern (D) this(Visibility.Kind kind) pure nothrow @nogc @safe
+    extern (D):
+
+    this(Visibility.Kind kind) pure nothrow @nogc @safe
     {
         this.kind = kind;
     }
 
-    extern (C++):
-
     /**
-     * Checks if `this` is superset of `other` restrictions.
-     * For example, "protected" is more restrictive than "public".
+     * Checks if `this` is less or more visible than `other`
+     *
+     * Params:
+     *   other = Visibility to compare `this` to.
+     *
+     * Returns:
+     *   A value `< 0` if `this` is less visible than `other`,
+     *   a value `> 0` if `this` is more visible than `other`,
+     *   and `0` if they are at the same level.
+     *   Note that `package` visibility with different packages
+     *   will also return `0`.
      */
-    bool isMoreRestrictiveThan(const Visibility other) const
+    int opCmp(const Visibility other) const pure nothrow @nogc @safe
     {
-        return this.kind < other.kind;
+        return this.kind - other.kind;
+    }
+
+    ///
+    unittest
+    {
+        assert(Visibility(Visibility.Kind.public_) > Visibility(Visibility.Kind.private_));
+        assert(Visibility(Visibility.Kind.private_) < Visibility(Visibility.Kind.protected_));
+        assert(Visibility(Visibility.Kind.package_) >= Visibility(Visibility.Kind.package_));
     }
 
     /**
@@ -167,6 +184,8 @@ struct Visibility
         }
         return false;
     }
+
+    extern (C++):
 
     /**
      * Checks if parent defines different access restrictions than this one.
@@ -1378,7 +1397,7 @@ public:
                      * alias is deprecated or less accessible, prefer
                      * the other.
                      */
-                    if (s.isDeprecated() || s.visible().isMoreRestrictiveThan(s2.visible()) && s2.visible().kind != Visibility.Kind.none)
+                    if (s.isDeprecated() || s.visible() < s2.visible() && s2.visible().kind != Visibility.Kind.none)
                         s = s2;
                 }
                 else
@@ -1491,7 +1510,7 @@ public:
                 Dsymbol s2 = os.a[j];
                 if (s.toAlias() == s2.toAlias())
                 {
-                    if (s2.isDeprecated() || (s2.visible().isMoreRestrictiveThan(s.visible()) && s.visible().kind != Visibility.Kind.none))
+                    if (s2.isDeprecated() || (s2.visible() < s.visible() && s.visible().kind != Visibility.Kind.none))
                     {
                         os.a[j] = s;
                     }
