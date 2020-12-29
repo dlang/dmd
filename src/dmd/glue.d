@@ -136,7 +136,7 @@ void obj_write_deferred(Library library)
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
-            //  so output it into it's own object file without ModuleInfo
+            //  so output it into its own object file without ModuleInfo
             objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
             objmod.termfile();

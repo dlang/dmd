@@ -1865,7 +1865,7 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
 }
 
 /***************
- * Free element (but not it's leaves! (assume they are already freed))
+ * Free element (but not its leaves! (assume they are already freed))
  * Don't decrement Ecount! This is so we can detect if the common subexp
  * has already been evaluated.
  * If common subexpression is not required anymore, eliminate

@@ -332,7 +332,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Note: When a lambda is defined immediately under aggregate member
              * scope, it should be contextless due to prevent interior pointers.
              * e.g.
-             *      // dg points 'this' - it's interior pointer
+             *      // dg points 'this' - its interior pointer
              *      class C { int x; void delegate() dg = (){ this.x = 1; }; }
              *
              * However, lambdas could be used inside typeof, in order to check

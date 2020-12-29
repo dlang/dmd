@@ -507,12 +507,12 @@ public:
         }
         if (!adparent && !fd.fbody)
         {
-            ignored("function %s because it's extern", fd.toPrettyChars());
+            ignored("function %s because it is extern", fd.toPrettyChars());
             return;
         }
         if (fd.protection.kind == AST.Prot.Kind.none || fd.protection.kind == AST.Prot.Kind.private_)
         {
-            ignored("function %s because it's private", fd.toPrettyChars());
+            ignored("function %s because it is private", fd.toPrettyChars());
             return;
         }
 
@@ -1210,7 +1210,7 @@ public:
             // Cannot apply namespace workaround for non-integral types
             else if (kind != EnumKind.Int && kind != EnumKind.Numeric)
             {
-                ignored("enum %s because of it's base type", ed.toPrettyChars());
+                ignored("enum %s because of its base type", ed.toPrettyChars());
                 return;
             }
         }
@@ -1863,7 +1863,7 @@ public:
     /**
      * Prints `exp` as an expression of type `target` while inserting
      * appropriate code when implicit conversion does not translate
-     * directly to C++, e.g. from an enum to it's base type.
+     * directly to C++, e.g. from an enum to its base type.
      *
      * Params:
      *   target = the type `exp` is converted to
@@ -1880,7 +1880,7 @@ public:
 
             auto source = exp.type;
 
-            // DotVarExp resolve conversions, e.g from an enum to it's base type
+            // DotVarExp resolve conversions, e.g from an enum to its base type
             if (auto dve = exp.isDotVarExp())
                 source = dve.var.type;
 

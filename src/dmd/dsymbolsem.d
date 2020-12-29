@@ -1326,7 +1326,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit)
             {
                 /* If a struct is all zeros, as a special case
-                 * set it's initializer to the integer 0.
+                 * set its initializer to the integer 0.
                  * In AssignExp::toElem(), we check for this and issue
                  * a memset() to initialize the struct.
                  * Must do same check in interpreter.

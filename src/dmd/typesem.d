@@ -3988,7 +3988,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     L1:
         if (!s)
         {
-            // See if it's 'this' class or a base class
+            // See if it's a 'this' class or a base class
             if (mt.sym.ident == ident)
             {
                 if (e.op == TOK.type)
