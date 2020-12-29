@@ -2760,32 +2760,19 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
         return true;
     }
 
-    bool Lt1()
+    /// Converts one of the expression too the other
+    bool convert(ref Expression from, Type to)
     {
-        e2 = e2.castTo(sc, t1);
-        return Lret(t1);
+        from = from.castTo(sc, to);
+        return Lret(to);
     }
 
-    bool Lt2()
+    /// Converts both expression to a third type
+    bool coerce(Type towards)
     {
-        e1 = e1.castTo(sc, t2);
-        return Lret(t2);
-    }
-
-    bool Lx1()
-    {
-        auto t = t1.nextOf().arrayOf(); // T[]
-        e1 = e1.castTo(sc, t);
-        e2 = e2.castTo(sc, t);
-        return Lret(t);
-    }
-
-    bool Lx2()
-    {
-        auto t = t2.nextOf().arrayOf();
-        e1 = e1.castTo(sc, t);
-        e2 = e2.castTo(sc, t);
-        return Lret(t);
+        e1 = e1.castTo(sc, towards);
+        e2 = e2.castTo(sc, towards);
+        return Lret(towards);
     }
 
     bool Lincompatible() { return false; }
@@ -2889,11 +2876,11 @@ Lagain:
         }
         else if (t1.implicitConvTo(t2))
         {
-            return Lt2();
+            return convert(e1, t2);
         }
         else if (t2.implicitConvTo(t1))
         {
-            return Lt1();
+            return convert(e2, t1);
         }
         else if (t1n.ty == Tfunction && t2n.ty == Tfunction)
         {
@@ -2964,11 +2951,11 @@ Lagain:
             t2 = t2n.constOf().pointerTo();
             if (t1.implicitConvTo(t2))
             {
-                return Lt2();
+                return convert(e1, t2);
             }
             else if (t2.implicitConvTo(t1))
             {
-                return Lt1();
+                return convert(e2, t1);
             }
             return Lincompatible();
         }
@@ -2982,7 +2969,7 @@ Lagain:
          *  (T[n] op void[])  => T[]
          *  (T[]  op void[])  => T[]
          */
-        return Lx1();
+        return coerce(t1.nextOf().arrayOf());
     }
     else if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
     {
@@ -2993,7 +2980,7 @@ Lagain:
          *  (void[]  op T[n]) => T[]
          *  (void[]  op T[])  => T[]
          */
-        return Lx2();
+        return coerce(t2.nextOf().arrayOf());
     }
     else if ((t1.ty == Tsarray || t1.ty == Tarray) && (m = t1.implicitConvTo(t2)) != MATCH.nomatch)
     {
@@ -3002,21 +2989,21 @@ Lagain:
         // https://issues.dlang.org/show_bug.cgi?id=14737
         // Tsarray ~ [x, y, ...] should to be Tarray
         if (t1.ty == Tsarray && e2.op == TOK.arrayLiteral && op != TOK.concatenate)
-            return Lt1();
+            return convert(e2, t1);
         if (m == MATCH.constant && (op == TOK.addAssign || op == TOK.minAssign || op == TOK.mulAssign || op == TOK.divAssign || op == TOK.modAssign || op == TOK.powAssign || op == TOK.andAssign || op == TOK.orAssign || op == TOK.xorAssign))
         {
             // Don't make the lvalue const
             return Lret(t2);
         }
-        return Lt2();
+        return convert(e1, t2);
     }
     else if ((t2.ty == Tsarray || t2.ty == Tarray) && t2.implicitConvTo(t1))
     {
         // https://issues.dlang.org/show_bug.cgi?id=7285
         // https://issues.dlang.org/show_bug.cgi?id=14737
         if (t2.ty == Tsarray && e1.op == TOK.arrayLiteral && op != TOK.concatenate)
-            return Lt2();
-        return Lt1();
+            return convert(e1, t2);
+        return convert(e2, t1);
     }
     else if ((t1.ty == Tsarray || t1.ty == Tarray || t1.ty == Tpointer) && (t2.ty == Tsarray || t2.ty == Tarray || t2.ty == Tpointer) && t1.nextOf().mod != t2.nextOf().mod)
     {
@@ -3087,12 +3074,12 @@ Lagain:
             if (i2)
             {
                 e2 = e2.castTo(sc, t2);
-                return Lt2();
+                return convert(e1, t2);
             }
             else if (i1)
             {
                 e1 = e1.castTo(sc, t1);
-                return Lt1();
+                return convert(e2, t1);
             }
             else if (t1.ty == Tclass && t2.ty == Tclass)
             {
@@ -3190,9 +3177,9 @@ Lagain:
                 return Lincompatible();
 
             if (i1)
-                return Lt1();
+                return convert(e2, t1);
             else if (i2)
-                return Lt2();
+                return convert(e1, t2);
 
             if (e1b)
             {
@@ -3238,19 +3225,19 @@ Lagain:
     }
     else if ((e1.op == TOK.string_ || e1.op == TOK.null_) && e1.implicitConvTo(t2))
     {
-        return Lt2();
+        return convert(e1, t2);
     }
     else if ((e2.op == TOK.string_ || e2.op == TOK.null_) && e2.implicitConvTo(t1))
     {
-        return Lt1();
+        return convert(e2, t1);
     }
     else if (t1.ty == Tsarray && t2.ty == Tsarray && e2.implicitConvTo(t1.nextOf().arrayOf()))
     {
-        return Lx1();
+        return coerce(t1.nextOf().arrayOf());
     }
     else if (t1.ty == Tsarray && t2.ty == Tsarray && e1.implicitConvTo(t2.nextOf().arrayOf()))
     {
-        return Lx2();
+        return coerce(t2.nextOf().arrayOf());
     }
     else if (t1.ty == Tvector && t2.ty == Tvector)
     {
@@ -3314,11 +3301,11 @@ LmodCompare:
     }
     else if (t2.ty == Tnull && (t1.ty == Tpointer || t1.ty == Taarray || t1.ty == Tarray))
     {
-        return Lt1();
+        return convert(e2, t1);
     }
     else if (t1.ty == Tnull && (t2.ty == Tpointer || t2.ty == Taarray || t2.ty == Tarray))
     {
-        return Lt2();
+        return convert(e1, t2);
     }
     else if (t1.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e1))
     {
