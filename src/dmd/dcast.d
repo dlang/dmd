@@ -2741,14 +2741,13 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
 
-    Type t;
-
-    bool Lret()
+    bool Lret(Type result)
     {
         if (pt is null)
-            pt = t;
+            pt = result;
         pe1 = e1;
         pe2 = e2;
+
         version (none)
         {
             printf("-typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
@@ -2756,7 +2755,7 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
                 printf("\tt1 = %s\n", e1.type.toChars());
             if (e2.type)
                 printf("\tt2 = %s\n", e2.type.toChars());
-            printf("\ttype = %s\n", t.toChars());
+            printf("\ttype = %s\n", result.toChars());
         }
         return true;
     }
@@ -2764,15 +2763,13 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
     bool Lt1()
     {
         e2 = e2.castTo(sc, t1);
-        t = t1;
-        return Lret();
+        return Lret(t1);
     }
 
     bool Lt2()
     {
         e1 = e1.castTo(sc, t2);
-        t = t2;
-        return Lret();
+        return Lret(t2);
     }
 
     bool Lincompatible() { return false; }
@@ -2794,7 +2791,7 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
     t1 = e1.type;
     t2 = e2.type;
     assert(t1);
-    t = t1;
+    Type t = t1;
 
     /* The start type of alias this type recursion.
      * In following case, we should save A, and stop recursion
@@ -2835,25 +2832,17 @@ Lagain:
         if (t1b.ty == ty1) // if no promotions
         {
             if (t1.equals(t2))
-            {
-                t = t1;
-                return Lret();
-            }
+                return Lret(t1);
 
             if (t1b.equals(t2b))
-            {
-                t = t1b;
-                return Lret();
-            }
+                return Lret(t1b);
         }
-
-        t = Type.basic[ty];
 
         t1 = Type.basic[ty1];
         t2 = Type.basic[ty2];
         e1 = e1.castTo(sc, t1);
         e2 = e2.castTo(sc, t2);
-        return Lret();
+        return Lret(Type.basic[ty]);
     }
 
     t1 = t1b;
@@ -2913,22 +2902,14 @@ Lagain:
             else
                 d.trust = TRUST.trusted;
 
-            Type tx = null;
-            if (t1.ty == Tdelegate)
-            {
-                tx = new TypeDelegate(d);
-            }
-            else
-                tx = d.pointerTo();
-
+            Type tx = (t1.ty == Tdelegate) ? new TypeDelegate(d) : d.pointerTo();
             tx = tx.typeSemantic(e1.loc, sc);
 
             if (t1.implicitConvTo(tx) && t2.implicitConvTo(tx))
             {
-                t = tx;
-                e1 = e1.castTo(sc, t);
-                e2 = e2.castTo(sc, t);
-                return Lret();
+                e1 = e1.castTo(sc, tx);
+                e2 = e2.castTo(sc, tx);
+                return Lret(tx);
             }
             return Lincompatible();
         }
@@ -3009,8 +2990,7 @@ Lagain:
         if (m == MATCH.constant && (op == TOK.addAssign || op == TOK.minAssign || op == TOK.mulAssign || op == TOK.divAssign || op == TOK.modAssign || op == TOK.powAssign || op == TOK.andAssign || op == TOK.orAssign || op == TOK.xorAssign))
         {
             // Don't make the lvalue const
-            t = t2;
-            return Lret();
+            return Lret(t2);
         }
         return Lt2();
     }
@@ -3320,7 +3300,7 @@ LmodCompare:
         t = t1.castMod(mod);
         e1 = e1.castTo(sc, t);
         e2 = e2.castTo(sc, t);
-        return Lret();
+        return Lret(t);
     }
     else if (t2.ty == Tnull && (t1.ty == Tpointer || t1.ty == Taarray || t1.ty == Tarray))
     {
@@ -3404,7 +3384,7 @@ LmodCompare:
     {
         return Lincompatible();
     }
-    return Lret();
+    return Lret(t);
 }
 
 /************************************
