@@ -2711,23 +2711,29 @@ private bool isVoidArrayLiteral(Expression e, Type other)
     return (e.op == TOK.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
 }
 
-/**************************************
- * Combine types.
- * Output:
- *      *pt     merged type, if *pt is not NULL
- *      *pe1    rewritten e1
- *      *pe2    rewritten e2
+/**
+ * Merge types of `e1` and `e2` into a common subset
+ *
+ * Parameters `e1` and `e2` will be rewritten in place as needed.
+ *
+ * Params:
+ *     sc  = Current scope
+ *     op  = Operator such as `e1 op e2`. In practice, either TOK.question
+ *           or one of the binary operator.
+ *     pt  = Where to store the merged type (if `pt is null`)
+ *     pe1 = The LHS of the operation, will be rewritten
+ *     pe2 = The RHS of the operation, will be rewritten
+ *
  * Returns:
- *      true    success
- *      false   failed
+ *      `true` in case of success, `false` otherwise
  */
-bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
+bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expression pe2)
 {
-    //printf("typeMerge() %s op %s\n", pe1.toChars(), pe2.toChars());
+    //printf("typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
 
     MATCH m;
-    Expression e1 = *pe1;
-    Expression e2 = *pe2;
+    Expression e1 = pe1;
+    Expression e2 = pe2;
 
     Type t1 = e1.type;
     Type t2 = e2.type;
@@ -2739,11 +2745,10 @@ bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 
     bool Lret()
     {
-        if (!*pt)
-            *pt = t;
-        *pe1 = e1;
-        *pe2 = e2;
-
+        if (pt is null)
+            pt = t;
+        pe1 = e1;
+        pe2 = e2;
         version (none)
         {
             printf("-typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
@@ -3431,7 +3436,7 @@ Expression typeCombine(BinExp be, Scope* sc)
             return errorReturn();
     }
 
-    if (!typeMerge(sc, be.op, &be.type, &be.e1, &be.e2))
+    if (!typeMerge(sc, be.op, be.type, be.e1, be.e2))
         return errorReturn();
 
     // If the types have no value, return an error

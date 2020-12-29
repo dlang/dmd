@@ -9011,7 +9011,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             // of opAssign() return and assigned AA entry.
                             // Even if there's no common type, expression should be typed as void.
                             Type t = null;
-                            if (!typeMerge(sc, TOK.question, &t, &ex, &ey))
+                            if (!typeMerge(sc, TOK.question, t, ex, ey))
                             {
                                 ex = new CastExp(ex.loc, ex, Type.tvoid);
                                 ey = new CastExp(ey.loc, ey, Type.tvoid);
