@@ -2772,6 +2772,22 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
         return Lret(t2);
     }
 
+    bool Lx1()
+    {
+        auto t = t1.nextOf().arrayOf(); // T[]
+        e1 = e1.castTo(sc, t);
+        e2 = e2.castTo(sc, t);
+        return Lret(t);
+    }
+
+    bool Lx2()
+    {
+        auto t = t2.nextOf().arrayOf();
+        e1 = e1.castTo(sc, t);
+        e2 = e2.castTo(sc, t);
+        return Lret(t);
+    }
+
     bool Lincompatible() { return false; }
 
     if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
@@ -2966,7 +2982,7 @@ Lagain:
          *  (T[n] op void[])  => T[]
          *  (T[]  op void[])  => T[]
          */
-        goto Lx1;
+        return Lx1();
     }
     else if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
     {
@@ -2977,7 +2993,7 @@ Lagain:
          *  (void[]  op T[n]) => T[]
          *  (void[]  op T[])  => T[]
          */
-        goto Lx2;
+        return Lx2();
     }
     else if ((t1.ty == Tsarray || t1.ty == Tarray) && (m = t1.implicitConvTo(t2)) != MATCH.nomatch)
     {
@@ -3230,17 +3246,11 @@ Lagain:
     }
     else if (t1.ty == Tsarray && t2.ty == Tsarray && e2.implicitConvTo(t1.nextOf().arrayOf()))
     {
-    Lx1:
-        t = t1.nextOf().arrayOf(); // T[]
-        e1 = e1.castTo(sc, t);
-        e2 = e2.castTo(sc, t);
+        return Lx1();
     }
     else if (t1.ty == Tsarray && t2.ty == Tsarray && e1.implicitConvTo(t2.nextOf().arrayOf()))
     {
-    Lx2:
-        t = t2.nextOf().arrayOf();
-        e1 = e1.castTo(sc, t);
-        e2 = e2.castTo(sc, t);
+        return Lx2();
     }
     else if (t1.ty == Tvector && t2.ty == Tvector)
     {
