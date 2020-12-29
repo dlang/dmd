@@ -5512,7 +5512,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             foreach (vd; cldec.fields)
             {
                 if (!vd.isThisDeclaration() &&
-                    !vd.visible().isMoreRestrictiveThan(Visibility(Visibility.Kind.public_)))
+                    vd.visible() >= Visibility(Visibility.Kind.public_))
                 {
                     vd.error("Field members of a `synchronized` class cannot be `%s`",
                         visibilityToChars(vd.visible().kind));

@@ -394,7 +394,7 @@ public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
         }
 
         if (next &&
-            visibilitySeenFromModule(mostVisible, mod).isMoreRestrictiveThan(visibilitySeenFromModule(next, mod)))
+            visibilitySeenFromModule(mostVisible, mod) < visibilitySeenFromModule(next, mod))
             mostVisible = next;
     }
     return mostVisible;

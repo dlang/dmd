@@ -104,7 +104,6 @@ struct Visibility
     Kind kind;
     Package *pkg;
 
-    bool isMoreRestrictiveThan(const Visibility other) const;
     bool isSubsetOf(const Visibility& other) const;
 };
 
