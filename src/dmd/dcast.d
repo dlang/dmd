@@ -2720,14 +2720,13 @@ private bool isVoidArrayLiteral(Expression e, Type other)
  *     sc  = Current scope
  *     op  = Operator such as `e1 op e2`. In practice, either TOK.question
  *           or one of the binary operator.
- *     pt  = Where to store the merged type (if `pt is null`)
  *     pe1 = The LHS of the operation, will be rewritten
  *     pe2 = The RHS of the operation, will be rewritten
  *
  * Returns:
- *      `true` in case of success, `false` otherwise
+ *      The resulting type in case of success, `null` in case of error
  */
-bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expression pe2)
+Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
 {
     //printf("typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
 
@@ -2741,10 +2740,8 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
 
-    bool Lret(Type result)
+    Type Lret(Type result)
     {
-        if (pt is null)
-            pt = result;
         pe1 = e1;
         pe2 = e2;
 
@@ -2757,25 +2754,25 @@ bool typeMerge(Scope* sc, TOK op, ref Type pt, ref Expression pe1, ref Expressio
                 printf("\tt2 = %s\n", e2.type.toChars());
             printf("\ttype = %s\n", result.toChars());
         }
-        return true;
+        return result;
     }
 
     /// Converts one of the expression too the other
-    bool convert(ref Expression from, Type to)
+    Type convert(ref Expression from, Type to)
     {
         from = from.castTo(sc, to);
         return Lret(to);
     }
 
     /// Converts both expression to a third type
-    bool coerce(Type towards)
+    Type coerce(Type towards)
     {
         e1 = e1.castTo(sc, towards);
         e2 = e2.castTo(sc, towards);
         return Lret(towards);
     }
 
-    bool Lincompatible() { return false; }
+    Type Lincompatible() { return null; }
 
     if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
@@ -3413,7 +3410,12 @@ Expression typeCombine(BinExp be, Scope* sc)
             return errorReturn();
     }
 
-    if (!typeMerge(sc, be.op, be.type, be.e1, be.e2))
+    if (auto result = typeMerge(sc, be.op, be.e1, be.e2))
+    {
+        if (be.type is null)
+            be.type = result;
+    }
+    else
         return errorReturn();
 
     // If the types have no value, return an error
