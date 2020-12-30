@@ -4082,7 +4082,7 @@ static if (0)
             assert(global87.stackused == 0);
             push87(cdb);
             push87(cdb);                // two items on 8087 stack
-            fixresult_complex87(cdb, e, retregs, pretregs);
+            fixresult_complex87(cdb, e, retregs, pretregs, true);
             return;
         }
         else
