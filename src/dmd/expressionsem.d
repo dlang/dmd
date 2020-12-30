@@ -1387,11 +1387,10 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
  * The common type is determined by applying ?: to each pair.
  * Output:
  *      exps[]  properties resolved, implicitly cast to common type, rewritten in place
- *      *pt     if pt is not NULL, set to the common type
  * Returns:
- *      true    a semantic error was detected
+ *      The common type, or `null` if an error has occured
  */
-private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
+private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
 {
     /* Still have a problem with:
      *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
@@ -1500,10 +1499,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
             (*exps)[i] = e;
         }
     }
-    if (pt)
-        *pt = t0;
-
-    return (t0 == Type.terror);
+    return (t0 && t0 != Type.terror) ? t0 : null;
 }
 
 private Expression opAssignToOp(const ref Loc loc, TOK op, Expression e1, Expression e2)
@@ -3095,13 +3091,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         expandTuples(e.elements);
 
-        Type t0;
         if (e.basis)
             e.elements.push(e.basis);
-        bool err = arrayExpressionToCommonType(sc, e.elements, &t0);
+        Type t0 = arrayExpressionToCommonType(sc, e.elements);
         if (e.basis)
             e.basis = e.elements.pop();
-        if (err)
+        if (t0 is null)
             return setError();
 
         e.type = t0.arrayOf();
@@ -3148,14 +3143,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        Type tkey = null;
-        Type tvalue = null;
-        err_keys = arrayExpressionToCommonType(sc, e.keys, &tkey);
-        err_vals = arrayExpressionToCommonType(sc, e.values, &tvalue);
-        if (err_keys || err_vals)
-            return setError();
-
-        if (tkey == Type.terror || tvalue == Type.terror)
+        Type tkey = arrayExpressionToCommonType(sc, e.keys);
+        Type tvalue = arrayExpressionToCommonType(sc, e.values);
+        if (tkey is null || tvalue is null)
             return setError();
 
         e.type = new TypeAArray(tvalue, tkey);
