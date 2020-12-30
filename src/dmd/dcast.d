@@ -2733,7 +2733,6 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
     Expression e1 = pe1;
     Expression e2 = pe2;
 
-    Type Lincompatible() { return null; }
     Type Lret(Type result)
     {
         pe1 = e1;
@@ -2845,7 +2844,7 @@ Lagain:
     t2 = t2b;
 
     if (t1.ty == Ttuple || t2.ty == Ttuple)
-        return Lincompatible();
+        return null;
 
     if (t1.equals(t2))
     {
@@ -2907,12 +2906,12 @@ Lagain:
                 e2 = e2.castTo(sc, tx);
                 return Lret(tx);
             }
-            return Lincompatible();
+            return null;
         }
         else if (t1n.mod != t2n.mod)
         {
             if (!t1n.isImmutable() && !t2n.isImmutable() && t1n.isShared() != t2n.isShared())
-                return Lincompatible();
+                return null;
             ubyte mod = MODmerge(t1n.mod, t2n.mod);
             t1 = t1n.castMod(mod).pointerTo();
             t2 = t2n.castMod(mod).pointerTo();
@@ -2936,7 +2935,7 @@ Lagain:
                     e1 = e1.castTo(sc, t);
             }
             else
-                return Lincompatible();
+                return null;
         }
         else
         {
@@ -2950,7 +2949,7 @@ Lagain:
             {
                 return convert(e2, t1);
             }
-            return Lincompatible();
+            return null;
         }
     }
     else if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOK.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOK.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && (cast(TypeSArray)t2).dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
@@ -3011,7 +3010,7 @@ Lagain:
         else if (e1.op != TOK.null_ && e2.op == TOK.null_)
             mod = t1n.mod;
         else if (!t1n.isImmutable() && !t2n.isImmutable() && t1n.isShared() != t2n.isShared())
-            return Lincompatible();
+            return null;
         else
             mod = MODmerge(t1n.mod, t2n.mod);
 
@@ -3037,7 +3036,7 @@ Lagain:
             else if (e1.op != TOK.null_ && e2.op == TOK.null_)
                 mod = t1.mod;
             else if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
-                return Lincompatible();
+                return null;
             else
                 mod = MODmerge(t1.mod, t2.mod);
             t1 = t1.castMod(mod);
@@ -3093,12 +3092,12 @@ Lagain:
                 else if (cd2)
                     t2 = cd2.type;
                 else
-                    return Lincompatible();
+                    return null;
             }
             else if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
             {
                 if (att1 && e1.type == att1)
-                    return Lincompatible();
+                    return null;
                 if (!att1 && e1.type.checkAliasThisRec())
                     att1 = e1.type;
                 //printf("att tmerge(c || c) e1 = %s\n", e1.type.toChars());
@@ -3109,7 +3108,7 @@ Lagain:
             else if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
             {
                 if (att2 && e2.type == att2)
-                    return Lincompatible();
+                    return null;
                 if (!att2 && e2.type.checkAliasThisRec())
                     att2 = e2.type;
                 //printf("att tmerge(c || c) e2 = %s\n", e2.type.toChars());
@@ -3118,7 +3117,7 @@ Lagain:
                 continue;
             }
             else
-                return Lincompatible();
+                return null;
         }
     }
     else if (t1.ty == Tstruct && t2.ty == Tstruct)
@@ -3126,7 +3125,7 @@ Lagain:
         if (t1.mod != t2.mod)
         {
             if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
-                return Lincompatible();
+                return null;
             ubyte mod = MODmerge(t1.mod, t2.mod);
             t1 = t1.castMod(mod);
             t2 = t2.castMod(mod);
@@ -3139,7 +3138,7 @@ Lagain:
         if (ts1.sym != ts2.sym)
         {
             if (!ts1.sym.aliasthis && !ts2.sym.aliasthis)
-                return Lincompatible();
+                return null;
 
             MATCH i1 = MATCH.nomatch;
             MATCH i2 = MATCH.nomatch;
@@ -3149,7 +3148,7 @@ Lagain:
             if (ts2.sym.aliasthis)
             {
                 if (att2 && e2.type == att2)
-                    return Lincompatible();
+                    return null;
                 if (!att2 && e2.type.checkAliasThisRec())
                     att2 = e2.type;
                 //printf("att tmerge(s && s) e2 = %s\n", e2.type.toChars());
@@ -3159,7 +3158,7 @@ Lagain:
             if (ts1.sym.aliasthis)
             {
                 if (att1 && e1.type == att1)
-                    return Lincompatible();
+                    return null;
                 if (!att1 && e1.type.checkAliasThisRec())
                     att1 = e1.type;
                 //printf("att tmerge(s && s) e1 = %s\n", e1.type.toChars());
@@ -3167,7 +3166,7 @@ Lagain:
                 i2 = e1b.implicitConvTo(t2);
             }
             if (i1 && i2)
-                return Lincompatible();
+                return null;
 
             if (i1)
                 return convert(e2, t1);
@@ -3193,7 +3192,7 @@ Lagain:
         if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
         {
             if (att1 && e1.type == att1)
-                return Lincompatible();
+                return null;
             if (!att1 && e1.type.checkAliasThisRec())
                 att1 = e1.type;
             //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
@@ -3205,7 +3204,7 @@ Lagain:
         if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
         {
             if (att2 && e2.type == att2)
-                return Lincompatible();
+                return null;
             if (!att2 && e2.type.checkAliasThisRec())
                 att2 = e2.type;
             //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
@@ -3214,7 +3213,7 @@ Lagain:
             t = t2;
             goto Lagain;
         }
-        return Lincompatible();
+        return null;
     }
     else if ((e1.op == TOK.string_ || e1.op == TOK.null_) && e1.implicitConvTo(t2))
     {
@@ -3240,7 +3239,7 @@ Lagain:
         auto tv1 = cast(TypeVector)t1;
         auto tv2 = cast(TypeVector)t2;
         if (!tv1.basetype.equals(tv2.basetype))
-            return Lincompatible();
+            return null;
 
         goto LmodCompare;
     }
@@ -3263,7 +3262,7 @@ Lagain:
         if (t1.ty != t2.ty)
         {
             if (t1.ty == Tvector || t2.ty == Tvector)
-                return Lincompatible();
+                return null;
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
             t1 = e1.type;
@@ -3273,7 +3272,7 @@ Lagain:
         assert(t1.ty == t2.ty);
 LmodCompare:
         if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
-            return Lincompatible();
+            return null;
         ubyte mod = MODmerge(t1.mod, t2.mod);
 
         t1 = t1.castMod(mod);
@@ -3335,10 +3334,10 @@ LmodCompare:
                     e2 = e2.castTo(sc, t);
             }
             else
-                return Lincompatible();
+                return null;
         }
         else
-            return Lincompatible();
+            return null;
     }
     else if (t2.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e2))
     {
@@ -3356,7 +3355,7 @@ LmodCompare:
             t = e1.type.arrayOf();
         }
         else
-            return Lincompatible();
+            return null;
 
         //printf("test %s\n", Token::toChars(op));
         e1 = e1.optimize(WANTvalue);
@@ -3372,7 +3371,7 @@ LmodCompare:
     }
     else
     {
-        return Lincompatible();
+        return null;
     }
     return Lret(t);
 }
