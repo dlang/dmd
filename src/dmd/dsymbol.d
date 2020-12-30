@@ -1295,7 +1295,7 @@ public:
         super(loc, ident);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override ScopeDsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
@@ -2152,7 +2152,7 @@ extern (C++) final class AliasAssign : Dsymbol
         this.type = type;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AliasAssign syntaxCopy(Dsymbol s)
     {
         assert(!s);
         AliasAssign aa = new AliasAssign(loc, ident, type.syntaxCopy());

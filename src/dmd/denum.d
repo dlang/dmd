@@ -67,11 +67,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         protection = Prot(Prot.Kind.undefined);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override EnumDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
-        return ScopeDsymbol.syntaxCopy(ed);
+        ScopeDsymbol.syntaxCopy(ed);
+        return ed;
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -407,7 +408,7 @@ extern (C++) final class EnumMember : VarDeclaration
         depdecl = dd;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override EnumMember syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new EnumMember(
@@ -415,8 +416,8 @@ extern (C++) final class EnumMember : VarDeclaration
             value ? value.syntaxCopy() : null,
             origType ? origType.syntaxCopy() : null,
             storage_class,
-            userAttribDecl ? cast(UserAttributeDeclaration)userAttribDecl.syntaxCopy(s) : null,
-            depdecl ? cast(DeprecatedDeclaration)depdecl.syntaxCopy(s) : null);
+            userAttribDecl ? userAttribDecl.syntaxCopy(s) : null,
+            depdecl ? depdecl.syntaxCopy(s) : null);
     }
 
     override const(char)* kind() const

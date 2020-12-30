@@ -183,7 +183,7 @@ public:
     TypeTuple *argTypes;
 
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    StructDeclaration *syntaxCopy(Dsymbol *s);
     void semanticTypeInfoMembers();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
@@ -201,7 +201,7 @@ public:
 class UnionDeclaration : public StructDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    UnionDeclaration *syntaxCopy(Dsymbol *s);
     const char *kind() const;
 
     UnionDeclaration *isUnionDeclaration() { return this; }
@@ -277,7 +277,7 @@ public:
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    ClassDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool isBaseOf2(ClassDeclaration *cd);
 
@@ -314,7 +314,7 @@ public:
 class InterfaceDeclaration : public ClassDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    InterfaceDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);

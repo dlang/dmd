@@ -374,7 +374,7 @@ extern (C++) class FuncDeclaration : Declaration
         return new FuncDeclaration(loc, endloc, id, storage_class, type);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override FuncDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
         FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
@@ -3451,13 +3451,14 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this.ident.toChars(), type.toChars());
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override FuncLiteralDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
         auto f = new FuncLiteralDeclaration(loc, endloc, type.syntaxCopy(), tok, fes, ident);
         f.treq = treq; // don't need to copy
-        return FuncDeclaration.syntaxCopy(f);
+        FuncDeclaration.syntaxCopy(f);
+        return f;
     }
 
     override bool isNested() const
@@ -3578,11 +3579,12 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override CtorDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto f = new CtorDeclaration(loc, endloc, storage_class, type.syntaxCopy());
-        return FuncDeclaration.syntaxCopy(f);
+        FuncDeclaration.syntaxCopy(f);
+        return f;
     }
 
     override const(char)* kind() const
@@ -3630,11 +3632,12 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         super(loc, endloc, id, stc, null);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override PostBlitDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto dd = new PostBlitDeclaration(loc, endloc, storage_class, ident);
-        return FuncDeclaration.syntaxCopy(dd);
+        FuncDeclaration.syntaxCopy(dd);
+        return dd;
     }
 
     override bool isVirtual() const
@@ -3682,11 +3685,12 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         super(loc, endloc, id, stc, null);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override DtorDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto dd = new DtorDeclaration(loc, endloc, storage_class, ident);
-        return FuncDeclaration.syntaxCopy(dd);
+        FuncDeclaration.syntaxCopy(dd);
+        return dd;
     }
 
     override const(char)* kind() const
@@ -3746,11 +3750,12 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StaticCtorDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto scd = new StaticCtorDeclaration(loc, endloc, storage_class);
-        return FuncDeclaration.syntaxCopy(scd);
+        FuncDeclaration.syntaxCopy(scd);
+        return scd;
     }
 
     override final inout(AggregateDeclaration) isThis() inout
@@ -3798,11 +3803,12 @@ extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
         super(loc, endloc, "_sharedStaticCtor", stc);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override SharedStaticCtorDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto scd = new SharedStaticCtorDeclaration(loc, endloc, storage_class);
-        return FuncDeclaration.syntaxCopy(scd);
+        FuncDeclaration.syntaxCopy(scd);
+        return scd;
     }
 
     override inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout
@@ -3832,11 +3838,12 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StaticDtorDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto sdd = new StaticDtorDeclaration(loc, endloc, storage_class);
-        return FuncDeclaration.syntaxCopy(sdd);
+        FuncDeclaration.syntaxCopy(sdd);
+        return sdd;
     }
 
     override final inout(AggregateDeclaration) isThis() inout
@@ -3884,11 +3891,12 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
         super(loc, endloc, "_sharedStaticDtor", stc);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override SharedStaticDtorDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto sdd = new SharedStaticDtorDeclaration(loc, endloc, storage_class);
-        return FuncDeclaration.syntaxCopy(sdd);
+        FuncDeclaration.syntaxCopy(sdd);
+        return sdd;
     }
 
     override inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout
@@ -3912,11 +3920,12 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         this.fbody = fbody;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override InvariantDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto id = new InvariantDeclaration(loc, endloc, storage_class, null, null);
-        return FuncDeclaration.syntaxCopy(id);
+        FuncDeclaration.syntaxCopy(id);
+        return id;
     }
 
     override bool isVirtual() const
@@ -3961,11 +3970,12 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         this.codedoc = codedoc;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override UnitTestDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
-        return FuncDeclaration.syntaxCopy(utd);
+        FuncDeclaration.syntaxCopy(utd);
+        return utd;
     }
 
     override inout(AggregateDeclaration) isThis() inout
@@ -4011,12 +4021,13 @@ extern (C++) final class NewDeclaration : FuncDeclaration
         this.parameterList = parameterList;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override NewDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto parameterList = parameterList.syntaxCopy();
         auto f = new NewDeclaration(loc, endloc, storage_class, parameterList);
-        return FuncDeclaration.syntaxCopy(f);
+        FuncDeclaration.syntaxCopy(f);
+        return f;
     }
 
     override const(char)* kind() const

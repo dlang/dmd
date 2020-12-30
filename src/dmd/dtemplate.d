@@ -649,7 +649,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
     }
 
-    override Dsymbol syntaxCopy(Dsymbol)
+    override TemplateDeclaration syntaxCopy(Dsymbol)
     {
         //printf("TemplateDeclaration.syntaxCopy()\n");
         TemplateParameters* p = null;
@@ -1160,7 +1160,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (fd)
             {
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type.syntaxCopy();
+                TypeFunction tf = (cast(TypeFunction) fd.type).syntaxCopy();
 
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
@@ -5373,7 +5373,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateTypeParameter syntaxCopy()
     {
         return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
@@ -5459,7 +5459,7 @@ extern (C++) final class TemplateThisParameter : TemplateTypeParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateThisParameter syntaxCopy()
     {
         return new TemplateThisParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
@@ -5497,7 +5497,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateValueParameter syntaxCopy()
     {
         return new TemplateValueParameter(loc, ident,
             valType.syntaxCopy(),
@@ -5600,7 +5600,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateAliasParameter syntaxCopy()
     {
         return new TemplateAliasParameter(loc, ident, specType ? specType.syntaxCopy() : null, objectSyntaxCopy(specAlias), objectSyntaxCopy(defaultAlias));
     }
@@ -5682,7 +5682,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateTupleParameter syntaxCopy()
     {
         return new TemplateTupleParameter(loc, ident);
     }
@@ -5869,7 +5869,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return a;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override TemplateInstance syntaxCopy(Dsymbol s)
     {
         TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
         ti.tiargs = arraySyntaxCopy(tiargs);
@@ -7593,9 +7593,9 @@ extern (C++) final class TemplateMixin : TemplateInstance
         this.tqual = tqual;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override TemplateInstance syntaxCopy(Dsymbol s)
     {
-        auto tm = new TemplateMixin(loc, ident, cast(TypeQualified)tqual.syntaxCopy(), tiargs);
+        auto tm = new TemplateMixin(loc, ident, tqual.syntaxCopy(), tiargs);
         return TemplateInstance.syntaxCopy(tm);
     }
 

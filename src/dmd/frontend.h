@@ -177,6 +177,9 @@ enum class LINK : uint8_t
 };
 
 class LinkDeclaration;
+class CPPMangleDeclaration;
+class AlignDeclaration;
+class PragmaDeclaration;
 enum class PINLINE : uint8_t
 {
     default_ = 0u,
@@ -185,7 +188,10 @@ enum class PINLINE : uint8_t
 };
 
 class Condition;
+class ConditionalDeclaration;
+class StaticIfDeclaration;
 class StaticForeach;
+class StaticForeachDeclaration;
 enum class BUILTIN : uint8_t
 {
     unknown = 255u,
@@ -233,6 +239,8 @@ class DebugCondition;
 class VersionCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
+class DVCondition;
+class StaticIfCondition;
 enum class TOK : uint8_t
 {
     reserved = 0u,
@@ -653,12 +661,6 @@ class TemplateAliasParameter;
 class TemplateThisParameter;
 class TypeQualified;
 class StaticAssert;
-class AlignDeclaration;
-class CPPMangleDeclaration;
-class PragmaDeclaration;
-class ConditionalDeclaration;
-class StaticForeachDeclaration;
-class StaticIfDeclaration;
 class ImportStatement;
 class LabelStatement;
 class StaticAssertStatement;
@@ -695,8 +697,6 @@ class BinExp;
 class SymbolExp;
 class CmpExp;
 class BinAssignExp;
-class StaticIfCondition;
-class DVCondition;
 class ExpInitializer;
 class StructInitializer;
 class ArrayInitializer;
@@ -950,7 +950,7 @@ private:
     BitArray accessiblePackages;
     BitArray privateAccessiblePackages;
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    ScopeDsymbol* syntaxCopy(Dsymbol* s);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     virtual void importScope(Dsymbol* s, Prot protection);
     virtual bool isPackageAccessible(Package* p, Prot protection, int32_t flags = 0);
@@ -1882,7 +1882,7 @@ public:
     Identifier* ident;
     Dsymbol* sym;
     bool isDeprecated_;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    AliasThis* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     AliasThis* isAliasThis();
     void accept(Visitor* v);
@@ -1977,7 +1977,7 @@ class StorageClassDeclaration : public AttribDeclaration
 {
 public:
     StorageClass stc;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StorageClassDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -1990,7 +1990,7 @@ class DeprecatedDeclaration final : public StorageClassDeclaration
 public:
     Expression* msg;
     const char* msgstr;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    DeprecatedDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     void accept(Visitor* v);
@@ -2001,7 +2001,7 @@ class LinkDeclaration final : public AttribDeclaration
 public:
     LINK linkage;
     static LinkDeclaration* create(LINK p, Array<Dsymbol* >* decl);
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    LinkDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     const char* toChars() const;
     void accept(Visitor* v);
@@ -2011,7 +2011,7 @@ class CPPMangleDeclaration final : public AttribDeclaration
 {
 public:
     CPPMANGLE cppmangle;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    CPPMangleDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     const char* toChars() const;
@@ -2022,7 +2022,7 @@ class CPPNamespaceDeclaration final : public AttribDeclaration
 {
 public:
     Expression* exp;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    CPPNamespaceDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     const char* toChars() const;
     void accept(Visitor* v);
@@ -2034,7 +2034,7 @@ class ProtDeclaration final : public AttribDeclaration
 public:
     Prot protection;
     Array<Identifier* >* pkg_identifiers;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    ProtDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     const char* kind() const;
@@ -2050,7 +2050,7 @@ public:
     enum : uint32_t { UNKNOWN = 0u };
 
     uint32_t salign;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    AlignDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void accept(Visitor* v);
 };
@@ -2063,7 +2063,7 @@ public:
     uint32_t anonoffset;
     uint32_t anonstructsize;
     uint32_t anonalignsize;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    AnonDeclaration* syntaxCopy(Dsymbol* s);
     void setScope(Scope* sc);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
     const char* kind() const;
@@ -2075,7 +2075,7 @@ class PragmaDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression* >* args;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    PragmaDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     PINLINE evalPragmaInline(Scope* sc);
     const char* kind() const;
@@ -2087,7 +2087,7 @@ class ConditionalDeclaration : public AttribDeclaration
 public:
     Condition* condition;
     Array<Dsymbol* >* elsedecl;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    ConditionalDeclaration* syntaxCopy(Dsymbol* s);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     Array<Dsymbol* >* include(Scope* sc);
     void addComment(const char* comment);
@@ -2103,7 +2103,7 @@ private:
     bool addisdone;
     bool onStack;
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StaticIfDeclaration* syntaxCopy(Dsymbol* s);
     Array<Dsymbol* >* include(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
@@ -2120,7 +2120,7 @@ public:
     bool onStack;
     bool cached;
     Array<Dsymbol* >* cache;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StaticForeachDeclaration* syntaxCopy(Dsymbol* s);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     Array<Dsymbol* >* include(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
@@ -2148,7 +2148,7 @@ public:
     Array<Expression* >* exps;
     ScopeDsymbol* scopesym;
     bool compiled;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    CompileDeclaration* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
     const char* kind() const;
@@ -2160,7 +2160,7 @@ class UserAttributeDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression* >* atts;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    UserAttributeDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     Array<Expression* >* getAttributes();
@@ -2271,7 +2271,7 @@ public:
     uint32_t level;
     Identifier* ident;
     Module* mod;
-    Condition* syntaxCopy();
+    DVCondition* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -2300,7 +2300,7 @@ class StaticIfCondition final : public Condition
 {
 public:
     Expression* exp;
-    Condition* syntaxCopy();
+    StaticIfCondition* syntaxCopy();
     int32_t include(Scope* sc);
     void accept(Visitor* v);
     const char* toChars() const;
@@ -2434,7 +2434,7 @@ public:
     Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false);
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    ClassDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf2(ClassDeclaration* cd);
     enum : int32_t { OFFSET_RUNTIME = 1985229328 };
@@ -2468,7 +2468,7 @@ public:
 class InterfaceDeclaration final : public ClassDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    InterfaceDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseOf(BaseClass* bc, int32_t* poffset);
@@ -2598,7 +2598,7 @@ public:
     Array<RootObject* >* objects;
     bool isexp;
     TypeTuple* tupletype;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    TupleDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     Type* getType();
     Dsymbol* toAlias2();
@@ -2614,7 +2614,7 @@ public:
     Dsymbol* overnext;
     Dsymbol* _import;
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    AliasDeclaration* syntaxCopy(Dsymbol* s);
     bool overloadInsert(Dsymbol* s);
     const char* kind() const;
     Type* getType();
@@ -2671,7 +2671,7 @@ public:
     bool doNotInferReturn;
     uint8_t isdataseg;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    VarDeclaration* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
     const char* kind() const;
     AggregateDeclaration* isThis();
@@ -2707,7 +2707,7 @@ class TypeInfoDeclaration : public VarDeclaration
 public:
     Type* tinfo;
     static TypeInfoDeclaration* create(Type* tinfo);
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    TypeInfoDeclaration* syntaxCopy(Dsymbol* s);
     const char* toChars() const;
     TypeInfoDeclaration* isTypeInfoDeclaration();
     void accept(Visitor* v);
@@ -2845,7 +2845,7 @@ public:
 class ThisDeclaration final : public VarDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    ThisDeclaration* syntaxCopy(Dsymbol* s);
     ThisDeclaration* isThisDeclaration();
     void accept(Visitor* v);
     ~ThisDeclaration();
@@ -2863,7 +2863,7 @@ public:
     bool isdeprecated;
     bool added;
     int32_t inuse;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    EnumDeclaration* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
     bool oneMember(Dsymbol** ps, Identifier* ident);
@@ -2889,7 +2889,7 @@ public:
     Expression* origValue;
     Type* origType;
     EnumDeclaration* ed;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    EnumMember* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     Expression* getVarExp(const Loc& loc, Scope* sc);
     EnumMember* isEnumMember();
@@ -2912,7 +2912,7 @@ public:
     Array<AliasDeclaration* > aliasdecls;
     const char* kind() const;
     Prot prot();
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    Import* syntaxCopy(Dsymbol* s);
     bool load(Scope* sc);
     void importAll(Scope* sc);
     Dsymbol* toAlias();
@@ -3139,7 +3139,7 @@ public:
     StructPOD ispod;
     TypeTuple* argTypes;
     static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StructDeclaration* syntaxCopy(Dsymbol* s);
     void semanticTypeInfoMembers();
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     const char* kind() const;
@@ -3157,7 +3157,7 @@ public:
 class UnionDeclaration final : public StructDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    UnionDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     UnionDeclaration* isUnionDeclaration();
     void accept(Visitor* v);
@@ -3233,7 +3233,7 @@ class AliasAssign final : public Dsymbol
 public:
     Identifier* ident;
     Type* type;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    AliasAssign* syntaxCopy(Dsymbol* s);
     AliasAssign* isAliasAssign();
     const char* kind() const;
     void accept(Visitor* v);
@@ -3301,7 +3301,7 @@ private:
     Array<Expression* > lastConstraintNegs;
     Array<RootObject* >* lastConstraintTiargs;
 public:
-    Dsymbol* syntaxCopy(Dsymbol* _param_0);
+    TemplateDeclaration* syntaxCopy(Dsymbol* _param_0);
     bool overloadInsert(Dsymbol* s);
     bool hasStaticCtorOrDtor();
     const char* kind() const;
@@ -3362,7 +3362,7 @@ public:
     Type* specType;
     Type* defaultType;
     TemplateTypeParameter* isTemplateTypeParameter();
-    TemplateParameter* syntaxCopy();
+    TemplateTypeParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
@@ -3376,7 +3376,7 @@ class TemplateThisParameter final : public TemplateTypeParameter
 {
 public:
     TemplateThisParameter* isTemplateThisParameter();
-    TemplateParameter* syntaxCopy();
+    TemplateThisParameter* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -3387,7 +3387,7 @@ public:
     Expression* specValue;
     Expression* defaultValue;
     TemplateValueParameter* isTemplateValueParameter();
-    TemplateParameter* syntaxCopy();
+    TemplateValueParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
@@ -3404,7 +3404,7 @@ public:
     RootObject* specAlias;
     RootObject* defaultAlias;
     TemplateAliasParameter* isTemplateAliasParameter();
-    TemplateParameter* syntaxCopy();
+    TemplateAliasParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
@@ -3418,7 +3418,7 @@ class TemplateTupleParameter final : public TemplateParameter
 {
 public:
     TemplateTupleParameter* isTemplateTupleParameter();
-    TemplateParameter* syntaxCopy();
+    TemplateTupleParameter* syntaxCopy();
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
@@ -3461,7 +3461,7 @@ private:
     };
 
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    TemplateInstance* syntaxCopy(Dsymbol* s);
     Dsymbol* toAlias();
     const char* kind() const;
     bool oneMember(Dsymbol** ps, Identifier* ident);
@@ -3481,7 +3481,7 @@ class TemplateMixin final : public TemplateInstance
 {
 public:
     TypeQualified* tqual;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    TemplateInstance* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     bool oneMember(Dsymbol** ps, Identifier* ident);
     bool hasPointers();
@@ -3579,7 +3579,7 @@ class DebugSymbol final : public Dsymbol
 {
 public:
     uint32_t level;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    DebugSymbol* syntaxCopy(Dsymbol* s);
     const char* toChars() const;
     void addMember(Scope* sc, ScopeDsymbol* sds);
     const char* kind() const;
@@ -3591,7 +3591,7 @@ class VersionSymbol final : public Dsymbol
 {
 public:
     uint32_t level;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    VersionSymbol* syntaxCopy(Dsymbol* s);
     const char* toChars() const;
     void addMember(Scope* sc, ScopeDsymbol* sds);
     const char* kind() const;
@@ -3659,7 +3659,7 @@ public:
     void accept(Visitor* v);
     dinteger_t getInteger();
     void setInteger(dinteger_t value);
-    Expression* syntaxCopy();
+    IntegerExp* syntaxCopy();
     static IntegerExp* createBool(bool b);
 };
 
@@ -3743,7 +3743,7 @@ class ThisExp : public Expression
 public:
     VarDeclaration* var;
     ThisExp(const Loc& loc, const TOK tok);
-    Expression* syntaxCopy();
+    ThisExp* syntaxCopy();
     bool isBool(bool result);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -3807,7 +3807,7 @@ public:
     Array<Expression* >* exps;
     static TupleExp* create(Loc loc, Array<Expression* >* exps);
     TupleExp* toTupleExp();
-    Expression* syntaxCopy();
+    TupleExp* syntaxCopy();
     bool equals(const RootObject* const o) const;
     void accept(Visitor* v);
 };
@@ -3820,7 +3820,7 @@ public:
     OwnedBy ownedByCtfe;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     static void emplace(UnionExp* pue, Loc loc, Array<Expression* >* elements);
-    Expression* syntaxCopy();
+    ArrayLiteralExp* syntaxCopy();
     bool equals(const RootObject* const o) const;
     Expression* getElement(size_t i);
     Expression* opIndex(size_t i);
@@ -3836,7 +3836,7 @@ public:
     Array<Expression* >* values;
     OwnedBy ownedByCtfe;
     bool equals(const RootObject* const o) const;
-    Expression* syntaxCopy();
+    AssocArrayLiteralExp* syntaxCopy();
     bool isBool(bool result);
     void accept(Visitor* v);
 };
@@ -3856,7 +3856,7 @@ public:
     OwnedBy ownedByCtfe;
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     bool equals(const RootObject* const o) const;
-    Expression* syntaxCopy();
+    StructLiteralExp* syntaxCopy();
     Expression* getField(Type* type, uint32_t offset);
     int32_t getFieldIndex(Type* type, uint32_t offset);
     Expression* addDtorHook(Scope* sc);
@@ -3866,7 +3866,7 @@ public:
 class TypeExp final : public Expression
 {
 public:
-    Expression* syntaxCopy();
+    TypeExp* syntaxCopy();
     bool checkType();
     bool checkValue();
     void accept(Visitor* v);
@@ -3876,7 +3876,7 @@ class ScopeExp final : public Expression
 {
 public:
     ScopeDsymbol* sds;
-    Expression* syntaxCopy();
+    ScopeExp* syntaxCopy();
     bool checkType();
     bool checkValue();
     void accept(Visitor* v);
@@ -3907,7 +3907,7 @@ public:
     bool onstack;
     bool thrownew;
     static NewExp* create(Loc loc, Expression* thisexp, Array<Expression* >* newargs, Type* newtype, Array<Expression* >* arguments);
-    Expression* syntaxCopy();
+    NewExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -3918,7 +3918,7 @@ public:
     Array<Expression* >* newargs;
     ClassDeclaration* cd;
     Array<Expression* >* arguments;
-    Expression* syntaxCopy();
+    NewAnonClassExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -3950,7 +3950,6 @@ public:
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
-    Expression* syntaxCopy();
 };
 
 class OverExp final : public Expression
@@ -3969,7 +3968,7 @@ public:
     TemplateDeclaration* td;
     TOK tok;
     bool equals(const RootObject* const o) const;
-    Expression* syntaxCopy();
+    FuncExp* syntaxCopy();
     const char* toChars() const;
     bool checkType();
     bool checkValue();
@@ -3980,7 +3979,7 @@ class DeclarationExp final : public Expression
 {
 public:
     Dsymbol* declaration;
-    Expression* syntaxCopy();
+    DeclarationExp* syntaxCopy();
     bool hasCode();
     void accept(Visitor* v);
 };
@@ -3989,7 +3988,7 @@ class TypeidExp final : public Expression
 {
 public:
     RootObject* obj;
-    Expression* syntaxCopy();
+    TypeidExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -3998,7 +3997,7 @@ class TraitsExp final : public Expression
 public:
     Identifier* ident;
     Array<RootObject* >* args;
-    Expression* syntaxCopy();
+    TraitsExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -4017,7 +4016,7 @@ public:
     Array<TemplateParameter* >* parameters;
     TOK tok;
     TOK tok2;
-    Expression* syntaxCopy();
+    IsExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -4026,7 +4025,7 @@ class UnaExp : public Expression
 public:
     Expression* e1;
     Type* att1;
-    Expression* syntaxCopy();
+    UnaExp* syntaxCopy();
     Expression* incompatibleTypes();
     void setNoderefOperand();
     Expression* resolveLoc(const Loc& loc, Scope* sc);
@@ -4044,7 +4043,7 @@ public:
     Expression* e2;
     Type* att1;
     Type* att2;
-    Expression* syntaxCopy();
+    BinExp* syntaxCopy();
     Expression* incompatibleTypes();
     void setNoderefOperands();
     Expression* reorderSettingAAElem(Scope* sc);
@@ -4064,7 +4063,7 @@ class MixinExp final : public Expression
 {
 public:
     Array<Expression* >* exps;
-    Expression* syntaxCopy();
+    MixinExp* syntaxCopy();
     bool equals(const RootObject* const o) const;
     void accept(Visitor* v);
 };
@@ -4079,7 +4078,7 @@ class AssertExp final : public UnaExp
 {
 public:
     Expression* msg;
-    Expression* syntaxCopy();
+    AssertExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -4116,7 +4115,7 @@ class DotTemplateInstanceExp final : public UnaExp
 {
 public:
     TemplateInstance* ti;
-    Expression* syntaxCopy();
+    DotTemplateInstanceExp* syntaxCopy();
     bool findTempDecl(Scope* sc);
     void accept(Visitor* v);
 };
@@ -4149,7 +4148,7 @@ public:
     static CallExp* create(Loc loc, Expression* e);
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
     static CallExp* create(Loc loc, FuncDeclaration* fd, Expression* earg1);
-    Expression* syntaxCopy();
+    CallExp* syntaxCopy();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* addDtorHook(Scope* sc);
@@ -4209,7 +4208,7 @@ class CastExp final : public UnaExp
 public:
     Type* to;
     uint8_t mod;
-    Expression* syntaxCopy();
+    CastExp* syntaxCopy();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* addDtorHook(Scope* sc);
@@ -4224,7 +4223,7 @@ public:
     OwnedBy ownedByCtfe;
     static VectorExp* create(Loc loc, Expression* e, Type* t);
     static void emplace(UnionExp* pue, Loc loc, Expression* e, Type* type);
-    Expression* syntaxCopy();
+    VectorExp* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -4245,7 +4244,7 @@ public:
     bool upperIsInBounds;
     bool lowerIsLessThanUpper;
     bool arrayop;
-    Expression* syntaxCopy();
+    SliceExp* syntaxCopy();
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4266,7 +4265,7 @@ public:
     Array<Expression* >* arguments;
     size_t currentDimension;
     VarDeclaration* lengthVar;
-    Expression* syntaxCopy();
+    ArrayExp* syntaxCopy();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -4327,7 +4326,7 @@ public:
     VarDeclaration* lengthVar;
     bool modifiable;
     bool indexIsInBounds;
-    Expression* syntaxCopy();
+    IndexExp* syntaxCopy();
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -4587,7 +4586,7 @@ class CondExp final : public BinExp
 {
 public:
     Expression* econd;
-    Expression* syntaxCopy();
+    CondExp* syntaxCopy();
     Modifiable checkModifiable(Scope* sc, int32_t flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
@@ -4752,7 +4751,7 @@ public:
     uint32_t flags;
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type);
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    FuncDeclaration* syntaxCopy(Dsymbol* s);
     bool functionSemantic();
     bool functionSemantic3();
     bool equals(const RootObject* const o) const;
@@ -4837,7 +4836,7 @@ public:
     TOK tok;
     Type* treq;
     bool deferToObj;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    FuncLiteralDeclaration* syntaxCopy(Dsymbol* s);
     bool isNested() const;
     AggregateDeclaration* isThis();
     bool isVirtual() const;
@@ -4855,7 +4854,7 @@ class CtorDeclaration final : public FuncDeclaration
 {
 public:
     bool isCpCtor;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    CtorDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     const char* toChars() const;
     bool isVirtual() const;
@@ -4869,7 +4868,7 @@ public:
 class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    PostBlitDeclaration* syntaxCopy(Dsymbol* s);
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();
@@ -4882,7 +4881,7 @@ public:
 class DtorDeclaration final : public FuncDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    DtorDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     const char* toChars() const;
     bool isVirtual() const;
@@ -4897,7 +4896,7 @@ public:
 class StaticCtorDeclaration : public FuncDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StaticCtorDeclaration* syntaxCopy(Dsymbol* s);
     AggregateDeclaration* isThis();
     bool isVirtual() const;
     bool addPreInvariant();
@@ -4911,7 +4910,7 @@ public:
 class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    SharedStaticCtorDeclaration* syntaxCopy(Dsymbol* s);
     SharedStaticCtorDeclaration* isSharedStaticCtorDeclaration();
     void accept(Visitor* v);
     ~SharedStaticCtorDeclaration();
@@ -4921,7 +4920,7 @@ class StaticDtorDeclaration : public FuncDeclaration
 {
 public:
     VarDeclaration* vgate;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StaticDtorDeclaration* syntaxCopy(Dsymbol* s);
     AggregateDeclaration* isThis();
     bool isVirtual() const;
     bool hasStaticCtorOrDtor();
@@ -4935,7 +4934,7 @@ public:
 class SharedStaticDtorDeclaration final : public StaticDtorDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    SharedStaticDtorDeclaration* syntaxCopy(Dsymbol* s);
     SharedStaticDtorDeclaration* isSharedStaticDtorDeclaration();
     void accept(Visitor* v);
     ~SharedStaticDtorDeclaration();
@@ -4944,7 +4943,7 @@ public:
 class InvariantDeclaration final : public FuncDeclaration
 {
 public:
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    InvariantDeclaration* syntaxCopy(Dsymbol* s);
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();
@@ -4958,7 +4957,7 @@ class UnitTestDeclaration final : public FuncDeclaration
 public:
     char* codedoc;
     Array<FuncDeclaration* > deferredNested;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    UnitTestDeclaration* syntaxCopy(Dsymbol* s);
     AggregateDeclaration* isThis();
     bool isVirtual() const;
     bool addPreInvariant();
@@ -4972,7 +4971,7 @@ class NewDeclaration final : public FuncDeclaration
 {
 public:
     ParameterList parameterList;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    NewDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     bool isVirtual() const;
     bool addPreInvariant();
@@ -5145,7 +5144,7 @@ class TypeError final : public Type
 {
 public:
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeError* syntaxCopy();
     d_uns64 size(const Loc& loc);
     Expression* defaultInitLiteral(const Loc& loc);
     void accept(Visitor* v);
@@ -5179,7 +5178,7 @@ public:
     const char* dstring;
     uint32_t flags;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeBasic* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
     uint32_t alignsize();
     bool isintegral();
@@ -5201,7 +5200,7 @@ public:
     Type* basetype;
     static TypeVector* create(Type* basetype);
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeVector* syntaxCopy();
     d_uns64 size(const Loc& loc);
     uint32_t alignsize();
     bool isintegral();
@@ -5227,7 +5226,7 @@ class TypeSArray final : public TypeArray
 public:
     Expression* dim;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeSArray* syntaxCopy();
     d_uns64 size(const Loc& loc);
     uint32_t alignsize();
     bool isString();
@@ -5247,7 +5246,7 @@ class TypeDArray final : public TypeArray
 {
 public:
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeDArray* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
     uint32_t alignsize() /* const */;
     bool isString();
@@ -5265,7 +5264,7 @@ public:
     Loc loc;
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeAArray* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
     bool isZeroInit(const Loc& loc) /* const */;
     bool isBoolean() /* const */;
@@ -5280,7 +5279,7 @@ class TypePointer final : public TypeNext
 public:
     static TypePointer* create(Type* t);
     const char* kind() const;
-    Type* syntaxCopy();
+    TypePointer* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
@@ -5294,7 +5293,7 @@ class TypeReference final : public TypeNext
 {
 public:
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeReference* syntaxCopy();
     d_uns64 size(const Loc& loc) /* const */;
     bool isZeroInit(const Loc& loc) /* const */;
     void accept(Visitor* v);
@@ -5351,7 +5350,7 @@ public:
     Array<Expression* >* fargs;
     static TypeFunction* create(Array<Parameter* >* parameters, Type* treturn, uint8_t varargs, LINK linkage, StorageClass stc = 0);
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeFunction* syntaxCopy();
     void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
@@ -5393,7 +5392,7 @@ class TypeDelegate final : public TypeNext
 public:
     static TypeDelegate* create(Type* t);
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeDelegate* syntaxCopy();
     Type* addStorageClass(StorageClass stc);
     d_uns64 size(const Loc& loc) /* const */;
     uint32_t alignsize() /* const */;
@@ -5411,7 +5410,7 @@ public:
     TraitsExp* exp;
     Dsymbol* sym;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeTraits* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
     d_uns64 size(const Loc& loc);
@@ -5423,7 +5422,7 @@ public:
     Loc loc;
     Array<Expression* >* exps;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeMixin* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
 };
@@ -5433,6 +5432,7 @@ class TypeQualified : public Type
 public:
     Loc loc;
     Array<RootObject* > idents;
+    TypeQualified* syntaxCopy() = 0;
     void syntaxCopyHelper(TypeQualified* t);
     void addIdent(Identifier* ident);
     void addInst(TemplateInstance* inst);
@@ -5448,7 +5448,7 @@ public:
     Identifier* ident;
     Dsymbol* originalSymbol;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeIdentifier* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
     ~TypeIdentifier();
@@ -5459,7 +5459,7 @@ class TypeInstance final : public TypeQualified
 public:
     TemplateInstance* tempinst;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeInstance* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
     ~TypeInstance();
@@ -5471,7 +5471,7 @@ public:
     Expression* exp;
     int32_t inuse;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeTypeof* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
@@ -5482,7 +5482,7 @@ class TypeReturn final : public TypeQualified
 {
 public:
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeReturn* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
     ~TypeReturn();
@@ -5508,7 +5508,7 @@ public:
     const char* kind() const;
     d_uns64 size(const Loc& loc);
     uint32_t alignsize();
-    Type* syntaxCopy();
+    TypeStruct* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     uint32_t alignment();
     Expression* defaultInitLiteral(const Loc& loc);
@@ -5532,7 +5532,7 @@ class TypeEnum final : public Type
 public:
     EnumDeclaration* sym;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeEnum* syntaxCopy();
     d_uns64 size(const Loc& loc);
     Type* memType(const Loc& loc = Loc::initial);
     uint32_t alignsize();
@@ -5567,7 +5567,7 @@ public:
     CPPMANGLE cppmangle;
     const char* kind() const;
     d_uns64 size(const Loc& loc) /* const */;
-    Type* syntaxCopy();
+    TypeClass* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     ClassDeclaration* isClassHandle();
     bool isBaseOf(Type* t, int32_t* poffset);
@@ -5592,7 +5592,7 @@ public:
     static TypeTuple* create(Type* t1);
     static TypeTuple* create(Type* t1, Type* t2);
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeTuple* syntaxCopy();
     bool equals(const RootObject* const o) const;
     void accept(Visitor* v);
 };
@@ -5603,7 +5603,7 @@ public:
     Expression* lwr;
     Expression* upr;
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeSlice* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -5611,7 +5611,7 @@ class TypeNull final : public Type
 {
 public:
     const char* kind() const;
-    Type* syntaxCopy();
+    TypeNull* syntaxCopy();
     MATCH implicitConvTo(Type* to);
     bool hasPointers();
     bool isBoolean() /* const */;
@@ -5677,7 +5677,7 @@ class Nspace final : public ScopeDsymbol
 {
 public:
     Expression* identExp;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    Nspace* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
@@ -6154,7 +6154,7 @@ public:
 class ErrorStatement final : public Statement
 {
 public:
-    Statement* syntaxCopy();
+    ErrorStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6170,7 +6170,7 @@ class ExpStatement : public Statement
 public:
     Expression* exp;
     static ExpStatement* create(Loc loc, Expression* exp);
-    Statement* syntaxCopy();
+    ExpStatement* syntaxCopy();
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
@@ -6180,7 +6180,7 @@ class DtorExpStatement final : public ExpStatement
 {
 public:
     VarDeclaration* var;
-    Statement* syntaxCopy();
+    DtorExpStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6188,7 +6188,7 @@ class CompileStatement final : public Statement
 {
 public:
     Array<Expression* >* exps;
-    Statement* syntaxCopy();
+    CompileStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -6198,7 +6198,7 @@ class CompoundStatement : public Statement
 public:
     Array<Statement* >* statements;
     static CompoundStatement* create(Loc loc, Statement* s1, Statement* s2);
-    Statement* syntaxCopy();
+    CompoundStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     ReturnStatement* endsWithReturnStatement();
     Statement* last();
@@ -6208,7 +6208,7 @@ public:
 class CompoundDeclarationStatement final : public CompoundStatement
 {
 public:
-    Statement* syntaxCopy();
+    CompoundDeclarationStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6216,7 +6216,7 @@ class UnrolledLoopStatement final : public Statement
 {
 public:
     Array<Statement* >* statements;
-    Statement* syntaxCopy();
+    UnrolledLoopStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6227,7 +6227,7 @@ class ScopeStatement : public Statement
 public:
     Statement* statement;
     Loc endloc;
-    Statement* syntaxCopy();
+    ScopeStatement* syntaxCopy();
     ReturnStatement* endsWithReturnStatement();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -6239,7 +6239,7 @@ class ForwardingStatement final : public Statement
 public:
     ForwardingScopeDsymbol* sym;
     Statement* statement;
-    Statement* syntaxCopy();
+    ForwardingStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -6250,7 +6250,7 @@ public:
     Expression* condition;
     Statement* _body;
     Loc endloc;
-    Statement* syntaxCopy();
+    WhileStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6262,7 +6262,7 @@ public:
     Statement* _body;
     Expression* condition;
     Loc endloc;
-    Statement* syntaxCopy();
+    DoStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6277,7 +6277,7 @@ public:
     Statement* _body;
     Loc endloc;
     Statement* relatedLabeled;
-    Statement* syntaxCopy();
+    ForStatement* syntaxCopy();
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     Statement* getRelatedLabeled();
     bool hasBreak() const;
@@ -6298,7 +6298,7 @@ public:
     FuncDeclaration* func;
     Array<Statement* >* cases;
     Array<ScopeStatement* >* gotos;
-    Statement* syntaxCopy();
+    ForeachStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6314,7 +6314,7 @@ public:
     Statement* _body;
     Loc endloc;
     VarDeclaration* key;
-    Statement* syntaxCopy();
+    ForeachRangeStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6329,7 +6329,7 @@ public:
     Statement* elsebody;
     VarDeclaration* match;
     Loc endloc;
-    Statement* syntaxCopy();
+    IfStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6339,7 +6339,7 @@ public:
     Condition* condition;
     Statement* ifbody;
     Statement* elsebody;
-    Statement* syntaxCopy();
+    ConditionalStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -6348,7 +6348,7 @@ class StaticForeachStatement final : public Statement
 {
 public:
     StaticForeach* sfe;
-    Statement* syntaxCopy();
+    StaticForeachStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -6359,7 +6359,7 @@ public:
     const Identifier* const ident;
     Array<Expression* >* args;
     Statement* _body;
-    Statement* syntaxCopy();
+    PragmaStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6367,7 +6367,7 @@ class StaticAssertStatement final : public Statement
 {
 public:
     StaticAssert* sa;
-    Statement* syntaxCopy();
+    StaticAssertStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6385,7 +6385,7 @@ public:
     int32_t hasNoDefault;
     int32_t hasVars;
     VarDeclaration* lastVar;
-    Statement* syntaxCopy();
+    SwitchStatement* syntaxCopy();
     bool hasBreak() const;
     void accept(Visitor* v);
     ~SwitchStatement();
@@ -6399,7 +6399,7 @@ public:
     int32_t index;
     VarDeclaration* lastVar;
     void* extra;
-    Statement* syntaxCopy();
+    CaseStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6409,7 +6409,7 @@ public:
     Expression* first;
     Expression* last;
     Statement* statement;
-    Statement* syntaxCopy();
+    CaseRangeStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6418,7 +6418,7 @@ class DefaultStatement final : public Statement
 public:
     Statement* statement;
     VarDeclaration* lastVar;
-    Statement* syntaxCopy();
+    DefaultStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6426,7 +6426,7 @@ class GotoDefaultStatement final : public Statement
 {
 public:
     SwitchStatement* sw;
-    Statement* syntaxCopy();
+    GotoDefaultStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6435,7 +6435,7 @@ class GotoCaseStatement final : public Statement
 public:
     Expression* exp;
     CaseStatement* cs;
-    Statement* syntaxCopy();
+    GotoCaseStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6451,7 +6451,7 @@ class ReturnStatement final : public Statement
 public:
     Expression* exp;
     size_t caseDim;
-    Statement* syntaxCopy();
+    ReturnStatement* syntaxCopy();
     ReturnStatement* endsWithReturnStatement();
     void accept(Visitor* v);
 };
@@ -6460,7 +6460,7 @@ class BreakStatement final : public Statement
 {
 public:
     Identifier* ident;
-    Statement* syntaxCopy();
+    BreakStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6468,7 +6468,7 @@ class ContinueStatement final : public Statement
 {
 public:
     Identifier* ident;
-    Statement* syntaxCopy();
+    ContinueStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6477,7 +6477,7 @@ class SynchronizedStatement final : public Statement
 public:
     Expression* exp;
     Statement* _body;
-    Statement* syntaxCopy();
+    SynchronizedStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6490,7 +6490,7 @@ public:
     Statement* _body;
     VarDeclaration* wthis;
     Loc endloc;
-    Statement* syntaxCopy();
+    WithStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6500,7 +6500,7 @@ public:
     Statement* _body;
     Array<Catch* >* catches;
     Statement* tryBody;
-    Statement* syntaxCopy();
+    TryCatchStatement* syntaxCopy();
     bool hasBreak() const;
     void accept(Visitor* v);
 };
@@ -6526,7 +6526,7 @@ public:
     Statement* tryBody;
     bool bodyFallsThru;
     static TryFinallyStatement* create(Loc loc, Statement* _body, Statement* finalbody);
-    Statement* syntaxCopy();
+    TryFinallyStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
     void accept(Visitor* v);
@@ -6537,7 +6537,7 @@ class ScopeGuardStatement final : public Statement
 public:
     TOK tok;
     Statement* statement;
-    Statement* syntaxCopy();
+    ScopeGuardStatement* syntaxCopy();
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     void accept(Visitor* v);
 };
@@ -6547,7 +6547,7 @@ class ThrowStatement final : public Statement
 public:
     Expression* exp;
     bool internalThrow;
-    Statement* syntaxCopy();
+    ThrowStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6555,7 +6555,7 @@ class DebugStatement final : public Statement
 {
 public:
     Statement* statement;
-    Statement* syntaxCopy();
+    DebugStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -6569,7 +6569,7 @@ public:
     TryFinallyStatement* tf;
     ScopeGuardStatement* os;
     VarDeclaration* lastVar;
-    Statement* syntaxCopy();
+    GotoStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6585,7 +6585,7 @@ public:
     Statement* gotoTarget;
     void* extra;
     bool breaks;
-    Statement* syntaxCopy();
+    LabelStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
     Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexit, Statement** sfinally);
     void accept(Visitor* v);
@@ -6606,7 +6606,7 @@ class AsmStatement : public Statement
 {
 public:
     Token* tokens;
-    Statement* syntaxCopy();
+    AsmStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6618,7 +6618,7 @@ public:
     uint32_t regs;
     bool refparam;
     bool naked;
-    Statement* syntaxCopy();
+    InlineAsmStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6634,7 +6634,7 @@ public:
     Array<Expression* >* clobbers;
     Array<Identifier* >* labels;
     Array<GotoStatement* >* gotos;
-    Statement* syntaxCopy();
+    GccAsmStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6651,7 +6651,7 @@ class ImportStatement final : public Statement
 {
 public:
     Array<Dsymbol* >* imports;
-    Statement* syntaxCopy();
+    ImportStatement* syntaxCopy();
     void accept(Visitor* v);
 };
 
@@ -6662,7 +6662,7 @@ class StaticAssert final : public Dsymbol
 public:
     Expression* exp;
     Expression* msg;
-    Dsymbol* syntaxCopy(Dsymbol* s);
+    StaticAssert* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     const char* kind() const;

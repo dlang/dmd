@@ -130,8 +130,8 @@ extern (C++) final class StaticForeach : RootObject
     {
         return new StaticForeach(
             loc,
-            aggrfe ? cast(ForeachStatement)aggrfe.syntaxCopy() : null,
-            rangefe ? cast(ForeachRangeStatement)rangefe.syntaxCopy() : null
+            aggrfe ? aggrfe.syntaxCopy() : null,
+            rangefe ? rangefe.syntaxCopy() : null
         );
     }
 
@@ -491,7 +491,7 @@ extern (C++) class DVCondition : Condition
         this.ident = ident;
     }
 
-    override final Condition syntaxCopy()
+    override final DVCondition syntaxCopy()
     {
         return this; // don't need to copy
     }
@@ -894,7 +894,7 @@ extern (C++) final class StaticIfCondition : Condition
         this.exp = exp;
     }
 
-    override Condition syntaxCopy()
+    override StaticIfCondition syntaxCopy()
     {
         return new StaticIfCondition(loc, exp.syntaxCopy());
     }

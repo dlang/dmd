@@ -62,7 +62,7 @@ public:
     Identifier *ident;
     Module *mod;
 
-    Condition *syntaxCopy();
+    DVCondition *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -92,7 +92,7 @@ class StaticIfCondition : public Condition
 public:
     Expression *exp;
 
-    Condition *syntaxCopy();
+    StaticIfCondition *syntaxCopy();
     int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -388,7 +388,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return super.toPrettyChars(qualifyTypes);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override ClassDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());
         ClassDeclaration cd =
@@ -405,7 +405,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             (*cd.baseclasses)[i] = b2;
         }
 
-        return ScopeDsymbol.syntaxCopy(cd);
+        ScopeDsymbol.syntaxCopy(cd);
+        return cd;
     }
 
     override Scope* newScope(Scope* sc)
@@ -1007,12 +1008,13 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         }
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override InterfaceDeclaration syntaxCopy(Dsymbol s)
     {
         InterfaceDeclaration id =
             s ? cast(InterfaceDeclaration)s
               : new InterfaceDeclaration(loc, ident, null);
-        return ClassDeclaration.syntaxCopy(id);
+        ClassDeclaration.syntaxCopy(id);
+        return id;
     }
 
 

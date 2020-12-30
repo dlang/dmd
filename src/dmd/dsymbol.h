@@ -298,7 +298,7 @@ private:
     BitArray accessiblePackages, privateAccessiblePackages;
 
 public:
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    ScopeDsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     virtual void importScope(Dsymbol *s, Prot protection);
     virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);

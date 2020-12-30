@@ -112,7 +112,7 @@ extern (C++) final class Import : Dsymbol
     }
 
     // copy only syntax trees
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override Import syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);

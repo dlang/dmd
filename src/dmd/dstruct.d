@@ -245,12 +245,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return new StructDeclaration(loc, id, inObject);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StructDeclaration syntaxCopy(Dsymbol s)
     {
         StructDeclaration sd =
             s ? cast(StructDeclaration)s
               : new StructDeclaration(loc, ident, false);
-        return ScopeDsymbol.syntaxCopy(sd);
+        ScopeDsymbol.syntaxCopy(sd);
+        return sd;
     }
 
     final void semanticTypeInfoMembers()
@@ -740,11 +741,12 @@ extern (C++) final class UnionDeclaration : StructDeclaration
         super(loc, id, false);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override UnionDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ud = new UnionDeclaration(loc, ident);
-        return StructDeclaration.syntaxCopy(ud);
+        StructDeclaration.syntaxCopy(ud);
+        return ud;
     }
 
     override const(char)* kind() const

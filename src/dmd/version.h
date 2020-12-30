@@ -17,7 +17,7 @@ class DebugSymbol : public Dsymbol
 public:
     unsigned level;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    DebugSymbol *syntaxCopy(Dsymbol *);
 
     const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
@@ -31,7 +31,7 @@ class VersionSymbol : public Dsymbol
 public:
     unsigned level;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    VersionSymbol *syntaxCopy(Dsymbol *);
 
     const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);

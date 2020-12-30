@@ -36,7 +36,7 @@ extern (C++) final class StaticAssert : Dsymbol
         this.msg = msg;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StaticAssert syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StaticAssert(loc, exp.syntaxCopy(), msg ? msg.syntaxCopy() : null);

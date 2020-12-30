@@ -2882,7 +2882,7 @@ Lagain:
             tf1.purityLevel();
             tf2.purityLevel();
 
-            TypeFunction d = cast(TypeFunction)tf1.syntaxCopy();
+            TypeFunction d = tf1.syntaxCopy();
 
             if (tf1.purity != tf2.purity)
                 d.purity = PURE.impure;

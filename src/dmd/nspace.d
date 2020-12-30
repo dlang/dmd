@@ -75,10 +75,11 @@ extern (C++) final class Nspace : ScopeDsymbol
         this.identExp = identExp;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override Nspace syntaxCopy(Dsymbol s)
     {
         auto ns = new Nspace(loc, ident, identExp, null);
-        return ScopeDsymbol.syntaxCopy(ns);
+        ScopeDsymbol.syntaxCopy(ns);
+        return ns;
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)

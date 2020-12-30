@@ -45,7 +45,7 @@ extern (C++) final class DebugSymbol : Dsymbol
         this.level = level;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override DebugSymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
@@ -139,7 +139,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         this.level = level;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override VersionSymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ds = ident ? new VersionSymbol(loc, ident)
