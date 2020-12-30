@@ -74,7 +74,7 @@ public:
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    TemplateDeclaration *syntaxCopy(Dsymbol *);
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind() const;
@@ -150,7 +150,7 @@ public:
     Type *defaultType;
 
     TemplateTypeParameter *isTemplateTypeParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateTypeParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -167,7 +167,7 @@ class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
     TemplateThisParameter *isTemplateThisParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateThisParameter *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -182,7 +182,7 @@ public:
     Expression *defaultValue;
 
     TemplateValueParameter *isTemplateValueParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateValueParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -203,7 +203,7 @@ public:
     RootObject *defaultAlias;
 
     TemplateAliasParameter *isTemplateAliasParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateAliasParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -220,7 +220,7 @@ class TemplateTupleParameter : public TemplateParameter
 {
 public:
     TemplateTupleParameter *isTemplateTupleParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateTupleParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -275,7 +275,7 @@ private:
 public:
     unsigned char inuse;                 // for recursive expansion detection
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    TemplateInstance *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -295,7 +295,7 @@ class TemplateMixin : public TemplateInstance
 public:
     TypeQualified *tqual;
 
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    TemplateMixin *syntaxCopy(Dsymbol *s);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     bool hasPointers();

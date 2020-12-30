@@ -1181,7 +1181,7 @@ struct ASTBase
             return this;
         }
 
-        Objects* arraySyntaxCopy(Objects* objs)
+        static Objects* arraySyntaxCopy(Objects* objs)
         {
             Objects* a = null;
             if (objs)
@@ -1194,7 +1194,7 @@ struct ASTBase
             return a;
         }
 
-        RootObject objectSyntaxCopy(RootObject o)
+        static RootObject objectSyntaxCopy(RootObject o)
         {
             if (!o)
                 return null;
@@ -1205,7 +1205,7 @@ struct ASTBase
             return o;
         }
 
-        override Dsymbol syntaxCopy(Dsymbol s)
+        override TemplateInstance syntaxCopy(Dsymbol s)
         {
             TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
             ti.tiargs = arraySyntaxCopy(tiargs);
@@ -1269,6 +1269,21 @@ struct ASTBase
         {
             super(decl);
             this.atts = atts;
+        }
+
+        override UserAttributeDeclaration syntaxCopy(Dsymbol s)
+        {
+            Expressions* a = this.atts ? new Expressions(this.atts.length) : null;
+            Dsymbols* d = this.decl ? new Dsymbols(this.decl.length) : null;
+
+            if (this.atts)
+                foreach (idx, entry; *this.atts)
+                    (*a)[idx] = entry.syntaxCopy();
+            if (this.decl)
+                foreach (idx, entry; *this.decl)
+                    (*d)[idx] = entry.syntaxCopy(null);
+
+            return new UserAttributeDeclaration(a, d);
         }
 
         extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
@@ -1918,7 +1933,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? cast(UserAttributeDeclaration) userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -3725,7 +3740,7 @@ struct ASTBase
             super(Terror);
         }
 
-        override Type syntaxCopy()
+        override TypeError syntaxCopy()
         {
             return this;
         }
@@ -3743,7 +3758,7 @@ struct ASTBase
             super(Tnull);
         }
 
-        override Type syntaxCopy()
+        override TypeNull syntaxCopy()
         {
             // No semantic analysis done, no need to copy
             return this;
@@ -3765,7 +3780,7 @@ struct ASTBase
             this.basetype = basetype;
         }
 
-        override Type syntaxCopy()
+        override TypeVector syntaxCopy()
         {
             return new TypeVector(basetype.syntaxCopy());
         }
@@ -3786,7 +3801,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override Type syntaxCopy()
+        override TypeEnum syntaxCopy()
         {
             return this;
         }
@@ -3826,10 +3841,10 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override Type syntaxCopy()
+        override TypeTuple syntaxCopy()
         {
             Parameters* args = Parameter.arraySyntaxCopy(arguments);
-            Type t = new TypeTuple(args);
+            auto t = new TypeTuple(args);
             t.mod = mod;
             return t;
         }
@@ -3851,7 +3866,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override Type syntaxCopy()
+        override TypeClass syntaxCopy()
         {
             return this;
         }
@@ -3874,7 +3889,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override Type syntaxCopy()
+        override TypeStruct syntaxCopy()
         {
             return this;
         }
@@ -3893,17 +3908,15 @@ struct ASTBase
             // BUG: what about references to static arrays?
         }
 
-        override Type syntaxCopy()
+        override TypeReference syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypeReference(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeReference(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -3945,9 +3958,9 @@ struct ASTBase
             this.upr = upr;
         }
 
-        override Type syntaxCopy()
+        override TypeSlice syntaxCopy()
         {
-            Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
+            auto t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
             t.mod = mod;
             return t;
         }
@@ -3966,17 +3979,15 @@ struct ASTBase
             ty = Tdelegate;
         }
 
-        override Type syntaxCopy()
+        override TypeDelegate syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypeDelegate(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeDelegate(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -3992,17 +4003,15 @@ struct ASTBase
             super(Tpointer, t);
         }
 
-        override Type syntaxCopy()
+        override TypePointer syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypePointer(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypePointer(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -4075,7 +4084,7 @@ struct ASTBase
                 this.trust = TRUST.trusted;
         }
 
-        override Type syntaxCopy()
+        override TypeFunction syntaxCopy()
         {
             Type treturn = next ? next.syntaxCopy() : null;
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
@@ -4272,17 +4281,15 @@ struct ASTBase
             super(Tarray, t);
         }
 
-        override Type syntaxCopy()
+        override TypeDArray syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypeDArray(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeDArray(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -4302,18 +4309,16 @@ struct ASTBase
             this.index = index;
         }
 
-        override Type syntaxCopy()
+        override TypeAArray syntaxCopy()
         {
             Type t = next.syntaxCopy();
             Type ti = index.syntaxCopy();
             if (t == next && ti == index)
-                t = this;
-            else
-            {
-                t = new TypeAArray(t, ti);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeAArray(t, ti);
+            result.mod = mod;
+            return result;
         }
 
         override Expression toExpression()
@@ -4344,13 +4349,13 @@ struct ASTBase
             this.dim = dim;
         }
 
-        override Type syntaxCopy()
+        override TypeSArray syntaxCopy()
         {
             Type t = next.syntaxCopy();
             Expression e = dim.syntaxCopy();
-            t = new TypeSArray(t, e);
-            t.mod = mod;
-            return t;
+            auto result = new TypeSArray(t, e);
+            result.mod = mod;
+            return result;
         }
 
         override Expression toExpression()
@@ -4402,7 +4407,7 @@ struct ASTBase
                 if (id.dyncast() == DYNCAST.dsymbol)
                 {
                     TemplateInstance ti = cast(TemplateInstance)id;
-                    ti = cast(TemplateInstance)ti.syntaxCopy(null);
+                    ti = ti.syntaxCopy(null);
                     id = ti;
                 }
                 else if (id.dyncast() == DYNCAST.expression)
@@ -4477,9 +4482,9 @@ struct ASTBase
             v.visit(this);
         }
 
-        override Type syntaxCopy()
+        override TypeTraits syntaxCopy()
         {
-            TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
+            TraitsExp te = exp.syntaxCopy();
             TypeTraits tt = new TypeTraits(loc, te);
             tt.mod = mod;
             return tt;
@@ -4498,7 +4503,7 @@ struct ASTBase
             this.exps = exps;
         }
 
-        override Type syntaxCopy()
+        override TypeMixin syntaxCopy()
         {
             static Expressions* arraySyntaxCopy(Expressions* exps)
             {
@@ -4533,7 +4538,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override Type syntaxCopy()
+        override TypeIdentifier syntaxCopy()
         {
             auto t = new TypeIdentifier(loc, ident);
             t.syntaxCopyHelper(this);
@@ -4559,7 +4564,7 @@ struct ASTBase
             super(Treturn, loc);
         }
 
-        override Type syntaxCopy()
+        override TypeReturn syntaxCopy()
         {
             auto t = new TypeReturn(loc);
             t.syntaxCopyHelper(this);
@@ -4583,7 +4588,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override Type syntaxCopy()
+        override TypeTypeof syntaxCopy()
         {
             auto t = new TypeTypeof(loc, exp.syntaxCopy());
             t.syntaxCopyHelper(this);
@@ -4607,9 +4612,9 @@ struct ASTBase
             this.tempinst = tempinst;
         }
 
-        override Type syntaxCopy()
+        override TypeInstance syntaxCopy()
         {
-            auto t = new TypeInstance(loc, cast(TemplateInstance)tempinst.syntaxCopy(null));
+            auto t = new TypeInstance(loc, tempinst.syntaxCopy(null));
             t.syntaxCopyHelper(this);
             t.mod = mod;
             return t;
@@ -4889,6 +4894,11 @@ struct ASTBase
             super(loc, TOK.traits, __traits(classInstanceSize, TraitsExp));
             this.ident = ident;
             this.args = args;
+        }
+
+        override TraitsExp syntaxCopy()
+        {
+            return new TraitsExp(loc, ident, TemplateInstance.arraySyntaxCopy(args));
         }
 
         override void accept(Visitor v)

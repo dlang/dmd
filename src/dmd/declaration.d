@@ -598,7 +598,7 @@ extern (C++) final class TupleDeclaration : Declaration
         this.objects = objects;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override TupleDeclaration syntaxCopy(Dsymbol s)
     {
         assert(0);
     }
@@ -744,7 +744,7 @@ extern (C++) final class AliasDeclaration : Declaration
         return new AliasDeclaration(loc, id, type);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AliasDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
@@ -1172,7 +1172,7 @@ extern (C++) class VarDeclaration : Declaration
         return new VarDeclaration(loc, type, ident, _init, storage_class);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override VarDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
@@ -1742,7 +1742,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         return new TypeInfoDeclaration(tinfo);
     }
 
-    override final Dsymbol syntaxCopy(Dsymbol s)
+    override final TypeInfoDeclaration syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
     }
@@ -2179,7 +2179,7 @@ extern (C++) final class ThisDeclaration : VarDeclaration
         storage_class |= STC.nodtor;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override ThisDeclaration syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
     }

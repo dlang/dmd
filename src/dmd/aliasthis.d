@@ -43,7 +43,7 @@ extern (C++) final class AliasThis : Dsymbol
         this.ident = ident;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AliasThis syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto at = new AliasThis(loc, ident);

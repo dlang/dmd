@@ -1135,7 +1135,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                                     td.instances[tib] = null;
                                     td.instances.clear();
                                 }
-                                td = cast(TemplateDeclaration) td.syntaxCopy(null);
+                                td = td.syntaxCopy(null);
                                 import core.stdc.string : memcpy;
                                 memcpy(cast(void*) td, cast(void*) s,
                                         __traits(classInstanceSize, TemplateDeclaration));

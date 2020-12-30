@@ -596,7 +596,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                 if (alias_e && alias_e != die.e1)
                 {
                     die.e1 = alias_e;
-                    CallExp ce2 = cast(CallExp)ce.syntaxCopy();
+                    CallExp ce2 = ce.syntaxCopy();
                     ce2.e1 = die;
                     e = cast(CallExp)ce2.trySemantic(sc);
                     if (e)

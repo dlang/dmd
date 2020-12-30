@@ -40,7 +40,7 @@ public:
     bool added;
     int inuse;
 
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    EnumDeclaration *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -79,7 +79,7 @@ public:
 
     EnumDeclaration *ed;
 
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    EnumMember *syntaxCopy(Dsymbol *s);
     const char *kind() const;
     Expression *getVarExp(const Loc &loc, Scope *sc);
 

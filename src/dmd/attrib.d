@@ -231,7 +231,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         this.stc = stc;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StorageClassDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
@@ -344,7 +344,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         this.msg = msg;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override DeprecatedDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
@@ -405,7 +405,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
         return new LinkDeclaration(p, decl);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override LinkDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new LinkDeclaration(linkage, Dsymbol.arraySyntaxCopy(decl));
@@ -452,7 +452,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
         this.cppmangle = cppmangle;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override CPPMangleDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new CPPMangleDeclaration(cppmangle, Dsymbol.arraySyntaxCopy(decl));
@@ -536,7 +536,7 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
         this.cppnamespace = parent;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override CPPNamespaceDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new CPPNamespaceDeclaration(
@@ -616,7 +616,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         }
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override ProtDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         if (protection.kind == Prot.Kind.package_)
@@ -709,7 +709,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         this.ealign = ealign;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AlignDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new AlignDeclaration(loc,
@@ -745,7 +745,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         this.isunion = isunion;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AnonDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new AnonDeclaration(loc, isunion, Dsymbol.arraySyntaxCopy(decl));
@@ -865,7 +865,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         this.args = args;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override PragmaDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
@@ -953,7 +953,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         this.elsedecl = elsedecl;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override ConditionalDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
@@ -1029,7 +1029,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StaticIfDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StaticIfDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
@@ -1138,7 +1138,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         this.sfe = sfe;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StaticForeachDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StaticForeachDeclaration(
@@ -1317,7 +1317,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         this.exps = exps;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override CompileDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
         return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
@@ -1365,7 +1365,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         this.atts = atts;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override UserAttributeDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);

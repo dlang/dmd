@@ -309,7 +309,7 @@ public:
     Dsymbol *s;
     bool hasOverloads;
 
-    Expression *syntaxCopy();
+    DsymbolExp *syntaxCopy();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -320,7 +320,7 @@ class ThisExp : public Expression
 public:
     VarDeclaration *var;
 
-    Expression *syntaxCopy();
+    ThisExp *syntaxCopy();
     bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -387,7 +387,7 @@ public:
 
     static TupleExp *create(Loc loc, Expressions *exps);
     TupleExp *toTupleExp();
-    Expression *syntaxCopy();
+    TupleExp *syntaxCopy();
     bool equals(const RootObject *o) const;
 
     void accept(Visitor *v) { v->visit(this); }
@@ -402,7 +402,7 @@ public:
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     static void emplace(UnionExp *pue, Loc loc, Expressions *elements);
-    Expression *syntaxCopy();
+    ArrayLiteralExp *syntaxCopy();
     bool equals(const RootObject *o) const;
     Expression *getElement(d_size_t i); // use opIndex instead
     Expression *opIndex(d_size_t i);
@@ -420,7 +420,7 @@ public:
     OwnedBy ownedByCtfe;
 
     bool equals(const RootObject *o) const;
-    Expression *syntaxCopy();
+    AssocArrayLiteralExp *syntaxCopy();
     bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -458,7 +458,7 @@ public:
 
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
     bool equals(const RootObject *o) const;
-    Expression *syntaxCopy();
+    StructLiteralExp *syntaxCopy();
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     Expression *addDtorHook(Scope *sc);
@@ -469,7 +469,7 @@ public:
 class TypeExp : public Expression
 {
 public:
-    Expression *syntaxCopy();
+    TypeExp *syntaxCopy();
     bool checkType();
     bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
@@ -480,7 +480,7 @@ class ScopeExp : public Expression
 public:
     ScopeDsymbol *sds;
 
-    Expression *syntaxCopy();
+    ScopeExp *syntaxCopy();
     bool checkType();
     bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
@@ -517,7 +517,7 @@ public:
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
     static NewExp *create(Loc loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
-    Expression *syntaxCopy();
+    NewExp *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -532,7 +532,7 @@ public:
     ClassDeclaration *cd;       // class being instantiated
     Expressions *arguments;     // Array of Expression's to call class constructor
 
-    Expression *syntaxCopy();
+    NewAnonClassExp *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -596,7 +596,7 @@ public:
     TOK tok;
 
     bool equals(const RootObject *o) const;
-    Expression *syntaxCopy();
+    FuncExp *syntaxCopy();
     const char *toChars() const;
     bool checkType();
     bool checkValue();
@@ -614,7 +614,7 @@ class DeclarationExp : public Expression
 public:
     Dsymbol *declaration;
 
-    Expression *syntaxCopy();
+    DeclarationExp *syntaxCopy();
 
     bool hasCode();
 
@@ -626,7 +626,7 @@ class TypeidExp : public Expression
 public:
     RootObject *obj;
 
-    Expression *syntaxCopy();
+    TypeidExp *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -636,7 +636,7 @@ public:
     Identifier *ident;
     Objects *args;
 
-    Expression *syntaxCopy();
+    TraitsExp *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -659,7 +659,7 @@ public:
     TOK tok;       // ':' or '=='
     TOK tok2;      // 'struct', 'union', etc.
 
-    Expression *syntaxCopy();
+    IsExp *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -671,7 +671,7 @@ public:
     Expression *e1;
     Type *att1; // Save alias this type to detect recursion
 
-    Expression *syntaxCopy();
+    UnaExp *syntaxCopy();
     Expression *incompatibleTypes();
     Expression *resolveLoc(const Loc &loc, Scope *sc);
 
@@ -687,7 +687,7 @@ public:
     Type *att1; // Save alias this type to detect recursion
     Type *att2; // Save alias this type to detect recursion
 
-    Expression *syntaxCopy();
+    BinExp *syntaxCopy();
     Expression *incompatibleTypes();
 
     Expression *reorderSettingAAElem(Scope *sc);
@@ -723,7 +723,7 @@ class AssertExp : public UnaExp
 public:
     Expression *msg;
 
-    Expression *syntaxCopy();
+    AssertExp *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -765,7 +765,7 @@ class DotTemplateInstanceExp : public UnaExp
 public:
     TemplateInstance *ti;
 
-    Expression *syntaxCopy();
+    DotTemplateInstanceExp *syntaxCopy();
     bool findTempDecl(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -803,7 +803,7 @@ public:
     static CallExp *create(Loc loc, Expression *e, Expression *earg1);
     static CallExp *create(Loc loc, FuncDeclaration *fd, Expression *earg1);
 
-    Expression *syntaxCopy();
+    CallExp *syntaxCopy();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
@@ -867,7 +867,7 @@ public:
     Type *to;                   // type to cast to
     unsigned char mod;          // MODxxxxx
 
-    Expression *syntaxCopy();
+    CastExp *syntaxCopy();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
@@ -883,7 +883,7 @@ public:
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
     static void emplace(UnionExp *pue, Loc loc, Expression *e, Type *t);
-    Expression *syntaxCopy();
+    VectorExp *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -905,7 +905,7 @@ public:
     bool lowerIsLessThanUpper;  // true if lwr <= upr
     bool arrayop;               // an array operation, rather than a slice
 
-    Expression *syntaxCopy();
+    SliceExp *syntaxCopy();
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -927,7 +927,7 @@ public:
     Expression *lwr;
     Expression *upr;
 
-    Expression *syntaxCopy();
+    IntervalExp *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -958,7 +958,7 @@ public:
     size_t currentDimension;            // for opDollar
     VarDeclaration *lengthVar;
 
-    Expression *syntaxCopy();
+    ArrayExp *syntaxCopy();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
@@ -995,7 +995,7 @@ public:
     bool modifiable;
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
-    Expression *syntaxCopy();
+    IndexExp *syntaxCopy();
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1255,7 +1255,7 @@ class CondExp : public BinExp
 public:
     Expression *econd;
 
-    Expression *syntaxCopy();
+    CondExp *syntaxCopy();
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);

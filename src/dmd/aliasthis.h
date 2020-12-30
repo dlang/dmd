@@ -23,7 +23,7 @@ public:
     Dsymbol    *sym;
     bool       isDeprecated_;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    AliasThis *syntaxCopy(Dsymbol *);
     const char *kind() const;
     AliasThis *isAliasThis() { return this; }
     void accept(Visitor *v) { v->visit(this); }

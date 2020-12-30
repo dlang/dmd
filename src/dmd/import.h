@@ -40,7 +40,7 @@ public:
 
     const char *kind() const;
     Prot prot();
-    Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
+    Import *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void importAll(Scope *sc);
     Dsymbol *toAlias();
