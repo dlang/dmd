@@ -630,8 +630,8 @@ void gensaverestore87(regm_t, ref CodeBuilder cdbsave, ref CodeBuilder cdbrestor
 //code *genfltreg(code *c,opcode_t opcode,uint reg,targ_size_t offset);
 void genfwait(ref CodeBuilder cdb);
 void comsub87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
-void fixresult87(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs);
-void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs);
+void fixresult87(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs, bool isReturnValue = false);
+void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs, bool isReturnValue = false);
 void orth87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void load87(ref CodeBuilder cdb, elem *e, uint eoffset, regm_t *pretregs, elem *eleft, int op);
 int cmporder87 (elem *e );
