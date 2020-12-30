@@ -513,7 +513,7 @@ extern (C++) class Dsymbol : ASTNode
      *  module mod;
      *  template Foo(alias a) { mixin Bar!(); }
      *  mixin template Bar() {
-     *    public {  // ProtDeclaration
+     *    public {  // VisibilityDeclaration
      *      void baz() { a = 2; }
      *    }
      *  }
@@ -1258,7 +1258,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
     inout(CPPNamespaceDeclaration)     isCPPNamespaceDeclaration()     inout { return null; }
-    inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
+    inout(VisibilityDeclaration)             isVisibilityDeclaration()             inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
 }

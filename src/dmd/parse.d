@@ -1058,9 +1058,9 @@ final class Parser(AST) : Lexer
                     if (pAttrs.protection.kind != AST.Prot.Kind.undefined)
                     {
                         if (pAttrs.protection.kind == AST.Prot.Kind.package_ && pkg_prot_idents)
-                            s = new AST.ProtDeclaration(attrloc, pkg_prot_idents, a);
+                            s = new AST.VisibilityDeclaration(attrloc, pkg_prot_idents, a);
                         else
-                            s = new AST.ProtDeclaration(attrloc, pAttrs.protection, a);
+                            s = new AST.VisibilityDeclaration(attrloc, pAttrs.protection, a);
 
                         pAttrs.protection = AST.Prot(AST.Prot.Kind.undefined);
                     }
