@@ -2730,16 +2730,10 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
 {
     //printf("typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
 
-    MATCH m;
     Expression e1 = pe1;
     Expression e2 = pe2;
 
-    Type t1 = e1.type;
-    Type t2 = e2.type;
-
-    Type t1b = e1.type.toBasetype();
-    Type t2b = e2.type.toBasetype();
-
+    Type Lincompatible() { return null; }
     Type Lret(Type result)
     {
         pe1 = e1;
@@ -2772,7 +2766,8 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
         return Lret(towards);
     }
 
-    Type Lincompatible() { return null; }
+    Type t1b = e1.type.toBasetype();
+    Type t2b = e2.type.toBasetype();
 
     if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
@@ -2788,8 +2783,9 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
         }
     }
 
-    t1 = e1.type;
-    t2 = e2.type;
+    MATCH m;
+    Type t1 = e1.type;
+    Type t2 = e2.type;
     assert(t1);
     Type t = t1;
 
