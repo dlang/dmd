@@ -2901,11 +2901,7 @@ Lagain:
             tx = tx.typeSemantic(e1.loc, sc);
 
             if (t1.implicitConvTo(tx) && t2.implicitConvTo(tx))
-            {
-                e1 = e1.castTo(sc, tx);
-                e2 = e2.castTo(sc, tx);
-                return Lret(tx);
-            }
+                return coerce(tx);
             return null;
         }
         else if (t1n.mod != t2n.mod)
@@ -3065,13 +3061,11 @@ Lagain:
 
             if (i2)
             {
-                e2 = e2.castTo(sc, t2);
-                return convert(e1, t2);
+                return coerce(t2);
             }
             else if (i1)
             {
-                e1 = e1.castTo(sc, t1);
-                return convert(e2, t1);
+                return coerce(t1);
             }
             else if (t1.ty == Tclass && t2.ty == Tclass)
             {
@@ -3285,11 +3279,7 @@ LmodCompare:
     else if (t1.ty == Tnull && t2.ty == Tnull)
     {
         ubyte mod = MODmerge(t1.mod, t2.mod);
-
-        t = t1.castMod(mod);
-        e1 = e1.castTo(sc, t);
-        e2 = e2.castTo(sc, t);
-        return Lret(t);
+        return coerce(t1.castMod(mod));
     }
     else if (t2.ty == Tnull && (t1.ty == Tpointer || t1.ty == Taarray || t1.ty == Tarray))
     {
