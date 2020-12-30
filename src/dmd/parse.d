@@ -848,7 +848,7 @@ final class Parser(AST) : Lexer
                 Token* tk;
                 if (token.value == TOK.identifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) &&
                     (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ ||
-                     tk.value == TOK.out_ || tk.value == TOK.do_ ||
+                     tk.value == TOK.out_ || tk.value == TOK.do_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
                 {
                     version (none)
@@ -4753,7 +4753,7 @@ final class Parser(AST) : Lexer
                 Token* tk;
                 if ((storage_class || udas) && token.value == TOK.identifier && skipParens(peek(&token), &tk) &&
                     skipAttributes(tk, &tk) &&
-                    (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ ||
+                    (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
                 {
                     version (none)
@@ -5119,6 +5119,18 @@ final class Parser(AST) : Lexer
     L1:
         switch (token.value)
         {
+        case TOK.goesTo:
+            if (requireDo)
+                error("missing `do { ... }` after `in` or `out`");
+            if (!global.params.shortenedMethods)
+                error("=> shortened method not enabled, compile with compiler switch `-preview=shortenedMethods`");
+            const returnloc = token.loc;
+            nextToken();
+            f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
+            f.endloc = token.loc;
+            check(TOK.semicolon);
+            break;
+
         case TOK.leftCurly:
             if (requireDo)
                 error("missing `do { ... }` after `in` or `out`");

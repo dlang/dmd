@@ -792,6 +792,8 @@ dmd -cov -unittest myprog.d
             "`in` on parameters means `scope const [ref]` and accepts rvalues"),
         Feature("inclusiveincontracts", "inclusiveInContracts",
             "'in' contracts of overridden methods must be a superset of parent contract"),
+        Feature("shortenedMethods", "shortenedMethods",
+            "allow use of => for methods and top-level functions in addition to lambdas"),
         // DEPRECATED previews
         // trigger deprecation message once D repositories don't use this flag anymore
         Feature("markdown", "markdown", "enable Markdown replacements in Ddoc", false, false),
