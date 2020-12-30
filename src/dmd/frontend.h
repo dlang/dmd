@@ -7033,6 +7033,7 @@ struct Param
     bool useExceptions;
     bool noSharedAccess;
     bool previewIn;
+    bool shortenedMethods;
     bool betterC;
     bool addMain;
     bool allInst;
@@ -7173,6 +7174,7 @@ struct Param
         useExceptions(true),
         noSharedAccess(),
         previewIn(),
+        shortenedMethods(),
         betterC(),
         addMain(),
         allInst(),
