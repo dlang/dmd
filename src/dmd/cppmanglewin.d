@@ -251,6 +251,7 @@ public:
         //printf("visit(TypeVector); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
+        mangleModifier(type);
         buf.writestring("T__m128@@"); // may be better as __m128i or __m128d?
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
