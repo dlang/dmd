@@ -35,6 +35,10 @@ Digger will automatically bisect the history for you.
 We use Bugzilla to list fixed issues on a new release.  This list is then included in the changelog.
 For this list to be accurate then invalid or duplicated bugs must be closed with the appropriate resolution ('RESOLVED INVALID' and 'RESOLVED DUPLICATE', respectively - as opposed to e.g. 'RESOLVED FIXED').
 
+Changes that don't come with a bugzilla entry, such as new features, or enhancement on existing features, should come with their own changelog entry. Changelog entries should be written for everyday users, not compiler contributors.
+Additionally, for larger changes, you may want to add a specialized, detailed entry even if a bugzilla entry exists.
+See [changelog/README.md](changelog/README.md) for details on how to add a changelog entry.
+Note that after a version has entered the release window (there is a beta / the change is in stable), changes should be made directly [in the dlang.org repository](https://github.com/dlang/dlang.org/tree/master/changelog).
 
 ## Solving bugs / Submitting pull requests
 
