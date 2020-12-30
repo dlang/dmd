@@ -127,7 +127,7 @@ class EnumDeclaration;
 class SymbolDeclaration;
 class AttribDeclaration;
 class AnonDeclaration;
-class ProtDeclaration;
+class VisibilityDeclaration;
 class OverloadSet;
 class CompileDeclaration;
 class DsymbolTable;
@@ -917,7 +917,7 @@ public:
     virtual AttribDeclaration* isAttribDeclaration();
     virtual AnonDeclaration* isAnonDeclaration();
     virtual CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
-    virtual ProtDeclaration* isProtDeclaration();
+    virtual VisibilityDeclaration* isVisibilityDeclaration();
     virtual OverloadSet* isOverloadSet();
     virtual CompileDeclaration* isCompileDeclaration();
 };
@@ -1443,7 +1443,7 @@ public:
     virtual void visit(AlignDeclaration* s);
     virtual void visit(CPPMangleDeclaration* s);
     virtual void visit(CPPNamespaceDeclaration* s);
-    virtual void visit(ProtDeclaration* s);
+    virtual void visit(VisibilityDeclaration* s);
     virtual void visit(PragmaDeclaration* s);
     virtual void visit(StorageClassDeclaration* s);
     virtual void visit(ConditionalDeclaration* s);
@@ -2029,17 +2029,17 @@ public:
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
 };
 
-class ProtDeclaration final : public AttribDeclaration
+class VisibilityDeclaration final : public AttribDeclaration
 {
 public:
     Prot protection;
     Array<Identifier* >* pkg_identifiers;
-    ProtDeclaration* syntaxCopy(Dsymbol* s);
+    VisibilityDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     const char* kind() const;
     const char* toPrettyChars(bool _param_0);
-    ProtDeclaration* isProtDeclaration();
+    VisibilityDeclaration* isVisibilityDeclaration();
     void accept(Visitor* v);
 };
 
@@ -5820,7 +5820,7 @@ public:
     virtual void visit(typename AST::AlignDeclaration s);
     virtual void visit(typename AST::CPPMangleDeclaration s);
     virtual void visit(typename AST::CPPNamespaceDeclaration s);
-    virtual void visit(typename AST::ProtDeclaration s);
+    virtual void visit(typename AST::VisibilityDeclaration s);
     virtual void visit(typename AST::PragmaDeclaration s);
     virtual void visit(typename AST::StorageClassDeclaration s);
     virtual void visit(typename AST::ConditionalDeclaration s);

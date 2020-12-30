@@ -579,7 +579,7 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
  * `<protection> <decl...>` or
  * `package(<pkg_identifiers>) <decl...>` if `pkg_identifiers !is null`
  */
-extern (C++) final class ProtDeclaration : AttribDeclaration
+extern (C++) final class VisibilityDeclaration : AttribDeclaration
 {
     Prot protection;                /// the visibility
     Identifiers* pkg_identifiers;   /// identifiers for `package(foo.bar)` or null
@@ -616,13 +616,13 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         }
     }
 
-    override ProtDeclaration syntaxCopy(Dsymbol s)
+    override VisibilityDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         if (protection.kind == Prot.Kind.package_)
-            return new ProtDeclaration(this.loc, pkg_identifiers, Dsymbol.arraySyntaxCopy(decl));
+            return new VisibilityDeclaration(this.loc, pkg_identifiers, Dsymbol.arraySyntaxCopy(decl));
         else
-            return new ProtDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
+            return new VisibilityDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
@@ -675,7 +675,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         return buf.extractChars();
     }
 
-    override inout(ProtDeclaration) isProtDeclaration() inout
+    override inout(VisibilityDeclaration) isVisibilityDeclaration() inout
     {
         return this;
     }

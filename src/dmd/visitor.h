@@ -101,7 +101,7 @@ class DeprecatedDeclaration;
 class LinkDeclaration;
 class CPPMangleDeclaration;
 class CPPNamespaceDeclaration;
-class ProtDeclaration;
+class VisibilityDeclaration;
 class AlignDeclaration;
 class AnonDeclaration;
 class PragmaDeclaration;
@@ -362,7 +362,7 @@ public:
     virtual void visit(AlignDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(CPPMangleDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(CPPNamespaceDeclaration *s) { visit((AttribDeclaration *)s); }
-    virtual void visit(ProtDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(VisibilityDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(PragmaDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ConditionalDeclaration *s) { visit((AttribDeclaration *)s); }

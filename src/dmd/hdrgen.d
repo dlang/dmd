@@ -972,12 +972,12 @@ public:
         visit(cast(AttribDeclaration)d);
     }
 
-    override void visit(ProtDeclaration d)
+    override void visit(VisibilityDeclaration d)
     {
         protectionToBuffer(buf, d.protection);
         buf.writeByte(' ');
         AttribDeclaration ad = cast(AttribDeclaration)d;
-        if (ad.decl.dim == 1 && (*ad.decl)[0].isProtDeclaration)
+        if (ad.decl.dim == 1 && (*ad.decl)[0].isVisibilityDeclaration)
             visit(cast(AttribDeclaration)(*ad.decl)[0]);
         else
             visit(cast(AttribDeclaration)d);

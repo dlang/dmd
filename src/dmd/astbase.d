@@ -1396,7 +1396,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class ProtDeclaration : AttribDeclaration
+    extern (C++) final class VisibilityDeclaration : AttribDeclaration
     {
         Prot protection;
         Identifiers* pkg_identifiers;

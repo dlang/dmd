@@ -103,18 +103,18 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class ProtDeclaration : public AttribDeclaration
+class VisibilityDeclaration : public AttribDeclaration
 {
 public:
     Prot protection;
     Identifiers* pkg_identifiers;
 
-    ProtDeclaration *syntaxCopy(Dsymbol *s);
+    VisibilityDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     const char *toPrettyChars(bool unused);
-    ProtDeclaration *isProtDeclaration() { return this; }
+    VisibilityDeclaration *isVisibilityDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

@@ -47,7 +47,7 @@ class UnitTestDeclaration;
 class NewDeclaration;
 class VarDeclaration;
 class AttribDeclaration;
-class ProtDeclaration;
+class VisibilityDeclaration;
 class Package;
 class Module;
 class Import;
@@ -276,7 +276,7 @@ public:
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual AnonDeclaration *isAnonDeclaration() { return NULL; }
     virtual CPPNamespaceDeclaration *isCPPNamespaceDeclaration() { return NULL; }
-    virtual ProtDeclaration *isProtDeclaration() { return NULL; }
+    virtual VisibilityDeclaration *isVisibilityDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
     virtual CompileDeclaration *isCompileDeclaration() { return NULL; }
     void accept(Visitor *v) { v->visit(this); }

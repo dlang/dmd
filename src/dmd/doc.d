@@ -1183,7 +1183,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             }
         }
 
-        override void visit(ProtDeclaration pd)
+        override void visit(VisibilityDeclaration pd)
         {
             if (pd.decl)
             {

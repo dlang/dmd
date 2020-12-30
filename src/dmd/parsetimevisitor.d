@@ -73,7 +73,7 @@ public:
     void visit(AST.AlignDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.CPPMangleDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.CPPNamespaceDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
-    void visit(AST.ProtDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.VisibilityDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.PragmaDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.StorageClassDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.ConditionalDeclaration s) { visit(cast(AST.AttribDeclaration)s); }

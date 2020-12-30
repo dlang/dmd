@@ -620,7 +620,7 @@ private Statement toStatement(Dsymbol s)
             result = visitMembers(d.loc, d.decl);
         }
 
-        override void visit(ProtDeclaration d)
+        override void visit(VisibilityDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
