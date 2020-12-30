@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -preview=dip1000 -preview=dip25
+REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/test17450.d(17): Error: returning `&s.bar` escapes a reference to parameter `s`
