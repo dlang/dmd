@@ -237,7 +237,40 @@ extern (C++) final class Import : Dsymbol
             protection = sc.protection;
         if (!isstatic && !aliasId && !names.dim)
             sc.scopesym.importScope(mod, protection);
+        // Enable access to pkgs/mod as soon as posible, because compiler
+        // can traverse them before the import gets semantic (Issue: 21501)
+        if (!aliasId && !names.dim)
+            addPackageAccess(sc.scopesym);
     }
+
+    /*******************************
+     * Mark the imported packages as accessible from the current
+     * scope. This access check is necessary when using FQN b/c
+     * we're using a single global package tree.
+     * https://issues.dlang.org/show_bug.cgi?id=313
+     */
+    extern (D) void addPackageAccess(ScopeDsymbol scopesym)
+    {
+        //printf("Import::addPackageAccess('%s') %p\n", toPrettyChars(), this);
+        if (packages)
+        {
+            // import a.b.c.d;
+            auto p = pkg; // a
+            scopesym.addAccessiblePackage(p, protection);
+            foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
+            {
+                p = cast(Package) p.symtab.lookup(id);
+                // https://issues.dlang.org/show_bug.cgi?id=17991
+                // An import of truly empty file/package can happen
+                // https://issues.dlang.org/show_bug.cgi?id=20151
+                // Package in the path conflicts with a module name
+                if (p is null)
+                    break;
+                scopesym.addAccessiblePackage(p, protection);
+            }
+        }
+        scopesym.addAccessiblePackage(mod, protection); // d
+     }
 
     override Dsymbol toAlias()
     {
