@@ -1647,28 +1647,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     scopesym.importScope(imp.mod, imp.protection);
                 }
 
-                // Mark the imported packages as accessible from the current
-                // scope. This access check is necessary when using FQN b/c
-                // we're using a single global package tree.
-                // https://issues.dlang.org/show_bug.cgi?id=313
-                if (imp.packages)
-                {
-                    // import a.b.c.d;
-                    auto p = imp.pkg; // a
-                    scopesym.addAccessiblePackage(p, imp.protection);
-                    foreach (id; (*imp.packages)[1 .. imp.packages.dim]) // [b, c]
-                    {
-                        p = cast(Package) p.symtab.lookup(id);
-                        // https://issues.dlang.org/show_bug.cgi?id=17991
-                        // An import of truly empty file/package can happen
-                        // https://issues.dlang.org/show_bug.cgi?id=20151
-                        // Package in the path conflicts with a module name
-                        if (p is null)
-                            break;
-                        scopesym.addAccessiblePackage(p, imp.protection);
-                    }
-                }
-                scopesym.addAccessiblePackage(imp.mod, imp.protection); // d
+                imp.addPackageAccess(scopesym);
             }
 
             if (!loadErrored)
@@ -6875,4 +6854,3 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
 
     ds.semanticRun = PASS.semanticdone;
 }
-
