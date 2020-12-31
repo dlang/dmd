@@ -322,6 +322,7 @@ Msgtable msgtable[] =
     { "isFinalClass", NULL },
     { "isTemplate", NULL },
     { "isPOD", NULL },
+    { "isDeprecated", NULL },
     { "isNested", NULL },
     { "isFloating", NULL },
     { "isIntegral", NULL },
