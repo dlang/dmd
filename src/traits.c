@@ -131,17 +131,17 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
 static Expression *True(TraitsExp *e)  { return new IntegerExp(e->loc, true, Type::tbool); }
 static Expression *False(TraitsExp *e) { return new IntegerExp(e->loc, false, Type::tbool); }
 
-bool isTypeArithmetic(Type *t)       { return t->isintegral() || t->isfloating(); }
-bool isTypeFloating(Type *t)         { return t->isfloating(); }
-bool isTypeIntegral(Type *t)         { return t->isintegral(); }
-bool isTypeScalar(Type *t)           { return t->isscalar(); }
-bool isTypeUnsigned(Type *t)         { return t->isunsigned(); }
-bool isTypeAssociativeArray(Type *t) { return t->toBasetype()->ty == Taarray; }
-bool isTypeStaticArray(Type *t)      { return t->toBasetype()->ty == Tsarray; }
-bool isTypeAbstractClass(Type *t)    { return t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->isAbstract(); }
-bool isTypeFinalClass(Type *t)       { return t->toBasetype()->ty == Tclass && (((TypeClass *)t->toBasetype())->sym->storage_class & STCfinal) != 0; }
+static bool isTypeArithmetic(Type *t)       { return t->isintegral() || t->isfloating(); }
+static bool isTypeFloating(Type *t)         { return t->isfloating(); }
+static bool isTypeIntegral(Type *t)         { return t->isintegral(); }
+static bool isTypeScalar(Type *t)           { return t->isscalar(); }
+static bool isTypeUnsigned(Type *t)         { return t->isunsigned(); }
+static bool isTypeAssociativeArray(Type *t) { return t->toBasetype()->ty == Taarray; }
+static bool isTypeStaticArray(Type *t)      { return t->toBasetype()->ty == Tsarray; }
+static bool isTypeAbstractClass(Type *t)    { return t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->isAbstract(); }
+static bool isTypeFinalClass(Type *t)       { return t->toBasetype()->ty == Tclass && (((TypeClass *)t->toBasetype())->sym->storage_class & STCfinal) != 0; }
 
-Expression *isTypeX(TraitsExp *e, bool (*fp)(Type *t))
+static Expression *isTypeX(TraitsExp *e, bool (*fp)(Type *t))
 {
     if (!e->args || !e->args->length)
         return False(e);
@@ -154,14 +154,29 @@ Expression *isTypeX(TraitsExp *e, bool (*fp)(Type *t))
     return True(e);
 }
 
-bool isFuncAbstractFunction(FuncDeclaration *f) { return f->isAbstract(); }
-bool isFuncVirtualFunction(FuncDeclaration *f) { return f->isVirtual(); }
-bool isFuncVirtualMethod(FuncDeclaration *f) { return f->isVirtualMethod(); }
-bool isFuncFinalFunction(FuncDeclaration *f) { return f->isFinalFunc(); }
-bool isFuncStaticFunction(FuncDeclaration *f) { return !f->needThis() && !f->isNested(); }
-bool isFuncOverrideFunction(FuncDeclaration *f) { return f->isOverride(); }
+static bool isDsymDeprecated(Dsymbol *s) { return s->isDeprecated(); }
 
-Expression *isFuncX(TraitsExp *e, bool (*fp)(FuncDeclaration *f))
+static Expression *isDsymX(TraitsExp *e, bool (*fp)(Dsymbol *s))
+{
+    if (!e->args || !e->args->length)
+        return False(e);
+    for (size_t i = 0; i < e->args->length; i++)
+    {
+        Dsymbol *s = getDsymbol((*e->args)[i]);
+        if (!s || !fp(s))
+            return False(e);
+    }
+    return True(e);
+}
+
+static bool isFuncAbstractFunction(FuncDeclaration *f) { return f->isAbstract(); }
+static bool isFuncVirtualFunction(FuncDeclaration *f) { return f->isVirtual(); }
+static bool isFuncVirtualMethod(FuncDeclaration *f) { return f->isVirtualMethod(); }
+static bool isFuncFinalFunction(FuncDeclaration *f) { return f->isFinalFunc(); }
+static bool isFuncStaticFunction(FuncDeclaration *f) { return !f->needThis() && !f->isNested(); }
+static bool isFuncOverrideFunction(FuncDeclaration *f) { return f->isOverride(); }
+
+static Expression *isFuncX(TraitsExp *e, bool (*fp)(FuncDeclaration *f))
 {
     if (!e->args || !e->args->length)
         return False(e);
@@ -177,11 +192,11 @@ Expression *isFuncX(TraitsExp *e, bool (*fp)(FuncDeclaration *f))
     return True(e);
 }
 
-bool isDeclRef(Declaration *d) { return d->isRef(); }
-bool isDeclOut(Declaration *d) { return d->isOut(); }
-bool isDeclLazy(Declaration *d) { return (d->storage_class & STClazy) != 0; }
+static bool isDeclRef(Declaration *d) { return d->isRef(); }
+static bool isDeclOut(Declaration *d) { return d->isOut(); }
+static bool isDeclLazy(Declaration *d) { return (d->storage_class & STClazy) != 0; }
 
-Expression *isDeclX(TraitsExp *e, bool (*fp)(Declaration *d))
+static Expression *isDeclX(TraitsExp *e, bool (*fp)(Declaration *d))
 {
     if (!e->args || !e->args->length)
         return False(e);
@@ -225,6 +240,7 @@ TraitsInitializer::TraitsInitializer()
         "isAbstractClass",
         "isArithmetic",
         "isAssociativeArray",
+        "isDeprecated",
         "isFinalClass",
         "isPOD",
         "isNested",
@@ -522,6 +538,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     else if (e->ident == Id::isAssociativeArray)
     {
         return isTypeX(e, &isTypeAssociativeArray);
+    }
+    else if (e->ident == Id::isDeprecated)
+    {
+        return isDsymX(e, &isDsymDeprecated);
     }
     else if (e->ident == Id::isStaticArray)
     {
