@@ -2817,15 +2817,6 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
     Type att1 = null;
     Type att2 = null;
 
-    //if (t1) printf("\tt1 = %s\n", t1.toChars());
-    //if (t2) printf("\tt2 = %s\n", t2.toChars());
-    debug
-    {
-        if (!t2)
-            printf("\te2 = '%s'\n", e2.toChars());
-    }
-    assert(t2);
-
     if (t1.mod != t2.mod &&
         t1.ty == Tenum && t2.ty == Tenum &&
         (cast(TypeEnum)t1).sym == (cast(TypeEnum)t2).sym)
