@@ -2708,30 +2708,22 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
         import dmd.access : checkSymbolAccess;
         if (auto od = d.isOverDeclaration())
         {
-            if (od.hasOverloads)
+            /* The scope is needed here to check whether a function in
+               an overload set was added by means of a private alias (or a
+               selective import). If the scope where the alias is created
+               is imported somewhere, the overload set is visible, but the private
+               alias is not.
+            */
+            if (sc)
             {
-                /* The scope is needed here to check whether a function in
-                   an overload set was added by means of a private alias (or a
-                   selective import). If the scope where the alias is created
-                   is imported somewhere, the overload set is visible, but the private
-                   alias is not.
-                 */
-                if (sc)
+                if (checkSymbolAccess(sc, od))
                 {
-                    if (checkSymbolAccess(sc, od))
-                    {
-                        if (int r = overloadApply(od.aliassym, dg, sc))
-                            return r;
-                    }
+                    if (int r = overloadApply(od.aliassym, dg, sc))
+                        return r;
                 }
-                else if (int r = overloadApply(od.aliassym, dg, sc))
-                    return r;
             }
-            else
-            {
-                if (int r = dg(od.aliassym))
-                    return r;
-            }
+            else if (int r = overloadApply(od.aliassym, dg, sc))
+                return r;
             next = od.overnext;
         }
         else if (auto fa = d.isFuncAliasDeclaration())

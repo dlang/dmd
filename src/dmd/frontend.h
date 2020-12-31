@@ -2630,7 +2630,6 @@ class OverDeclaration final : public Declaration
 public:
     Dsymbol* overnext;
     Dsymbol* aliassym;
-    bool hasOverloads;
     const char* kind() const;
     bool equals(const RootObject* const o) const;
     bool overloadInsert(Dsymbol* s);
