@@ -1393,7 +1393,6 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
 
     Type t0 = null;
     Expression e0 = null;
-    size_t j0 = ~0;
     bool foundType;
 
     for (size_t i = 0; i < exps.dim; i++)
@@ -1446,17 +1445,16 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=21285
                 // Functions and delegates don't convert correctly with castTo below
-                exps[j0] = condexp.e1;
+                exps[i] = condexp.e1;
                 e = condexp.e2;
             }
             else
             {
                 // Convert to common type
-                exps[j0] = condexp.e1.castTo(sc, condexp.type);
+                exps[i] = condexp.e1.castTo(sc, condexp.type);
                 e = condexp.e2.castTo(sc, condexp.type);
             }
         }
-        j0 = i;
         e0 = e;
         t0 = e.type;
         if (e.op != TOK.error)
