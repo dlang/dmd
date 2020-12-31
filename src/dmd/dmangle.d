@@ -677,7 +677,7 @@ public:
         }
         if (FuncDeclaration fd = od.aliassym.isFuncDeclaration())
         {
-            if (!od.hasOverloads || fd.isUnique())
+            if (fd.isUnique())
             {
                 mangleExact(fd);
                 return;
@@ -685,7 +685,7 @@ public:
         }
         if (TemplateDeclaration td = od.aliassym.isTemplateDeclaration())
         {
-            if (!od.hasOverloads || td.overnext is null)
+            if (td.overnext is null)
             {
                 mangleSymbol(td);
                 return;

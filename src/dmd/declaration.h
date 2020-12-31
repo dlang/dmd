@@ -190,7 +190,6 @@ class OverDeclaration : public Declaration
 public:
     Dsymbol *overnext;          // next in overload list
     Dsymbol *aliassym;
-    bool hasOverloads;
 
     const char *kind() const;
     bool equals(const RootObject *o) const;

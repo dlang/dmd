@@ -992,23 +992,11 @@ extern (C++) final class OverDeclaration : Declaration
 {
     Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
-    bool hasOverloads;
 
-    extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
+    extern (D) this(Identifier ident, Dsymbol s)
     {
         super(ident);
         this.aliassym = s;
-        this.hasOverloads = hasOverloads;
-        if (hasOverloads)
-        {
-            if (OverDeclaration od = aliassym.isOverDeclaration())
-                this.hasOverloads = od.hasOverloads;
-        }
-        else
-        {
-            // for internal use
-            assert(!aliassym.isOverDeclaration());
-        }
     }
 
     override const(char)* kind() const
@@ -1025,25 +1013,9 @@ extern (C++) final class OverDeclaration : Declaration
         if (!s)
             return false;
 
-        auto od1 = this;
         if (auto od2 = s.isOverDeclaration())
-        {
-            return od1.aliassym.equals(od2.aliassym) && od1.hasOverloads == od2.hasOverloads;
-        }
-        if (aliassym == s)
-        {
-            if (hasOverloads)
-                return true;
-            if (auto fd = s.isFuncDeclaration())
-            {
-                return fd.isUnique();
-            }
-            if (auto td = s.isTemplateDeclaration())
-            {
-                return td.overnext is null;
-            }
-        }
-        return false;
+            return this.aliassym.equals(od2.aliassym);
+        return this.aliassym == s;
     }
 
     override bool overloadInsert(Dsymbol s)
@@ -1064,15 +1036,6 @@ extern (C++) final class OverDeclaration : Declaration
 
     Dsymbol isUnique()
     {
-        if (!hasOverloads)
-        {
-            if (aliassym.isFuncDeclaration() ||
-                aliassym.isTemplateDeclaration())
-            {
-                return aliassym;
-            }
-        }
-
         Dsymbol result = null;
         overloadApply(aliassym, (Dsymbol s)
         {
