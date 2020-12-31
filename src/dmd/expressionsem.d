@@ -1387,11 +1387,10 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
  * The common type is determined by applying ?: to each pair.
  * Output:
  *      exps[]  properties resolved, implicitly cast to common type, rewritten in place
- *      *pt     if pt is not NULL, set to the common type
  * Returns:
- *      true    a semantic error was detected
+ *      The common type, or `null` if an error has occured
  */
-private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
+private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
 {
     /* Still have a problem with:
      *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
@@ -1410,7 +1409,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
 
     for (size_t i = 0; i < exps.dim; i++)
     {
-        Expression e = (*exps)[i];
+        Expression e = exps[i];
         if (!e)
             continue;
 
@@ -1458,13 +1457,13 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=21285
                 // Functions and delegates don't convert correctly with castTo below
-                (*exps)[j0] = condexp.e1;
+                exps[j0] = condexp.e1;
                 e = condexp.e2;
             }
             else
             {
                 // Convert to common type
-                (*exps)[j0] = condexp.e1.castTo(sc, condexp.type);
+                exps[j0] = condexp.e1.castTo(sc, condexp.type);
                 e = condexp.e2.castTo(sc, condexp.type);
             }
         }
@@ -1472,38 +1471,36 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
         e0 = e;
         t0 = e.type;
         if (e.op != TOK.error)
-            (*exps)[i] = e;
+            exps[i] = e;
     }
 
+    // [] is typed as void[]
     if (!t0)
-        t0 = Type.tvoid; // [] is typed as void[]
-    else if (t0.ty != Terror)
+        return Type.tvoid;
+
+    // It's an error, don't do the cast
+    if (t0.ty == Terror)
+        return null;
+
+    for (size_t i = 0; i < exps.dim; i++)
     {
-        for (size_t i = 0; i < exps.dim; i++)
+        Expression e = exps[i];
+        if (!e)
+            continue;
+
+        e = e.implicitCastTo(sc, t0);
+        if (e.op == TOK.error)
         {
-            Expression e = (*exps)[i];
-            if (!e)
-                continue;
-
-            e = e.implicitCastTo(sc, t0);
-            //assert(e.op != TOK.error);
-            if (e.op == TOK.error)
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=13024
-                 * a workaround for the bug in typeMerge -
-                 * it should paint e1 and e2 by deduced common type,
-                 * but doesn't in this particular case.
-                 */
-                t0 = Type.terror;
-                break;
-            }
-            (*exps)[i] = e;
+            /* https://issues.dlang.org/show_bug.cgi?id=13024
+             * a workaround for the bug in typeMerge -
+             * it should paint e1 and e2 by deduced common type,
+             * but doesn't in this particular case.
+             */
+            return null;
         }
+        exps[i] = e;
     }
-    if (pt)
-        *pt = t0;
-
-    return (t0 == Type.terror);
+    return t0;
 }
 
 private Expression opAssignToOp(const ref Loc loc, TOK op, Expression e1, Expression e2)
@@ -3095,13 +3092,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         expandTuples(e.elements);
 
-        Type t0;
         if (e.basis)
             e.elements.push(e.basis);
-        bool err = arrayExpressionToCommonType(sc, e.elements, &t0);
+        Type t0 = arrayExpressionToCommonType(sc, *e.elements);
         if (e.basis)
             e.basis = e.elements.pop();
-        if (err)
+        if (t0 is null)
             return setError();
 
         e.type = t0.arrayOf();
@@ -3148,14 +3144,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        Type tkey = null;
-        Type tvalue = null;
-        err_keys = arrayExpressionToCommonType(sc, e.keys, &tkey);
-        err_vals = arrayExpressionToCommonType(sc, e.values, &tvalue);
-        if (err_keys || err_vals)
-            return setError();
-
-        if (tkey == Type.terror || tvalue == Type.terror)
+        Type tkey = arrayExpressionToCommonType(sc, *e.keys);
+        Type tvalue = arrayExpressionToCommonType(sc, *e.values);
+        if (tkey is null || tvalue is null)
             return setError();
 
         e.type = new TypeAArray(tvalue, tkey);

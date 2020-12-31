@@ -44,11 +44,22 @@ import dmd.visitor;
 
 enum LOG = false;
 
-/**************************************
- * Do an implicit cast.
- * Issue error if it can't be done.
+/**
+ * Attempt to implicitly cast the `from` expression into `target` type.
+ *
+ * This routine will change `from`. To check the matching level,
+ * use `implicitConvTo`.
+ *
+ * Params:
+ *   from = Expression that is to be casted
+ *   sc = Current scope
+ *   target = Expected resulting type
+ *
+ * Returns:
+ *   The resulting casted expression (mutating `from`), or `ErrorExp`
+ *    if such an implicit conversion is not possible.
  */
-Expression implicitCastTo(Expression e, Scope* sc, Type t)
+Expression implicitCastTo(Expression from, Scope* sc, Type target)
 {
     extern (C++) final class ImplicitCastTo : Visitor
     {
@@ -201,16 +212,26 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         }
     }
 
-    scope ImplicitCastTo v = new ImplicitCastTo(sc, t);
-    e.accept(v);
+    scope ImplicitCastTo v = new ImplicitCastTo(sc, target);
+    from.accept(v);
     return v.result;
 }
 
-/*******************************************
- * Return MATCH level of implicitly converting e to type t.
- * Don't do the actual cast; don't change e.
+/**
+ * Checks whether or not an expression can be implicitly converted
+ * to the `target` type.
+ *
+ * Unlike `implicitCastTo`, this routine does not perform the actual cast,
+ * but only checks up to what `MATCH` level the conversion would be possible.
+ *
+ * Params:
+ *   from = Expression that is to be casted
+ *   target = Expected resulting type
+ *
+ * Returns:
+ *   The `MATCH` level between `from.type` and `target`.
  */
-MATCH implicitConvTo(Expression e, Type t)
+MATCH implicitConvTo(Expression from, Type target)
 {
     extern (C++) final class ImplicitConvTo : Visitor
     {
@@ -1418,8 +1439,8 @@ MATCH implicitConvTo(Expression e, Type t)
         }
     }
 
-    scope ImplicitConvTo v = new ImplicitConvTo(t);
-    e.accept(v);
+    scope ImplicitConvTo v = new ImplicitConvTo(target);
+    from.accept(v);
     return v.result;
 }
 
@@ -1469,9 +1490,9 @@ private Expression tryAliasThisCast(Expression e, Scope* sc, Type tob, Type t1b,
 
 /**************************************
  * Do an explicit cast.
- * Assume that the 'this' expression does not have any indirections.
+ * Assume that the `from` expression does not have any indirections.
  */
-Expression castTo(Expression e, Scope* sc, Type t)
+Expression castTo(Expression from, Scope* sc, Type target)
 {
     extern (C++) final class CastTo : Visitor
     {
@@ -2537,8 +2558,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
         }
     }
 
-    scope CastTo v = new CastTo(sc, t);
-    e.accept(v);
+    scope CastTo v = new CastTo(sc, target);
+    from.accept(v);
     return v.result;
 }
 
@@ -2795,15 +2816,6 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
      */
     Type att1 = null;
     Type att2 = null;
-
-    //if (t1) printf("\tt1 = %s\n", t1.toChars());
-    //if (t2) printf("\tt2 = %s\n", t2.toChars());
-    debug
-    {
-        if (!t2)
-            printf("\te2 = '%s'\n", e2.toChars());
-    }
-    assert(t2);
 
     if (t1.mod != t2.mod &&
         t1.ty == Tenum && t2.ty == Tenum &&
