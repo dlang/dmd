@@ -1474,32 +1474,33 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
             exps[i] = e;
     }
 
+    // [] is typed as void[]
     if (!t0)
-        t0 = Type.tvoid; // [] is typed as void[]
-    else if (t0.ty != Terror)
-    {
-        for (size_t i = 0; i < exps.dim; i++)
-        {
-            Expression e = exps[i];
-            if (!e)
-                continue;
+        return Type.tvoid;
 
-            e = e.implicitCastTo(sc, t0);
-            //assert(e.op != TOK.error);
-            if (e.op == TOK.error)
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=13024
-                 * a workaround for the bug in typeMerge -
-                 * it should paint e1 and e2 by deduced common type,
-                 * but doesn't in this particular case.
-                 */
-                t0 = Type.terror;
-                break;
-            }
-            exps[i] = e;
+    // It's an error, don't do the cast
+    if (t0.ty == Terror)
+        return null;
+
+    for (size_t i = 0; i < exps.dim; i++)
+    {
+        Expression e = exps[i];
+        if (!e)
+            continue;
+
+        e = e.implicitCastTo(sc, t0);
+        if (e.op == TOK.error)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=13024
+             * a workaround for the bug in typeMerge -
+             * it should paint e1 and e2 by deduced common type,
+             * but doesn't in this particular case.
+             */
+            return null;
         }
+        exps[i] = e;
     }
-    return (t0 && t0 != Type.terror) ? t0 : null;
+    return t0;
 }
 
 private Expression opAssignToOp(const ref Loc loc, TOK op, Expression e1, Expression e2)
