@@ -2998,16 +2998,6 @@ public:
             er = interpret(pue, ex, istate);
             if (exceptionOrCant(er))
                 return false;
-            if (er.isConst() != 1)
-            {
-                if (er.op == TOK.arrayLiteral)
-                    // Until we get it to work, issue a reasonable error message
-                    e.error("cannot interpret array literal expression `%s` at compile time", e.toChars());
-                else
-                    e.error("CTFE internal error: non-constant value `%s`", ex.toChars());
-                result = CTFEExp.cantexp;
-                return false;
-            }
             return true;
         }
 
@@ -3032,7 +3022,67 @@ public:
                 return;
             }
         }
-        *pue = (*fp)(e.loc, e.type, e1, e2);
+
+        /******************************************
+         * Perform the operation fp on operands e1 and e2.
+         */
+        UnionExp evaluate(Loc loc, Type type, Expression e1, Expression e2)
+        {
+            UnionExp ue = void;
+            auto ae1 = e1.isArrayLiteralExp();
+            auto ae2 = e2.isArrayLiteralExp();
+            if (ae1 || ae2)
+            {
+                /* Cases:
+                 * 1. T[] op T[]
+                 * 2. T op T[]
+                 * 3. T[] op T
+                 */
+                if (ae1 && e2.implicitConvTo(e1.type.toBasetype().nextOf())) // case 3
+                    ae2 = null;
+                else if (ae2 && e1.implicitConvTo(e2.type.toBasetype().nextOf())) // case 2
+                    ae1 = null;
+                // else case 1
+
+                auto aex = ae1 ? ae1 : ae2;
+                if (!aex.elements)
+                {
+                    emplaceExp!ArrayLiteralExp(&ue, loc, type, cast(Expressions*) null);
+                    return ue;
+                }
+                const length = aex.elements.length;
+                Expressions* elements = new Expressions(length);
+
+                emplaceExp!ArrayLiteralExp(&ue, loc, type, elements);
+                foreach (i; 0 .. length)
+                {
+                    Expression e1x = ae1 ? ae1[i] : e1;
+                    Expression e2x = ae2 ? ae2[i] : e2;
+                    UnionExp uex = evaluate(loc, e1x.type, e1x, e2x);
+                    // This can be made more efficient by making use of ue.basis
+                    (*elements)[i] = uex.copy();
+                }
+                return ue;
+            }
+
+            if (e1.isConst() != 1)
+            {
+                // The following should really be an assert()
+                e1.error("CTFE internal error: non-constant value `%s`", e1.toChars());
+                emplaceExp!CTFEExp(&ue, TOK.cantExpression);
+                return ue;
+            }
+            if (e2.isConst() != 1)
+            {
+                e2.error("CTFE internal error: non-constant value `%s`", e2.toChars());
+                emplaceExp!CTFEExp(&ue, TOK.cantExpression);
+                return ue;
+            }
+
+            return (*fp)(loc, type, e1, e2);
+        }
+
+        *pue = evaluate(e.loc, e.type, e1, e2);
         result = (*pue).exp();
         if (CTFEExp.isCantExp(result))
             e.error("`%s` cannot be interpreted at compile time", e.toChars());
