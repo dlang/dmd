@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -mcpu=native -preview=intpromote -preview=intpromote
+REQUIRED_ARGS: -mcpu=native -preview=intpromote
 PERMUTE_ARGS: -O -inline -release
 */
 
@@ -45,4 +45,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-
