@@ -507,11 +507,22 @@ static Expression *dimError(TraitsExp *e, int expected, int dim)
 
 Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
-    if (e->ident != Id::compiles && e->ident != Id::isSame &&
-        e->ident != Id::identifier && e->ident != Id::getProtection)
+    if (e->ident != Id::compiles &&
+        e->ident != Id::isSame &&
+        e->ident != Id::identifier &&
+        e->ident != Id::getProtection)
     {
+        // Pretend we're in a deprecated scope so that deprecation messages
+        // aren't triggered when checking if a symbol is deprecated
+        const StorageClass save = sc->stc;
+        if (e->ident == Id::isDeprecated)
+            sc->stc |= STCdeprecated;
         if (!TemplateInstance::semanticTiargs(e->loc, sc, e->args, 1))
+        {
+            sc->stc = save;
             return new ErrorExp();
+        }
+        sc->stc = save;
     }
     size_t dim = e->args ? e->args->length : 0;
 

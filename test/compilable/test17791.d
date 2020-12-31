@@ -1,3 +1,9 @@
+/*
+REQUIRED_ARGS: -de
+TEST_OUTPUT:
+---
+---
+*/
 deprecated("A deprecated class") {
 class DepClass
 {
@@ -17,4 +23,6 @@ void main()
     static assert(__traits(isDeprecated, DepClass));
     // check that a class not marked deprecated is not deprecated
     static assert(!__traits(isDeprecated, NewClass));
+    // Check for expressions (18617)
+    static assert(__traits(isDeprecated, { scope foo = new DepClass; }));
 }
