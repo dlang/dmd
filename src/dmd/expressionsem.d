@@ -1390,7 +1390,7 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
  * Returns:
  *      The common type, or `null` if an error has occured
  */
-private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
+private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
 {
     /* Still have a problem with:
      *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
@@ -1409,7 +1409,7 @@ private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
 
     for (size_t i = 0; i < exps.dim; i++)
     {
-        Expression e = (*exps)[i];
+        Expression e = exps[i];
         if (!e)
             continue;
 
@@ -1457,13 +1457,13 @@ private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=21285
                 // Functions and delegates don't convert correctly with castTo below
-                (*exps)[j0] = condexp.e1;
+                exps[j0] = condexp.e1;
                 e = condexp.e2;
             }
             else
             {
                 // Convert to common type
-                (*exps)[j0] = condexp.e1.castTo(sc, condexp.type);
+                exps[j0] = condexp.e1.castTo(sc, condexp.type);
                 e = condexp.e2.castTo(sc, condexp.type);
             }
         }
@@ -1471,7 +1471,7 @@ private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
         e0 = e;
         t0 = e.type;
         if (e.op != TOK.error)
-            (*exps)[i] = e;
+            exps[i] = e;
     }
 
     if (!t0)
@@ -1480,7 +1480,7 @@ private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
     {
         for (size_t i = 0; i < exps.dim; i++)
         {
-            Expression e = (*exps)[i];
+            Expression e = exps[i];
             if (!e)
                 continue;
 
@@ -1496,7 +1496,7 @@ private Type arrayExpressionToCommonType(Scope* sc, Expressions* exps)
                 t0 = Type.terror;
                 break;
             }
-            (*exps)[i] = e;
+            exps[i] = e;
         }
     }
     return (t0 && t0 != Type.terror) ? t0 : null;
@@ -3093,7 +3093,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.basis)
             e.elements.push(e.basis);
-        Type t0 = arrayExpressionToCommonType(sc, e.elements);
+        Type t0 = arrayExpressionToCommonType(sc, *e.elements);
         if (e.basis)
             e.basis = e.elements.pop();
         if (t0 is null)
@@ -3143,8 +3143,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        Type tkey = arrayExpressionToCommonType(sc, e.keys);
-        Type tvalue = arrayExpressionToCommonType(sc, e.values);
+        Type tkey = arrayExpressionToCommonType(sc, *e.keys);
+        Type tvalue = arrayExpressionToCommonType(sc, *e.values);
         if (tkey is null || tvalue is null)
             return setError();
 
