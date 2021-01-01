@@ -288,6 +288,7 @@ TraitsInitializer::TraitsInitializer()
         "identifier",
         "getProtection",
         "parent",
+        "child",
         "getLinkage",
         "getMember",
         "getOverloads",
@@ -831,6 +832,44 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
 
         return resolve(e->loc, sc, s, false);
+    }
+    else if (e->ident == Id::child)
+    {
+        if (dim != 2)
+            return dimError(e, 2, dim);
+
+        Expression *ex;
+        RootObject *op = (*e->args)[0];
+        if (Dsymbol *symp = getDsymbol(op))
+            ex = new DsymbolExp(e->loc, symp);
+        else if (Expression *exp = isExpression(op))
+            ex = exp;
+        else
+        {
+            e->error("symbol or expression expected as first argument of __traits `child` instead of `%s`", op->toChars());
+            return new ErrorExp();
+        }
+
+        ex = semantic(ex, sc);
+        RootObject *oc = (*e->args)[1];
+        Dsymbol *symc = getDsymbol(oc);
+        if (!symc)
+        {
+            e->error("symbol expected as second argument of __traits `child` instead of `%s`", oc->toChars());
+            return new ErrorExp();
+        }
+
+        if (Declaration *d = symc->isDeclaration())
+            ex = new DotVarExp(e->loc, ex, d);
+        else if (TemplateDeclaration *td = symc->isTemplateDeclaration())
+            ex = new DotExp(e->loc, ex, new TemplateExp(e->loc, td));
+        else if (ScopeDsymbol *ti = symc->isScopeDsymbol())
+            ex = new DotExp(e->loc, ex, new ScopeExp(e->loc, ti));
+        else
+            assert(0);
+
+        ex = semantic(ex, sc);
+        return ex;
     }
     else if (e->ident == Id::hasMember ||
              e->ident == Id::getMember ||
