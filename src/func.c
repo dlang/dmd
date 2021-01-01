@@ -970,7 +970,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 {
                     if (fdv->isFuture())
                     {
-                        ::deprecation(loc, "@future base class method %s is being overridden by %s; rename the latter",
+                        ::deprecation(loc, "@__future base class method %s is being overridden by %s; rename the latter",
                             fdv->toPrettyChars(), toPrettyChars());
                         // Treat 'this' as an introducing function, giving it a separate hierarchy in the vtbl[]
                         goto Lintro;

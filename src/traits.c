@@ -193,6 +193,7 @@ static Expression *isFuncX(TraitsExp *e, bool (*fp)(FuncDeclaration *f))
     return True(e);
 }
 
+static bool isDeclFuture(Declaration *d) { return d->isFuture(); }
 static bool isDeclRef(Declaration *d) { return d->isRef(); }
 static bool isDeclOut(Declaration *d) { return d->isOut(); }
 static bool isDeclLazy(Declaration *d) { return (d->storage_class & STClazy) != 0; }
@@ -243,6 +244,7 @@ TraitsInitializer::TraitsInitializer()
         "isAssociativeArray",
         "isDisabled",
         "isDeprecated",
+        "isFuture",
         "isFinalClass",
         "isPOD",
         "isNested",
@@ -555,6 +557,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     else if (e->ident == Id::isDeprecated)
     {
         return isDsymX(e, &isDsymDeprecated);
+    }
+    else if (e->ident == Id::isFuture)
+    {
+        return isDeclX(e, &isDeclFuture);
     }
     else if (e->ident == Id::isStaticArray)
     {

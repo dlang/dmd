@@ -324,6 +324,7 @@ Msgtable msgtable[] =
     { "isPOD", NULL },
     { "isDeprecated", NULL },
     { "isDisabled", NULL },
+    { "isFuture" , NULL },
     { "isNested", NULL },
     { "isFloating", NULL },
     { "isIntegral", NULL },
