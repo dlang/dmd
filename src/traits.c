@@ -37,6 +37,7 @@ typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
 int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
 void freeFieldinit(Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
+Package *resolveIsPackage(Dsymbol *sym);
 Expression *trySemantic(Expression *e, Scope *sc);
 Expression *semantic(Expression *e, Scope *sc);
 Expression *typeToExpression(Type *t);
@@ -214,6 +215,25 @@ static Expression *isDeclX(TraitsExp *e, bool (*fp)(Declaration *d))
     return True(e);
 }
 
+static bool isPkgModule(Package *p) { return p->isModule() || p->isPackageMod(); }
+static bool isPkgPackage(Package *p) { return p->isModule() == NULL; }
+
+static Expression *isPkgX(TraitsExp *e, bool (*fp)(Package *p))
+{
+    if (!e->args || !e->args->length)
+        return False(e);
+    for (size_t i = 0; i < e->args->length; i++)
+    {
+        Dsymbol *s = getDsymbol((*e->args)[i]);
+        if (!s)
+            return False(e);
+        Package *p = resolveIsPackage(s);
+        if (!p || !fp(p))
+            return False(e);
+    }
+    return True(e);
+}
+
 // callback for TypeFunction::attributesApply
 struct PushAttributes
 {
@@ -259,6 +279,8 @@ TraitsInitializer::TraitsInitializer()
         "isFinalFunction",
         "isOverrideFunction",
         "isStaticFunction",
+        "isModule",
+        "isPackage",
         "isRef",
         "isOut",
         "isLazy",
@@ -672,6 +694,20 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
 
         return isFuncX(e, &isFuncStaticFunction);
+    }
+    else if (e->ident == Id::isModule)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        return isPkgX(e, &isPkgModule);
+    }
+    else if (e->ident == Id::isPackage)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        return isPkgX(e, &isPkgPackage);
     }
     else if (e->ident == Id::isRef)
     {

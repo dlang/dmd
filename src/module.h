@@ -48,6 +48,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
+    void resolvePKGunknown();
 };
 
 class Module : public Package

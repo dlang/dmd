@@ -210,6 +210,50 @@ static void checkModFileAlias(OutBuffer *buf, OutBuffer *dotmods,
     dotmods->writeByte('.');
 }
 
+/**
+ * Converts a chain of identifiers to the filename of the module
+ *
+ * Params:
+ *  packages = the names of the "parent" packages
+ *  ident = the name of the child package or module
+ *
+ * Returns:
+ *  the filename of the child package or module
+ */
+static const char *getFilename(Identifiers *packages, Identifier *ident)
+{
+    const char *filename = ident->toChars();
+
+    if (packages == NULL || packages->length == 0)
+        return filename;
+
+    OutBuffer buf;
+    OutBuffer dotmods;
+    Array<const char *> *ms = &global.params.modFileAliasStrings;
+    const size_t msdim = ms ? ms->length : 0;
+
+    for (size_t i = 0; i < packages->length; i++)
+    {
+        Identifier *pid = (*packages)[i];
+        const char *p = pid->toChars();
+        buf.writestring(p);
+        if (msdim)
+            checkModFileAlias(&buf, &dotmods, ms, msdim, p);
+#if _WIN32
+        buf.writeByte('\\');
+#else
+        buf.writeByte('/');
+#endif
+    }
+    buf.writestring(filename);
+    if (msdim)
+        checkModFileAlias(&buf, &dotmods, ms, msdim, filename);
+    buf.writeByte(0);
+    filename = (char *)buf.extractData();
+
+    return filename;
+}
+
 /********************************************
  * Look for the source file if it's different from filename.
  * Look for .di, .d, directory, and along global.path.
@@ -258,7 +302,6 @@ static const char *lookForSourceFile(const char *filename)
     for (size_t i = 0; i < global.path->length; i++)
     {
         const char *p = (*global.path)[i];
-
         const char *n = FileName::combine(p, sdi);
         if (FileName::exists(n) == 1)
         {
@@ -293,6 +336,7 @@ static const char *lookForSourceFile(const char *filename)
     }
     return NULL;
 }
+
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {
     //printf("Module::load(ident = '%s')\n", ident->toChars());
@@ -301,42 +345,14 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    const char *filename = ident->toChars();
-    if (packages && packages->length)
-    {
-        OutBuffer buf;
-        OutBuffer dotmods;
-        Array<const char *> *ms = &global.params.modFileAliasStrings;
-        const size_t msdim = ms ? ms->length : 0;
-
-        for (size_t i = 0; i < packages->length; i++)
-        {
-            Identifier *pid = (*packages)[i];
-            const char *p = pid->toChars();
-            buf.writestring(p);
-            if (msdim)
-                checkModFileAlias(&buf, &dotmods, ms, msdim, p);
-#if _WIN32
-            buf.writeByte('\\');
-#else
-            buf.writeByte('/');
-#endif
-        }
-        buf.writestring(filename);
-        if (msdim)
-            checkModFileAlias(&buf, &dotmods, ms, msdim, filename);
-        buf.writeByte(0);
-        filename = (char *)buf.extractData();
-    }
+    const char *filename = getFilename(packages, ident);
+    // Look for the source file
+    const char *result = lookForSourceFile(filename);
+    if (result)
+        filename = result;
 
     Module *m = new Module(filename, ident, 0, 0);
     m->loc = loc;
-
-    /* Look for the source file
-     */
-    const char *result = lookForSourceFile(filename);
-    if (result)
-        m->srcfile = new File(result);
 
     if (!m->read(loc))
         return NULL;
@@ -1227,6 +1243,27 @@ Module *Package::isPackageMod()
         return mod;
     }
     return NULL;
+}
+
+/**
+ * Checks for the existence of a package.d to set isPkgMod appropriately
+ * if isPkgMod == PKGunknown
+ */
+void Package::resolvePKGunknown()
+{
+    if (isModule())
+        return;
+    if (isPkgMod != PKGunknown)
+        return;
+
+    Identifiers packages;
+    for (Dsymbol *s = this->parent; s; s = s->parent)
+        packages.insert(0, s->ident);
+
+    if (lookForSourceFile(getFilename(&packages, ident)))
+        Module::load(Loc(), &packages, this->ident);
+    else
+        isPkgMod = PKGpackage;
 }
 
 /**

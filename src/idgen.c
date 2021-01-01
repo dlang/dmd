@@ -337,6 +337,8 @@ Msgtable msgtable[] =
     { "isFinalFunction", NULL },
     { "isOverrideFunction", NULL },
     { "isStaticFunction", NULL },
+    { "isModule", NULL },
+    { "isPackage", NULL },
     { "isRef", NULL },
     { "isOut", NULL },
     { "isLazy", NULL },
