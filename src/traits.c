@@ -165,6 +165,25 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
     }
 }
 
+/***************************************************
+ * Determine if type t is copyable.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if we can copy it
+ */
+static bool isCopyable(Type *t)
+{
+    //printf("isCopyable() %s\n", t->toChars());
+    if (TypeStruct *ts = t->isTypeStruct())
+    {
+        if (ts->sym->postblit &&
+            (ts->sym->postblit->storage_class & STCdisable))
+            return false;
+    }
+    return true;
+}
+
 /************************ TraitsExp ************************************/
 
 static Expression *True(TraitsExp *e)  { return new IntegerExp(e->loc, true, Type::tbool); }
@@ -396,6 +415,7 @@ TraitsInitializer::TraitsInitializer()
         "getTargetInfo",
         "getLocation",
         "hasPostblit",
+        "isCopyable",
         NULL
     };
 
@@ -733,6 +753,22 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return sd->postblit ? True(e) : False(e);
         }
         return False(e);
+    }
+    else if (e->ident == Id::isCopyable)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        RootObject *o = (*e->args)[0];
+        Type *t = isType(o);
+        if (!t)
+        {
+            e->error("type expected as second argument of __traits %s instead of %s",
+                e->ident->toChars(), o->toChars());
+            return new ErrorExp();
+        }
+
+        return isCopyable(t) ? True(e) : False(e);
     }
     else if (e->ident == Id::isNested)
     {
