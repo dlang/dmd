@@ -369,6 +369,7 @@ Msgtable msgtable[] =
     { "isReturnOnStack", NULL },
     { "isZeroInit", NULL },
     { "getTargetInfo", NULL },
+    { "getLocation", NULL },
 
     // For C++ mangling
     { "allocator", NULL },
