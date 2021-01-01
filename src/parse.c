@@ -7035,6 +7035,8 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKsuper ||
                          token.value == TOKenum ||
                          token.value == TOKinterface ||
+                         token.value == TOKmodule ||
+                         token.value == TOKpackage ||
                          token.value == TOKargTypes ||
                          token.value == TOKparameters ||
                          (token.value == TOKconst && peek(&token)->value == TOKrparen) ||

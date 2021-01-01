@@ -8,3 +8,26 @@
 
 static assert(!__traits(compiles, { a.init; }));
 static assert(!__traits(compiles, { import m : a; a.init; }));
+
+import imports.plainpackage.plainmodule;
+import imports.pkgmodule.plainmodule;
+
+struct MyStruct;
+
+alias a = imports.plainpackage;
+alias b = imports.pkgmodule.plainmodule;
+
+static assert(__traits(isPackage, imports.plainpackage));
+static assert(__traits(isPackage, a));
+static assert(!__traits(isPackage, imports.plainpackage.plainmodule));
+static assert(!__traits(isPackage, b));
+static assert(__traits(isPackage, imports.pkgmodule));
+static assert(!__traits(isPackage, MyStruct));
+
+static assert(!__traits(isModule, imports.plainpackage));
+static assert(!__traits(isModule, a));
+static assert(__traits(isModule, imports.plainpackage.plainmodule));
+static assert(__traits(isModule, b));
+// This is supposed to work even though we haven't directly imported imports.pkgmodule.
+static assert(__traits(isModule, imports.pkgmodule));
+static assert(!__traits(isModule, MyStruct));
