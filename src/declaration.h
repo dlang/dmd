@@ -149,6 +149,7 @@ public:
     bool isSynchronized() { return (storage_class & STCsynchronized) != 0; }
     bool isParameter()    { return (storage_class & STCparameter) != 0; }
     bool isDeprecated()   { return (storage_class & STCdeprecated) != 0; }
+    bool isDisabled()     { return (storage_class & STCdisable) != 0; }
     bool isOverride()     { return (storage_class & STCoverride) != 0; }
     bool isResult()       { return (storage_class & STCresult) != 0; }
     bool isField()        { return (storage_class & STCfield) != 0; }
