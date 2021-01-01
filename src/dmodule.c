@@ -34,7 +34,6 @@ Dsymbols Module::deferred2; // deferred Dsymbol's needing semantic2() run on the
 Dsymbols Module::deferred3; // deferred Dsymbol's needing semantic3() run on them
 unsigned Module::dprogress;
 
-const char *lookForSourceFile(const char **path, const char *filename);
 StringExp *semanticString(Scope *sc, Expression *exp, const char *s);
 
 void Module::_init()
@@ -72,7 +71,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     sfilename = NULL;
     importedFrom = NULL;
     srcfile = NULL;
-    srcfilePath = NULL;
     docfile = NULL;
 
     debuglevel = 0;
@@ -109,9 +107,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         fatal();
     }
     srcfile = new File(srcfilename);
-    if (!FileName::absolute(srcfilename))
-        srcfilePath = getcwd(NULL, 0);
-
     objfile = setOutfile(global.params.objname.ptr, global.params.objdir.ptr, filename, global.obj_ext.ptr);
 
     if (doDocComment)
@@ -215,6 +210,89 @@ static void checkModFileAlias(OutBuffer *buf, OutBuffer *dotmods,
     dotmods->writeByte('.');
 }
 
+/********************************************
+ * Look for the source file if it's different from filename.
+ * Look for .di, .d, directory, and along global.path.
+ * Does not open the file.
+ * Input:
+ *      filename        as supplied by the user
+ *      global.path
+ * Returns:
+ *      NULL if it's not different from filename.
+ */
+
+static const char *lookForSourceFile(const char *filename)
+{
+    /* Search along global.path for .di file, then .d file.
+     */
+    const char *sdi = FileName::forceExt(filename, global.hdr_ext.ptr);
+    if (FileName::exists(sdi) == 1)
+        return sdi;
+
+    const char *sd  = FileName::forceExt(filename, global.mars_ext.ptr);
+    if (FileName::exists(sd) == 1)
+        return sd;
+
+    if (FileName::exists(filename) == 2)
+    {
+        /* The filename exists and it's a directory.
+         * Therefore, the result should be: filename/package.d
+         * iff filename/package.d is a file
+         */
+        const char *ni = FileName::combine(filename, "package.di");
+        if (FileName::exists(ni) == 1)
+            return ni;
+        FileName::free(ni);
+        const char *n = FileName::combine(filename, "package.d");
+        if (FileName::exists(n) == 1)
+            return n;
+        FileName::free(n);
+    }
+
+    if (FileName::absolute(filename))
+        return NULL;
+
+    if (!global.path)
+        return NULL;
+
+    for (size_t i = 0; i < global.path->length; i++)
+    {
+        const char *p = (*global.path)[i];
+
+        const char *n = FileName::combine(p, sdi);
+        if (FileName::exists(n) == 1)
+        {
+            return n;
+        }
+        FileName::free(n);
+
+        n = FileName::combine(p, sd);
+        if (FileName::exists(n) == 1)
+        {
+            return n;
+        }
+        FileName::free(n);
+
+        const char *b = FileName::removeExt(filename);
+        n = FileName::combine(p, b);
+        FileName::free(b);
+        if (FileName::exists(n) == 2)
+        {
+            const char *n2i = FileName::combine(n, "package.di");
+            if (FileName::exists(n2i) == 1)
+                return n2i;
+            FileName::free(n2i);
+            const char *n2 = FileName::combine(n, "package.d");
+            if (FileName::exists(n2) == 1)
+            {
+                return n2;
+            }
+            FileName::free(n2);
+        }
+        FileName::free(n);
+    }
+    return NULL;
+}
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {
     //printf("Module::load(ident = '%s')\n", ident->toChars());
@@ -256,16 +334,9 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     /* Look for the source file
      */
-    const char *path;
-    const char *result = lookForSourceFile(&path, filename);
+    const char *result = lookForSourceFile(filename);
     if (result)
-    {
         m->srcfile = new File(result);
-        if (path)
-            m->srcfilePath = path;
-        else if (!FileName::absolute(result))
-            m->srcfilePath = getcwd(NULL, 0);
-    }
 
     if (!m->read(loc))
         return NULL;
@@ -1265,97 +1336,4 @@ Dsymbol *Package::search(const Loc &loc, Identifier *ident, int flags)
     }
 
     return ScopeDsymbol::search(loc, ident, flags);
-}
-
-/* ===========================  ===================== */
-
-/********************************************
- * Look for the source file if it's different from filename.
- * Look for .di, .d, directory, and along global.path.
- * Does not open the file.
- * Output:
- *      path            the path where the file was found if it was not the current directory
- * Input:
- *      filename        as supplied by the user
- *      global.path
- * Returns:
- *      NULL if it's not different from filename.
- */
-
-const char *lookForSourceFile(const char **path, const char *filename)
-{
-    /* Search along global.path for .di file, then .d file.
-     */
-    *path = NULL;
-
-    const char *sdi = FileName::forceExt(filename, global.hdr_ext.ptr);
-    if (FileName::exists(sdi) == 1)
-        return sdi;
-
-    const char *sd  = FileName::forceExt(filename, global.mars_ext.ptr);
-    if (FileName::exists(sd) == 1)
-        return sd;
-
-    if (FileName::exists(filename) == 2)
-    {
-        /* The filename exists and it's a directory.
-         * Therefore, the result should be: filename/package.d
-         * iff filename/package.d is a file
-         */
-        const char *ni = FileName::combine(filename, "package.di");
-        if (FileName::exists(ni) == 1)
-            return ni;
-        FileName::free(ni);
-        const char *n = FileName::combine(filename, "package.d");
-        if (FileName::exists(n) == 1)
-            return n;
-        FileName::free(n);
-    }
-
-    if (FileName::absolute(filename))
-        return NULL;
-
-    if (!global.path)
-        return NULL;
-
-    for (size_t i = 0; i < global.path->length; i++)
-    {
-        const char *p = (*global.path)[i];
-
-        const char *n = FileName::combine(p, sdi);
-        if (FileName::exists(n) == 1)
-        {
-            *path = p;
-            return n;
-        }
-        FileName::free(n);
-
-        n = FileName::combine(p, sd);
-        if (FileName::exists(n) == 1)
-        {
-            *path = p;
-            return n;
-        }
-        FileName::free(n);
-
-        const char *b = FileName::removeExt(filename);
-        n = FileName::combine(p, b);
-        FileName::free(b);
-        if (FileName::exists(n) == 2)
-        {
-            const char *n2i = FileName::combine(n, "package.di");
-            if (FileName::exists(n2i) == 1)
-                return n2i;
-            FileName::free(n2i);
-            const char *n2 = FileName::combine(n, "package.d");
-            if (FileName::exists(n2) == 1)
-            {
-                *path = p;
-                return n2;
-            }
-            FileName::free(n2);
-        }
-        FileName::free(n);
-    }
-    return NULL;
 }
