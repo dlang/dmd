@@ -398,8 +398,10 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 auto tf2 = cast(TypeFunction) f2.type;
 
                 // extern (C) functions always conflict each other.
+                auto parent1 = f1.toParent2();
                 if (f1.ident == f2.ident &&
-                    f1.toParent2() == f2.toParent2() &&
+                    parent1 == f2.toParent2() &&
+                    parent1.isModule() &&
                     (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
                     (f2.linkage != LINK.d && f2.linkage != LINK.cpp) &&
 
