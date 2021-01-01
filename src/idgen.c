@@ -370,6 +370,7 @@ Msgtable msgtable[] =
     { "isZeroInit", NULL },
     { "getTargetInfo", NULL },
     { "getLocation", NULL },
+    { "hasPostblit", NULL },
 
     // For C++ mangling
     { "allocator", NULL },

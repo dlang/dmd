@@ -76,3 +76,57 @@ struct Outer
 static assert(__traits(getLocation, Outer.Nested)[1] == 83);
 static assert(__traits(getLocation, Outer.method)[1] == 85);
 
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19902
+// Define hasElaborateCopyConstructor trait
+// but done as two independent traits per conversation
+// in https://github.com/dlang/dmd/pull/10265
+
+struct S
+{
+    this (ref S rhs) {}
+}
+
+struct OuterS
+{
+    struct S
+    {
+        this (ref S rhs) {}
+    }
+
+    S s;
+}
+
+void foo(T)()
+{
+    struct S(U)
+    {
+        this (ref S rhs) {}
+    }
+}
+
+struct U(T)
+{
+    this (ref U rhs) {}
+}
+
+struct SPostblit
+{
+    this(this) {}
+}
+
+struct NoCpCtor { }
+class C19902 { }
+
+static assert(__traits(compiles, foo!int));
+static assert(__traits(compiles, foo!S));
+static assert(!__traits(hasPostblit, U!S));
+static assert(__traits(hasPostblit, SPostblit));
+
+static assert(!__traits(hasPostblit, NoCpCtor));
+static assert(!__traits(hasPostblit, C19902));
+static assert(!__traits(hasPostblit, int));
+
+// Check that invalid use cases don't compile
+static assert(!__traits(compiles, __traits(hasPostblit)));
+static assert(!__traits(compiles, __traits(hasPostblit, S())));
