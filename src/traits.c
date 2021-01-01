@@ -51,11 +51,36 @@ Expression *typeToExpression(Type *t);
 
 struct Ptrait
 {
+    Dsymbol *sym;
     Expression *e1;
     Expressions *exps;          // collected results
     Identifier *ident;          // which trait we're looking for
     bool includeTemplates;
+    AA **funcTypeHash;
 };
+
+/* Compute the function signature and insert it in the
+ * hashtable, if not present. This is needed so that
+ * traits(getOverlods, F3, "visit") does not count `int visit(int)`
+ * twice in the following example:
+ *
+ * =============================================
+ * interface F1 { int visit(int);}
+ * interface F2 { int visit(int); void visit(); }
+ * interface F3 : F2, F1 {}
+ *==============================================
+ */
+static void insertInterfaceInheritedFunction(Ptrait *p, FuncDeclaration *fd, Expression *e)
+{
+    Identifier *signature = Identifier::idPool(fd->type->toChars());
+    //printf("%s - %s\n", fd->toChars, signature);
+    if (!dmd_aaGetRvalue(*p->funcTypeHash, (void *)signature))
+    {
+        bool* value = (bool*) dmd_aaGet(p->funcTypeHash, (void *)signature);
+        *value = true;
+        p->exps->push(e);
+    }
+}
 
 static int fptraits(void *param, Dsymbol *s)
 {
@@ -65,24 +90,30 @@ static int fptraits(void *param, Dsymbol *s)
         p->exps->push(new DsymbolExp(Loc(),s, false));
         return 0;
     }
-    FuncDeclaration *f = s->isFuncDeclaration();
-    if (!f)
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (!fd)
         return 0;
 
-    if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
+    if (p->ident == Id::getVirtualFunctions && !fd->isVirtual())
         return 0;
 
-    if (p->ident == Id::getVirtualMethods && !f->isVirtualMethod())
+    if (p->ident == Id::getVirtualMethods && !fd->isVirtualMethod())
         return 0;
 
     Expression *e;
-    FuncAliasDeclaration* ad = new FuncAliasDeclaration(f->ident, f, false);
-    ad->protection = f->protection;
+    FuncAliasDeclaration* ad = new FuncAliasDeclaration(fd->ident, fd, false);
+    ad->protection = fd->protection;
     if (p->e1)
         e = new DotVarExp(Loc(), p->e1, ad, false);
     else
         e = new DsymbolExp(Loc(), ad, false);
-    p->exps->push(e);
+     // if the parent is an interface declaration
+     // we must check for functions with the same signature
+     // in different inherited interfaces
+     if (p->sym->isInterfaceDeclaration())
+         insertInterfaceInheritedFunction(p, fd, e);
+     else
+         p->exps->push(e);
     return 0;
 }
 
@@ -1062,11 +1093,31 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             else
                 f = NULL;
             Ptrait p;
+            p.sym = sym;
             p.exps = exps;
             p.e1 = ex;
             p.ident = e->ident;
             p.includeTemplates = includeTemplates;
-            overloadApply(f, &p, &fptraits);
+            AA *funcTypeHash = NULL;
+            p.funcTypeHash = &funcTypeHash;
+
+            InterfaceDeclaration *ifd = NULL;
+            if (sym)
+                ifd = sym->isInterfaceDeclaration();
+            // If the symbol passed as a parameter is an
+            // interface that inherits other interfaces
+            if (ifd && ifd->interfaces.length)
+            {
+                // check the overloads of each inherited interface individually
+                for (size_t i = 0; i < ifd->interfaces.length; i++)
+                {
+                    BaseClass *bc = ifd->interfaces.ptr[i];
+                    if (Dsymbol *fd = bc->sym->search(e->loc, f->ident))
+                        overloadApply(fd, &p, &fptraits);
+                }
+            }
+            else
+                overloadApply(f, &p, &fptraits);
 
             ex = new TupleExp(e->loc, exps);
             ex = semantic(ex, scx);
