@@ -395,6 +395,7 @@ TraitsInitializer::TraitsInitializer()
         "isZeroInit",
         "getTargetInfo",
         "getLocation",
+        "hasPostblit",
         NULL
     };
 
@@ -711,6 +712,27 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return (sd->isPOD()) ? True(e) : False(e);
         }
         return True(e);
+    }
+    else if (e->ident == Id::hasPostblit)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        RootObject *o = (*e->args)[0];
+        Type *t = isType(o);
+        if (!t)
+        {
+            e->error("type expected as second argument of __traits %s instead of %s",
+                e->ident->toChars(), o->toChars());
+            return new ErrorExp();
+        }
+
+        Type *tb = t->baseElemOf();
+        if (StructDeclaration *sd = (tb->ty == Tstruct) ? ((TypeStruct *)tb)->sym : NULL)
+        {
+            return sd->postblit ? True(e) : False(e);
+        }
+        return False(e);
     }
     else if (e->ident == Id::isNested)
     {
