@@ -361,10 +361,11 @@ TraitsInitializer::TraitsInitializer()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
+        "isZeroInit",
         NULL
     };
 
-    traitsStringTable._init(40);
+    traitsStringTable._init(56);
 
     for (size_t idx = 0;; idx++)
     {
@@ -1675,6 +1676,23 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     else if (e->ident == Id::getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+    else if (e->ident == Id::isZeroInit)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        RootObject *o = (*e->args)[0];
+        Type *t = isType(o);
+        if (!t)
+        {
+            e->error("type expected as second argument of __traits `%s` instead of `%s`",
+                e->ident->toChars(), o->toChars());
+            return new ErrorExp();
+        }
+
+        Type *tb = t->baseElemOf();
+        return tb->isZeroInit(e->loc) ? True(e) : False(e);
     }
 
     if (const char *sub = (const char *)speller(e->ident->toChars(), &trait_search_fp, NULL, idchars))
