@@ -363,6 +363,7 @@ TraitsInitializer::TraitsInitializer()
         "getPointerBitmap",
         "isZeroInit",
         "getTargetInfo",
+        "getLocation",
         NULL
     };
 
@@ -1716,6 +1717,36 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
         }
         return semantic(r, sc);
+    }
+    else if (e->ident == Id::getLocation)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+        RootObject *arg0 = (*e->args)[0];
+        Dsymbol *s = getDsymbol(arg0);
+        if (!s)
+        {
+            e->error("can only get the location of a symbol, not `%s`", arg0->toChars());
+            return new ErrorExp();
+        }
+
+        const FuncDeclaration *fd = s->isFuncDeclaration();
+        if (fd && fd->overnext)
+        {
+            e->error("cannot get location of an overload set, "
+                     "use `__traits(getOverloads, ..., \"%s\"%s)[N]` "
+                     "to get the Nth overload",
+                     arg0->toChars(), "");
+            return new ErrorExp();
+        }
+
+        Expressions *exps = new Expressions();
+        exps->setDim(3);
+        (*exps)[0] = new StringExp(e->loc, const_cast<char *>(s->loc.filename), strlen(s->loc.filename));
+        (*exps)[1] = new IntegerExp(e->loc, s->loc.linnum, Type::tint32);
+        (*exps)[2] = new IntegerExp(e->loc, s->loc.charnum, Type::tint32);
+        TupleExp *tup = new TupleExp(e->loc, exps);
+        return semantic(tup, sc);
     }
 
     if (const char *sub = (const char *)speller(e->ident->toChars(), &trait_search_fp, NULL, idchars))
