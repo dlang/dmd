@@ -40,7 +40,7 @@
 #include "irstate.h"
 
 void clearStringTab();
-RET retStyle(TypeFunction *tf);
+RET retStyle(TypeFunction *tf, bool needsThis);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
@@ -942,7 +942,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     assert(fd->type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)fd->type;
-    RET retmethod = retStyle(tf);
+    RET retmethod = retStyle(tf, fd->needThis());
     if (retmethod == RETstack)
     {
         // If function returns a struct, put a pointer to that
@@ -1423,7 +1423,7 @@ unsigned totym(Type *tx)
                 Lc:
                     t = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                    if (I32 && retStyle(tf) == RETstack)
+                    if (I32 && retStyle(tf, false) == RETstack)
                         t = TYhfunc;
 #endif
                     break;

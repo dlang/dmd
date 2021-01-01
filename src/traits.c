@@ -32,6 +32,7 @@
 #include "attrib.h"
 #include "parse.h"
 #include "root/speller.h"
+#include "target.h"
 
 typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
 int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
@@ -137,6 +138,51 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
 
 static Expression *True(TraitsExp *e)  { return new IntegerExp(e->loc, true, Type::tbool); }
 static Expression *False(TraitsExp *e) { return new IntegerExp(e->loc, false, Type::tbool); }
+
+/**
+   Gets the function type from a given AST node
+   if the node is a function of some sort.
+
+ Params:
+    o = an AST node to check for a `TypeFunction`
+    fdp = optional pointer to a function declararion, to be set
+      if `o` is a function declarartion.
+
+ Returns:
+    a type node if `o` is a declaration of
+        a delegate, function, function-pointer
+      or a variable of the former.  Otherwise, `null`.
+*/
+static TypeFunction *toTypeFunction(RootObject *o, FuncDeclaration **fdp = NULL)
+{
+    Dsymbol *s = getDsymbol(o);
+    Type *t = isType(o);
+    TypeFunction *tf = NULL;
+
+    if (s)
+    {
+        FuncDeclaration *fd = s->isFuncDeclaration();
+        if (fd)
+        {
+            t = fd->type;
+            if (fdp)
+                *fdp = fd;
+        }
+        else if (VarDeclaration *vd = s->isVarDeclaration())
+            t = vd->type;
+    }
+    if (t)
+    {
+        if (t->ty == Tfunction)
+            tf = (TypeFunction *)t;
+        else if (t->ty == Tdelegate)
+            tf = (TypeFunction *)t->nextOf();
+        else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+            tf = (TypeFunction *)t->nextOf();
+    }
+
+    return tf;
+}
 
 static bool isTypeArithmetic(Type *t)       { return t->isintegral() || t->isfloating(); }
 static bool isTypeFloating(Type *t)         { return t->isfloating(); }
@@ -290,6 +336,7 @@ TraitsInitializer::TraitsInitializer()
         "isRef",
         "isOut",
         "isLazy",
+        "isReturnOnStack",
         "hasMember",
         "identifier",
         "getProtection",
@@ -1097,30 +1144,14 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     }
     else if (e->ident == Id::getFunctionAttributes)
     {
-        /// extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
+        /* extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
+         * https://dlang.org/spec/traits.html#getFunctionAttributes
+         */
         if (dim != 1)
             return dimError(e, 1, dim);
 
-        RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
-        Type *t = isType(o);
-        TypeFunction *tf = NULL;
-        if (s)
-        {
-            if (FuncDeclaration *f = s->isFuncDeclaration())
-                t = f->type;
-            else if (VarDeclaration *v = s->isVarDeclaration())
-                t = v->type;
-        }
-        if (t)
-        {
-            if (t->ty == Tfunction)
-                tf = (TypeFunction *)t;
-            else if (t->ty == Tdelegate)
-                tf = (TypeFunction *)t->nextOf();
-            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)t->nextOf();
-        }
+        TypeFunction *tf = toTypeFunction((*e->args)[0]);
+
         if (!tf)
         {
             e->error("first argument is not a function");
@@ -1135,6 +1166,27 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         TupleExp *tup = new TupleExp(e->loc, mods);
         return semantic(tup, sc);
+    }
+    else if (e->ident == Id::isReturnOnStack)
+    {
+        /* Extract as a boolean if function return value is on the stack
+         * https://dlang.org/spec/traits.html#isReturnOnStack
+         */
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        RootObject *o = (*e->args)[0];
+        FuncDeclaration *fd = NULL;
+        TypeFunction *tf = toTypeFunction(o, &fd);
+
+        if (!tf)
+        {
+            e->error("argument to `__traits(isReturnOnStack, %s)` is not a function", o->toChars());
+            return new ErrorExp();
+        }
+
+        bool value = target.isReturnOnStack(tf, fd && fd->needThis());
+        return new IntegerExp(e->loc, value, Type::tbool);
     }
     else if (e->ident == Id::getFunctionVariadicStyle)
     {
@@ -1151,17 +1203,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         LINK link;
         VarArg varargs;
         RootObject *o = (*e->args)[0];
-        Type *t = isType(o);
-        TypeFunction *tf = NULL;
-        if (t)
-        {
-            if (t->ty == Tfunction)
-                tf = (TypeFunction *)t;
-            else if (t->ty == Tdelegate)
-                tf = (TypeFunction *)t->nextOf();
-            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)t->nextOf();
-        }
+        FuncDeclaration *fd = NULL;
+        TypeFunction *tf = toTypeFunction(o, &fd);
+
         if (tf)
         {
             link = tf->linkage;
@@ -1169,9 +1213,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         else
         {
-            Dsymbol *s = getDsymbol(o);
-            FuncDeclaration *fd = NULL;
-            if (!s || (fd = s->isFuncDeclaration()) == NULL)
+            if (!fd)
             {
                 e->error("argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o->toChars());
                 return new ErrorExp();
@@ -1201,19 +1243,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         if (dim != 2)
             return dimError(e, 2, dim);
 
-        RootObject *o1 = (*e->args)[1];
         RootObject *o = (*e->args)[0];
-        Type *t = isType(o);
-        TypeFunction *tf = NULL;
-        if (t)
-        {
-            if (t->ty == Tfunction)
-                tf = (TypeFunction *)t;
-            else if (t->ty == Tdelegate)
-                tf = (TypeFunction *)t->nextOf();
-            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)t->nextOf();
-        }
+        RootObject *o1 = (*e->args)[1];
+
+        FuncDeclaration *fd = NULL;
+        TypeFunction *tf = toTypeFunction(o, &fd);
+
         ParameterList fparams;
         if (tf)
         {
@@ -1221,9 +1256,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         else
         {
-            Dsymbol *s = getDsymbol(o);
-            FuncDeclaration *fd = NULL;
-            if (!s || (fd = s->isFuncDeclaration()) == NULL)
+            if (!fd)
             {
                 e->error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
                     o->toChars(), o1->toChars());
@@ -1298,17 +1331,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         LINK link;
         RootObject *o = (*e->args)[0];
-        Type *t = isType(o);
-        TypeFunction *tf = NULL;
-        if (t)
-        {
-            if (t->ty == Tfunction)
-                tf = (TypeFunction *)t;
-            else if (t->ty == Tdelegate)
-                tf = (TypeFunction *)t->nextOf();
-            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)t->nextOf();
-        }
+
+        TypeFunction *tf = toTypeFunction(o);
+
         if (tf)
             link = tf->linkage;
         else

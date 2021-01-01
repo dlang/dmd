@@ -22,6 +22,7 @@ class Expression;
 class FuncDeclaration;
 class Parameter;
 class Type;
+class TypeFunction;
 class TypeTuple;
 struct OutBuffer;
 
@@ -105,6 +106,7 @@ public:
     // ABI and backend.
     LINK systemLinkage();
     TypeTuple *toArgTypes(Type *t);
+    bool isReturnOnStack(TypeFunction *tf, bool needsThis);
 };
 
 extern Target target;
