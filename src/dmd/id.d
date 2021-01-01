@@ -440,6 +440,7 @@ immutable Msgtable[] msgtable =
     { "hasMember" },
     { "identifier" },
     { "getProtection" },
+    { "getVisibility" },
     { "parent" },
     { "child" },
     { "getMember" },
