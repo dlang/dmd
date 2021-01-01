@@ -12,6 +12,7 @@ class AC2 { abstract void foo(); }
 class AC3 : AC2 { }
 final class FC { void foo() { } }
 enum E { EMEM }
+struct D1 { @disable void true_(); void false_(){} }
 
 /********************************************************/
 
@@ -1561,6 +1562,15 @@ enum E10100
 static assert(
     [__traits(allMembers, E10100)] ==
     ["value", "_value", "__value", "___value", "____value"]);
+
+/********************************************************/
+
+void testIsDisabled()
+{
+    static assert(__traits(isDisabled, D1.true_));
+    static assert(!__traits(isDisabled, D1.false_));
+    static assert(!__traits(isDisabled, D1));
+}
 
 /********************************************************/
 

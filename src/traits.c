@@ -169,6 +169,7 @@ static Expression *isDsymX(TraitsExp *e, bool (*fp)(Dsymbol *s))
     return True(e);
 }
 
+static bool isFuncDisabled(FuncDeclaration *f) { return f->isDisabled(); }
 static bool isFuncAbstractFunction(FuncDeclaration *f) { return f->isAbstract(); }
 static bool isFuncVirtualFunction(FuncDeclaration *f) { return f->isVirtual(); }
 static bool isFuncVirtualMethod(FuncDeclaration *f) { return f->isVirtualMethod(); }
@@ -240,6 +241,7 @@ TraitsInitializer::TraitsInitializer()
         "isAbstractClass",
         "isArithmetic",
         "isAssociativeArray",
+        "isDisabled",
         "isDeprecated",
         "isFinalClass",
         "isPOD",
@@ -612,6 +614,13 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         e->error("aggregate or function expected instead of '%s'", o->toChars());
         return new ErrorExp();
+    }
+    else if (e->ident == Id::isDisabled)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        return isFuncX(e, &isFuncDisabled);
     }
     else if (e->ident == Id::isAbstractFunction)
     {
