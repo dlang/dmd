@@ -6821,12 +6821,8 @@ Expression *Parser::parsePrimaryExp()
 
         case TOKfilefullpath:
         {
-            const char *srcfile = mod->srcfile->name->toChars();
-            const char *s;
-            if (loc.filename && !FileName::equals(loc.filename, srcfile))
-                s = loc.filename;
-            else
-                s = FileName::combine(mod->srcfilePath, srcfile);
+            assert(loc.filename); // __FILE_FULL_PATH__ does not work with an invalid location
+            const char *s = FileName::toAbsolute(loc.filename);
             e = new StringExp(loc, const_cast<char *>(s), strlen(s), 0);
             nextToken();
             break;
