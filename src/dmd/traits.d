@@ -122,6 +122,7 @@ shared static this()
         "hasMember",
         "identifier",
         "getProtection",
+        "getVisibility",
         "parent",
         "child",
         "getLinkage",
@@ -428,7 +429,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
-        e.ident != Id.getProtection &&
+        e.ident != Id.getProtection && e.ident != Id.getVisibility &&
         e.ident != Id.getAttributes)
     {
         // Pretend we're in a deprecated scope so that deprecation messages
@@ -821,7 +822,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
-    if (e.ident == Id.getProtection)
+    if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
         if (dim != 1)
             return dimError(1);

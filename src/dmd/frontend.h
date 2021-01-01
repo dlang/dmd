@@ -7714,6 +7714,7 @@ struct Id
     static Identifier* hasMember;
     static Identifier* identifier;
     static Identifier* getProtection;
+    static Identifier* getVisibility;
     static Identifier* parent;
     static Identifier* child;
     static Identifier* getMember;
