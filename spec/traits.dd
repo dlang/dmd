@@ -61,6 +61,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getParameterStorageClasses)
     $(GLINK getPointerBitmap)
     $(GLINK getCppNamespaces)
+    $(GLINK getVisibility)
     $(GLINK getProtection)
     $(GLINK getTargetInfo)
     $(GLINK getVirtualFunctions)
@@ -1148,10 +1149,10 @@ void main()
 ---
 )
 
-$(H2 $(GNAME getProtection))
+$(H2 $(GNAME getVisibility))
 
         $(P The argument is a symbol.
-        The result is a string giving its protection level: "public", "private", "protected", "export", or "package".
+        The result is a string giving its visibility level: "public", "private", "protected", "export", or "package".
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1168,10 +1169,10 @@ void main()
 {
     D d = new D();
 
-    auto i = __traits(getProtection, d.foo);
+    auto i = __traits(getVisibility, d.foo);
     writeln(i);
 
-    auto j = __traits(getProtection, d.bar);
+    auto j = __traits(getVisibility, d.bar);
     writeln(j);
 }
 ---
@@ -1183,6 +1184,10 @@ $(CONSOLE
 export
 public
 )
+
+$(H2 $(GNAME getProtection))
+
+        $(P A backward-compatible alias for $(GLINK getVisibility).)
 
 $(H2 $(GNAME getTargetInfo))
 
