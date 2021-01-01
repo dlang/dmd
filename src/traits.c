@@ -570,6 +570,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     }
     else if (e->ident == Id::isTemplate)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isSymbolX(e, &isTemplate);
     }
     else if (e->ident == Id::isPOD)
@@ -624,38 +627,65 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     }
     else if (e->ident == Id::isAbstractFunction)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isFuncX(e, &isFuncAbstractFunction);
     }
     else if (e->ident == Id::isVirtualFunction)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isFuncX(e, &isFuncVirtualFunction);
     }
     else if (e->ident == Id::isVirtualMethod)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isFuncX(e, &isFuncVirtualMethod);
     }
     else if (e->ident == Id::isFinalFunction)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isFuncX(e, &isFuncFinalFunction);
     }
     else if (e->ident == Id::isOverrideFunction)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isFuncX(e, &isFuncOverrideFunction);
     }
     else if (e->ident == Id::isStaticFunction)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isFuncX(e, &isFuncStaticFunction);
     }
     else if (e->ident == Id::isRef)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isDeclX(e, &isDeclRef);
     }
     else if (e->ident == Id::isOut)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isDeclX(e, &isDeclOut);
     }
     else if (e->ident == Id::isLazy)
     {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
         return isDeclX(e, &isDeclLazy);
     }
     else if (e->ident == Id::identifier)
