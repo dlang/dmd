@@ -1731,15 +1731,11 @@ extern(C++):
         else
         {
             assert(t.basetype && t.basetype.ty == Tsarray);
-            assert((cast(TypeSArray)t.basetype).dim);
-            version (none)
-            {
-                buf.writestring("Dv");
-                buf.print((cast(TypeSArray *)t.basetype).dim.toInteger()); // -- Gnu ABI v.4
-                buf.writeByte('_');
-            }
-            else
-                buf.writestring("U8__vector"); //-- Gnu ABI v.3
+            auto tsa = t.basetype.isTypeSArray();
+            assert(tsa.dim);
+            buf.writestring("Dv");          // -- Gnu ABI v.4
+            buf.print(tsa.dim.toInteger());
+            buf.writeByte('_');
             t.basetype.nextOf().accept(this);
         }
     }
