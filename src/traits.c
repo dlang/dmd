@@ -110,7 +110,7 @@ static int fptraits(void *param, Dsymbol *s)
      // if the parent is an interface declaration
      // we must check for functions with the same signature
      // in different inherited interfaces
-     if (p->sym->isInterfaceDeclaration())
+     if (p->sym && p->sym->isInterfaceDeclaration())
          insertInterfaceInheritedFunction(p, fd, e);
      else
          p->exps->push(e);

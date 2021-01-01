@@ -4,10 +4,19 @@
 // This file is intended to contain all compilable traits-related tests in an
 // effort to keep the number of files in the `compilable` folder to a minimum.
 
+// https://issues.dlang.org/show_bug.cgi?id=19152
 module traits;
 
-static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
+class C19152
+{
+    int OnExecute()
+    {
+        auto name = __traits(getOverloads, this, "OnExecute").stringof;
+        return 0;
+    }
+}
 
+static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
 version (CppRuntime_Microsoft)
 {
     static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
@@ -47,16 +56,16 @@ version(Windows)
     static assert(__traits(getLocation, MyStruct)[0] == `compilable\traits.d`);
 else
     static assert(__traits(getLocation, MyStruct)[0] == "compilable/traits.d");
-static assert(__traits(getLocation, MyStruct)[1] == 39);
+static assert(__traits(getLocation, MyStruct)[1] == 40);
 static assert(__traits(getLocation, MyStruct)[2] == 1);
 
 int foo();
 int foo(int);
 
-static assert(__traits(getLocation, __traits(getOverloads, traits, "foo")[1])[1] == 73);
+static assert(__traits(getLocation, __traits(getOverloads, traits, "foo")[1])[1] == 74);
 
 mixin("int bar;");
-static assert(__traits(getLocation, bar)[1] == 77);
+static assert(__traits(getLocation, bar)[1] == 78);
 
 struct Outer
 {
@@ -64,6 +73,6 @@ struct Outer
 
     void method() {}
 }
-static assert(__traits(getLocation, Outer.Nested)[1] == 82);
-static assert(__traits(getLocation, Outer.method)[1] == 84);
+static assert(__traits(getLocation, Outer.Nested)[1] == 83);
+static assert(__traits(getLocation, Outer.method)[1] == 85);
 
