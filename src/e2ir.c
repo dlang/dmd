@@ -43,7 +43,7 @@
 #include        "errors.h"
 
 typedef Array<elem *> Elems;
-RET retStyle(TypeFunction *tf);
+RET retStyle(TypeFunction *tf, bool needsThis);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
@@ -171,7 +171,7 @@ elem *callfunc(Loc loc,
         assert(t->ty == Tfunction);
         tf = (TypeFunction *)(t);
     }
-    retmethod = retStyle(tf);
+    retmethod = retStyle(tf, fd && fd->needThis());
     ty = ec->Ety;
     if (fd)
         ty = toSymbol(fd)->Stype->Tty;
@@ -2822,7 +2822,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 CallExp *ce = (CallExp *)ae->e2;
                 TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
-                if (tf->ty == Tfunction && retStyle(tf) == RETstack)
+                if (tf->ty == Tfunction && retStyle(tf, ce->f && ce->f->needThis()) == RETstack)
                 {
                     elem *ehidden = e1;
                     ehidden = el_una(OPaddr, TYnptr, ehidden);

@@ -88,7 +88,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 
 // toir
 
-RET retStyle(TypeFunction *tf)
+RET retStyle(TypeFunction *tf, bool needsThis)
 {
     return RETregs;
 }

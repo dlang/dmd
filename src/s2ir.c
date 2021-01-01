@@ -49,7 +49,7 @@ Symbol *toSymbol(Type *t);
 Symbol *toSymbolCpp(ClassDeclaration *cd);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
-RET retStyle(TypeFunction *tf);
+RET retStyle(TypeFunction *tf, bool needsThis);
 
 #define elem_setLoc(e,loc)      srcpos_setLoc(&(e)->Esrcpos, loc)
 #define block_setLoc(b,loc)     srcpos_setLoc(&(b)->Bsrcpos, loc)
@@ -755,7 +755,7 @@ public:
             assert(func->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)(func->type);
 
-            RET retmethod = retStyle(tf);
+            RET retmethod = retStyle(tf, func->needThis());
             if (retmethod == RETstack)
             {
                 elem *es;
