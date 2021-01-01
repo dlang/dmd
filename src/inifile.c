@@ -266,8 +266,8 @@ void parseConfFile(StringTable *environment, const char *path, size_t length, un
         }
 
         // Remove trailing spaces
-	unsigned char *bufptr = buf.slice().ptr;
-	size_t buflen = buf.length();
+        unsigned char *bufptr = buf.slice().ptr;
+        size_t buflen = buf.length();
         while (buflen && isspace(bufptr[buflen - 1]))
             buflen--;
         buf.setsize(buflen);

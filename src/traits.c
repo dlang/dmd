@@ -53,15 +53,21 @@ struct Ptrait
     Expression *e1;
     Expressions *exps;          // collected results
     Identifier *ident;          // which trait we're looking for
+    bool includeTemplates;
 };
 
 static int fptraits(void *param, Dsymbol *s)
 {
+    Ptrait *p = (Ptrait *)param;
+    if (p->includeTemplates)
+    {
+        p->exps->push(new DsymbolExp(Loc(),s, false));
+        return 0;
+    }
     FuncDeclaration *f = s->isFuncDeclaration();
     if (!f)
         return 0;
 
-    Ptrait *p = (Ptrait *)param;
     if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
         return 0;
 
@@ -877,7 +883,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
              e->ident == Id::getVirtualMethods ||
              e->ident == Id::getVirtualFunctions)
     {
-        if (dim != 2)
+        if (dim != 2 && !(dim == 3 && e->ident == Id::getOverloads))
             return dimError(e, 2, dim);
 
         RootObject *o = (*e->args)[0];
@@ -888,6 +894,19 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
         }
         ex = ex->ctfeInterpret();
+
+        bool includeTemplates = false;
+        if (dim == 3 && e->ident == Id::getOverloads)
+        {
+            Expression *b = isExpression((*e->args)[2]);
+            b = b->ctfeInterpret();
+            if (!b->type->equals(Type::tbool))
+            {
+                e->error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b->toChars(), b->type->toChars());
+                return new ErrorExp();
+            }
+            includeTemplates = b->isBool(true);
+        }
 
         StringExp *se = ex->toStringExp();
         if (!se || se->len == 0)
@@ -965,7 +984,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             /* Create tuple of functions of ex
              */
             Expressions *exps = new Expressions();
-            FuncDeclaration *f;
+            Dsymbol *f;
             if (ex->op == TOKvar)
             {
                 VarExp *ve = (VarExp *)ex;
@@ -981,12 +1000,22 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 else
                     ex = dve->e1;
             }
+            else if (ex->op == TOKtemplate)
+            {
+                TemplateExp *te = (TemplateExp *)ex;
+                TemplateDeclaration *td = te->td;
+                f = td;
+                if (td && td->funcroot)
+                    f = td->funcroot;
+                ex = NULL;
+            }
             else
                 f = NULL;
             Ptrait p;
             p.exps = exps;
             p.e1 = ex;
             p.ident = e->ident;
+            p.includeTemplates = includeTemplates;
             overloadApply(f, &p, &fptraits);
 
             ex = new TupleExp(e->loc, exps);
