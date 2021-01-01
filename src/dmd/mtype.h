@@ -595,6 +595,7 @@ public:
     Type *addStorageClass(StorageClass stc);
 
     Type *substWildTo(unsigned mod);
+    MATCH constConv(Type *to);
 
     bool isnothrow() const;
     void isnothrow(bool v);

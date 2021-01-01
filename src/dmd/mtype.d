@@ -5025,6 +5025,16 @@ extern (C++) final class TypeFunction : TypeNext
         return MATCH.nomatch;
     }
 
+    /** Extends TypeNext.constConv by also checking for matching attributes **/
+    override MATCH constConv(Type to)
+    {
+        // Attributes need to match exactly, otherwise it's an implicit conversion
+        if (this.ty != to.ty || !this.attributesEqual(cast(TypeFunction) to))
+            return MATCH.nomatch;
+
+        return super.constConv(to);
+    }
+
     extern (D) bool checkRetType(const ref Loc loc)
     {
         Type tb = next.toBasetype();

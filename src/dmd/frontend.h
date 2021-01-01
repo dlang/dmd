@@ -5357,6 +5357,7 @@ public:
     StorageClass parameterStorageClass(Type* tthis, Parameter* p);
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
+    MATCH constConv(Type* to);
     bool isnothrow() const;
     void isnothrow(bool v);
     bool isnogc() const;
