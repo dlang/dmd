@@ -662,7 +662,6 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
                     immutable pre = "";
                     i = buf.insert(iCodeStart, pre);
                     i = buf.insert(i, codebuf[]);
-                    i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }
                 inBacktick = true;

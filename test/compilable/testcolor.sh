@@ -35,6 +35,12 @@ check -color=auto "test" "$expectedWithoutColor"
 check -color=on "test" "$expectedWithColor"
 check -color=off "test" "$expectedWithoutColor"
 
+gooCode="void foo() {} void main() { goo(); }"
+gooExpectedWithoutColor='__stdin.d(1): Error: undefined identifier `goo`, did you mean function `foo`?'
+gooExpectedWithColor=$'\033[1m__stdin.d(1): \033[1;31mError: \033[mundefined identifier `\033[0;36m\033[m\033[1mgoo\033[0;36m\033[m`, did you mean function `\033[0;36m\033[m\033[1mfoo\033[0;36m\033[m`?'
+check -color=on "$gooCode" "$gooExpectedWithColor"
+check -color=off "$gooCode" "$gooExpectedWithoutColor"
+
 if [[ "$(script --version)" == script\ from\ util-linux\ * ]]
 then
     actual="$(SHELL="$(command -v bash)" TERM="faketerm" script -q -c "echo test | ( $DMD -c -o- -)" /dev/null | normalize)" || true
