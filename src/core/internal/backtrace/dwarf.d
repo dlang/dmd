@@ -169,64 +169,89 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
 
     auto image = Image.openSelf();
 
-    int processCallstack(const(ubyte)[] debugLineSectionData)
+    // find address -> file, line mapping using dwarf debug_line
+    Array!Location locations;
+    locations.length = callstack.length;
+    foreach (size_t i; 0 .. callstack.length)
     {
-        // find address -> file, line mapping using dwarf debug_line
-        Array!Location locations;
-        locations.length = callstack.length;
-        foreach (size_t i; 0 .. callstack.length)
-        {
-            locations[i].address = callstack[i];
-            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
-        }
-
-        if (debugLineSectionData)
-            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
-
-        char[1536] buffer = void;
-        size_t bufferLength;
-        scope sink = (scope const char[] data) {
-                // We cannot write anymore
-                if (bufferLength > buffer.length)
-                    return;
-
-                if (bufferLength + data.length > buffer.length)
-                {
-                    buffer[bufferLength .. $] = data[0 .. buffer.length - bufferLength];
-                    buffer[$ - 3 .. $] = "...";
-                    // +1 is a marker for the '...', otherwise if the symbol
-                    // name was to exactly fill the buffer,
-                    // we'd discard anything else without printing the '...'.
-                    bufferLength = buffer.length + 1;
-                    return;
-                }
-
-                buffer[bufferLength .. bufferLength + data.length] = data;
-                bufferLength += data.length;
-        };
-
-        foreach (idx, const ref loc; locations)
-        {
-            bufferLength = 0;
-            loc.toString(sink);
-
-            auto lvalue = buffer[0 .. bufferLength > $ ? $ : bufferLength];
-            if (auto ret = dg(idx, lvalue))
-                return ret;
-
-            if (loc.procedure == "_Dmain")
-                break;
-        }
-
-        return 0;
+        locations[i].address = callstack[i];
+        locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
     }
 
     return image.isValid
-        ? image.processDebugLineSectionData(&processCallstack)
-        : processCallstack(null);
+        ? image.processDebugLineSectionData(
+            (line) => locations[].processCallstack(line, image.baseAddress, dg))
+        : locations[].processCallstack(null, image.baseAddress, dg);
+}
+
+struct TraceInfoBuffer
+{
+    private char[1536] buf = void;
+    private size_t position;
+
+    // BUG: https://issues.dlang.org/show_bug.cgi?id=21285
+    @safe pure nothrow @nogc
+    {
+        ///
+        inout(char)[] opSlice() inout return
+        {
+            return this.buf[0 .. this.position > $ ? $ : this.position];
+        }
+
+        ///
+        void reset()
+        {
+            this.position = 0;
+        }
+    }
+
+    /// Used as `sink` argument to `Location.toString`
+    void put(scope const char[] data)
+    {
+        // We cannot write anymore
+        if (this.position > this.buf.length)
+            return;
+
+        if (this.position + data.length > this.buf.length)
+        {
+            this.buf[this.position .. $] = data[0 .. this.buf.length - this.position];
+            this.buf[$ - 3 .. $] = "...";
+            // +1 is a marker for the '...', otherwise if the symbol
+            // name was to exactly fill the buffer,
+            // we'd discard anything else without printing the '...'.
+            this.position = this.buf.length + 1;
+            return;
+        }
+
+        this.buf[this.position .. this.position + data.length] = data;
+        this.position += data.length;
+    }
 }
 
 private:
+
+int processCallstack(Location[] locations, const(ubyte)[] debugLineSectionData,
+                     size_t baseAddress, scope int delegate(ref size_t, ref const(char[])) dg)
+{
+    if (debugLineSectionData)
+        resolveAddresses(debugLineSectionData, locations, baseAddress);
+
+    TraceInfoBuffer buffer;
+    foreach (idx, const ref loc; locations)
+    {
+        buffer.reset();
+        loc.toString(&buffer.put);
+
+        auto lvalue = buffer[];
+        if (auto ret = dg(idx, lvalue))
+            return ret;
+
+        if (loc.procedure == "_Dmain")
+            break;
+    }
+
+    return 0;
+}
 
 // the lifetime of the Location data is bound to the lifetime of debugLineSectionData
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
