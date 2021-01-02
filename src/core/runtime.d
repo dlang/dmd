@@ -21,6 +21,17 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (DRuntime_Use_Libunwind)
+{
+    import core.internal.backtrace.libunwind;
+    // This shouldn't be necessary but ensure that code doesn't get mixed
+    // It does however prevent the unittest SEGV handler to be installed,
+    // which is desireable as it uses backtrace directly.
+    private enum hasExecInfo = false;
+}
+else
+    import core.internal.execinfo;
+
 /// C interface for Runtime.loadLibrary
 extern (C) void* rt_loadLibrary(const char* name);
 /// ditto
@@ -730,8 +741,14 @@ unittest
     }
 }
 
+version (DRuntime_Use_Libunwind)
+{
+    import core.internal.backtrace.handler;
+
+    alias DefaultTraceInfo = LibunwindHandler;
+}
 /// Default implementation for most POSIX systems
-static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
+else static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     import core.demangle;
     import core.stdc.stdlib : free;

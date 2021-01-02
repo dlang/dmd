@@ -189,6 +189,25 @@ static if (hasExecinfo)
     }
 }
 
+int traceHandlerOpApplyImpl2(T)(const T[] input, scope int delegate(ref size_t, ref const(char[])) dg)
+{
+    auto image = Image.openSelf();
+
+    // find address -> file, line mapping using dwarf debug_line
+    Array!Location locations;
+    locations.length = input.length;
+    foreach (idx, const ref inp; input)
+    {
+        locations[idx].address = inp.address;
+        locations[idx].procedure = inp.name;
+    }
+
+    return image.isValid
+        ? image.processDebugLineSectionData(
+            (line) => locations[].processCallstack(line, image.baseAddress, dg))
+        : locations[].processCallstack(null, image.baseAddress, dg);
+}
+
 struct TraceInfoBuffer
 {
     private char[1536] buf = void;
