@@ -169,40 +169,19 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
 
     auto image = Image.openSelf();
 
-    int processCallstack(const(ubyte)[] debugLineSectionData)
+    // find address -> file, line mapping using dwarf debug_line
+    Array!Location locations;
+    locations.length = callstack.length;
+    foreach (size_t i; 0 .. callstack.length)
     {
-        // find address -> file, line mapping using dwarf debug_line
-        Array!Location locations;
-        locations.length = callstack.length;
-        foreach (size_t i; 0 .. callstack.length)
-        {
-            locations[i].address = callstack[i];
-            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
-        }
-
-        if (debugLineSectionData)
-            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
-
-        TraceInfoBuffer buffer;
-        foreach (idx, const ref loc; locations)
-        {
-            buffer.reset();
-            loc.toString(&buffer.put);
-
-            auto lvalue = buffer[];
-            if (auto ret = dg(idx, lvalue))
-                return ret;
-
-            if (loc.procedure == "_Dmain")
-                break;
-        }
-
-        return 0;
+        locations[i].address = callstack[i];
+        locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
     }
 
     return image.isValid
-        ? image.processDebugLineSectionData(&processCallstack)
-        : processCallstack(null);
+        ? image.processDebugLineSectionData(
+            (line) => locations[].processCallstack(line, image.baseAddress, dg))
+        : locations[].processCallstack(null, image.baseAddress, dg);
 }
 
 struct TraceInfoBuffer
@@ -250,6 +229,29 @@ struct TraceInfoBuffer
 }
 
 private:
+
+int processCallstack(Location[] locations, const(ubyte)[] debugLineSectionData,
+                     size_t baseAddress, scope int delegate(ref size_t, ref const(char[])) dg)
+{
+    if (debugLineSectionData)
+        resolveAddresses(debugLineSectionData, locations, baseAddress);
+
+    TraceInfoBuffer buffer;
+    foreach (idx, const ref loc; locations)
+    {
+        buffer.reset();
+        loc.toString(&buffer.put);
+
+        auto lvalue = buffer[];
+        if (auto ret = dg(idx, lvalue))
+            return ret;
+
+        if (loc.procedure == "_Dmain")
+            break;
+    }
+
+    return 0;
+}
 
 // the lifetime of the Location data is bound to the lifetime of debugLineSectionData
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
