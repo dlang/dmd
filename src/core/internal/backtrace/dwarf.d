@@ -183,34 +183,13 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
         if (debugLineSectionData)
             resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
 
-        char[1536] buffer = void;
-        size_t bufferLength;
-        scope sink = (scope const char[] data) {
-                // We cannot write anymore
-                if (bufferLength > buffer.length)
-                    return;
-
-                if (bufferLength + data.length > buffer.length)
-                {
-                    buffer[bufferLength .. $] = data[0 .. buffer.length - bufferLength];
-                    buffer[$ - 3 .. $] = "...";
-                    // +1 is a marker for the '...', otherwise if the symbol
-                    // name was to exactly fill the buffer,
-                    // we'd discard anything else without printing the '...'.
-                    bufferLength = buffer.length + 1;
-                    return;
-                }
-
-                buffer[bufferLength .. bufferLength + data.length] = data;
-                bufferLength += data.length;
-        };
-
+        TraceInfoBuffer buffer;
         foreach (idx, const ref loc; locations)
         {
-            bufferLength = 0;
-            loc.toString(sink);
+            buffer.reset();
+            loc.toString(&buffer.put);
 
-            auto lvalue = buffer[0 .. bufferLength > $ ? $ : bufferLength];
+            auto lvalue = buffer[];
             if (auto ret = dg(idx, lvalue))
                 return ret;
 
@@ -224,6 +203,50 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
     return image.isValid
         ? image.processDebugLineSectionData(&processCallstack)
         : processCallstack(null);
+}
+
+struct TraceInfoBuffer
+{
+    private char[1536] buf = void;
+    private size_t position;
+
+    // BUG: https://issues.dlang.org/show_bug.cgi?id=21285
+    @safe pure nothrow @nogc
+    {
+        ///
+        inout(char)[] opSlice() inout return
+        {
+            return this.buf[0 .. this.position > $ ? $ : this.position];
+        }
+
+        ///
+        void reset()
+        {
+            this.position = 0;
+        }
+    }
+
+    /// Used as `sink` argument to `Location.toString`
+    void put(scope const char[] data)
+    {
+        // We cannot write anymore
+        if (this.position > this.buf.length)
+            return;
+
+        if (this.position + data.length > this.buf.length)
+        {
+            this.buf[this.position .. $] = data[0 .. this.buf.length - this.position];
+            this.buf[$ - 3 .. $] = "...";
+            // +1 is a marker for the '...', otherwise if the symbol
+            // name was to exactly fill the buffer,
+            // we'd discard anything else without printing the '...'.
+            this.position = this.buf.length + 1;
+            return;
+        }
+
+        this.buf[this.position .. this.position + data.length] = data;
+        this.position += data.length;
+    }
 }
 
 private:
