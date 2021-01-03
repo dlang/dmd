@@ -345,6 +345,7 @@ Msgtable msgtable[] =
     { "hasMember", NULL },
     { "identifier", NULL },
     { "getProtection", NULL },
+    { "getVisibility", NULL },
     { "parent", NULL },
     { "child", NULL },
     { "getMember", NULL },

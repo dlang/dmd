@@ -390,6 +390,7 @@ TraitsInitializer::TraitsInitializer()
         "hasMember",
         "identifier",
         "getProtection",
+        "getVisibility",
         "parent",
         "child",
         "getLinkage",
@@ -645,7 +646,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     if (e->ident != Id::compiles &&
         e->ident != Id::isSame &&
         e->ident != Id::identifier &&
-        e->ident != Id::getProtection)
+        e->ident != Id::getProtection && e->ident != Id::getVisibility)
     {
         // Pretend we're in a deprecated scope so that deprecation messages
         // aren't triggered when checking if a symbol is deprecated
@@ -909,7 +910,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         StringExp *se = new StringExp(e->loc, const_cast<char *>(id->toChars()));
         return semantic(se, sc);
     }
-    else if (e->ident == Id::getProtection)
+    else if (e->ident == Id::getProtection || e->ident == Id::getVisibility)
     {
         if (dim != 1)
             return dimError(e, 1, dim);
