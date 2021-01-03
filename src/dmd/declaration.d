@@ -787,6 +787,10 @@ extern (C++) final class AliasDeclaration : Declaration
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
             auto sa = aliassym.toAlias();
+
+            if (auto td = s.toAlias().isTemplateDeclaration())
+                s = td.funcroot ? td.funcroot : td;
+
             if (auto fd = sa.isFuncDeclaration())
             {
                 auto fa = new FuncAliasDeclaration(ident, fd);
