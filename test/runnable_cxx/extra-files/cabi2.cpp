@@ -247,7 +247,17 @@ S16 ctest16(char x, S16 s, char y) {
   return s;
 }
 
+/**********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16274
 
+void test16274_c(signed short a, unsigned short b, signed char c, unsigned char d)
+{
+    //printf("%d %d %d %d\n", a, b, c, d);
+    assert(a == -1);
+    assert(b == 2);
+    assert(c == -3);
+    assert(d == 4);
+}
 
 #if __cplusplus
 }

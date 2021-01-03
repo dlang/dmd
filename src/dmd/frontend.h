@@ -1765,6 +1765,7 @@ struct TargetC
     uint32_t longsize;
     uint32_t long_doublesize;
     uint32_t criticalSectionSize;
+    bool promoteIntArguments(TypeFunction* tf);
     TargetC() :
         longsize(),
         long_doublesize(),
