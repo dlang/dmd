@@ -189,6 +189,31 @@ static bool isCopyable(Type *t)
 static Expression *True(TraitsExp *e)  { return new IntegerExp(e->loc, true, Type::tbool); }
 static Expression *False(TraitsExp *e) { return new IntegerExp(e->loc, false, Type::tbool); }
 
+/**************************************
+ * Convert `Expression` or `Type` to corresponding `Dsymbol`,
+ * additionally strip off expression contexts.
+ *
+ * Some symbol related `__traits` ignore arguments expression contexts.
+ * For example:
+ *  struct S { void f() {} }
+ *  S s;
+ *  pragma(msg, __traits(isNested, s.f));
+ *  // s.f is DotVarExp, but __traits(isNested) needs a FuncDeclaration.
+ *
+ * This is used for that common `__traits` behavior.
+ */
+static Dsymbol *getDsymbolWithoutExpCtx(RootObject *oarg)
+{
+    if (Expression *e = isExpression(oarg))
+    {
+        if (e->op == TOKdotvar)
+            return ((DotVarExp *)e)->var;
+        if (e->op == TOKdottd)
+            return ((DotTemplateExp *)e)->td;
+    }
+    return getDsymbol(oarg);
+}
+
 /**
    Gets the function type from a given AST node
    if the node is a function of some sort.
@@ -205,7 +230,7 @@ static Expression *False(TraitsExp *e) { return new IntegerExp(e->loc, false, Ty
 */
 static TypeFunction *toTypeFunction(RootObject *o, FuncDeclaration **fdp = NULL)
 {
-    Dsymbol *s = getDsymbol(o);
+    Dsymbol *s = getDsymbolWithoutExpCtx(o);
     Type *t = isType(o);
     TypeFunction *tf = NULL;
 
@@ -259,13 +284,29 @@ static Expression *isTypeX(TraitsExp *e, bool (*fp)(Type *t))
 
 static bool isDsymDeprecated(Dsymbol *s) { return s->isDeprecated(); }
 
+static int fpisTemplate(void *, Dsymbol *s)
+{
+    if (s->isTemplateDeclaration())
+        return 1;
+
+    return 0;
+}
+
+bool isTemplate(Dsymbol *s)
+{
+    if (!s->toAlias()->isOverloadable())
+        return false;
+
+    return overloadApply(s, NULL, &fpisTemplate) != 0;
+}
+
 static Expression *isDsymX(TraitsExp *e, bool (*fp)(Dsymbol *s))
 {
     if (!e->args || !e->args->length)
         return False(e);
     for (size_t i = 0; i < e->args->length; i++)
     {
-        Dsymbol *s = getDsymbol((*e->args)[i]);
+        Dsymbol *s = getDsymbolWithoutExpCtx((*e->args)[i]);
         if (!s || !fp(s))
             return False(e);
     }
@@ -286,7 +327,7 @@ static Expression *isFuncX(TraitsExp *e, bool (*fp)(FuncDeclaration *f))
         return False(e);
     for (size_t i = 0; i < e->args->length; i++)
     {
-        Dsymbol *s = getDsymbol((*e->args)[i]);
+        Dsymbol *s = getDsymbolWithoutExpCtx((*e->args)[i]);
         if (!s)
             return False(e);
         FuncDeclaration *f = s->isFuncDeclaration();
@@ -307,7 +348,7 @@ static Expression *isDeclX(TraitsExp *e, bool (*fp)(Declaration *d))
         return False(e);
     for (size_t i = 0; i < e->args->length; i++)
     {
-        Dsymbol *s = getDsymbol((*e->args)[i]);
+        Dsymbol *s = getDsymbolWithoutExpCtx((*e->args)[i]);
         if (!s)
             return False(e);
         Declaration *d = s->isDeclaration();
@@ -326,7 +367,7 @@ static Expression *isPkgX(TraitsExp *e, bool (*fp)(Package *p))
         return False(e);
     for (size_t i = 0; i < e->args->length; i++)
     {
-        Dsymbol *s = getDsymbol((*e->args)[i]);
+        Dsymbol *s = getDsymbolWithoutExpCtx((*e->args)[i]);
         if (!s)
             return False(e);
         Package *p = resolveIsPackage(s);
@@ -441,35 +482,6 @@ void *trait_search_fp(void *, const char *seed, int* cost)
     *cost = 0;
     StringValue *sv = traitsStringTable.lookup(seed, len);
     return sv ? (void*)sv->ptrvalue : NULL;
-}
-
-static int fpisTemplate(void *, Dsymbol *s)
-{
-    if (s->isTemplateDeclaration())
-        return 1;
-
-    return 0;
-}
-
-bool isTemplate(Dsymbol *s)
-{
-    if (!s->toAlias()->isOverloadable())
-        return false;
-
-    return overloadApply(s, NULL, &fpisTemplate) != 0;
-}
-
-Expression *isSymbolX(TraitsExp *e, bool (*fp)(Dsymbol *s))
-{
-    if (!e->args || !e->args->length)
-        return False(e);
-    for (size_t i = 0; i < e->args->length; i++)
-    {
-        Dsymbol *s = getDsymbol((*e->args)[i]);
-        if (!s || !fp(s))
-            return False(e);
-    }
-    return True(e);
 }
 
 /**
@@ -711,7 +723,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         if (dim != 1)
             return dimError(e, 1, dim);
 
-        return isSymbolX(e, &isTemplate);
+        return isDsymX(e, &isTemplate);
     }
     else if (e->ident == Id::isPOD)
     {
@@ -777,7 +789,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
 
         RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
+        Dsymbol *s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
         }
@@ -898,7 +910,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         else
         {
-            Dsymbol *s = getDsymbol(o);
+            Dsymbol *s = getDsymbolWithoutExpCtx(o);
             if (!s || !s->ident)
             {
                 e->error("argument %s has no identifier", o->toChars());
@@ -923,7 +935,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
 
         RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
+        Dsymbol *s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
             if (!isError(o))
@@ -944,7 +956,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
 
         RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
+        Dsymbol *s = getDsymbolWithoutExpCtx(o);
         if (s)
         {
             if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
@@ -1068,6 +1080,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         Dsymbol *sym = getDsymbol(o);
         if (sym)
         {
+            if (e->ident == Id::hasMember)
+            {
+                if (sym->search(e->loc, id) != NULL)
+                    return True(e);
+            }
             ex = new DsymbolExp(e->loc, sym);
             ex = new DotIdExp(e->loc, ex, id);
         }
@@ -1083,12 +1100,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         if (e->ident == Id::hasMember)
         {
-            if (sym)
-            {
-                if (sym->search(e->loc, id))
-                    return True(e);
-            }
-
             /* Take any errors as meaning it wasn't found
              */
             Scope *scx = sc->push();
@@ -1238,7 +1249,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
 
         RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
+        Dsymbol *s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
             e->error("first argument is not a symbol");
@@ -1739,7 +1750,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
 
         RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
+        Dsymbol *s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
             e->error("argument %s to __traits(getUnitTests) must be a module or aggregate",
@@ -1773,7 +1784,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
 
         RootObject *o = (*e->args)[0];
-        Dsymbol *s = getDsymbol(o);
+        Dsymbol *s = getDsymbolWithoutExpCtx(o);
 
         FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
         if (!fd)
@@ -1833,7 +1844,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         if (dim != 1)
             return dimError(e, 1, dim);
         RootObject *arg0 = (*e->args)[0];
-        Dsymbol *s = getDsymbol(arg0);
+        Dsymbol *s = getDsymbolWithoutExpCtx(arg0);
         if (!s)
         {
             e->error("can only get the location of a symbol, not `%s`", arg0->toChars());

@@ -1549,6 +1549,19 @@ void async(ARGS...)(ARGS)
 alias test17495 = async!(int, int);
 
 /********************************************************/
+// 15094
+
+void test15094()
+{
+    static struct Foo { int i; }
+    static struct Bar { Foo foo; }
+
+    Bar bar;
+    auto n = __traits(getMember, bar.foo, "i");
+    assert(n == bar.foo.i);
+}
+
+/********************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10100
 
 enum E10100
@@ -1613,6 +1626,7 @@ int main()
     test_getFunctionAttributes();
     test_isOverrideFunction();
     test12237();
+    test15094();
 
     writeln("Success");
     return 0;

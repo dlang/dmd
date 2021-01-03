@@ -5949,7 +5949,10 @@ bool Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
     }
     if (!isDeclarator(&t, &haveId, &haveTpl, endtok, needId != 3))
         goto Lisnot;
-    if (needId == 1 || (needId == 0 && !haveId) || ((needId == 2 || needId == 3) && haveId))
+    if ((needId == 0 && !haveId) ||
+        (needId == 1) ||
+        (needId == 2 && haveId) ||
+        (needId == 3 && haveId))
     {
         if (pt)
             *pt = t;
