@@ -2716,12 +2716,35 @@ $(H2 $(LNAME2 main, $(D main()) Function))
         $(D main()) must be declared using one of the following forms:
         )
 
-----
-void main() { ... }
-void main(string[] args) { ... }
-int main() { ... }
-int main(string[] args) { ... }
-----
+        $(UL
+        $(LI `void main() { ... }`)
+        $(LI `void main(string[] args) { ... }`)
+        $(LI `int main() { ... }`)
+        $(LI `int main(string[] args) { ... }`)
+        )
+
+        $(P The main function must have D linkage.)
+
+        $(P Attributes may be added as needed, e.g. `@safe`, `@nogc`, `nothrow`, etc.)
+
+    $(H3 $(LNAME2 betterc-main, BetterC $(D main()) Function))
+
+        $(P For $(B BetterC) programs, the main function is declared using
+        one of the following forms:)
+
+        $(UL
+        $(LI `extern (C) int main() { ... }`)
+        $(LI `extern (C) int main(int argc, char** argv) { ... }`)
+        )
+
+        $(P This takes the place of the C main function and serves the identical purpose.)
+
+        $(P Module constructors, module destructors, and unittests are not run.)
+
+        $(IMPLEMENTATION_DEFINED Other system-specific entry points may exist, such as
+        `WinMain` and `DllMain` on Windows systems.
+        )
+
 
 $(H2 $(LNAME2 function-templates, Function Templates))
 
