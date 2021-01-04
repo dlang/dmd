@@ -1846,30 +1846,38 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
 
 $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
 
-        $(P Variadic functions with argument and type info are declared as taking
-        a parameter of ... after the required function parameters.
-        It has D linkage, and need not have any non-variadic parameters
-        declared:)
+        $(P D-style variadic functions have D linkage and `...` as the last
+        parameter.)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
-------
-int abc(char c, ...);   // one required parameter: c
-int def(...);           // ok
-------
-)
+        $(P `...` can be the only parameter.)
 
-    $(P To access them, the following import is required:)
+        $(P If there are parameters preceding the `...` parameter, there
+        must be a comma separating them from the `...`.)
 
-------
-import core.vararg;
-------
+        $(NOTE If the comma is ommitted, it is a $(RELATIVE_LINK2 variadic, TypeSafe Variadic Function).)
 
-        $(P These variadic functions have a special local variable declared for
-        them,
-        $(D _argptr), which is a $(D core.vararg)
-    reference to the first of the variadic
-        arguments. To access the arguments, $(D _argptr) must be used
-    in conjunction with $(D va_arg):)
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ------
+        int abc(char c, ...);   // one required parameter: c
+        int def(...);           // no required parameters
+        int ghi(int i ...);     // a typesafe variadic function
+        //int boo(, ...);       // error
+        ------
+        )
+
+
+        $(P Two hidden arguments are passed to the function:)
+
+        $(UL
+        $(LI `void* _argptr`)
+        $(LI `TypeInfo[] _arguments`)
+        )
+
+        $(P $(D _argptr) is a
+        reference to the first of the variadic
+        arguments. To access the variadic arguments,
+        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)).
+        Use $(D _argptr) in conjunction with $(D core.va_arg):)
 
 ------
 import core.vararg;
@@ -1879,29 +1887,35 @@ void test()
     foo(3, 4, 5);   // first variadic argument is 5
 }
 
-void foo(int x, int y, ...)
+@system void foo(int x, int y, ...)
 {
-    int z;
-
-    z = va_arg!int(_argptr); // z is set to 5
+    int z = va_arg!int(_argptr); // z is set to 5 and _argptr is advanced
+                                 // to the next argument
 }
 ------
 
-        $(P An additional hidden argument
-        with the name $(D _arguments) and type $(D TypeInfo[])
-        is passed to the function.
-        $(D _arguments) gives the number of arguments and the type
+        $(D _arguments) gives the number of arguments and the `typeid`
         of each, enabling type safety to be checked at run time.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import std.stdio;
-import core.vararg;
+
+void main()
+{
+    Foo f = new Foo();
+    Bar b = new Bar();
+
+    writefln("%s", f);
+    printargs(1, 2, 3L, 4.5, f, b);
+}
 
 class Foo { int x = 3; }
 class Bar { long y = 4; }
 
-void printargs(int x, ...)
+import core.vararg;
+
+@system void printargs(int x, ...)
 {
     writefln("%d arguments", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
@@ -1936,15 +1950,6 @@ void printargs(int x, ...)
         else
             assert(0);
     }
-}
-
-void main()
-{
-    Foo f = new Foo();
-    Bar b = new Bar();
-
-    writefln("%s", f);
-    printargs(1, 2, 3L, 4.5, f, b);
 }
 ------
 )
