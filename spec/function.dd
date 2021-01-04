@@ -2939,44 +2939,39 @@ const int x = foo("1");
 $(H2 $(LNAME2 nogc-functions, No-GC Functions))
 
         $(P No-GC functions are functions marked with the $(D @nogc) attribute.
-            Those functions do not allocate memory on the GC heap,
-            through the following language features:
+            Those functions do not allocate memory on the GC heap.
+            These operations are not allowed in No-GC functions:
         )
 
-        $(UL
+        $(OL
         $(LI $(DDSUBLINK expression, ArrayLiteral, constructing an array) on the heap)
         $(LI resizing an array by writing to its $(D .length) property)
-        $(LI array $(DDSUBLINK expression, CatExpression, concatenation) and appending)
-        $(LI $(DDSUBLINK expression, AssocArrayLiteral, constructing an associative array) on the heap)
+        $(LI $(DDSUBLINK expression, CatExpression, array concatenation))
+        $(LI $(DDSUBLINK expression, simple_assignment_expressions, array appending))
+        $(LI $(DDSUBLINK expression, AssocArrayLiteral, constructing an associative array))
         $(LI $(DDSUBLINK expression, IndexExpression, indexing) an associative array
-            (because it may throw $(D RangeError) if the specified key is not present))
-        $(LI $(DDSUBLINK expression, NewExpression, allocating an object) on the heap)
+            $(NOTE because it may throw $(D RangeError) if the specified key is not present))
+        $(LI $(DDSUBLINK expression, NewExpression, allocating an object with `new`) on the heap)
+        $(LI calling functions that are not `@nogc`, unless the call is
+            in a $(GLINK2 version, ConditionalStatement)
+            controlled by a $(GLINK2 version, DebugCondition))
         )
 
             ---
             @nogc void foo()
             {
-                auto a = ['a'];    // error, allocates
-                a.length = 1;      // error, array resizing allocates
-                a = a ~ a;         // error, arrays concatenation allocates
-                a ~= 'c';          // error, appending to arrays allocates
+                auto a = ['a'];    // (1) error, allocates
+                a.length = 1;      // (2) error, array resizing allocates
+                a = a ~ a;         // (3) error, arrays concatenation allocates
+                a ~= 'c';          // (4) error, appending to arrays allocates
 
-                auto aa = ["x":1]; // error, allocates
-                aa["abc"];         // error, indexing may allocate and throws
+                auto aa = ["x":1]; // (5) error, allocates
+                aa["abc"];         // (6) error, indexing may allocate and throws
 
-                auto p = new int;  // error, operator new allocates
+                auto p = new int;  // (7) error, operator new allocates
+                bar();             // (8) error, bar() may allocate
+                debug bar();       // (8) Ok
             }
-            ---
-
-        $(P No-GC functions cannot call functions that are not $(D @nogc).
-        )
-
-            ---
-            @nogc void foo()
-            {
-                bar();             // error, bar() may allocate
-            }
-
             void bar() { }
             ---
 
@@ -2987,7 +2982,7 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
             @nogc int delegate() foo()
             {
                 int n;              // error, variable n cannot be allocated on heap
-                return (){ return n; }
+                return (){ return n; } // since `n` escapes `foo()`, a closure is required
             }
             ---
 
@@ -3011,10 +3006,6 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
             }
             ---
 
-        $(P To ease debugging,
-            in a $(GLINK2 version, ConditionalStatement)
-            controlled by a $(GLINK2 version, DebugCondition)
-            `@nogc` functions can call functions that are not `@nogc`.)
 
 $(H2 $(LNAME2 function-safety, Function Safety))
 
