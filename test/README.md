@@ -422,7 +422,7 @@ Each test should be in the following form:
 
 ```d
 /*******************************/
-// https://issues/dlang.org/show_bug.cgi?id=NNNN
+// https://issues.dlang.org/show_bug.cgi?id=NNNN
 
 void testNNNN()
 {
