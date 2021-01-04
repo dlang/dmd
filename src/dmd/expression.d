@@ -4332,15 +4332,19 @@ extern (C++) abstract class BinExp : Expression
 
         // CondExp uses 'a ? b : c' but we're comparing 'b : c'
         TOK thisOp = (op == TOK.question) ? TOK.colon : op;
+        bool failedAlready = false;
+
         if (!global.params.sk_typefunctions)
         {
         if (e1.op == TOK.type || e2.op == TOK.type)
         {
             error("incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
                 e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
+            failedAlready = true;
         }
         }
 
+        if (failedAlready) {}
         else if (e1.type.equals(e2.type))
         {
             error("incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
