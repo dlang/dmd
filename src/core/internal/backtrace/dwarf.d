@@ -178,10 +178,11 @@ int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref siz
         locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
     }
 
-    return image.isValid
-        ? image.processDebugLineSectionData(
-            (line) => locations[].processCallstack(line, image.baseAddress, dg))
-        : locations[].processCallstack(null, image.baseAddress, dg);
+    if (!image.isValid())
+        return locations[].processCallstack(null, image.baseAddress, dg);
+
+    return image.processDebugLineSectionData(
+        (line) => locations[].processCallstack(line, image.baseAddress, dg));
 }
 
 struct TraceInfoBuffer
@@ -253,7 +254,24 @@ int processCallstack(Location[] locations, const(ubyte)[] debugLineSectionData,
     return 0;
 }
 
-// the lifetime of the Location data is bound to the lifetime of debugLineSectionData
+/**
+ * Resolve the addresses of `locations` using `debugLineSectionData`
+ *
+ * Runs the DWARF state machine on `debugLineSectionData`,
+ * assuming it represents a debugging program describing the addresses
+ * in a continous and increasing manner.
+ *
+ * After this function successfully completes, `locations` will contains
+ * file / lines informations.
+ *
+ * Note that the lifetime of the `Location` data is bound to the lifetime
+ * of `debugLineSectionData`.
+ *
+ * Params:
+ *   debugLineSectionData = A DWARF program to feed the state machine
+ *   locations = The locations to resolve
+ *   baseAddress = The offset to apply to every address
+ */
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     debug(DwarfDebugMachine) import core.stdc.stdio;
