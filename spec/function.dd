@@ -883,8 +883,8 @@ void main()
 
 $(H3 $(LNAME2 function-inheritance, Function Inheritance and Overriding))
 
-        $(P A function in a derived class with the same name and parameter
-        types as a function in a base class overrides that function:)
+        $(P A function in a derived class with the same name and covariant
+        with a function in a base class overrides that function:)
 
 ------
 class A
@@ -909,8 +909,9 @@ void bar(A a)
 }
 ------
 
-        $(P However, when doing overload resolution, the functions in the base
-        class are not considered:
+        $(P When doing overload resolution, the functions in the base
+        class are not considered, as they are not in the same
+        $(RELATIVE_LINK2 overload-sets, Overload Set):
         )
 
 ------
@@ -935,8 +936,8 @@ void test()
 }
 ------
 
-        $(P To consider the base class's functions in the overload resolution
-        process, use an $(I AliasDeclaration):
+        $(P To include the base class's functions in the overload resolution
+        process, use an $(GLINK2 declaration, AliasDeclaration):
         )
 
 ------
@@ -969,9 +970,10 @@ void bar(A a)
         $(P If such an $(I AliasDeclaration) is not used, the derived
         class's functions completely override all the functions of the
         same name in the base class, even if the types of the parameters
-        in the base class functions are different. If, through
+        in the base class functions are different.
+        It is illegal if, through
         implicit conversions to the base class, those other functions do
-        get called, a compile-time error will be given:
+        get called:
         )
 ---
 class A
@@ -988,7 +990,7 @@ void foo(A a)
 {
     int i;
     a.set(3);   // error, use of A.set(int) is hidden by B
-                // use 'alias set = A.set;' to introduce base class overload set.
+                // use 'alias set = A.set;' to introduce base class overload set
     assert(i == 1);
 }
 
@@ -997,14 +999,6 @@ void main()
     foo(new B);
 }
 ---
-        $(P If an error occurs during the compilation of your program,
-        the use of overloads and overrides needs to be reexamined in the
-        relevant classes.)
-
-        $(P The compiler will not give an error if the hidden function
-        is disjoint, as far as overloading is concerned, from all the
-        other virtual functions is the inheritance hierarchy.)
-
 
         $(P A function parameter's default value is not inherited:)
 
@@ -1037,9 +1031,8 @@ void test()
 }
 ------
 
-        $(P If a derived class overrides a base class member function with different
-        $(GLINK FunctionAttributes), the missing attributes will be
-        automatically compensated by the compiler.)
+        $(P An overriding function inherits any unspecified $(GLINK FunctionAttributes)
+        from the attributes of the overridden function.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -1060,33 +1053,28 @@ void main()
 ------
 )
 
-    $(P It's not allowed to mark an overridden method with the attributes
-    $(LINK2 attribute.html#disable, $(D @disable)) or
-    $(LINK2 attribute.html#deprecated, $(D deprecated)).
-    To stop the compilation or to output the deprecation message, the compiler
-    must be able to determine the target of the call, which can't be guaranteed
-    when it is virtual.
-    )
+        $(P The attributes
+        $(LINK2 attribute.html#disable, $(D @disable)) and
+        $(LINK2 attribute.html#deprecated, $(D deprecated))
+        are not allowed on overriding functions.
+        )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
-------
-class B
-{
-    void foo() {}
-}
+        $(RATIONALE To stop the compilation or to output the deprecation message, the implementation
+        must be able to determine the target of the call, which can't be guaranteed
+        when it is virtual.
+        )
 
-class D : B
-{
-    @disable override void foo() {}
-}
+        ---
+        class B
+        {
+            void foo() {}
+        }
 
-void main()
-{
-    B b = new D;
-    b.foo(); // compiles and calls the most derived even if disabled.
-}
-------
-)
+        class D : B
+        {
+            @disable override void foo() {}  // error, can't apply @disable to overriding function
+        }
+        ---
 
     $(P Static functions with `Objective-C` linkage are overridable.)
 
