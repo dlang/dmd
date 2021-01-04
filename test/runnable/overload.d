@@ -1244,6 +1244,23 @@ void test21481()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21522
+
+struct S21522
+{
+    // alias to template as first symbol in overload set
+    void funA2()(int a) {}
+    void funA2(char a) {}   // function was lost -> OK now
+    alias funA = funA2;
+    void funA(float b) {}
+}
+
+void test21522()
+{
+    static assert(__traits(getOverloads, S21522, "funA", true).length == 3);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1280,6 +1297,7 @@ int main()
     test14858();
     test14965();
     test21481();
+    test21522();
 
     printf("Success\n");
     return 0;

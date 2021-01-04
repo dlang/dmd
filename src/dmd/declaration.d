@@ -801,7 +801,7 @@ extern (C++) final class AliasDeclaration : Declaration
             }
             if (auto td = sa.isTemplateDeclaration())
             {
-                auto od = new OverDeclaration(ident, td);
+                auto od = new OverDeclaration(ident, td.funcroot ? td.funcroot : td);
                 od.visibility = visibility;
                 od.parent = parent;
                 aliassym = od;
