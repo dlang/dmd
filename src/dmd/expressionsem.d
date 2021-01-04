@@ -5195,6 +5195,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if ((s.isFuncDeclaration() ||
                      s.isAggregateDeclaration() ||
                      s.isEnumDeclaration() ||
+                     s.isTemplateDeclaration() ||
                      v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=18266

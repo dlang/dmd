@@ -423,10 +423,10 @@ void test9617a()
     );
     alias Indices = staticIota!(Repr.length / 2);
 
+    void func(T)(T) {}
     foreach (t; Indices)
     {
         alias T = Repr[t * 2];
-        void func(T)(T) {}
         alias func!T f;
 
         foreach (r; Indices)
