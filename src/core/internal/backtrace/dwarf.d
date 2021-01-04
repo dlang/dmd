@@ -52,7 +52,7 @@ module core.internal.backtrace.dwarf;
 import core.internal.execinfo;
 import core.internal.string;
 
-static if (hasExecinfo):
+version (Posix):
 
 version (OSX)
     version = Darwin;
@@ -159,30 +159,34 @@ struct Location
     }
 }
 
-int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
+static if (hasExecinfo)
 {
-    import core.stdc.stdio : snprintf;
-    import core.sys.posix.stdlib : free;
-
-    const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
-    scope(exit) free(cast(void*) frameList);
-
-    auto image = Image.openSelf();
-
-    // find address -> file, line mapping using dwarf debug_line
-    Array!Location locations;
-    locations.length = callstack.length;
-    foreach (size_t i; 0 .. callstack.length)
+    int traceHandlerOpApplyImpl(const(void*)[] callstack,
+                                scope int delegate(ref size_t, ref const(char[])) dg)
     {
-        locations[i].address = callstack[i];
-        locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
+        import core.stdc.stdio : snprintf;
+        import core.sys.posix.stdlib : free;
+
+        const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
+        scope(exit) free(cast(void*) frameList);
+
+        auto image = Image.openSelf();
+
+        // find address -> file, line mapping using dwarf debug_line
+        Array!Location locations;
+        locations.length = callstack.length;
+        foreach (size_t i; 0 .. callstack.length)
+        {
+            locations[i].address = callstack[i];
+            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
+        }
+
+        if (!image.isValid())
+            return locations[].processCallstack(null, image.baseAddress, dg);
+
+        return image.processDebugLineSectionData(
+            (line) => locations[].processCallstack(line, image.baseAddress, dg));
     }
-
-    if (!image.isValid())
-        return locations[].processCallstack(null, image.baseAddress, dg);
-
-    return image.processDebugLineSectionData(
-        (line) => locations[].processCallstack(line, image.baseAddress, dg));
 }
 
 struct TraceInfoBuffer
