@@ -2167,45 +2167,50 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
 
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
-        $(P It is an error to use a local variable without first assigning it a
+        $(P Local variables are declared within the scope of a function.
+        Function parameters are included.)
+
+        $(P A local variable cannot be read without first assigning it a
         value.)
 
         $(IMPLEMENTATION_DEFINED The implementation may not always be able
         to detect these cases.
         )
 
-        $(P It is an error to declare a local variable that hides another local
-        variable in the same function:
+        $(P The address of or reference to a
+        local non-static variable cannot be returned from the function.
         )
 
-------
-void func(int x)
-{
-    int x;       // error, hides previous definition of x
-    double y;
-    ...
-    {
-        char y;  // error, hides previous definition of y
-        int z;
-    }
-    {
-        wchar z; // legal, previous z is out of scope
-    }
-}
-------
+        $(P A local variable and a label in the same function cannot have the same
+        name.
+        )
 
-        $(P While this might look unreasonable, in practice whenever
-        this is done it either is a
+        $(P A local variable cannot hide another local
+        variable in the same function.
+        )
+
+        $(RATIONALE whenever
+        this is done it often is a
         bug or at least looks like a bug.
         )
 
-        $(P It is an error to return the address of or a reference to a
-        local variable.
-        )
+        ---
+        ref double func(int x)
+        {
+            int x;       // error, hides previous definition of x
+            double y;
+            {
+                char y;  // error, hides previous definition of y
+                int z;
+            }
+            {
+                wchar z; // Ok, previous z is out of scope
+            }
+          z:             // error, z is a local variable and a label
+            return y;    // error, returning ref to local
+        }
+        ---
 
-        $(P It is an error to have a local variable and a label with the same
-        name.
-        )
 
 $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Static Variables))
 
