@@ -190,7 +190,7 @@ enum TOK : ubyte
     dchar_,
     bool_,
     emptyType_,
-    __type___,
+    _type__,
 
     // Aggregates
     struct_ = 153,
@@ -340,7 +340,7 @@ private immutable TOK[] keywords =
     TOK.float64,
     TOK.float80,
     TOK.bool_,
-    TOK.__type___,
+    TOK._type__,
     TOK.emptyType_,
     TOK.char_,
     TOK.wchar_,
@@ -498,7 +498,7 @@ extern (C++) struct Token
         TOK.float64: "double",
         TOK.float80: "real",
         TOK.bool_: "bool",
-        TOK.__type___ : "__type__",
+        TOK._type__ : "__type__",
         TOK.emptyType_ : "__emptyType",
         TOK.char_: "char",
         TOK.wchar_: "wchar",
