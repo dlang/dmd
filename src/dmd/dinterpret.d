@@ -2997,14 +2997,14 @@ public:
 
         auto tspece = e.tspec ? e.tspec.isTypeExpression() : null;
         auto tspec = tspece ? ctfeInterpret(tspece.exp) : null;
-		auto te_spec = tspec ? tspec.isTypeExp() : null;
+        auto te_spec = tspec ? tspec.isTypeExp() : null;
         auto ts = te_spec ? te_spec.type : e.tspec;
 
         // handling of == and &&
         // See IsExp handling in expressionsem.d
         if (e.tspec && !e.id && !(e.parameters && e.parameters.dim))
         {
-			assert(ts);
+            assert(ts);
             if (e.tok == TOK.colon)
             {
                 result = IntegerExp.createBool(tet.implicitConvTo(ts) != MATCH.nomatch);

@@ -750,7 +750,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             // if the type of that expression is __type__* or __type__[] or an associative array with value type __type__
             // the elem type (type.nextOf) should be __type__
             // we can return the type __type__ as type of this.
-            // this has to be done now, since the value of the .dim expression might not be avilable at this time 
+            // this has to be done now, since the value of the .dim expression might not be avilable at this time
             // import dmd.asttypename;
             // printf("Exp: %s(astTypeName: %s) exp.type: %s\n", te.exp.toChars(), te.exp.astTypeName().ptr, te.exp.type.toChars());
 

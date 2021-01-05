@@ -5573,7 +5573,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                auto vd = new VarDeclaration(e.loc, Type.basic[Ttype], e.id, new ExpInitializer(e.loc, 
+                auto vd = new VarDeclaration(e.loc, Type.basic[Ttype], e.id, new ExpInitializer(e.loc,
                         new TypeExp(e.loc, new TypeError())));
                 if (e.tok2 == TOK.super_)
                 {
