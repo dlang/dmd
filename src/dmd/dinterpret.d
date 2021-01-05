@@ -3035,7 +3035,6 @@ public:
             else
             {
                 auto e1 = interpretRegion(cast(VarExp)o, istate);
-                import dmd.asttypename;
                 te_result = e1.isTypeExp();
                 if (!te_result)
                 {

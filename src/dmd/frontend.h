@@ -394,91 +394,93 @@ enum class TOK : uint8_t
     wchar_ = 148u,
     dchar_ = 149u,
     bool_ = 150u,
-    struct_ = 151u,
-    class_ = 152u,
-    interface_ = 153u,
-    union_ = 154u,
-    enum_ = 155u,
-    import_ = 156u,
-    alias_ = 157u,
-    override_ = 158u,
-    delegate_ = 159u,
-    function_ = 160u,
-    mixin_ = 161u,
-    align_ = 162u,
-    extern_ = 163u,
-    private_ = 164u,
-    protected_ = 165u,
-    public_ = 166u,
-    export_ = 167u,
-    static_ = 168u,
-    final_ = 169u,
-    const_ = 170u,
-    abstract_ = 171u,
-    debug_ = 172u,
-    deprecated_ = 173u,
-    in_ = 174u,
-    out_ = 175u,
-    inout_ = 176u,
-    lazy_ = 177u,
-    auto_ = 178u,
-    package_ = 179u,
-    immutable_ = 180u,
-    if_ = 181u,
-    else_ = 182u,
-    while_ = 183u,
-    for_ = 184u,
-    do_ = 185u,
-    switch_ = 186u,
-    case_ = 187u,
-    default_ = 188u,
-    break_ = 189u,
-    continue_ = 190u,
-    with_ = 191u,
-    synchronized_ = 192u,
-    return_ = 193u,
-    goto_ = 194u,
-    try_ = 195u,
-    catch_ = 196u,
-    finally_ = 197u,
-    asm_ = 198u,
-    foreach_ = 199u,
-    foreach_reverse_ = 200u,
-    scope_ = 201u,
-    onScopeExit = 202u,
-    onScopeFailure = 203u,
-    onScopeSuccess = 204u,
-    invariant_ = 205u,
-    unittest_ = 206u,
-    argumentTypes = 207u,
-    ref_ = 208u,
-    macro_ = 209u,
-    parameters = 210u,
-    traits = 211u,
-    overloadSet = 212u,
-    pure_ = 213u,
-    nothrow_ = 214u,
-    gshared = 215u,
-    line = 216u,
-    file = 217u,
-    fileFullPath = 218u,
-    moduleString = 219u,
-    functionString = 220u,
-    prettyFunction = 221u,
-    shared_ = 222u,
-    at = 223u,
-    pow = 224u,
-    powAssign = 225u,
-    goesTo = 226u,
-    vector = 227u,
-    pound = 228u,
-    interval = 229u,
-    voidExpression = 230u,
-    cantExpression = 231u,
-    showCtfeContext = 232u,
-    objcClassReference = 233u,
-    vectorArray = 234u,
-    max_ = 235u,
+    emptyType_ = 151u,
+    _type__ = 152u,
+    struct_ = 153u,
+    class_ = 154u,
+    interface_ = 155u,
+    union_ = 156u,
+    enum_ = 157u,
+    import_ = 158u,
+    alias_ = 159u,
+    override_ = 160u,
+    delegate_ = 161u,
+    function_ = 162u,
+    mixin_ = 163u,
+    align_ = 164u,
+    extern_ = 165u,
+    private_ = 166u,
+    protected_ = 167u,
+    public_ = 168u,
+    export_ = 169u,
+    static_ = 170u,
+    final_ = 171u,
+    const_ = 172u,
+    abstract_ = 173u,
+    debug_ = 174u,
+    deprecated_ = 175u,
+    in_ = 176u,
+    out_ = 177u,
+    inout_ = 178u,
+    lazy_ = 179u,
+    auto_ = 180u,
+    package_ = 181u,
+    immutable_ = 182u,
+    if_ = 183u,
+    else_ = 184u,
+    while_ = 185u,
+    for_ = 186u,
+    do_ = 187u,
+    switch_ = 188u,
+    case_ = 189u,
+    default_ = 190u,
+    break_ = 191u,
+    continue_ = 192u,
+    with_ = 193u,
+    synchronized_ = 194u,
+    return_ = 195u,
+    goto_ = 196u,
+    try_ = 197u,
+    catch_ = 198u,
+    finally_ = 199u,
+    asm_ = 200u,
+    foreach_ = 201u,
+    foreach_reverse_ = 202u,
+    scope_ = 203u,
+    onScopeExit = 204u,
+    onScopeFailure = 205u,
+    onScopeSuccess = 206u,
+    invariant_ = 207u,
+    unittest_ = 208u,
+    argumentTypes = 209u,
+    ref_ = 210u,
+    macro_ = 211u,
+    parameters = 212u,
+    traits = 213u,
+    overloadSet = 214u,
+    pure_ = 215u,
+    nothrow_ = 216u,
+    gshared = 217u,
+    line = 218u,
+    file = 219u,
+    fileFullPath = 220u,
+    moduleString = 221u,
+    functionString = 222u,
+    prettyFunction = 223u,
+    shared_ = 224u,
+    at = 225u,
+    pow = 226u,
+    powAssign = 227u,
+    goesTo = 228u,
+    vector = 229u,
+    pound = 230u,
+    interval = 231u,
+    voidExpression = 232u,
+    cantExpression = 233u,
+    showCtfeContext = 234u,
+    objcClassReference = 235u,
+    vectorArray = 236u,
+    max_ = 237u,
 };
 
 class StringExp;
@@ -655,6 +657,7 @@ class TypeSlice;
 class TypeNull;
 class TypeMixin;
 class TypeTraits;
+class TypeExpression;
 class TemplateTypeParameter;
 class TemplateValueParameter;
 class TemplateAliasParameter;
@@ -752,6 +755,8 @@ class TypeInfo;
 class RootObject
 {
 public:
+    static size_t nextSerial;
+    size_t serial;
     RootObject();
     virtual bool equals(const RootObject* const o) const;
     virtual const char* toChars() const;
@@ -1225,6 +1230,7 @@ public:
     Type* arrayof;
     TypeInfoDeclaration* vtinfo;
     TYPE* ctype;
+    static Type* ttype;
     static Type* tvoid;
     static Type* tint8;
     static Type* tuns8;
@@ -1256,6 +1262,7 @@ public:
     static Type* tdstring;
     static Type* terror;
     static Type* tnull;
+    static Type* tempty;
     static Type* tsize_t;
     static Type* tptrdiff_t;
     static Type* thash_t;
@@ -1277,7 +1284,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[46LLU];
+    static Type* basic[49LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -1395,6 +1402,7 @@ public:
     TypeNull* isTypeNull();
     TypeMixin* isTypeMixin();
     TypeTraits* isTypeTraits();
+    TypeExpression* isTypeExpression();
     void accept(Visitor* v);
     TypeFunction* toTypeFunction();
 };
@@ -3405,22 +3413,22 @@ struct UnionExp
 private:
     union __AnonStruct__u
     {
-        char exp[40LLU];
-        char integerexp[48LLU];
-        char errorexp[40LLU];
+        char exp[48LLU];
+        char integerexp[56LLU];
+        char errorexp[48LLU];
         char realexp[64LLU];
         char complexexp[80LLU];
-        char symoffexp[72LLU];
-        char stringexp[60LLU];
-        char arrayliteralexp[57LLU];
-        char assocarrayliteralexp[57LLU];
-        char structliteralexp[95LLU];
-        char nullexp[40LLU];
-        char dotvarexp[65LLU];
-        char addrexp[56LLU];
-        char indexexp[82LLU];
-        char sliceexp[83LLU];
-        char vectorexp[69LLU];
+        char symoffexp[80LLU];
+        char stringexp[68LLU];
+        char arrayliteralexp[65LLU];
+        char assocarrayliteralexp[65LLU];
+        char structliteralexp[103LLU];
+        char nullexp[48LLU];
+        char dotvarexp[73LLU];
+        char addrexp[64LLU];
+        char indexexp[90LLU];
+        char sliceexp[91LLU];
+        char vectorexp[77LLU];
     };
     #pragma pack(pop)
 
@@ -4552,6 +4560,7 @@ public:
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type);
     FuncDeclaration* syntaxCopy(Dsymbol* s);
+    bool isTFunction();
     bool functionSemantic();
     bool functionSemantic3();
     bool equals(const RootObject* const o) const;
@@ -4883,41 +4892,44 @@ enum class ENUMTY
     Tenum = 9,
     Tdelegate = 10,
     Tnone = 11,
-    Tvoid = 12,
-    Tint8 = 13,
-    Tuns8 = 14,
-    Tint16 = 15,
-    Tuns16 = 16,
-    Tint32 = 17,
-    Tuns32 = 18,
-    Tint64 = 19,
-    Tuns64 = 20,
-    Tfloat32 = 21,
-    Tfloat64 = 22,
-    Tfloat80 = 23,
-    Timaginary32 = 24,
-    Timaginary64 = 25,
-    Timaginary80 = 26,
-    Tcomplex32 = 27,
-    Tcomplex64 = 28,
-    Tcomplex80 = 29,
-    Tbool = 30,
-    Tchar = 31,
-    Twchar = 32,
-    Tdchar = 33,
-    Terror = 34,
-    Tinstance = 35,
-    Ttypeof = 36,
-    Ttuple = 37,
-    Tslice = 38,
-    Treturn = 39,
-    Tnull = 40,
-    Tvector = 41,
-    Tint128 = 42,
-    Tuns128 = 43,
-    Ttraits = 44,
-    Tmixin = 45,
-    TMAX = 46,
+    Tempty = 12,
+    Ttype = 13,
+    Tvoid = 14,
+    Tint8 = 15,
+    Tuns8 = 16,
+    Tint16 = 17,
+    Tuns16 = 18,
+    Tint32 = 19,
+    Tuns32 = 20,
+    Tint64 = 21,
+    Tuns64 = 22,
+    Tfloat32 = 23,
+    Tfloat64 = 24,
+    Tfloat80 = 25,
+    Timaginary32 = 26,
+    Timaginary64 = 27,
+    Timaginary80 = 28,
+    Tcomplex32 = 29,
+    Tcomplex64 = 30,
+    Tcomplex80 = 31,
+    Tbool = 32,
+    Tchar = 33,
+    Twchar = 34,
+    Tdchar = 35,
+    Terror = 36,
+    Tinstance = 37,
+    Ttypeof = 38,
+    Ttuple = 39,
+    Tslice = 40,
+    Treturn = 41,
+    Tnull = 42,
+    Tvector = 43,
+    Tint128 = 44,
+    Tuns128 = 45,
+    Ttraits = 46,
+    Tmixin = 47,
+    Texp = 48,
+    TMAX = 49,
 };
 
 typedef uint8_t TY;
@@ -5215,6 +5227,17 @@ public:
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
     d_uns64 size(const Loc& loc);
+};
+
+class TypeExpression final : public Type
+{
+public:
+    Loc loc;
+    Expression* exp;
+    const char* kind() const;
+    Type* syntaxCopy();
+    Dsymbol* toDsymbol(Scope* sc);
+    void accept(Visitor* v);
 };
 
 class TypeMixin final : public Type
@@ -5685,6 +5708,7 @@ public:
     virtual void visit(typename AST::TypeQualified t);
     virtual void visit(typename AST::TypeTraits t);
     virtual void visit(typename AST::TypeMixin t);
+    virtual void visit(typename AST::TypeExpression t);
     virtual void visit(typename AST::TypeReference t);
     virtual void visit(typename AST::TypeSlice t);
     virtual void visit(typename AST::TypeDelegate t);
@@ -6835,6 +6859,7 @@ struct Param
     bool mscoff;
     DiagnosticReporting useDeprecated;
     bool stackstomp;
+    bool sk_typefunctions;
     bool useUnitTests;
     bool useInline;
     FeatureState useDIP25;
@@ -6967,6 +6992,7 @@ struct Param
         mscoff(false),
         useDeprecated((DiagnosticReporting)1u),
         stackstomp(),
+        sk_typefunctions(),
         useUnitTests(),
         useInline(false),
         useDIP1021(),
@@ -7070,7 +7096,7 @@ struct Param
         mapfile()
     {
     }
-    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = false, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, bool is64bit = true, bool isLP64 = false, TargetOS targetOS = (TargetOS)1u, bool hasObjectiveC = false, bool mscoff = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool stackstomp = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, PIC pic = (PIC)0u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = false, bool fixAliasThis = false, bool inclusiveInContracts = false, bool vsafe = false, bool ehnogc = false, bool dtorFields = false, bool fieldwise = false, bool rvalueRefParam = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CPU cpu = (CPU)11, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(0LLU, {}, arrayliteral), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, _d_dynamicArray< const char > makeDepsFile = {}, OutBuffer* makeDeps = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > objfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > linkswitches = Array<const char* >(0LLU, {}, arrayliteral), Array<bool > linkswitchIsForCC = Array<bool >(0LLU, {}, arrayliteral), Array<const char* > libfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > dllfiles = Array<const char* >(0LLU, {}, arrayliteral), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = false, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, bool is64bit = true, bool isLP64 = false, TargetOS targetOS = (TargetOS)1u, bool hasObjectiveC = false, bool mscoff = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool stackstomp = false, bool sk_typefunctions = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, PIC pic = (PIC)0u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = false, bool fixAliasThis = false, bool inclusiveInContracts = false, bool vsafe = false, bool ehnogc = false, bool dtorFields = false, bool fieldwise = false, bool rvalueRefParam = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CPU cpu = (CPU)11, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(0LLU, {}, arrayliteral), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, _d_dynamicArray< const char > makeDepsFile = {}, OutBuffer* makeDeps = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > objfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > linkswitches = Array<const char* >(0LLU, {}, arrayliteral), Array<bool > linkswitchIsForCC = Array<bool >(0LLU, {}, arrayliteral), Array<const char* > libfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > dllfiles = Array<const char* >(0LLU, {}, arrayliteral), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         link(link),
         dll(dll),
@@ -7098,6 +7124,7 @@ struct Param
         mscoff(mscoff),
         useDeprecated(useDeprecated),
         stackstomp(stackstomp),
+        sk_typefunctions(sk_typefunctions),
         useUnitTests(useUnitTests),
         useInline(useInline),
         useDIP25(useDIP25),
@@ -7273,7 +7300,7 @@ struct Global
         debugids()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > mars_ext = { 1, "d" }, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, _d_dynamicArray< const char > doc_ext = { 4, "html" }, _d_dynamicArray< const char > ddoc_ext = { 4, "ddoc" }, _d_dynamicArray< const char > hdr_ext = { 2, "di" }, _d_dynamicArray< const char > cxxhdr_ext = { 1, "h" }, _d_dynamicArray< const char > json_ext = { 4, "json" }, _d_dynamicArray< const char > map_ext = { 3, "map" }, bool run_noext = false, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, 0u, false, false, true, false, (TargetOS)1u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CPU)11, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, {}, nullptr, (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > mars_ext = { 1, "d" }, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, _d_dynamicArray< const char > doc_ext = { 4, "html" }, _d_dynamicArray< const char > ddoc_ext = { 4, "ddoc" }, _d_dynamicArray< const char > hdr_ext = { 2, "di" }, _d_dynamicArray< const char > cxxhdr_ext = { 1, "h" }, _d_dynamicArray< const char > json_ext = { 4, "json" }, _d_dynamicArray< const char > map_ext = { 3, "map" }, bool run_noext = false, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, 0u, false, false, true, false, (TargetOS)1u, false, false, (DiagnosticReporting)1u, false, false, false, false, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CPU)11, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, {}, nullptr, (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr) :
         inifilename(inifilename),
         mars_ext(mars_ext),
         obj_ext(obj_ext),
@@ -7699,6 +7726,7 @@ struct Id
     static Identifier* getFunctionVariadicStyle;
     static Identifier* getParameterStorageClasses;
     static Identifier* getLinkage;
+    static Identifier* getSuper;
     static Identifier* getUnitTests;
     static Identifier* getVirtualIndex;
     static Identifier* getPointerBitmap;

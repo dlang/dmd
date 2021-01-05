@@ -1131,7 +1131,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         {
             DotIdExp die = cast(DotIdExp) e1;
             auto p = searchUFCS(sc, die, die.ident);
-            import dmd.asttypename;
             if (auto ds = p.isDsymbolExp())
             {
                 auto ss = ds.s;
