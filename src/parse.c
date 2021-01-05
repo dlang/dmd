@@ -1110,7 +1110,7 @@ StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas
                         // Disallow:
                         //      void function() @uda fp;
                         //      () @uda { return 1; }
-                        error("user defined attributes cannot appear as postfixes");
+                        error("user-defined attributes cannot appear as postfixes");
                     }
                     continue;
                 }
@@ -1979,9 +1979,11 @@ Parameters *Parser::parseParameters(VarArg *pvarargs, TemplateParameters **tpl)
         StorageClass storageClass = 0;
         StorageClass stc;
         Expression *ae;
+        Expressions *udas = NULL;
 
         for (;1; nextToken())
         {
+        L3:
             switch (token.value)
             {
                 case TOKrparen:
@@ -2015,6 +2017,28 @@ Parameters *Parser::parseParameters(VarArg *pvarargs, TemplateParameters **tpl)
                         goto Ldefault;
                     stc = STCwild;
                     goto L2;
+
+                case TOKat:
+                {
+                    Expressions *exps = NULL;
+                    StorageClass stc2 = parseAttribute(&exps);
+                    if (stc2 == STCproperty || stc2 == STCnogc ||
+                        stc2 == STCdisable || stc2 == STCsafe ||
+                        stc2 == STCtrusted || stc2 == STCsystem)
+                    {
+                        error("`@%s` attribute for function parameter is not supported", token.toChars());
+                    }
+                    else
+                    {
+                        udas = UserAttributeDeclaration::concat(udas, exps);
+                    }
+                    if (token.value == TOKdotdotdot)
+                        error("variadic parameter cannot have user-defined attributes");
+                    if (stc2)
+                        nextToken();
+                    goto L3;
+                    // Don't call nextToken again.
+                }
 
                 case TOKin:        stc = STCin;         goto L2;
                 case TOKout:       stc = STCout;        goto L2;
@@ -2068,6 +2092,30 @@ Parameters *Parser::parseParameters(VarArg *pvarargs, TemplateParameters **tpl)
                             error("default argument expected for %s",
                                     ai ? ai->toChars() : at->toChars());
                     }
+                    Parameter *param = new Parameter(storageClass, at, ai, ae, NULL);
+                    if (udas)
+                    {
+                        Dsymbols *a = new Dsymbols();
+                        UserAttributeDeclaration *udad = new UserAttributeDeclaration(udas, a);
+                        param->userAttribDecl = udad;
+                    }
+                    if (token.value == TOKat)
+                    {
+                        Expressions *exps = NULL;
+                        StorageClass stc2 = parseAttribute(&exps);
+                        if (stc2 == STCproperty || stc2 == STCnogc ||
+                            stc2 == STCdisable || stc2 == STCsafe ||
+                            stc2 == STCtrusted || stc2 == STCsystem)
+                        {
+                            error("`@%s` attribute for function parameter is not supported", token.toChars());
+                        }
+                        else
+                        {
+                            error("user-defined attributes cannot appear as postfixes", token.toChars());
+                        }
+                        if (stc2)
+                            nextToken();
+                    }
                     if (token.value == TOKdotdotdot)
                     {   /* This is:
                          *      at ai ...
@@ -2076,11 +2124,11 @@ Parameters *Parser::parseParameters(VarArg *pvarargs, TemplateParameters **tpl)
                         if (storageClass & (STCout | STCref))
                             error("variadic argument cannot be out or ref");
                         varargs = VARARGtypesafe;
-                        parameters->push(new Parameter(storageClass, at, ai, ae));
+                        parameters->push(param);
                         nextToken();
                         break;
                     }
-                    parameters->push(new Parameter(storageClass, at, ai, ae));
+                    parameters->push(param);
                     if (token.value == TOKcomma)
                     {   nextToken();
                         goto L1;
@@ -3810,7 +3858,7 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
                     if (udas)
-                        error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
+                        error("user-defined attributes not allowed for %s declarations", Token::toChars(tok));
 
                     t = parseType();
                     v = new AliasDeclaration(loc, ident, t);
@@ -3991,7 +4039,7 @@ L2:
              */
 
             if (udas)
-                error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
+                error("user-defined attributes not allowed for %s declarations", Token::toChars(tok));
 
             if (token.value == TOKassign)
             {
@@ -4221,7 +4269,7 @@ Dsymbol *Parser::parseFunctionLiteral()
             parameters = new Parameters();
             Identifier *id = Identifier::generateId("__T");
             Type *t = new TypeIdentifier(loc, id);
-            parameters->push(new Parameter(0, t, token.ident, NULL));
+            parameters->push(new Parameter(0, t, token.ident, NULL, NULL));
 
             tpl = new TemplateParameters();
             TemplateParameter *tp = new TemplateTypeParameter(loc, id, NULL, NULL);
@@ -4811,7 +4859,7 @@ Statement *Parser::parseForeach(Loc loc, bool *isRange, bool isDecl)
         if (!ai)
             error("no identifier for declarator %s", at->toChars());
       Larg:
-        Parameter *p = new Parameter(storageClass, at, ai, NULL);
+        Parameter *p = new Parameter(storageClass, at, ai, NULL, NULL);
         parameters->push(p);
         if (token.value == TOKcomma)
         {   nextToken();
@@ -5335,14 +5383,14 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 Type *at = NULL;        // infer parameter type
                 nextToken();
                 check(TOKassign);
-                param = new Parameter(storageClass, at, ai, NULL);
+                param = new Parameter(storageClass, at, ai, NULL, NULL);
             }
             else if (isDeclaration(&token, 2, TOKassign, NULL))
             {
                 Identifier *ai;
                 Type *at = parseType(&ai);
                 check(TOKassign);
-                param = new Parameter(storageClass, at, ai, NULL);
+                param = new Parameter(storageClass, at, ai, NULL, NULL);
             }
 
             condition = parseExpression();
