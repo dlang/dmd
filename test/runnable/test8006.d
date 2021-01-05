@@ -520,14 +520,14 @@ void testNestedFunctionsIntRefRet()
     assert(r == 0x5);
     r = p ^^= 2;
     assert(r == 25);
-	r = p++;
-	assert(r == 26);
-	r = p--;
-	assert(r == 25);
-	++p;
-	assert(p == 26);
-	--p;
-	assert(p == 25);
+    r = p++;
+    assert(r == 26);
+    r = p--;
+    assert(r == 25);
+    ++p;
+    assert(p == 26);
+    --p;
+    assert(p == 25);
 }
 
 void testNestedFunctionsStringRef()
