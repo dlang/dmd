@@ -1845,7 +1845,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return dimError(e, 1, dim);
         RootObject *arg0 = (*e->args)[0];
         Dsymbol *s = getDsymbolWithoutExpCtx(arg0);
-        if (!s)
+        if (!s || !s->loc.filename)
         {
             e->error("can only get the location of a symbol, not `%s`", arg0->toChars());
             return new ErrorExp();
