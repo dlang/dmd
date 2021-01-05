@@ -2192,8 +2192,16 @@ static if (1)
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);        // abbreviation code
                     debug_info.buf.write("_Array_".ptr, 7);       // DW_AT_name
-                    if (tybasic(t.Tnext.Tty))
-                        debug_info.buf.writeString(tystring[tybasic(t.Tnext.Tty)]);
+                    // Handles multi-dimensional array
+                    auto lastdim = t.Tnext;
+                    while (lastdim.Tty == TYucent && lastdim.Tnext)
+                    {
+                        debug_info.buf.write("Array_".ptr, 6);
+                        lastdim = lastdim.Tnext;
+                    }
+
+                    if (tybasic(lastdim.Tty))
+                        debug_info.buf.writeString(tystring[tybasic(lastdim.Tty)]);
                     else
                         debug_info.buf.writeByte(0);
                     debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
