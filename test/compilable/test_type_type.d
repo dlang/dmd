@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -sktf
+REQUIRED_ARGS: -preview=typefunctions
 TEST_OUTPUT:
 ---
 __emptyType

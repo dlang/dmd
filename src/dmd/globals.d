@@ -176,7 +176,7 @@ extern (C++) struct Param
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
-    bool sk_typefunctions; /// enable type functions
+    bool sk_typefunctions;  /// enable type functions
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25

@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -sktf
+REQUIRED_ARGS: -preview=typefunctions
 */
 alias type = __type__; 
 
