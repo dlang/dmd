@@ -93,7 +93,7 @@ struct GlobalOptimizer
     vec_t vptrkill;     // vector of AEs killed by an access
 }
 
-extern __gshared GlobalOptimizer go;
+__gshared GlobalOptimizer go;
 
 /* gdag.c */
 void builddags();
@@ -133,4 +133,3 @@ void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
 
 /* gslice.c */
 void sliceStructs(ref symtab_t symtab, block* startblock);
-

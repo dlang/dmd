@@ -250,8 +250,6 @@ Cstate cstate;                  // compiler state
 
 uint numcse;        // number of common subexpressions
 
-GlobalOptimizer go;
-
 /* From debug.c */
 const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
                              "R8","R9","R10","R11","R12","R13","R14","R15",
