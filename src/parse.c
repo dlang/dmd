@@ -3827,6 +3827,21 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     tpl = parseTemplateParameterList();
                 check(TOKassign);
 
+                bool hasParsedAttributes = false;
+                if (token.value == TOKat)
+                {
+                    if (!hasParsedAttributes)
+                    {
+                        hasParsedAttributes = true;
+                        storage_class = STCundefined;
+                        link = linkage;
+                        setAlignment = false;
+                        ealign = NULL;
+                        udas = NULL;
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                    }
+                }
+
                 Declaration *v;
                 if (token.value == TOKfunction ||
                     token.value == TOKdelegate ||
@@ -3844,18 +3859,36 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     // identifier => expression
 
                     Dsymbol *s = parseFunctionLiteral();
+
+                    if (udas != NULL)
+                    {
+                        if (storage_class != 0)
+                            error("Cannot put a storage-class in an alias declaration.");
+                        // shouldn't have set these variables
+                        assert(link == linkage && !setAlignment && ealign == NULL);
+                        TemplateDeclaration *tpl_ = (TemplateDeclaration *) s;
+                        assert(tpl_ != NULL && tpl_->members->length == 1);
+                        FuncLiteralDeclaration *fd = (FuncLiteralDeclaration *) (*tpl_->members)[0];
+                        TypeFunction *tf = (TypeFunction *) fd->type;
+                        assert(tf->parameterList.length() > 0);
+                        Dsymbols *as = new Dsymbols();
+                        (*tf->parameterList.parameters)[0]->userAttribDecl = new UserAttributeDeclaration(udas, as);
+                    }
                     v = new AliasDeclaration(loc, ident, s);
                 }
                 else
                 {
                     // StorageClasses type
-
-                    storage_class = STCundefined;
-                    link = linkage;
-                    setAlignment = false;
-                    ealign = NULL;
-                    udas = NULL;
-                    parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                    if (!hasParsedAttributes)
+                    {
+                        hasParsedAttributes = true;
+                        storage_class = STCundefined;
+                        link = linkage;
+                        setAlignment = false;
+                        ealign = NULL;
+                        udas = NULL;
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                    }
 
                     if (udas)
                         error("user-defined attributes not allowed for %s declarations", Token::toChars(tok));
