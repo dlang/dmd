@@ -1945,13 +1945,12 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
             if (retregs & XMMREGS)
             {
                 reg = findreg(retregs & XMMREGS);
-                // MOVSD floatreg, XMM?
-                cdb.genxmmreg(xmmstore(tym), reg, 0, tym);
                 if (mask(rreg) & XMMREGS)
-                    // MOVSD XMM?, floatreg
-                    cdb.genxmmreg(xmmload(tym), rreg, 0, tym);
+                    genmovreg(cdb, rreg, reg, tym);
                 else
                 {
+                    // MOVSD floatreg, XMM?
+                    cdb.genxmmreg(xmmstore(tym), reg, 0, tym);
                     // MOV rreg,floatreg
                     cdb.genfltreg(0x8B,rreg,0);
                     if (sz == 8)
