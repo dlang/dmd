@@ -5,6 +5,32 @@ pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
 alias mydbl = double;
+alias fl1 = function ()
+in
+{
+}
+in (true)
+out (; true)
+out (r; true)
+out
+{
+}
+out(r)
+{
+}
+do
+{
+       return 2;
+}
+;
+alias fl2 = function ()
+in (true)
+out (; true)
+out (r; true)
+{
+       return 2;
+}
+;
 int testmain();
 struct S
 {
