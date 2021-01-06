@@ -441,6 +441,28 @@ static void initInferAttributes(FuncDeclaration *fd)
         fd->flags |= FUNCFLAGinferScope;
 }
 
+// Returns true if a contract can appear without a function body.
+static bool allowsContractWithoutBody(FuncDeclaration *funcdecl)
+{
+    assert(!funcdecl->fbody);
+
+    /* Contracts can only appear without a body when they are virtual
+     * interface functions or abstract.
+     */
+    Dsymbol *parent = funcdecl->toParent();
+    InterfaceDeclaration *id = parent->isInterfaceDeclaration();
+
+    if (!funcdecl->isAbstract() &&
+        (funcdecl->fensure || funcdecl->frequire) &&
+        !(id && funcdecl->isVirtual()))
+    {
+        ClassDeclaration *cd = parent->isClassDeclaration();
+        if (!(cd && cd->isAbstract()))
+            return false;
+    }
+    return true;
+}
+
 // Do the semantic analysis on the external interface to the function.
 
 void FuncDeclaration::semantic(Scope *sc)
@@ -1152,16 +1174,11 @@ void FuncDeclaration::semantic(Scope *sc)
     // Reflect this->type to f because it could be changed by findVtblIndex
     f = type->toTypeFunction();
 
+Ldone:
     /* Contracts can only appear without a body when they are virtual interface functions
      */
-    if (!fbody && !isAbstract() &&
-        (fensure || frequire) &&
-        !(id && isVirtual()))
-    {
-        ClassDeclaration *cd = parent->isClassDeclaration();
-        if (!(cd && cd->isAbstract()))
-            error("in and out contracts on non-virtual/non-abstract functions require function body");
-    }
+    if (!fbody && !allowsContractWithoutBody(this))
+        error("in and out contracts can only appear without a body when they are virtual interface functions or abstract");
 
     /* Do not allow template instances to add virtual functions
      * to a class.
@@ -1192,7 +1209,6 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isMain())
         checkDmain();       // Check main() parameters and return type
 
-Ldone:
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
      */
@@ -2269,7 +2285,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 
             // If declaration has no body, don't set sbody to prevent incorrect codegen.
-            if (fbody || (fdensure || fdrequire))
+            if (fbody || allowsContractWithoutBody(this))
                 fbody = sbody;
         }
 
