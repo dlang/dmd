@@ -780,11 +780,6 @@ void FuncDeclaration::semantic(Scope *sc)
             error("destructors, postblits and invariants are not allowed in union %s", ud->toChars());
     }
 
-    /* Contracts can only appear without a body when they are virtual interface functions
-     */
-    if (!fbody && (fensure || frequire) && !(id && isVirtual()))
-        error("in and out contracts require function body");
-
     if (parent->isStructDeclaration())
     {
         if (isCtorDeclaration())
@@ -1156,6 +1151,17 @@ void FuncDeclaration::semantic(Scope *sc)
 
     // Reflect this->type to f because it could be changed by findVtblIndex
     f = type->toTypeFunction();
+
+    /* Contracts can only appear without a body when they are virtual interface functions
+     */
+    if (!fbody && !isAbstract() &&
+        (fensure || frequire) &&
+        !(id && isVirtual()))
+    {
+        ClassDeclaration *cd = parent->isClassDeclaration();
+        if (!(cd && cd->isAbstract()))
+            error("in and out contracts on non-virtual/non-abstract functions require function body");
+    }
 
     /* Do not allow template instances to add virtual functions
      * to a class.
@@ -2263,8 +2269,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 
             // If declaration has no body, don't set sbody to prevent incorrect codegen.
-            InterfaceDeclaration *id = parent->isInterfaceDeclaration();
-            if (fbody || (id && (fdensure || fdrequire) && isVirtual()))
+            if (fbody || (fdensure || fdrequire))
                 fbody = sbody;
         }
 
