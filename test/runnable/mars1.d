@@ -2371,6 +2371,37 @@ void test11435b()
 
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21526
+
+double f21256(double a, double b) {
+    double c = a + b;
+    return c;
+}
+
+void test21256()
+{
+    union DX
+    {
+        double d;
+        ulong l;
+    }
+
+    DX a, b;
+    a.l = 0x4341c37937e08000;
+    b.l = 0x4007ffcb923a29c7;
+
+    DX r;
+    r.d = f21256(a.d, b.d);
+    //if (r.d != 0x1.1c37937e08001p+53)
+        //printf("r = %A should be 0x1.1c37937e08001p+53 %A\n", r.d, 0x1.1c37937e08001p+53);
+    //assert(r == 0x1.1c37937e08001p+53);
+
+    // cannot seem to get the two to produce the same value
+    assert(r.l == 0x4341c37937e08001 || // value using XMM
+           r.l == 0x4341c37937e08002);  // value using x87
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2466,6 +2497,7 @@ int main()
     test16268();
     test11435a();
     test11435b();
+    test21256();
 
     printf("Success\n");
     return 0;

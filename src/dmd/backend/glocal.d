@@ -712,7 +712,12 @@ private bool local_preserveAssignmentTo(tym_t ty)
      * the x87, as that is the only way to get the x87 to
      * convert to float/double precision.
      */
-    if (config.inline8087 && !config.fpxmmregs)
+    /* Don't do this for 64 bit compiles because returns are in
+     * the XMM registers so it doesn't evaluate floats/doubles in the x87.
+     * 32 bit returns are in ST0, so it evaluates in the x87.
+     * https://issues.dlang.org/show_bug.cgi?id=21526
+     */
+    if (config.inline8087 && !I64)
     {
         switch (tybasic(ty))
         {
