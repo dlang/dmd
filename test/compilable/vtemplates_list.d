@@ -13,9 +13,12 @@ compilable/vtemplates_list.d(21): vtemplate: implicit instance `goo1!1`
 compilable/vtemplates_list.d(21): vtemplate: 2 (1 unique) instantiation(s) of template `goo2(int I)()` found, they are:
 compilable/vtemplates_list.d(33): vtemplate: explicit instance `goo2!1`
 compilable/vtemplates_list.d(34): vtemplate: explicit instance `goo2!1`
+compilable/vtemplates_list.d(52): vtemplate: 1 (1 unique) instantiation(s) of template `A()` found, they are:
+compilable/vtemplates_list.d-mixin-53(53): vtemplate: explicit instance `A!()`
 ---
 */
 
+#line 19
 void foo(int I)() { }
 void goo1(int I)() { }
 void goo2(int I)() { goo1!(I); }
@@ -32,4 +35,12 @@ void test()
 
     goo2!(1)();
     goo2!(1)();
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21489
+#line 50
+void test2()
+{
+    template A() {}
+    alias ta = mixin("A!()");
 }

@@ -664,6 +664,7 @@ class TypeMixin : public Type
 {
     Loc loc;
     Expressions *exps;
+    RootObject *obj;
 
     const char *kind();
     TypeMixin *syntaxCopy();

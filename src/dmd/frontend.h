@@ -5419,6 +5419,7 @@ class TypeMixin final : public Type
 public:
     Loc loc;
     Array<Expression* >* exps;
+    RootObject* obj;
     const char* kind() const;
     TypeMixin* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
