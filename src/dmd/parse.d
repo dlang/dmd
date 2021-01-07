@@ -5411,6 +5411,11 @@ class Parser(AST) : Lexer
                     stc = STC.scope_;
                     goto Lagain;
 
+                case TOK.out_:
+                    error("cannot declare `out` loop variable, use `ref` instead");
+                    stc = STC.out_;
+                    goto Lagain;
+
                 case TOK.enum_:
                     stc = STC.manifest;
                     goto Lagain;
