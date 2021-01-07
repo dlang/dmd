@@ -13,9 +13,11 @@ module dmd.chkformat;
 //import core.stdc.stdio : printf, scanf;
 import core.stdc.ctype : isdigit;
 
+import dmd.cond;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
+import dmd.identifier;
 import dmd.mtype;
 import dmd.target;
 
@@ -59,7 +61,7 @@ import dmd.target;
 bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
     //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
-    size_t n = 0;
+    size_t n, gnu_m_count;    // index in args / number of Format.GNU_m
     for (size_t i = 0; i < format.length;)
     {
         if (format[i] != '%')
@@ -85,11 +87,17 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             continue;
         }
 
-        Expression getNextArg()
+        if (fmt == Format.GNU_m)
+            ++gnu_m_count;
+
+        Expression getNextArg(ref bool skip)
         {
             if (n == args.length)
             {
-                deprecation(loc, "more format specifiers than %d arguments", cast(int)n);
+                if (args.length < (n + 1) - gnu_m_count)
+                    deprecation(loc, "more format specifiers than %zd arguments", n);
+                else
+                    skip = true;
                 return null;
             }
             return args[n++];
@@ -103,7 +111,10 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         if (widthStar)
         {
-            auto e = getNextArg();
+            bool skip;
+            auto e = getNextArg(skip);
+            if (skip)
+                continue;
             if (!e)
                 return true;
             auto t = e.type.toBasetype();
@@ -113,7 +124,10 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         if (precisionStar)
         {
-            auto e = getNextArg();
+            bool skip;
+            auto e = getNextArg(skip);
+            if (skip)
+                continue;
             if (!e)
                 return true;
             auto t = e.type.toBasetype();
@@ -121,7 +135,10 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 errorMsg("precision ", slice, e, "int", t);
         }
 
-        auto e = getNextArg();
+        bool skip;
+        auto e = getNextArg(skip);
+        if (skip)
+            continue;
         if (!e)
             return true;
         auto t = e.type.toBasetype();
@@ -179,6 +196,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                     errorMsg(null, slice, e, "ptrdiff_t", t);
                 break;
 
+            case Format.GNU_a:  // Format.GNU_a is only for scanf
             case Format.lg:
             case Format.g:      // double
                 if (t.ty != Tfloat64 && t.ty != Timaginary64)
@@ -259,6 +277,9 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             case Format.error:
                 deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
                 break;
+
+            case Format.GNU_m:
+                break;  // not assert(0) because it may go through it if there are extra arguments
 
             case Format.percent:
                 assert(0);
@@ -439,15 +460,19 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 if (!(t.ty == Tpointer && tnext.ty == Tfloat32))
                     errorMsg(null, slice, e, "float*", t);
                 break;
+
             case Format.lg:     // pointer to double
                 if (!(t.ty == Tpointer && tnext.ty == Tfloat64))
                     errorMsg(null, slice, e, "double*", t);
                 break;
+
             case Format.Lg:     // pointer to long double
                 if (!(t.ty == Tpointer && tnext.ty == Tfloat80))
                     errorMsg(null, slice, e, "real*", t);
                 break;
 
+            case Format.GNU_a:
+            case Format.GNU_m:
             case Format.c:
             case Format.s:      // pointer to char string
                 if (!(t.ty == Tpointer && (tnext.ty == Tchar || tnext.ty == Tint8 || tnext.ty == Tuns8)))
@@ -493,9 +518,8 @@ private:
  * Returns:
  *      Format
  */
-pure nothrow @safe
 Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool asterisk)
+        out bool asterisk) nothrow pure @safe
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -583,9 +607,8 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
  * Returns:
  *      Format
  */
-pure nothrow @safe
 Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool widthStar, out bool precisionStar)
+        out bool widthStar, out bool precisionStar) nothrow pure @safe
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -767,6 +790,8 @@ enum Format
     jn,         // pointer to intmax_t
     zn,         // pointer to size_t
     tn,         // pointer to ptrdiff_t
+    GNU_a,      // GNU ext. : address to a string with no maximum size (scanf)
+    GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf) / length modifier (scanf)
     percent,    // %% (i.e. no argument)
     error,      // invalid format specification
 }
@@ -785,9 +810,9 @@ enum Format
  * Returns:
  *      Format
  */
-pure @safe nothrow
 Format parseGenericFormatSpecifier(scope const char[] format,
-    ref size_t idx, out char genSpecifier)
+    ref size_t idx, out char genSpecifier, bool useGNUExts =
+    findCondition(global.versionids, Identifier.idPool("CRuntime_Glibc"))) nothrow pure @trusted
 {
     const length = format.length;
 
@@ -859,13 +884,21 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                                                Format.u;
             break;
 
+        case 'a':
+            if (useGNUExts)
+            {
+                // https://www.gnu.org/software/libc/manual/html_node/Dynamic-String-Input.html
+                specifier = Format.GNU_a;
+                break;
+            }
+            goto case;
+
         case 'f':
         case 'F':
         case 'e':
         case 'E':
         case 'g':
         case 'G':
-        case 'a':
         case 'A':
             if (lm == 'L')
                 specifier = Format.Lg;
@@ -909,6 +942,15 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                             lm == 't'        ? Format.tn  :
                                                Format.n;
             break;
+
+        case 'm':
+            if (useGNUExts)
+            {
+                // http://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
+                specifier = Format.GNU_m;
+                break;
+            }
+            goto default;
 
         default:
             specifier = Format.error;
@@ -1075,7 +1117,8 @@ unittest
      assert(idx == 2);
 
      idx = 0;
-     assert(parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar) == Format.g);
+     Format g = parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar);
+     assert(g == Format.g || g == Format.GNU_a);
      assert(idx == 2);
 
      idx = 0;
@@ -1245,7 +1288,8 @@ unittest
     assert(idx == 2);
 
     idx = 0;
-    assert(parseScanfFormatSpecifier("%a", idx, asterisk) == Format.g);
+    g = parseScanfFormatSpecifier("%a", idx, asterisk);
+    assert(g == Format.g || g == Format.GNU_a);
     assert(idx == 2);
 
     idx = 0;
