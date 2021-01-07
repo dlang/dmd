@@ -52,7 +52,7 @@ module core.internal.backtrace.dwarf;
 import core.internal.execinfo;
 import core.internal.string;
 
-static if (hasExecinfo):
+version (Posix):
 
 version (OSX)
     version = Darwin;
@@ -159,30 +159,53 @@ struct Location
     }
 }
 
-int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
+static if (hasExecinfo)
 {
-    import core.stdc.stdio : snprintf;
-    import core.sys.posix.stdlib : free;
+    int traceHandlerOpApplyImpl(const(void*)[] callstack,
+                                scope int delegate(ref size_t, ref const(char[])) dg)
+    {
+        import core.stdc.stdio : snprintf;
+        import core.sys.posix.stdlib : free;
 
-    const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
-    scope(exit) free(cast(void*) frameList);
+        const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
+        scope(exit) free(cast(void*) frameList);
 
+        auto image = Image.openSelf();
+
+        // find address -> file, line mapping using dwarf debug_line
+        Array!Location locations;
+        locations.length = callstack.length;
+        foreach (size_t i; 0 .. callstack.length)
+        {
+            locations[i].address = callstack[i];
+            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
+        }
+
+        if (!image.isValid())
+            return locations[].processCallstack(null, image.baseAddress, dg);
+
+        return image.processDebugLineSectionData(
+            (line) => locations[].processCallstack(line, image.baseAddress, dg));
+    }
+}
+
+int traceHandlerOpApplyImpl2(T)(const T[] input, scope int delegate(ref size_t, ref const(char[])) dg)
+{
     auto image = Image.openSelf();
 
     // find address -> file, line mapping using dwarf debug_line
     Array!Location locations;
-    locations.length = callstack.length;
-    foreach (size_t i; 0 .. callstack.length)
+    locations.length = input.length;
+    foreach (idx, const ref inp; input)
     {
-        locations[i].address = callstack[i];
-        locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
+        locations[idx].address = inp.address;
+        locations[idx].procedure = inp.name;
     }
 
-    if (!image.isValid())
-        return locations[].processCallstack(null, image.baseAddress, dg);
-
-    return image.processDebugLineSectionData(
-        (line) => locations[].processCallstack(line, image.baseAddress, dg));
+    return image.isValid
+        ? image.processDebugLineSectionData(
+            (line) => locations[].processCallstack(line, image.baseAddress, dg))
+        : locations[].processCallstack(null, image.baseAddress, dg);
 }
 
 struct TraceInfoBuffer

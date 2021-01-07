@@ -53,6 +53,8 @@ SRCS=\
 	\
 	src\core\internal\backtrace\dwarf.d \
 	src\core\internal\backtrace\elf.d \
+	src\core\internal\backtrace\handler.d \
+	src\core\internal\backtrace\libunwind.d \
 	src\core\internal\backtrace\macho.d \
 	\
 	src\core\internal\container\array.d \
