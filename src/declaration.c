@@ -196,7 +196,7 @@ bool Declaration::checkDisabled(Loc loc, Scope *sc, bool isAliasedDeclaration)
                     return false;
         }
     }
-    error(loc, "is not callable because it is annotated with `@disable`");
+    error(loc, "cannot be used because it is annotated with `@disable`");
     return true;
 }
 
