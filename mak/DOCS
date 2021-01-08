@@ -90,6 +90,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_backtrace_handler.html \
 	$(DOCDIR)\core_internal_backtrace_libunwind.html \
 	$(DOCDIR)\core_internal_backtrace_macho.html \
+	$(DOCDIR)\core_internal_backtrace_unwind.html \
 	\
 	$(DOCDIR)\core_internal_container_array.html \
 	$(DOCDIR)\core_internal_container_common.html \
@@ -136,8 +137,6 @@ DOCS=\
 	$(DOCDIR)\rt_tlsgc.html \
 	$(DOCDIR)\rt_trace.html \
 	$(DOCDIR)\rt_tracegc.html \
-	\
-	$(DOCDIR)\rt_unwind.html \
 	\
 	$(DOCDIR)\rt_util_utility.html \
 	$(DOCDIR)\rt_util_typeinfo.html \

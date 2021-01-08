@@ -56,6 +56,7 @@ SRCS=\
 	src\core\internal\backtrace\handler.d \
 	src\core\internal\backtrace\libunwind.d \
 	src\core\internal\backtrace\macho.d \
+	src\core\internal\backtrace\unwind.d \
 	\
 	src\core\internal\container\array.d \
 	src\core\internal\container\common.d \
@@ -544,7 +545,6 @@ SRCS=\
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	src\rt\tracegc.d \
-	src\rt\unwind.d \
 	\
 	src\rt\util\typeinfo.d \
 	src\rt\util\utility.d \

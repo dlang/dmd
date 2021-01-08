@@ -56,6 +56,7 @@ COPY=\
 	$(IMPDIR)\core\internal\backtrace\handler.d \
 	$(IMPDIR)\core\internal\backtrace\libunwind.d \
 	$(IMPDIR)\core\internal\backtrace\macho.d \
+	$(IMPDIR)\core\internal\backtrace\unwind.d \
 	\
 	$(IMPDIR)\core\internal\elf\dl.d \
 	$(IMPDIR)\core\internal\elf\io.d \
