@@ -452,7 +452,6 @@ immutable Msgtable[] msgtable =
     { "derivedMembers" },
     { "isSame" },
     { "compiles" },
-    { "parameters" },
     { "getAliasThis" },
     { "getAttributes" },
     { "getFunctionAttributes" },
