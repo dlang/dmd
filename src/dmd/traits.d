@@ -135,7 +135,6 @@ shared static this()
         "derivedMembers",
         "isSame",
         "compiles",
-        "parameters",
         "getAliasThis",
         "getAttributes",
         "getFunctionAttributes",
