@@ -3562,7 +3562,7 @@ public:
     void visit(AliasDeclaration* ad);
     void visit(Nspace* ns);
     void visit(CPPNamespaceDeclaration* ns);
-    void handleNspace(Identifier* name, Array<Dsymbol* >* members);
+    void handleNspace(Dsymbol* namespace, Array<Dsymbol* >* members);
     void visit(AnonDeclaration* ad);
     void visit(StructDeclaration* sd);
     void visit(ClassDeclaration* cd);
