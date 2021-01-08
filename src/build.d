@@ -2027,7 +2027,33 @@ auto run(T)(T args, string workDir = runDir)
     auto res = tryRun(args, workDir);
     if (res.status)
     {
-        abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));
+        string details;
+
+        // Rerun with GDB if e.g. a segfault occurred
+        // Limit this to executables within `generated` to not debug e.g. Git
+        version (linux)
+        if (res.status < 0 && args[0].startsWith(env["G"]))
+        {
+            // This should use --args to pass the command line parameters, but that
+            // flag is only available since 7.1.1 and hence missing on some CI machines
+            auto gdb = [
+                "gdb", "-batch", // "-q","-n",
+                args[0],
+                "-ex", "set backtrace limit 100",
+                "-ex", format("run %-(%s %)", args[1..$]),
+                "-ex", "bt",
+                "-ex", "info args",
+                "-ex", "info locals",
+            ];
+
+            // Include gdb output as details (if GDB is available)
+            try
+                details = tryRun(gdb, workDir).output;
+            catch (ProcessException e)
+                log("GDB failed: %s", e);
+        }
+
+        abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status), details);
     }
     return res.output;
 }
