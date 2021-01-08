@@ -4305,13 +4305,16 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
             break;
     }
     regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
-    if (tyvector(tym))
+    if (tyvector(tym) ||
+        config.fpxmmregs && tyxmmreg(tym) &&
+        // If not already in x87 register from function call return
+        !((e.Eoper == OPcall || e.Eoper == OPucall) && I32))
     {
         retregs = XMMREGS;
         codelem(cdb, e, &retregs, false);
         const op = xmmstore(tym);
         const r = findreg(retregs);
-        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FLfuncarg, funcargtos - 16);   // MOV funcarg[EBP],r
+        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FLfuncarg, funcargtos - sz);   // MOV funcarg[EBP],r
         checkSetVex(cdb.last(),tym);
         return;
     }
