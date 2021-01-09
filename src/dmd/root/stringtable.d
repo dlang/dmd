@@ -172,6 +172,48 @@ public:
         return insert(s[0 .. length], value);
     }
 
+    /**
+    Replaces the previous value found at the given string with the new given value
+
+    Params:
+     s = the string to insert
+     length = the length of $(D_PARAM s)
+     ptrvalue = the value to associate with the inserted string
+     str = the string to insert
+     value = the value to associate with the inserted string
+
+    Returns: the previous value, or `null` if the string table did not
+     contain the string
+    */
+    StringValue!(T)* replace(const(char)[] str, T value) nothrow pure
+    {
+        const(size_t) hash = calcHash(str);
+        size_t i = findSlot(hash, str);
+
+        // Pair not found, inserting it
+        if (table[i].vptr) {
+            if (++count > countTrigger)
+            {
+                grow();
+                i = findSlot(hash, str);
+            }
+            table[i].hash = hash;
+            table[i].vptr = allocValue(str, value);
+            return null;
+        }
+
+        auto prev = getValue(table[i].vptr);
+        table[i].vptr = allocValue(str, value);
+        return prev;
+    }
+
+    /// ditto
+    StringValue!(T)* replace(const(char)* s, size_t length, T value) nothrow pure
+    {
+        return replace(s[0 .. length], value);
+    }
+
+
     StringValue!(T)* update(const(char)[] str) nothrow pure
     {
         const(size_t) hash = calcHash(str);

@@ -41,6 +41,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
+import dmd.root.filemanager;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.utils;
@@ -50,6 +51,10 @@ version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);
 } else {
     import core.sys.posix.unistd : getcwd;
+}
+
+version (DMDLIB) {
+    version = UseFileManager;
 }
 
 /* ===========================  ===================== */
@@ -63,7 +68,7 @@ version(Windows) {
  * Returns:
  *      NULL if it's not different from filename.
  */
-private const(char)[] lookForSourceFile(const(char)[] filename)
+const(char)[] lookForSourceFile(const(char)[] filename)
 {
     /* Search along global.path for .di file, then .d file.
      */
@@ -170,7 +175,7 @@ void removeHdrFilesAndFail(ref Param params, ref Modules modules)
  * Returns:
  *  the filename of the child package or module
  */
-private const(char)[] getFilename(Identifiers* packages, Identifier ident)
+const(char)[] getFilename(Identifiers* packages, Identifier ident)
 {
     const(char)[] filename = ident.toString();
 
@@ -448,6 +453,11 @@ extern (C++) final class Module : Package
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
 
+    version (UseFileManager)
+    {
+        FileManager* filemanager;
+    }
+
     /*************************************
      * Return true if module imports itself.
      */
@@ -573,6 +583,21 @@ extern (C++) final class Module : Package
     extern (D) static Module create(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
+    }
+
+    version (UseFileManager)
+    {
+        extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen, FileManager* fm)
+        {
+            this(loc, filename, ident, doDocComment, doHdrGen);
+            filemanager = fm;
+        }
+
+        extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen, FileManager* fm)
+        {
+            this(Loc.initial, filename, ident, doDocComment, doHdrGen);
+            filemanager = fm;
+        }
     }
 
     static Module load(Loc loc, Identifiers* packages, Identifier ident)
@@ -750,6 +775,19 @@ extern (C++) final class Module : Package
         if (srcBuffer)
             return true; // already read
 
+        version (UseFileManager)
+        {
+            if (filemanager)
+            {
+                auto result = filemanager.opIndex(srcfile);
+                if (result)
+                {
+                    srcBuffer = result;
+                    return true;
+                }
+            }
+        }
+
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         auto readResult = File.read(srcfile.toChars());
 
@@ -761,7 +799,15 @@ extern (C++) final class Module : Package
             ob.writestring(toPosixPath(srcfile.toString()));
         }
 
-        return loadSourceBuffer(loc, readResult);
+        auto loadResult = loadSourceBuffer(loc, readResult);
+        version (UseFileManager)
+        {
+            if (filemanager && loadResult)
+            {
+                filemanager.addPair(srcfile, srcBuffer);
+            }
+        }
+        return loadResult;
     }
 
     /// syntactic parse
@@ -1033,6 +1079,15 @@ extern (C++) final class Module : Package
         }
         {
             scope p = new Parser!AST(this, buf, cast(bool) docfile);
+
+            version (UseFileManager)
+            {
+                if (filemanager)
+                {
+                    p.setFileManager(filemanager);
+                }
+            }
+
             p.nextToken();
             members = p.parseModule();
             md = p.md;

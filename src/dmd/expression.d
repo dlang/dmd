@@ -61,6 +61,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
+import dmd.root.filemanager;
 import dmd.safe;
 import dmd.sideeffect;
 import dmd.target;
@@ -4661,6 +4662,17 @@ extern (C++) final class MixinExp : Expression
  */
 extern (C++) final class ImportExp : UnaExp
 {
+    version (UseFileManager)
+    {
+        FileManager* filemanager;
+
+        extern (D) this(const ref Loc loc, Expression e, FileManager* fm)
+        {
+            super(loc, TOK.import_, __traits(classInstanceSize, ImportExp), e);
+            filemanager = fm;
+        }
+    }
+
     extern (D) this(const ref Loc loc, Expression e)
     {
         super(loc, TOK.import_, __traits(classInstanceSize, ImportExp), e);
