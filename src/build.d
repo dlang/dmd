@@ -1075,7 +1075,7 @@ void parseEnvironment()
     // Auto-bootstrapping of a specific host compiler
     if (env.getNumberedBool("AUTO_BOOTSTRAP"))
     {
-        auto hostDMDVer = env.getDefault("HOST_DMD_VER", "2.088.0");
+        auto hostDMDVer = env.getDefault("HOST_DMD_VER", "2.095.0");
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
         auto hostDMDBase = hostDMDVer~"."~(os == "freebsd" ? os~"-"~model : os);
