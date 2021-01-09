@@ -22,9 +22,8 @@ extern(C++) class ImportVisitor2(AST) : ParseTimeTransitiveVisitor!AST
 
         printf("import ");
 
-        if (imp.packages && imp.packages.dim)
-            foreach (const pid; *imp.packages)
-                printf("%s.", pid.toChars());
+        foreach (const pid; imp.packages)
+            printf("%s.", pid.toChars());
 
         printf("%s", imp.id.toChars());
 

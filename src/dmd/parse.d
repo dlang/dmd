@@ -403,14 +403,12 @@ final class Parser(AST) : Lexer
                 goto Lerr;
             }
 
-            AST.Identifiers* a = null;
+            Identifier[] a;
             Identifier id = token.ident;
 
             while (nextToken() == TOK.dot)
             {
-                if (!a)
-                    a = new AST.Identifiers();
-                a.push(id);
+                a ~= id;
                 nextToken();
                 if (token.value != TOK.identifier)
                 {
@@ -1038,7 +1036,7 @@ final class Parser(AST) : Lexer
 
                     // optional qualified package identifier to bind
                     // visibility to
-                    AST.Identifiers* pkg_prot_idents = null;
+                    Identifier[] pkg_prot_idents;
                     if (pAttrs.visibility.kind == AST.Visibility.Kind.package_ && token.value == TOK.leftParentheses)
                     {
                         pkg_prot_idents = parseQualifiedIdentifier("protection package");
@@ -2333,9 +2331,9 @@ final class Parser(AST) : Lexer
      * Returns:
      *     array of identifiers with actual qualified one stored last
      */
-    private AST.Identifiers* parseQualifiedIdentifier(const(char)* entity)
+    private Identifier[] parseQualifiedIdentifier(const(char)* entity)
     {
-        AST.Identifiers* qualified = null;
+        Identifier[] qualified;
 
         do
         {
@@ -2343,13 +2341,11 @@ final class Parser(AST) : Lexer
             if (token.value != TOK.identifier)
             {
                 error("`%s` expected as dot-separated identifiers, got `%s`", entity, token.toChars());
-                return null;
+                return qualified;
             }
 
             Identifier id = token.ident;
-            if (!qualified)
-                qualified = new AST.Identifiers();
-            qualified.push(id);
+            qualified ~= id;
 
             nextToken();
         }
@@ -3480,7 +3476,7 @@ final class Parser(AST) : Lexer
 
             const loc = token.loc;
             Identifier id = token.ident;
-            AST.Identifiers* a = null;
+            Identifier[] a;
             nextToken();
             if (!aliasid && token.value == TOK.assign)
             {
@@ -3489,9 +3485,7 @@ final class Parser(AST) : Lexer
             }
             while (token.value == TOK.dot)
             {
-                if (!a)
-                    a = new AST.Identifiers();
-                a.push(id);
+                a ~= id;
                 nextToken();
                 if (token.value != TOK.identifier)
                 {

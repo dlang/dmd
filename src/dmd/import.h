@@ -23,7 +23,7 @@ public:
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
 
-    Identifiers *packages;      // array of Identifier's representing packages
+    DArray<Identifier*> packages;      // array of Identifier's representing packages
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import

@@ -862,12 +862,9 @@ public:
         {
             buf.printf("%s = ", imp.aliasId.toChars());
         }
-        if (imp.packages && imp.packages.dim)
+        foreach (const pid; imp.packages)
         {
-            foreach (const pid; *imp.packages)
-            {
-                buf.printf("%s.", pid.toChars());
-            }
+            buf.printf("%s.", pid.toChars());
         }
         buf.writestring(imp.id.toString());
         if (imp.names.dim)

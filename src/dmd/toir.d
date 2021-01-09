@@ -497,7 +497,7 @@ int intrinsic_op(FuncDeclaration fd)
     const md = m.md;
     const Identifier id2 = md.id;
 
-    if (!md.packages)
+    if (md.packages.length == 0)
         return op;
 
     // get type of first argument
@@ -505,12 +505,12 @@ int intrinsic_op(FuncDeclaration fd)
     auto param1 = tf && tf.parameterList.length > 0 ? tf.parameterList[0] : null;
     auto argtype1 = param1 ? param1.type : null;
 
-    const Identifier id1 = (*md.packages)[0];
+    const Identifier id1 = md.packages[0];
     // ... except std.math package and core.stdc.stdarg.va_start.
-    if (md.packages.dim == 2)
+    if (md.packages.length == 2)
     {
         if (id2 == Id.trig &&
-            (*md.packages)[1] == Id.math &&
+            md.packages[1] == Id.math &&
             id1 == Id.std)
         {
             goto Lstdmath;
@@ -597,7 +597,7 @@ Lva_start:
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&
-        (*md.packages)[1] == Id.stdc &&
+        md.packages[1] == Id.stdc &&
         id1 == Id.core)
     {
         return OPva_start;

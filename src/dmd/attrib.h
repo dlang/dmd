@@ -107,7 +107,7 @@ class VisibilityDeclaration : public AttribDeclaration
 {
 public:
     Visibility visibility;
-    Identifiers* pkg_identifiers;
+    DArray<Identifier*> pkg_identifiers;
 
     VisibilityDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);

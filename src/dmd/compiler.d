@@ -146,9 +146,8 @@ extern (C++) struct Compiler
     {
         if (includeImports)
         {
-            Identifiers empty;
             if (includeImportedModuleCheck(ModuleComponentRange(
-                (m.md && m.md.packages) ? m.md.packages : &empty, m.ident, m.isPackageFile)))
+                m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
             {
                 if (global.params.verbose)
                     message("compileimport (%s)", m.srcfile.toChars);
@@ -186,18 +185,18 @@ extern (C++) struct Compiler
 // A range of component identifiers for a module
 private struct ModuleComponentRange
 {
-    Identifiers* packages;
+    Identifier[] packages;
     Identifier name;
     bool isPackageFile;
     size_t index;
-    @property auto totalLength() const { return packages.dim + 1 + (isPackageFile ? 1 : 0); }
+    @property auto totalLength() const { return packages.length + 1 + (isPackageFile ? 1 : 0); }
 
     @property auto empty() { return index >= totalLength(); }
     @property auto front() const
     {
-        if (index < packages.dim)
-            return (*packages)[index];
-        if (index == packages.dim)
+        if (index < packages.length)
+            return packages[index];
+        if (index == packages.length)
             return name;
         else
             return Identifier.idPool("package");

@@ -790,12 +790,9 @@ private void emitAnchor(ref OutBuffer buf, Dsymbol s, Scope* sc, bool forHeader 
                 // fully qualify imports so `core.stdc.string` doesn't appear as `core`
                 void printFullyQualifiedImport()
                 {
-                    if (imp.packages && imp.packages.dim)
+                    foreach (const pid; imp.packages)
                     {
-                        foreach (const pid; *imp.packages)
-                        {
-                            buf.printf("%s.", pid.toChars());
-                        }
+                        buf.printf("%s.", pid.toChars());
                     }
                     buf.writestring(imp.id.toString());
                 }
@@ -2610,12 +2607,9 @@ private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
                 // fully qualify imports so `core.stdc.string` doesn't appear as `core`
                 string fullyQualifiedImport;
-                if (imp.packages && imp.packages.dim)
+                foreach (const pid; imp.packages)
                 {
-                    foreach (const pid; *imp.packages)
-                    {
-                        fullyQualifiedImport ~= pid.toString() ~ ".";
-                    }
+                    fullyQualifiedImport ~= pid.toString() ~ ".";
                 }
                 fullyQualifiedImport ~= imp.id.toString();
 
