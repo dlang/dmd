@@ -4670,11 +4670,11 @@ extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
-enum class ILS
+enum class ILS : uint8_t
 {
-    uninitialized = 0,
-    no = 1,
-    yes = 2,
+    uninitialized = 0u,
+    no = 1u,
+    yes = 2u,
 };
 
 class NrvoWalker final : public StatementRewriteWalker
