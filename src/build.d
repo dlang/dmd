@@ -350,8 +350,8 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         .chain(
             (
                 // Only use -betterC when it doesn't break other features
-                extraFlags.canFind("-unittest", "-cov") ||
-                flags["DFLAGS"].canFind("-unittest", "-cov")
+                extraFlags.canFind("-unittest", env["COVERAGE_FLAG"]) ||
+                flags["DFLAGS"].canFind("-unittest", env["COVERAGE_FLAG"])
             ) ? [] : ["-betterC"],
             flags["DFLAGS"], extraFlags,
 
@@ -1196,9 +1196,14 @@ void processEnvironment()
     {
         dflags ~= ["-profile"];
     }
+
+    // Enable CTFE coverage for recent host compilers
+    const cov = env["HOST_DMD_VERSION"] >= "2.094.0" ? "-cov=ctfe" : "-cov";
+    env["COVERAGE_FLAG"] = cov;
+
     if (env.getNumberedBool("ENABLE_COVERAGE"))
     {
-        dflags ~= ["-cov"];
+        dflags ~= [ cov ];
     }
     const sanitizers = env.getDefault("ENABLE_SANITIZERS", "");
     if (!sanitizers.empty)
