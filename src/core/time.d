@@ -1506,10 +1506,7 @@ public:
            units == "hnsecs" ||
            units == "nsecs")
     {
-        static if (units == "nsecs")
-            return convert!("hnsecs", "nsecs")(_hnsecs);
-        else
-            return getUnitsFromHNSecs!units(_hnsecs);
+        return convert!("hnsecs", units)(_hnsecs);
     }
 
     ///
@@ -3715,81 +3712,6 @@ unittest
     assert(hnsecs == 7);
 }
 
-
-/+
-    This function is used to split out the units without getting the remaining
-    hnsecs.
-
-    See_Also:
-        $(LREF splitUnitsFromHNSecs)
-
-    Params:
-        units  = The units to split out.
-        hnsecs = The current total hnsecs.
-
-    Returns:
-        The split out value.
-  +/
-long getUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
-    if (units == "weeks" ||
-       units == "days" ||
-       units == "hours" ||
-       units == "minutes" ||
-       units == "seconds" ||
-       units == "msecs" ||
-       units == "usecs" ||
-       units == "hnsecs")
-{
-    return convert!("hnsecs", units)(hnsecs);
-}
-
-unittest
-{
-    auto hnsecs = 2595000000007L;
-    immutable days = getUnitsFromHNSecs!"days"(hnsecs);
-    assert(days == 3);
-    assert(hnsecs == 2595000000007L);
-}
-
-
-/+
-    This function is used to split out the units without getting the units but
-    just the remaining hnsecs.
-
-    See_Also:
-        $(LREF splitUnitsFromHNSecs)
-
-    Params:
-        units  = The units to split out.
-        hnsecs = The current total hnsecs.
-
-    Returns:
-        The remaining hnsecs.
-  +/
-long removeUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
-    if (units == "weeks" ||
-       units == "days" ||
-       units == "hours" ||
-       units == "minutes" ||
-       units == "seconds" ||
-       units == "msecs" ||
-       units == "usecs" ||
-       units == "hnsecs")
-{
-    immutable value = convert!("hnsecs", units)(hnsecs);
-
-    return hnsecs - convert!(units, "hnsecs")(value);
-}
-
-unittest
-{
-    auto hnsecs = 2595000000007L;
-    auto returned = removeUnitsFromHNSecs!"days"(hnsecs);
-    assert(returned == 3000000007);
-    assert(hnsecs == 2595000000007L);
-}
-
-
 /+
     Whether all of the given strings are among the accepted strings.
   +/
@@ -3874,62 +3796,6 @@ unittest
     assert(unitsAreInDescendingOrder("hnsecs"));
     assert(!unitsAreInDescendingOrder("days", "hours", "hours"));
     assert(!unitsAreInDescendingOrder("days", "hours", "days"));
-}
-
-
-/+
-    The time units which are one step larger than the given units.
-  +/
-template nextLargerTimeUnits(string units)
-    if (units == "days" ||
-       units == "hours" ||
-       units == "minutes" ||
-       units == "seconds" ||
-       units == "msecs" ||
-       units == "usecs" ||
-       units == "hnsecs" ||
-       units == "nsecs")
-{
-    static if (units == "days")
-        enum nextLargerTimeUnits = "weeks";
-    else static if (units == "hours")
-        enum nextLargerTimeUnits = "days";
-    else static if (units == "minutes")
-        enum nextLargerTimeUnits = "hours";
-    else static if (units == "seconds")
-        enum nextLargerTimeUnits = "minutes";
-    else static if (units == "msecs")
-        enum nextLargerTimeUnits = "seconds";
-    else static if (units == "usecs")
-        enum nextLargerTimeUnits = "msecs";
-    else static if (units == "hnsecs")
-        enum nextLargerTimeUnits = "usecs";
-    else static if (units == "nsecs")
-        enum nextLargerTimeUnits = "hnsecs";
-    else
-        static assert(0, "Broken template constraint");
-}
-
-unittest
-{
-    assert(nextLargerTimeUnits!"minutes" == "hours");
-    assert(nextLargerTimeUnits!"hnsecs" == "usecs");
-}
-
-unittest
-{
-    assert(nextLargerTimeUnits!"nsecs" == "hnsecs");
-    assert(nextLargerTimeUnits!"hnsecs" == "usecs");
-    assert(nextLargerTimeUnits!"usecs" == "msecs");
-    assert(nextLargerTimeUnits!"msecs" == "seconds");
-    assert(nextLargerTimeUnits!"seconds" == "minutes");
-    assert(nextLargerTimeUnits!"minutes" == "hours");
-    assert(nextLargerTimeUnits!"hours" == "days");
-    assert(nextLargerTimeUnits!"days" == "weeks");
-
-    static assert(!__traits(compiles, nextLargerTimeUnits!"weeks"));
-    static assert(!__traits(compiles, nextLargerTimeUnits!"months"));
-    static assert(!__traits(compiles, nextLargerTimeUnits!"years"));
 }
 
 version (Darwin)
