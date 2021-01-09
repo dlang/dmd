@@ -478,7 +478,7 @@ public:
                 case "co_await":
                 case "co_yield":
                 case "co_return":
-                    version (none)
+                    if (global.params.cplusplus >= CppStdRevision.cpp20)
                         warnCxxCompat("keyword in C++20");
                     break;
 
