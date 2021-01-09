@@ -92,13 +92,6 @@ for proj in druntime phobos; do
 done
 
 ################################################################################
-# Build and run druntime tests
-################################################################################
-
-cd "$DMD_DIR/../druntime"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
-
-################################################################################
 # Run DMD testsuite
 ################################################################################
 
@@ -108,6 +101,15 @@ cd "$DMD_DIR/test"
 cd ../test
 "$HOST_DC" -m$MODEL -g -i run.d
 ./run tools
+
+# Rebuild dmd with ENABLE_COVERAGE for coverage tests
+if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
+
+    # Recompile debug dmd + unittests
+    rm -rf "$DMD_DIR/generated/windows"
+    DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
+    DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
+fi
 
 if [ "$MODEL" == "32" ] ; then
     # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
@@ -125,6 +127,29 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     args=() # use default set of args
 fi
 CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
+
+###############################################################################
+# Upload coverage reports and exit if ENABLE_COVERAGE is specified
+################################################################################
+
+if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
+    cd $DMD_DIR
+    # CodeCov gets confused by lst files which it can't match
+    rm -rf test/runnable/extra-files test/*.lst
+    download "https://codecov.io/bash" "codecov.sh"
+    bash ./codecov.sh -p . -Z
+    rm codecov.sh
+
+    # Skip druntime & phobos tests
+    exit 0
+fi
+
+################################################################################
+# Build and run druntime tests
+################################################################################
+
+cd "$DMD_DIR/../druntime"
+"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
 
 ################################################################################
 # Build and run Phobos unittests

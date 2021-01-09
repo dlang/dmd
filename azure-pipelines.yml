@@ -44,6 +44,29 @@ jobs:
       - template: .azure-pipelines/windows.yml
       - template: .azure-pipelines/windows-artifact.yml
 
+  - job: Windows_Coverage
+    timeoutInMinutes: 120
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      D_COMPILER: dmd
+      HOST_DMD_VERSION: LATEST
+      DMD_TEST_COVERAGE: 1
+    strategy:
+      matrix:
+        x64:
+          OS: Win_64
+          MODEL: 64
+          ARCH: x64
+
+        # x64 only because 32bit causes weird linker errors for several tests???
+        # x86-OMF:
+        #   OS: Win_32
+        #   MODEL: 32
+        #   ARCH: x86
+    steps:
+      - template: .azure-pipelines/windows.yml
+
   - job: Windows_VisualD_LDC
     timeoutInMinutes: 120
     pool:
