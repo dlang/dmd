@@ -2149,7 +2149,7 @@ public:
         const isFp = e.e1.isPtrExp();
         if (isFp)
             buf.writeByte('(');
-        else
+        else if (e.f)
             includeSymbol(e.f);
 
         e.e1.accept(this);
@@ -2372,7 +2372,7 @@ public:
             printf("[AST.StructLiteralExp enter] %s\n", sle.toChars());
             scope(exit) printf("[AST.StructLiteralExp exit] %s\n", sle.toChars());
         }
-        buf.writestring(sle.sd.ident.toChars());
+        sle.sd.type.accept(this);
         buf.writeByte('(');
         foreach(i, e; *sle.elements)
         {
