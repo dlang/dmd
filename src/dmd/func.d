@@ -57,7 +57,7 @@ import dmd.tokens;
 import dmd.visitor;
 
 /// Inline Status
-enum ILS : int
+enum ILS : ubyte
 {
     uninitialized,       /// not computed yet
     no,                  /// cannot inline

@@ -427,7 +427,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-enum ILS
+enum class ILS : unsigned char
 {
     ILSuninitialized,   // not computed yet
     ILSno,              // cannot inline
