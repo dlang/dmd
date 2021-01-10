@@ -585,6 +585,7 @@ public:
 
     void mangleParent(Dsymbol s)
     {
+        //printf("mangleParent() %s %s\n", s.kind(), s.toChars());
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
@@ -592,10 +593,12 @@ public:
             p = s.parent;
         if (p)
         {
+            uint localNum = s.localNum;
             mangleParent(p);
             auto ti = p.isTemplateInstance();
             if (ti && !ti.isTemplateMixin())
             {
+                localNum = ti.tempdecl.localNum;
                 mangleTemplateInstance(ti);
             }
             else if (p.getIdent())
@@ -606,6 +609,25 @@ public:
             }
             else
                 buf.writeByte('0');
+
+            /* There can be multiple different declarations in the same
+             * function that have the same mangled name.
+             * This results in localNum having a non-zero number, which
+             * is used to add a fake parent of the form `__Sddd` to make
+             * the mangled names unique.
+             * https://issues.dlang.org/show_bug.cgi?id=20565
+             */
+            if (localNum)
+            {
+                uint ndigits = 1;
+                auto n = localNum;
+                while (n >= 10)
+                {
+                    n /= 10;
+                    ++ndigits;
+                }
+                buf.printf("%u__S%u", ndigits + 4, localNum);
+            }
         }
     }
 
@@ -673,6 +695,8 @@ public:
         const par = d.toParent(); //toParent() skips over mixin templates
         if (!par || par.isModule() || d.linkage == LINK.cpp)
         {
+            if (d.linkage != LINK.d && d.localNum)
+                d.error("the same declaration cannot be in multiple scopes with non-D linkage");
             final switch (d.linkage)
             {
                 case LINK.d:

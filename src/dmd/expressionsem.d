@@ -5195,17 +5195,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if ((s.isFuncDeclaration() ||
                      s.isAggregateDeclaration() ||
                      s.isEnumDeclaration() ||
+                     s.isTemplateDeclaration() ||
                      v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
                 {
-                    // https://issues.dlang.org/show_bug.cgi?id=18266
-                    // set parent so that type semantic does not assert
-                    s.parent = sc.parent;
+                    // Get the previous symbol
                     Dsymbol originalSymbol = sc.func.localsymtab.lookup(s.ident);
-                    assert(originalSymbol);
-                    e.error("declaration `%s` is already defined in another scope in `%s` at line `%d`", s.toPrettyChars(), sc.func.toChars(), originalSymbol.loc.linnum);
-                    return setError();
+
+                    // Perturb the name mangling so that the symbols can co-exist
+                    // instead of colliding
+                    s.localNum = cast(ushort)(originalSymbol.localNum + 1);
+                    assert(s.localNum);         // 65535 should be enough for anyone
+
+                    // Replace originalSymbol with s, which updates the localCount
+                    sc.func.localsymtab.update(s);
+
+                    // The mangling change only works for D mangling
                 }
-                else
+//              else
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=21272
                      * If we are in a foreach body we need to extract the
