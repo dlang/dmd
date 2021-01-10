@@ -175,17 +175,28 @@ static if (hasExecinfo)
         // find address -> file, line mapping using dwarf debug_line
         Array!Location locations;
         locations.length = callstack.length;
+        size_t startIdx;
         foreach (size_t i; 0 .. callstack.length)
         {
             locations[i].address = callstack[i];
             locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
+
+            // NOTE: The first few frames with the current implementation are
+            //       inside core.runtime and the object code, so eliminate
+            //       these for readability.
+            // They also might depend on build parameters, which would make
+            // using a fixed number of frames otherwise brittle.
+            version (LDC) enum BaseExceptionFunctionName = "_d_throw_exception";
+            else          enum BaseExceptionFunctionName = "_d_throwdwarf";
+            if (!startIdx && locations[i].procedure == BaseExceptionFunctionName)
+                startIdx = i + 1;
         }
 
         if (!image.isValid())
-            return locations[].processCallstack(null, image.baseAddress, dg);
+            return locations[startIdx .. $].processCallstack(null, image.baseAddress, dg);
 
         return image.processDebugLineSectionData(
-            (line) => locations[].processCallstack(line, image.baseAddress, dg));
+            (line) => locations[startIdx .. $].processCallstack(line, image.baseAddress, dg));
     }
 }
 
@@ -200,6 +211,11 @@ int traceHandlerOpApplyImpl2(T)(const T[] input, scope int delegate(ref size_t, 
     {
         locations[idx].address = inp.address;
         locations[idx].procedure = inp.name;
+        // Same code as `traceHandlerOpApplyImpl2`
+        version (LDC) enum BaseExceptionFunctionName = "_d_throw_exception";
+        else          enum BaseExceptionFunctionName = "_d_throwdwarf";
+        if (!startIdx && inp.name == BaseExceptionFunctionName)
+            startIdx = i + 1;
     }
 
     return image.isValid

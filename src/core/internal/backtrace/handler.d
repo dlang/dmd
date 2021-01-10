@@ -41,12 +41,10 @@ class LibunwindHandler : Throwable.TraceInfo
      *
      * Params:
      *   frames_to_skip = The number of frames leading to this one.
-     *                    Defaults to 5. Should normally default to 1,
-     *                    but since this information is not currently
-     *                    propagated in druntime, the default is right
-     *                    for druntime
+     *                    Defaults to 1. Note that the opApply will not
+     *                    show any frames that appear before _d_throwdwarf.
      */
-    public this (size_t frames_to_skip = 5) nothrow @nogc
+    public this (size_t frames_to_skip = 1) nothrow @nogc
     {
         import core.stdc.string : strlen;
 

@@ -808,23 +808,6 @@ else static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInf
 
     override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
-        // NOTE: The first few frames with the current implementation are
-        //       inside core.runtime and the object code, so eliminate
-        //       these for readability.  The alternative would be to
-        //       exclude the first N frames that are in a list of
-        //       mangled function names.
-        // The frames are:
-        // - core.runtime.DefaultTraceInfo.__ctor()
-        // - core.runtime.defaultTraceHandler(void*)
-        // - _d_traceContext
-        // - _d_createTrace
-        // - _d_throwdwarf
-        // If it's an assertion failure, `_d_assertp`
-        version (Darwin)
-            enum FIRSTFRAME = 5;
-        else
-            enum FIRSTFRAME = 5;
-
         version (linux) enum enableDwarf = true;
         else version (FreeBSD) enum enableDwarf = true;
         else version (DragonFlyBSD) enum enableDwarf = true;
@@ -834,18 +817,7 @@ else static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInf
         static if (enableDwarf)
         {
             import core.internal.backtrace.dwarf;
-
-            if (numframes >= FIRSTFRAME)
-            {
-                return traceHandlerOpApplyImpl(
-                    callstack[FIRSTFRAME .. numframes],
-                    dg
-                    );
-            }
-            else
-            {
-                return 0;
-            }
+            return traceHandlerOpApplyImpl(callstack[0 .. numframes], dg);
         }
         else
         {
@@ -853,11 +825,10 @@ else static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInf
             scope(exit) free(cast(void*) framelist);
 
             int ret = 0;
-            for ( int i = FIRSTFRAME; i < numframes; ++i )
+            for (size_t pos = 0; pos < numframes; ++pos)
             {
                 char[4096] fixbuf = void;
-                auto buf = framelist[i][0 .. strlen(framelist[i])];
-                auto pos = cast(size_t)(i - FIRSTFRAME);
+                auto buf = framelist[pos][0 .. strlen(framelist[pos])];
                 buf = fixline( buf, fixbuf );
                 ret = dg( pos, buf );
                 if ( ret )
