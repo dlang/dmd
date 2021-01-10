@@ -804,6 +804,7 @@ public:
     const char* prettystring;
     bool errors;
     PASS semanticRun;
+    uint16_t localNum;
     DeprecatedDeclaration* depdecl;
     UserAttributeDeclaration* userAttribDecl;
     UnitTestDeclaration* ddocUnittest;
