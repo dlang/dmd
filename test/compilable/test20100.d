@@ -1,9 +1,4 @@
 // REQUIRED_ARGS: -checkaction=context
-/*
-TEST_OUTPUT:
----
----
-*/
 struct STuple {
 	bool opEquals(STuple) { return false; }
 }

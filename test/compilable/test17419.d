@@ -1,10 +1,5 @@
 // REQUIRED_ARGS: -d
 // https://issues.dlang.org/show_bug.cgi?id=17419
-/* TEST_OUTPUT:
----
----
-*/
-
 
 extern (C) int fooc();
 alias aliasc = fooc;

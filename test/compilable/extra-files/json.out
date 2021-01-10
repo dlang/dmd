@@ -7,10 +7,10 @@
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "endchar": 23,
-                "endline": 12,
+                "endline": 8,
                 "kind": "shared static constructor",
-                "line": 12,
-                "name": "_sharedStaticCtor_L12_C1",
+                "line": 8,
+                "name": "_sharedStaticCtor_L8_C1",
                 "protection": "public",
                 "storageClass": [
                     "static"
@@ -20,10 +20,10 @@
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "endchar": 16,
-                "endline": 13,
+                "endline": 9,
                 "kind": "static constructor",
-                "line": 13,
-                "name": "_staticCtor_L13_C1",
+                "line": 9,
+                "name": "_staticCtor_L9_C1",
                 "protection": "public",
                 "storageClass": [
                     "static"
@@ -33,10 +33,10 @@
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "endchar": 24,
-                "endline": 14,
+                "endline": 10,
                 "kind": "shared static destructor",
-                "line": 14,
-                "name": "_sharedStaticDtor_L14_C1",
+                "line": 10,
+                "name": "_sharedStaticDtor_L10_C1",
                 "protection": "public",
                 "storageClass": [
                     "static"
@@ -46,10 +46,10 @@
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "endchar": 17,
-                "endline": 15,
+                "endline": 11,
                 "kind": "static destructor",
-                "line": 15,
-                "name": "_staticDtor_L15_C1",
+                "line": 11,
+                "name": "_staticDtor_L11_C1",
                 "protection": "public",
                 "storageClass": [
                     "static"
@@ -58,15 +58,15 @@
             {
                 "char": 1,
                 "kind": "template",
-                "line": 17,
+                "line": 13,
                 "members": [
                     {
                         "char": 5,
                         "endchar": 27,
-                        "endline": 19,
+                        "endline": 15,
                         "kind": "shared static constructor",
-                        "line": 19,
-                        "name": "_sharedStaticCtor_L19_C5",
+                        "line": 15,
+                        "name": "_sharedStaticCtor_L15_C5",
                         "storageClass": [
                             "static"
                         ]
@@ -74,10 +74,10 @@
                     {
                         "char": 5,
                         "endchar": 20,
-                        "endline": 20,
+                        "endline": 16,
                         "kind": "static constructor",
-                        "line": 20,
-                        "name": "_staticCtor_L20_C5",
+                        "line": 16,
+                        "name": "_staticCtor_L16_C5",
                         "storageClass": [
                             "static"
                         ]
@@ -85,10 +85,10 @@
                     {
                         "char": 5,
                         "endchar": 28,
-                        "endline": 21,
+                        "endline": 17,
                         "kind": "shared static destructor",
-                        "line": 21,
-                        "name": "_sharedStaticDtor_L21_C5",
+                        "line": 17,
+                        "name": "_sharedStaticDtor_L17_C5",
                         "storageClass": [
                             "static"
                         ]
@@ -96,10 +96,10 @@
                     {
                         "char": 5,
                         "endchar": 21,
-                        "endline": 22,
+                        "endline": 18,
                         "kind": "static destructor",
-                        "line": 22,
-                        "name": "_staticDtor_L22_C5",
+                        "line": 18,
+                        "name": "_staticDtor_L18_C5",
                         "storageClass": [
                             "static"
                         ]
@@ -117,7 +117,7 @@
             {
                 "char": 1,
                 "kind": "alias",
-                "line": 25,
+                "line": 21,
                 "name": "SSCDX",
                 "originalType": "X!int",
                 "protection": "public"
@@ -125,16 +125,16 @@
             {
                 "char": 1,
                 "kind": "class",
-                "line": 27,
+                "line": 23,
                 "members": [
                     {
                         "char": 5,
                         "deco": "VALUE_REMOVED_FOR_TEST",
                         "endchar": 27,
-                        "endline": 29,
+                        "endline": 25,
                         "kind": "shared static constructor",
-                        "line": 29,
-                        "name": "_sharedStaticCtor_L29_C5",
+                        "line": 25,
+                        "name": "_sharedStaticCtor_L25_C5",
                         "protection": "public",
                         "storageClass": [
                             "static"
@@ -144,10 +144,10 @@
                         "char": 5,
                         "deco": "VALUE_REMOVED_FOR_TEST",
                         "endchar": 20,
-                        "endline": 30,
+                        "endline": 26,
                         "kind": "static constructor",
-                        "line": 30,
-                        "name": "_staticCtor_L30_C5",
+                        "line": 26,
+                        "name": "_staticCtor_L26_C5",
                         "protection": "public",
                         "storageClass": [
                             "static"
@@ -157,10 +157,10 @@
                         "char": 5,
                         "deco": "VALUE_REMOVED_FOR_TEST",
                         "endchar": 28,
-                        "endline": 31,
+                        "endline": 27,
                         "kind": "shared static destructor",
-                        "line": 31,
-                        "name": "_sharedStaticDtor_L31_C5",
+                        "line": 27,
+                        "name": "_sharedStaticDtor_L27_C5",
                         "protection": "public",
                         "storageClass": [
                             "static"
@@ -170,10 +170,10 @@
                         "char": 5,
                         "deco": "VALUE_REMOVED_FOR_TEST",
                         "endchar": 21,
-                        "endline": 32,
+                        "endline": 28,
                         "kind": "static destructor",
-                        "line": 32,
-                        "name": "_staticDtor_L32_C5",
+                        "line": 28,
+                        "name": "_staticDtor_L28_C5",
                         "protection": "public",
                         "storageClass": [
                             "static"

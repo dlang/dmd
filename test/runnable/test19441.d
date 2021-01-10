@@ -1,8 +1,4 @@
-/* TEST_OUTPUT:
----
----
-*/
-
+// https://issues.dlang.org/show_bug.cgi?id=19441
 struct S1
 {
     int a;
