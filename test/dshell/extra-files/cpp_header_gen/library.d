@@ -142,3 +142,20 @@ inout(int)* inoutFunc(inout int* ptr)
 {
     return ptr;
 }
+
+enum Pass
+{
+    inline = 10
+}
+
+struct InvalidNames(typename)
+{
+    typename register;
+
+    void foo(typename and)
+    {
+        assert(register == and);
+    }
+}
+
+void useInvalid(InvalidNames!Pass) {}

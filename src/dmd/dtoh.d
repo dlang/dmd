@@ -389,15 +389,36 @@ public:
         buf.level++;
     }
 
-    private void writeIdentifier(const AST.Dsymbol s)
+    /**
+     * Writes an identifier into `buf` and checks for reserved identifiers. The
+     * parameter `canFix` determines how this function handles C++ keywords:
+     *
+     * `false` => Raise a warning and print the identifier as-is
+     * `true`  => Append an underscore to the identifier
+     *
+     * Params:
+     *   s        = the symbol denoting the identifier
+     *   canFixup = whether the identifier may be changed without affecting
+     *              binary compatibility
+     */
+    private void writeIdentifier(const AST.Dsymbol s, const bool canFix = false)
     {
-        writeIdentifier(s.ident, s.loc, s.kind());
+        writeIdentifier(s.ident, s.loc, s.kind(), canFix);
     }
 
-    private void writeIdentifier(const Identifier ident, const Loc loc, const char* kind)
+    /** Overload of `writeIdentifier` used for all AST nodes not descending from Dsymbol **/
+    private void writeIdentifier(const Identifier ident, const Loc loc, const char* kind, const bool canFix = false)
     {
+        bool needsFix;
+
         void warnCxxCompat(const(char)* reason)
         {
+            if (canFix)
+            {
+                needsFix = true;
+                return;
+            }
+
             static bool warned = false;
             warning(loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
 
@@ -409,7 +430,7 @@ public:
             }
         }
 
-        if (global.params.warnings != DiagnosticReporting.off)
+        if (global.params.warnings != DiagnosticReporting.off || canFix)
         {
             // Warn about identifiers that are keywords in C++.
             switch (ident.toString())
@@ -487,6 +508,8 @@ public:
             }
         }
         buf.writestring(ident.toString());
+        if (needsFix)
+            buf.writeByte('_');
     }
 
     override void visit(AST.Dsymbol s)
@@ -748,7 +771,7 @@ public:
                     buf.writestring("enum : ");
                     determineEnumType(type).accept(this);
                     buf.writestring(" { ");
-                    writeIdentifier(vd);
+                    writeIdentifier(vd, true);
                     buf.writestring(" = ");
                     auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
@@ -760,7 +783,7 @@ public:
                     auto target = determineEnumType(type);
                     target.accept(this);
                     buf.writestring(" const ");
-                    writeIdentifier(vd);
+                    writeIdentifier(vd, true);
                     buf.writestring(" = ");
                     auto e = AST.initializerToExpression(vd._init);
                     printExpressionFor(target, e);
@@ -784,7 +807,7 @@ public:
                 return;
             }
             writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd);
+            typeToBuffer(vd.type, vd, adparent && !(vd.storage_class & (AST.STC.static_ | AST.STC.gshared)));
             buf.writestringln(";");
             return;
         }
@@ -817,7 +840,7 @@ public:
         if (adparent && vd.type && vd.type.deco)
         {
             writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd);
+            typeToBuffer(vd.type, vd, true);
             buf.writestringln(";");
 
             if (auto t = vd.type.isTypeStruct())
@@ -911,7 +934,7 @@ public:
             {
                 if (idx)
                     buf.writestring(", ");
-                buf.writestring(p.ident.toChars());
+                writeIdentifier(p.ident, p.loc, "parameter", true);
             }
             buf.writestringln(">;");
             return;
@@ -1076,7 +1099,8 @@ public:
                     {
                         buf.writestringln(",");
                     }
-                    buf.printf("%s(", vd.ident.toChars());
+                    writeIdentifier(vd, true);
+                    buf.writeByte('(');
 
                     if (vd._init)
                     {
@@ -1105,7 +1129,7 @@ public:
                             buf.writestring(", ");
                         assert(vd.type);
                         assert(vd.ident);
-                        typeToBuffer(vd.type, vd);
+                        typeToBuffer(vd.type, vd, true);
                         // Don't print default value for first parameter to not clash
                         // with the default ctor defined above
                         if (!first)
@@ -1136,7 +1160,10 @@ public:
                         else
                             buf.writestringln(",");
 
-                        buf.printf("%s(%s)", vd.ident.toChars(), vd.ident.toChars());
+                        writeIdentifier(vd, true);
+                        buf.writeByte('(');
+                        writeIdentifier(vd, true);
+                        buf.writeByte(')');
                     }
                 }
                 buf.writenl();
@@ -1426,7 +1453,7 @@ public:
                     writeIdentifier(ed);
                     buf.writeByte('_');
                 }
-                writeIdentifier(m);
+                writeIdentifier(m, true);
                 buf.writestring(" = ");
 
                 auto ie = cast(AST.IntegerExp)m.value;
@@ -1439,7 +1466,7 @@ public:
                 buf.writestring("enum : ");
                 determineEnumType(memberType).accept(this);
                 buf.writestring(" { ");
-                writeIdentifier(m);
+                writeIdentifier(m, true);
                 buf.writestring(" = ");
 
                 auto ie = cast(AST.IntegerExp)m.value;
@@ -1452,7 +1479,7 @@ public:
                 auto target = determineEnumType(memberType);
                 target.accept(this);
                 buf.writestring(" const ");
-                writeIdentifier(m);
+                writeIdentifier(m, true);
                 buf.writestring(" = ");
                 printExpressionFor(target, m.origValue);
                 buf.writestring(";");
@@ -1474,7 +1501,16 @@ public:
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
-    private void typeToBuffer(AST.Type t, AST.Dsymbol s)
+    /**
+     * Prints a member/parameter/variable declaration into `buf`.
+     *
+     * Params:
+     *   t        = the type (used if `this.origType` is null)
+     *   s        = the symbol denoting the identifier
+     *   canFixup = whether the identifier may be changed without affecting
+     *              binary compatibility (forwarded to `writeIdentifier`)
+     */
+    private void typeToBuffer(AST.Type t, AST.Dsymbol s, const bool canFixup = false)
     {
         debug (Debug_DtoH)
         {
@@ -1487,7 +1523,7 @@ public:
         if (this.ident)
         {
             buf.writeByte(' ');
-            writeIdentifier(s);
+            writeIdentifier(s, canFixup);
         }
         this.ident = null;
         if (auto tsa = t.isTypeSArray())
@@ -1519,7 +1555,7 @@ public:
         if (t.idents.length)
             buf.writestring("typename ");
 
-        buf.writestring(t.ident.toChars());
+        writeIdentifier(t.ident, t.loc, "type", tdparent !is null);
 
         foreach (arg; t.idents)
         {
@@ -1889,7 +1925,7 @@ public:
             else
                 buf.writestring(", ");
             buf.writestring("typename ");
-            writeIdentifier(p.ident, p.loc, "template parameter");
+            writeIdentifier(p.ident, p.loc, "template parameter", true);
         }
         buf.writestringln(">");
     }
@@ -1994,7 +2030,7 @@ public:
         buf.writeByte(' ');
         if (ident)
             // FIXME: Parameter is missing a Loc
-            writeIdentifier(ident, Loc.initial, "parameter");
+            writeIdentifier(ident, Loc.initial, "parameter", true);
         ident = null;
 
         if (p.defaultArg)
@@ -2143,7 +2179,7 @@ public:
             printPrefix(e.var.parent);
 
         includeSymbol(e.var);
-        buf.writestring(e.toString());
+        writeIdentifier(e.var, !!e.var.isThis());
     }
 
     override void visit(AST.CallExp e)
@@ -2196,7 +2232,10 @@ public:
             buf.writeByte('.');
         }
 
-        buf.writestring(e.var.toChars());
+        // Should only be used to access non-static members
+        assert(e.var.isThis());
+
+        writeIdentifier(e.var, true);
     }
 
     override void visit(AST.DotIdExp e)

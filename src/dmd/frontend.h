@@ -69,7 +69,7 @@ enum class PASS
     semantic2done = 4,
     semantic3 = 5,
     semantic3done = 6,
-    inline = 7,
+    inline_ = 7,
     inlinedone = 8,
     obj = 9,
 };
@@ -327,14 +327,14 @@ enum class TOK : uint8_t
     mulAssign = 81u,
     divAssign = 82u,
     modAssign = 83u,
-    and = 84u,
-    or = 85u,
-    xor = 86u,
+    and_ = 84u,
+    or_ = 85u,
+    xor_ = 86u,
     andAssign = 87u,
     orAssign = 88u,
     xorAssign = 89u,
     assign = 90u,
-    not = 91u,
+    not_ = 91u,
     tilde = 92u,
     plusPlus = 93u,
     minusMinus = 94u,
@@ -3334,7 +3334,7 @@ public:
     void visit(AliasDeclaration* ad);
     void visit(Nspace* ns);
     void visit(CPPNamespaceDeclaration* ns);
-    void handleNspace(Dsymbol* namespace, Array<Dsymbol* >* members);
+    void handleNspace(Dsymbol* namespace_, Array<Dsymbol* >* members);
     void visit(AnonDeclaration* ad);
     void visit(StructDeclaration* sd);
     void visit(ClassDeclaration* cd);
@@ -4927,7 +4927,7 @@ enum class MODFlags
     shared_ = 2,
     wild = 8,
     wildconst = 9,
-    mutable = 16,
+    mutable_ = 16,
 };
 
 typedef uint8_t MOD;
@@ -5558,9 +5558,9 @@ enum class PREC
     cond = 3,
     oror = 4,
     andand = 5,
-    or = 6,
-    xor = 7,
-    and = 8,
+    or_ = 6,
+    xor_ = 7,
+    and_ = 8,
     equal = 9,
     rel = 10,
     shift = 11,

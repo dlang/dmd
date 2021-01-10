@@ -60,5 +60,9 @@ int main()
     int i;
     assert(&i == inoutFunc(&i));
 
+    InvalidNames<Pass> invalidNames;
+    invalidNames.register_ = Pass::inline_;
+    invalidNames.foo(Pass::inline_);
+
     return 0;
 }
