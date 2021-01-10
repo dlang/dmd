@@ -1,10 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=20025
-/*
-TEST_OUTPUT:
----
----
-*/
-
 struct B
 {
         static int value = 77;

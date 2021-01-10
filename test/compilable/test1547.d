@@ -1,9 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=1547
-/*
-TEST_OUTPUT:
----
----
-*/
 
 struct A
 {

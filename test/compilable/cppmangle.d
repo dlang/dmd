@@ -1,9 +1,4 @@
-/**
-EXTRA_FILES: cppmangle2.d
-TEST_OUTPUT:
----
----
-*/
+// EXTRA_FILES: cppmangle2.d
 // Test C++ name mangling.
 // https://issues.dlang.org/show_bug.cgi?id=4059
 // https://issues.dlang.org/show_bug.cgi?id=5148

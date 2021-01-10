@@ -1,10 +1,4 @@
 // PERMUTE_ARGS:
-/*
-TEST_OUTPUT:
----
----
-*/
-
 import core.stdc.stdarg;
 
 struct ABC

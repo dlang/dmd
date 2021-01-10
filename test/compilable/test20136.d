@@ -1,10 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=20136
-/*
-TEST_OUTPUT:
----
----
-*/
-
 class Context
 {
     size_t[const(Key)] aa;
