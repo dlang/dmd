@@ -368,9 +368,13 @@ public:
             {
                 if (withsym)
                 {
-                    Declaration *d = s->isDeclaration();
-                    if (d)
-                        checkAccess(exp->loc, sc, NULL, d);
+                    if (TypeExp *t = withsym->withstate->exp->isTypeExp())
+                    {
+                        e = new TypeExp(exp->loc, t->type);
+                        e = new DotIdExp(exp->loc, e, exp->ident);
+                        result = semantic(e, sc);
+                        return;
+                    }
                 }
 
                 /* If f is really a function template,
@@ -8374,17 +8378,18 @@ Expression *semanticY(DotIdExp *exp, Scope *sc, int flag)
          */
         if (s && !(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc->_module, s))
         {
-            if (s->isDeclaration())
-                ::error(exp->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->_module->toChars());
-            else
-                ::deprecation(exp->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->_module->toChars());
-            // s = NULL
+            s = NULL;
         }
         if (s)
         {
-            if (Package *p = s->isPackage())
-                checkAccess(exp->loc, sc, p);
-
+            Package *p = s->isPackage();
+            if (p && checkAccess(sc, p))
+            {
+                s = NULL;
+            }
+        }
+        if (s)
+        {
             // if 's' is a tuple variable, the tuple is returned.
             s = s->toAlias();
 
@@ -8555,8 +8560,14 @@ Expression *semanticY(DotIdExp *exp, Scope *sc, int flag)
             return NULL;
         s = ie->sds->search_correct(exp->ident);
         if (s)
-            exp->error("undefined identifier '%s' in %s '%s', did you mean %s '%s'?",
-                       exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars(), s->kind(), s->toChars());
+        {
+            if (s->isPackage())
+                exp->error("undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`",
+                    exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars(), s->toPrettyChars());
+            else
+                exp->error("undefined identifier '%s' in %s '%s', did you mean %s '%s'?",
+                    exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars(), s->kind(), s->toChars());
+        }
         else
             exp->error("undefined identifier '%s' in %s '%s'",
                        exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars());
