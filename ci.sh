@@ -69,7 +69,7 @@ rebuild() {
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -207,6 +207,17 @@ install_host_compiler() {
   fi
 }
 
+# Upload coverage reports
+codecov()
+{
+    # CodeCov gets confused by lst files which it can't match
+    rm -rf test/runnable/extra-files test/*.lst
+    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 \
+        --retry 5 --retry-delay 5 "https://codecov.io/bash" -o "codecov.sh"
+    bash ./codecov.sh -p . -Z
+    rm codecov.sh
+}
+
 # Define commands
 
 if [ "$#" -gt 0 ]; then
@@ -221,6 +232,7 @@ if [ "$#" -gt 0 ]; then
     test_phobos) test_phobos ;;
     test_dub_package) test_dub_package ;;
     testsuite) testsuite ;;
+    codecov) codecov ;;
     *) echo "Unknown command: $1" >&2; exit 1 ;;
   esac
 fi
