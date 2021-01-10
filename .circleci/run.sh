@@ -2,7 +2,7 @@
 
 set -uexo pipefail
 
-HOST_DMD_VER=2.088.0 # same as in dmd/src/posix.mak
+HOST_DMD_VER=2.095.0 # same as in dmd/src/bootstrap.sh
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
