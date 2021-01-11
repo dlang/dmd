@@ -43,6 +43,7 @@ bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 bool symbolIsVisible(Module *mod, Dsymbol *s);
+bool symbolIsVisible(Scope *sc, Dsymbol *s);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 Expression *extractSideEffect(Scope *sc, const char *name, Expression **e0, Expression *e, bool alwaysCopy = false);
 Type *getTypeInfoType(Loc loc, Type *t, Scope *sc);
@@ -331,7 +332,7 @@ public:
             /* See if the symbol was a member of an enclosing 'with'
             */
             WithScopeSymbol *withsym = scopesym->isWithScopeSymbol();
-            if (withsym && withsym->withstate->wthis)
+            if (withsym && withsym->withstate->wthis && symbolIsVisible(sc, s))
             {
                 /* Disallow shadowing
                 */
@@ -368,13 +369,20 @@ public:
             {
                 if (withsym)
                 {
-                    if (TypeExp *t = withsym->withstate->exp->isTypeExp())
+                    if (withsym->withstate->exp->type->ty != Tvoid)
                     {
-                        e = new TypeExp(exp->loc, t->type);
-                        e = new DotIdExp(exp->loc, e, exp->ident);
-                        result = semantic(e, sc);
-                        return;
+                        // with (exp)' is a type expression
+                        // or 's' is not visible there (for error message)
+                        e = new TypeExp(exp->loc, withsym->withstate->exp->type);
                     }
+                    else
+                    {
+                        // 'with (exp)' is a Package/Module
+                        e = withsym->withstate->exp;
+                    }
+                    e = new DotIdExp(exp->loc, e, exp->ident);
+                    result = semantic(e, sc);
+                    return;
                 }
 
                 /* If f is really a function template,
