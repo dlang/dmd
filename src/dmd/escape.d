@@ -1034,7 +1034,8 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 !(p.parent == sc.func))
             {
                 // Only look for errors if in module listed on command line
-                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                if (global.params.vsafe         // https://issues.dlang.org/show_bug.cgi?id=17029
+                    && sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     if (!gag)
                         error(e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());
