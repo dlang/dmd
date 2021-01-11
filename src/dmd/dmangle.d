@@ -14,6 +14,109 @@
 
 module dmd.dmangle;
 
+/******************************************************************************
+ * Returns exact mangled name of function.
+ */
+extern (C++) const(char)* mangleExact(FuncDeclaration fd)
+{
+    if (!fd.mangleString)
+    {
+        OutBuffer buf;
+        scope Mangler v = new Mangler(&buf);
+        v.mangleExact(fd);
+        fd.mangleString = buf.extractChars();
+    }
+    return fd.mangleString;
+}
+
+extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
+{
+    if (t.deco)
+        buf.writestring(t.deco);
+    else
+    {
+        scope Mangler v = new Mangler(buf);
+        v.visitWithMask(t, 0);
+    }
+}
+
+extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    e.accept(v);
+}
+
+extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    s.accept(v);
+}
+
+extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    v.mangleTemplateInstance(ti);
+}
+
+/******************************************************************************
+ * Mangle function signatures ('this' qualifier, and parameter types)
+ * to check conflicts in function overloads.
+ * It's different from fd.type.deco. For example, fd.type.deco would be null
+ * if fd is an auto function.
+ *
+ * Params:
+ *    buf = `OutBuffer` to write the mangled function signature to
+*     fd  = `FuncDeclaration` to mangle
+ */
+void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
+{
+    auto tf = fd.type.isTypeFunction();
+
+    scope Mangler v = new Mangler(&buf);
+
+    MODtoDecoBuffer(&buf, tf.mod);
+    foreach (idx, param; tf.parameterList)
+        param.accept(v);
+    buf.writeByte('Z' - tf.parameterList.varargs);
+}
+
+
+/// Returns: `true` if the given character is a valid mangled character
+package bool isValidMangling(dchar c) nothrow
+{
+    return
+        c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '0' && c <= '9' ||
+        c != 0 && strchr("$%().:?@[]_", c) ||
+        isUniAlpha(c);
+}
+
+// valid mangled characters
+unittest
+{
+    assert('a'.isValidMangling);
+    assert('B'.isValidMangling);
+    assert('2'.isValidMangling);
+    assert('@'.isValidMangling);
+    assert('_'.isValidMangling);
+}
+
+// invalid mangled characters
+unittest
+{
+    assert(!'-'.isValidMangling);
+    assert(!0.isValidMangling);
+    assert(!'/'.isValidMangling);
+    assert(!'\\'.isValidMangling);
+}
+
+
+/***************************************** private ***************************************/
+
+private:
+
+
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
@@ -1127,98 +1230,3 @@ public:
     }
 }
 
-/// Returns: `true` if the given character is a valid mangled character
-package bool isValidMangling(dchar c) nothrow
-{
-    return
-        c >= 'A' && c <= 'Z' ||
-        c >= 'a' && c <= 'z' ||
-        c >= '0' && c <= '9' ||
-        c != 0 && strchr("$%().:?@[]_", c) ||
-        isUniAlpha(c);
-}
-
-// valid mangled characters
-unittest
-{
-    assert('a'.isValidMangling);
-    assert('B'.isValidMangling);
-    assert('2'.isValidMangling);
-    assert('@'.isValidMangling);
-    assert('_'.isValidMangling);
-}
-
-// invalid mangled characters
-unittest
-{
-    assert(!'-'.isValidMangling);
-    assert(!0.isValidMangling);
-    assert(!'/'.isValidMangling);
-    assert(!'\\'.isValidMangling);
-}
-
-/******************************************************************************
- * Returns exact mangled name of function.
- */
-extern (C++) const(char)* mangleExact(FuncDeclaration fd)
-{
-    if (!fd.mangleString)
-    {
-        OutBuffer buf;
-        scope Mangler v = new Mangler(&buf);
-        v.mangleExact(fd);
-        fd.mangleString = buf.extractChars();
-    }
-    return fd.mangleString;
-}
-
-extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
-{
-    if (t.deco)
-        buf.writestring(t.deco);
-    else
-    {
-        scope Mangler v = new Mangler(buf);
-        v.visitWithMask(t, 0);
-    }
-}
-
-extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    e.accept(v);
-}
-
-extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    s.accept(v);
-}
-
-extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    v.mangleTemplateInstance(ti);
-}
-
-/******************************************************************************
- * Mangle function signatures ('this' qualifier, and parameter types)
- * to check conflicts in function overloads.
- * It's different from fd.type.deco. For example, fd.type.deco would be null
- * if fd is an auto function.
- *
- * Params:
- *    buf = `OutBuffer` to write the mangled function signature to
-*     fd  = `FuncDeclaration` to mangle
- */
-void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
-{
-    auto tf = fd.type.isTypeFunction();
-
-    scope Mangler v = new Mangler(&buf);
-
-    MODtoDecoBuffer(&buf, tf.mod);
-    foreach (idx, param; tf.parameterList)
-        param.accept(v);
-    buf.writeByte('Z' - tf.parameterList.varargs);
-}
