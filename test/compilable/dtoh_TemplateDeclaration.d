@@ -132,6 +132,10 @@ extern void withDefTempl(A<int32_t > a = A<int32_t >(2));
 
 template <typename T>
 extern void withDefTempl2(A<T > a = static_cast<A<T >>(A!T(2)));
+
+class ChildInt : public Parent
+{
+};
 ---
 */
 
@@ -219,3 +223,5 @@ extern(C++) void withDefTempl(A!int a = A!int(2)) {}
 extern(C++) void withDefTempl2(T)(A!T a = A!T(2)) {}
 
 extern(C++) alias withDefTempl2Inst = withDefTempl2!int;
+
+extern(C++) class ChildInt : Parent!int {}
