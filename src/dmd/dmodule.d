@@ -753,12 +753,9 @@ extern (C++) final class Module : Package
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         auto readResult = File.read(srcfile.toChars());
 
-        if (global.params.makeDeps && global.params.oneobj)
+        if (global.params.emitMakeDeps)
         {
-            OutBuffer* ob = global.params.makeDeps;
-            ob.writestringln(" \\");
-            ob.writestring("  ");
-            ob.writestring(toPosixPath(srcfile.toString()));
+            global.params.makeDeps.push(srcfile.toChars());
         }
 
         return loadSourceBuffer(loc, readResult);

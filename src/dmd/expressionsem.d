@@ -5981,12 +5981,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(")");
             ob.writenl();
         }
-        if (global.params.makeDeps && global.params.oneobj)
+        if (global.params.emitMakeDeps)
         {
-            OutBuffer* ob = global.params.makeDeps;
-            ob.writestringln(" \\");
-            ob.writestring("  ");
-            escapePath(ob, toPosixPath(name));
+            global.params.makeDeps.push(name);
         }
 
         {
