@@ -160,9 +160,7 @@ extern (C++) struct Param
     bool vcomplex;          // identify complex/imaginary type usage
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
-    bool alwaysframe;       // always emit standard stack frame
     bool optimize;          // run optimizer
-    bool map;               // generate linker .map file
     bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
     bool isLP64;            // generate code for LP64
     TargetOS targetOS;      // operating system to generate code for
@@ -294,14 +292,6 @@ extern (C++) struct Param
     OutBuffer* makeDeps;                 // contents to be written to makedeps file
 
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
-
-    // Hidden debug switches
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable

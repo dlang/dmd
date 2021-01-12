@@ -124,6 +124,23 @@ Where:
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
+/// DMD-specific parameters.
+struct DMDparams
+{
+    bool alwaysframe;       // always emit standard stack frame
+    bool map;               // generate linker .map file
+
+    // Hidden debug switches
+    bool debugb;
+    bool debugc;
+    bool debugf;
+    bool debugr;
+    bool debugx;
+    bool debugy;
+}
+
+shared DMDparams dmdParams = dmdParams.init;
+
 /**
  * DMD's real entry point
  *
@@ -1780,7 +1797,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
-            params.map = true;
+            dmdParams.map = true;
         else if (arg == "-multiobj")
             params.multiobj = true;
         else if (startsWith(p + 1, "mixin="))
@@ -1799,7 +1816,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
-            params.alwaysframe = true;
+            dmdParams.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
@@ -2433,11 +2450,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "--b")
-            params.debugb = true;
+            dmdParams.debugb = true;
         else if (arg == "--c")
-            params.debugc = true;
+            dmdParams.debugc = true;
         else if (arg == "--f")
-            params.debugf = true;
+            dmdParams.debugf = true;
         else if (arg == "--help" ||
                  arg == "-h")
         {
@@ -2445,16 +2462,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             return false;
         }
         else if (arg == "--r")
-            params.debugr = true;
+            dmdParams.debugr = true;
         else if (arg == "--version")
         {
             params.logo = true;
             return false;
         }
         else if (arg == "--x")
-            params.debugx = true;
+            dmdParams.debugx = true;
         else if (arg == "--y")
-            params.debugy = true;
+            dmdParams.debugy = true;
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
             params.linkswitches.push(p + 2 + (p[2] == '='));
