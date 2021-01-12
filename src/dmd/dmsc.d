@@ -20,6 +20,7 @@ extern (C++):
 import dmd.globals;
 import dmd.dclass;
 import dmd.dmodule;
+import dmd.mars;
 import dmd.mtype;
 
 import dmd.root.filename;
@@ -93,7 +94,7 @@ void backend_init()
         params.verbose,
         params.optimize,
         params.symdebug,
-        params.alwaysframe,
+        dmdParams.alwaysframe,
         params.stackstomp,
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
         params.pic,
@@ -106,13 +107,13 @@ void backend_init()
     debug
     {
         out_config_debug(
-            params.debugb,
-            params.debugc,
-            params.debugf,
-            params.debugr,
+            dmdParams.debugb,
+            dmdParams.debugc,
+            dmdParams.debugf,
+            dmdParams.debugr,
             false,
-            params.debugx,
-            params.debugy
+            dmdParams.debugx,
+            dmdParams.debugy
         );
     }
 }
