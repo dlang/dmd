@@ -992,9 +992,10 @@ public:
             printf("[AST.StructDeclaration enter] %s\n", sd.toChars());
             scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
         }
-        auto td = sd.isInstantiated();
-        if (td && td !is tdparent)
+
+        if (isSkippableTemplateInstance(sd))
             return;
+
         if (cast(void*)sd in visited)
             return;
 
@@ -1214,6 +1215,10 @@ public:
             printf("[AST.ClassDeclaration enter] %s\n", cd.toChars());
             scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
         }
+
+        if (isSkippableTemplateInstance(cd))
+            return;
+
         if (cast(void*)cd in visited)
             return;
         visited[cast(void*)cd] = true;
@@ -2420,5 +2425,12 @@ public:
             buf.writenl();
             va_end(ap);
         }
+    }
+
+    /** Checks whether s is a template instance that should not be emitted **/
+    private bool isSkippableTemplateInstance(AST.Dsymbol s)
+    {
+        auto td = s.isInstantiated();
+        return td && td !is tdparent;
     }
 }
