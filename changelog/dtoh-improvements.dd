@@ -5,6 +5,7 @@ experimental C++ header generator:
 
 - Generate fieldwise constructors for aggregates
 - Don't emit instantiated classes as unique class declarations
+- Emit template arguments for instantiated base classes
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

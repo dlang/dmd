@@ -1247,9 +1247,13 @@ public:
             // e.g. class A(T) : B!T { ... }
             if (base.sym is null)
             {
-                auto ti = base.type.isTypeInstance();
-                assert(ti);
-                visitTi(ti.tempinst);
+                base.type.accept(this);
+            }
+            // base.type references onemember for template instances
+            // and hence skips the TypeInstance...
+            else if (auto ti = base.sym.isInstantiated())
+            {
+                visitTi(ti);
             }
             else
             {
