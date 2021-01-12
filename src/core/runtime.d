@@ -814,16 +814,19 @@ else static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInf
         else version (Darwin) enum enableDwarf = true;
         else enum enableDwarf = false;
 
+        const framelist = backtrace_symbols( callstack.ptr, numframes );
+        scope(exit) free(cast(void*) framelist);
+
         static if (enableDwarf)
         {
             import core.internal.backtrace.dwarf;
-            return traceHandlerOpApplyImpl(callstack[0 .. numframes], dg);
+            return traceHandlerOpApplyImpl(numframes,
+                i => callstack[i],
+                (i) { auto str = framelist[i][0 .. strlen(framelist[i])]; return getMangledSymbolName(str); },
+                dg);
         }
         else
         {
-            const framelist = backtrace_symbols( callstack.ptr, numframes );
-            scope(exit) free(cast(void*) framelist);
-
             int ret = 0;
             for (size_t pos = 0; pos < numframes; ++pos)
             {

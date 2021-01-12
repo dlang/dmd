@@ -159,69 +159,39 @@ struct Location
     }
 }
 
-static if (hasExecinfo)
-{
-    int traceHandlerOpApplyImpl(const(void*)[] callstack,
-                                scope int delegate(ref size_t, ref const(char[])) dg)
-    {
-        import core.stdc.stdio : snprintf;
-        import core.sys.posix.stdlib : free;
-
-        const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
-        scope(exit) free(cast(void*) frameList);
-
-        auto image = Image.openSelf();
-
-        // find address -> file, line mapping using dwarf debug_line
-        Array!Location locations;
-        locations.length = callstack.length;
-        size_t startIdx;
-        foreach (size_t i; 0 .. callstack.length)
-        {
-            locations[i].address = callstack[i];
-            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
-
-            // NOTE: The first few frames with the current implementation are
-            //       inside core.runtime and the object code, so eliminate
-            //       these for readability.
-            // They also might depend on build parameters, which would make
-            // using a fixed number of frames otherwise brittle.
-            version (LDC) enum BaseExceptionFunctionName = "_d_throw_exception";
-            else          enum BaseExceptionFunctionName = "_d_throwdwarf";
-            if (!startIdx && locations[i].procedure == BaseExceptionFunctionName)
-                startIdx = i + 1;
-        }
-
-        if (!image.isValid())
-            return locations[startIdx .. $].processCallstack(null, image.baseAddress, dg);
-
-        return image.processDebugLineSectionData(
-            (line) => locations[startIdx .. $].processCallstack(line, image.baseAddress, dg));
-    }
-}
-
-int traceHandlerOpApplyImpl2(T)(const T[] input, scope int delegate(ref size_t, ref const(char[])) dg)
+int traceHandlerOpApplyImpl(size_t numFrames,
+                            scope const(void)* delegate(size_t) getNthAddress,
+                            scope const(char)[] delegate(size_t) getNthFuncName,
+                            scope int delegate(ref size_t, ref const(char[])) dg)
 {
     auto image = Image.openSelf();
 
-    // find address -> file, line mapping using dwarf debug_line
     Array!Location locations;
-    locations.length = input.length;
-    foreach (idx, const ref inp; input)
+    locations.length = numFrames;
+    size_t startIdx;
+    foreach (idx; 0 .. numFrames)
     {
-        locations[idx].address = inp.address;
-        locations[idx].procedure = inp.name;
-        // Same code as `traceHandlerOpApplyImpl2`
+        locations[idx].address = getNthAddress(idx);
+        locations[idx].procedure = getNthFuncName(idx);
+
+        // NOTE: The first few frames with the current implementation are
+        //       inside core.runtime and the object code, so eliminate
+        //       these for readability.
+        // They also might depend on build parameters, which would make
+        // using a fixed number of frames otherwise brittle.
         version (LDC) enum BaseExceptionFunctionName = "_d_throw_exception";
         else          enum BaseExceptionFunctionName = "_d_throwdwarf";
-        if (!startIdx && inp.name == BaseExceptionFunctionName)
-            startIdx = i + 1;
+        if (!startIdx && locations[idx].procedure == BaseExceptionFunctionName)
+            startIdx = idx + 1;
     }
 
-    return image.isValid
-        ? image.processDebugLineSectionData(
-            (line) => locations[].processCallstack(line, image.baseAddress, dg))
-        : locations[].processCallstack(null, image.baseAddress, dg);
+
+    if (!image.isValid())
+        return locations[startIdx .. $].processCallstack(null, image.baseAddress, dg);
+
+    // find address -> file, line mapping using dwarf debug_line
+    return image.processDebugLineSectionData(
+        (line) => locations[startIdx .. $].processCallstack(line, image.baseAddress, dg));
 }
 
 struct TraceInfoBuffer

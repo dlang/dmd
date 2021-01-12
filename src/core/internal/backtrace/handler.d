@@ -87,7 +87,10 @@ class LibunwindHandler : Throwable.TraceInfo
     ///
     override int opApply (scope int delegate(ref size_t, ref const(char[])) dg) const
     {
-        return traceHandlerOpApplyImpl2(this.callstack[0 .. this.numframes], dg);
+        return traceHandlerOpApplyImpl(numframes,
+            i => callstack[i].address,
+            i => callstack[i].name,
+            dg);
     }
 
     ///
