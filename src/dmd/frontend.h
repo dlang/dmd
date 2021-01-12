@@ -660,6 +660,7 @@ class TemplateValueParameter;
 class TemplateAliasParameter;
 class TemplateThisParameter;
 class TypeQualified;
+struct ASTCodegen;
 class ErrorStatement;
 class PeelStatement;
 class UnrolledLoopStatement;
@@ -669,7 +670,6 @@ class DtorExpStatement;
 class ForwardingStatement;
 class ErrorInitializer;
 class ObjcClassReferenceExp;
-struct ASTCodegen;
 union __AnonStruct__u;
 class UnaExp;
 class BinExp;
@@ -1399,7 +1399,7 @@ public:
     TypeFunction* toTypeFunction();
 };
 
-class Visitor : public ParseTimeVisitor
+class Visitor : public ParseTimeVisitor<ASTCodegen >
 {
 public:
     virtual void visit(ErrorStatement* s);
