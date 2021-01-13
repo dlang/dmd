@@ -96,6 +96,11 @@ class Library
         loc = Loc(FileName.defaultExt(arg, global.lib_ext).ptr, 0, 0);
     }
 
+    final const(char)* getFilename() const
+    {
+        return loc.filename;
+    }
+
     final void write()
     {
         if (global.params.verbose)
