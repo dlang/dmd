@@ -1709,13 +1709,11 @@ static if (1)
 
         if (haveparameters)
         {
-            for (SYMIDX si = 0; si < globsym.length; si++)
+            void processArg(Symbol* sa)
             {
-                Symbol *sa = globsym[si];
-
                 version (MARS)
                     if (sa.Sflags & SFLnodebug)
-                        continue;
+                        return;
 
                 uint vcode;
 
@@ -1797,6 +1795,46 @@ static if (1)
                         break;
                 }
             }
+
+            // Reverse order due to
+            // https://issues.dlang.org/show_bug.cgi?id=21158
+            if (sfunc.Stype.Tmangle == mTYman_d)
+            {
+                size_t index;
+                const bool isvariadic =  variadic(sfunc.Stype);
+                const bool member = (sfunc.Sfunc.Fflags3 & Fmember) || (sfunc.Sfunc.Fflags3 & Fnested);
+                const bool sret = cast(bool) (sfunc.Sfunc.Fflags3 & F3hiddenPtr);
+                if (sret)
+                {
+                    index++;
+                    processArg(globsym[1]); // globsym[member] ?
+                }
+                if (member)
+                {
+                    index++;
+                    processArg(globsym[0]); // "this" hidden parameter (Fmember and Fnested)
+                }
+                if (isvariadic)
+                    index++;    // MERGE ?
+
+                if (isvariadic)
+                {
+                    foreach (SYMIDX si; index .. globsym.length)
+                        processArg(globsym[si]);
+                    processArg(globsym[index - 1]);
+                }
+                else
+                {
+                    foreach_reverse (SYMIDX si; index .. globsym.length)
+                        processArg(globsym[si]);
+                }
+            }
+            else
+            {
+                foreach (SYMIDX si; 0 .. globsym.length)
+                    processArg(globsym[si]);
+            }
+
             debug_info.buf.writeByte(0);              // end of parameter children
 
             idxsibling = cast(uint)debug_info.buf.length();
