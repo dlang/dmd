@@ -4459,6 +4459,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!sd.noDefaultCtor && !(exp.arguments && exp.arguments.dim))
                         goto Lx;
 
+                    /* https://issues.dlang.org/show_bug.cgi?id=20695
+                       If all constructors are copy constructors, then
+                       try default construction.
+                     */
+                    if (!sd.hasRegularCtor)
+                        goto Lx;
+
                     auto sle = new StructLiteralExp(exp.loc, sd, null, exp.e1.type);
                     if (!sd.fill(exp.loc, sle.elements, true))
                         return setError();

@@ -111,7 +111,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         if (t.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)t).sym;
-            if (sd.hasNonDisabledCtor())
+            // check if the sd has a regular ctor (user defined non-copy ctor)
+            // that is not disabled.
+            if (sd.hasRegularCtor(true))
             {
                 error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
                 return new ErrorInitializer();

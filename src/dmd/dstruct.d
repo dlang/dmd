@@ -606,39 +606,53 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return index < numArgTypes() ? (*argTypes.arguments)[index].type : null;
     }
 
-    final bool hasNonDisabledCtor()
+
+    /***************************************
+     * Verifies whether the struct declaration has a
+     * constructor that is not a copy constructor.
+     * Optionally, it can check whether the struct
+     * declaration has a regular constructor, that
+     * is not disabled.
+     *
+     * Params:
+     *      checkDisabled = if the struct has a regular
+                            non-disabled constructor
+     * Returns:
+     *      true, if the struct has a regular (optionally,
+     *      not disabled) constructor, false otherwise.
+     */
+    final bool hasRegularCtor(bool checkDisabled = false)
     {
-        static extern (C++) class HasNonDisabledCtorVisitor : Visitor
-        {
-            bool result;
-
-            this() {}
-
-            alias visit = Visitor.visit;
-
-            override void visit(CtorDeclaration cd)
-            {
-                if (!(cd.storage_class & STC.disable))
-                    result = true;
-            }
-
-            override void visit(TemplateDeclaration td)
-            {
-                result = true;
-            }
-
-            override void visit(OverloadSet os)
-            {
-                for (size_t i = 0; i < os.a.dim; i++)
-                    os.a[i].accept(this);
-            }
-        }
-
         if (!ctor)
             return false;
-        scope v = new HasNonDisabledCtorVisitor();
-        ctor.accept(v);
-        return v.result;
+
+        bool result;
+        overloadApply(ctor, (Dsymbol s)
+        {
+            if (auto td = s.isTemplateDeclaration())
+            {
+                if (checkDisabled && td.onemember)
+                {
+                    if (auto ctorDecl = td.onemember.isCtorDeclaration())
+                    {
+                        if (ctorDecl.storage_class & STC.disable)
+                            return 0;
+                    }
+                }
+                result = true;
+                return 1;
+            }
+            if (auto ctorDecl = s.isCtorDeclaration())
+            {
+                if (!ctorDecl.isCpCtor && (!checkDisabled || !(ctorDecl.storage_class & STC.disable)))
+                {
+                    result = true;
+                    return 1;
+                }
+            }
+            return 0;
+        });
+        return result;
     }
 }
 

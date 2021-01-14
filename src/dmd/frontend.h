@@ -2944,7 +2944,7 @@ public:
     void accept(Visitor* v);
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
-    bool hasNonDisabledCtor();
+    bool hasRegularCtor(bool checkDisabled = false);
     ~StructDeclaration();
 };
 
