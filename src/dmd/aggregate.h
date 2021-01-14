@@ -196,6 +196,7 @@ public:
 
     unsigned numArgTypes() const;
     Type *argType(unsigned index);
+    bool hasRegularCtor(bool checkDisabled = false);
 };
 
 class UnionDeclaration : public StructDeclaration
