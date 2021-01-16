@@ -96,7 +96,11 @@ private:
 version (X86)
 {
     enum _LIBUNWIND_CONTEXT_SIZE = 8;
-    enum _LIBUNWIND_CURSOR_SIZE = 15;
+
+    version (Android)
+        enum _LIBUNWIND_CURSOR_SIZE = 19; // NDK r21
+    else
+        enum _LIBUNWIND_CURSOR_SIZE = 15;
 }
 else version (X86_64)
 {
