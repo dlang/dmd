@@ -1671,6 +1671,25 @@ private bool checkDefCtor(Loc loc, Type t)
     return false;
 }
 
+/********************************************
+ * Check if assignment to `t` has side-effect.
+ * Returns:
+ *      true    if `t` has side effect
+ */
+private bool hasAssignmentWithSideEffect(Type t)
+{
+    t = t.baseElemOf();
+    if (t.ty == Tstruct)
+    {
+        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        return (sd.hasIdentityAssign ||
+                sd.postblit ||
+                sd.dtor ||
+                sd.hasCopyCtor);
+    }
+    return false;
+}
+
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
@@ -2504,6 +2523,145 @@ private Module loadStdMath()
         impStdMath = s;
     }
     return impStdMath.mod;
+}
+
+private void checkSelfAssignment(AssignExp exp, Scope* sc)
+{
+    if (exp.op != TOK.assign)
+        return;
+
+    bool isThisExpr;
+    if (auto ve1 = equalsExp(exp.e1, exp.e2, isThisExpr, false)) // TODO move this check downwards?
+    {
+        if (isThisExpr)
+        {
+            // TODO: use this instead?
+            // if (auto ag = sc.func.isMember())
+            // {
+            //     exp.loc.message("Scope is an aggregate member");
+            // }
+            if (sc.func.isCtorDeclaration())
+                exp.error("construction of member `%s` from itself", ve1.toChars());
+            else                // TODO sc.func.isMemberDecl
+                exp.warning("assignment of member `%s` from itself", ve1.toChars());
+        }
+        else
+        {
+            assert(ve1.type);       // TODO: needed?
+            if (global.params.warnings != DiagnosticReporting.off &&
+                !ve1.type.hasAssignmentWithSideEffect)
+            {
+                // TODO: turn this into a warning after deprecation period
+                exp.deprecation("assignment of `%s` from itself has no side effect, to force assignment use `%s = %s.init`", // TODO advice ok?
+                                exp.e1.toChars(),
+                                exp.e1.toChars(),
+                                exp.e1.toChars());
+            }
+        }
+    }
+}
+
+/** Fast check to detect if `e1` and `e2` are expressions with same l- or r-value.
+ */
+Expression equalsExp(Expression e1,
+                     Expression e2,
+                     out bool isThis,
+                     in bool excludeEnumConstants = true)
+{
+    if (e1.op != e2.op)         // fast discardal
+        return null;
+
+    if (e1 is e2)               // fast approval
+        return e1;
+
+    static Declaration isEnum(Declaration var)
+    {
+        if (var.isEnumMember || // https://dlang.org/spec/enum.html#EnumMember
+            var.isEnumDeclaration) // https://dlang.org/spec/enum.html#EnumDeclaration
+            return var;
+        return null;
+    }
+
+    if (auto e1x = e1.isIdentifierExp())
+        if (auto e2x = e2.isIdentifierExp())
+            return (e1x.ident == e2x.ident) ? e1x : null;
+
+    if (auto e1x = e1.isVarExp())
+        if (auto e2x = e2.isVarExp())
+            return (e1x.var is e2x.var && // same var
+                    (!excludeEnumConstants ||
+                     (!isEnum(e1x.var) &&
+                      !isEnum(e2x.var)))) ? e1x : null;
+
+    if (auto e1x = e1.isThisExp())
+        if (auto e2x = e2.isThisExp())
+        {
+            if (e1x.var is e2x.var && // same this
+                (!excludeEnumConstants ||
+                 (!isEnum(e1x.var) &&
+                  !isEnum(e2x.var))))
+            {
+                isThis = true;
+                return e1x;
+            }
+            return null;
+        }
+
+    if (auto e1x = e1.isDotVarExp())
+        if (auto e2x = e2.isDotVarExp())
+            return (e1x.var is e2x.var && // same aggregate variable
+                    (!excludeEnumConstants ||
+                     (!isEnum(e1x.var) &&
+                      !isEnum(e2x.var))) &&
+                    equalsExp(e1x.e1, e2x.e1, isThis)) ? e1x : null; // same aggregate
+
+    if (auto e1x = e1.isAddrExp()) // for instance, `&(rover.Sl)` in `druntime/src/rt/trace.d`
+        if (auto e2x = e2.isAddrExp())
+            return equalsExp(e1x.e1, e2x, isThis);
+
+    if (auto e1x = e1.isLogicalExp()) // logical and/or
+        if (auto e2x = e2.isLogicalExp()) // logical and/or
+            return (equalsExp(e1x.e1, e1x.e2, isThis) &&
+                    equalsExp(e2x.e1, e2x.e2, isThis)) ? e1x : null;
+
+    if (auto e1x = e1.isAndExp()) // bitwise and
+        if (auto e2x = e2.isAndExp())
+            return (equalsExp(e1x.e1, e1x.e2, isThis) &&
+                    equalsExp(e2x.e1, e2x.e2, isThis)) ? e1x : null;
+
+    if (auto e1x = e1.isOrExp()) // bitwise or
+        if (auto e2x = e2.isOrExp())
+            return (equalsExp(e1x.e1, e1x.e2, isThis) &&
+                    equalsExp(e2x.e1, e2x.e2, isThis)) ? e1x : null;
+
+    if (auto e1x = e1.isIntegerExp())
+        if (auto e2x = e2.isIntegerExp())
+            return (e1x.getInteger == e2x.getInteger) ? e1x : null;
+
+    if (auto e1x = e1.isRealExp())
+        if (auto e2x = e2.isRealExp())
+            return (e1x.value == e2x.value) ? e1x : null;
+
+    if (auto e1x = e1.isComplexExp())
+        if (auto e2x = e2.isComplexExp())
+            return (e1x.value == e2x.value) ? e1x : null;
+
+    if (auto e1x = e1.isPtrExp())
+        if (auto e2x = e2.isPtrExp())
+            return equalsExp(e1x.e1, e2x.e1, isThis);
+
+    if (auto e1x = e1.isSymOffExp())
+        if (auto e2x = e2.isSymOffExp())
+            return (e1x.var is e2x.var && // same var
+                    (!excludeEnumConstants ||
+                     (!isEnum(e1x.var) &&
+                      !isEnum(e2x.var)))) ? e1x : null;
+
+    if (auto e1x = e1.isExp())
+        if (auto e2x = e2.isExp())
+            return (e1x == e2x) ? e1x : null;
+
+    return null;
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -8641,6 +8799,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
+        if (exp.op == TOK.assign)
+            exp.checkSelfAssignment(sc);
+
         if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
             exp.e1.checkSharedAccess(sc);
 
@@ -10891,8 +11052,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = e1x;
         exp.e2 = e2x;
         result = exp;
-    }
 
+        bool isThis;
+        if (e1x.op == e2x.op && // fast discardal
+            !(e1x.isBool(false) ||
+              e1x.isBool(true)) &&
+            equalsExp(e1x, e2x, isThis))
+        {
+            exp.warning("Expression `%s` is same as `%s`",
+                        exp.toChars(),
+                        e1x.toChars());
+        }
+    }
 
     override void visit(CmpExp exp)
     {
@@ -10900,6 +11071,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("CmpExp::semantic('%s')\n", exp.toChars());
         }
+
         if (exp.type)
         {
             result = exp;
@@ -11416,6 +11588,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1 = exp.e1.type;
         Type t2 = exp.e2.type;
+
+        bool isThis;
+        if (e1x.op == e2x.op &&          // fast discardal
+            // exclude literals at top-level
+            !e1x.isIntegerExp() &&
+            equalsExp(e1x, e2x, isThis)) // only variables for now
+        {
+            exp.warning("Expression `%s` is same as `%s`",
+                        exp.toChars(),
+                        e1x.toChars());
+        }
+
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
         // value if any
@@ -11591,6 +11775,44 @@ Expression binSemantic(BinExp e, Scope* sc)
         return e2x;
     e.e1 = e1x;
     e.e2 = e2x;
+
+    // TODO is this the right place to do this?
+    if (e1x.op == e2x.op && // fast discardal
+        !e1x.isIntegerExp())  // exclude literals at top-level
+    {
+        bool _isThis;           // unused
+        switch (e.op)
+        {
+        case TOK.and:
+        case TOK.or:
+            if (equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is same as `%s`", e.toChars(), e1x.toChars());
+            break;
+        case TOK.xor:
+            if (equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is always `0`", e.toChars());
+            break;
+        case TOK.equal:
+        case TOK.lessOrEqual:
+        case TOK.greaterOrEqual:
+            if (e1x.type &&
+                !e1x.type.isfloating &&
+                equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is always `true`", e.toChars());
+            break;
+        case TOK.notEqual:
+        case TOK.lessThan:
+        case TOK.greaterThan:
+            if (e1x.type &&
+                !e1x.type.isfloating &&
+                equalsExp(e1x, e2x, _isThis))
+                e.warning("Expression `%s` is always `false`", e.toChars());
+            break;
+        default:
+            break;
+        }
+    }
+
     return null;
 }
 

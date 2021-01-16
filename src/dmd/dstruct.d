@@ -606,6 +606,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return index < numArgTypes() ? (*argTypes.arguments)[index].type : null;
     }
 
+    final bool hasPostblit()
+    {
+        return (postblit &&
+                !postblit.isDisabled());
+    }
+
     final bool hasNonDisabledCtor()
     {
         static extern (C++) class HasNonDisabledCtorVisitor : Visitor

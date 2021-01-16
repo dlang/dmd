@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn7444.d(22): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
+fail_compilation/warn7444.d(24): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
+fail_compilation/warn7444.d(28): Deprecation: assignment of `sa` from itself has no side effect, to exercise assignment instead use `sa = sa.init`
+fail_compilation/warn7444.d(44): Deprecation: assignment of `da` from itself has no side effect, to exercise assignment instead use `da = da.init`
 ---
 */
 

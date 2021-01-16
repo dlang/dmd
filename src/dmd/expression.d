@@ -2250,6 +2250,16 @@ extern (C++) class IdentifierExp : Expression
         return new IdentifierExp(loc, ident);
     }
 
+    override bool equals(const RootObject o) const
+    {
+        if (this == o)
+            return true;
+        if (auto e = o.isExpression())
+            if (auto ie = e.isIdentifierExp())
+                return this.ident is ie.ident;
+        return false;
+    }
+
     override final bool isLvalue()
     {
         return true;
