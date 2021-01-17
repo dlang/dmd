@@ -2688,7 +2688,7 @@ else
                     (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);
-                    sl.expressionSemantic(sc);
+                    sl = sl.expressionSemantic(sc);
 
                     s = new SwitchErrorStatement(ss.loc, sl);
                 }
@@ -2775,7 +2775,7 @@ else
             sl = new DotTemplateInstanceExp(ss.loc, sl, Id.__switch, compileTimeArgs);
 
             sl = new CallExp(ss.loc, sl, arguments);
-            sl.expressionSemantic(sc);
+            sl = sl.expressionSemantic(sc);
             ss.condition = sl;
 
             auto i = 0;
