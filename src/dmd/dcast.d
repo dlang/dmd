@@ -2090,9 +2090,9 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     f.tookAddressOf++;
                     auto se = new SymOffExp(e.loc, f, 0, false);
-                    se.expressionSemantic(sc);
+                    auto se2 = se.expressionSemantic(sc);
                     // Let SymOffExp::castTo() do the heavy lifting
-                    visit(se);
+                    visit(se2);
                     return;
                 }
             }
