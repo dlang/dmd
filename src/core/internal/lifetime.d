@@ -34,7 +34,7 @@ void emplaceRef(T, UT, Args...)(ref UT chunk, auto ref Args args)
             T payload;
             this()(auto ref Args args)
             {
-                static if (is(typeof(payload = forward!args)))
+                static if (__traits(compiles, payload = forward!args))
                     payload = forward!args;
                 else
                     payload = T(forward!args);
@@ -42,9 +42,9 @@ void emplaceRef(T, UT, Args...)(ref UT chunk, auto ref Args args)
         }
         if (__ctfe)
         {
-            static if (is(typeof(chunk = T(forward!args))))
+            static if (__traits(compiles, chunk = T(forward!args)))
                 chunk = T(forward!args);
-            else static if (args.length == 1 && is(typeof(chunk = forward!(args[0]))))
+            else static if (args.length == 1 && __traits(compiles, chunk = forward!(args[0])))
                 chunk = forward!(args[0]);
             else assert(0, "CTFE emplace doesn't support "
                 ~ T.stringof ~ " from " ~ Args.stringof);
