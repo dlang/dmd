@@ -147,9 +147,6 @@ class TupleDeclaration : public Declaration
 {
 public:
     Objects *objects;
-    bool isexp;                 // true: expression tuple
-
-    TypeTuple *tupletype;       // !=NULL if this is a type tuple
 
     TupleDeclaration *syntaxCopy(Dsymbol *);
     const char *kind() const;

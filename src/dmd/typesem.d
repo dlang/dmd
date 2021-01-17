@@ -307,7 +307,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 if (s.isDeclaration()) // var, func, or tuple declaration?
                 {
                     t = s.isDeclaration().type;
-                    if (!t && s.isTupleDeclaration()) // expression tuple?
+                    if (s.isTupleDeclaration()) // expression tuple?
                         return helper3();
                 }
                 else if (s.isTemplateInstance() ||

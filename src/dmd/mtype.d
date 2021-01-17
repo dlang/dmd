@@ -449,6 +449,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) __gshared Type terror;      // for error recovery
     extern (C++) __gshared Type tnull;       // for null type
+    extern (C++) __gshared Type tnone;       // no type
 
     extern (C++) __gshared Type tsize_t;     // matches size_t alias
     extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
@@ -894,6 +895,7 @@ extern (C++) abstract class Type : ASTNode
         terror = basic[Terror];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
+        tnone = new TypeNone();
 
         tvoidptr = tvoid.pointerTo();
         tstring = tchar.immutableOf().arrayOf();
@@ -2678,6 +2680,7 @@ extern (C++) abstract class Type : ASTNode
 
     final pure inout nothrow @nogc
     {
+        inout(TypeNone)       isTypeNone()       { return ty == Tnone      ? cast(typeof(return))this : null; }
         inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
         inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
         inout(TypeSArray)     isTypeSArray()     { return ty == Tsarray    ? cast(typeof(return))this : null; }
@@ -2711,6 +2714,21 @@ extern (C++) abstract class Type : ASTNode
         if (ty != Tfunction)
             assert(0);
         return cast(TypeFunction)this;
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class TypeNone : Type
+{
+    extern (D) this()
+    {
+        super(Tnone);
+    }
+
+    override const(char)* kind() const
+    {
+        return "none";
     }
 }
 

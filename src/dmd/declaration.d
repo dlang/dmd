@@ -589,8 +589,6 @@ extern (C++) abstract class Declaration : Dsymbol
 extern (C++) final class TupleDeclaration : Declaration
 {
     Objects* objects;
-    bool isexp;             // true: expression tuple
-    TypeTuple tupletype;    // !=null if this is a type tuple
 
     extern (D) this(const ref Loc loc, Identifier ident, Objects* objects)
     {
@@ -608,6 +606,23 @@ extern (C++) final class TupleDeclaration : Declaration
         return "tuple";
     }
 
+    /**
+     * Set as expression tuple, i.e. getType() returns null.
+     * Actually only used as property function
+     */
+    extern (D) @property void isexp(bool b)
+    {
+        if (b)
+            type = Type.tnone;
+        else
+            assert(0); // Never unset
+    }
+
+    extern (D) @property bool isexp()
+    {
+        return type is Type.tnone;
+    }
+
     override Type getType()
     {
         /* If this tuple represents a type, return that type
@@ -616,7 +631,7 @@ extern (C++) final class TupleDeclaration : Declaration
         //printf("TupleDeclaration::getType() %s\n", toChars());
         if (isexp)
             return null;
-        if (!tupletype)
+        if (!type)
         {
             /* It's only a type tuple if all the Object's are types
              */
@@ -657,11 +672,11 @@ extern (C++) final class TupleDeclaration : Declaration
                     hasdeco = 0;
             }
 
-            tupletype = new TypeTuple(args);
+            type = new TypeTuple(args);
             if (hasdeco)
-                return tupletype.typeSemantic(Loc.initial, null);
+                return type.typeSemantic(Loc.initial, null);
         }
-        return tupletype;
+        return type;
     }
 
     override Dsymbol toAlias2()

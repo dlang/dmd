@@ -3599,6 +3599,11 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         assert(0);
     }
 
+    void visitNone(TypeNone t)
+    {
+        buf.writestring("_none_");
+    }
+
     void visitError(TypeError t)
     {
         buf.writestring("_error_");
@@ -3806,6 +3811,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
                                 visitBasic(cast(TypeBasic)t) :
                                 visitType(t);
 
+        case Tnone:      return visitNone(cast(TypeNone)t);
         case Terror:     return visitError(cast(TypeError)t);
         case Ttraits:    return visitTraits(cast(TypeTraits)t);
         case Tvector:    return visitVector(cast(TypeVector)t);
