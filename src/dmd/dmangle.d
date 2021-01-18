@@ -210,6 +210,7 @@ private immutable char[TMAX] mangleChar =
     Tvector      : '@',
     Ttraits      : '@',
     Tmixin       : '@',
+    Tdeduced     : '@',
 ];
 
 unittest
@@ -1253,4 +1254,3 @@ public:
         visitWithMask(p.type, (p.storageClass & STC.in_) ? MODFlags.const_ : 0);
     }
 }
-

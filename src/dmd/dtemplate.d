@@ -1736,7 +1736,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         foreach (ref dedtype; *dedtypes)
                         {
                             Type at = isType(dedtype);
-                            if (at && at.ty == Tnone)
+                            if (at && at.ty == Tdeduced)
                             {
                                 TypeDeduced xt = cast(TypeDeduced)at;
                                 dedtype = xt.tded; // 'unbox'
@@ -2098,7 +2098,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             Type at = isType(dedtype);
             if (at)
             {
-                if (at.ty == Tnone)
+                if (at.ty == Tdeduced)
                 {
                     TypeDeduced xt = cast(TypeDeduced)at;
                     at = xt.tded; // 'unbox'
@@ -2530,7 +2530,7 @@ extern (C++) final class TypeDeduced : Type
 
     extern (D) this(Type tt, Expression e, Type tparam)
     {
-        super(Tnone);
+        super(Tdeduced);
         tded = tt;
         argexps.push(e);
         tparams.push(tparam);
@@ -3579,7 +3579,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         if (!tt)
                             goto Lnomatch;
                         Type at = cast(Type)(*dedtypes)[i];
-                        if (at && at.ty == Tnone)
+                        if (at && at.ty == Tdeduced)
                             at = (cast(TypeDeduced)at).tded;
                         if (!at || tt.equals(at))
                         {
@@ -3616,7 +3616,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
 
                     // type vs expressions
-                    if (at.ty == Tnone)
+                    if (at.ty == Tdeduced)
                     {
                         TypeDeduced xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
@@ -3660,7 +3660,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
 
                     // type vs expressions
-                    if (at.ty == Tnone)
+                    if (at.ty == Tdeduced)
                     {
                         TypeDeduced xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
@@ -4579,7 +4579,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             TypeDeduced xt = null;
-            if (at.ty == Tnone)
+            if (at.ty == Tdeduced)
             {
                 xt = cast(TypeDeduced)at;
                 at = xt.tded;

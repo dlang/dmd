@@ -1277,7 +1277,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[46LLU];
+    static Type* basic[47LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -4916,7 +4916,8 @@ enum class ENUMTY
     Tuns128 = 43,
     Ttraits = 44,
     Tmixin = 45,
-    TMAX = 46,
+    Tdeduced = 46,
+    TMAX = 47,
 };
 
 typedef uint8_t TY;
