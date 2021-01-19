@@ -1144,36 +1144,7 @@ static if (1)
 
         debug_info.buf.writeString(filename);             // DW_AT_name
 
-        static if (0)
-        {
-            // This relies on an extension to POSIX.1 not always implemented
-            char *cwd = getcwd(null, 0);
-        }
-        else
-        {
-            char *cwd;
-            size_t sz = 80;
-            while (1)
-            {
-                errno = 0;
-                cwd = cast(char *)malloc(sz + 1);
-                if (!cwd)
-                    err_nomem();
-                char *buf = getcwd(cwd, sz);
-                if (buf)
-                {   cwd[sz] = 0;        // man page doesn't say if always 0 terminated
-                    break;
-                }
-                if (errno == ERANGE)
-                {
-                    sz *= 2;
-                    free(cwd);
-                    continue;
-                }
-                cwd[0] = 0;
-                break;
-            }
-        }
+        char* cwd = getcwd(null, 0);
         debug_info.buf.writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
         free(cwd);
 
