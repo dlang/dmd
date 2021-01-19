@@ -341,15 +341,14 @@ static if (SYMDEB_CODEVIEW)
     block_init();
 
     cod3_setdefault();
+    util_set(model == 64);
     if (model == 64)
     {
-        util_set64();
         type_init();
         cod3_set64();
     }
     else
     {
-        util_set32();
         type_init();
         cod3_set32();
     }
@@ -386,10 +385,10 @@ void out_config_debug(
 }
 
 /*******************************
- * Redo tables from 8086/286 to 386/486.
+ * Redo tables from 8086/286 to 386/486 or I64
  */
 
-void util_set32()
+void util_set(bool is64Bits)
 {
     _tyrelax[TYenum] = TYlong;
     _tyrelax[TYint]  = TYlong;
@@ -401,105 +400,16 @@ void util_set32()
     _tysize[TYenum] = LONGSIZE;
     _tysize[TYint ] = LONGSIZE;
     _tysize[TYuint] = LONGSIZE;
-    _tysize[TYnullptr] = LONGSIZE;
-    _tysize[TYnptr] = LONGSIZE;
-    _tysize[TYnref] = LONGSIZE;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    _tysize[TYldouble] = 12;
-    _tysize[TYildouble] = 12;
-    _tysize[TYcldouble] = 24;
-}
-else static if (TARGET_OSX)
-{
-    _tysize[TYldouble] = 16;
-    _tysize[TYildouble] = 16;
-    _tysize[TYcldouble] = 32;
-}
-else static if (TARGET_WINDOS)
-{
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
-}
-else
-{
-    assert(0);
-}
-    _tysize[TYsptr] = LONGSIZE;
-    _tysize[TYcptr] = LONGSIZE;
-    _tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
-    _tysize[TYvptr] = 6;     // _tysize[x] == _tysize[TYfptr] so don't set
-    _tysize[TYfref] = 6;     // _tysize[TYfptr] to _tysize[TYnptr]
 
-    _tyalignsize[TYenum] = LONGSIZE;
-    _tyalignsize[TYint ] = LONGSIZE;
-    _tyalignsize[TYuint] = LONGSIZE;
-    _tyalignsize[TYnullptr] = LONGSIZE;
-    _tyalignsize[TYnref] = LONGSIZE;
-    _tyalignsize[TYnptr] = LONGSIZE;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    _tyalignsize[TYldouble] = 4;
-    _tyalignsize[TYildouble] = 4;
-    _tyalignsize[TYcldouble] = 4;
-}
-else static if (TARGET_OSX)
-{
-    _tyalignsize[TYldouble] = 16;
-    _tyalignsize[TYildouble] = 16;
-    _tyalignsize[TYcldouble] = 16;
-}
-else static if (TARGET_WINDOS)
-{
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
-}
-else
-{
-    assert(0);
-}
-    _tyalignsize[TYsptr] = LONGSIZE;
-    _tyalignsize[TYcptr] = LONGSIZE;
-    _tyalignsize[TYfptr] = LONGSIZE;     // NOTE: There are codgen test that check
-    _tyalignsize[TYvptr] = LONGSIZE;     // _tysize[x] == _tysize[TYfptr] so don't set
-    _tyalignsize[TYfref] = LONGSIZE;     // _tysize[TYfptr] to _tysize[TYnptr]
+    _tysize[TYnullptr] = is64Bits ? 8 : LONGSIZE;
+    _tysize[TYnptr] = is64Bits ? 8 : LONGSIZE;
+    _tysize[TYnref] = is64Bits ? 8 : LONGSIZE;
 
-    _tysize[TYimmutPtr] = _tysize[TYnptr];
-    _tysize[TYsharePtr] = _tysize[TYnptr];
-    _tysize[TYrestrictPtr] = _tysize[TYnptr];
-    _tysize[TYfgPtr] = _tysize[TYnptr];
-    _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
-    _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
-    _tyalignsize[TYrestrictPtr] = _tyalignsize[TYnptr];
-    _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
-}
-
-/*******************************
- * Redo tables from 8086/286 to I64.
- */
-
-void util_set64()
-{
-    _tyrelax[TYenum] = TYlong;
-    _tyrelax[TYint]  = TYlong;
-    _tyrelax[TYuint] = TYlong;
-
-    tyequiv[TYint] = TYlong;
-    tyequiv[TYuint] = TYulong;
-
-    _tysize[TYenum] = LONGSIZE;
-    _tysize[TYint ] = LONGSIZE;
-    _tysize[TYuint] = LONGSIZE;
-    _tysize[TYnullptr] = 8;
-    _tysize[TYnptr] = 8;
-    _tysize[TYnref] = 8;
 static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
 {
-    _tysize[TYldouble] = 16;
-    _tysize[TYildouble] = 16;
-    _tysize[TYcldouble] = 32;
+    _tysize[TYldouble] =  is64Bits ? 16 : 12;
+    _tysize[TYildouble] = is64Bits ? 16 : 12;
+    _tysize[TYcldouble] = is64Bits ? 32 : 24;
 }
 else static if (TARGET_WINDOS)
 {
@@ -511,29 +421,25 @@ else
 {
     assert(0);
 }
-    _tysize[TYsptr] = 8;
-    _tysize[TYcptr] = 8;
-    _tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
-    _tysize[TYvptr] = 10;    // _tysize[x] == _tysize[TYfptr] so don't set
-    _tysize[TYfref] = 10;    // _tysize[TYfptr] to _tysize[TYnptr]
+    _tysize[TYsptr] = is64Bits ? 8 : LONGSIZE;
+    _tysize[TYcptr] = is64Bits ? 8 : LONGSIZE;
+    _tysize[TYfptr] = is64Bits ? 10 : 6;     // NOTE: There are codgen test that check
+    _tysize[TYvptr] = is64Bits ? 10 : 6;     // _tysize[x] == _tysize[TYfptr] so don't set
+    _tysize[TYfref] = is64Bits ? 10 : 6;     // _tysize[TYfptr] to _tysize[TYnptr]
 
     _tyalignsize[TYenum] = LONGSIZE;
     _tyalignsize[TYint ] = LONGSIZE;
     _tyalignsize[TYuint] = LONGSIZE;
-    _tyalignsize[TYnullptr] = 8;
-    _tyalignsize[TYnptr] = 8;
-    _tyalignsize[TYnref] = 8;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+
+    _tyalignsize[TYnullptr] = is64Bits ? 8 : LONGSIZE;
+    _tyalignsize[TYnptr] = is64Bits ? 8 : LONGSIZE;
+    _tyalignsize[TYnref] = is64Bits ? 8 : LONGSIZE;
+
+static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
 {
-    _tyalignsize[TYldouble] = 16;
-    _tyalignsize[TYildouble] = 16;
-    _tyalignsize[TYcldouble] = 16;
-}
-else static if (TARGET_OSX)
-{
-    _tyalignsize[TYldouble] = 16;
-    _tyalignsize[TYildouble] = 16;
-    _tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYldouble] = is64Bits ? 16 : 4;
+    _tyalignsize[TYildouble] = is64Bits ? 16 : 4;
+    _tyalignsize[TYcldouble] = is64Bits ? 16 : 4;
 }
 else static if (TARGET_WINDOS)
 {
@@ -545,18 +451,22 @@ else
 {
     assert(0);
 }
-    _tyalignsize[TYsptr] = 8;
-    _tyalignsize[TYcptr] = 8;
-    _tyalignsize[TYfptr] = 8;
-    _tyalignsize[TYvptr] = 8;
-    _tyalignsize[TYfref] = 8;
-    tytab[TYjfunc] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
+    _tyalignsize[TYsptr] = is64Bits ? 8 : LONGSIZE;
+    _tyalignsize[TYcptr] = is64Bits ? 8 : LONGSIZE;
+    _tyalignsize[TYfptr] = is64Bits ? 8 : LONGSIZE; // NOTE: There are codgen test that check
+    _tyalignsize[TYvptr] = is64Bits ? 8 : LONGSIZE; // _tysize[x] == _tysize[TYfptr] so don't set
+    _tyalignsize[TYfref] = is64Bits ? 8 : LONGSIZE; // _tysize[TYfptr] to _tysize[TYnptr]
 
-    TYptrdiff = TYllong;
-    TYsize = TYullong;
-    TYsize_t = TYullong;
-    TYdelegate = TYcent;
-    TYdarray = TYucent;
+    if (is64Bits)
+    {
+        tytab[TYjfunc] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
+
+        TYptrdiff = TYllong;
+        TYsize = TYullong;
+        TYsize_t = TYullong;
+        TYdelegate = TYcent;
+        TYdarray = TYucent;
+    }
 
     _tysize[TYimmutPtr] = _tysize[TYnptr];
     _tysize[TYsharePtr] = _tysize[TYnptr];
