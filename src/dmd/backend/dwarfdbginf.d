@@ -1174,7 +1174,6 @@ static if (1)
                 break;
             }
         }
-        //debug_info.buf.write32(Obj.addstr(debug_str_buf, cwd)); // DW_AT_comp_dir as DW_FORM_strp, doesn't work on some systems
         debug_info.buf.writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
         free(cwd);
 
