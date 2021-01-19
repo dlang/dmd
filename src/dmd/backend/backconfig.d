@@ -360,21 +360,6 @@ void out_config_debug(
 
 }
 
-/*************************************
- */
-
-void util_set16()
-{
-    // The default is 16 bits
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
-
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
-}
-
 /*******************************
  * Redo tables from 8086/286 to 386/486.
  */
@@ -557,4 +542,3 @@ else
     _tyalignsize[TYrestrictPtr] = _tyalignsize[TYnptr];
     _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
 }
-

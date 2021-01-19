@@ -133,7 +133,6 @@ void util_assert(const(char)*, int);
 //#endif
 
 void util_progress();
-void util_set16();
 void util_set32();
 void util_set64();
 int ispow2(uint64_t);
