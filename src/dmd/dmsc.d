@@ -32,6 +32,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 extern (C) void out_config_init(
+        TargetOS target, // Target operating system, matches `dmd.globals : TargetOS`
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
                         // Windows: bit 0 set to generate MS-COFF instead of OMF
@@ -87,6 +88,7 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
+        params.targetOS,
         (params.is64bit ? 64 : 32) | (params.mscoff ? 1 : 0),
         exe,
         false, //params.trace,

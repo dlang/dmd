@@ -30,11 +30,31 @@ version (MARS)
     void ph_init();
 }
 
+/// Bit decoding of the TargetOS (copied from `dmd.globals : TargetOS`
+enum TargetOS : ubyte
+{
+    /* These are mutually exclusive; one and only one is set.
+     * Match spelling and casing of corresponding version identifiers
+     */
+    linux        = 1,
+    Windows      = 2,
+    OSX          = 4,
+    OpenBSD      = 8,
+    FreeBSD      = 0x10,
+    Solaris      = 0x20,
+    DragonFlyBSD = 0x40,
+
+    // Combination masks
+    all = linux | Windows | OSX | FreeBSD | Solaris | DragonFlyBSD,
+    Posix = linux | OSX | FreeBSD | Solaris | DragonFlyBSD,
+}
+
 /**************************************
  * Initialize configuration variables.
  */
 
 extern (C) void out_config_init(
+        TargetOS target, // Target operating system, matches `dmd.globals : TargetOS`
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
                         // Windows: set bit 0 to generate MS-COFF instead of OMF
