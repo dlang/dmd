@@ -94,177 +94,185 @@ version (MARS)
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
     model &= 32 | 64;
-static if (TARGET_WINDOS)
-{
-    if (model == 64)
-    {   config.exe = EX_WIN64;
-        config.fpxmmregs = true;
-        config.avx = avx;
-        config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
-
-        config.flags |= CFGnoebp;       // test suite fails without this
-        //config.flags |= CFGalwaysframe;
-        config.flags |= CFGromable; // put switch tables in code segment
-        config.objfmt = OBJ_MSCOFF;
-    }
-    else
+    if (target == TargetOS.Windows)
     {
-        config.exe = EX_WIN32;
-        config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
-        config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
-    }
-
-    if (exe)
-        config.wflags |= WFexe;         // EXE file only optimizations
-    config.flags4 |= CFG4underscore;
-}
-static if (TARGET_LINUX)
-{
-    config.fpxmmregs = true;
-    config.avx = avx;
-    if (model == 64)
-    {   config.exe = EX_LINUX64;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    }
-    else
-    {
-        config.exe = EX_LINUX;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
-    }
-    config.flags |= CFGnoebp;
-    switch (pic)
-    {
-        case 0:         // PIC.fixed
-            break;
-
-        case 1:         // PIC.pic
-            config.flags3 |= CFG3pic;
-            break;
-
-        case 2:         // PIC.pie
-            config.flags3 |= CFG3pic | CFG3pie;
-            break;
-
-        default:
-            assert(0);
-    }
-    if (symdebug)
-        config.flags |= CFGalwaysframe;
-
-    config.objfmt = OBJ_ELF;
-}
-static if (TARGET_OSX)
-{
-    config.fpxmmregs = true;
-    config.avx = avx;
-    if (model == 64)
-    {   config.exe = EX_OSX64;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    }
-    else
-    {
-        config.exe = EX_OSX;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    }
-    config.flags |= CFGnoebp;
-    if (!exe)
-    {
-        config.flags3 |= CFG3pic;
         if (model == 64)
-            config.flags |= CFGalwaysframe; // autotester fails without this
-                                            // https://issues.dlang.org/show_bug.cgi?id=21042
+        {
+            config.exe = EX_WIN64;
+            config.fpxmmregs = true;
+            config.avx = avx;
+            config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+
+            config.flags |= CFGnoebp;       // test suite fails without this
+            //config.flags |= CFGalwaysframe;
+            config.flags |= CFGromable; // put switch tables in code segment
+            config.objfmt = OBJ_MSCOFF;
+        }
+        else
+        {
+            config.exe = EX_WIN32;
+            config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
+            config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
+        }
+
+        if (exe)
+            config.wflags |= WFexe;         // EXE file only optimizations
+        config.flags4 |= CFG4underscore;
     }
-    if (symdebug)
+    else if (target == TargetOS.linux)
+    {
+        config.fpxmmregs = true;
+        config.avx = avx;
+        if (model == 64)
+        {
+            config.exe = EX_LINUX64;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        }
+        else
+        {
+            config.exe = EX_LINUX;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
+        switch (pic)
+        {
+            case 0:         // PIC.fixed
+                break;
+
+            case 1:         // PIC.pic
+                config.flags3 |= CFG3pic;
+                break;
+
+            case 2:         // PIC.pie
+                config.flags3 |= CFG3pic | CFG3pie;
+                break;
+
+            default:
+                assert(0);
+        }
+        if (symdebug)
+            config.flags |= CFGalwaysframe;
+
+        config.objfmt = OBJ_ELF;
+    }
+    else if (target == TargetOS.OSX)
+    {
+        config.fpxmmregs = true;
+        config.avx = avx;
+        if (model == 64)
+        {
+            config.exe = EX_OSX64;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        }
+        else
+        {
+            config.exe = EX_OSX;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        }
+        config.flags |= CFGnoebp;
+        if (!exe)
+        {
+            config.flags3 |= CFG3pic;
+            if (model == 64)
+                config.flags |= CFGalwaysframe; // autotester fails without this
+                                                // https://issues.dlang.org/show_bug.cgi?id=21042
+        }
+        if (symdebug)
+            config.flags |= CFGalwaysframe;
+        config.flags |= CFGromable; // put switch tables in code segment
+        config.objfmt = OBJ_MACH;
+    }
+    else if (target == TargetOS.FreeBSD)
+    {
+        if (model == 64)
+        {
+            config.exe = EX_FREEBSD64;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            config.exe = EX_FREEBSD;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
+        if (!exe)
+        {
+            config.flags3 |= CFG3pic;
+        }
+        if (symdebug)
+            config.flags |= CFGalwaysframe;
+        config.objfmt = OBJ_ELF;
+    }
+    else if (target == TargetOS.OpenBSD)
+    {
+        if (model == 64)
+        {
+            config.exe = EX_OPENBSD64;
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            config.exe = EX_OPENBSD;
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
         config.flags |= CFGalwaysframe;
-    config.flags |= CFGromable; // put switch tables in code segment
-    config.objfmt = OBJ_MACH;
-}
-static if (TARGET_FREEBSD)
-{
-    if (model == 64)
-    {   config.exe = EX_FREEBSD64;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
-        config.exe = EX_FREEBSD;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
+            config.flags3 |= CFG3pic;
+        config.objfmt = OBJ_ELF;
+        config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
     }
-    config.flags |= CFGnoebp;
-    if (!exe)
+    else if (target == TargetOS.DragonFlyBSD)
     {
-        config.flags3 |= CFG3pic;
+        if (model == 64)
+        {
+            config.exe = EX_DRAGONFLYBSD64;
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            assert(0);           // Only 64-bit supported on DragonFlyBSD
+        }
+        config.flags |= CFGnoebp;
+        if (!exe)
+        {
+            config.flags3 |= CFG3pic;
+            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        }
+        config.objfmt = OBJ_ELF;
     }
-    if (symdebug)
+    else if (target == TargetOS.Solaris)
+    {
+        if (model == 64)
+        {
+            config.exe = EX_SOLARIS64;
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            config.exe = EX_SOLARIS;
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
         config.flags |= CFGalwaysframe;
-    config.objfmt = OBJ_ELF;
-}
-static if (TARGET_OPENBSD)
-{
-    if (model == 64)
-    {   config.exe = EX_OPENBSD64;
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
-        config.exe = EX_OPENBSD;
         if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
+            config.flags3 |= CFG3pic;
+        config.objfmt = OBJ_ELF;
+        config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
     }
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (!exe)
-        config.flags3 |= CFG3pic;
-    config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
-}
-static if (TARGET_DRAGONFLYBSD)
-{
-    if (model == 64)
-    {   config.exe = EX_DRAGONFLYBSD64;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
-        assert(0);                      // Only 64-bit supported on DragonFlyBSD
-    }
-    config.flags |= CFGnoebp;
-    if (!exe)
-    {
-        config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
-    }
-    config.objfmt = OBJ_ELF;
-}
-static if (TARGET_SOLARIS)
-{
-    if (model == 64)
-    {   config.exe = EX_SOLARIS64;
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
-        config.exe = EX_SOLARIS;
-        if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
-    }
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (!exe)
-        config.flags3 |= CFG3pic;
-    config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
-}
+
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;
 static if (0)
@@ -274,13 +282,10 @@ static if (0)
     if (env.nochecks())
         config.flags4 |= CFG4nochecks;  // no runtime checking
 }
-else static if (TARGET_OSX)
-{
-}
-else
-{
-    config.flags4 |= CFG4allcomdat;
-}
+
+    if (target != TargetOS.OSX)
+        config.flags4 |= CFG4allcomdat;
+
     if (trace)
         config.flags |= CFGtrace;       // turn on profiler
     if (nofloat)
