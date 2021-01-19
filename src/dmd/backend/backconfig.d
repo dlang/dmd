@@ -341,7 +341,7 @@ static if (SYMDEB_CODEVIEW)
     block_init();
 
     cod3_setdefault();
-    util_set(model == 64);
+    util_set(model == 64, target);
     if (model == 64)
     {
         type_init();
@@ -388,7 +388,7 @@ void out_config_debug(
  * Redo tables from 8086/286 to 386/486 or I64
  */
 
-void util_set(bool is64Bits)
+void util_set(bool is64Bits, TargetOS target)
 {
     _tyrelax[TYenum] = TYlong;
     _tyrelax[TYint]  = TYlong;
@@ -405,22 +405,21 @@ void util_set(bool is64Bits)
     _tysize[TYnptr] = is64Bits ? 8 : LONGSIZE;
     _tysize[TYnref] = is64Bits ? 8 : LONGSIZE;
 
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
-{
-    _tysize[TYldouble] =  is64Bits ? 16 : 12;
-    _tysize[TYildouble] = is64Bits ? 16 : 12;
-    _tysize[TYcldouble] = is64Bits ? 32 : 24;
-}
-else static if (TARGET_WINDOS)
-{
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
-}
-else
-{
-    assert(0);
-}
+    if (target & TargetOS.Posix)
+    {
+        _tysize[TYldouble] =  is64Bits ? 16 : 12;
+        _tysize[TYildouble] = is64Bits ? 16 : 12;
+        _tysize[TYcldouble] = is64Bits ? 32 : 24;
+    }
+    else if (target == TargetOS.Windows)
+    {
+        _tysize[TYldouble] = 10;
+        _tysize[TYildouble] = 10;
+        _tysize[TYcldouble] = 20;
+    }
+    else
+        assert(0);
+
     _tysize[TYsptr] = is64Bits ? 8 : LONGSIZE;
     _tysize[TYcptr] = is64Bits ? 8 : LONGSIZE;
     _tysize[TYfptr] = is64Bits ? 10 : 6;     // NOTE: There are codgen test that check
@@ -435,22 +434,21 @@ else
     _tyalignsize[TYnptr] = is64Bits ? 8 : LONGSIZE;
     _tyalignsize[TYnref] = is64Bits ? 8 : LONGSIZE;
 
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
-{
-    _tyalignsize[TYldouble] = is64Bits ? 16 : 4;
-    _tyalignsize[TYildouble] = is64Bits ? 16 : 4;
-    _tyalignsize[TYcldouble] = is64Bits ? 16 : 4;
-}
-else static if (TARGET_WINDOS)
-{
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
-}
-else
-{
-    assert(0);
-}
+    if (target & TargetOS.Posix)
+    {
+        _tyalignsize[TYldouble] = is64Bits ? 16 : 4;
+        _tyalignsize[TYildouble] = is64Bits ? 16 : 4;
+        _tyalignsize[TYcldouble] = is64Bits ? 16 : 4;
+    }
+    else if (target == TargetOS.Windows)
+    {
+        _tyalignsize[TYldouble] = 2;
+        _tyalignsize[TYildouble] = 2;
+        _tyalignsize[TYcldouble] = 2;
+    }
+    else
+        assert(0);
+
     _tyalignsize[TYsptr] = is64Bits ? 8 : LONGSIZE;
     _tyalignsize[TYcptr] = is64Bits ? 8 : LONGSIZE;
     _tyalignsize[TYfptr] = is64Bits ? 8 : LONGSIZE; // NOTE: There are codgen test that check
