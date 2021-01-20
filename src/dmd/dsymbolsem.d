@@ -86,6 +86,8 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (sd.isUnionDeclaration())
         return null;
 
+    const hasUserDefinedPosblit = sd.postblits.dim && !sd.postblits[0].isDisabled ? true : false;
+
     // by default, the storage class of the created postblit
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
@@ -333,6 +335,27 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         sd.members.push(_alias);
         _alias.addMember(sc, sd); // add to symbol table
     }
+
+    if (sd.hasCopyCtor)
+    {
+        // we have user defined postblit, so we prioritize it
+        if (hasUserDefinedPosblit)
+        {
+            sd.hasCopyCtor = false;
+            return xpostblit;
+        }
+        // we have fields with postblits, so print deprecations
+        if (xpostblit && !xpostblit.isDisabled())
+        {
+            deprecation(sd.loc, "`struct %s` implicitly-generated postblit hides copy constructor.", sd.toChars);
+            deprecationSupplemental(sd.loc, "The field postblit will have priority over the copy constructor.");
+            deprecationSupplemental(sd.loc, "To change this, the postblit should be disabled for `struct %s`", sd.toChars());
+            sd.hasCopyCtor = false;
+        }
+        else
+            xpostblit = null;
+    }
+
     return xpostblit;
 }
 
@@ -422,10 +445,6 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     if (global.errors)
         return false;
 
-    bool hasPostblit;
-    if (sd.postblit && !sd.postblit.isDisabled())
-        hasPostblit = true;
-
     auto ctor = sd.search(sd.loc, Id.ctor);
     CtorDeclaration cpCtor;
     CtorDeclaration rvalueCtor;
@@ -466,16 +485,17 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return 0;
     });
 
-    if (cpCtor && rvalueCtor)
+    if (cpCtor)
     {
-        .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
-        errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
-        errorSupplemental(cpCtor.loc, "copy constructor defined here");
+        if (rvalueCtor)
+        {
+            .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
+            errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
+            errorSupplemental(cpCtor.loc, "copy constructor defined here");
+            return true;
+        }
+
         return true;
-    }
-    else if (cpCtor)
-    {
-        return !hasPostblit;
     }
 
 LcheckFields:
@@ -506,9 +526,6 @@ LcheckFields:
         return false;
     }
     else if (!fieldWithCpCtor)
-        return false;
-
-    if (hasPostblit)
         return false;
 
     //printf("generating copy constructor for %s\n", sd.toChars());
@@ -4807,8 +4824,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sd.dtor = buildDtor(sd, sc2);
         sd.tidtor = buildExternDDtor(sd, sc2);
-        sd.postblit = buildPostBlit(sd, sc2);
         sd.hasCopyCtor = buildCopyCtor(sd, sc2);
+        sd.postblit = buildPostBlit(sd, sc2);
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
