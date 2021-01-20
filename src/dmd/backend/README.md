@@ -1,6 +1,12 @@
 Files in the Back End
 =====================
 
+:warning: When contributing to the backend, make sure youd don't break DMC :warning:
+
+The backend is shared with DMC, the DigitalMars C/C++ compiler.
+
+To ensure compatibility, [check its source tree here](https://github.com/DigitalMars/Compiler/tree/master/dm/src/dmc).
+
 Data Structures
 ---------------
 * **aarray.d**        hash table
