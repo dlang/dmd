@@ -19,18 +19,6 @@
  */
 module core.internal.dassert;
 
-// Legacy hooks currently used by dmd, remove once dmd uses
-// the new runtime versions defined below
-string _d_assert_fail(string op, A)(auto ref const scope A a)
-{
-    return _d_assert_fail!(A)(op, a);
-}
-
-string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
-{
-    return _d_assert_fail!(A, B)(comp, a, b);
-}
-
 /**
  * Generates rich assert error messages for unary expressions
  *
@@ -47,14 +35,6 @@ string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref cons
  * Returns:
  *   A string such as "$a != true" or "$a == true".
  */
-string _d_assert_fail2(A)(string op, auto ref const scope A a)
-{
-    string[2] vals = [ miniFormatFakeAttributes(a), "true" ];
-    immutable token = op == "!" ? "==" : "!=";
-    return combine(vals[0 .. 1], token, vals[1 .. $]);
-}
-
-/// Ditto
 string _d_assert_fail(A)(const scope string op, auto ref const scope A a)
 {
     string[2] vals = [ miniFormatFakeAttributes(a), "true" ];
@@ -76,9 +56,11 @@ string _d_assert_fail(A)(const scope string op, auto ref const scope A a)
  * Returns:
  *   A string such as "$a $comp $b".
  */
-template _d_assert_fail2(A...) {
-    string _d_assert_fail2(B...)(
-        string comp, auto ref const scope A a, auto ref const scope B b)
+template _d_assert_fail(A...)
+{
+    string _d_assert_fail(B...)(
+        const scope string comp, auto ref const scope A a, auto ref const scope B b)
+    if (B.length > 0)
     {
         string[A.length + B.length] vals;
         static foreach (idx; 0 .. A.length)
@@ -90,7 +72,7 @@ template _d_assert_fail2(A...) {
     }
 }
 
-/// Ditto
+// Legacy definition
 string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, auto ref const scope B b)
 {
     /*
@@ -100,10 +82,10 @@ string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, a
     Hence, we can fake purity and @nogc-ness here.
     */
 
-    string[1] valA = miniFormatFakeAttributes(a);
-    string[1] valB = miniFormatFakeAttributes(b);
+    string valA = miniFormatFakeAttributes(a);
+    string valB = miniFormatFakeAttributes(b);
     immutable token = invertCompToken(comp);
-    return combine(valA[], token, valB[]);
+    return combine([valA], token, [valB]);
 }
 
 /// Combines the supplied arguments into one string "valA token valB"
@@ -115,10 +97,16 @@ private string combine(const scope string[] valA, const scope string token,
         (valB.length - 1) * 2 + 2 + token.length;
     foreach (v; valA) totalLen += v.length;
     foreach (v; valB) totalLen += v.length;
+
+    // Include braces when printing tuples
+    const printBraces = (valA.length + valB.length) > 2;
+    if (printBraces) totalLen += 4; // '(', ')' for both tuples
+
     char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
     // @nogc-concat of "<valA> <comp> <valB>"
-    static void formatTuple (scope char[] buffer, ref size_t n, in string[] vals)
+    static void formatTuple (scope char[] buffer, ref size_t n, in string[] vals, in bool printBraces)
     {
+        if (printBraces) buffer[n++] = '(';
         foreach (idx, v; vals)
         {
             if (idx)
@@ -129,15 +117,16 @@ private string combine(const scope string[] valA, const scope string token,
             buffer[n .. n + v.length] = v;
             n += v.length;
         }
+        if (printBraces) buffer[n++] = ')';
     }
 
     size_t n;
-    formatTuple(buffer, n, valA);
+    formatTuple(buffer, n, valA, printBraces);
     buffer[n++] = ' ';
     buffer[n .. n + token.length] = token;
     n += token.length;
     buffer[n++] = ' ';
-    formatTuple(buffer, n, valB);
+    formatTuple(buffer, n, valB, printBraces);
     return (() @trusted => cast(string) buffer)();
 }
 
@@ -206,7 +195,8 @@ private string miniFormat(V)(const scope ref V v)
 
         // Format invalid enum values as their base type
         enum cast_ = "cast(" ~ V.stringof ~ ")";
-        return combine(cast_, "", miniFormat(*(cast(BaseType*) &v)));
+        const val = miniFormat(*(cast(BaseType*) &v));
+        return combine([ cast_ ], "", [ val ]);
     }
     else static if (is(V == bool))
     {
