@@ -294,10 +294,10 @@ $(GNAME DoubleQuotedCharacter):
     $(GLINK EndOfLine)
 
 $(GNAME EscapeSequence):
-    $(D \')
-    $(D \")
-    $(D \?)
-    $(D \\)
+    $(D \\')
+    $(D \\")
+    $(D \\?)
+    $(D \\\\)
     $(D \0)
     $(D \a)
     $(D \b)
