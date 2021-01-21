@@ -57,7 +57,7 @@ extern (C++) final class PrintASTVisitor : Visitor
     override void visit(RealExp e)
     {
         printIndent(indent);
-        printf("Real %Lg %s\n", e.value, e.type ? e.type.toChars() : "");
+        printf("Real %Lg %s\n", cast(real) e.value, e.type ? e.type.toChars() : "");
     }
 
     override void visit(StructLiteralExp e)
