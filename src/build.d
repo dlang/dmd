@@ -1038,7 +1038,7 @@ void parseEnvironment()
     env.setDefault("GIT_HOME", "https://github.com/dlang");
     env.setDefault("SYSCONFDIR", "/etc");
     env.setDefault("TMP", tempDir);
-    env.setDefault("RES", dmdRepo.buildPath("src/dmd/res"));
+    env.setDefault("RES", srcDir.buildPath("dmd", "res"));
     env.setDefault("MAKE", "make");
 
     version (Windows)
