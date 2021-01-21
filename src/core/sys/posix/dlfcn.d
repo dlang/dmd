@@ -139,7 +139,7 @@ else version (Darwin)
     char* dlerror();
     void* dlopen(const scope char*, int);
     void* dlsym(void*, const scope char*);
-    int   dladdr(void* addr, Dl_info* info);
+    int   dladdr(scope const void* addr, Dl_info* info);
 
     struct Dl_info
     {
