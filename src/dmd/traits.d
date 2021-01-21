@@ -586,7 +586,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isStaticArray)
     {
-        return isTypeX(t => t.toBasetype().ty == Tsarray);
+        return isTypeX((t) {
+            // @@@DEPRECATED_2.095_@@@
+            // Deprecated in 2021-01, remove toBasetype() in 2.105
+            const res = t.toBasetype().ty == Tsarray;
+            if (res && t.ty != Tsarray) {
+                assert(t.ty == Tenum);
+                .deprecation(e.loc, "isStaticArray currently yields `true` for enum `%s`", t.toChars());
+                .deprecationSupplemental(e.loc, "This will change with version 2.105");
+            }
+            return res;
+        });
     }
     if (e.ident == Id.isAbstractClass)
     {

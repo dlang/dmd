@@ -322,3 +322,23 @@ extern(C++, `inst`)
 mixin GetNamespaceTestTemplatedMixin!() GNTT;
 
 static assert (__traits(getCppNamespaces, GNTT.foo) == Seq!(`inst`,/*`decl`,*/ `f`));
+
+// https://issues.dlang.org/show_bug.cgi?id=21570
+enum EnumArray : int[2] {
+    a = [ 1, 2 ],
+    b = [ 3, 4 ]
+}
+
+/*
+TEST_OUTPUT:
+---
+compilable/traits.d(339): Deprecation: isStaticArray currently yields `true` for enum `EnumArray`
+compilable/traits.d(339):        This will change with version 2.105
+---
+*/
+
+// Deprecated
+static assert( __traits(isStaticArray, EnumArray));
+
+// Equal behaviour of trait and is-expression
+// static assert(!is(EnumArray == T[n], T, size_t n));
