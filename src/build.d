@@ -873,7 +873,16 @@ alias install = makeRule!((builder, rule) {
             installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
 
         const scPath = buildPath(env["OS"], bin, conf);
-        copyAndTouch(buildPath(dmdRepo, "ini", scPath), buildPath(env["INSTALL"], scPath));
+        const iniPath = buildPath(dmdRepo, "ini");
+
+        // The sources distributed alongside an official release only include the
+        // configuration of the current OS at the root directory instead of the
+        // whole `ini` folder in the project root.
+        const confPath = iniPath.exists()
+                        ? buildPath(iniPath, scPath)
+                        : buildPath(dmdRepo, "..", scPath);
+
+        copyAndTouch(confPath, buildPath(env["INSTALL"], scPath));
 
         version (Posix)
             copyAndTouch(sourceFiles[$-1], env["INSTALL"].buildPath("dmd-boostlicense.txt"));
