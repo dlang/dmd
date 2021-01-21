@@ -10,22 +10,8 @@
 
 module object;
 
-// NOTE: For some reason, this declaration method doesn't work
-//       in this particular file (and this file only).  It must
-//       be a DMD thing.
-//alias typeof(int.sizeof)                    size_t;
-//alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
-
-version (D_LP64)
-{
-    alias size_t = ulong;
-    alias ptrdiff_t = long;
-}
-else
-{
-    alias size_t = uint;
-    alias ptrdiff_t = int;
-}
+alias size_t = typeof(int.sizeof);
+alias ptrdiff_t = typeof(cast(void*)0 - cast(void*)0);
 
 alias sizediff_t = ptrdiff_t; //For backwards compatibility only.
 
