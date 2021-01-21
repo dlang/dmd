@@ -1,11 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19103.d(12): Error: no property `writeln` for type `fail19103.C`, perhaps `import std.stdio;` is needed?
-fail_compilation/fail19103.d(14): Error: no property `writeln` for type `S1`, perhaps `import std.stdio;` is needed?
-fail_compilation/fail19103.d(16): Error: no property `writeln` for type `S2`, did you mean `std.stdio.writeln(T...)(T args)`?
+fail_compilation/fail19103.d(15): Error: no property `writeln` for type `fail19103.C`, did you mean `std.stdio.writeln(T...)(T args)`?
+fail_compilation/fail19103.d(17): Error: no property `writeln` for type `S1`, did you mean `std.stdio.writeln(T...)(T args)`?
+fail_compilation/fail19103.d(19): Error: no property `writeln` for type `S2`, did you mean `std.stdio.writeln(T...)(T args)`?
 ---
 */
+
+// Note: This test fails because imports are private.
+// There is compilable/test19103.d using public.
 
 void main()
 {

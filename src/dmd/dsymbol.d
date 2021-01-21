@@ -1360,7 +1360,7 @@ public:
             // If private import, don't search it
             if ((flags & IgnorePrivateImports) && visibilities[i] == Visibility.Kind.private_)
                 continue;
-            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
+            int sflags = flags & (IgnorePrivateImports | IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
             Dsymbol ss = (*importedScopes)[i];
             //printf("\tscanning import '%s', visibilities = %d, isModule = %p, isImport = %p\n", ss.toChars(), visibilities[i], ss.isModule(), ss.isImport());
 
@@ -1373,8 +1373,6 @@ public:
             {
                 if (flags & SearchImportsOnly)
                     continue;
-
-                sflags |= SearchLocalsOnly;
             }
 
             /* Don't find private members if ss is a module
