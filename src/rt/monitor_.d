@@ -24,15 +24,11 @@ in
 do
 {
     auto m = ensureMonitor(cast(Object) owner);
-    auto i = m.impl;
-    if (i is null)
+    if (m.impl is null)
     {
         atomicOp!("+=")(m.refs, cast(size_t) 1);
-        ownee.__monitor = owner.__monitor;
-        return;
     }
-    // If m.impl is set (ie. if this is a user-created monitor), assume
-    // the monitor is garbage collected and simply copy the reference.
+    // Assume the monitor is garbage collected and simply copy the reference.
     ownee.__monitor = owner.__monitor;
 }
 
