@@ -11,3 +11,4 @@ trace.log
 /errno_c*.obj
 /msvc*.obj
 make
+*.lst
