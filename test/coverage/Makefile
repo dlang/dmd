@@ -8,7 +8,7 @@ MERGE_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,merge merge_true))
 DIFF:=diff
 
 .PHONY: all clean
-all: $(NORMAL_TESTS) $(MERGE_TESTS)
+all: $(NORMAL_TESTS) $(MERGE_TESTS) $(ROOT)/no_code.done
 
 $(NORMAL_TESTS): $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
