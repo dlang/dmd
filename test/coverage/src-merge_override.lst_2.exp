@@ -1,0 +1,9 @@
+       |import core.runtime;
+       |
+       |void main(string[] args)
+       |{
+      1|    dmd_coverDestPath(args[1]);
+       |    enum CHANGEVAR = 0;
+      1|    dmd_coverSetMerge(true);
+       |}
+src/merge_override.d is 100% covered
