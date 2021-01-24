@@ -111,13 +111,13 @@ $(GNAME Comment):
     $(GLINK NestingBlockComment)
 
 $(GNAME BlockComment):
-    $(B /*) $(GLINK Characters) $(B */)
+    $(B /*) $(GLINK Characters)$(OPT) $(B */)
 
 $(GNAME LineComment):
-    $(B //) $(GLINK Characters) $(GLINK EndOfLine)
+    $(B //) $(GLINK Characters)$(OPT) $(GLINK EndOfLine)
 
 $(GNAME NestingBlockComment):
-    $(B /+) $(GLINK NestingBlockCommentCharacters) $(B +/)
+    $(B /+) $(GLINK NestingBlockCommentCharacters)$(OPT) $(B +/)
 
 $(GNAME NestingBlockCommentCharacters):
     $(GLINK NestingBlockCommentCharacter)
@@ -268,10 +268,10 @@ $(GNAME StringLiteral):
     $(GLINK TokenString)
 
 $(GNAME WysiwygString):
-    $(B r") $(GLINK WysiwygCharacters) $(B ") $(GLINK StringPostfix)$(OPT)
+    $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
 $(GNAME AlternateWysiwygString):
-    $(B $(BACKTICK)) $(GLINK WysiwygCharacters) $(B $(BACKTICK)) $(GLINK StringPostfix)$(OPT)
+    $(B $(BACKTICK)) $(GLINK WysiwygCharacters)$(OPT) $(B $(BACKTICK)) $(GLINK StringPostfix)$(OPT)
 
 $(GNAME WysiwygCharacters):
     $(GLINK WysiwygCharacter)
@@ -282,7 +282,7 @@ $(GNAME WysiwygCharacter):
     $(GLINK EndOfLine)
 
 $(GNAME DoubleQuotedString):
-    $(B ") $(GLINK DoubleQuotedCharacters) $(B ") $(GLINK StringPostfix)$(OPT)
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
 $(GNAME DoubleQuotedCharacters):
     $(GLINK DoubleQuotedCharacter)
@@ -315,7 +315,7 @@ $(GNAME EscapeSequence):
     $(D \\) $(GLINK2 entity, NamedCharacterEntity)
 
 $(GNAME HexString):
-    $(D x") $(GLINK HexStringChars) $(D ") $(GLINK StringPostfix)$(OPT)
+    $(D x") $(GLINK HexStringChars)$(OPT) $(D ") $(GLINK StringPostfix)$(OPT)
 
 $(GNAME HexStringChars):
     $(GLINK HexStringChar)
@@ -332,10 +332,10 @@ $(GNAME StringPostfix):
     $(B d)
 
 $(GNAME DelimitedString):
-    $(B q") $(I Delimiter) $(GLINK WysiwygCharacters) $(I MatchingDelimiter) $(B ")
+    $(B q") $(I Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(I MatchingDelimiter) $(B ")
 
 $(GNAME TokenString):
-    $(D q)$(CODE_LCURL) $(GLINK Token)s $(CODE_RCURL)
+    $(D q)$(CODE_LCURL) $(GLINK Token)s$(OPT) $(CODE_RCURL)
 
 )
 
@@ -1078,7 +1078,7 @@ $(GNAME SpecialTokenSequence):
     $(D # line) $(GLINK IntegerLiteral) $(GLINK Filespec) $(GLINK EndOfLine)
 
 $(GNAME Filespec):
-    $(B ") $(GLINK Characters) $(B ")
+    $(B ") $(GLINK Characters)$(OPT) $(B ")
 )
 
         $(P Special token sequences are processed by the lexical analyzer, may
