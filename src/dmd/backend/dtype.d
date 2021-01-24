@@ -395,7 +395,6 @@ uint type_paramsize(type *t)
 
 type *type_alloc(tym_t ty)
 {   type *t;
-    __gshared type tzero;
 
     assert(tybasic(ty) != TYtemplate);
     if (type_list)
@@ -404,8 +403,8 @@ type *type_alloc(tym_t ty)
     }
     else
         t = cast(type *) mem_fmalloc(type.sizeof);
-    tzero.Tty = ty;
-    *t = tzero;
+    *t = type();
+    t.Tty = ty;
 version (SRCPOS_4TYPES)
 {
     if (PARSER && config.fulltypes)
