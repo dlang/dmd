@@ -78,15 +78,6 @@ else
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
 
-// Language for error messages
-enum LANG
-{
-    LANGenglish,
-    LANGgerman,
-    LANGfrench,
-    LANGjapanese,
-}
-
 version (SPP)
 {
     enum COMPILER = "Preprocessor";
