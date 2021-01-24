@@ -158,7 +158,7 @@ private void cgsched_pentium(code **pc,regm_t scratch)
 /************************************
  * Entry point
  */
-void cgsched_block(block* b)
+public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
         config.target_cpu >= TARGET_Pentium &&
@@ -2956,7 +2956,7 @@ private void code_swap(code *c1,code *c2)
     c2.next = cs.next;
 }
 
-code *peephole(code *cstart,regm_t scratch)
+private code *peephole(code *cstart,regm_t scratch)
 {
     // Look for cases of:
     //  MOV r1,r2
