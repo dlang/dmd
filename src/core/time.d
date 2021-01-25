@@ -2409,7 +2409,7 @@ assert(before + timeElapsed == after);
 
     version (CoreUnittest) unittest
     {
-        static min(T)(T a, T b) { return a < b ? a : b; }
+        import core.internal.util.math : min;
 
         static void eat(ref string s, const(char)[] exp)
         {
