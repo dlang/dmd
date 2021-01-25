@@ -93,7 +93,7 @@ Expression *Compiler::paintAsType(UnionExp *pue, Expression *e, Type *type)
  * modules whose source are empty, but code gets injected
  * immediately after loading.
  */
-void Compiler::loadModule(Module *)
+void Compiler::onParseModule(Module *)
 {
 }
 

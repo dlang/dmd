@@ -375,8 +375,6 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     m = m->parse();
 
-    Compiler::loadModule(m);
-
     return m;
 }
 
@@ -736,6 +734,7 @@ Module *Module::parse()
         // Add to global array of all modules
         amodules.push(this);
     }
+    Compiler::onParseModule(this);
     return this;
 }
 
