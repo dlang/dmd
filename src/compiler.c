@@ -93,8 +93,18 @@ Expression *Compiler::paintAsType(UnionExp *pue, Expression *e, Type *type)
  * modules whose source are empty, but code gets injected
  * immediately after loading.
  */
-void Compiler::loadModule(Module *)
+void Compiler::onParseModule(Module *)
 {
+}
+
+/**
+ * A callback function that is called once an imported module is
+ * parsed. If the callback returns true, then it tells the
+ * frontend that the driver intends on compiling the import.
+ */
+bool Compiler::onImport(Module *)
+{
+    return false;
 }
 
 Module *entrypoint = NULL;
