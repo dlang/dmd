@@ -375,6 +375,15 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     m = m->parse();
 
+    // Call onImport here because if the module is going to be compiled then we
+    // need to determine it early because it affects semantic analysis. This is
+    // being done after parsing the module so the full module name can be taken
+    // from whatever was declared in the file.
+    if (!m->isRoot() && Compiler::onImport(m))
+    {
+        m->importedFrom = m;
+        assert(m->isRoot());
+    }
     return m;
 }
 

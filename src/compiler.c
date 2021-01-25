@@ -97,6 +97,16 @@ void Compiler::onParseModule(Module *)
 {
 }
 
+/**
+ * A callback function that is called once an imported module is
+ * parsed. If the callback returns true, then it tells the
+ * frontend that the driver intends on compiling the import.
+ */
+bool Compiler::onImport(Module *)
+{
+    return false;
+}
+
 Module *entrypoint = NULL;
 Module *rootHasMain = NULL;
 
