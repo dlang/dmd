@@ -4,6 +4,7 @@
  * Copyright: Copyright Digital Mars 2000 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
+ * Source: $(DRUNTIMESRC rt/_aaA.d)
  */
 module rt.aaA;
 

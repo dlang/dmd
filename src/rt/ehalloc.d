@@ -6,7 +6,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors: Walter Bright
- * Source: $(DRUNTIMESRC rt/_dwarfeh.d)
+ * Source: $(DRUNTIMESRC rt/_ehalloc.d)
  */
 
 module rt.ehalloc;
@@ -123,4 +123,3 @@ nothrow extern (C) void _d_delThrowable(Throwable t)
         free(cast(void*) t);
     }
 }
-

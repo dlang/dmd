@@ -6,6 +6,7 @@
  * Copyright: Copyright Digital Mars 2004 - 2010.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
+ * Source: $(DRUNTIMESRC rt/_aApplyR.d)
  */
 
 /*          Copyright Digital Mars 2004 - 2010.

@@ -19,6 +19,7 @@
  * Authors:   Andreas Bok Andersen, Mathias Lang
  * Standards: POSIX.1-2001.
  * See_Also:  $(HTTP pubs.opengroup.org/onlinepubs/9699919799/basedefs/mqueue.h.html, Standard)
+ * Source: $(DRUNTIMESRC core/sys/posix/mqueue.d)
  */
 module core.sys.posix.mqueue;
 
