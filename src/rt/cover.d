@@ -136,8 +136,8 @@ extern (C) void dmd_coverSetMerge( bool flag )
  *
  * Params:
  *  filename = The name of the coverage file.
- *  valid    = ???
- *  data     = ???
+ *  valid    = Bit array containing the valid code lines for coverage
+ *  data     = Array containg the coverage hits of each line
  *  minPercent = minimal coverage of the module
  */
 extern (C) void _d_cover_register2(string filename, size_t[] valid, uint[] data, ubyte minPercent)
