@@ -152,6 +152,21 @@ private string miniFormat(V)(const scope ref V v)
             return miniFormat(*cast(T*) &v);
         }
     }
+    // Format enum members using their name
+    else static if (is(V BaseType == enum))
+    {
+        // Always generate repeated if's instead of switch to skip the detection
+        // of non-integral enums. This method doesn't need to be fast.
+        static foreach (mem; __traits(allMembers, V))
+        {
+            if (v == __traits(getMember, V, mem))
+                return mem;
+        }
+
+        // Format invalid enum values as their base type
+        enum cast_ = "cast(" ~ V.stringof ~ ")";
+        return combine(cast_, "", miniFormat(*(cast(BaseType*) &v)));
+    }
     else static if (is(V == bool))
     {
         return v ? "true" : "false";
@@ -382,4 +397,34 @@ private auto pureAlloc(size_t t)
         return new ubyte[len];
     }
     return assumeFakeAttributes(&alloc)(t);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21544
+unittest
+{
+    // Normal enum values
+    enum E { A, BCDE }
+    E e = E.A;
+    assert(miniFormat(e) == "A");
+    e = E.BCDE;
+    assert(miniFormat(e) == "BCDE");
+
+    // Invalid enum value is printed as their implicit base type (int)
+    e = cast(E) 3;
+    assert(miniFormat(e) == "cast(E)  3");
+
+    // Non-integral enums work as well
+    static struct S
+    {
+        int a;
+        string str;
+    }
+
+    enum E2 : S { a2 = S(1, "Hello") }
+    E2 es = E2.a2;
+    assert(miniFormat(es) == `a2`);
+
+    // Even invalid values
+    es = cast(E2) S(2, "World");
+    assert(miniFormat(es) == `cast(E2)  S(2, "World")`);
 }
