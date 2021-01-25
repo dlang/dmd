@@ -5,7 +5,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d

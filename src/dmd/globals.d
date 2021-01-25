@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -329,7 +329,7 @@ extern (C++) struct Global
     string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    string copyright = "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path

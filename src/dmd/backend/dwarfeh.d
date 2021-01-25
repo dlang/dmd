@@ -3,7 +3,7 @@
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *
- * Copyright: Copyright (C) 2015-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 2015-2021 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfeh.d, backend/dwarfeh.d)
