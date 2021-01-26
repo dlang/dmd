@@ -111,6 +111,31 @@ unittest
     assert(!'\\'.isValidMangling);
 }
 
+/**********************************************
+ * Convert a string representing a type (the deco) and
+ * return its equivalent Type.
+ * Params:
+ *      deco = string containing the deco
+ * Returns:
+ *      null for failed to convert
+ *      Type for succeeded
+ */
+
+public Type decoToType(const(char)[] deco)
+{
+    //printf("decoToType(): %.*s\n", cast(int)deco.length, deco.ptr);
+    if (auto sv = Type.stringtable.lookup(deco))
+    {
+        if (sv.value)
+        {
+            Type t = cast(Type)sv.value;
+            assert(t.deco);
+            return t;
+        }
+    }
+    return null;
+}
+
 
 /***************************************** private ***************************************/
 
@@ -138,6 +163,7 @@ import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.aav;
 import dmd.root.string;
+import dmd.root.stringtable;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
