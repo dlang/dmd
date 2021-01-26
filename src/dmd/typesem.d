@@ -1764,6 +1764,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             mtype.exp.ident != Id.getMember &&
             mtype.exp.ident != Id.parent &&
             mtype.exp.ident != Id.child &&
+            mtype.exp.ident != Id.toType &&
             mtype.exp.ident != Id.getOverloads &&
             mtype.exp.ident != Id.getVirtualFunctions &&
             mtype.exp.ident != Id.getVirtualMethods &&
