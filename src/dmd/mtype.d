@@ -4893,13 +4893,14 @@ extern (C++) final class TypeFunction : TypeNext
                      * https://issues.dlang.org/show_bug.cgi?id=15674
                      * Allow on both ref and out parameters.
                      */
+                    Type firsttab = ta.toBasetype();
                     while (1)
                     {
                         Type tab = ta.toBasetype();
                         Type tat = tab.aliasthisOf();
                         if (!tat || !tat.implicitConvTo(tprm))
                             break;
-                        if (tat == tab)
+                        if (tat == tab || tat == firsttab)
                             break;
                         ta = tat;
                     }
