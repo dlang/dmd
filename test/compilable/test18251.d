@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -unittest -transition=complex -de
+// REQUIRED_ARGS: -unittest -de
 
 auto test18251(T)(T t)
 if (!__traits(isDeprecated, T))

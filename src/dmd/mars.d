@@ -1934,7 +1934,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.dtorFields = FeatureState.enabled;
                             break;
                         case 14_488:
-                            params.vcomplex = true;
                             break;
                         case 16_997:
                             params.fix16997 = true;

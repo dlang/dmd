@@ -6,6 +6,7 @@
 // http://www.digitalmars.com
 
 import core.stdc.stdio;
+import core.stdc.config;
 
 version (D_PIC)
 {
@@ -2604,7 +2605,7 @@ void test28()
 {
     version (Windows)
     {
-        cfloat[4] z;
+        c_complex_float[4] z;
         static const ubyte[8] A = [3, 4, 9, 0, 1, 3, 7, 2];
         ubyte[8] b;
 
