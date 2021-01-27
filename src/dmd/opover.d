@@ -209,7 +209,7 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
     /* Rewrite (e1 op e2) as:
      *      (e1.aliasthis op e2)
      */
-    if (e.att1 && e.e1.type == e.att1)
+    if (e.att1 && e.e1.type.equivalent(e.att1))
         return null;
     //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
     Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
@@ -235,7 +235,7 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
     /* Rewrite (e1 op e2) as:
      *      (e1 op e2.aliasthis)
      */
-    if (e.att2 && e.e2.type == e.att2)
+    if (e.att2 && e.e2.type.equivalent(e.att2))
         return null;
     //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
     Expression e2 = new DotIdExp(e.loc, e.e2, ad.aliasthis.ident);
@@ -367,7 +367,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                         return;
                     }
                     // Didn't find it. Forward to aliasthis
-                    if (ad.aliasthis && t1b != ae.att1)
+                    if (ad.aliasthis && !(ae.att1 && t1b.equivalent(ae.att1)))
                     {
                         if (!ae.att1 && t1b.checkAliasThisRec())
                             ae.att1 = t1b;
@@ -423,7 +423,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     }
                 }
                 // Didn't find it. Forward to aliasthis
-                if (ad.aliasthis && e.e1.type != e.att1)
+                if (ad.aliasthis && !(e.att1 && e.e1.type.equivalent(e.att1)))
                 {
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
@@ -542,7 +542,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     return;
                 }
                 // Didn't find it. Forward to aliasthis
-                if (ad.aliasthis && t1b != ae.att1)
+                if (ad.aliasthis && !(ae.att1 && t1b.equivalent(ae.att1)))
                 {
                     if (!ae.att1 && t1b.checkAliasThisRec())
                         ae.att1 = t1b;
@@ -1037,8 +1037,8 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                  * also compare the parent class's equality. Otherwise, compares
                  * the identity of parent context through void*.
                  */
-                if (e.att1 && t1 == e.att1) return;
-                if (e.att2 && t2 == e.att2) return;
+                if (e.att1 && t1.equivalent(e.att1)) return;
+                if (e.att2 && t2.equivalent(e.att2)) return;
 
                 e = cast(EqualExp)e.copy();
                 if (!e.att1) e.att1 = t1;
@@ -1209,7 +1209,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                         return;
                     }
                     // Didn't find it. Forward to aliasthis
-                    if (ad.aliasthis && t1b != ae.att1)
+                    if (ad.aliasthis && !(ae.att1 && t1b.equivalent(ae.att1)))
                     {
                         if (!ae.att1 && t1b.checkAliasThisRec())
                             ae.att1 = t1b;
@@ -1535,7 +1535,7 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
             }
             if (ad.aliasthis)
             {
-                if (att == tab)         // error, circular alias this
+                if (att && tab.equivalent(att))         // error, circular alias this
                     return false;
                 if (!att && tab.checkAliasThisRec())
                     att = tab;

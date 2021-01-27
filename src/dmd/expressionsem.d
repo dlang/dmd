@@ -4507,7 +4507,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != TOK.type)
                 {
-                    if (sd.aliasthis && exp.e1.type != exp.att1)
+                    if (sd.aliasthis && !(exp.att1 && exp.e1.type.equivalent(exp.att1)))
                     {
                         if (!exp.att1 && exp.e1.type.checkAliasThisRec())
                             exp.att1 = exp.e1.type;
@@ -8453,7 +8453,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 // No operator overloading member function found yet, but
                 // there might be an alias this to try.
-                if (ad.aliasthis && t1b != ae.att1)
+                if (ad.aliasthis && !(ae.att1 && t1b.equivalent(ae.att1)))
                 {
                     if (!ae.att1 && t1b.checkAliasThisRec())
                         ae.att1 = t1b;
@@ -8840,10 +8840,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!e2x.implicitConvTo(t1))
                     {
                         AggregateDeclaration ad2 = isAggregate(e2x.type);
-                        if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type == exp.att2))
+                        if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type.equivalent(exp.att2)))
                         {
                             if (!exp.att2 && exp.e2.type.checkAliasThisRec())
-                            exp.att2 = exp.e2.type;
+                                exp.att2 = exp.e2.type;
                             /* Rewrite (e1 op e2) as:
                              *      (e1 op e2.aliasthis)
                              */
@@ -8927,7 +8927,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else // https://issues.dlang.org/show_bug.cgi?id=11355
                 {
                     AggregateDeclaration ad2 = isAggregate(e2x.type);
-                    if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type == exp.att2))
+                    if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type.equivalent(exp.att2)))
                     {
                         if (!exp.att2 && exp.e2.type.checkAliasThisRec())
                             exp.att2 = exp.e2.type;
@@ -9698,7 +9698,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Rewrite (e1 op e2) as:
                  *      (e1.aliasthis op e2)
                  */
-                if (exp.att1 && exp.e1.type == exp.att1)
+                if (exp.att1 && exp.e1.type.equivalent(exp.att1))
                     return null;
                 //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
                 Expression e1 = new DotIdExp(exp.loc, exp.e1, ad1.aliasthis.ident);
@@ -9718,7 +9718,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Rewrite (e1 op e2) as:
                  *      (e1 op e2.aliasthis)
                  */
-                if (exp.att2 && exp.e2.type == exp.att2)
+                if (exp.att2 && exp.e2.type.equivalent(exp.att2))
                     return null;
                 //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
                 Expression e2 = new DotIdExp(exp.loc, exp.e2, ad2.aliasthis.ident);

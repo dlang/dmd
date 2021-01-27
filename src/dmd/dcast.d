@@ -3105,7 +3105,7 @@ Lagain:
             }
             else if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
             {
-                if (att1 && e1.type == att1)
+                if (att1 && e1.type.equivalent(att1))
                     return null;
                 if (!att1 && e1.type.checkAliasThisRec())
                     att1 = e1.type;
@@ -3116,7 +3116,7 @@ Lagain:
             }
             else if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
             {
-                if (att2 && e2.type == att2)
+                if (att2 && e2.type.equivalent(att2))
                     return null;
                 if (!att2 && e2.type.checkAliasThisRec())
                     att2 = e2.type;
@@ -3157,7 +3157,7 @@ Lagain:
             Expression e2b = null;
             if (ts2.sym.aliasthis)
             {
-                if (att2 && e2.type == att2)
+                if (att2 && e2.type.equivalent(att2))
                     return null;
                 if (!att2 && e2.type.checkAliasThisRec())
                     att2 = e2.type;
@@ -3167,7 +3167,7 @@ Lagain:
             }
             if (ts1.sym.aliasthis)
             {
-                if (att1 && e1.type == att1)
+                if (att1 && e1.type.equivalent(att1))
                     return null;
                 if (!att1 && e1.type.checkAliasThisRec())
                     att1 = e1.type;
@@ -3202,7 +3202,7 @@ Lagain:
     {
         if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
         {
-            if (att1 && e1.type == att1)
+            if (att1 && e1.type.equivalent(att1))
                 return null;
             if (!att1 && e1.type.checkAliasThisRec())
                 att1 = e1.type;
@@ -3214,7 +3214,7 @@ Lagain:
         }
         if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
         {
-            if (att2 && e2.type == att2)
+            if (att2 && e2.type.equivalent(att2))
                 return null;
             if (!att2 && e2.type.checkAliasThisRec())
                 att2 = e2.type;

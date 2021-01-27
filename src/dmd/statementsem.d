@@ -2545,7 +2545,7 @@ else
                 break;
 
             auto ad = isAggregate(ss.condition.type);
-            if (ad && ad.aliasthis && ss.condition.type != att)
+            if (ad && ad.aliasthis && !(att && ss.condition.type.equivalent(att)))
             {
                 if (!att && ss.condition.type.checkAliasThisRec())
                     att = ss.condition.type;
