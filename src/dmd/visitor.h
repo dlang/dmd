@@ -83,6 +83,7 @@ class TypeSlice;
 class TypeNull;
 class TypeTraits;
 class TypeMixin;
+class TypeExpression;
 
 class Dsymbol;
 
@@ -435,6 +436,7 @@ public:
     virtual void visit(TypeQualified *t) { visit((Type *)t); }
     virtual void visit(TypeTraits *t) { visit((Type *)t); }
     virtual void visit(TypeMixin *t) { visit((Type *)t); }
+    virtual void visit(TypeExpression *t) { visit((Type *)t); }
 
     // TypeNext
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }
