@@ -3895,8 +3895,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 default:
                     {
                         auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
-                        Type ti = null;
 
+                        // https://issues.dlang.org/show_bug.cgi?id=21538
+                        // If `funcdecl` implements an interface function
+                        // the parameters have to be exactly the same.
+                        if (fdv.parent.isInterfaceDeclaration())
+                        {
+                            auto t1 = cast(TypeFunction)funcdecl.type;
+                            auto t2 = cast(TypeFunction)fdv.type;
+                            bool isDifferent = false;
+                            foreach(i, fparam1; t1.parameterList)
+                            {
+                                Parameter fparam2 = t2.parameterList[i];
+                                if (!fparam1.type.equals(fparam2.type))
+                                {
+                                    isDifferent = true;
+                                    break;
+                                }
+                            }
+                            if (isDifferent)
+                                break;
+                        }
+
+                        Type ti = null;
                         foundVtblMatch = true;
 
                         /* Remember which functions this overrides
