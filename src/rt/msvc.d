@@ -8,6 +8,7 @@
  *    (See accompanying file LICENSE)
  * Source:    $(DRUNTIMESRC rt/_msvc.d)
  * Authors:   Rainer Schuetze
+ * Source: $(DRUNTIMESRC rt/_msvc.d)
  */
 module rt.msvc;
 

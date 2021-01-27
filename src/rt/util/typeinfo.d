@@ -4,6 +4,7 @@
  * Copyright: Copyright Kenji Hara 2014-.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Kenji Hara
+ * Source: $(DRUNTIMESRC rt/util/_typeinfo.d)
  */
 module rt.util.typeinfo;
 static import core.internal.hash;
