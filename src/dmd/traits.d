@@ -1263,8 +1263,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto type = o.getType();
 /+      reenable when we have talias
+        auto type = o.getType();
         if (type && type.ty == Ttype)
         {
             // TODO: :PERFORMANCE: commonly used type; we should cache it
