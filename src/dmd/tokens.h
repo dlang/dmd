@@ -121,8 +121,10 @@ enum
         TOKimaginary32, TOKimaginary64, TOKimaginary80,
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
         TOKchar, TOKwchar, TOKdchar, TOKbool,
+        TOK_type__, TOKemptyType_,
 
-// 152
+
+// 154
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKalias, TOKoverride, TOKdelegate, TOKfunction,
@@ -133,7 +135,7 @@ enum
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
         TOKauto, TOKpackage, TOKimmutable,
 
-// 182
+// 184
         // Statements
         TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
         TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
@@ -142,7 +144,7 @@ enum
         TOKscope,
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
-// 206
+// 208
         // Contracts
         TOKinvariant,
 
@@ -154,7 +156,7 @@ enum
         TOKref,
         TOKmacro,
 
-// 211
+// 213
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -175,7 +177,7 @@ enum
         TOKvector,
         TOKpound,
 
-// 230
+// 232
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,
