@@ -101,7 +101,7 @@ enum USE_INIT_ARRAY = !TARGET_OPENBSD;
  * For the time being, just stick with Linux.
  */
 
-enum ELF_COMDAT = TARGET_LINUX;
+enum ELF_COMDAT = 1;
 
 /***************************************************
  * Correspondence of relocation types
