@@ -169,6 +169,7 @@ struct ASTBase
         Tnone,
 
         Ttype,
+        Tempty,
 
         Tvoid,
         Tint8,
@@ -207,6 +208,7 @@ struct ASTBase
         Tuns128,
         Ttraits,
         Tmixin,
+        Texp,
         TMAX
     }
 
@@ -222,6 +224,8 @@ struct ASTBase
     alias Tenum = ENUMTY.Tenum;
     alias Tdelegate = ENUMTY.Tdelegate;
     alias Tnone = ENUMTY.Tnone;
+    alias Ttype = ENUMTY.Ttype;
+    alias Tempty = ENUMTY.Tempty;
     alias Tvoid = ENUMTY.Tvoid;
     alias Tint8 = ENUMTY.Tint8;
     alias Tuns8 = ENUMTY.Tuns8;
@@ -256,6 +260,7 @@ struct ASTBase
     alias Tuns128 = ENUMTY.Tuns128;
     alias Ttraits = ENUMTY.Ttraits;
     alias Tmixin = ENUMTY.Tmixin;
+    alias Texp = ENUMTY.Texp;
     alias TMAX = ENUMTY.TMAX;
 
     alias TY = ubyte;
@@ -2770,7 +2775,8 @@ struct ASTBase
         extern (C++) __gshared Type terror;      // for error recovery
         extern (C++) __gshared Type tnull;       // for null type
 
-        extern (C++) __gshared Type talias;      // type of types
+        extern (C++) __gshared Type ttype;      // type of types
+        extern (C++) __gshared Type tempty;     // the empty type
 
         extern (C++) __gshared Type tsize_t;     // matches size_t alias
         extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
@@ -2819,6 +2825,7 @@ struct ASTBase
                 sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
                 sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
                 sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
+                sizeTy[Texp] = __traits(classInstanceSize, TypeExpression);
                 return sizeTy;
             }();
 
@@ -3578,6 +3585,7 @@ struct ASTBase
             inout(TypeSlice)      isTypeSlice()      { return ty == Tslice     ? cast(typeof(return))this : null; }
             inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
             inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
+            inout(TypeExpression) isTypeExpression() { return ty == Texp       ? cast(typeof(return))this : null; }
             inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         }
 
@@ -4527,6 +4535,29 @@ struct ASTBase
             }
 
             return new TypeMixin(loc, arraySyntaxCopy(exps));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeExpression : Type
+    {
+        Loc loc;
+        Expression exp;
+
+        extern (D) this(const ref Loc loc, Expression exp)
+        {
+            super(Texp);
+            this.loc = loc;
+            this.exp = exp;
+        }
+
+        override TypeExpression syntaxCopy()
+        {
+            return new TypeExpression(loc, exp.syntaxCopy());
         }
 
         override void accept(Visitor v)
