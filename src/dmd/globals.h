@@ -177,6 +177,7 @@ struct Param
     bool fixAliasThis;  // if the current scope has an alias this, check it before searching upper scopes
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     bool vsafe;         // use enhanced @safe checking
+    bool noVsafe;       // revert to pre-DIP1000 behavior
     bool ehnogc;        // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
