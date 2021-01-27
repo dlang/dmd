@@ -2579,6 +2579,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             continue;
         }
     }
+
+    if (!params.vsafe && !params.noVsafe)
+    {
+        deprecation(
+            Loc.initial,
+            "-preview=dip1000 will become the default then deprecated.");
+        deprecationSupplemental(
+            Loc.initial,
+            "Please use -revert=dip1000 to maintain current behavior.");
+        deprecationSupplemental(
+            Loc.initial,
+            "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md");
+    }
+
     return errors;
 }
 
