@@ -163,109 +163,6 @@ unittest
         ti = typeid(S[3]);
         assert(ti.getHash(&sa1) == ti.getHash(&sa2));
     }();
-
-    // imaginary types
-    foreach (F; TypeTuple!(ifloat, idouble, ireal))
-    (){ // workaround #2396
-        alias S = SX!F;
-        F f1 = +0.0i,
-          f2 = -0.0i;
-
-        assert(f1  == f2);
-        assert(f1 !is f2);
-        ti = typeid(F);
-        assert(ti.getHash(&f1) == ti.getHash(&f2));
-
-        F[] a1 = [f1, f1, f1];
-        F[] a2 = [f2, f2, f2];
-        assert(a1  == a2);
-        assert(a1 !is a2);
-        ti = typeid(F[]);
-        assert(ti.getHash(&a1) == ti.getHash(&a2));
-
-        F[][] aa1 = [a1, a1, a1];
-        F[][] aa2 = [a2, a2, a2];
-        assert(aa1  == aa2);
-        assert(aa1 !is aa2);
-        ti = typeid(F[][]);
-        assert(ti.getHash(&aa1) == ti.getHash(&aa2));
-
-        S s1 = {f1},
-          s2 = {f2};
-        assert(s1  == s2);
-        assert(s1 !is s2);
-        ti = typeid(S);
-        assert(ti.getHash(&s1) == ti.getHash(&s2));
-
-        S[] da1 = [S(f1), S(f1), S(f1)],
-            da2 = [S(f2), S(f2), S(f2)];
-        assert(da1  == da2);
-        assert(da1 !is da2);
-        ti = typeid(S[]);
-        assert(ti.getHash(&da1) == ti.getHash(&da2));
-
-        S[3] sa1 = {f1},
-             sa2 = {f2};
-        assert(sa1  == sa2);
-        assert(sa1[] !is sa2[]);
-        ti = typeid(S[3]);
-        assert(ti.getHash(&sa1) == ti.getHash(&sa2));
-    }();
-
-    // complex types
-    foreach (F; TypeTuple!(cfloat, cdouble, creal))
-    (){ // workaround #2396
-        alias S = SX!F;
-        F[4] f = [+0.0 + 0.0i,
-                  +0.0 - 0.0i,
-                  -0.0 + 0.0i,
-                  -0.0 - 0.0i];
-
-        foreach (i, f1; f) foreach (j, f2; f) if (i != j)
-        {
-            assert(f1 == 0 + 0i);
-
-            assert(f1 == f2);
-            assert(f1 !is f2);
-            ti = typeid(F);
-            assert(ti.getHash(&f1) == ti.getHash(&f2));
-
-            F[] a1 = [f1, f1, f1];
-            F[] a2 = [f2, f2, f2];
-            assert(a1  == a2);
-            assert(a1 !is a2);
-            ti = typeid(F[]);
-            assert(ti.getHash(&a1) == ti.getHash(&a2));
-
-            F[][] aa1 = [a1, a1, a1];
-            F[][] aa2 = [a2, a2, a2];
-            assert(aa1  == aa2);
-            assert(aa1 !is aa2);
-            ti = typeid(F[][]);
-            assert(ti.getHash(&aa1) == ti.getHash(&aa2));
-
-            S s1 = {f1},
-              s2 = {f2};
-            assert(s1  == s2);
-            assert(s1 !is s2);
-            ti = typeid(S);
-            assert(ti.getHash(&s1) == ti.getHash(&s2));
-
-            S[] da1 = [S(f1), S(f1), S(f1)],
-                da2 = [S(f2), S(f2), S(f2)];
-            assert(da1  == da2);
-            assert(da1 !is da2);
-            ti = typeid(S[]);
-            assert(ti.getHash(&da1) == ti.getHash(&da2));
-
-            S[3] sa1 = {f1},
-                 sa2 = {f2};
-            assert(sa1  == sa2);
-            assert(sa1[] !is sa2[]);
-            ti = typeid(S[3]);
-            assert(ti.getHash(&sa1) == ti.getHash(&sa2));
-        }
-    }();
 }
 
 // Reduces to `T` if `cond` is `true` or `U` otherwise.
@@ -591,18 +488,6 @@ class TypeInfo_c : TypeInfoGeneric!creal
             return 0;
         }
 }
-
-static if (__traits(hasMember, TypeInfo, "argTypes"))
-    unittest
-    {
-        TypeInfo t1, t2;
-        assert(typeid(cfloat).argTypes(t1, t2) == 0 && t1 == typeid(double) &&
-            t2 is null);
-        assert(typeid(cdouble).argTypes(t1, t2) == 0 && t1 == typeid(double) &&
-            t2 == typeid(double));
-        assert(typeid(creal).argTypes(t1, t2) == 0 && t1 == typeid(real) &&
-            t2 == typeid(real));
-    }
 
 // Arrays of all integrals.
 class TypeInfo_Ah : TypeInfoArrayGeneric!ubyte {}
