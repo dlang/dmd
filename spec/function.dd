@@ -3362,13 +3362,20 @@ $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 
 $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
-        $(P $(GLINK2 expression, FunctionLiteral)s and
-        $(DDSUBLINK spec/template, function-templates, function template)s, since their function bodies
-        are always present, infer the
+        $(P $(GLINK2 expression, FunctionLiteral)s,
+        $(RELATIVE_LINK2 auto-functions, Auto Functions),
+        $(RELATIVE_LINK2 auto-ref-functions, Auto Ref Functions),
+        $(RELATIVE_LINK2 nested, nested functions) and
+        $(DDSUBLINK spec/template, function-templates, function templates),
+        since their function bodies are always present, infer the
         $(RELATIVE_LINK2 pure-functions, $(D pure)),
         $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)),
-        $(RELATIVE_LINK2 safe-functions, $(D @safe)), and
-        $(RELATIVE_LINK2 nogc-functions, $(D @nogc))
+        $(RELATIVE_LINK2 safe-functions, $(D @safe)),
+        $(RELATIVE_LINK2 nogc-functions, $(D @nogc)),
+        $(RELATIVE_LINK2 return-ref-parameters, return ref parameters),
+        $(RELATIVE_LINK2 scope-parameters, scope parameters),
+        $(RELATIVE_LINK2 return-scope-parameters, return scope parameters) and
+        $(RELATIVE_LINK2 ref-return-scope-parameters, ref return scope parameters)
         attributes unless specifically overridden.
         )
 
@@ -3387,6 +3394,9 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         $(P If a function attempts to test itself for those attributes, then
         the function is inferred as not having those attributes.
         )
+
+        $(RATIONALE Function attribute inference greatly reduces the need for the user to add attributes
+        to functions, especially for templates.)
 
 $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
