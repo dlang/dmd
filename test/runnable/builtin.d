@@ -19,13 +19,13 @@ void test1()
     auto f = 6.8L;
     writefln("%a", sin(f));
     assert(sin(f) == sin(6.8L));
-    static assert(approxEqual(sin(6.8L), 0x1.f9f8d9aea10fdf1cp-2));
+    static assert(isClose(sin(6.8L), 0x1.f9f8d9aea10fdf1cp-2));
 
     writefln("%a", cos(6.8L));
     f = 6.8L;
     writefln("%a", cos(f));
     assert(cos(f) == cos(6.8L));
-    static assert(approxEqual(cos(6.8L), 0x1.bd21aaf88dcfa13ap-1));
+    static assert(isClose(cos(6.8L), 0x1.bd21aaf88dcfa13ap-1));
 
     writefln("%a", tan(6.8L));
     f = 6.8L;
@@ -34,7 +34,7 @@ void test1()
     { }
     else
         assert(tan(f) == tan(6.8L));
-    static assert(approxEqual(tan(6.8L), 0x1.22fd752af75cd08cp-1));
+    static assert(isClose(tan(6.8L), 0x1.22fd752af75cd08cp-1));
 }
 
 /*******************************************/
