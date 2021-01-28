@@ -572,11 +572,6 @@ private Float denormalizedMantissa(T)(T x, uint sign) if (floatFormat!T == Float
         testNumberConvert!("real.min_normal/19");
         testNumberConvert!("real.min_normal/17");
 
-        /**Test imaginary values: convert algorithm is same with real values*/
-        testNumberConvert!("0.0Fi");
-        testNumberConvert!("0.0i");
-        testNumberConvert!("0.0Li");
-
         /**True random values*/
         testNumberConvert!("-0x9.0f7ee55df77618fp-13829L");
         testNumberConvert!("0x7.36e6e2640120d28p+8797L");

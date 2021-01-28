@@ -50,14 +50,6 @@ void testFloatingPoint()()
     test(float.max, -float.max, "3.40282e+38 != -3.40282e+38");
     test(double.max, -double.max, "1.79769e+308 != -1.79769e+308");
     test(real(1), real(-1), "1 != -1");
-
-    test(ifloat.max, -ifloat.max, "3.40282e+38i != -3.40282e+38i");
-    test(idouble.max, -idouble.max, "1.79769e+308i != -1.79769e+308i");
-    test(ireal(1i), ireal(-1i), "1i != -1i");
-
-    test(cfloat.max, -cfloat.max, "3.40282e+38 + 3.40282e+38i != -3.40282e+38 + -3.40282e+38i");
-    test(cdouble.max, -cdouble.max, "1.79769e+308 + 1.79769e+308i != -1.79769e+308 + -1.79769e+308i");
-    test(creal(1 + 2i), creal(-1 + 2i), "1 + 2i != -1 + 2i");
 }
 
 void testPointers()
