@@ -1920,9 +1920,11 @@ bool isCtfeValueValid(Expression newval)
 
         case TOK.void_:
             return true; // uninitialized value
+
         case TOK._type__:
         case TOK.emptyType_:
-            return true;
+        case TOK.scope_:
+            return global.params.sk_typefunctions ? true : false;
 
         default:
             newval.error("CTFE internal error: illegal CTFE value `%s`", newval.toChars());

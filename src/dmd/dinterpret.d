@@ -3147,6 +3147,47 @@ public:
 
             return;
         }
+
+        if (e.ident == Id.parent)
+        {
+            Dsymbol typeToSymbol(Type t)
+            {
+                Dsymbol s = null;
+
+                if (t.ty == Tstruct)
+                {
+                    s = (cast(TypeStruct)t).sym;
+                }
+                else if (t.ty == Tclass)
+                {
+                    s = (cast(TypeClass)t).sym;
+                }
+
+                return s;
+            }
+
+            auto o = (*e.args)[0];
+
+            auto te = getTypeExp(o);
+            assert(te);
+            if (auto s = typeToSymbol(te.type))
+            {
+                if (auto p = s.toParent())
+                {
+                    result = symbolToExp(p, e.loc, null, false);
+                }
+            }
+            if (!result || result.op != TOK.type)
+                result = new TypeExp(e.loc, Type.tempty);
+            return;
+        }
+/+
+        if (!s || s.isImport())
+        {
+            e.error("argument `%s` has no parent", o.toChars());
+            return ErrorExp.get();
+        }
++/
     }
 
     extern (D) private void interpretCommon(BinExp e, fp_t fp)
@@ -7011,6 +7052,7 @@ private Expression copyRegionExp(Expression e)
         case TOK.void_:
         case TOK.symbolOffset:
         case TOK.char_:
+        case TOK.scope_:
             break;
 
         case TOK.cantExpression:

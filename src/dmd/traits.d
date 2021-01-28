@@ -874,6 +874,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
+        if (auto exp = interceptTypeType(e, o, Type.ttype))
+        {
+            return exp;
+        }
+
         auto s = getDsymbolWithoutExpCtx(o);
         if (s)
         {
