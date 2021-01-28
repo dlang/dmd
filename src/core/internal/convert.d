@@ -746,6 +746,8 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == __vector))
     }
 }
 
+// @@@DEPRECATED_2022-02@@@
+deprecated
 @trusted pure nothrow @nogc
 const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isFloating, T) && is(T : creal))
 {
