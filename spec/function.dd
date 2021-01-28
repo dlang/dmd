@@ -80,8 +80,7 @@ $(GNAME FunctionAttributes):
     $(GLINK FunctionAttribute) $(I FunctionAttributes)
 
 $(GNAME FunctionAttribute):
-    $(D nothrow)
-    $(D pure)
+    $(GLINK2 attribute, FunctionAttributeKwd)
     $(GLINK2 attribute, Property)
 
 $(GNAME MemberFunctionAttributes):

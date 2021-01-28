@@ -29,10 +29,13 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 gshared, $(D __gshared))
     $(GLINK AtAttribute)
-    $(RELATIVE_LINK2 nothrow, $(D nothrow))
-    $(RELATIVE_LINK2 pure, $(D pure))
+    $(GLINK FunctionAttributeKwd)
     $(RELATIVE_LINK2 ref, $(D ref))
     $(RELATIVE_LINK2 return, $(D return))
+
+$(GNAME FunctionAttributeKwd):
+    $(RELATIVE_LINK2 nothrow, $(D nothrow))
+    $(RELATIVE_LINK2 pure, $(D pure))
 
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
