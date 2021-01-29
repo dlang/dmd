@@ -1605,7 +1605,7 @@ static if (1)
         }
         abuf.writeByte(DW_AT_name);      abuf.writeByte(DW_FORM_string);
 
-        static if (DWARF_VERSION >= 4)
+        if (config.dwarf >= 4)
             abuf.writeuLEB128(DW_AT_linkage_name);
         else
             abuf.writeuLEB128(DW_AT_MIPS_linkage_name);
@@ -1624,7 +1624,7 @@ static if (1)
         if (sfunc.Sfunc.Fflags3 & Fpure)
         {
             abuf.writeByte(DW_AT_pure);
-            static if (DWARF_VERSION >= 4)
+            if (config.dwarf >= 4)
                 abuf.writeByte(DW_FORM_flag_present);
             else
                 abuf.writeByte(DW_FORM_flag);
@@ -1660,11 +1660,8 @@ static if (1)
         if (sfunc.Sclass == SCglobal)
             debug_info.buf.writeByte(1);              // DW_AT_external
 
-        static if (DWARF_VERSION < 4)
-        {
-            if (sfunc.Sfunc.Fflags3 & Fpure)
-                debug_info.buf.writeByte(true);         // DW_AT_pure
-        }
+        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
+            debug_info.buf.writeByte(true);           // DW_AT_pure
 
         // DW_AT_low_pc and DW_AT_high_pc
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);

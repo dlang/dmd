@@ -352,10 +352,15 @@ dmd -cov -unittest myprog.d
                 $(LINK2 http://dlang.org/windbg.html, Debugging on Windows).
             )
             $(UNIX
-                Add symbolic debug info in Dwarf format
+                Add symbolic debug info in DWARF format
                 for debuggers such as
                 $(D gdb)
             )`,
+        ),
+        Option("gdwarf=<version>",
+            "add DWARF symbolic debug info",
+            "The value of version may be 3, 4 or 5, defaulting to 3.",
+            cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
         Option("gf",
             "emit debug info for all referenced types",
@@ -925,4 +930,13 @@ struct CLIUsage
   =silent               Silently ignore non-exern(C[++]) declarations
   =verbose              Add a comment for ignored non-exern(C[++]) declarations
 ";
+
+    /// Options supported by -gdwarf
+    enum gdwarfUsage = "Available DWARF versions:
+  =[h|help|?]           List information on choices
+  =3                    Emit DWARF version 3 debug information
+  =4                    Emit DWARF version 4 debug information
+  =5                    Emit DWARF version 5 debug information
+";
+
 }
