@@ -6054,6 +6054,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 op = resolveProperties(sc, op);
                 if (op.hasSideEffect)
                 {
+                    // https://issues.dlang.org/show_bug.cgi?id=21590
+                    // Don't create unnecessary temporaries and detect `assert(a = b)`
+                    if (op.isAssignExp() || op.isBinAssignExp())
+                    {
+                        auto left = (cast(BinExp) op).e1;
+
+                        // Find leftmost expression to handle other rewrites,
+                        // e.g. --(++a) => a += 1 -= 1
+                        while (left.isAssignExp() || left.isBinAssignExp())
+                            left = (cast(BinExp) left).e1;
+
+                        // Only use the assignee if it's a variable and skip
+                        // other lvalues (e.g. ref's returned by functions)
+                        if (left.isVarExp())
+                            return left;
+
+                        // Sanity check that `op` can be converted to boolean
+                        op.toBoolean(sc);
+                    }
+
                     const stc = op.isLvalue() ? STC.ref_ : 0;
                     auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
