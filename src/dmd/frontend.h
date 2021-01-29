@@ -593,6 +593,7 @@ class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
 class ClassReferenceExp;
+class BinAssignExp;
 class TypeInfoClassDeclaration;
 struct ObjcClassDeclaration;
 class TypeFunction;
@@ -693,7 +694,6 @@ class UnaExp;
 class BinExp;
 class SymbolExp;
 class CmpExp;
-class BinAssignExp;
 class StaticIfCondition;
 class DVCondition;
 class ExpInitializer;
@@ -1129,6 +1129,7 @@ public:
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
+    virtual BinAssignExp* isBinAssignExp();
     void accept(Visitor* v);
 };
 
@@ -4056,6 +4057,7 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
+    BinAssignExp* isBinAssignExp();
     void accept(Visitor* v);
 };
 
