@@ -1,28 +1,49 @@
 // https://issues.dlang.org/show_bug.cgi?id=21515
 // DISABLED: win32 win64
-extern(D) cfloat  dcomplexf() { return 2.0f+1.0i; }
-extern(D) cdouble dcomplex()  { return 2.0+1.0i; }
-extern(D) creal   dcomplexl() { return 2.0L+1.0Li; }
 
-extern(D) void dcomplexf(cfloat c) { assert(c.re == 2 && c.im == 1); }
-extern(D) void dcomplex(cdouble c) { assert(c.re == 2 && c.im == 1); }
-extern(D) void dcomplexl(creal c)  { assert(c.re == 2 && c.im == 1); }
+// ABI layout of native complex
+struct _Complex(T) { T re; T im; }
 
-extern(C) cfloat  ccomplexf() { return 2.0f+1.0fi; }
-extern(C) cdouble ccomplex()  { return 2.0+1.0i; }
-extern(C) creal   ccomplexl() { return 2.0L+1.0Li; }
+// Special enum definitions.
+version (Posix)
+{
+    align(float.alignof)  enum __c_complex_float : _Complex!float;
+    align(double.alignof) enum __c_complex_double : _Complex!double;
+    align(real.alignof)   enum __c_complex_real : _Complex!real;
+}
+else
+{
+    align(float.sizeof * 2)  enum __c_complex_float : _Complex!float;
+    align(double.sizeof * 2) enum __c_complex_double : _Complex!double;
+    align(real.alignof)      enum __c_complex_real : _Complex!real;
+}
+alias complex_float = __c_complex_float;
+alias complex_double = __c_complex_double;
+alias complex_real = __c_complex_real;
 
-extern(C) void ccomplexf2(cfloat c) { assert(c.re == 2 && c.im == 1); }
-extern(C) void ccomplex2(cdouble c) { assert(c.re == 2 && c.im == 1); }
-extern(C) void ccomplexl2(creal c)  { assert(c.re == 2 && c.im == 1); }
+extern(D) complex_float  dcomplexf() { return typeof(return)(2, 1); }
+extern(D) complex_double dcomplex()  { return typeof(return)(2, 1); }
+extern(D) complex_real   dcomplexl() { return typeof(return)(2, 1); }
 
-extern(C++) cfloat  cpcomplexf() { return 2.0f+1.0fi; }
-extern(C++) cdouble cpcomplex()  { return 2.0+1.0i; }
-extern(C++) creal   cpcomplexl() { return 2.0L+1.0Li; }
+extern(D) void dcomplexf(complex_float c) { assert(c.re == 2 && c.im == 1); }
+extern(D) void dcomplex(complex_double c) { assert(c.re == 2 && c.im == 1); }
+extern(D) void dcomplexl(complex_real c)  { assert(c.re == 2 && c.im == 1); }
 
-extern(C++) void cpcomplexf(cfloat c) { assert(c.re == 2 && c.im == 1); }
-extern(C++) void cpcomplex(cdouble c) { assert(c.re == 2 && c.im == 1); }
-extern(C++) void cpcomplexl(creal c)  { assert(c.re == 2 && c.im == 1); }
+extern(C) complex_float  ccomplexf() { return typeof(return)(2, 1); }
+extern(C) complex_double ccomplex()  { return typeof(return)(2, 1); }
+extern(C) complex_real   ccomplexl() { return typeof(return)(2, 1); }
+
+extern(C) void ccomplexf2(complex_float c) { assert(c.re == 2 && c.im == 1); }
+extern(C) void ccomplex2(complex_double c) { assert(c.re == 2 && c.im == 1); }
+extern(C) void ccomplexl2(complex_real c)  { assert(c.re == 2 && c.im == 1); }
+
+extern(C++) complex_float  cpcomplexf() { return typeof(return)(2, 1); }
+extern(C++) complex_double cpcomplex()  { return typeof(return)(2, 1); }
+extern(C++) complex_real   cpcomplexl() { return typeof(return)(2, 1); }
+
+extern(C++) void cpcomplexf(complex_float c) { assert(c.re == 2 && c.im == 1); }
+extern(C++) void cpcomplex(complex_double c) { assert(c.re == 2 && c.im == 1); }
+extern(C++) void cpcomplexl(complex_real c)  { assert(c.re == 2 && c.im == 1); }
 
 int main()
 {

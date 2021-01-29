@@ -39,9 +39,6 @@ struct _d_dynamicArray
 };
 #endif
 
-enum class __c_complex_float;
-enum class __c_complex_double;
-enum class __c_complex_real;
 enum class __c_not_special;
 extern "C" void fn_long(long _param_0);
 
@@ -55,11 +52,11 @@ extern "C" void fn_long_double(long double _param_0);
 
 extern "C" void fn_wchar_t(wchar_t _param_0);
 
-extern "C" void fn_complex_float(__c_complex_float _param_0);
+extern "C" void fn_complex_float(_Complex float _param_0);
 
-extern "C" void fn_complex_double(__c_complex_double _param_0);
+extern "C" void fn_complex_double(_Complex double _param_0);
 
-extern "C" void fn_complex_real(__c_complex_real _param_0);
+extern "C" void fn_complex_real(_Complex long double _param_0);
 
 extern "C" void fn_not_special(__c_not_special _param_0);
 

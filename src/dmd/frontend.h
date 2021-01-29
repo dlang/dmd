@@ -7396,6 +7396,9 @@ struct Id
     static Identifier* __c_ulonglong;
     static Identifier* __c_long_double;
     static Identifier* __c_wchar_t;
+    static Identifier* __c_complex_float;
+    static Identifier* __c_complex_double;
+    static Identifier* __c_complex_real;
     static Identifier* cpp_type_info_ptr;
     static Identifier* _assert;
     static Identifier* _unittest;

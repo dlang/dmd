@@ -1278,6 +1278,12 @@ tym_t totym(Type tx)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
                 t = TYdouble;
+            else if (id == Id.__c_complex_float)
+                t = TYcfloat;
+            else if (id == Id.__c_complex_double)
+                t = TYcdouble;
+            else if (id == Id.__c_complex_real)
+                t = TYcldouble;
             else
                 t = totym(tb);
             break;

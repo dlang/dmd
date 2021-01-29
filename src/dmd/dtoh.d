@@ -38,6 +38,9 @@ private struct DMDType
     __gshared Identifier c_ulonglong;
     __gshared Identifier c_long_double;
     __gshared Identifier c_wchar_t;
+    __gshared Identifier c_complex_float;
+    __gshared Identifier c_complex_double;
+    __gshared Identifier c_complex_real;
 
     static void _init()
     {
@@ -47,6 +50,9 @@ private struct DMDType
         c_ulonglong     = Identifier.idPool("__c_ulonglong");
         c_long_double   = Identifier.idPool("__c_long_double");
         c_wchar_t       = Identifier.idPool("__c_wchar_t");
+        c_complex_float  = Identifier.idPool("__c_complex_float");
+        c_complex_double = Identifier.idPool("__c_complex_double");
+        c_complex_real = Identifier.idPool("__c_complex_real");
     }
 }
 
@@ -1750,6 +1756,12 @@ public:
                 buf.writestring("long double");
             else if (ed.ident == DMDType.c_wchar_t)
                 buf.writestring("wchar_t");
+            else if (ed.ident == DMDType.c_complex_float)
+                buf.writestring("_Complex float");
+            else if (ed.ident == DMDType.c_complex_double)
+                buf.writestring("_Complex double");
+            else if (ed.ident == DMDType.c_complex_real)
+                buf.writestring("_Complex long double");
             else
             {
                 //ed.print();
