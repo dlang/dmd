@@ -486,8 +486,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
-        if (!params.oneobj || modi == 0 || m.isDocFile)
-            m.deleteObjFile();
+//        if (!params.oneobj || modi == 0 || m.isDocFile)
+//            m.deleteObjFile();
 
         m.parse();
         if (m.isHdrFile)
