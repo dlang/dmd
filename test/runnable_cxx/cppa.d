@@ -1473,7 +1473,7 @@ extern(C++):
 class Base18966
 {
     this() @safe nothrow;
-    ~this();
+    ~this() @safe;
     void vf();
     int x;
 }

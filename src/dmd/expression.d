@@ -4991,6 +4991,7 @@ extern (C++) final class CallExp : UnaExp
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
+    bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     VarDeclaration vthis2;  // container for multi-context
 
     extern (D) this(const ref Loc loc, Expression e, Expressions* exps)

@@ -4702,7 +4702,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            checkFunctionAttributes(exp, sc, exp.f);
+            if (!exp.ignoreAttributes)
+                checkFunctionAttributes(exp, sc, exp.f);
             checkAccess(exp.loc, sc, ue.e1, exp.f);
             if (!exp.f.needThis())
             {
