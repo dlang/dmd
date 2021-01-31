@@ -170,6 +170,36 @@ void test20375() @safe
     RefCounted.postblits = 0;
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=21471
+void test21471()
+{
+    {
+        static struct S
+        {
+            S get()() const { return this; }
+        }
+
+        static auto f(S s) { return s; }
+
+        auto s = S();
+        assert(f(s.get) == s);
+    }
+    {
+        pragma(inline, true)
+        real exp(real x) pure nothrow
+        {
+            return x;
+        }
+
+        bool isClose(int lhs, real rhs) pure nothrow
+        {
+            return false;
+        }
+        auto c = 0;
+        assert(!isClose(c, exp(1)));
+    }
+}
+
 string getMessage(T)(lazy T expr) @trusted
 {
     try
@@ -227,6 +257,7 @@ void main()
     test9255();
     test20114();
     test20375();
+    test21471();
     testMixinExpression();
     testUnaryFormat();
 }

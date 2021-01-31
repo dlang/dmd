@@ -62,8 +62,13 @@ extern (C++) bool isTrivialExp(Expression e)
 
 /********************************************
  * Determine if Expression has any side effects.
+ *
+ * Params:
+ *   e = the expression
+ *   assumeImpureCalls = whether function calls should always be assumed to
+ *                       be impure (e.g. debug is allowed to violate purity)
  */
-extern (C++) bool hasSideEffect(Expression e)
+extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
@@ -76,7 +81,7 @@ extern (C++) bool hasSideEffect(Expression e)
         override void visit(Expression e)
         {
             // stop walking if we determine this expression has side effects
-            stop = lambdaHasSideEffect(e);
+            stop = lambdaHasSideEffect(e, assumeImpureCalls);
         }
     }
 
@@ -142,7 +147,7 @@ int callSideEffectLevel(Type t)
     return 0;
 }
 
-private bool lambdaHasSideEffect(Expression e)
+private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     switch (e.op)
     {
@@ -178,6 +183,9 @@ private bool lambdaHasSideEffect(Expression e)
         return true;
     case TOK.call:
         {
+            if (assumeImpureCalls)
+                return true;
+
             CallExp ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.
