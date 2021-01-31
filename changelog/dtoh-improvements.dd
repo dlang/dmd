@@ -4,6 +4,7 @@ The following features/bugfixes/improvements were implemented for the
 experimental C++ header generator:
 
 - (Superclass) methods aliases are emitted as `using ...` instead of `typedef ...`
+- Renamed imports are emitted as `using ...`
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
