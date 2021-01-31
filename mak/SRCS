@@ -118,6 +118,7 @@ SRCS=\
 	\
 	src\core\sys\bionic\err.d \
 	src\core\sys\bionic\fcntl.d \
+	src\core\sys\bionic\stdlib.d \
 	src\core\sys\bionic\string.d \
 	src\core\sys\bionic\unistd.d \
 	\
@@ -126,6 +127,7 @@ SRCS=\
 	src\core\sys\darwin\err.d \
 	src\core\sys\darwin\execinfo.d \
 	src\core\sys\darwin\pthread.d \
+	src\core\sys\darwin\stdlib.d \
 	src\core\sys\darwin\string.d \
 	src\core\sys\darwin\mach\dyld.d \
 	src\core\sys\darwin\mach\getsect.d \
@@ -148,6 +150,7 @@ SRCS=\
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\netinet\in_.d \
 	src\core\sys\freebsd\pthread_np.d \
+	src\core\sys\freebsd\stdlib.d \
 	src\core\sys\freebsd\string.d \
 	src\core\sys\freebsd\time.d \
 	src\core\sys\freebsd\unistd.d \
@@ -170,6 +173,7 @@ SRCS=\
 	src\core\sys\dragonflybsd\execinfo.d \
 	src\core\sys\dragonflybsd\netinet\in_.d \
 	src\core\sys\dragonflybsd\pthread_np.d \
+	src\core\sys\dragonflybsd\stdlib.d \
 	src\core\sys\dragonflybsd\string.d \
 	src\core\sys\dragonflybsd\time.d \
 	\
@@ -223,6 +227,7 @@ SRCS=\
 	src\core\sys\netbsd\dlfcn.d \
 	src\core\sys\netbsd\err.d \
 	src\core\sys\netbsd\execinfo.d \
+	src\core\sys\netbsd\stdlib.d \
 	src\core\sys\netbsd\string.d \
 	src\core\sys\netbsd\time.d \
 	\
@@ -238,6 +243,7 @@ SRCS=\
 	\
 	src\core\sys\openbsd\dlfcn.d \
 	src\core\sys\openbsd\err.d \
+	src\core\sys\openbsd\stdlib.d \
 	src\core\sys\openbsd\string.d \
 	src\core\sys\openbsd\time.d \
 	\
@@ -315,6 +321,7 @@ SRCS=\
 	src\core\sys\solaris\execinfo.d \
 	src\core\sys\solaris\libelf.d \
 	src\core\sys\solaris\link.d \
+	src\core\sys\solaris\stdlib.d \
 	src\core\sys\solaris\time.d \
 	src\core\sys\solaris\sys\elf.d \
 	src\core\sys\solaris\sys\elf_386.d \

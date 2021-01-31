@@ -111,6 +111,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\bionic\err.d \
 	$(IMPDIR)\core\sys\bionic\fcntl.d \
+	$(IMPDIR)\core\sys\bionic\stdlib.d \
 	$(IMPDIR)\core\sys\bionic\string.d \
 	$(IMPDIR)\core\sys\bionic\unistd.d \
 	\
@@ -119,6 +120,7 @@ COPY=\
 	$(IMPDIR)\core\sys\darwin\err.d \
 	$(IMPDIR)\core\sys\darwin\execinfo.d \
 	$(IMPDIR)\core\sys\darwin\pthread.d \
+	$(IMPDIR)\core\sys\darwin\stdlib.d \
 	$(IMPDIR)\core\sys\darwin\string.d \
 	\
 	$(IMPDIR)\core\sys\darwin\mach\dyld.d \
@@ -146,6 +148,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
+	$(IMPDIR)\core\sys\freebsd\stdlib.d \
 	$(IMPDIR)\core\sys\freebsd\string.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
@@ -170,6 +173,7 @@ COPY=\
 	$(IMPDIR)\core\sys\dragonflybsd\netinet\in_.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\pthread_np.d \
+	$(IMPDIR)\core\sys\dragonflybsd\stdlib.d \
 	$(IMPDIR)\core\sys\dragonflybsd\string.d \
 	$(IMPDIR)\core\sys\dragonflybsd\time.d \
 	\
@@ -223,6 +227,7 @@ COPY=\
 	$(IMPDIR)\core\sys\netbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\netbsd\err.d \
 	$(IMPDIR)\core\sys\netbsd\execinfo.d \
+	$(IMPDIR)\core\sys\netbsd\stdlib.d \
 	$(IMPDIR)\core\sys\netbsd\string.d \
 	$(IMPDIR)\core\sys\netbsd\time.d \
 	\
@@ -238,6 +243,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\openbsd\err.d \
+	$(IMPDIR)\core\sys\openbsd\stdlib.d \
 	$(IMPDIR)\core\sys\openbsd\string.d \
 	$(IMPDIR)\core\sys\openbsd\time.d \
 	\
@@ -315,6 +321,7 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\execinfo.d \
 	$(IMPDIR)\core\sys\solaris\libelf.d \
 	$(IMPDIR)\core\sys\solaris\link.d \
+	$(IMPDIR)\core\sys\solaris\stdlib.d \
 	$(IMPDIR)\core\sys\solaris\time.d \
 	\
 	$(IMPDIR)\core\sys\solaris\sys\elf.d \
