@@ -6086,7 +6086,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 op = op.expressionSemantic(sc);
                 op = resolveProperties(sc, op);
-                if (op.hasSideEffect)
+
+                // Create a temporary for expressions with side effects
+                // Defensively assume that function calls may have side effects even
+                // though it's not detected by hasSideEffect (e.g. `debug puts("Hello")` )
+                // Rewriting CallExp's also avoids some issues with the inliner/debug generation
+                if (op.hasSideEffect(true))
                 {
                     const stc = op.isLvalue() ? STC.ref_ : 0;
                     auto tmp = copyToTemp(stc, "__assertOp", op);

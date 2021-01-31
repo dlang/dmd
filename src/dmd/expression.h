@@ -47,7 +47,7 @@ struct Symbol;          // back end symbol
 
 void expandTuples(Expressions *exps);
 bool isTrivialExp(Expression *e);
-bool hasSideEffect(Expression *e);
+bool hasSideEffect(Expression *e, bool assumeImpureCalls = false);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
 
 typedef unsigned char OwnedBy;

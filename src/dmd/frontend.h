@@ -5850,7 +5850,7 @@ extern void semantic3(Dsymbol* dsym, Scope* sc);
 
 extern bool isTrivialExp(Expression* e);
 
-extern bool hasSideEffect(Expression* e);
+extern bool hasSideEffect(Expression* e, bool assumeImpureCalls = false);
 
 enum class STMT : uint8_t
 {
