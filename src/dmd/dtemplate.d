@@ -1904,7 +1904,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     if (m == MATCH.nomatch)
                     {
                         AggregateDeclaration ad = isAggregate(farg.type);
-                        if (ad && ad.aliasthis && argtype != att)
+                        if (ad && ad.aliasthis && !(att && argtype.equivalent(att)))
                         {
                             if (!att && argtype.checkAliasThisRec())   // https://issues.dlang.org/show_bug.cgi?id=12537
                                 att = argtype;

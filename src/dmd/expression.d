@@ -1573,7 +1573,7 @@ extern (C++) abstract class Expression : ASTNode
                 }
 
                 // Forward to aliasthis.
-                if (ad.aliasthis && tb != att)
+                if (ad.aliasthis && !(att && tb.equivalent(att)))
                 {
                     if (!att && tb.checkAliasThisRec())
                         att = tb;
