@@ -1634,6 +1634,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc)
             return;
 
+        imp.parent = sc.parent;
+
         imp.semanticRun = PASS.semantic;
 
         // Load if not already done so

@@ -536,6 +536,64 @@ public:
             printf("[AST.Import enter] %s\n", i.toChars());
             scope(exit) printf("[AST.Import exit] %s\n", i.toChars());
         }
+
+        // Omit local imports
+        assert(i.parent);
+        if (!i.parent.isModule())
+        {
+            ignored("local %s", i.toChars());
+            return;
+        }
+
+        // Need module for symbol lookup
+        assert(i.mod);
+
+        // Include all public imports and emit using declarations for each alias
+        foreach (const idx, name; i.names)
+        {
+            // Search the imported symbol
+            auto sym = i.mod.search(Loc.initial, name);
+            assert(sym); // Missing imports should error during semantic
+
+            includeSymbol(sym);
+
+            // Detect the assigned name for renamed import
+            auto alias_ = i.aliases[idx];
+            if (!alias_)
+                continue;
+
+            /// `using` was introduced in C++ 11 and only works for types...
+            if (global.params.cplusplus < CppStdRevision.cpp11)
+            {
+                ignored("renamed import `%s = %s` because `using` requires C++11", alias_.toChars(), name.toChars());
+                continue;
+            }
+
+            if (auto ad = sym.isAliasDeclaration())
+            {
+                sym = ad.toAlias();
+                ad = sym.isAliasDeclaration();
+
+                // Might be an alias to a basic type
+                if (ad && !ad.aliassym && ad.type)
+                    goto Emit;
+            }
+
+            // Restricted to types and other aliases
+            if (!sym.isScopeDsymbol() && !sym.isAggregateDeclaration())
+            {
+                ignored("renamed import `%s = %s` because `using` only supports types", alias_.toChars(), name.toChars());
+                continue;
+            }
+
+            // Write `using <alias_> = `<sym>`
+            Emit:
+            buf.writestring("using ");
+            writeIdentifier(alias_, i.loc, "renamed import");
+            buf.writestring(" = ");
+            buf.writestring(sym.ident.toString());
+            writeDeclEnd();
+        }
     }
 
     override void visit(AST.AttribDeclaration pd)
@@ -882,6 +940,11 @@ public:
             printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
             scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
         }
+
+        if (cast(void*) ad in visited)
+            return;
+        visited[cast(void*) ad] = true;
+
         writeProtection(ad.visibility.kind);
 
         if (auto t = ad.type)
