@@ -55,6 +55,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_elf_io.html \
 	\
 	$(DOCDIR)\core_internal_util_array.html \
+	$(IMPDIR)\core\internal\util\math.d \
 	\
 	$(DOCDIR)\core_internal_vararg_aarch64.html \
 	$(DOCDIR)\core_internal_vararg_sysv_x64.html \

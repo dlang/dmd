@@ -11,6 +11,8 @@
 
 module rt.cover;
 
+import core.internal.util.math : min, max;
+
 private
 {
     version (Windows)
@@ -212,9 +214,6 @@ unittest
     assert(!lstEquals(src, []));
     assert(!lstEquals(src, badLst));
 }
-
-T min(T)(T a, T b) { return a < b ? a : b; }
-T max(T)(T a, T b) { return b < a ? a : b; }
 
 shared static this()
 {
