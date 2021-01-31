@@ -2246,7 +2246,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
      * 2, 3 and 4 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
      * up properly. Pushing arguments on the stack then cannot fail.
      */
-     if (tf.parameterList.varargs != VarArg.typesafe) // .typesafe have a special single argument which is an array or class
      {
         /* TODO: tackle problem 1)
          */
@@ -2274,9 +2273,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             Expression arg = (*arguments)[i];
             if (canThrow(arg, sc.func, false))
                 lastthrow = i;
-            if (i < nparams && arg.type.needsDestruction())
+            if (arg.type.needsDestruction())
             {
-                if (!(tf.parameterList[i].storageClass & (STC.lazy_ | STC.ref_ | STC.out_)))
+                Parameter p = (i >= nparams ? null : tf.parameterList[i]);
+                if (!(p && (p.storageClass & (STC.lazy_ | STC.ref_ | STC.out_))))
                 {
                     if (firstdtor == -1)
                         firstdtor = i;
@@ -2285,15 +2285,20 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
         }
 
-        /* true if problem (3)
+        /* Do we need 'eprefix' for problems 3 or 4?
          */
-        const bool throwsBeforeCall = (firstdtor >= 0 && lastthrow >= 0
-            && (lastthrow - firstdtor) * step > 0);
+        const bool needsPrefix = callerDestroysArgs
+            ? firstdtor >= 0 // true if any argument needs destruction
+            : firstdtor >= 0 && lastthrow >= 0 &&
+              (lastthrow - firstdtor) * step > 0; // last throw after first destruction
+        const ptrdiff_t lastPrefix = callerDestroysArgs
+            ? lastdtor   // up to last argument requiring destruction
+            : lastthrow; // up to last potentially throwing argument
 
-        /* If so, initialize 'eprefix' by declaring the gate
+        /* Problem 3: initialize 'eprefix' by declaring the gate
          */
-        VarDeclaration gate = null;
-        if (throwsBeforeCall)
+        VarDeclaration gate;
+        if (needsPrefix && !callerDestroysArgs)
         {
             // eprefix => bool __gate [= false]
             Identifier idtmp = Identifier.generateId("__gate");
@@ -2319,15 +2324,18 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             if (isLazy)
                 continue;
 
-            /* Do we have a gate? Then we have a prefix and we're not yet past the last throwing arg.
-             * Declare a temporary variable for this arg and append that declaration to 'eprefix',
-             * which will implicitly take care of potential problem 2) for this arg.
-             * 'eprefix' will therefore finally contain all args up to and including the last
-             * potentially throwing arg, excluding all lazy parameters.
+            /* Do we have 'eprefix' and aren't past 'lastPrefix' yet?
+             * Then declare a temporary variable for this arg and append that declaration
+             * to 'eprefix', which will implicitly take care of potential problem 2) for
+             * this arg.
+             * 'eprefix' will therefore finally contain all args up to and including 'lastPrefix',
+             * excluding all lazy parameters.
              */
-            if (gate)
+            if (needsPrefix && (lastPrefix - i) * step >= 0)
             {
-                const bool needsDtor = (!isRef && arg.type.needsDestruction() && (i != lastthrow || callerDestroysArgs));
+                const bool needsDtor = !isRef && arg.type.needsDestruction() &&
+                                       // Problem 3: last throwing arg doesn't require dtor patching
+                                       (callerDestroysArgs || i != lastPrefix);
 
                 /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
                  */
@@ -2336,29 +2344,36 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     !isRef ? arg : arg.addressOf());
                 tmp.dsymbolSemantic(sc);
 
-                /* Modify the destructor so it only runs if gate==false, i.e.,
-                 * only if there was a throw while constructing the args
-                 */
-                if (!needsDtor)
+                if (callerDestroysArgs)
                 {
-                    if (tmp.edtor)
-                    {
-                        assert(i == lastthrow);
-                        tmp.edtor = null;
-                    }
+                    /* Problem 4: Normal temporary, destructed after the call
+                     */
+                    if (needsDtor)
+                        tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
                 }
                 else
                 {
-                    // edtor => (__gate || edtor)
-                    assert(tmp.edtor);
-                    Expression e = tmp.edtor;
-                    e = new LogicalExp(e.loc, TOK.orOr, new VarExp(e.loc, gate), e);
-                    tmp.edtor = e.expressionSemantic(sc);
-                    //printf("edtor: %s\n", tmp.edtor.toChars());
+                    /* Problem 3: Modify the destructor so it only runs if gate==false,
+                     * i.e., only if there was a throw while constructing the args
+                     */
+                    if (!needsDtor)
+                    {
+                        if (tmp.edtor)
+                        {
+                            assert(i == lastPrefix);
+                            tmp.edtor = null;
+                        }
+                    }
+                    else
+                    {
+                        // edtor => (__gate || edtor)
+                        assert(tmp.edtor);
+                        Expression e = tmp.edtor;
+                        e = new LogicalExp(e.loc, TOK.orOr, new VarExp(e.loc, gate), e);
+                        tmp.edtor = e.expressionSemantic(sc);
+                        //printf("edtor: %s\n", tmp.edtor.toChars());
+                    }
                 }
-
-                if (needsDtor && callerDestroysArgs)
-                    tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
 
                 // eprefix => (eprefix, auto __pfx/y = arg)
                 auto ae = new DeclarationExp(loc, tmp);
@@ -2373,50 +2388,21 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     arg = arg.expressionSemantic(sc);
                 }
 
-                /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
-                 * i.e., disable the dtors right after constructing the last throwing arg.
+                /* Problem 3: Last throwing arg?
+                 * Then finalize eprefix => (eprefix, gate = true), i.e., disable the
+                 * dtors right after constructing the last throwing arg.
                  * From now on, the callee will take care of destructing the args because
                  * the args are implicitly moved into function parameters.
-                 *
-                 * Set gate to null to let the next iterations know they don't need to
-                 * append to eprefix anymore.
                  */
-                if (i == lastthrow)
+                if (!callerDestroysArgs && i == lastPrefix)
                 {
                     auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(true));
                     eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
-                    if (!callerDestroysArgs)
-                        gate = null;
                 }
             }
-            else if (callerDestroysArgs && i <= lastdtor)
+            else // not part of 'eprefix'
             {
-                /* Caller destroys arguments.
-                 * Declare a temporary variable for this arg and append that declaration to 'eprefix',
-                 * and let it take care of scope destruction after the function call or even earlier
-                 * in case any exception is thrown before the call.
-                 */
-                const bool needsDtor = !isRef && arg.type.needsDestruction() && !(parameter && parameter.storageClass & STC.nodtor);
-                if (needsDtor)
-                {
-                    auto tmp = copyToTemp(0, "__farg", arg);
-                    tmp.storage_class |= STC.exptemp; // lifetime limited to expression
-                    tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
-                    eprefix = Expression.combine(eprefix, new DeclarationExp(tmp.loc, tmp)
-                                                .expressionSemantic(sc));
-                    // replace the argument
-                    arg = new VarExp(tmp.loc, tmp).expressionSemantic(sc);
-                }
-                else
-                {
-                    arg = extractSideEffect(sc, "__pfz", eprefix, arg, false);
-                    //printf("arg: %s, eprefix: %s\n", arg.toChars(), eprefix ? eprefix.toChars() : "".ptr);
-                }
-            }
-            else
-            {
-                /* No gate, no prefix to append to.
-                 * Handle problem 2) by calling the copy constructor for value structs
+                /* Handle problem 2) by calling the copy constructor for value structs
                  * (or static arrays of them) if appropriate.
                  */
                 Type tv = arg.type.baseElemOf();
@@ -2425,13 +2411,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
 
             (*arguments)[i] = arg;
-        }
-
-        if (gate && callerDestroysArgs)
-        {
-            // enable argument destructors
-            auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(false));
-            eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
         }
     }
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
