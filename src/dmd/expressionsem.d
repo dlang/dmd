@@ -8777,22 +8777,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
+                    // https://issues.dlang.org/show_bug.cgi?id=21586
+                    // Rewrite CondExp or e1 will miss direct construction, e.g.
+                    // e1 = a ? S(1) : ...; -> AST: e1 = a ? (S(0)).this(1) : ...;
+                    // a temporary created and an extra destructor call.
+                    // AST will be rewritten to:
+                    // a ? e1 = 0, e1.this(1) : ...; -> blitting plus construction
+                    if (e2x.op == TOK.question)
+                    {
+                        /* Rewrite as:
+                         *  a ? e1 = b : e1 = c;
+                         */
+                        CondExp econd = cast(CondExp)e2x;
+                        Expression ea1 = new ConstructExp(econd.e1.loc, e1x, econd.e1);
+                        Expression ea2 = new ConstructExp(econd.e2.loc, e1x, econd.e2);
+                        Expression e = new CondExp(exp.loc, econd.econd, ea1, ea2);
+                        result = e.expressionSemantic(sc);
+                        return;
+                    }
                     if (sd.postblit || sd.hasCopyCtor)
                     {
                         /* We have a copy constructor for this
                          */
-                        if (e2x.op == TOK.question)
-                        {
-                            /* Rewrite as:
-                             *  a ? e1 = b : e1 = c;
-                             */
-                            CondExp econd = cast(CondExp)e2x;
-                            Expression ea1 = new ConstructExp(econd.e1.loc, e1x, econd.e1);
-                            Expression ea2 = new ConstructExp(econd.e1.loc, e1x, econd.e2);
-                            Expression e = new CondExp(exp.loc, econd.econd, ea1, ea2);
-                            result = e.expressionSemantic(sc);
-                            return;
-                        }
 
                         if (e2x.isLvalue())
                         {
