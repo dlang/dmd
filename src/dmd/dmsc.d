@@ -51,6 +51,7 @@ extern (C) void out_config_init(
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
+        ubyte dwarf,            // DWARF version used
         string _version         // Compiler version
         );
 
@@ -101,6 +102,7 @@ void backend_init()
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,
+        dmdParams.dwarf,
         global.versionString()
     );
 

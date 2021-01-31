@@ -128,6 +128,7 @@ Where:
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
+    ubyte dwarf;            // DWARF version
     bool map;               // generate linker .map file
 
     // Hidden debug switches
@@ -1809,6 +1810,31 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
             params.symdebug = 1;
+        else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
+        {
+            static if (TARGET.Windows)
+            {
+                goto Lerror;
+            }
+            else
+            {
+                if (dmdParams.dwarf)
+                {
+                    error("`-gdwarf=<version>` can only be provided once");
+                    break;
+                }
+                params.symdebug = 1;
+
+                enum len = "-gdwarf=".length;
+                // Parse:
+                //      -gdwarf=version
+                if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
+                {
+                    error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
+                    return false;
+                }
+            }
+        }
         else if (arg == "-gf")
         {
             if (!params.symdebug)

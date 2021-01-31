@@ -762,6 +762,7 @@ struct Config
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
+    ubyte dwarf;                // DWARF version
 }
 
 enum THRESHMAX = 0xFFFF;

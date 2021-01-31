@@ -16,8 +16,6 @@ extern (C++):
 
 nothrow:
 
-enum DWARF_VERSION = 3;
-
 void dwarf_initfile(const(char) *filename);
 void dwarf_termfile();
 void dwarf_initmodule(const(char) *filename, const(char) *modulename);
