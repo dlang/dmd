@@ -1336,6 +1336,12 @@ public:
             //return;
         //}
 
+        if (ed.isSpecial())
+        {
+            //ignored("%s because it is a special C++ type", ed.toPrettyChars());
+            return;
+        }
+
         // we need to know a bunch of stuff about the enum...
         bool isAnonymous = ed.ident is null;
         const isOpaque = !ed.members;
