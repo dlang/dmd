@@ -1000,7 +1000,6 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
     enum log = false;
     if (log) printf("[%s] checkNewEscape, e: `%s`\n", e.loc.toChars(), e.toChars());
     EscapeByResults er;
@@ -1110,6 +1109,26 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         // Only look for errors if in module listed on command line
         if (p == sc.func)
         {
+
+            // https://issues.dlang.org/show_bug.cgi?id=21525
+            if (sc.func.fes && v.storage_class & STC.parameter)
+            {
+                /* If we are inside a foreach body, the ref parameter
+                 * to the foreach generated delegate should still be
+                 * able to escape the foreach scope
+                 */
+                bool isForeachParam;
+                foreach(ref param; *(sc.func.parameters))
+                {
+                    if (param == v)
+                    {
+                        isForeachParam = true;
+                        break;
+                    }
+                }
+                if (isForeachParam)
+                    continue;
+            }
             //printf("escaping reference to local ref variable %s\n", v.toChars());
             //printf("storage class = x%llx\n", v.storage_class);
             escapingRef(v, emitError);
