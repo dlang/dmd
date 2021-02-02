@@ -1109,13 +1109,7 @@ static if (NTEXCEPTIONS)
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
             reg1 = reg2 = NOREG;
-            if (config.exe == EX_WIN64) // broken
-                retregs = regmask(e.Ety, funcsym_p.ty());
-            else
-            {
-                retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
-                assert(reg1 != NOREG || !retregs);
-            }
+            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
@@ -1346,10 +1340,22 @@ version (MARS)
  */
 regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
 {
+    //printf("allocretregs()\n");
     tym_t ty1 = ty;
     tym_t ty2 = TYMAX;
 
     *reg1 = *reg2 = NOREG;
+
+    /* Use regmask() for EX_WIN64, 16 bit code,
+     * and for native complex numbers in DOS/Win32.
+     * Complex numbers for DOS/Win32 return in ST01.
+     */
+    if ((config.exe & (EX_16 | EX_WIN64)) ||
+        tycomplex(ty) && (config.exe & EX_windos))
+        return regmask(ty, tyf);
+
+    /* The rest is for the Itanium ABI
+     */
 
     if (tybasic(ty) == TYvoid)
         return 0;
