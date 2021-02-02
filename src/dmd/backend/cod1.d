@@ -4007,11 +4007,7 @@ static if (0)
 }
 
     reg_t reg1 = NOREG, reg2 = NOREG;
-
-    if (config.exe == EX_WIN64) // Win64 is currently broken
-        retregs = regmask(e.Ety, tym1);
-    else
-        retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+    retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
 
     assert(retregs || !*pretregs);
 
