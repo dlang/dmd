@@ -151,7 +151,7 @@ FileBuffer readFile(Loc loc, const(char)[] filename)
 extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
 {
     ensurePathToNameExists(Loc.initial, filename);
-    if (!File.write(filename, data))
+    if (!File.update(filename, data))
     {
         error(loc, "Error writing file '%*.s'", cast(int) filename.length, filename.ptr);
         fatal();
