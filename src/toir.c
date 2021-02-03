@@ -347,318 +347,120 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
  */
 int intrinsic_op(FuncDeclaration *fd)
 {
+    int op = NotIntrinsic;
     fd = fd->toAliasFunc();
-    const char *name = mangleExact(fd);
+    if (fd->isDeprecated())
+        return op;
     //printf("intrinsic_op(%s)\n", name);
-    static const char *std_namearray[] =
+
+    // Look for [core|std].module.function as id3.id2.id1 ...
+    const Identifier *id3 = fd->ident;
+    Module *m = fd->getModule();
+    if (!m || !m->md)
+        return op;
+
+    const ModuleDeclaration *md = m->md;
+    const Identifier *id2 = md->id;
+
+    if (!md->packages || md->packages->length == 0)
+        return op;
+
+    // get type of first argument
+    TypeFunction *tf = fd->type ? fd->type->isTypeFunction() : NULL;
+    Parameter *param1 = tf && tf->parameterList.length() > 0 ? tf->parameterList[0] : NULL;
+    Type *argtype1 = param1 ? param1->type : NULL;
+
+    const Identifier *id1 = (*md->packages)[0];
+    // ... except core.stdc.stdarg.va_start.
+    if (md->packages->length == 2)
     {
-        /* The names are mangled differently because of the pure and
-         * nothrow attributes.
-         */
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-    };
-    static const char *std_namearray64[] =
+        goto Lva_start;
+    }
+
+    if (id1 == Id::std && id2 == Id::math)
     {
-        /* The names are mangled differently because of the pure and
-         * nothrow attributes.
-         */
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-    };
-    static unsigned char std_ioptab[] =
-    {
-        OPcos,
-        OPsin,
-        OPabs,
-        OPrint,
-        OPsqrt,
-        OPsqrt,
-        OPsqrt,
-        OPyl2x,
-        OPscale,
-        OPrndtol,
-        OPyl2xp1,
-    };
-
-    static const char *core_namearray[] =
-    {
-        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfdZd",
-        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfeZd",
-        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNffZd",
-        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfdZe",
-        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfeZe",
-        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNffZe",
-        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfdZf",
-        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfeZf",
-        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNffZf",
-
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
-
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
-
-        "5bitop3bsfFNaNbNiNfkZi",
-        "5bitop3bsrFNaNbNiNfkZi",
-        "5bitop3btcFNaNbNiPkkZi",
-        "5bitop3btrFNaNbNiPkkZi",
-        "5bitop3btsFNaNbNiPkkZi",
-        "5bitop3inpFNbNikZh",
-        "5bitop4inplFNbNikZk",
-        "5bitop4inpwFNbNikZt",
-        "5bitop4outpFNbNikhZh",
-        "5bitop5bswapFNaNbNiNfkZk",
-        "5bitop5outplFNbNikkZk",
-        "5bitop5outpwFNbNiktZt",
-
-        "5bitop7_popcntFNaNbNiNfkZi",
-        "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
-        "5bitop7_popcntFNaNbNiNftZt",
-    };
-    static const char *core_namearray64[] =
-    {
-        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfdZd",
-        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfeZd",
-        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNffZd",
-        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfdZe",
-        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfeZe",
-        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNffZe",
-        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfdZf",
-        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfeZf",
-        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNffZf",
-
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
-
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
-
-        "5bitop3bsfFNaNbNiNfmZi",
-        "5bitop3bsrFNaNbNiNfmZi",
-        "5bitop3btcFNaNbNiPmmZi",
-        "5bitop3btrFNaNbNiPmmZi",
-        "5bitop3btsFNaNbNiPmmZi",
-        "5bitop3inpFNbNikZh",
-        "5bitop4inplFNbNikZk",
-        "5bitop4inpwFNbNikZt",
-        "5bitop4outpFNbNikhZh",
-        "5bitop5bswapFNaNbNiNfkZk",
-        "5bitop5outplFNbNikkZk",
-        "5bitop5outpwFNbNiktZt",
-
-        "5bitop7_popcntFNaNbNiNfkZi",
-        "5bitop7_popcntFNaNbNiNfmZi",
-        "5bitop7_popcntFNaNbNiNftZt",
-    };
-    static unsigned char core_ioptab[] =
-    {
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-        OPtoPrec,
-
-        OPcos,
-        OPsin,
-        OPabs,
-        OPrint,
-        OPsqrt,
-        OPsqrt,
-        OPsqrt,
-        OPyl2x,
-        OPscale,
-        OPrndtol,
-        OPyl2xp1,
-
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-
-        OPind,
-        OPind,
-        OPind,
-        OPind,
-
-        OPeq,
-        OPeq,
-        OPeq,
-        OPeq,
-
-        OPbsf,
-        OPbsr,
-        OPbtc,
-        OPbtr,
-        OPbts,
-        OPinp,
-        OPinp,
-        OPinp,
-        OPoutp,
-
-        OPbswap,
-        OPoutp,
-        OPoutp,
-
-        OPpopcnt,
-        OPpopcnt,
-        OPpopcnt,
-    };
-
-#ifdef DEBUG
-    assert(sizeof(std_namearray) == sizeof(std_namearray64));
-    assert(sizeof(std_namearray) / sizeof(char *) == sizeof(std_ioptab));
-    for (size_t i = 0; i < sizeof(std_namearray) / sizeof(char *) - 1; i++)
-    {
-        if (strcmp(std_namearray[i], std_namearray[i + 1]) >= 0)
+    Lstdmath:
+        if (argtype1 == Type::tfloat80 || id3 == Id::_sqrt)
+            goto Lmath;
+        if (id3 == Id::fabs &&
+            (argtype1 == Type::tfloat32 || argtype1 == Type::tfloat64))
         {
-            printf("std_namearray[%ld] = '%s'\n", (long)i, std_namearray[i]);
-            assert(0);
+            op = OPabs;
         }
     }
-    assert(sizeof(std_namearray64) / sizeof(char *) == sizeof(std_ioptab));
-    for (size_t i = 0; i < sizeof(std_namearray64) / sizeof(char *) - 1; i++)
+    else if (id1 == Id::core)
     {
-        if (strcmp(std_namearray64[i], std_namearray64[i + 1]) >= 0)
+        if (id2 == Id::math)
         {
-            printf("std_namearray64[%ld] = '%s'\n", (long)i, std_namearray64[i]);
-            assert(0);
-        }
-    }
-    assert(sizeof(core_namearray) == sizeof(core_namearray64));
-    assert(sizeof(core_namearray) / sizeof(char *) == sizeof(core_ioptab));
-    for (size_t i = 0; i < sizeof(core_namearray) / sizeof(char *) - 1; i++)
-    {
-        //printf("test1 %s %s %d\n", core_namearray[i], core_namearray[i + 1], strcmp(core_namearray[i], core_namearray[i + 1]));
-        if (strcmp(core_namearray[i], core_namearray[i + 1]) >= 0)
-        {
-            printf("core_namearray[%ld] = '%s'\n", (long)i, core_namearray[i]);
-            assert(0);
-        }
-    }
-    assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(core_ioptab));
-    for (size_t i = 0; i < sizeof(core_namearray64) / sizeof(char *) - 1; i++)
-    {
-        if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
-        {
-            printf("core_namearray64[%ld] = '%s'\n", (long)i, core_namearray64[i]);
-            assert(0);
-        }
-    }
-#endif
-    size_t length = strlen(name);
-
-    if (length > 10 &&
-        (name[7] == 'm' || name[7] == 'i') &&
-        !memcmp(name, "_D3std", 6))
-    {
-        int i = binary(name + 6, I64 ? std_namearray64 : std_namearray, sizeof(std_namearray) / sizeof(char *));
-        return (i == -1) ? i : std_ioptab[i];
-    }
-    if (length > 12 &&
-        (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
-        !memcmp(name, "_D4core", 7))
-    {
-        int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
-        if (i != -1)
-            return core_ioptab[i];
-
-        if (global.params.is64bit &&
-            fd->toParent()->isTemplateInstance() &&
-            fd->ident == Id::va_start)
-        {
-            OutBuffer buf;
-            mangleToBuffer(fd->getModule(), &buf);
-            const char *s = buf.peekChars();
-            if (!strcmp(s, "4core4stdc6stdarg"))
+        Lmath:
+            if (argtype1 == Type::tfloat80 || argtype1 == Type::tfloat32 || argtype1 == Type::tfloat64)
             {
-                return OPva_start;
+                     if (id3 == Id::cos)    op = OPcos;
+                else if (id3 == Id::sin)    op = OPsin;
+                else if (id3 == Id::fabs)   op = OPabs;
+                else if (id3 == Id::rint)   op = OPrint;
+                else if (id3 == Id::_sqrt)  op = OPsqrt;
+                else if (id3 == Id::yl2x)   op = OPyl2x;
+                else if (id3 == Id::ldexp)  op = OPscale;
+                else if (id3 == Id::rndtol) op = OPrndtol;
+                else if (id3 == Id::yl2xp1) op = OPyl2xp1;
+                else if (id3 == Id::toPrec) op = OPtoPrec;
             }
         }
+        else if (id2 == Id::simd)
+        {
+                 if (id3 == Id::__simd_sto) op = OPvector;
+            else if (id3 == Id::__simd)     op = OPvector;
+            else if (id3 == Id::__simd_ib)  op = OPvector;
+        }
+        else if (id2 == Id::bitop)
+        {
+                 if (id3 == Id::volatileLoad)  op = OPind;
+            else if (id3 == Id::volatileStore) op = OPeq;
 
-        return -1;
+            else if (id3 == Id::bsf) op = OPbsf;
+            else if (id3 == Id::bsr) op = OPbsr;
+            else if (id3 == Id::btc) op = OPbtc;
+            else if (id3 == Id::btr) op = OPbtr;
+            else if (id3 == Id::bts) op = OPbts;
+
+            else if (id3 == Id::inp)  op = OPinp;
+            else if (id3 == Id::inpl) op = OPinp;
+            else if (id3 == Id::inpw) op = OPinp;
+
+            else if (id3 == Id::outp)  op = OPoutp;
+            else if (id3 == Id::outpl) op = OPoutp;
+            else if (id3 == Id::outpw) op = OPoutp;
+
+            else if (id3 == Id::bswap)   op = OPbswap;
+            else if (id3 == Id::_popcnt) op = OPpopcnt;
+        }
+        else if (id2 == Id::_volatile)
+        {
+                 if (id3 == Id::volatileLoad)  op = OPind;
+            else if (id3 == Id::volatileStore) op = OPeq;
+        }
     }
 
-    return -1;
+    if (!global.params.is64bit)
+    // No 64-bit bsf bsr in 32bit mode
+    {
+        if ((op == OPbsf || op == OPbsr) && argtype1 == Type::tuns64)
+            return NotIntrinsic;
+    }
+    return op;
+
+Lva_start:
+    if (global.params.is64bit &&
+        fd->toParent()->isTemplateInstance() &&
+        id3 == Id::va_start &&
+        id2 == Id::stdarg &&
+        (*md->packages)[1] == Id::stdc &&
+        id1 == Id::core)
+    {
+        return OPva_start;
+    }
+    return op;
 }
 
 /**************************************

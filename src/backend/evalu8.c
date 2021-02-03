@@ -1973,10 +1973,26 @@ elem * evalu8(elem *e, goal_t goal)
         e->EV.Vlong = i1 & 1;
         break;
     case OPbswap:
-        e->EV.Vint = ((i1 >> 24) & 0x000000FF) |
-                     ((i1 >>  8) & 0x0000FF00) |
-                     ((i1 <<  8) & 0x00FF0000) |
-                     ((i1 << 24) & 0xFF000000);
+        if (tysize(tym) == 2)
+        {
+            e->EV.Vint = ((i1 >> 8) & 0x00FF) |
+                         ((i1 << 8) & 0xFF00);
+        }
+        else if (tysize(tym) == 4)
+        {
+            e->EV.Vint = ((i1 >> 24) & 0x000000FF) |
+                         ((i1 >>  8) & 0x0000FF00) |
+                         ((i1 <<  8) & 0x00FF0000) |
+                         ((i1 << 24) & 0xFF000000);
+        }
+        else
+        {
+            targ_llong n = l1;
+            n = (n & 0x00000000FFFFFFFF) << 32 | (n & 0xFFFFFFFF00000000) >> 32;
+            n = (n & 0x0000FFFF0000FFFF) << 16 | (n & 0xFFFF0000FFFF0000) >> 16;
+            n = (n & 0x00FF00FF00FF00FF) << 8  | (n & 0xFF00FF00FF00FF00) >> 8;
+            e->EV.Vllong = n;
+        }
         break;
 
     case OPpopcnt:

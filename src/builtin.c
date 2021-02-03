@@ -9,7 +9,6 @@
  */
 
 #include "root/dsystem.h"               // strcmp()
-#include <math.h>
 
 #include "mars.h"
 #include "declaration.h"
@@ -25,20 +24,6 @@
 #include "tokens.h"
 #include "mangle.h"
 
-StringTable builtins;
-
-void add_builtin(const char *mangle, builtin_fp fp)
-{
-    builtins.insert(mangle, strlen(mangle), (void *)fp);
-}
-
-builtin_fp builtin_lookup(const char *mangle)
-{
-    if (StringValue *sv = builtins.lookup(mangle, strlen(mangle)))
-        return (builtin_fp)sv->ptrvalue;
-    return NULL;
-}
-
 Expression *eval_unimp(Loc, FuncDeclaration *, Expressions *)
 {
     return NULL;
@@ -48,21 +33,21 @@ Expression *eval_sin(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, sinl(arg0->toReal()), arg0->type);
+    return new RealExp(loc, CTFloat::sin(arg0->toReal()), arg0->type);
 }
 
 Expression *eval_cos(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, cosl(arg0->toReal()), arg0->type);
+    return new RealExp(loc, CTFloat::cos(arg0->toReal()), arg0->type);
 }
 
 Expression *eval_tan(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, tanl(arg0->toReal()), arg0->type);
+    return new RealExp(loc, CTFloat::tan(arg0->toReal()), arg0->type);
 }
 
 Expression *eval_sqrt(Loc loc, FuncDeclaration *, Expressions *arguments)
@@ -76,7 +61,155 @@ Expression *eval_fabs(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, fabsl(arg0->toReal()), arg0->type);
+    return new RealExp(loc, CTFloat::fabs(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_ldexp(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKint64);
+    return new RealExp(loc, CTFloat::ldexp(arg0->toReal(), (int)  arg1->toInteger()), arg0->type);
+}
+
+Expression *eval_log(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::log(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_log2(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::log2(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_log10(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::log10(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_exp(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::exp(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_expm1(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::expm1(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_exp2(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::exp2(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_round(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::round(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_floor(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::floor(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_ceil(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::ceil(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_trunc(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::trunc(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_copysign(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::copysign(arg0->toReal(), arg1->toReal()), arg0->type);
+}
+
+Expression *eval_pow(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::pow(arg0->toReal(), arg1->toReal()), arg0->type);
+}
+
+Expression *eval_fmin(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::fmin(arg0->toReal(), arg1->toReal()), arg0->type);
+}
+
+Expression *eval_fmax(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::fmax(arg0->toReal(), arg1->toReal()), arg0->type);
+}
+
+Expression *eval_fma(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    Expression *arg2 = (*arguments)[2];
+    assert(arg2->op == TOKfloat64);
+    return new RealExp(loc, CTFloat::fma(arg0->toReal(), arg1->toReal(), arg2->toReal()), arg0->type);
+}
+
+Expression *eval_isnan(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new IntegerExp(loc, CTFloat::isNaN(arg0->toReal()), Type::tbool);
+}
+
+Expression *eval_isinfinity(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new IntegerExp(loc, CTFloat::isInfinity(arg0->toReal()), Type::tbool);
+}
+
+Expression *eval_isfinite(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    const bool value = !CTFloat::isNaN(arg0->toReal()) && !CTFloat::isInfinity(arg0->toReal());
+    return new IntegerExp(loc, value, Type::tbool);
 }
 
 Expression *eval_bsf(Loc loc, FuncDeclaration *, Expressions *arguments)
@@ -117,7 +250,7 @@ Expression *eval_bswap(Loc loc, FuncDeclaration *, Expressions *arguments)
     uinteger_t n = arg0->toInteger();
     #define BYTEMASK  0x00FF00FF00FF00FFLL
     #define SHORTMASK 0x0000FFFF0000FFFFLL
-    #define INTMASK 0x0000FFFF0000FFFFLL
+    #define INTMASK 0x00000000FFFFFFFFLL
     // swap adjacent ubytes
     n = ((n >> 8 ) & BYTEMASK)  | ((n & BYTEMASK) << 8 );
     // swap adjacent ushorts
@@ -189,143 +322,94 @@ Expression *eval_toPrecReal(Loc loc, FuncDeclaration *, Expressions *arguments)
     return new RealExp(loc, arg0->toReal(), Type::tfloat80);
 }
 
-void builtin_init()
+BUILTIN determine_builtin(FuncDeclaration *func)
 {
-    builtins._init(47);
+    FuncDeclaration *fd = func->toAliasFunc();
+    if (fd->isDeprecated())
+        return BUILTINunimp;
+    Module *m = fd->getModule();
+    if (!m || !m->md)
+        return BUILTINunimp;
+    const ModuleDeclaration *md = m->md;
+    const Identifier *id2 = md->id;
 
-    // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
-    add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
-    add_builtin("_D4core4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D4core4math4sqrtFNaNbNiNfeZe", &eval_sqrt);
-    add_builtin("_D4core4math4fabsFNaNbNiNfeZe", &eval_fabs);
-    add_builtin("_D4core4math5expm1FNaNbNiNfeZe", &eval_unimp);
-    add_builtin("_D4core4math4exp21FNaNbNiNfeZe", &eval_unimp);
+    // Look for core.math, core.bitop and std.math
+    if (id2 != Id::math && id2 != Id::bitop)
+        return BUILTINunimp;
 
-    // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D4core4math3sinFNaNbNiNeeZe", &eval_sin);
-    add_builtin("_D4core4math3cosFNaNbNiNeeZe", &eval_cos);
-    add_builtin("_D4core4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D4core4math4sqrtFNaNbNiNeeZe", &eval_sqrt);
-    add_builtin("_D4core4math4fabsFNaNbNiNeeZe", &eval_fabs);
-    add_builtin("_D4core4math5expm1FNaNbNiNeeZe", &eval_unimp);
-    add_builtin("_D4core4math4exp21FNaNbNiNeeZe", &eval_unimp);
+    if (!md->packages)
+        return BUILTINunimp;
+    if (md->packages->length != 1)
+        return BUILTINunimp;
 
-    // @safe @nogc pure nothrow double function(double)
-    add_builtin("_D4core4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
-    // @safe @nogc pure nothrow float function(float)
-    add_builtin("_D4core4math4sqrtFNaNbNiNffZf", &eval_sqrt);
+    const Identifier *id1 = (*md->packages)[0];
+    if (id1 != Id::core && id1 != Id::std)
+        return BUILTINunimp;
+    const Identifier *id3 = fd->ident;
 
-    // @safe @nogc pure nothrow real function(real, real)
-    add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-
-    if (CTFloat::yl2x_supported)
+    if (id1 == Id::core && id2 == Id::bitop)
     {
-        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
-    }
-    else
-    {
-        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
+        if (id3 == Id::bsf)     return BUILTINbsf;
+        if (id3 == Id::bsr)     return BUILTINbsr;
+        if (id3 == Id::bswap)   return BUILTINbswap;
+        if (id3 == Id::_popcnt) return BUILTINpopcnt;
+        return BUILTINunimp;
     }
 
-    if (CTFloat::yl2xp1_supported)
+    // Math
+    if (id3 == Id::sin)   return BUILTINsin;
+    if (id3 == Id::cos)   return BUILTINcos;
+    if (id3 == Id::tan)   return BUILTINtan;
+    if (id3 == Id::atan2) return BUILTINunimp; // N.B unimplmeneted
+
+    if (id3 == Id::_sqrt) return BUILTINsqrt;
+    if (id3 == Id::fabs)  return BUILTINfabs;
+
+    if (id3 == Id::exp)    return BUILTINexp;
+    if (id3 == Id::expm1)  return BUILTINexpm1;
+    if (id3 == Id::exp2)   return BUILTINexp2;
+    if (id3 == Id::yl2x)   return CTFloat::yl2x_supported ? BUILTINyl2x : BUILTINunimp;
+    if (id3 == Id::yl2xp1) return CTFloat::yl2xp1_supported ? BUILTINyl2xp1 : BUILTINunimp;
+
+    if (id3 == Id::log)   return BUILTINlog;
+    if (id3 == Id::log2)  return BUILTINlog2;
+    if (id3 == Id::log10) return BUILTINlog10;
+
+    if (id3 == Id::ldexp) return BUILTINldexp;
+    if (id3 == Id::round) return BUILTINround;
+    if (id3 == Id::floor) return BUILTINfloor;
+    if (id3 == Id::ceil)  return BUILTINceil;
+    if (id3 == Id::trunc) return BUILTINtrunc;
+
+    if (id3 == Id::fmin)     return BUILTINfmin;
+    if (id3 == Id::fmax)     return BUILTINfmax;
+    if (id3 == Id::fma)      return BUILTINfma;
+    if (id3 == Id::copysign) return BUILTINcopysign;
+
+    if (id3 == Id::isnan)      return BUILTINisnan;
+    if (id3 == Id::isInfinity) return BUILTINisinfinity;
+    if (id3 == Id::isfinite)   return BUILTINisfinite;
+
+    // Only match pow(fp,fp) where fp is a floating point type
+    if (id3 == Id::_pow)
     {
-        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
-    }
-    else
-    {
-        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
-    }
-
-    // @safe @nogc pure nothrow long function(real)
-    add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
-
-    // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3sinFNaNbNiNfeZe", &eval_sin);
-    add_builtin("_D3std4math3cosFNaNbNiNfeZe", &eval_cos);
-    add_builtin("_D3std4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D3std4math4sqrtFNaNbNiNfeZe", &eval_sqrt);
-    add_builtin("_D3std4math4fabsFNaNbNiNfeZe", &eval_fabs);
-    add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
-    add_builtin("_D3std4math4exp21FNaNbNiNfeZe", &eval_unimp);
-
-    // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3sinFNaNbNiNeeZe", &eval_sin);
-    add_builtin("_D3std4math3cosFNaNbNiNeeZe", &eval_cos);
-    add_builtin("_D3std4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D3std4math4sqrtFNaNbNiNeeZe", &eval_sqrt);
-    add_builtin("_D3std4math4fabsFNaNbNiNeeZe", &eval_fabs);
-    add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_unimp);
-    add_builtin("_D3std4math4exp21FNaNbNiNeeZe", &eval_unimp);
-
-    // @safe @nogc pure nothrow double function(double)
-    add_builtin("_D3std4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
-    // @safe @nogc pure nothrow float function(float)
-    add_builtin("_D3std4math4sqrtFNaNbNiNffZf", &eval_sqrt);
-
-    // @safe @nogc pure nothrow real function(real, real)
-    add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-
-    if (CTFloat::yl2x_supported)
-    {
-        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
-    }
-    else
-    {
-        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
+        if ((*fd->parameters)[0]->type->isfloating() &&
+            (*fd->parameters)[1]->type->isfloating())
+            return BUILTINpow;
+        return BUILTINunimp;
     }
 
-    if (CTFloat::yl2xp1_supported)
+    if (id3 != Id::toPrec)
+        return BUILTINunimp;
+
+    const char *me = mangleExact(fd);
+    switch (me[strlen("_D4core4math__T6toPrecHT")])
     {
-        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
+        case 'd': return BUILTINtoPrecDouble;
+        case 'e': return BUILTINtoPrecReal;
+        case 'f': return BUILTINtoPrecFloat;
+        default:  assert(false);
     }
-    else
-    {
-        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
-    }
-
-    // @safe @nogc pure nothrow long function(real)
-    add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
-
-    // @safe @nogc pure nothrow int function(uint)
-    add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
-    add_builtin("_D4core5bitop3bsrFNaNbNiNfkZi", &eval_bsr);
-
-    // @safe @nogc pure nothrow int function(ulong)
-    add_builtin("_D4core5bitop3bsfFNaNbNiNfmZi", &eval_bsf);
-    add_builtin("_D4core5bitop3bsrFNaNbNiNfmZi", &eval_bsr);
-
-    // @safe @nogc pure nothrow uint function(uint)
-    add_builtin("_D4core5bitop5bswapFNaNbNiNfkZk", &eval_bswap);
-
-    // @safe @nogc pure nothrow int function(uint)
-    add_builtin("_D4core5bitop7_popcntFNaNbNiNfkZi", &eval_popcnt);
-
-    // @safe @nogc pure nothrow ushort function(ushort)
-    add_builtin("_D4core5bitop7_popcntFNaNbNiNftZt", &eval_popcnt);
-
-    // @safe @nogc pure nothrow int function(ulong)
-    if (global.params.is64bit)
-        add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
-
-    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(float)
-    add_builtin("_D4core4math14__T6toPrecHTfZ6toPrecFNaNbNiNffZf", &eval_toPrecFloat);
-    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(double)
-    add_builtin("_D4core4math14__T6toPrecHTfZ6toPrecFNaNbNiNfdZf", &eval_toPrecFloat);
-    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(real)
-    add_builtin("_D4core4math14__T6toPrecHTfZ6toPrecFNaNbNiNfeZf", &eval_toPrecFloat);
-    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(float)
-    add_builtin("_D4core4math14__T6toPrecHTdZ6toPrecFNaNbNiNffZd", &eval_toPrecDouble);
-    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(double)
-    add_builtin("_D4core4math14__T6toPrecHTdZ6toPrecFNaNbNiNfdZd", &eval_toPrecDouble);
-    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(real)
-    add_builtin("_D4core4math14__T6toPrecHTdZ6toPrecFNaNbNiNfeZd", &eval_toPrecDouble);
-    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(float)
-    add_builtin("_D4core4math14__T6toPrecHTeZ6toPrecFNaNbNiNffZe", &eval_toPrecReal);
-    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(double)
-    add_builtin("_D4core4math14__T6toPrecHTeZ6toPrecFNaNbNiNfdZe", &eval_toPrecReal);
-    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(real)
-    add_builtin("_D4core4math14__T6toPrecHTeZ6toPrecFNaNbNiNfeZe", &eval_toPrecReal);
 }
 
 /**********************************
@@ -336,8 +420,7 @@ BUILTIN isBuiltin(FuncDeclaration *fd)
 {
     if (fd->builtin == BUILTINunknown)
     {
-        builtin_fp fp = builtin_lookup(mangleExact(fd));
-        fd->builtin = fp ? BUILTINyes : BUILTINno;
+        fd->builtin = determine_builtin(fd);
     }
     return fd->builtin;
 }
@@ -349,11 +432,45 @@ BUILTIN isBuiltin(FuncDeclaration *fd)
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments)
 {
-    if (fd->builtin == BUILTINyes)
+    switch (fd->builtin)
     {
-        builtin_fp fp = builtin_lookup(mangleExact(fd));
-        assert(fp);
-        return fp(loc, fd, arguments);
+        case BUILTINunknown:      assert(false);
+        case BUILTINunimp:        return eval_unimp(loc, fd, arguments);
+        case BUILTINgcc:          return eval_unimp(loc, fd, arguments);
+        case BUILTINllvm:         return eval_unimp(loc, fd, arguments);
+        case BUILTINsin:          return eval_sin(loc, fd, arguments);
+        case BUILTINcos:          return eval_cos(loc, fd, arguments);
+        case BUILTINtan:          return eval_tan(loc, fd, arguments);
+        case BUILTINsqrt:         return eval_sqrt(loc, fd, arguments);
+        case BUILTINfabs:         return eval_fabs(loc, fd, arguments);
+        case BUILTINldexp:        return eval_ldexp(loc, fd, arguments);
+        case BUILTINlog:          return eval_log(loc, fd, arguments);
+        case BUILTINlog2:         return eval_log2(loc, fd, arguments);
+        case BUILTINlog10:        return eval_log10(loc, fd, arguments);
+        case BUILTINexp:          return eval_exp(loc, fd, arguments);
+        case BUILTINexpm1:        return eval_expm1(loc, fd, arguments);
+        case BUILTINexp2:         return eval_exp2(loc, fd, arguments);
+        case BUILTINround:        return eval_round(loc, fd, arguments);
+        case BUILTINfloor:        return eval_floor(loc, fd, arguments);
+        case BUILTINceil:         return eval_ceil(loc, fd, arguments);
+        case BUILTINtrunc:        return eval_trunc(loc, fd, arguments);
+        case BUILTINcopysign:     return eval_copysign(loc, fd, arguments);
+        case BUILTINpow:          return eval_pow(loc, fd, arguments);
+        case BUILTINfmin:         return eval_fmin(loc, fd, arguments);
+        case BUILTINfmax:         return eval_fmax(loc, fd, arguments);
+        case BUILTINfma:          return eval_fma(loc, fd, arguments);
+        case BUILTINisnan:        return eval_isnan(loc, fd, arguments);
+        case BUILTINisinfinity:   return eval_isinfinity(loc, fd, arguments);
+        case BUILTINisfinite:     return eval_isfinite(loc, fd, arguments);
+        case BUILTINbsf:          return eval_bsf(loc, fd, arguments);
+        case BUILTINbsr:          return eval_bsr(loc, fd, arguments);
+        case BUILTINbswap:        return eval_bswap(loc, fd, arguments);
+        case BUILTINpopcnt:       return eval_popcnt(loc, fd, arguments);
+        case BUILTINyl2x:         return eval_yl2x(loc, fd, arguments);
+        case BUILTINyl2xp1:       return eval_yl2xp1(loc, fd, arguments);
+        case BUILTINtoPrecFloat:  return eval_toPrecFloat(loc, fd, arguments);
+        case BUILTINtoPrecDouble: return eval_toPrecDouble(loc, fd, arguments);
+        case BUILTINtoPrecReal:   return eval_toPrecReal(loc, fd, arguments);
+        default:                    assert(false);
     }
-    return NULL;
 }

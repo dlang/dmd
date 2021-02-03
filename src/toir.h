@@ -19,4 +19,5 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd);
 elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad);
 int intrinsic_op(FuncDeclaration *fd);
 elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1);
+#define NotIntrinsic (-1)
 #define OPtoPrec (OPMAX + 1)
