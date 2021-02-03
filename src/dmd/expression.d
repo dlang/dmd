@@ -6710,7 +6710,7 @@ extern (C++) final class CondExp : BinExp
                     {
                         if (!vcond)
                         {
-                            vcond = copyToTemp(STC.volatile_, "__cond", ce.econd);
+                            vcond = copyToTemp(STC.volatile_ | STC.const_, "__cond", ce.econd);
                             vcond.dsymbolSemantic(sc);
 
                             Expression de = new DeclarationExp(ce.econd.loc, vcond);
