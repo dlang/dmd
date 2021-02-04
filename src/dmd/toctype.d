@@ -206,7 +206,10 @@ public:
                 // https://issues.dlang.org/show_bug.cgi?id=13792
                 t.ctype = Type_toCtype(Type.tvoid);
             }
-            else if (sym.ident == Id.__c_long)
+            else if (sym.ident == Id.__c_long ||
+                     sym.ident == Id.__c_complex_float ||
+                     sym.ident == Id.__c_complex_double ||
+                     sym.ident == Id.__c_complex_real)
             {
                 t.ctype = type_fake(totym(t));
                 t.ctype.Tcount++;

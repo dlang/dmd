@@ -5729,6 +5729,29 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
     //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOK.blit, sym, fillHoles);
 
+    Type forcetype = null;
+    if (sle.stype)
+    {
+        if (TypeEnum te = sle.stype.isTypeEnum())
+        {
+            // Reinterpret the struct literal as a complex type.
+            if (te.sym.isSpecial() &&
+                (te.sym.ident == Id.__c_complex_float ||
+                 te.sym.ident == Id.__c_complex_double ||
+                 te.sym.ident == Id.__c_complex_real))
+            {
+                forcetype = sle.stype;
+            }
+        }
+    }
+
+    static elem* Lreinterpret(Loc loc, elem* e, Type type)
+    {
+        elem* ep = el_una(OPind, totym(type), el_una(OPaddr, TYnptr, e));
+        elem_setLoc(ep, loc);
+        return ep;
+    }
+
     if (sle.useStaticInit)
     {
         /* Use the struct declaration's init symbol
@@ -5750,6 +5773,8 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
             //e = el_combine(e, ev);
             elem_setLoc(e, sle.loc);
         }
+        if (forcetype)
+            return Lreinterpret(sle.loc, e, forcetype);
         return e;
     }
 
@@ -5932,6 +5957,8 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
     ev.ET = Type_toCtype(sle.sd.type);
     e = el_combine(e, ev);
     elem_setLoc(e, sle.loc);
+    if (forcetype)
+        return Lreinterpret(sle.loc, e, forcetype);
     return e;
 }
 

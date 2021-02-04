@@ -1,23 +1,44 @@
 // https://issues.dlang.org/show_bug.cgi?id=21515
 // EXTRA_CPP_SOURCES: test21515.cpp
 // DISABLED: win32 win64
-extern(C) cfloat  ccomplexf();
-extern(C) cdouble ccomplex();
-extern(C) creal   ccomplexl();
-extern(C) void    ccomplexf2(cfloat c);
-extern(C) void    ccomplex2(cdouble c);
-extern(C) void    ccomplexl2(creal c);
 
-extern(C++) cfloat  cpcomplexf();
-extern(C++) cdouble cpcomplex();
-extern(C++) creal   cpcomplexl();
-extern(C++) void    cpcomplexf(cfloat c);
-extern(C++) void    cpcomplex(cdouble c);
-extern(C++) void    cpcomplexl(creal c);
+// ABI layout of native complex
+struct _Complex(T) { T re; T im; }
 
-struct wrap_complexf { cfloat c; alias c this; };
-struct wrap_complex  { cdouble c; alias c this; };
-struct wrap_complexl { creal c; alias c this; };
+// Special enum definitions.
+version (Posix)
+{
+    align(float.alignof)  enum __c_complex_float : _Complex!float;
+    align(double.alignof) enum __c_complex_double : _Complex!double;
+    align(real.alignof)   enum __c_complex_real : _Complex!real;
+}
+else
+{
+    align(float.sizeof * 2)  enum __c_complex_float : _Complex!float;
+    align(double.sizeof * 2) enum __c_complex_double : _Complex!double;
+    align(real.alignof)      enum __c_complex_real : _Complex!real;
+}
+alias complex_float = __c_complex_float;
+alias complex_double = __c_complex_double;
+alias complex_real = __c_complex_real;
+
+extern(C) complex_float  ccomplexf();
+extern(C) complex_double ccomplex();
+extern(C) complex_real   ccomplexl();
+extern(C) void           ccomplexf2(complex_float c);
+extern(C) void           ccomplex2(complex_double c);
+extern(C) void           ccomplexl2(complex_real c);
+
+extern(C++) complex_float  cpcomplexf();
+extern(C++) complex_double cpcomplex();
+extern(C++) complex_real   cpcomplexl();
+extern(C++) void           cpcomplexf(complex_float c);
+extern(C++) void           cpcomplex(complex_double c);
+extern(C++) void           cpcomplexl(complex_real c);
+
+struct wrap_complexf { complex_float c; alias c this; };
+struct wrap_complex  { complex_double c; alias c this; };
+struct wrap_complexl { complex_real c; alias c this; };
 
 extern(C++) wrap_complexf wcomplexf();
 extern(C++) wrap_complex  wcomplex();
