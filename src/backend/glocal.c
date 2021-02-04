@@ -153,6 +153,7 @@ Loop:
 
         case OPeq:
         case OPstreq:
+        case OPvecsto:
             e1 = e->E1;
             local_exp(e->E2,1);
             if (e1->Eoper == OPvar)

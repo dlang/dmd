@@ -1213,7 +1213,6 @@ Language changes listed by -transition=id:\n\
     target._init(global.params);
     Expression::_init();
     Objc::_init();
-    builtin_init();
 
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0.ptr);

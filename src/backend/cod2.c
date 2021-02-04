@@ -1828,26 +1828,48 @@ code *cdcom(elem *e,regm_t *pretregs)
  */
 
 code *cdbswap(elem *e,regm_t *pretregs)
-{   unsigned reg,op;
-    regm_t retregs;
-    code *c,*c1,*cg;
-    tym_t tym;
-    int sz;
-
+{
     if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
 
-    tym = tybasic(e->Ety);
-    assert(tysize[tym] == 4);
-    retregs = *pretregs & allregs;
+    const tym_t tym = tybasic(e->Ety);
+    const int sz = tysize[tym];
+    const regm_t posregs = (sz == 2) ? BYTEREGS : allregs;
+    regm_t retregs = *pretregs & allregs;
     if (retregs == 0)
-        retregs = allregs;
-    c1 = codelem(e->E1,&retregs,FALSE);
-    cg = getregs(retregs);              // retregs will be destroyed
-    reg = findreg(retregs);
-    c = gen2(CNIL,0x0FC8 + (reg & 7),0);      // BSWAP reg
-    if (reg & 8)
-        code_orrex(c, REX_B);
+        retregs = posregs;
+    code *c1 = codelem(e->E1,&retregs,FALSE);
+    code *cg = getregs(retregs);        // retregs will be destroyed
+    code *c = CNIL;
+    if (sz == 2 * REGSIZE)
+    {
+        assert(sz != 16);                        // no cent support yet
+        const unsigned msreg = findregmsw(retregs);
+        c = gen1(c,0x0FC8 + (msreg & 7));         // BSWAP msreg
+        const unsigned lsreg = findreglsw(retregs);
+        c = gen1(c,0x0FC8 + (lsreg & 7));         // BSWAP lsreg
+        c = gen2(c,0x87,modregrm(3,msreg,lsreg)); // XCHG msreg,lsreg
+    }
+    else
+    {
+        const unsigned reg = findreg(retregs);
+        if (sz == 2)
+        {
+            c = genregs(c,0x86,reg+4,reg);    // XCHG regL,regH
+        }
+        else
+        {
+            assert(sz == 4 || sz == 8);
+            c = gen1(c,0x0FC8 + (reg & 7));      // BSWAP reg
+            unsigned rex = 0;
+            if (sz == 8)
+                rex |= REX_W;
+            if (reg & 8)
+                rex |= REX_B;
+            if (rex)
+                code_orrex(c, rex);
+        }
+    }
     return cat4(c1,cg,c,fixresult(e,retregs,pretregs));
 }
 

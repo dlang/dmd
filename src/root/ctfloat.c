@@ -18,6 +18,13 @@
 #include <string.h>
 #include <errno.h>
 
+// Macros conflict with CTFloat members
+#undef sin
+#undef cos
+#undef sqrt
+#undef fabs
+#undef ldexp
+
 real_t CTFloat::zero = real_t(0);
 real_t CTFloat::one = real_t(1);
 real_t CTFloat::minusone = real_t(-1);
@@ -34,42 +41,6 @@ void CTFloat::yl2x(const real_t* x, const real_t* y, real_t* res)
 void CTFloat::yl2xp1(const real_t* x, const real_t* y, real_t* res)
 {
     *res = _inline_yl2xp1(*x, *y);
-}
-
-real_t CTFloat::sqrt(real_t x)
-{
-    return ::sqrtl(x);
-}
-
-real_t CTFloat::fabs(real_t x)
-{
-    return ::fabsl(x);
-}
-
-bool CTFloat::isIdentical(real_t x, real_t y)
-{
-    /* In some cases, the REALPAD bytes get garbage in them,
-     * so be sure and ignore them.
-     */
-    return memcmp(&x, &y, 10) == 0;
-}
-
-bool CTFloat::isNaN(real_t r)
-{
-    return ::isnan(r);
-}
-
-bool CTFloat::isSNaN(real_t r)
-{
-    /* A signalling NaN is a NaN with 0 as the most significant bit of
-     * its significand, which is bit 62 of 0..79 for 80 bit reals.
-     */
-    return isNaN(r) && !((((unsigned char*)&r)[7]) & 0x40);
-}
-
-bool CTFloat::isInfinity(real_t r)
-{
-    return (::fpclassify(r) == FP_INFINITE);
 }
 
 extern "C" const char * __cdecl __locale_decpoint;
@@ -111,7 +82,7 @@ size_t CTFloat::hash(real_t a)
     return calcHash((uint8_t *) &a, sz);
 }
 
-#endif
+#endif // __DMC__
 
 #if _MSC_VER
 
@@ -197,42 +168,6 @@ void CTFloat::yl2xp1(const real_t* x, const real_t* y, real_t* res)
 
 #endif
 
-real_t CTFloat::sqrt(real_t x)
-{
-    return ::sqrtl(x);
-}
-
-real_t CTFloat::fabs(real_t x)
-{
-    return ::fabsl(x);
-}
-
-bool CTFloat::isIdentical(real_t x, real_t y)
-{
-    /* In some cases, the REALPAD bytes get garbage in them,
-     * so be sure and ignore them.
-     */
-    return memcmp(&x, &y, 10) == 0;
-}
-
-bool CTFloat::isNaN(real_t r)
-{
-    return ::_isnan(r);
-}
-
-bool CTFloat::isSNaN(real_t r)
-{
-    /* MSVC doesn't have 80 bit long doubles
-     */
-    double rv = (double) r;
-    return isNaN(rv) && !((((unsigned char*)&rv)[6]) & 8);
-}
-
-bool CTFloat::isInfinity(real_t r)
-{
-    return (::_fpclass(r) & (_FPCLASS_NINF | _FPCLASS_PINF));
-}
-
 // from backend/strtold.c, renamed to avoid clash with decl in stdlib.h
 longdouble strtold_dm(const char *p, char **endp);
 
@@ -259,7 +194,7 @@ size_t CTFloat::hash(real_t a)
     return calcHash((uint8_t *) &a, sz);
 }
 
-#endif
+#endif // _MSC_VER
 
 #if __MINGW32__
 
@@ -305,42 +240,6 @@ void CTFloat::yl2xp1(const real_t* x, const real_t* y, real_t* res)
 }
 #endif
 
-real_t CTFloat::sqrt(real_t x)
-{
-    return ::sqrtl(x);
-}
-
-real_t CTFloat::fabs(real_t x)
-{
-    return ::fabsl(x);
-}
-
-bool CTFloat::isIdentical(real_t x, real_t y)
-{
-    /* In some cases, the REALPAD bytes get garbage in them,
-     * so be sure and ignore them.
-     */
-    return memcmp(&x, &y, 10) == 0;
-}
-
-bool CTFloat::isNaN(real_t r)
-{
-    return isnan(r);
-}
-
-bool CTFloat::isSNaN(real_t r)
-{
-    /* A signalling NaN is a NaN with 0 as the most significant bit of
-     * its significand, which is bit 62 of 0..79 for 80 bit reals.
-     */
-    return isNaN(r) && !((((unsigned char*)&r)[7]) & 0x40);
-}
-
-bool CTFloat::isInfinity(real_t r)
-{
-    return isinf(r);
-}
-
 real_t CTFloat::parse(const char *literal, bool *isOutOfRange)
 {
     real_t r = ::__mingw_strtold(literal, NULL);
@@ -381,7 +280,7 @@ size_t CTFloat::hash(real_t a)
     return calcHash((uint8_t *) &a, sz);
 }
 
-#endif
+#endif // __MINGW32__
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
@@ -430,54 +329,6 @@ void CTFloat::yl2xp1(const real_t* x, const real_t* y, real_t* res)
 }
 #endif
 
-real_t CTFloat::sqrt(real_t x)
-{
-    return ::sqrtl(x);
-}
-
-real_t CTFloat::fabs(real_t x)
-{
-    return ::fabsl(x);
-}
-
-bool CTFloat::isIdentical(real_t x, real_t y)
-{
-    /* In some cases, the REALPAD bytes get garbage in them,
-     * so be sure and ignore them.
-     */
-    return memcmp(&x, &y, 10) == 0;
-}
-
-bool CTFloat::isNaN(real_t r)
-{
-#if __APPLE__
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
-    return __inline_isnanl(r);
-#else
-    return __inline_isnan(r);
-#endif
-#else
-    return isnan(r);
-#endif
-}
-
-bool CTFloat::isSNaN(real_t r)
-{
-    /* A signalling NaN is a NaN with 0 as the most significant bit of
-     * its significand, which is bit 62 of 0..79 for 80 bit reals.
-     */
-    return isNaN(r) && !((((unsigned char*)&r)[7]) & 0x40);
-}
-
-bool CTFloat::isInfinity(real_t r)
-{
-#if __APPLE__
-    return fpclassify(r) == FP_INFINITE;
-#else
-    return isinf(r);
-#endif
-}
-
 real_t CTFloat::parse(const char *literal, bool *isOutOfRange)
 {
     real_t r = ::strtold(literal, NULL);
@@ -512,7 +363,7 @@ size_t CTFloat::hash(real_t a)
     return calcHash((uint8_t *) &a, sz);
 }
 
-#endif
+#endif // __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
 #if __sun
 
@@ -607,42 +458,6 @@ void CTFloat::yl2xp1(const real_t* x, const real_t* y, real_t* res)
 }
 #endif
 
-real_t CTFloat::sqrt(real_t x)
-{
-    return ::sqrtl(x);
-}
-
-real_t CTFloat::fabs(real_t x)
-{
-    return ::fabsl(x);
-}
-
-bool CTFloat::isIdentical(real_t x, real_t y)
-{
-    /* In some cases, the REALPAD bytes get garbage in them,
-     * so be sure and ignore them.
-     */
-    return memcmp(&x, &y, 10) == 0;
-}
-
-bool CTFloat::isNaN(real_t r)
-{
-    return isnan(r);
-}
-
-bool CTFloat::isSNaN(real_t r)
-{
-    /* A signalling NaN is a NaN with 0 as the most significant bit of
-     * its significand, which is bit 62 of 0..79 for 80 bit reals.
-     */
-    return isNaN(r) && !((((unsigned char*)&r)[7]) & 0x40);
-}
-
-bool CTFloat::isInfinity(real_t r)
-{
-    return isinf(r);
-}
-
 real_t CTFloat::parse(const char *literal, bool *isOutOfRange)
 {
     real_t r = ::strtold(literal, NULL);
@@ -677,4 +492,59 @@ size_t CTFloat::hash(real_t a)
     return calcHash((uint8_t *) &a, sz);
 }
 
+#endif // __sun
+
+real_t CTFloat::sin(real_t x) { return sinl(x); }
+real_t CTFloat::cos(real_t x) { return cosl(x); }
+real_t CTFloat::tan(real_t x) { return tanl(x); }
+real_t CTFloat::sqrt(real_t x) { return sqrtl(x); }
+real_t CTFloat::fabs(real_t x) { return fabsl(x); }
+real_t CTFloat::ldexp(real_t n, int exp) { return ldexpl(n, exp); }
+
+real_t CTFloat::round(real_t x) { return roundl(x); }
+real_t CTFloat::floor(real_t x) { return floorl(x); }
+real_t CTFloat::ceil(real_t x) { return ceill(x); }
+real_t CTFloat::trunc(real_t x) { return truncl(x); }
+real_t CTFloat::log(real_t x) { return logl(x); }
+real_t CTFloat::log2(real_t x) { return log2l(x); }
+real_t CTFloat::log10(real_t x) { return log10l(x); }
+real_t CTFloat::pow(real_t x, real_t y) { return powl(x, y); }
+real_t CTFloat::exp(real_t x) { return expl(x); }
+real_t CTFloat::expm1(real_t x) { return expm1l(x); }
+real_t CTFloat::exp2(real_t x) { return exp2l(x); }
+real_t CTFloat::copysign(real_t x, real_t s) { return copysignl(x, s); }
+
+real_t CTFloat::fmin(real_t x, real_t y) { return x < y ? x : y; }
+real_t CTFloat::fmax(real_t x, real_t y) { return x > y ? x : y; }
+
+real_t CTFloat::fma(real_t x, real_t y, real_t z) { return (x * y) + z; }
+
+bool CTFloat::isIdentical(real_t x, real_t y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
+}
+
+bool CTFloat::isNaN(real_t r)
+{
+    return !(r == r);
+}
+
+bool CTFloat::isSNaN(real_t r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 62 of 0..79 for 80 bit reals.
+     */
+    return isNaN(r) && !((((unsigned char*)&r)[7]) & 0x40);
+}
+
+bool CTFloat::isInfinity(real_t r)
+{
+#if defined(__GNUC__) || defined(__clang__)
+    return isIdentical(fabs(r), std::numeric_limits<real_t>::infinity());
+#else
+    return isIdentical(fabs(r), INFINITY);
 #endif
+}
