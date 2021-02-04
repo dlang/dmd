@@ -179,10 +179,12 @@ public:
     AssocArray!(Type, size_t) types;        // Type => (offset+1) in buf
     AssocArray!(Identifier, size_t) idents; // Identifier => (offset+1) in buf
     OutBuffer* buf;
+    Type rootType;
 
-    extern (D) this(OutBuffer* buf)
+    extern (D) this(OutBuffer* buf, Type rootType = null)
     {
         this.buf = buf;
+        this.rootType = rootType;
     }
 
     /**
@@ -228,9 +230,29 @@ public:
     */
     bool backrefType(Type t)
     {
-        if (!t.isTypeBasic())
-            return backrefImpl(types, t);
-        return false;
+        if (t.isTypeBasic())
+            return false;
+
+        /**
+         * https://issues.dlang.org/show_bug.cgi?id=21591
+         *
+         * Special case for unmerged TypeFunctions: use the generic merged
+         * function type as backref cache key to avoid missed backrefs.
+         *
+         * Merging is based on mangling, so we need to avoid an infinite
+         * recursion by excluding the case where `t` is the root type passed to
+         * `mangleToBuffer()`.
+         */
+        if (t != rootType)
+        {
+            if (t.ty == Tfunction || t.ty == Tdelegate ||
+                (t.ty == Tpointer && t.nextOf().ty == Tfunction))
+            {
+                t = t.merge2();
+            }
+        }
+
+        return backrefImpl(types, t);
     }
 
     /**
@@ -1178,7 +1200,7 @@ extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
         buf.writestring(t.deco);
     else
     {
-        scope Mangler v = new Mangler(buf);
+        scope Mangler v = new Mangler(buf, t);
         v.visitWithMask(t, 0);
     }
 }
