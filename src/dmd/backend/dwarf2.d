@@ -258,33 +258,32 @@ enum
 
 enum
 {
-        DW_FORM_addr         = 0x01,
-        DW_FORM_block2       = 0x03,
-        DW_FORM_block4       = 0x04,
-        DW_FORM_data2        = 0x05,
-        DW_FORM_data4        = 0x06,
-        DW_FORM_data8        = 0x07,
-        DW_FORM_string       = 0x08,
-        DW_FORM_block        = 0x09,
-        DW_FORM_block1       = 0x0A,
-        DW_FORM_data1        = 0x0B,
-        DW_FORM_flag         = 0x0C,
-        DW_FORM_sdata        = 0x0D,
-        DW_FORM_strp         = 0x0E,
-        DW_FORM_udata        = 0x0F,
-        DW_FORM_ref_addr     = 0x10,
-        DW_FORM_ref1         = 0x11,
-        DW_FORM_ref2         = 0x12,
-        DW_FORM_ref4         = 0x13,
-        DW_FORM_ref8         = 0x14,
-        DW_FORM_ref_udata    = 0x15,
-        DW_FORM_indirect     = 0x16,
+        DW_FORM_addr                    = 0x01,
+        DW_FORM_block2                  = 0x03,
+        DW_FORM_block4                  = 0x04,
+        DW_FORM_data2                   = 0x05,
+        DW_FORM_data4                   = 0x06,
+        DW_FORM_data8                   = 0x07,
+        DW_FORM_string                  = 0x08,
+        DW_FORM_block                   = 0x09,
+        DW_FORM_block1                  = 0x0A,
+        DW_FORM_data1                   = 0x0B,
+        DW_FORM_flag                    = 0x0C,
+        DW_FORM_sdata                   = 0x0D,
+        DW_FORM_strp                    = 0x0E,
+        DW_FORM_udata                   = 0x0F,
+        DW_FORM_ref_addr                = 0x10,
+        DW_FORM_ref1                    = 0x11,
+        DW_FORM_ref2                    = 0x12,
+        DW_FORM_ref4                    = 0x13,
+        DW_FORM_ref8                    = 0x14,
+        DW_FORM_ref_udata               = 0x15,
+        DW_FORM_indirect                = 0x16,
 
         /* DWARF v4 */
-        DW_FORM_sec_offset   = 0x17,
-        DW_FORM_exprloc      = 0x18,
-        DW_FORM_flag_present = 0x19,
-        DW_FORM_ref_sig8     = 0x20,
+        DW_FORM_sec_offset              = 0x17,
+        DW_FORM_exprloc                 = 0x18,
+        DW_FORM_flag_present            = 0x19,
 
         /* DWARF v5 */
         DW_FORM_strx                    = 0x1a,
@@ -293,6 +292,9 @@ enum
         DW_FORM_strp_sup                = 0x1d,
         DW_FORM_data16                  = 0x1e,
         DW_FORM_line_strp               = 0x1f,
+
+        /* DWARF v4 */
+        DW_FORM_ref_sig8                = 0x20,
 
         /* DWARF v5 */
         DW_FORM_implicit_const          = 0x21,
@@ -311,81 +313,80 @@ enum
 
 enum
 {
-        DW_OP_addr      = 0x03,
-        DW_OP_deref     = 0x06,
-        DW_OP_const1u   = 0x08,
-        DW_OP_const1s   = 0x09,
-        DW_OP_const2u   = 0x0a,
-        DW_OP_const2s   = 0x0b,
-        DW_OP_const4u   = 0x0c,
-        DW_OP_const4s   = 0x0d,
-        DW_OP_const8u   = 0x0e,
-        DW_OP_const8s   = 0x0f,
-        DW_OP_constu    = 0x10,
-        DW_OP_consts    = 0x11,
-        DW_OP_dup       = 0x12,
-        DW_OP_drop      = 0x13,
-        DW_OP_over      = 0x14,
-        DW_OP_pick      = 0x15,
-        DW_OP_swap      = 0x16,
-        DW_OP_rot       = 0x17,
-        DW_OP_xderef    = 0x18,
-        DW_OP_abs       = 0x19,
-        DW_OP_and       = 0x1a,
-        DW_OP_div       = 0x1b,
-        DW_OP_minus     = 0x1c,
-        DW_OP_mod       = 0x1d,
-        DW_OP_mul       = 0x1e,
-        DW_OP_neg       = 0x1f,
-        DW_OP_not       = 0x20,
-        DW_OP_or        = 0x21,
-        DW_OP_plus      = 0x22,
-        DW_OP_plus_uconst = 0x23,
-        DW_OP_shl       = 0x24,
-        DW_OP_shr       = 0x25,
-        DW_OP_shra      = 0x26,
-        DW_OP_xor       = 0x27,
-        DW_OP_skip      = 0x2f,
-        DW_OP_bra       = 0x28,
-        DW_OP_eq        = 0x29,
-        DW_OP_ge        = 0x2a,
-
-        DW_OP_gt        = 0x2b,
-        DW_OP_le        = 0x2c,
-        DW_OP_lt        = 0x2d,
-        DW_OP_ne        = 0x2e,
-        DW_OP_lit0      = 0x30,
-        DW_OP_lit1      = 0x31,
-        DW_OP_lit31     = 0x4f,
-        DW_OP_reg0      = 0x50,
-        DW_OP_reg1      = 0x51,
-        DW_OP_reg31     = 0x6f,
-        DW_OP_breg0     = 0x70,
-        DW_OP_breg1     = 0x71,
-        DW_OP_breg31    = 0x8f,
-        DW_OP_regx      = 0x90,
-        DW_OP_fbreg     = 0x91,
-        DW_OP_bregx     = 0x92,
-        DW_OP_piece     = 0x93,
-        DW_OP_deref_size        = 0x94,
-        DW_OP_xderef_size       = 0x95,
-        DW_OP_nop               = 0x96,
+        DW_OP_addr                      = 0x03,
+        DW_OP_deref                     = 0x06,
+        DW_OP_const1u                   = 0x08,
+        DW_OP_const1s                   = 0x09,
+        DW_OP_const2u                   = 0x0a,
+        DW_OP_const2s                   = 0x0b,
+        DW_OP_const4u                   = 0x0c,
+        DW_OP_const4s                   = 0x0d,
+        DW_OP_const8u                   = 0x0e,
+        DW_OP_const8s                   = 0x0f,
+        DW_OP_constu                    = 0x10,
+        DW_OP_consts                    = 0x11,
+        DW_OP_dup                       = 0x12,
+        DW_OP_drop                      = 0x13,
+        DW_OP_over                      = 0x14,
+        DW_OP_pick                      = 0x15,
+        DW_OP_swap                      = 0x16,
+        DW_OP_rot                       = 0x17,
+        DW_OP_xderef                    = 0x18,
+        DW_OP_abs                       = 0x19,
+        DW_OP_and                       = 0x1a,
+        DW_OP_div                       = 0x1b,
+        DW_OP_minus                     = 0x1c,
+        DW_OP_mod                       = 0x1d,
+        DW_OP_mul                       = 0x1e,
+        DW_OP_neg                       = 0x1f,
+        DW_OP_not                       = 0x20,
+        DW_OP_or                        = 0x21,
+        DW_OP_plus                      = 0x22,
+        DW_OP_plus_uconst               = 0x23,
+        DW_OP_shl                       = 0x24,
+        DW_OP_shr                       = 0x25,
+        DW_OP_shra                      = 0x26,
+        DW_OP_xor                       = 0x27,
+        DW_OP_skip                      = 0x2f,
+        DW_OP_bra                       = 0x28,
+        DW_OP_eq                        = 0x29,
+        DW_OP_ge                        = 0x2a,
+        DW_OP_gt                        = 0x2b,
+        DW_OP_le                        = 0x2c,
+        DW_OP_lt                        = 0x2d,
+        DW_OP_ne                        = 0x2e,
+        DW_OP_lit0                      = 0x30,
+        DW_OP_lit1                      = 0x31,
+        // ...
+        DW_OP_lit31                     = 0x4f,
+        DW_OP_reg0                      = 0x50,
+        DW_OP_reg1                      = 0x51,
+        // ...
+        DW_OP_reg31                     = 0x6f,
+        DW_OP_breg0                     = 0x70,
+        DW_OP_breg1                     = 0x71,
+        // ...
+        DW_OP_breg31                    = 0x8f,
+        DW_OP_regx                      = 0x90,
+        DW_OP_fbreg                     = 0x91,
+        DW_OP_bregx                     = 0x92,
+        DW_OP_piece                     = 0x93,
+        DW_OP_deref_size                = 0x94,
+        DW_OP_xderef_size               = 0x95,
+        DW_OP_nop                       = 0x96,
 
         /* DWARF v3 */
-        DW_OP_push_object_address = 0x97,
-        DW_OP_call2             = 0x98,
-        DW_OP_call4             = 0x99,
-        DW_OP_call_ref          = 0x9a,
-        DW_OP_form_tls_address  = 0x9b,
-        DW_OP_call_frame_cfa    = 0x9c,
-        DW_OP_bit_piece         = 0x9d,
+        DW_OP_push_object_address       = 0x97,
+        DW_OP_call2                     = 0x98,
+        DW_OP_call4                     = 0x99,
+        DW_OP_call_ref                  = 0x9a,
+        DW_OP_form_tls_address          = 0x9b,
+        DW_OP_call_frame_cfa            = 0x9c,
+        DW_OP_bit_piece                 = 0x9d,
 
         /* DWARF v4 */
-        DW_OP_implicit_value    = 0x9e,
-        DW_OP_stack_value       = 0x9f,
-
-        DW_OP_lo_user   = 0xe0,
-        DW_OP_hi_user   = 0xff,
+        DW_OP_implicit_value            = 0x9e,
+        DW_OP_stack_value               = 0x9f,
 
         /* DWARF v5 */
         DW_OP_implicit_pointer          = 0xa0,
@@ -400,38 +401,41 @@ enum
         DW_OP_reinterpret               = 0xa9,
 
         /* GNU extensions. */
-        DW_OP_GNU_push_tls_address = 0xe0,
+        DW_OP_GNU_push_tls_address      = 0xe0,
+
+        DW_OP_lo_user                   = 0xe0,
+        DW_OP_hi_user                   = 0xff,
 }
 
 enum
 {
-        DW_ATE_address          = 0x01,
-        DW_ATE_boolean          = 0x02,
-        DW_ATE_complex_float    = 0x03,
-        DW_ATE_float            = 0x04,
-        DW_ATE_signed           = 0x05,
-        DW_ATE_signed_char      = 0x06,
-        DW_ATE_unsigned         = 0x07,
-        DW_ATE_unsigned_char    = 0x08,
+        DW_ATE_address                  = 0x01,
+        DW_ATE_boolean                  = 0x02,
+        DW_ATE_complex_float            = 0x03,
+        DW_ATE_float                    = 0x04,
+        DW_ATE_signed                   = 0x05,
+        DW_ATE_signed_char              = 0x06,
+        DW_ATE_unsigned                 = 0x07,
+        DW_ATE_unsigned_char            = 0x08,
 
         /* DWARF v3 */
-        DW_ATE_imaginary_float  = 0x09,
-        DW_ATE_packed_decimal   = 0x0a,
-        DW_ATE_numeric_string   = 0x0b,
-        DW_ATE_editted          = 0x0c,
-        DW_ATE_signed_fixed     = 0x0d,
-        DW_ATE_unsigned_fixed   = 0x0e,
-        DW_ATE_decimal_float    = 0x0f,
+        DW_ATE_imaginary_float          = 0x09,
+        DW_ATE_packed_decimal           = 0x0a,
+        DW_ATE_numeric_string           = 0x0b,
+        DW_ATE_edited                   = 0x0c,
+        DW_ATE_signed_fixed             = 0x0d,
+        DW_ATE_unsigned_fixed           = 0x0e,
+        DW_ATE_decimal_float            = 0x0f,
 
         /* DWARF v4 */
-        DW_ATE_UTF              = 0x10,
+        DW_ATE_UTF                      = 0x10,
 
         /* DWARF v5 */
         DW_ATE_UCS                      = 0x11,
         DW_ATE_ASCII                    = 0x12,
 
-        DW_ATE_lo_user          = 0x80,
-        DW_ATE_hi_user          = 0xff,
+        DW_ATE_lo_user                  = 0x80,
+        DW_ATE_hi_user                  = 0xff,
 }
 
 enum
@@ -459,25 +463,25 @@ enum
 
 enum
 {
-        DW_END_default  = 0x00,
-        DW_END_big      = 0x01,
-        DW_END_little   = 0x02,
-        DW_END_lo_user  = 0x40,
-        DW_END_hi_user  = 0xff,
+        DW_END_default                  = 0x00,
+        DW_END_big                      = 0x01,
+        DW_END_little                   = 0x02,
+        DW_END_lo_user                  = 0x40,
+        DW_END_hi_user                  = 0xff,
 }
 
 enum
 {
-        DW_ACCESS_public        = 0x01,
-        DW_ACCESS_protected     = 0x02,
-        DW_ACCESS_private       = 0x03,
+        DW_ACCESS_public                = 0x01,
+        DW_ACCESS_protected             = 0x02,
+        DW_ACCESS_private               = 0x03,
 }
 
 enum
 {
-        DW_VIS_local            = 0x01,
-        DW_VIS_exported         = 0x02,
-        DW_VIS_qualified        = 0x03,
+        DW_VIS_local                    = 0x01,
+        DW_VIS_exported                 = 0x02,
+        DW_VIS_qualified                = 0x03,
 }
 
 enum
@@ -489,27 +493,25 @@ enum
 
 enum
 {
-        DW_LANG_C89             = 0x0001,
-        DW_LANG_C               = 0x0002,
-        DW_LANG_Ada83           = 0x0003,
-        DW_LANG_C_plus_plus     = 0x0004,
-        DW_LANG_Cobol74         = 0x0005,
-        DW_LANG_Cobol85         = 0x0006,
-        DW_LANG_Fortran77       = 0x0007,
-        DW_LANG_Fortran90       = 0x0008,
-        DW_LANG_Pascal83        = 0x0009,
-        DW_LANG_Modula2         = 0x000a,
-        DW_LANG_Java            = 0x000b,
-        DW_LANG_C99             = 0x000c,
-        DW_LANG_Ada95           = 0x000d,
-        DW_LANG_Fortran95       = 0x000e,
-        DW_LANG_PLI             = 0x000f,
-        DW_LANG_ObjC            = 0x0010,
-        DW_LANG_ObjC_plus_plus  = 0x0011,
-        DW_LANG_UPC             = 0x0012,
-        DW_LANG_D               = 0x0013,
-        DW_LANG_lo_user         = 0x8000,
-        DW_LANG_hi_user         = 0xffff,
+        DW_LANG_C89                     = 0x0001,
+        DW_LANG_C                       = 0x0002,
+        DW_LANG_Ada83                   = 0x0003,
+        DW_LANG_C_plus_plus             = 0x0004,
+        DW_LANG_Cobol74                 = 0x0005,
+        DW_LANG_Cobol85                 = 0x0006,
+        DW_LANG_Fortran77               = 0x0007,
+        DW_LANG_Fortran90               = 0x0008,
+        DW_LANG_Pascal83                = 0x0009,
+        DW_LANG_Modula2                 = 0x000a,
+        DW_LANG_Java                    = 0x000b,
+        DW_LANG_C99                     = 0x000c,
+        DW_LANG_Ada95                   = 0x000d,
+        DW_LANG_Fortran95               = 0x000e,
+        DW_LANG_PLI                     = 0x000f,
+        DW_LANG_ObjC                    = 0x0010,
+        DW_LANG_ObjC_plus_plus          = 0x0011,
+        DW_LANG_UPC                     = 0x0012,
+        DW_LANG_D                       = 0x0013,
         DW_LANG_Python                  = 0x0014,
 
         /* DWARF v5 */
@@ -530,28 +532,31 @@ enum
         DW_LANG_Fortran08               = 0x0023,
         DW_LANG_RenderScript            = 0x0024,
         DW_LANG_BLISS                   = 0x0025,
+
+        DW_LANG_lo_user                 = 0x8000,
+        DW_LANG_hi_user                 = 0xffff,
 }
 
 enum
 {
-        DW_ID_case_sensitive    = 0x00,
-        DW_ID_up_case           = 0x01,
-        DW_ID_down_case         = 0x02,
-        DW_ID_case_insensitive  = 0x03,
+        DW_ID_case_sensitive            = 0x00,
+        DW_ID_up_case                   = 0x01,
+        DW_ID_down_case                 = 0x02,
+        DW_ID_case_insensitive          = 0x03,
 }
 
 enum
 {
-        DW_CC_normal    = 0x01,
-        DW_CC_program   = 0x02,
-        DW_CC_nocall    = 0x03,
+        DW_CC_normal                    = 0x01,
+        DW_CC_program                   = 0x02,
+        DW_CC_nocall                    = 0x03,
 
         /* DWARF v5 */
         DW_CC_pass_by_reference         = 0x04,
         DW_CC_pass_by_value             = 0x05,
-        
-        DW_CC_lo_user   = 0x40,
-        DW_CC_hi_user   = 0xff,
+
+        DW_CC_lo_user                   = 0x40,
+        DW_CC_hi_user                   = 0xff,
 }
 
 enum
@@ -564,8 +569,8 @@ enum
 
 enum
 {
-        DW_ORD_row_major        = 0x00,
-        DW_ORD_col_major        = 0x01,
+        DW_ORD_row_major                = 0x00,
+        DW_ORD_col_major                = 0x01,
 }
 
 enum
@@ -591,33 +596,33 @@ enum
 
 enum
 {
-        DW_DSC_label    = 0x00,
-        DW_DSC_range    = 0x01,
+        DW_DSC_label                    = 0x00,
+        DW_DSC_range                    = 0x01,
 }
 
 enum
 {
-        DW_LNS_copy             = 0x01,
-        DW_LNS_advance_pc       = 0x02,
-        DW_LNS_advance_line     = 0x03,
-        DW_LNS_set_file         = 0x04,
-        DW_LNS_set_column       = 0x05,
-        DW_LNS_negate_stmt      = 0x06,
-        DW_LNS_set_basic_block  = 0x07,
-        DW_LNS_const_add_pc     = 0x08,
-        DW_LNS_fixed_advance_pc = 0x09,
-        DW_LNS_set_prologue_end = 0x0a,
-        DW_LNS_set_epilogue_begin = 0x0b,
-        DW_LNS_set_isa          = 0x0c,
+        DW_LNS_copy                     = 0x01,
+        DW_LNS_advance_pc               = 0x02,
+        DW_LNS_advance_line             = 0x03,
+        DW_LNS_set_file                 = 0x04,
+        DW_LNS_set_column               = 0x05,
+        DW_LNS_negate_stmt              = 0x06,
+        DW_LNS_set_basic_block          = 0x07,
+        DW_LNS_const_add_pc             = 0x08,
+        DW_LNS_fixed_advance_pc         = 0x09,
+        DW_LNS_set_prologue_end         = 0x0a,
+        DW_LNS_set_epilogue_begin       = 0x0b,
+        DW_LNS_set_isa                  = 0x0c,
 }
 
 enum
 {
-        DW_LNE_end_sequence     = 0x01,
-        DW_LNE_set_address      = 0x02,
-        DW_LNE_define_file      = 0x03,
-        DW_LNE_lo_user          = 0x80,
-        DW_LNE_hi_user          = 0xff,
+        DW_LNE_end_sequence             = 0x01,
+        DW_LNE_set_address              = 0x02,
+        DW_LNE_define_file              = 0x03, // DWARF v4 and earlier only
+        DW_LNE_lo_user                  = 0x80,
+        DW_LNE_hi_user                  = 0xff,
 }
 
 enum
@@ -704,27 +709,27 @@ enum
 
 enum
 {
-        DW_EH_PE_FORMAT_MASK    = 0x0F,
-        DW_EH_PE_APPL_MASK      = 0x70,
-        DW_EH_PE_indirect       = 0x80,
+        DW_EH_PE_FORMAT_MASK            = 0x0F,
+        DW_EH_PE_APPL_MASK              = 0x70,
+        DW_EH_PE_indirect               = 0x80,
 
-        DW_EH_PE_omit           = 0xFF,
-        DW_EH_PE_ptr            = 0x00,
-        DW_EH_PE_uleb128        = 0x01,
-        DW_EH_PE_udata2         = 0x02,
-        DW_EH_PE_udata4         = 0x03,
-        DW_EH_PE_udata8         = 0x04,
-        DW_EH_PE_sleb128        = 0x09,
-        DW_EH_PE_sdata2         = 0x0A,
-        DW_EH_PE_sdata4         = 0x0B,
-        DW_EH_PE_sdata8         = 0x0C,
+        DW_EH_PE_omit                   = 0xFF,
+        DW_EH_PE_ptr                    = 0x00,
+        DW_EH_PE_uleb128                = 0x01,
+        DW_EH_PE_udata2                 = 0x02,
+        DW_EH_PE_udata4                 = 0x03,
+        DW_EH_PE_udata8                 = 0x04,
+        DW_EH_PE_sleb128                = 0x09,
+        DW_EH_PE_sdata2                 = 0x0A,
+        DW_EH_PE_sdata4                 = 0x0B,
+        DW_EH_PE_sdata8                 = 0x0C,
 
-        DW_EH_PE_absptr         = 0x00,
-        DW_EH_PE_pcrel          = 0x10,
-        DW_EH_PE_textrel        = 0x20,
-        DW_EH_PE_datarel        = 0x30,
-        DW_EH_PE_funcrel        = 0x40,
-        DW_EH_PE_aligned        = 0x50,
+        DW_EH_PE_absptr                 = 0x00,
+        DW_EH_PE_pcrel                  = 0x10,
+        DW_EH_PE_textrel                = 0x20,
+        DW_EH_PE_datarel                = 0x30,
+        DW_EH_PE_funcrel                = 0x40,
+        DW_EH_PE_aligned                = 0x50,
 }
 
 enum
