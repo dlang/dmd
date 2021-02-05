@@ -209,6 +209,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\errno.d \
 	$(IMPDIR)\core\sys\linux\execinfo.d \
 	$(IMPDIR)\core\sys\linux\fcntl.d \
+	$(IMPDIR)\core\sys\linux\fs.d \
 	$(IMPDIR)\core\sys\linux\ifaddrs.d \
 	$(IMPDIR)\core\sys\linux\link.d \
 	$(IMPDIR)\core\sys\linux\sched.d \
