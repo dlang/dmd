@@ -1238,11 +1238,9 @@ static if (1)
         {
             static immutable ubyte[6] abbrevModule =
             [
-                DW_TAG_module,
-                //1,                // one children
-                0,                  // no children
-                DW_AT_name,         DW_FORM_string, // module name
-                0,                  0,
+                DW_TAG_module, DW_CHILDREN_no,
+                DW_AT_name,    DW_FORM_string, // module name
+                0,             0,
             ];
             abbrevcode++;
             debug_abbrev.buf.writeuLEB128(abbrevcode);
@@ -1865,7 +1863,7 @@ static if (1)
                 typidx = dwarf_typidx(t);
 
                 abuf.writeByte(DW_TAG_variable);
-                abuf.writeByte(0);                  // no children
+                abuf.writeByte(DW_CHILDREN_no);
                 abuf.writeByte(DW_AT_name);         abuf.writeByte(DW_FORM_string);
                 abuf.writeByte(DW_AT_type);         abuf.writeByte(DW_FORM_ref4);
                 abuf.writeByte(DW_AT_external);     abuf.writeByte(DW_FORM_flag);
@@ -1959,8 +1957,7 @@ static if (1)
 
         static immutable ubyte[10] abbrevTypeBasic =
         [
-            DW_TAG_base_type,
-            0,                      // no children
+            DW_TAG_base_type,       DW_CHILDREN_no,
             DW_AT_name,             DW_FORM_string,
             DW_AT_byte_size,        DW_FORM_data1,
             DW_AT_encoding,         DW_FORM_data1,
@@ -1968,8 +1965,7 @@ static if (1)
         ];
         static immutable ubyte[12] abbrevWchar =
         [
-            DW_TAG_typedef,
-            0,                      // no children
+            DW_TAG_typedef,         DW_CHILDREN_no,
             DW_AT_name,             DW_FORM_string,
             DW_AT_type,             DW_FORM_ref4,
             DW_AT_decl_file,        DW_FORM_data1,
@@ -1978,61 +1974,52 @@ static if (1)
         ];
         static immutable ubyte[6] abbrevTypePointer =
         [
-            DW_TAG_pointer_type,
-            0,                      // no children
+            DW_TAG_pointer_type,    DW_CHILDREN_no,
             DW_AT_type,             DW_FORM_ref4,
             0,                      0,
         ];
         static immutable ubyte[4] abbrevTypePointerVoid =
         [
-            DW_TAG_pointer_type,
-            0,                      // no children
+            DW_TAG_pointer_type,    DW_CHILDREN_no,
             0,                      0,
         ];
         static immutable ubyte[6] abbrevTypeRef =
         [
-            DW_TAG_reference_type,
-            0,                      // no children
+            DW_TAG_reference_type,  DW_CHILDREN_no,
             DW_AT_type,             DW_FORM_ref4,
             0,                      0,
         ];
         static immutable ubyte[6] abbrevTypeConst =
         [
-            DW_TAG_const_type,
-            0,                      // no children
+            DW_TAG_const_type,      DW_CHILDREN_no,
             DW_AT_type,             DW_FORM_ref4,
             0,                      0,
         ];
         static immutable ubyte[4] abbrevTypeConstVoid =
         [
-            DW_TAG_const_type,
-            0,                      // no children
+            DW_TAG_const_type,      DW_CHILDREN_no,
             0,                      0,
         ];
         static immutable ubyte[6] abbrevTypeVolatile =
         [
-            DW_TAG_volatile_type,
-            0,                      // no children
+            DW_TAG_volatile_type,   DW_CHILDREN_no,
             DW_AT_type,             DW_FORM_ref4,
             0,                      0,
         ];
         static immutable ubyte[4] abbrevTypeVolatileVoid =
         [
-            DW_TAG_volatile_type,
-            0,                      // no children
+            DW_TAG_volatile_type,   DW_CHILDREN_no,
             0,                      0,
         ];
         static immutable ubyte[6] abbrevTypeShared =
         [
-            DW_TAG_shared_type,
-            0,                      // no children
+            DW_TAG_shared_type,     DW_CHILDREN_no,
             DW_AT_type,             DW_FORM_ref4,
             0,                      0,
         ];
         static immutable ubyte[4] abbrevTypeSharedVoid =
         [
-            DW_TAG_shared_type,
-            0,                      // no children
+            DW_TAG_shared_type,     DW_CHILDREN_no,
             0,                      0,
         ];
 
@@ -2102,8 +2089,7 @@ static if (1)
 
         static immutable ubyte[8] abbrevTypeStruct =
         [
-            DW_TAG_structure_type,
-            1,                      // children
+            DW_TAG_structure_type,  DW_CHILDREN_yes,
             DW_AT_name,             DW_FORM_string,
             DW_AT_byte_size,        DW_FORM_data1,
             0,                      0,
@@ -2111,8 +2097,7 @@ static if (1)
 
         static immutable ubyte[10] abbrevTypeMember =
         [
-            DW_TAG_member,
-            0,                      // no children
+            DW_TAG_member,          DW_CHILDREN_no,
             DW_AT_name,             DW_FORM_string,
             DW_AT_type,             DW_FORM_ref4,
             DW_AT_data_member_location, DW_FORM_block1,
@@ -2385,10 +2370,7 @@ static if (1)
                  */
                 Outbuffer abuf;             // for abbrev
                 abuf.writeByte(DW_TAG_subroutine_type);
-                if (params)
-                    abuf.writeByte(1);      // children
-                else
-                    abuf.writeByte(0);      // no children
+                abuf.writeByte(params ? DW_CHILDREN_yes : DW_CHILDREN_no);
                 abuf.writeByte(DW_AT_prototyped);
                 abuf.writeByte(DW_FORM_flag);
                 if (nextidx != 0)           // Don't write DW_AT_type for void
@@ -2442,29 +2424,25 @@ static if (1)
             {
                 static immutable ubyte[6] abbrevTypeArray =
                 [
-                    DW_TAG_array_type,
-                    1,                      // child (the subrange type)
+                    DW_TAG_array_type,      DW_CHILDREN_yes,    // child (the subrange type)
                     DW_AT_type,             DW_FORM_ref4,
                     0,                      0,
                 ];
                 static immutable ubyte[4] abbrevTypeArrayVoid =
                 [
-                    DW_TAG_array_type,
-                    1,                      // child (the subrange type)
+                    DW_TAG_array_type,      DW_CHILDREN_yes,    // child (the subrange type)
                     0,                      0,
                 ];
                 static immutable ubyte[8] abbrevTypeSubrange =
                 [
-                    DW_TAG_subrange_type,
-                    0,                      // no children
+                    DW_TAG_subrange_type,   DW_CHILDREN_no,
                     DW_AT_type,             DW_FORM_ref4,
                     DW_AT_upper_bound,      DW_FORM_data4,
                     0,                      0,
                 ];
                 static immutable ubyte[6] abbrevTypeSubrange2 =
                 [
-                    DW_TAG_subrange_type,
-                    0,                      // no children
+                    DW_TAG_subrange_type,   DW_CHILDREN_no,
                     DW_AT_type,             DW_FORM_ref4,
                     0,                      0,
                 ];
@@ -2525,8 +2503,7 @@ static if (1)
             {
                 static immutable ubyte[9] abbrevTypeArray2 =
                 [
-                    DW_TAG_array_type,
-                    1,                      // child (the subrange type)
+                    DW_TAG_array_type,      DW_CHILDREN_yes,    // child (the subrange type)
                     (DW_AT_GNU_vector & 0x7F) | 0x80, DW_AT_GNU_vector >> 7,
                     DW_FORM_flag,
                     DW_AT_type,             DW_FORM_ref4,
@@ -2534,10 +2511,9 @@ static if (1)
                 ];
                 static immutable ubyte[6] abbrevSubRange =
                 [
-                    DW_TAG_subrange_type,
-                    0,                                // no children
-                    DW_AT_upper_bound, DW_FORM_data1, // length of vector
-                    0,                 0,
+                    DW_TAG_subrange_type,   DW_CHILDREN_no,
+                    DW_AT_upper_bound,      DW_FORM_data1,  // length of vector
+                    0,                      0,
                 ];
 
                 uint code2 = dwarf_abbrev_code(abbrevTypeArray2.ptr, (abbrevTypeArray2).sizeof);
@@ -2584,16 +2560,14 @@ static if (1)
 
                 __gshared ubyte[8] abbrevTypeStruct0 =
                 [
-                    DW_TAG_structure_type,
-                    0,                      // no children
+                    DW_TAG_structure_type,  DW_CHILDREN_no,
                     DW_AT_name,             DW_FORM_string,
                     DW_AT_byte_size,        DW_FORM_data1,
                     0,                      0,
                 ];
                 __gshared ubyte[8] abbrevTypeStruct1 =
                 [
-                    DW_TAG_structure_type,
-                    0,                      // no children
+                    DW_TAG_structure_type,  DW_CHILDREN_no,
                     DW_AT_name,             DW_FORM_string,
                     DW_AT_declaration,      DW_FORM_flag,
                     0,                      0,
@@ -2633,7 +2607,7 @@ static if (1)
                 if (nfields == 0)
                 {
                     abbrevTypeStruct0[0] = dwarf_classify_struct(st.Sflags);
-                    abbrevTypeStruct0[1] = 0;               // no children
+                    abbrevTypeStruct0[1] = DW_CHILDREN_no;
                     abbrevTypeStruct0[5] = DW_FORM_data1;   // DW_AT_byte_size
                     code = dwarf_abbrev_code(abbrevTypeStruct0.ptr, (abbrevTypeStruct0).sizeof);
                     idx = cast(uint)debug_info.buf.length();
@@ -2645,7 +2619,7 @@ static if (1)
                 {
                     Outbuffer abuf;         // for abbrev
                     abuf.writeByte(dwarf_classify_struct(st.Sflags));
-                    abuf.writeByte(1);              // children
+                    abuf.writeByte(DW_CHILDREN_yes);
                     abuf.writeByte(DW_AT_name);     abuf.writeByte(DW_FORM_string);
                     abuf.writeByte(DW_AT_byte_size);
 
@@ -2663,7 +2637,7 @@ static if (1)
                     uint membercode;
                     abuf.reset();
                     abuf.writeByte(DW_TAG_member);
-                    abuf.writeByte(0);              // no children
+                    abuf.writeByte(DW_CHILDREN_no);
                     abuf.writeByte(DW_AT_name);
                     abuf.writeByte(DW_FORM_string);
                     abuf.writeByte(DW_AT_type);
@@ -2723,16 +2697,14 @@ static if (1)
             {
                 static immutable ubyte[8] abbrevTypeEnum =
                 [
-                    DW_TAG_enumeration_type,
-                    1,                      // child (the subrange type)
+                    DW_TAG_enumeration_type,DW_CHILDREN_yes,    // child (the subrange type)
                     DW_AT_name,             DW_FORM_string,
                     DW_AT_byte_size,        DW_FORM_data1,
                     0,                      0,
                 ];
                 static immutable ubyte[8] abbrevTypeEnumMember =
                 [
-                    DW_TAG_enumerator,
-                    0,                      // no children
+                    DW_TAG_enumerator,      DW_CHILDREN_no,
                     DW_AT_name,             DW_FORM_string,
                     DW_AT_const_value,      DW_FORM_data1,
                     0,                      0,
@@ -2751,11 +2723,10 @@ static if (1)
                 {
                     static immutable ubyte[8] abbrevTypeEnumForward =
                     [
-                        DW_TAG_enumeration_type,
-                        0,                  // no children
-                        DW_AT_name,         DW_FORM_string,
-                        DW_AT_declaration,  DW_FORM_flag,
-                        0,                  0,
+                        DW_TAG_enumeration_type,    DW_CHILDREN_no,
+                        DW_AT_name,                 DW_FORM_string,
+                        DW_AT_declaration,          DW_FORM_flag,
+                        0,                          0,
                     ];
                     code = dwarf_abbrev_code(abbrevTypeEnumForward.ptr, abbrevTypeEnumForward.sizeof);
                     idx = cast(uint)debug_info.buf.length();
@@ -2772,7 +2743,7 @@ static if (1)
                 uint membercode;
                 abuf.reset();
                 abuf.writeByte(DW_TAG_enumerator);
-                abuf.writeByte(0);
+                abuf.writeByte(DW_CHILDREN_no);
                 abuf.writeByte(DW_AT_name);
                 abuf.writeByte(DW_FORM_string);
                 abuf.writeByte(DW_AT_const_value);
