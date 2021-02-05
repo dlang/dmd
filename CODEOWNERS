@@ -27,7 +27,7 @@ src/core/runtime.d @MartinNowak @Abscissa
 src/core/simd.d @WalterBright @MartinNowak
 src/core/stdc/* @schveiguy @ibuclaw
 src/core/stdcpp/* @WalterBright @Darredevil @TurkeyMan
-src/core/sync/* @MartinNowak @Geod24 @WalterBright @ZombineDev
+src/core/sync/* @MartinNowak @Geod24 @WalterBright @PetarKirov
 src/core/sys/bionic/* @joakim-noah
 src/core/sys/darwin/* @jacob-carlborg @klickverbot @etcimon @MartinNowak
 src/core/sys/freebsd/* @redstar @MartinNowak @Calrama @jmdavis
@@ -38,11 +38,11 @@ src/core/sys/openbsd/* @redstar
 src/core/sys/posix/* @CyberShadow @MartinNowak @joakim-noah @redstar
 src/core/sys/solaris/* @redstar
 src/core/sys/windows/* @CyberShadow
-src/core/thread.d @MartinNowak @Burgos @jpf91 @ZombineDev
+src/core/thread.d @MartinNowak @Burgos @jpf91 @PetarKirov
 src/core/time.d @jmdavis @schveiguy @CyberShadow
 
 src/etc* @deadalnix @MartinNowak
-src/core/internal/gc/* @rainers @DmitryOlshansky @MartinNowak @leandro-lucarella-sociomantic
+src/core/internal/gc/* @rainers @DmitryOlshansky @MartinNowak @llucax
 
 src/object.d @andralex @MartinNowak
 
