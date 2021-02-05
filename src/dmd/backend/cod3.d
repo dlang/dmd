@@ -1348,13 +1348,8 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
 
     *reg1 = *reg2 = NOREG;
 
-    /* Use regmask() for EX_WIN64, 16 bit code,
-     * and for native complex numbers in DOS/Win32.
-     * Complex numbers for DOS/Win32 return in ST01.
-     */
-    if ((config.exe & (EX_16 | EX_WIN64)) ||
-        tycomplex(ty) && (config.exe & EX_windos))
-        return regmask(ty, tyf);
+    if (!(config.exe & EX_posix))
+        return regmask(ty, tyf);    // for non-Posix ABI
 
     /* The rest is for the Itanium ABI
      */
