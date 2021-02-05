@@ -1,15 +1,9 @@
 /**
  * Contains OS-level routines needed by the garbage collector.
  *
- * Copyright: Copyright Digital Mars 2005 - 2013.
+ * Copyright: D Language Foundation 2005 - 2021.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, David Friedman, Sean Kelly, Leandro Lucarella
- */
-
-/*          Copyright Digital Mars 2005 - 2013.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.internal.gc.os;
 
