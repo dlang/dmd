@@ -513,17 +513,13 @@ DOCS=\
 	\
 	$(DOCDIR)\etc_linux_memoryerror.html \
 	\
-	$(DOCDIR)\gc_bits.html \
-	$(DOCDIR)\gc_pooltable.html \
-	$(DOCDIR)\gc_os.html \
-	$(DOCDIR)\gc_proxy.html \
-	\
-	\
-	$(DOCDIR)\gc_impl_conservative_gc.html \
-	\
-	$(DOCDIR)\gc_impl_manual_gc.html \
-	\
-	$(DOCDIR)\gc_impl_proto_gc.html \
+	$(DOCDIR)\core_internal_gc_bits.html \
+	$(DOCDIR)\core_internal_gc_os.html \
+	$(DOCDIR)\core_internal_gc_pooltable.html \
+	$(DOCDIR)\core_internal_gc_proxy.html \
+	$(DOCDIR)\core_internal_gc_impl_conservative_gc.html \
+	$(DOCDIR)\core_internal_gc_impl_manual_gc.html \
+	$(DOCDIR)\core_internal_gc_impl_proto_gc.html \
 	\
 	$(DOCDIR)\rt_aApply.html \
 	$(DOCDIR)\rt_aApplyR.html \

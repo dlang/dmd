@@ -61,6 +61,14 @@ COPY=\
 	$(IMPDIR)\core\internal\elf\dl.d \
 	$(IMPDIR)\core\internal\elf\io.d \
 	\
+	$(IMPDIR)\core\internal\gc\bits.d \
+	$(IMPDIR)\core\internal\gc\os.d \
+	$(IMPDIR)\core\internal\gc\pooltable.d \
+	$(IMPDIR)\core\internal\gc\proxy.d \
+	$(IMPDIR)\core\internal\gc\impl\conservative\gc.d \
+	$(IMPDIR)\core\internal\gc\impl\manual\gc.d \
+	$(IMPDIR)\core\internal\gc\impl\proto\gc.d \
+	\
 	$(IMPDIR)\core\internal\container\array.d \
 	$(IMPDIR)\core\internal\container\common.d \
 	$(IMPDIR)\core\internal\container\hashtab.d \

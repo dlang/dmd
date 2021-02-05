@@ -11,7 +11,7 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.os;
+module core.internal.gc.os;
 
 
 version (Windows)
@@ -123,7 +123,7 @@ else static if (is(typeof(malloc))) // else version (GC_Use_Alloc_Malloc)
     //       after PAGESIZE bytes used by the GC.
 
 
-    import gc.impl.conservative.gc;
+    import core.internal.gc.impl.conservative.gc;
 
 
     const size_t PAGE_MASK = PAGESIZE - 1;

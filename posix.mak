@@ -171,6 +171,21 @@ $(DOCDIR)/core_internal_container_%.html : src/core/internal/container/%.d $(DMD
 $(DOCDIR)/core_internal_elf_%.html : src/core/internal/elf/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOCDIR)/core_internal_gc_%.html : src/core/internal/gc/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_internal_gc_impl_%.html : src/core/internal/gc/impl/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_internal_gc_impl_conservative_%.html : src/core/internal/gc/impl/conservative/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_internal_gc_impl_manual_%.html : src/core/internal/gc/impl/manual/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_internal_gc_impl_proto_%.html : src/core/internal/gc/impl/proto/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOCDIR)/core_internal_util_%.html : src/core/internal/util/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 

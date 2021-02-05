@@ -42,7 +42,7 @@ src/core/thread.d @MartinNowak @Burgos @jpf91 @ZombineDev
 src/core/time.d @jmdavis @schveiguy @CyberShadow
 
 src/etc* @deadalnix @MartinNowak
-src/gc* @rainers @DmitryOlshansky @MartinNowak @leandro-lucarella-sociomantic
+src/core/internal/gc/* @rainers @DmitryOlshansky @MartinNowak @leandro-lucarella-sociomantic
 
 src/object.d @andralex @MartinNowak
 

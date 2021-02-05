@@ -11,7 +11,7 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.impl.conservative.gc;
+module core.internal.gc.impl.conservative.gc;
 
 // D Programming Language Garbage Collector implementation
 
@@ -35,8 +35,8 @@ module gc.impl.conservative.gc;
 /***************************************************/
 version = COLLECT_PARALLEL;  // parallel scanning
 
-import gc.bits;
-import gc.os;
+import core.internal.gc.bits;
+import core.internal.gc.os;
 import core.gc.config;
 import core.gc.gcinterface;
 
@@ -1238,7 +1238,7 @@ struct Gcx
     debug(INVARIANT) bool inCollection;
     uint disabled; // turn off collections if >0
 
-    import gc.pooltable;
+    import core.internal.gc.pooltable;
     private @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable!Pool pooltable;
 

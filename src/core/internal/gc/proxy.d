@@ -11,9 +11,9 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.proxy;
+module core.internal.gc.proxy;
 
-import gc.impl.proto.gc;
+import core.internal.gc.impl.proto.gc;
 import core.gc.config;
 import core.gc.gcinterface;
 import core.gc.registry : createGCInstance;

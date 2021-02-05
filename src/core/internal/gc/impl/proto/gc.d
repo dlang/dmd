@@ -1,5 +1,5 @@
 
-module gc.impl.proto.gc;
+module core.internal.gc.impl.proto.gc;
 
 import core.gc.gcinterface;
 

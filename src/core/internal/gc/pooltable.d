@@ -5,7 +5,7 @@
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, David Friedman, Sean Kelly, Martin Nowak
  */
-module gc.pooltable;
+module core.internal.gc.pooltable;
 
 static import cstdlib=core.stdc.stdlib;
 
