@@ -558,7 +558,7 @@ void searchfixlist(Symbol *s) {}
 void outfixlist();
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
-regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2);
+regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2);
 
 extern __gshared
 {

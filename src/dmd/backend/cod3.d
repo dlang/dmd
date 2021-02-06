@@ -1108,8 +1108,7 @@ static if (NTEXCEPTIONS)
 
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
-            reg1 = reg2 = NOREG;
-            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
+            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
@@ -1333,20 +1332,17 @@ version (MARS)
  *    ty    = return type
  *    t     = return type extended info
  *    tyf   = function type
- *    reg1  = output for the first part register
- *    reg2  = output for the second part register
+ *    reg1  = set to the first part register, else NOREG
+ *    reg2  = set to the second part register, else NOREG
  *
  * Returns:
  *    a bit mask of return registers.
  *    0 if function returns on the stack or returns void.
  */
-regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
+regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
     //printf("allocretregs()\n");
-    tym_t ty1 = ty;
-    tym_t ty2 = TYMAX;
-
-    *reg1 = *reg2 = NOREG;
+    reg1 = reg2 = NOREG;
 
     if (!(config.exe & EX_posix))
         return regmask(ty, tyf);    // for non-Posix ABI
@@ -1356,6 +1352,9 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
 
     if (tybasic(ty) == TYvoid)
         return 0;
+
+    tym_t ty1 = ty;
+    tym_t ty2 = TYMAX;  // stays TYMAX if only one register is needed
 
     if (ty & mTYxmmgpr)
     {
@@ -1470,48 +1469,44 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
             break;
     }
 
+    /* now we have ty1 and ty2, use that to determine which register
+     * is used for ty1 and which for ty2
+     */
 
     static struct RetRegsAllocator
     {
     nothrow:
-        static reg_t[2] gp_regs = [AX, DX];
-        static reg_t[2] xmm_regs = [XMM0, XMM1];
+        static immutable reg_t[2] gpr_regs = [AX, DX];
+        static immutable reg_t[2] xmm_regs = [XMM0, XMM1];
 
         uint cntgpr = 0,
              cntxmm = 0;
 
-        reg_t gpr() { return gp_regs[cntgpr++]; }
+        reg_t gpr() { return gpr_regs[cntgpr++]; }
         reg_t xmm() { return xmm_regs[cntxmm++]; }
     }
 
-    tym_t tym = ty1;
-    reg_t *reg = reg1;
     RetRegsAllocator rralloc;
-    for (int v = 0; v < 2; ++v)
+
+    reg_t allocreg(tym_t tym)
     {
-        if (tym == TYMAX) continue;
+        if (tym == TYMAX)
+            return NOREG;
         switch (tysize(tym))
         {
         case 1:
         case 2:
         case 4:
             if (tyfloating(tym))
-            {
-                if (I64)
-                    *reg = rralloc.xmm();
-                else
-                    *reg = ST0;
-            }
+                return I64 ? rralloc.xmm() : ST0;
             else
-                *reg = rralloc.gpr();
-            break;
+                return rralloc.gpr();
 
         case 8:
             if (tycomplex(tym))
             {
                 assert(tybasic(tyf) == TYjfunc && I32);
-                *reg = ST01;
-                break;
+                return ST01;
             }
             assert(I64 || tyfloating(tym));
             goto case 4;
@@ -1519,32 +1514,30 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
         default:
             if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
             {
-                *reg = ST0;
-                break;
+                return ST0;
             }
             else if (tybasic(tym) == TYcldouble)
             {
-                *reg = ST01;
-                break;
+                return ST01;
             }
             else if (tycomplex(tym) && tybasic(tyf) == TYjfunc && I32)
             {
-                *reg = ST01;
-                break;
+                return ST01;
             }
             else if (tysimd(tym))
             {
-                *reg = rralloc.xmm();
-                break;
+                return rralloc.xmm();
             }
 
             debug WRTYxx(tym);
             assert(0);
         }
-        tym = ty2;
-        reg = reg2;
     }
-    return (mask(*reg1) | mask(*reg2)) & ~mask(NOREG);
+
+    reg1 = allocreg(ty1);
+    reg2 = allocreg(ty2);
+
+    return (mask(reg1) | mask(reg2)) & ~mask(NOREG);
 }
 
 /***********************************************
