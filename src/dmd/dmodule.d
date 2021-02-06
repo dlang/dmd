@@ -1208,7 +1208,7 @@ extern (C++) final class Module : Package
             s.importAll(sc);
         }
         sc = sc.pop();
-        sc.pop(); // 2 pops because Scope::createGlobal() created 2
+        sc.pop(); // 2 pops because Scope.createGlobal() created 2
     }
 
     /**********************************

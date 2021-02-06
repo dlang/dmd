@@ -298,6 +298,32 @@ void test_semantic()
 
 /**********************************/
 
+void test_skip_importall()
+{
+    /* Similar to test_semantic(), but importAll step is skipped.  */
+    const char *buf =
+        "module rootobject;\n"
+        "class RootObject : Object { }";
+
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+
+    Module *m = Module::create("rootobject.d", Identifier::idPool("rootobject"), 0, 0);
+
+    unsigned errors = global.startGagging();
+
+    m->srcBuffer = srcBuffer;
+    m->parse();
+    m->importedFrom = m;
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
+
+    assert(!global.endGagging(errors));
+}
+
+/**********************************/
+
 void test_expression()
 {
     Loc loc;
@@ -519,6 +545,7 @@ int main(int argc, char **argv)
     test_compiler_globals();
     test_visitors();
     test_semantic();
+    test_skip_importall();
     test_expression();
     test_target();
     test_emplace();
