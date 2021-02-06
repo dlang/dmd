@@ -407,14 +407,6 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         t = s.getType();
         if (t)
             break;
-        // If the symbol is an import, try looking inside the import
-        if (Import si = s.isImport())
-        {
-            s = si.search(loc, s.ident);
-            if (s && s != si)
-                continue;
-            s = si;
-        }
         ps = s;
         return;
     }
