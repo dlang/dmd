@@ -12,13 +12,11 @@
  */
 
 #include "scope.h"
+#include "expression.h"
 #include "declaration.h"
 #include "errors.h"
 #include "parse.h"
 #include "statement.h"
-
-Expression *semantic(Expression *e, Scope *sc);
-Statement *semantic(Statement *s, Scope *sc);
 
 /***********************************
  * Parse list of extended asm input or output operands.

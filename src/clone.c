@@ -23,8 +23,6 @@
 #include "template.h"
 #include "tokens.h"
 
-Expression *semantic(Expression *e, Scope *sc);
-
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
  */

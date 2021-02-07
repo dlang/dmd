@@ -21,8 +21,6 @@
 #include "ctfe.h"
 #include "errors.h"
 
-Expression *semantic(Expression *e, Scope *sc);
-
 /*************************************
  * If variable has a const initializer,
  * return that initializer.

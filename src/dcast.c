@@ -26,7 +26,6 @@
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 bool isCommutative(TOK op);
 MOD MODmerge(MOD mod1, MOD mod2);
-Expression *semantic(Expression *e, Scope *sc);
 
 /* ==================== implicitCast ====================== */
 

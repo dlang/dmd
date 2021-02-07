@@ -29,8 +29,6 @@
 #include "mtype.h"
 
 bool definitelyValueParameter(Expression *e);
-Expression *semantic(Expression *e, Scope *sc);
-StringExp *semanticString(Scope *sc, Expression *exp, const char *s);
 Dsymbols *makeTupleForeachStaticDecl(Scope *sc, ForeachStatement *fs, Dsymbols *dbody, bool needExpansion);
 
 /********************************* AttribDeclaration ****************************/

@@ -30,8 +30,6 @@ bool walkPostorder(Statement *s, StoppableVisitor *v);
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
-Expression *semantic(Expression *e, Scope *sc);
-StringExp *semanticString(Scope *sc, Expression *exp, const char *s);
 Statement *makeTupleForeachStatic(Scope *sc, ForeachStatement *fs, bool needExpansion);
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)

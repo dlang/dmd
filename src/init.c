@@ -25,9 +25,6 @@
 #include "id.h"
 #include "tokens.h"
 
-Expression *semantic(Expression *e, Scope *sc);
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
-
 /********************************** Initializer *******************************/
 
 Initializer::Initializer(Loc loc)

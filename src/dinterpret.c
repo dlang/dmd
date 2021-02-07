@@ -40,8 +40,6 @@ enum CtfeGoal
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 Expression *interpret(Statement *s, InterState *istate);
 Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-Expression *semantic(Expression *e, Scope *sc);
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 static Expression *interpret(UnionExp *pue, Expression *e, InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 static Expression *interpret(UnionExp *pue, Statement *s, InterState *istate);

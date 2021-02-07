@@ -43,6 +43,9 @@ class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
 class BinExp;
+class UnaExp;
+class DotIdExp;
+class DotTemplateInstanceExp;
 class OverloadSet;
 class Initializer;
 class StringExp;
@@ -54,6 +57,16 @@ typedef union tree_node Symbol;
 #else
 struct Symbol;          // back end symbol
 #endif
+
+Expression *semantic(Expression *e, Scope *sc);
+Expression *semanticX(DotIdExp *exp, Scope *sc);
+Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
+Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
+Expression *trySemantic(Expression *e, Scope *sc);
+Expression *unaSemantic(UnaExp *e, Scope *sc);
+Expression *binSemantic(BinExp *e, Scope *sc);
+Expression *binSemanticProp(BinExp *e, Scope *sc);
+StringExp *semanticString(Scope *sc, Expression *exp, const char *s);
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);

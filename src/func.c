@@ -34,10 +34,7 @@ Expression *addInvariant(AggregateDeclaration *ad, VarDeclaration *vthis);
 bool checkReturnEscape(Scope *sc, Expression *e, bool gag);
 bool checkReturnEscapeRef(Scope *sc, Expression *e, bool gag);
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
-Statement *semantic(Statement *s, Scope *sc);
-void semantic(Catch *c, Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
-Expression *semantic(Expression *e, Scope *sc);
 int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
 TypeIdentifier *getThrowable();
 

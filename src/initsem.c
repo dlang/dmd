@@ -20,9 +20,7 @@
 #include "id.h"
 
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
-Expression *semantic(Expression *e, Scope *sc);
 Initializer *inferType(Initializer *init, Scope *sc);
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 bool hasNonConstPointers(Expression *e);
 
 class InitializerSemanticVisitor : public Visitor

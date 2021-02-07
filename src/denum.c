@@ -22,8 +22,6 @@
 #include "declaration.h"
 #include "init.h"
 
-Expression *semantic(Expression *e, Scope *sc);
-
 /********************************* EnumDeclaration ****************************/
 
 EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)

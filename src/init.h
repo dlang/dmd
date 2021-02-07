@@ -21,6 +21,7 @@ class Expression;
 struct Scope;
 class Type;
 class AggregateDeclaration;
+class Initializer;
 class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;
@@ -28,6 +29,8 @@ class ArrayInitializer;
 class ExpInitializer;
 
 enum NeedInterpret { INITnointerpret, INITinterpret };
+
+Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 class Initializer : public ASTNode
 {

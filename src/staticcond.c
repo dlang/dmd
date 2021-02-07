@@ -13,8 +13,6 @@
 #include "mtype.h"
 #include "scope.h"
 
-Expression *semantic(Expression *e, Scope *sc);
-
 /********************************************
  * Semantically analyze and then evaluate a static condition at compile time.
  * This is special because short circuit operators &&, || and ?: at the top

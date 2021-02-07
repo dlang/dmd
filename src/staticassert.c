@@ -19,7 +19,6 @@
 #include "template.h"
 #include "declaration.h"
 
-Expression *semantic(Expression *e, Scope *sc);
 bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
 
 /********************************* AttribDeclaration ****************************/

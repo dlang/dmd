@@ -35,7 +35,6 @@
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
 typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
 int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
-Expression *semantic(Expression *e, Scope *sc);
 
 
 /****************************** Dsymbol ******************************/

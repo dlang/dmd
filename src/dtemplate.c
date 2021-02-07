@@ -48,7 +48,6 @@ static int arrayObjectMatch(Objects *oa1, Objects *oa2);
 static unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 static MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 static bool reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
-Expression *semantic(Expression *e, Scope *sc);
 bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
 
 /********************************************

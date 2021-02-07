@@ -18,9 +18,8 @@
 #include "dsymbol.h"
 #include "mtype.h"
 #include "declaration.h"
+#include "expression.h"
 #include "tokens.h"
-
-Expression *semantic(Expression *e, Scope *sc);
 
 Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 {

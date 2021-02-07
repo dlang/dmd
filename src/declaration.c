@@ -30,9 +30,7 @@
 
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
-Expression *semantic(Expression *e, Scope *sc);
 Initializer *inferType(Initializer *init, Scope *sc);
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is

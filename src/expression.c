@@ -45,11 +45,6 @@ char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);
 void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod);
-Expression *trySemantic(Expression *e, Scope *sc);
-Expression *semantic(Expression *e, Scope *sc);
-Expression *semanticX(DotIdExp *exp, Scope *sc);
-Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
-Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg);
 

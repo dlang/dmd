@@ -27,9 +27,6 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags = 0);
 Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id);
 bool MODimplicitConv(MOD modfrom, MOD modto);
-Expression *trySemantic(Expression *e, Scope *sc);
-Expression *binSemanticProp(BinExp *e, Scope *sc);
-Expression *semantic(Expression *e, Scope *sc);
 
 /******************************** Expression **************************/
 

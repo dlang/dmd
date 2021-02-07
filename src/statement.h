@@ -23,6 +23,7 @@ struct Scope;
 class Expression;
 class LabelDsymbol;
 class Identifier;
+class Statement;
 class IfStatement;
 class ExpStatement;
 class DefaultStatement;
@@ -38,6 +39,7 @@ class StaticAssert;
 class AsmStatement;
 class GotoStatement;
 class ScopeStatement;
+class Catch;
 class TryCatchStatement;
 class TryFinallyStatement;
 class CaseStatement;
@@ -47,6 +49,11 @@ class StaticForeach;
 
 // Back end
 struct code;
+
+Statement *semantic(Statement *s, Scope *sc);
+Statement *semanticNoScope(Statement *s, Scope *sc);
+Statement *semanticScope(Statement *s, Scope *sc, Statement *sbreak, Statement *scontinue);
+void semantic(Catch *c, Scope *sc);
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);

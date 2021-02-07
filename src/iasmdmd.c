@@ -27,6 +27,7 @@
 // D compiler
 #include        "mars.h"
 #include        "mtype.h"
+#include        "expression.h"
 #include        "statement.h"
 #include        "id.h"
 #include        "declaration.h"
@@ -117,9 +118,6 @@ static TOK tok_value;
 const char *asm_opstr(OP *pop);
 OP *asm_op_lookup(const char *s);
 void init_optab();
-
-// From expressionsem.c
-Expression *semantic(Expression *e, Scope *sc);
 
 static unsigned char asm_TKlbra_seen = 0;
 

@@ -25,7 +25,6 @@
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 void lambdaSetParent(Expression *e, Scope *sc);
 bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
-Expression *semantic(Expression *e, Scope *sc);
 
 /********************************************
  * Convert from expression to delegate that returns the expression,

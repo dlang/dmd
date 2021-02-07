@@ -39,8 +39,6 @@ int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, 
 void freeFieldinit(Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Package *resolveIsPackage(Dsymbol *sym);
-Expression *trySemantic(Expression *e, Scope *sc);
-Expression *semantic(Expression *e, Scope *sc);
 Expression *typeToExpression(Type *t);
 
 

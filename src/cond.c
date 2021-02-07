@@ -26,7 +26,6 @@
 #include "arraytypes.h"
 #include "tokens.h"
 
-Expression *semantic(Expression *e, Scope *sc);
 bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
 
 int findCondition(Identifiers *ids, Identifier *ident)

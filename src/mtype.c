@@ -37,12 +37,8 @@ int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *p
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 Expression *extractSideEffect(Scope *sc, const char *name, Expression **e0, Expression *e, bool alwaysCopy = false);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
-Expression *semantic(Expression *e, Scope *sc);
-Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
-Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
 Expression *typeToExpression(Type *t);
 Expression *typeToExpressionHelper(TypeQualified *t, Expression *e, size_t i = 0);
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 /***************************** Type *****************************/
 

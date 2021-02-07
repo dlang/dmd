@@ -39,11 +39,6 @@ VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 Expression *checkAssignmentAsCondition(Expression *e);
 TypeIdentifier *getThrowable();
 
-Expression *semantic(Expression *e, Scope *sc);
-Statement *semantic(Statement *s, Scope *sc);
-void semantic(Catch *c, Scope *sc);
-Statement *semanticNoScope(Statement *s, Scope *sc);
-Statement *semanticScope(Statement *s, Scope *sc, Statement *sbreak, Statement *scontinue);
 int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
 
 class StatementSemanticVisitor : public Visitor

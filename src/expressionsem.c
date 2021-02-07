@@ -67,15 +67,6 @@ Expression *callCpCtor(Scope *sc, Expression *e);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NULL);
 Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL);
-Expression *trySemantic(Expression *e, Scope *sc);
-Expression *unaSemantic(UnaExp *e, Scope *sc);
-Expression *binSemantic(BinExp *e, Scope *sc);
-Expression *binSemanticProp(BinExp *e, Scope *sc);
-Expression *semantic(Expression *e, Scope *sc);
-Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
-Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
-StringExp *semanticString(Scope *sc, Expression *exp, const char *s);
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 /****************************************
  * Preprocess arguments to function.

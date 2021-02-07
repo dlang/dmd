@@ -34,8 +34,6 @@ Dsymbols Module::deferred2; // deferred Dsymbol's needing semantic2() run on the
 Dsymbols Module::deferred3; // deferred Dsymbol's needing semantic3() run on them
 unsigned Module::dprogress;
 
-StringExp *semanticString(Scope *sc, Expression *exp, const char *s);
-
 void Module::_init()
 {
     modules = new DsymbolTable();

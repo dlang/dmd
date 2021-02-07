@@ -25,7 +25,6 @@
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool lambdaHasSideEffect(Expression *e);
-Expression *semantic(Expression *e, Scope *sc);
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for
