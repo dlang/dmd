@@ -142,24 +142,6 @@ void Nspace::semantic2(Scope *sc)
     }
 }
 
-void Nspace::semantic3(Scope *sc)
-{
-    if (semanticRun >= PASSsemantic3)
-        return;
-    semanticRun = PASSsemantic3;
-    if (members)
-    {
-        sc = sc->push(this);
-        sc->linkage = LINKcpp;
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->semantic3(sc);
-        }
-        sc->pop();
-    }
-}
-
 const char *Nspace::kind() const
 {
     return "namespace";

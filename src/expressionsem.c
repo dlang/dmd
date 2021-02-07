@@ -1636,7 +1636,7 @@ public:
             {
                 exp->fd->semantic2(sc);
                 if (olderrors == global.errors)
-                    exp->fd->semantic3(sc);
+                    semantic3(exp->fd, sc);
             }
             if (olderrors != global.errors)
             {
@@ -1849,7 +1849,7 @@ public:
             e->declaration->semantic2(sc);
             if (global.errors == olderrors)
             {
-                e->declaration->semantic3(sc);
+                semantic3(e->declaration, sc);
             }
         }
         // todo: error in declaration should be propagated.

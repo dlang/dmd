@@ -157,7 +157,9 @@ FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	safe.obj sideeffect.obj intrange.obj blockexit.obj canthrow.obj target.obj nspace.obj \
 	objc.obj errors.obj escape.obj tokens.obj globals.obj \
-	utils.obj expressionsem.obj statementsem.obj templateparamsem.obj typesem.obj
+	utils.obj \
+	semantic3.obj \
+	expressionsem.obj statementsem.obj templateparamsem.obj typesem.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -204,7 +206,9 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	apply.c sapply.c safe.c sideeffect.c ctfe.h \
 	intrange.h intrange.c blockexit.c canthrow.c target.c target.h visitor.h \
 	tokens.h tokens.c globals.h globals.c objc.h objc.c \
-	utils.c expressionsem.c statementsem.c templateparamsem.c typesem.c
+	utils.c \
+	semantic3.c \
+	expressionsem.c statementsem.c templateparamsem.c typesem.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -770,6 +774,7 @@ utf.obj : utf.h utf.c
 dtemplate.obj : $(TOTALH) template.h dtemplate.c
 dversion.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h dversion.c
 utils.obj : $(TOTALH) utils.c
+semantic3.obj : $(TOTALH) semantic3.c
 expressionsem.obj : $(TOTALH) expressionsem.c
 statementsem.obj : $(TOTALH) statementsem.c
 templateparamsem.obj : $(TOTALH) templateparamsem.c

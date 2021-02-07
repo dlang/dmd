@@ -126,7 +126,6 @@ public:
     void importAll(Scope *sc);
     void semantic(Scope *);    // semantic analysis
     void semantic2(Scope *);   // pass 2 semantic analysis
-    void semantic3(Scope *);   // pass 3 semantic analysis
     int needModuleInfo();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);

@@ -1534,7 +1534,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
-        m->semantic3(NULL);
+        semantic3(m, NULL);
     }
     Module::runDeferredSemantic3();
     if (global.errors)

@@ -503,7 +503,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                     sd->xeq->semanticRun < PASSsemantic3done)
                 {
                     unsigned errors = global.startGagging();
-                    sd->xeq->semantic3(sd->xeq->_scope);
+                    semantic3(sd->xeq, sd->xeq->_scope);
                     if (global.endGagging(errors))
                         sd->xeq = sd->xerreq;
                 }

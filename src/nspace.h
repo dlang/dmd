@@ -27,7 +27,6 @@ class Nspace : public ScopeDsymbol
     void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     int apply(Dsymbol_apply_ft_t fp, void *param);

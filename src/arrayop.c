@@ -82,7 +82,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc)
     fd->semantic(sc);
     fd->semantic2(sc);
     unsigned errors = global.startGagging();
-    fd->semantic3(sc);
+    semantic3(fd, sc);
     if (global.endGagging(errors))
     {
         fd->type = Type::terror;

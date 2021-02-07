@@ -5904,7 +5904,7 @@ void TemplateInstance::trySemantic3(Scope *sc2)
         error("recursive expansion exceeded allowed nesting limit");
         fatal();
     }
-    semantic3(sc2);
+    semantic3(this, sc2);
 
     --nest;
 }
@@ -6306,7 +6306,7 @@ Lerror:
         for (size_t i = 0; i < deferred.length; i++)
         {
             //printf("+ run deferred semantic3 on %s\n", deferred[i]->toChars());
-            deferred[i]->semantic3(NULL);
+            semantic3(deferred[i], NULL);
         }
 
         this->deferred = NULL;
@@ -7579,61 +7579,6 @@ void TemplateInstance::semantic2(Scope *sc)
     }
 }
 
-void TemplateInstance::semantic3(Scope *sc)
-{
-//if (toChars()[0] == 'D') *(char*)0=0;
-    if (semanticRun >= PASSsemantic3)
-        return;
-    semanticRun = PASSsemantic3;
-    if (!errors && members)
-    {
-        TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
-        assert(tempdecl);
-
-        sc = tempdecl->_scope;
-        sc = sc->push(argsym);
-        sc = sc->push(this);
-        sc->tinst = this;
-        sc->minst = minst;
-
-        int needGagging = (gagged && !global.gag);
-        unsigned int olderrors = global.errors;
-        int oldGaggedErrors = -1;       // dead-store to prevent spurious warning
-        /* If this is a gagged instantiation, gag errors.
-         * Future optimisation: If the results are actually needed, errors
-         * would already be gagged, so we don't really need to run semantic
-         * on the members.
-         */
-        if (needGagging)
-            oldGaggedErrors = global.startGagging();
-
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->semantic3(sc);
-            if (gagged && global.errors != olderrors)
-                break;
-        }
-
-        if (global.errors != olderrors)
-        {
-            if (!errors)
-            {
-                if (!tempdecl->literal)
-                    error(loc, "error instantiating");
-                if (tinst)
-                    tinst->printInstantiationTrace();
-            }
-            errors = true;
-        }
-        if (needGagging)
-            global.endGagging(oldGaggedErrors);
-
-        sc = sc->pop();
-        sc->pop();
-    }
-}
-
 /**************************************
  * Given an error instantiating the TemplateInstance,
  * give the nested TemplateInstance instantiations that got
@@ -8375,7 +8320,7 @@ void TemplateMixin::semantic(Scope *sc)
     if (sc->func && !ad)
     {
         semantic2(sc2);
-        semantic3(sc2);
+        semantic3(this, sc2);
     }
 
     // Give additional context info if error occurred during instantiation
@@ -8404,25 +8349,6 @@ void TemplateMixin::semantic2(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             s->semantic2(sc);
-        }
-        sc = sc->pop();
-        sc->pop();
-    }
-}
-
-void TemplateMixin::semantic3(Scope *sc)
-{
-    if (semanticRun >= PASSsemantic3)
-        return;
-    semanticRun = PASSsemantic3;
-    if (members)
-    {
-        sc = sc->push(argsym);
-        sc = sc->push(this);
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->semantic3(sc);
         }
         sc = sc->pop();
         sc->pop();

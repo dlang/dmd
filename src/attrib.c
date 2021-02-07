@@ -210,25 +210,6 @@ void AttribDeclaration::semantic2(Scope *sc)
     }
 }
 
-void AttribDeclaration::semantic3(Scope *sc)
-{
-    Dsymbols *d = include(sc);
-
-    if (d)
-    {
-        Scope *sc2 = newScope(sc);
-
-        for (size_t i = 0; i < d->length; i++)
-        {
-            Dsymbol *s = (*d)[i];
-            s->semantic3(sc2);
-        }
-
-        if (sc2 != sc)
-            sc2->pop();
-    }
-}
-
 void AttribDeclaration::addComment(const utf8_t *comment)
 {
     //printf("AttribDeclaration::addComment %s\n", comment);

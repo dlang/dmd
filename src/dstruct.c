@@ -273,63 +273,6 @@ void AggregateDeclaration::semantic2(Scope *sc)
     sc2->pop();
 }
 
-void AggregateDeclaration::semantic3(Scope *sc)
-{
-    //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
-    if (!members)
-        return;
-
-    StructDeclaration *sd = isStructDeclaration();
-    if (!sc)    // from runDeferredSemantic3 for TypeInfo generation
-    {
-        assert(sd);
-        sd->semanticTypeInfoMembers();
-        return;
-    }
-
-    Scope *sc2 = newScope(sc);
-
-    for (size_t i = 0; i < members->length; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->semantic3(sc2);
-    }
-
-    sc2->pop();
-
-    // don't do it for unused deprecated types
-    // or error types
-    if (!getRTInfo && Type::rtinfo &&
-        (!isDeprecated() || global.params.useDeprecated != DIAGNOSTICerror) &&
-        (type && type->ty != Terror))
-    {
-        // Evaluate: RTinfo!type
-        Objects *tiargs = new Objects();
-        tiargs->push(type);
-        TemplateInstance *ti = new TemplateInstance(loc, Type::rtinfo, tiargs);
-
-        Scope *sc3 = ti->tempdecl->_scope->startCTFE();
-        sc3->tinst = sc->tinst;
-        sc3->minst = sc->minst;
-        if (isDeprecated())
-            sc3->stc |= STCdeprecated;
-
-        ti->semantic(sc3);
-        ti->semantic2(sc3);
-        ti->semantic3(sc3);
-        Expression *e = resolve(Loc(), sc3, ti->toAlias(), false);
-
-        sc3->endCTFE();
-
-        e = e->ctfeInterpret();
-        getRTInfo = e;
-    }
-
-    if (sd)
-        sd->semanticTypeInfoMembers();
-    semanticRun = PASSsemantic3done;
-}
-
 /***************************************
  * Find all instance fields, then push them into `fields`.
  *
@@ -480,7 +423,7 @@ void StructDeclaration::semanticTypeInfoMembers()
         xeq->semanticRun < PASSsemantic3done)
     {
         unsigned errors = global.startGagging();
-        xeq->semantic3(xeq->_scope);
+        semantic3(xeq, xeq->_scope);
         if (global.endGagging(errors))
             xeq = xerreq;
     }
@@ -490,7 +433,7 @@ void StructDeclaration::semanticTypeInfoMembers()
         xcmp->semanticRun < PASSsemantic3done)
     {
         unsigned errors = global.startGagging();
-        xcmp->semantic3(xcmp->_scope);
+        semantic3(xcmp, xcmp->_scope);
         if (global.endGagging(errors))
             xcmp = xerrcmp;
     }
@@ -500,28 +443,28 @@ void StructDeclaration::semanticTypeInfoMembers()
         ftostr->_scope &&
         ftostr->semanticRun < PASSsemantic3done)
     {
-        ftostr->semantic3(ftostr->_scope);
+        semantic3(ftostr, ftostr->_scope);
     }
 
     if (xhash &&
         xhash->_scope &&
         xhash->semanticRun < PASSsemantic3done)
     {
-        xhash->semantic3(xhash->_scope);
+        semantic3(xhash, xhash->_scope);
     }
 
     if (postblit &&
         postblit->_scope &&
         postblit->semanticRun < PASSsemantic3done)
     {
-        postblit->semantic3(postblit->_scope);
+        semantic3(postblit, postblit->_scope);
     }
 
     if (dtor &&
         dtor->_scope &&
         dtor->semanticRun < PASSsemantic3done)
     {
-        dtor->semantic3(dtor->_scope);
+        semantic3(dtor, dtor->_scope);
     }
 }
 
@@ -1227,7 +1170,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (deferred && !global.gag)
     {
         deferred->semantic2(sc);
-        deferred->semantic3(sc);
+        semantic3(deferred, sc);
     }
 }
 

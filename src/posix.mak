@@ -260,7 +260,9 @@ DMD_OBJS = \
 	imphint.o argtypes.o apply.o sapply.o safe.o sideeffect.o \
 	intrange.o blockexit.o canthrow.o target.o nspace.o objc.o errors.o \
 	escape.o tokens.o globals.o \
-	utils.o statementsem.o templateparamsem.o typesem.o
+	utils.o \
+	semantic3.o \
+	statementsem.o templateparamsem.o typesem.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
@@ -328,7 +330,9 @@ SRC = win32.mak posix.mak osmodel.mak \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
 	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h \
-	utils.c statementsem.c templateparamsem.c typesem.c
+	utils.c \
+	semantic3.c \
+	statementsem.c templateparamsem.c typesem.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \

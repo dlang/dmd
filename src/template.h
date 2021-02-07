@@ -327,7 +327,6 @@ public:
     void semantic(Scope *sc, Expressions *fargs);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -368,7 +367,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);

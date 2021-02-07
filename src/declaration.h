@@ -650,7 +650,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     bool functionSemantic();
     bool functionSemantic3();
     bool checkForwardRef(Loc loc);
@@ -710,6 +709,8 @@ public:
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);
     Statement *mergeFrequire(Statement *);
+    static bool needsFensure(FuncDeclaration *fd);
+    void buildEnsureRequire();
     Statement *mergeFensure(Statement *, Identifier *oid);
     ParameterList getParameterList();
 

@@ -83,6 +83,8 @@ struct Ungag
     ~Ungag() { global.gag = oldgag; }
 };
 
+void semantic3(Dsymbol *dsym, Scope* sc);
+
 struct Prot
 {
     enum Kind
@@ -203,7 +205,6 @@ public:
     virtual void importAll(Scope *sc);
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
-    virtual void semantic3(Scope *sc);
     virtual Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);

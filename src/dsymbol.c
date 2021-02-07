@@ -479,15 +479,6 @@ void Dsymbol::semantic2(Scope *)
     // Most Dsymbols have no further semantic analysis needed
 }
 
-/*************************************
- * Does semantic analysis on function bodies.
- */
-
-void Dsymbol::semantic3(Scope *)
-{
-    // Most Dsymbols have no further semantic analysis needed
-}
-
 /*********************************************
  * Search for ident as member of s.
  * Params:
