@@ -1339,7 +1339,7 @@ version (MARS)
  *    a bit mask of return registers.
  *    0 if function returns on the stack or returns void.
  */
-regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2)
+regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
     //printf("allocretregs()\n");
     reg1 = reg2 = NOREG;
@@ -1350,10 +1350,11 @@ regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2
     /* The rest is for the Itanium ABI
      */
 
-    if (tybasic(ty) == TYvoid)
+    const tyb = tybasic(ty);
+    if (tyb == TYvoid)
         return 0;
 
-    tym_t ty1 = ty;
+    tym_t ty1 = tyb;
     tym_t ty2 = TYMAX;  // stays TYMAX if only one register is needed
 
     if (ty & mTYxmmgpr)
@@ -1367,48 +1368,46 @@ regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2
         ty2 = TYdouble;
     }
 
-    if (tybasic(ty) == TYstruct)
+    if (tyb == TYstruct)
     {
         assert(t);
         ty1 = t.Tty;
     }
 
+    const tyfb = tybasic(tyf);
     switch (tyrelax(ty1))
     {
         case TYcent:
-            if (!I64 || config.exe == EX_WIN64)
+            if (I32)
                 return 0;
             ty1 = ty2 = TYllong;
             break;
 
         case TYcdouble:
-            if (tybasic(tyf) == TYjfunc && I32)
+            if (tyfb == TYjfunc && I32)
                 break;
-            if (!I64 || config.exe == EX_WIN64)
+            if (I32)
                 return 0;
             ty1 = ty2 = TYdouble;
             break;
 
         case TYcfloat:
-            if (tybasic(tyf) == TYjfunc && I32)
+            if (tyfb == TYjfunc && I32)
                 break;
-            if (!I64)
+            if (I32)
                 goto case TYllong;
-            if (config.exe == EX_WIN64)
-                ty1 = TYllong;
-            else
-                ty1 = TYdouble;
+            ty1 = TYdouble;
             break;
 
         case TYcldouble:
-            if (tybasic(tyf) == TYjfunc && I32)
+            if (tyfb == TYjfunc && I32)
                 break;
-            if (!I64 || config.exe == EX_WIN64)
+            if (I32)
                 return 0;
             break;
 
         case TYllong:
-            if (!I64)
+            if (I32)
                 ty1 = ty2 = TYlong;
             break;
 
@@ -1425,42 +1424,15 @@ regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2
 
         case TYstruct:
             assert(t);
-            if (I64 && config.exe != EX_WIN64)
+            if (I64)
             {
                 assert(tybasic(t.Tty) == TYstruct);
-                type *targ1 = t.Ttag.Sstruct.Sarg1type;
-                type *targ2 = t.Ttag.Sstruct.Sarg2type;
-                if (targ1)
+                if (const targ1 = t.Ttag.Sstruct.Sarg1type)
                     ty1 = targ1.Tty;
                 else
                     return 0;
-                if (targ2)
+                if (const targ2 = t.Ttag.Sstruct.Sarg2type)
                     ty2 = targ2.Tty;
-                break;
-            }
-            else if (!(t.Ttag.Sstruct.Sflags & STRnotpod))
-            {
-                // windows only, return POD of 1, 2, 4, or 8 bytes on EAX(:EDX)
-                if (!(config.exe & (EX_WIN64 | EX_WIN32)))
-                    return 0;
-
-                uint sz = cast(uint) type_size(t);
-
-                if (sz > 8 || sz == 0)
-                    return 0;
-
-                if (sz == 8)
-                {
-                    if (config.exe == EX_WIN64)
-                        ty1 = TYllong;
-                    else
-                        ty1 = ty2 = TYlong;
-                }
-                else if (sz == 4 || sz == 2 || sz == 1)
-                    ty1 = TYlong;
-                else
-                    return 0;
-
                 break;
             }
             return 0;
@@ -1505,7 +1477,7 @@ regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2
         case 8:
             if (tycomplex(tym))
             {
-                assert(tybasic(tyf) == TYjfunc && I32);
+                assert(tyfb == TYjfunc && I32);
                 return ST01;
             }
             assert(I64 || tyfloating(tym));
@@ -1520,7 +1492,7 @@ regm_t allocretregs(tym_t ty, type* t, tym_t tyf, out reg_t reg1, out reg_t reg2
             {
                 return ST01;
             }
-            else if (tycomplex(tym) && tybasic(tyf) == TYjfunc && I32)
+            else if (tycomplex(tym) && tyfb == TYjfunc && I32)
             {
                 return ST01;
             }
