@@ -320,7 +320,7 @@ static void lowerNonArrayAggregate(StaticForeach *sfe, Scope *sc)
     Expression *aggr;
     Type *indexty;
 
-    if (sfe->rangefe && (indexty = ety->semantic(aloc, sc))->isintegral())
+    if (sfe->rangefe && (indexty = typeSemantic(ety, aloc, sc))->isintegral())
     {
         sfe->rangefe->lwr->type = indexty;
         sfe->rangefe->upr->type = indexty;

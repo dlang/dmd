@@ -2745,7 +2745,7 @@ Lagain:
             else
                 tx = d->pointerTo();
 
-            tx = tx->semantic(e1->loc, sc);
+            tx = typeSemantic(tx, e1->loc, sc);
 
             if (t1->implicitConvTo(tx) && t2->implicitConvTo(tx))
             {

@@ -645,7 +645,7 @@ public:
                     p->type = Type::tsize_t;
                 }
             }
-            p->type = p->type->semantic(loc, sc);
+            p->type = typeSemantic(p->type, loc, sc);
             TY keyty = p->type->ty;
             if (keyty != Tint32 && keyty != Tuns32)
             {
@@ -777,7 +777,7 @@ public:
         Type *paramtype = (*fs->parameters)[dim-1]->type;
         if (paramtype)
         {
-            paramtype = paramtype->semantic(loc, sc);
+            paramtype = typeSemantic(paramtype, loc, sc);
             if (paramtype->ty == Terror)
                 return false;
         }
@@ -986,7 +986,7 @@ public:
                     for (size_t i = 0; i < dim; i++)
                     {
                         Parameter *p = (*fs->parameters)[i];
-                        p->type = p->type->semantic(loc, sc2);
+                        p->type = typeSemantic(p->type, loc, sc2);
                         p->type = p->type->addStorageClass(p->storageClass);
                     }
 
@@ -1378,7 +1378,7 @@ public:
                             Expression *exp = (*exps)[i];
                             if (!p->type)
                                 p->type = exp->type;
-                            p->type = p->type->addStorageClass(p->storageClass)->semantic(loc, sc2);
+                            p->type = typeSemantic(p->type->addStorageClass(p->storageClass), loc, sc2);
                             if (!exp->implicitConvTo(p->type))
                                 goto Lrangeerr;
 
@@ -1421,7 +1421,7 @@ public:
                         if (fdapply)
                         {
                             assert(fdapply->type && fdapply->type->ty == Tfunction);
-                            tfld = (TypeFunction *)fdapply->type->semantic(loc, sc2);
+                            tfld = (TypeFunction *)typeSemantic(fdapply->type, loc, sc2);
                             goto Lget;
                         }
                         else if (tab->ty == Tdelegate)
@@ -1434,7 +1434,7 @@ public:
                                 Parameter *p = tfld->parameterList[0];
                                 if (p->type && p->type->ty == Tdelegate)
                                 {
-                                    Type *t = p->type->semantic(loc, sc2);
+                                    Type *t = typeSemantic(p->type, loc, sc2);
                                     assert(t->ty == Tdelegate);
                                     tfld = (TypeFunction *)t->nextOf();
                                 }
@@ -1452,7 +1452,7 @@ public:
                         StorageClass stc = STCref;
                         Identifier *id;
 
-                        p->type = p->type->semantic(loc, sc2);
+                        p->type = typeSemantic(p->type, loc, sc2);
                         p->type = p->type->addStorageClass(p->storageClass);
                         if (tfld)
                         {
@@ -1769,7 +1769,7 @@ public:
 
         if (fs->prm->type)
         {
-            fs->prm->type = fs->prm->type->semantic(loc, sc);
+            fs->prm->type = typeSemantic(fs->prm->type, loc, sc);
             fs->prm->type = fs->prm->type->addStorageClass(fs->prm->storageClass);
             fs->lwr = fs->lwr->implicitCastTo(sc, fs->prm->type);
 
@@ -3168,7 +3168,7 @@ public:
                 }
 
                 Type *t = ClassDeclaration::object->type;
-                t = t->semantic(Loc(), sc)->toBasetype();
+                t = typeSemantic(t, Loc(), sc)->toBasetype();
                 assert(t->ty == Tclass);
 
                 ss->exp = new CastExp(ss->loc, ss->exp, t);
@@ -3781,7 +3781,7 @@ void semantic(Catch *c, Scope *sc)
         // reference .object.Throwable
         c->type = getThrowable();
     }
-    c->type = c->type->semantic(c->loc, sc);
+    c->type = typeSemantic(c->type, c->loc, sc);
     if (c->type == Type::terror)
         c->errors = true;
     else

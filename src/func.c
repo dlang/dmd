@@ -737,7 +737,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 assert(0);
         }
 
-        type = type->semantic(loc, sc);
+        type = typeSemantic(type, loc, sc);
         sc = sc->pop();
     }
     if (type->ty != Tfunction)
@@ -2495,7 +2495,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             sc->flags |= SCOPEctor;
         sc->stc = 0;
         sc->linkage = linkage;  // Bugzilla 8496
-        type = f->semantic(loc, sc);
+        type = typeSemantic(f, loc, sc);
         sc = sc->pop();
     }
 
@@ -5698,7 +5698,7 @@ void NewDeclaration::semantic(Scope *sc)
     if (!type)
         type = new TypeFunction(ParameterList(parameters, varargs), tret, LINKd, storage_class);
 
-    type = type->semantic(loc, sc);
+    type = typeSemantic(type, loc, sc);
 
     // Check that there is at least one argument of type size_t
     TypeFunction *tf = type->toTypeFunction();
@@ -5776,7 +5776,7 @@ void DeleteDeclaration::semantic(Scope *sc)
     if (!type)
         type = new TypeFunction(ParameterList(parameters), Type::tvoid, LINKd, storage_class);
 
-    type = type->semantic(loc, sc);
+    type = typeSemantic(type, loc, sc);
 
     // Check that there is only one argument of type void*
     TypeFunction *tf = type->toTypeFunction();

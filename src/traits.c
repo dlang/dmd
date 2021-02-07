@@ -1681,7 +1681,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 t->resolve(e->loc, sc2, &ex, &t, &s);
                 if (t)
                 {
-                    t->semantic(e->loc, sc2);
+                    typeSemantic(t, e->loc, sc2);
                     if (t->ty == Terror)
                         err = true;
                 }

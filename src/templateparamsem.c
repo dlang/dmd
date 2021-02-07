@@ -33,14 +33,14 @@ public:
         //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
         if (ttp->specType && !reliesOnTident(ttp->specType, parameters))
         {
-            ttp->specType = ttp->specType->semantic(ttp->loc, sc);
+            ttp->specType = typeSemantic(ttp->specType, ttp->loc, sc);
         }
         result = !(ttp->specType && isError(ttp->specType));
     }
 
     void visit(TemplateValueParameter *tvp)
     {
-        tvp->valType = tvp->valType->semantic(tvp->loc, sc);
+        tvp->valType = typeSemantic(tvp->valType, tvp->loc, sc);
 
         result = !isError(tvp->valType);
     }
@@ -49,7 +49,7 @@ public:
     {
         if (tap->specType && !reliesOnTident(tap->specType, parameters))
         {
-            tap->specType = tap->specType->semantic(tap->loc, sc);
+            tap->specType = typeSemantic(tap->specType, tap->loc, sc);
         }
         tap->specAlias = aliasParameterSemantic(tap->loc, sc, tap->specAlias, parameters);
         result = !(tap->specType  && isError(tap->specType)) &&
@@ -102,7 +102,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
             if (s)
                 o = s;
             else
-                o = ta->semantic(loc, sc);
+                o = typeSemantic(ta, loc, sc);
         }
         else if (ea)
         {

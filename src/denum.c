@@ -113,7 +113,7 @@ void EnumDeclaration::semantic(Scope *sc)
         return;
 
     parent = sc->parent;
-    type = type->semantic(loc, sc);
+    type = typeSemantic(type, loc, sc);
 
     protection = sc->protection;
     if (sc->stc & STCdeprecated)
@@ -142,7 +142,7 @@ void EnumDeclaration::semantic(Scope *sc)
 
     if (memtype)
     {
-        memtype = memtype->semantic(loc, sc);
+        memtype = typeSemantic(memtype, loc, sc);
 
         /* Check to see if memtype is forward referenced
          */
@@ -426,7 +426,7 @@ Type *EnumDeclaration::getMemtype(Loc loc)
          * just the base type
          */
         if (memtype)
-            memtype = memtype->semantic(loc, _scope);
+            memtype = typeSemantic(memtype, loc, _scope);
         else
         {
             if (!isAnonymous() && members)
@@ -580,7 +580,7 @@ void EnumMember::semantic(Scope *sc)
 
     if (origType)
     {
-        origType = origType->semantic(loc, sc);
+        origType = typeSemantic(origType, loc, sc);
         type = origType;
         assert(value());          // "type id;" is not a valid enum member declaration
     }

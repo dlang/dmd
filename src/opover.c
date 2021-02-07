@@ -1711,7 +1711,7 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
             Parameter *p = (*fes->parameters)[u];
             if (p->type)
             {
-                p->type = p->type->semantic(fes->loc, sc);
+                p->type = typeSemantic(p->type, fes->loc, sc);
                 p->type = p->type->addStorageClass(p->storageClass);
             }
         }

@@ -950,7 +950,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             // Resolve parameter types and 'auto ref's.
             tf->fargs = fargs;
             unsigned olderrors = global.startGagging();
-            fd->type = tf->semantic(loc, paramscope);
+            fd->type = typeSemantic(tf, loc, paramscope);
             if (global.endGagging(olderrors))
             {
                 assert(fd->type->ty != Tfunction);
@@ -1350,7 +1350,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                     Parameter *p = fparameters[j];
                     if (!reliesOnTident(p->type, parameters, inferStart))
                     {
-                        Type *pt = p->type->syntaxCopy()->semantic(fd->loc, paramscope);
+                        Type *pt = typeSemantic(p->type->syntaxCopy(), fd->loc, paramscope);
                         rem += pt->ty == Ttuple ? ((TypeTuple *)pt)->arguments->length : 1;
                     }
                     else
@@ -1422,7 +1422,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         if (!reliesOnTident(prmtype, parameters, inferStart))
         {
             // should copy prmtype to avoid affecting semantic result
-            prmtype = prmtype->syntaxCopy()->semantic(fd->loc, paramscope);
+            prmtype = typeSemantic(prmtype->syntaxCopy(), fd->loc, paramscope);
 
             if (prmtype->ty == Ttuple)
             {
@@ -1772,7 +1772,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                         }
                         else
                         {
-                            Type *vt = tvp->valType->semantic(Loc(), sc);
+                            Type *vt = typeSemantic(tvp->valType, Loc(), sc);
                             MATCH m = (MATCH)dim->implicitConvTo(vt);
                             if (m <= MATCHnomatch)
                                 goto Lnomatch;
@@ -2622,7 +2622,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
          */
         if (tf->next && !m->lastf->inferRetType)
         {
-            m->lastf->type = tf->semantic(loc, sc);
+            m->lastf->type = typeSemantic(tf, loc, sc);
         }
     }
     else if (m->lastf)
@@ -2712,7 +2712,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
         tf->next = NULL;
     fd->type = tf;
     fd->type = fd->type->addSTC(scx->stc);
-    fd->type = fd->type->semantic(fd->loc, scx);
+    fd->type = typeSemantic(fd->type, fd->loc, scx);
     scx = scx->pop();
 
     if (fd->type->ty != Tfunction)
@@ -3198,7 +3198,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     /* BUG: what if tparam is a template instance, that
                      * has as an argument another Tident?
                      */
-                    tparam = tparam->semantic(loc, sc);
+                    tparam = typeSemantic(tparam, loc, sc);
                     assert(tparam->ty != Tident);
                     result = deduceType(t, sc, tparam, parameters, dedtypes, wm);
                     return;
@@ -3370,7 +3370,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     loc = tp->loc;
                 }
 
-                tparam = tparam->semantic(loc, sc);
+                tparam = typeSemantic(tparam, loc, sc);
             }
             if (t->ty != tparam->ty)
             {
@@ -4458,7 +4458,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     Type *t = pto->type->syntaxCopy();  // Bugzilla 11774
                     if (reliesOnTident(t, parameters, inferStart))
                         return;
-                    t = t->semantic(e->loc, sc);
+                    t = typeSemantic(t, e->loc, sc);
                     if (t->ty == Terror)
                         return;
                     tiargs->push(t);
@@ -5160,7 +5160,7 @@ RootObject *TemplateTypeParameter::defaultArg(Loc, Scope *sc)
     if (t)
     {
         t = t->syntaxCopy();
-        t = t->semantic(loc, sc);   // use the parameter loc
+        t = typeSemantic(t, loc, sc);   // use the parameter loc
     }
     return t;
 }
@@ -5498,7 +5498,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
     }
 
     //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
-    vt = valType->semantic(loc, sc);
+    vt = typeSemantic(valType, loc, sc);
     //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
     //printf("vt = %s\n", vt->toChars());
 

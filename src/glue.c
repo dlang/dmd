@@ -1143,7 +1143,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
              */
             StringExp *se = StringExp::create(Loc(), s->Sident);
             se->type = Type::tstring;
-            se->type = se->type->semantic(Loc(), NULL);
+            se->type = typeSemantic(se->type, Loc(), NULL);
             Expressions *exps = Expressions_create();
             exps->push(se);
             FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");

@@ -285,7 +285,7 @@ Type *Target::va_listType(const Loc &loc, Scope *sc)
         if (global.params.is64bit)
         {
             tvalist = (new TypeIdentifier(Loc(), Identifier::idPool("__va_list_tag")))->pointerTo();
-            tvalist = tvalist->semantic(loc, sc);
+            tvalist = typeSemantic(tvalist, loc, sc);
         }
         else
         {

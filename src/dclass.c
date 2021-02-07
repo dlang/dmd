@@ -305,7 +305,7 @@ static Type *resolveBase(ClassDeclaration *cd, Scope *sc, Scope *&scx, Type *typ
         scx->setNoFree();
     }
     cd->_scope = scx;
-    Type *t = type->semantic(cd->loc, sc);
+    Type *t = typeSemantic(type, cd->loc, sc);
     cd->_scope = NULL;
     return t;
 }
@@ -358,7 +358,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (this->errors)
         type = Type::terror;
-    type = type->semantic(loc, sc);
+    type = typeSemantic(type, loc, sc);
 
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
@@ -559,7 +559,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 badObjectDotD(this);
 
             Type *t = object->type;
-            t = t->semantic(loc, sc)->toBasetype();
+            t = typeSemantic(t, loc, sc)->toBasetype();
             if (t->ty == Terror)
                 badObjectDotD(this);
             assert(t->ty == Tclass);
@@ -1461,7 +1461,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (this->errors)
         type = Type::terror;
-    type = type->semantic(loc, sc);
+    type = typeSemantic(type, loc, sc);
 
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {

@@ -289,7 +289,7 @@ Type *TupleDeclaration::getType()
 
         tupletype = new TypeTuple(args);
         if (hasdeco)
-            return tupletype->semantic(Loc(), NULL);
+            return typeSemantic(tupletype, Loc(), NULL);
     }
 
     return tupletype;
@@ -518,7 +518,7 @@ void AliasDeclaration::aliasSemantic(Scope *sc)
     if (!s) // it's a type alias
     {
         //printf("alias %s resolved to type %s\n", toChars(), type->toChars());
-        type = type->semantic(loc, sc);
+        type = typeSemantic(type, loc, sc);
         aliassym = NULL;
     }
     else    // it's a symbolic alias
@@ -682,7 +682,7 @@ Dsymbol *AliasDeclaration::toAlias()
         }
         else
         {
-            Type *t = type->semantic(loc, _scope);
+            Type *t = typeSemantic(type, loc, _scope);
             if (t->ty == Terror)
                 goto Lerr;
             if (global.errors != olderrors)
@@ -996,7 +996,7 @@ void VarDeclaration::semantic(Scope *sc)
         Scope *sc2 = sc->push();
         sc2->stc |= (storage_class & STC_FUNCATTR);
         inuse++;
-        type = type->semantic(loc, sc2);
+        type = typeSemantic(type, loc, sc2);
         inuse--;
         sc2->pop();
     }
@@ -1089,7 +1089,7 @@ void VarDeclaration::semantic(Scope *sc)
             Lexpand1:
                 Expression *e = (*iexps)[pos];
                 Parameter *arg = Parameter::getNth(tt->arguments, pos);
-                arg->type = arg->type->semantic(loc, sc);
+                arg->type = typeSemantic(arg->type, loc, sc);
                 //printf("[%d] iexps->length = %d, ", pos, iexps->length);
                 //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
                 //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
@@ -1129,7 +1129,7 @@ void VarDeclaration::semantic(Scope *sc)
                     Lexpand2:
                         Expression *ee = (*exps)[u];
                         arg = Parameter::getNth(tt->arguments, pos + u);
-                        arg->type = arg->type->semantic(loc, sc);
+                        arg->type = typeSemantic(arg->type, loc, sc);
                         //printf("[%d+%d] exps->length = %d, ", pos, u, exps->length);
                         //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
                         //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());

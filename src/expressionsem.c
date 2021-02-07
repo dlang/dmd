@@ -269,7 +269,7 @@ public:
     void visit(Expression *e)
     {
         if (e->type)
-            e->type = e->type->semantic(e->loc, sc);
+            e->type = typeSemantic(e->type, e->loc, sc);
         else
             e->type = Type::tvoid;
         result = e;
@@ -290,7 +290,7 @@ public:
         if (!e->type)
             e->type = Type::tfloat64;
         else
-            e->type = e->type->semantic(e->loc, sc);
+            e->type = typeSemantic(e->type, e->loc, sc);
         result = e;
     }
 
@@ -299,7 +299,7 @@ public:
         if (!e->type)
             e->type = Type::tcomplex80;
         else
-            e->type = e->type->semantic(e->loc, sc);
+            e->type = typeSemantic(e->type, e->loc, sc);
         result = e;
     }
 
@@ -703,7 +703,7 @@ public:
                 e->type = new TypeDArray(Type::tchar->immutableOf());
                 break;
         }
-        e->type = e->type->semantic(e->loc, sc);
+        e->type = typeSemantic(e->type, e->loc, sc);
         //e->type = e->type->immutableOf();
         //printf("type = %s\n", e->type->toChars());
 
@@ -737,7 +737,7 @@ public:
             return setError();
 
         e->type = t0->arrayOf();
-        e->type = e->type->semantic(e->loc, sc);
+        e->type = typeSemantic(e->type, e->loc, sc);
 
         /* Disallow array literals of type void being used.
         */
@@ -785,7 +785,7 @@ public:
             return setError();
 
         e->type = new TypeAArray(tvalue, tkey);
-        e->type = e->type->semantic(e->loc, sc);
+        e->type = typeSemantic(e->type, e->loc, sc);
 
         semanticTypeInfo(sc, e->type);
 
@@ -861,7 +861,7 @@ public:
         else if (t)
         {
             //printf("t = %d %s\n", t->ty, t->toChars());
-            exp->type = t->semantic(exp->loc, sc);
+            exp->type = typeSemantic(t, exp->loc, sc);
             e = exp;
         }
         else if (s)
@@ -1053,12 +1053,12 @@ public:
             }
 
             sc = sc->push(cdthis);
-            exp->type = exp->newtype->semantic(exp->loc, sc);
+            exp->type = typeSemantic(exp->newtype, exp->loc, sc);
             sc = sc->pop();
         }
         else
         {
-            exp->type = exp->newtype->semantic(exp->loc, sc);
+            exp->type = typeSemantic(exp->newtype, exp->loc, sc);
         }
         if (exp->type->ty == Terror)
             return setError();
@@ -1069,7 +1069,7 @@ public:
             {
                 // --> new T[edim]
                 exp->type = new TypeSArray(exp->type, edim);
-                exp->type = exp->type->semantic(exp->loc, sc);
+                exp->type = typeSemantic(exp->type, exp->loc, sc);
                 if (exp->type->ty == Terror)
                     return setError();
             }
@@ -1506,7 +1506,7 @@ public:
             Declaration *decl = e->var->isDeclaration();
             if (decl)
                 decl->inuse++;
-            e->type = e->type->semantic(e->loc, sc);
+            e->type = typeSemantic(e->type, e->loc, sc);
             if (decl)
                 decl->inuse--;
         }
@@ -1573,7 +1573,7 @@ public:
 
         expandTuples(exp->exps);
         exp->type = new TypeTuple(exp->exps);
-        exp->type = exp->type->semantic(exp->loc, sc);
+        exp->type = typeSemantic(exp->type, exp->loc, sc);
         //printf("-TupleExp::semantic(%s)\n", exp->toChars());
         result = exp;
     }
@@ -1651,14 +1651,14 @@ public:
                 (exp->tok == TOKreserved && exp->fd->treq && exp->fd->treq->ty == Tdelegate))
             {
                 exp->type = new TypeDelegate(exp->fd->type);
-                exp->type = exp->type->semantic(exp->loc, sc);
+                exp->type = typeSemantic(exp->type, exp->loc, sc);
 
                 exp->fd->tok = TOKdelegate;
             }
             else
             {
                 exp->type = new TypePointer(exp->fd->type);
-                exp->type = exp->type->semantic(exp->loc, sc);
+                exp->type = typeSemantic(exp->type, exp->loc, sc);
                 //exp->type = exp->fd->type->pointerTo();
 
                 /* A lambda expression deduced to function pointer might become
@@ -2162,7 +2162,7 @@ public:
              * is(targ == tspec)
              * is(targ : tspec)
              */
-            e->tspec = e->tspec->semantic(e->loc, sc);
+            e->tspec = typeSemantic(e->tspec, e->loc, sc);
             //printf("targ  = %s, %s\n", e->targ->toChars(), e->targ->deco);
             //printf("tspec = %s, %s\n", e->tspec->toChars(), e->tspec->deco);
             if (e->tok == TOKcolon)
@@ -2731,7 +2731,7 @@ public:
 
         e->e1 = semantic(e->e1, sc);
         e->type = new TypeDelegate(e->func->type);
-        e->type = e->type->semantic(e->loc, sc);
+        e->type = typeSemantic(e->type, e->loc, sc);
         FuncDeclaration *f = e->func->toAliasFunc();
         AggregateDeclaration *ad = f->toParent()->isAggregateDeclaration();
         if (f->needThis())
@@ -2979,9 +2979,9 @@ public:
                     Type *tw = ve->var->type;
                     Type *tc = ve->var->type->substWildTo(MODconst);
                     TypeFunction *tf = new TypeFunction(ParameterList(), tc, LINKd, STCsafe | STCpure);
-                    (tf = (TypeFunction *)tf->semantic(exp->loc, sc))->next = tw;    // hack for bug7757
+                    (tf = (TypeFunction *)typeSemantic(tf, exp->loc, sc))->next = tw;    // hack for bug7757
                     TypeDelegate *t = new TypeDelegate(tf);
-                    ve->type = t->semantic(exp->loc, sc);
+                    ve->type = typeSemantic(t, exp->loc, sc);
                 }
                 VarDeclaration *v = ve->var->isVarDeclaration();
                 if (v && ve->checkPurity(sc, v))
@@ -4262,7 +4262,7 @@ public:
 
         if (exp->to)
         {
-            exp->to = exp->to->semantic(exp->loc, sc);
+            exp->to = typeSemantic(exp->to, exp->loc, sc);
             if (exp->to == Type::terror)
                 return setError();
 
@@ -4298,7 +4298,7 @@ public:
         if (!exp->to)    // Handle cast(const) and cast(immutable), etc.
         {
             exp->to = exp->e1->type->castMod(exp->mod);
-            exp->to = exp->to->semantic(exp->loc, sc);
+            exp->to = typeSemantic(exp->to, exp->loc, sc);
             if (exp->to == Type::terror)
                 return setError();
         }
@@ -4397,7 +4397,7 @@ public:
         }
 
         exp->e1 = semantic(exp->e1, sc);
-        exp->type = exp->to->semantic(exp->loc, sc);
+        exp->type = typeSemantic(exp->to, exp->loc, sc);
         if (exp->e1->op == TOKerror || exp->type->ty == Terror)
         {
             result = exp->e1;
@@ -8677,7 +8677,7 @@ Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag)
             if (v)
             {
                 if (v->type && !v->type->deco)
-                    v->type = v->type->semantic(v->loc, sc);
+                    v->type = typeSemantic(v->type, v->loc, sc);
                 e = new DotVarExp(exp->loc, exp->e1, v);
                 e = semantic(e, sc);
                 return e;
@@ -8762,7 +8762,7 @@ Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag)
             if (v)
             {
                 if (v->type && !v->type->deco)
-                    v->type = v->type->semantic(v->loc, sc);
+                    v->type = typeSemantic(v->type, v->loc, sc);
                 e = new DotVarExp(exp->loc, exp->e1, v);
                 e = semantic(e, sc);
                 return e;
