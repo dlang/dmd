@@ -47,7 +47,7 @@ static size_t templateParameterLookup(Type *tparam, TemplateParameters *paramete
 static int arrayObjectMatch(Objects *oa1, Objects *oa2);
 static unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 static MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
-static bool reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
+bool reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
 
 /********************************************
@@ -626,7 +626,7 @@ void TemplateDeclaration::semantic(Scope *sc)
             error(tp->loc, "parameter '%s' multiply defined", tp->ident->toChars());
             errors = true;
         }
-        if (!tp->semantic(paramscope, parameters))
+        if (!tpsemantic(tp, paramscope, parameters))
         {
             errors = true;
         }
@@ -5040,16 +5040,6 @@ bool TemplateTypeParameter::declareParameter(Scope *sc)
     return sc->insert(ad) != NULL;
 }
 
-bool TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
-{
-    //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
-    if (specType && !reliesOnTident(specType, parameters))
-    {
-        specType = specType->semantic(loc, sc);
-    }
-    return !(specType && isError(specType));
-}
-
 MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -5237,42 +5227,6 @@ bool TemplateAliasParameter::declareParameter(Scope *sc)
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
     return sc->insert(ad) != NULL;
-}
-
-static RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters)
-{
-    if (o)
-    {
-        Expression *ea = isExpression(o);
-        Type *ta = isType(o);
-        if (ta && (!parameters || !reliesOnTident(ta, parameters)))
-        {
-            Dsymbol *s = ta->toDsymbol(sc);
-            if (s)
-                o = s;
-            else
-                o = ta->semantic(loc, sc);
-        }
-        else if (ea)
-        {
-            sc = sc->startCTFE();
-            ea = ::semantic(ea, sc);
-            sc = sc->endCTFE();
-            o = ea->ctfeInterpret();
-        }
-    }
-    return o;
-}
-
-bool TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
-{
-    if (specType && !reliesOnTident(specType, parameters))
-    {
-        specType = specType->semantic(loc, sc);
-    }
-    specAlias = aliasParameterSemantic(loc, sc, specAlias, parameters);
-    return !(specType  && isError(specType)) &&
-           !(specAlias && isError(specAlias));
 }
 
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -5490,13 +5444,6 @@ bool TemplateValueParameter::declareParameter(Scope *sc)
     return sc->insert(v) != NULL;
 }
 
-bool TemplateValueParameter::semantic(Scope *sc, TemplateParameters *)
-{
-    valType = valType->semantic(loc, sc);
-
-    return !isError(valType);
-}
-
 MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *, Objects *dedtypes, Declaration **psparam)
 {
@@ -5699,11 +5646,6 @@ bool TemplateTupleParameter::declareParameter(Scope *sc)
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
     return sc->insert(ad) != NULL;
-}
-
-bool TemplateTupleParameter::semantic(Scope *, TemplateParameters *)
-{
-    return true;
 }
 
 MATCH TemplateTupleParameter::matchArg(Loc, Scope *sc, Objects *tiargs,
