@@ -66,7 +66,7 @@ void StaticAssert::semantic2(Scope *sc)
         if (msg)
         {
             sc = sc->startCTFE();
-            msg = ::semantic(msg, sc);
+            msg = expressionSemantic(msg, sc);
             msg = resolveProperties(sc, msg);
             sc = sc->endCTFE();
             msg = msg->ctfeInterpret();

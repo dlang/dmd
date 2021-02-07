@@ -61,7 +61,7 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
     fld->fbody = s;
 
     e = new FuncExp(loc, fld);
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     return e;
 }
 

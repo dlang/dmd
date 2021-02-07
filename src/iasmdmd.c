@@ -3582,7 +3582,7 @@ static code *asm_db_parse(OP *pop)
             {
                 Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
                 Scope *sc = asmstate.sc->startCTFE();
-                e = semantic(e, sc);
+                e = expressionSemantic(e, sc);
                 sc->endCTFE();
                 e = e->ctfeInterpret();
                 if (e->op == TOKint64)
@@ -3668,7 +3668,7 @@ int asm_getnum()
         {
             Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
             Scope *sc = asmstate.sc->startCTFE();
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             sc->endCTFE();
             e = e->ctfeInterpret();
             i = e->toInteger();
@@ -4371,7 +4371,7 @@ static OPND *asm_primary_exp()
                         }
                     }
                     Scope *sc = asmstate.sc->startCTFE();
-                    e = semantic(e, sc);
+                    e = expressionSemantic(e, sc);
                     sc->endCTFE();
                     e = e->ctfeInterpret();
                     if (e->isConst())

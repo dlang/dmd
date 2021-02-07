@@ -277,7 +277,7 @@ public:
             Catches *catches = new Catches();
             Catch *ctch = new Catch(Loc(), getThrowable(), id, handler);
             ctch->internalCatch = true;
-            ::semantic(ctch, sc);     // Run semantic to resolve identifier '__o'
+            catchSemantic(ctch, sc);     // Run semantic to resolve identifier '__o'
             catches->push(ctch);
 
             Statement *s2 = new TryCatchStatement(Loc(), s->_body, catches);
@@ -1846,7 +1846,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             bool inferRef = (f->isref && (storage_class & STCauto));
 
-            fbody = ::semantic(fbody, sc2);
+            fbody = statementSemantic(fbody, sc2);
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
 
@@ -1975,7 +1975,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         Expression *e1 = new SuperExp(Loc());
                         Expression *e = new CallExp(Loc(), e1);
-                        e = ::semantic(e, sc2);
+                        e = expressionSemantic(e, sc2);
 
                         Statement *s = new ExpStatement(Loc(), e);
                         fbody = new CompoundStatement(Loc(), s, fbody);
@@ -2026,7 +2026,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (blockexit & BEfallthru)
                 {
                     Statement *s = new ReturnStatement(loc, NULL);
-                    s = ::semantic(s, sc2);
+                    s = statementSemantic(s, sc2);
                     fbody = new CompoundStatement(loc, fbody, s);
                     hasReturnExp |= (hasReturnExp & 1 ? 16 : 1);
                 }
@@ -2068,7 +2068,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     else
                         e = new HaltExp(endloc);
                     e = new CommaExp(Loc(), e, f->next->defaultInit());
-                    e = ::semantic(e, sc2);
+                    e = expressionSemantic(e, sc2);
                     Statement *s = new ExpStatement(Loc(), e);
                     fbody = new CompoundStatement(Loc(), fbody, s);
                 }
@@ -2180,7 +2180,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             // BUG: need to error if accessing out parameters
             // BUG: need to disallow returns and throws
             // BUG: verify that all in and ref parameters are read
-            freq = ::semantic(freq, sc2);
+            freq = statementSemantic(freq, sc2);
             blockExit(freq, this, false);
 
             sc2 = sc2->pop();
@@ -2213,7 +2213,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (fensure && f->next->ty != Tvoid)
                 buildResultVar(scout, f->next);
 
-            fens = ::semantic(fens, sc2);
+            fens = statementSemantic(fens, sc2);
             blockExit(fens, this, false);
 
             sc2 = sc2->pop();
@@ -2260,7 +2260,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Expression *e = new VarExp(Loc(), v_arguments);
                 e = new DotIdExp(Loc(), e, Id::elements);
                 e = new ConstructExp(Loc(), _arguments, e);
-                e = ::semantic(e, sc2);
+                e = expressionSemantic(e, sc2);
 
                 _arguments->_init = new ExpInitializer(Loc(), e);
                 DeclarationExp *de = new DeclarationExp(Loc(), _arguments);
@@ -2300,7 +2300,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (tintro)
                     {
                         e = e->implicitCastTo(sc, tintro->nextOf());
-                        e = ::semantic(e, sc);
+                        e = expressionSemantic(e, sc);
                     }
                     ReturnStatement *s = new ReturnStatement(Loc(), e);
                     a->push(s);
@@ -2331,7 +2331,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         Statement *s = new DtorExpStatement(Loc(), v->edtor, v);
                         v->storage_class |= STCnodtor;
 
-                        s = ::semantic(s, sc2);
+                        s = statementSemantic(s, sc2);
 
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = blockExit(s, this, isnothrow);
@@ -2380,7 +2380,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                         sbody = new PeelStatement(sbody);       // don't redo semantic()
                         sbody = new SynchronizedStatement(loc, vsync, sbody);
-                        sbody = ::semantic(sbody, sc2);
+                        sbody = statementSemantic(sbody, sc2);
                     }
                 }
                 else

@@ -1430,7 +1430,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 TypeVector *tv = (TypeVector *)tob;
                 result = new CastExp(e->loc, e, tv->elementType());
                 result = new VectorExp(e->loc, result, tob);
-                result = ::semantic(result, sc);
+                result = expressionSemantic(result, sc);
                 return;
             }
             else if (tob->ty != Tvector && t1b->ty == Tvector)
@@ -1923,7 +1923,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     {
                         f->tookAddressOf++;
                         SymOffExp *se = new SymOffExp(e->loc, f, 0, false);
-                        ::semantic(se, sc);
+                        expressionSemantic(se, sc);
                         // Let SymOffExp::castTo() do the heavy lifting
                         visit(se);
                         return;
@@ -2082,7 +2082,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     (*ae->elements)[i] = ex;
                 }
                 Expression *ev = new VectorExp(e->loc, ae, tb);
-                ev = ::semantic(ev, sc);
+                ev = expressionSemantic(ev, sc);
                 result = ev;
                 return;
             }
@@ -2155,12 +2155,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         if (f->needThis() && hasThis(sc))
                         {
                             result = new DelegateExp(e->loc, new ThisExp(e->loc), f, false);
-                            result = ::semantic(result, sc);
+                            result = expressionSemantic(result, sc);
                         }
                         else if (f->isNested())
                         {
                             result = new DelegateExp(e->loc, new IntegerExp(0), f, false);
-                            result = ::semantic(result, sc);
+                            result = expressionSemantic(result, sc);
                         }
                         else if (f->needThis())
                         {

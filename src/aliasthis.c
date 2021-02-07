@@ -32,7 +32,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
         Loc loc = e->loc;
         Type *tthis = (e->op == TOKtype ? e->type : NULL);
         e = new DotIdExp(loc, e, ad->aliasthis->ident);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         if (tthis && ad->aliasthis->needThis())
         {
             if (e->op == TOKvar)
@@ -64,7 +64,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 
         L1:
             e = new TypeExp(loc, new TypeTypeof(loc, e));
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
         }
         e = resolveProperties(sc, e);
 

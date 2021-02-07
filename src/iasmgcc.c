@@ -319,7 +319,7 @@ Statement *gccAsmSemantic(GccAsmStatement *s, Scope *sc)
     s->stc = sc->stc;
 
     // Fold the instruction template string.
-    s->insn = semantic(s->insn, sc);
+    s->insn = expressionSemantic(s->insn, sc);
     s->insn = s->insn->ctfeInterpret();
 
     if (s->insn->op != TOKstring || ((StringExp *) s->insn)->sz != 1)
@@ -334,7 +334,7 @@ Statement *gccAsmSemantic(GccAsmStatement *s, Scope *sc)
         for (size_t i = 0; i < s->args->length; i++)
         {
             Expression *e = (*s->args)[i];
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             // Check argument is a valid lvalue/rvalue.
             if (i < s->outputargs)
                 e = e->modifiableLvalue(sc, NULL);
@@ -343,7 +343,7 @@ Statement *gccAsmSemantic(GccAsmStatement *s, Scope *sc)
             (*s->args)[i] = e;
 
             e = (*s->constraints)[i];
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             assert(e->op == TOKstring && ((StringExp *) e)->sz == 1);
             (*s->constraints)[i] = e;
         }
@@ -355,7 +355,7 @@ Statement *gccAsmSemantic(GccAsmStatement *s, Scope *sc)
         for (size_t i = 0; i < s->clobbers->length; i++)
         {
             Expression *e = (*s->clobbers)[i];
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             assert(e->op == TOKstring && ((StringExp *) e)->sz == 1);
             (*s->clobbers)[i] = e;
         }
@@ -371,7 +371,7 @@ Statement *gccAsmSemantic(GccAsmStatement *s, Scope *sc)
             if (!s->gotos)
                 s->gotos = new GotoStatements();
             s->gotos->push(gs);
-            semantic(gs, sc);
+            statementSemantic(gs, sc);
         }
     }
 

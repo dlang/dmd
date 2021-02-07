@@ -341,7 +341,7 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
              */
             Expression *ec = new CmpExp(id == Id::max ? TOKgt : TOKlt, em->loc, e, *pval);
             inuse++;
-            ec = ::semantic(ec, em->_scope);
+            ec = expressionSemantic(ec, em->_scope);
             inuse--;
             ec = ec->ctfeInterpret();
             if (ec->toInteger())
@@ -589,7 +589,7 @@ void EnumMember::semantic(Scope *sc)
     {
         Expression *e = value();
         assert(e->dyncast() == DYNCAST_EXPRESSION);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = resolveProperties(sc, e);
         e = e->ctfeInterpret();
         if (e->op == TOKerror)
@@ -707,14 +707,14 @@ void EnumMember::semantic(Scope *sc)
         Type *tprev = eprev->type->equals(ed->type) ? ed->memtype : eprev->type;
 
         Expression *emax = tprev->getProperty(ed->loc, Id::max, 0);
-        emax = ::semantic(emax, sc);
+        emax = expressionSemantic(emax, sc);
         emax = emax->ctfeInterpret();
 
         // Set value to (eprev + 1).
         // But first check that (eprev != emax)
         assert(eprev);
         Expression *e = new EqualExp(TOKequal, loc, eprev, emax);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = e->ctfeInterpret();
         if (e->toInteger())
         {
@@ -724,7 +724,7 @@ void EnumMember::semantic(Scope *sc)
 
         // Now set e to (eprev + 1)
         e = new AddExp(loc, eprev, new IntegerExp(loc, 1, Type::tint32));
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = e->castTo(sc, eprev->type);
         e = e->ctfeInterpret();
 
@@ -733,7 +733,7 @@ void EnumMember::semantic(Scope *sc)
         {
             assert(emprev->origValue);
             origValue = new AddExp(loc, emprev->origValue, new IntegerExp(loc, 1, Type::tint32));
-            origValue = ::semantic(origValue, sc);
+            origValue = expressionSemantic(origValue, sc);
             origValue = origValue->ctfeInterpret();
         }
 
@@ -743,7 +743,7 @@ void EnumMember::semantic(Scope *sc)
         {
             // Check that e != eprev (not always true for floats)
             Expression *etest = new EqualExp(TOKequal, loc, e, eprev);
-            etest = ::semantic(etest, sc);
+            etest = expressionSemantic(etest, sc);
             etest = etest->ctfeInterpret();
             if (etest->toInteger())
             {
@@ -774,5 +774,5 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
     if (errors)
         return new ErrorExp();
     Expression *e = new VarExp(loc, this);
-    return ::semantic(e, sc);
+    return expressionSemantic(e, sc);
 }

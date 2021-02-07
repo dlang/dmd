@@ -468,7 +468,7 @@ Statements *ExpStatement::flatten(Scope *sc)
         Dsymbol *d = ((DeclarationExp *)exp)->declaration;
         if (TemplateMixin *tm = d->isTemplateMixin())
         {
-            Expression *e = semantic(exp, sc);
+            Expression *e = expressionSemantic(exp, sc);
             if (e->op == TOKerror || tm->errors)
             {
                 Statements *a = new Statements();

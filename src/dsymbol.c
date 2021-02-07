@@ -1708,7 +1708,7 @@ Dsymbol *ArrayScopeSymbol::search(const Loc &loc, Identifier *ident, int)
 
                     Objects *tiargs = new Objects();
                     Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
-                    edim = ::semantic(edim, sc);
+                    edim = expressionSemantic(edim, sc);
                     tiargs->push(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td->ident, tiargs);
                 }
@@ -1728,7 +1728,7 @@ Dsymbol *ArrayScopeSymbol::search(const Loc &loc, Identifier *ident, int)
                     assert(d);
                     e = new DotVarExp(loc, ce, d);
                 }
-                e = ::semantic(e, sc);
+                e = expressionSemantic(e, sc);
                 if (!e->type)
                     exp->error("%s has no value", e->toChars());
                 t = e->type->toBasetype();

@@ -923,7 +923,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
 
         StringExp *se = new StringExp(e->loc, const_cast<char *>(id->toChars()));
-        return semantic(se, sc);
+        return expressionSemantic(se, sc);
     }
     else if (e->ident == Id::getProtection || e->ident == Id::getVisibility)
     {
@@ -951,7 +951,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         const char *protName = protectionToChars(s->prot().kind);   // TODO: How about package(names)
         assert(protName);
         StringExp *se = new StringExp(e->loc, const_cast<char *>(protName));
-        return semantic(se, sc);
+        return expressionSemantic(se, sc);
     }
     else if (e->ident == Id::parent)
     {
@@ -980,7 +980,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
                     td = td->overroot;  // then get the start
                 Expression *ex = new TemplateExp(e->loc, td, f);
-                ex = semantic(ex, sc);
+                ex = expressionSemantic(ex, sc);
                 return ex;
             }
 
@@ -988,7 +988,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             {
                 // Directly translate to VarExp instead of FuncExp
                 Expression *ex = new VarExp(e->loc, fld, true);
-                return semantic(ex, sc);
+                return expressionSemantic(ex, sc);
             }
         }
 
@@ -1011,7 +1011,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
         }
 
-        ex = semantic(ex, sc);
+        ex = expressionSemantic(ex, sc);
         RootObject *oc = (*e->args)[1];
         Dsymbol *symc = getDsymbol(oc);
         if (!symc)
@@ -1029,7 +1029,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         else
             assert(0);
 
-        ex = semantic(ex, sc);
+        ex = expressionSemantic(ex, sc);
         return ex;
     }
     else if (e->ident == Id::hasMember ||
@@ -1118,7 +1118,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             if (ex->op == TOKdotid)
                 // Prevent semantic() from replacing Symbol with its initializer
                 ((DotIdExp *)ex)->wantsym = true;
-            ex = semantic(ex, scx);
+            ex = expressionSemantic(ex, scx);
             scx->pop();
             return ex;
         }
@@ -1128,7 +1128,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             unsigned errors = global.errors;
             Expression *eorig = ex;
-            ex = semantic(ex, scx);
+            ex = expressionSemantic(ex, scx);
             if (errors < global.errors)
                 e->error("%s cannot be resolved", eorig->toChars());
             //ex->print();
@@ -1191,7 +1191,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 overloadApply(f, &p, &fptraits);
 
             ex = new TupleExp(e->loc, exps);
-            ex = semantic(ex, scx);
+            ex = expressionSemantic(ex, scx);
             scx->pop();
             return ex;
         }
@@ -1241,7 +1241,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         if (ad->aliasthis)
             exps->push(new StringExp(e->loc, const_cast<char *>(ad->aliasthis->ident->toChars())));
         Expression *ex = new TupleExp(e->loc, exps);
-        ex = semantic(ex, sc);
+        ex = expressionSemantic(ex, sc);
         return ex;
     }
     else if (e->ident == Id::getAttributes)
@@ -1281,7 +1281,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Expressions *exps = udad ? udad->getAttributes() : new Expressions();
         TupleExp *tup = new TupleExp(e->loc, exps);
-        return semantic(tup, sc);
+        return expressionSemantic(tup, sc);
     }
     else if (e->ident == Id::getFunctionAttributes)
     {
@@ -1306,7 +1306,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         tf->attributesApply(&pa, &PushAttributes::fp, TRUSTformatSystem);
 
         TupleExp *tup = new TupleExp(e->loc, mods);
-        return semantic(tup, sc);
+        return expressionSemantic(tup, sc);
     }
     else if (e->ident == Id::isReturnOnStack)
     {
@@ -1373,7 +1373,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 assert(0);
         }
         StringExp *se = new StringExp(e->loc, const_cast<char*>(style));
-        return semantic(se, sc);
+        return expressionSemantic(se, sc);
     }
     else if (e->ident == Id::getParameterStorageClasses)
     {
@@ -1462,7 +1462,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             exps->push(new StringExp(e->loc, const_cast<char *>("scope")));
 
         TupleExp *tup = new TupleExp(e->loc, exps);
-        return semantic(tup, sc);
+        return expressionSemantic(tup, sc);
     }
     else if (e->ident == Id::getLinkage)
     {
@@ -1510,7 +1510,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         const char *linkage = linkageToChars(link);
         StringExp *se = new StringExp(e->loc, const_cast<char *>(linkage));
-        return semantic(se, sc);
+        return expressionSemantic(se, sc);
     }
     else if (e->ident == Id::allMembers ||
              e->ident == Id::derivedMembers)
@@ -1652,7 +1652,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
          *   [ __traits(allMembers, ...) ]
          */
         Expression *ex = new TupleExp(e->loc, exps);
-        ex = semantic(ex, sc);
+        ex = expressionSemantic(ex, sc);
         return ex;
     }
     else if (e->ident == Id::compiles)
@@ -1690,7 +1690,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             }
             if (ex)
             {
-                ex = semantic(ex, sc2);
+                ex = expressionSemantic(ex, sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex->optimize(WANTvalue);
                 if (sc2->func && sc2->func->type->ty == Tfunction)
@@ -1793,7 +1793,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             collectUnitTests(sds->members, uniqueUnitTests, exps);
         }
         TupleExp *te= new TupleExp(e->loc, exps);
-        return semantic(te, sc);
+        return expressionSemantic(te, sc);
     }
     else if (e->ident == Id::getVirtualIndex)
     {
@@ -1854,7 +1854,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se->toPtr());
             return new ErrorExp();
         }
-        return semantic(r, sc);
+        return expressionSemantic(r, sc);
     }
     else if (e->ident == Id::getLocation)
     {
@@ -1884,7 +1884,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         (*exps)[1] = new IntegerExp(e->loc, s->loc.linnum, Type::tint32);
         (*exps)[2] = new IntegerExp(e->loc, s->loc.charnum, Type::tint32);
         TupleExp *tup = new TupleExp(e->loc, exps);
-        return semantic(tup, sc);
+        return expressionSemantic(tup, sc);
     }
 
     if (const char *sub = (const char *)speller(e->ident->toChars(), &trait_search_fp, NULL, idchars))

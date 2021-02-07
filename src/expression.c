@@ -98,7 +98,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                 e1->type = tcd->vthis->type;
                 e1->type = e1->type->addMod(t->mod);
                 // Do not call checkNestedRef()
-                //e1 = semantic(e1, sc);
+                //e1 = expressionSemantic(e1, sc);
 
                 // Skip up over nested functions, and get the enclosing
                 // class type.
@@ -129,10 +129,10 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                     e1->type = s->isClassDeclaration()->type;
                     e1->type = e1->type->addMod(t->mod);
                     if (n > 1)
-                        e1 = semantic(e1, sc);
+                        e1 = expressionSemantic(e1, sc);
                 }
                 else
-                    e1 = semantic(e1, sc);
+                    e1 = expressionSemantic(e1, sc);
                 goto L1;
             }
 
@@ -264,7 +264,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         FuncDeclaration *fd = NULL;
         if (e2)
         {
-            e2 = semantic(e2, sc);
+            e2 = expressionSemantic(e2, sc);
             if (e2->op == TOKerror)
                 return new ErrorExp();
             e2 = resolveProperties(sc, e2);
@@ -286,7 +286,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             if (fd)
             {
                 Expression *e = new CallExp(loc, e1, e2);
-                return semantic(e, sc);
+                return expressionSemantic(e, sc);
             }
         }
         {
@@ -309,7 +309,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 Expression *e = new CallExp(loc, e1);
                 if (e2)
                     e = new AssignExp(loc, e, e2);
-                return semantic(e, sc);
+                return expressionSemantic(e, sc);
             }
         }
         if (e2)
@@ -378,7 +378,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         assert(s);
         if (e2)
         {
-            e2 = semantic(e2, sc);
+            e2 = expressionSemantic(e2, sc);
             if (e2->op == TOKerror)
                 return new ErrorExp();
             e2 = resolveProperties(sc, e2);
@@ -393,7 +393,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                     return new ErrorExp();
                 assert(fd->type->ty == Tfunction);
                 Expression *e = new CallExp(loc, e1, e2);
-                return semantic(e, sc);
+                return expressionSemantic(e, sc);
             }
         }
         {
@@ -409,7 +409,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                     Expression *e = new CallExp(loc, e1);
                     if (e2)
                         e = new AssignExp(loc, e, e2);
-                    return semantic(e, sc);
+                    return expressionSemantic(e, sc);
                 }
             }
         }
@@ -418,7 +418,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             // Keep better diagnostic message for invalid property usage of functions
             assert(fd->type->ty == Tfunction);
             Expression *e = new CallExp(loc, e1, e2);
-            return semantic(e, sc);
+            return expressionSemantic(e, sc);
         }
         if (e2)
             goto Leprop;
@@ -445,7 +445,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             if (ve->var->storage_class & STClazy)
             {
                 Expression *e = new CallExp(loc, e1);
-                return semantic(e, sc);
+                return expressionSemantic(e, sc);
             }
         }
         else if (e1->op == TOKdotvar)
@@ -782,7 +782,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                     return new ErrorExp();
                 }
                 Expression *key = (*ce->arguments)[0];
-                key = semantic(key, sc);
+                key = expressionSemantic(key, sc);
                 key = resolveProperties(sc, key);
 
                 TypeAArray *taa = (TypeAArray *)t;
@@ -806,7 +806,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 if (isDotOpDispatch(ey))
                 {
                     unsigned errors = global.startGagging();
-                    e = semantic(ce->syntaxCopy(), sc);
+                    e = expressionSemantic(ce->syntaxCopy(), sc);
                     if (!global.endGagging(errors))
                         return e;
                     /* fall down to UFCS */
@@ -873,7 +873,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
     if (e2)
     {
         // run semantic without gagging
-        e2 = semantic(e2, sc);
+        e2 = expressionSemantic(e2, sc);
 
         /* f(e1) = e2
          */
@@ -897,12 +897,12 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             if (!e)
             {   checkPropertyCall(ex);
                 ex = new AssignExp(loc, ex, e2);
-                return semantic(ex, sc);
+                return expressionSemantic(ex, sc);
             }
         }
         else
         {   // strict setter prints errors if fails
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
         }
         checkPropertyCall(e);
         return e;
@@ -915,9 +915,9 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         arguments->setDim(1);
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         checkPropertyCall(e);
-        return semantic(e, sc);
+        return expressionSemantic(e, sc);
     }
 }
 
@@ -935,7 +935,7 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors)
             Expression *e = (*exps)[i];
             if (e)
             {
-                e = semantic(e, sc);
+                e = expressionSemantic(e, sc);
                 if (e->op == TOKerror)
                     err = true;
                 if (preserveErrors || e->op != TOKerror)
@@ -1132,7 +1132,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
             condexp.e1 = e0;
             condexp.e2 = e;
             condexp.loc = e->loc;
-            Expression *ex = semantic(&condexp, sc);
+            Expression *ex = expressionSemantic(&condexp, sc);
             if (ex->op == TOKerror)
                 e = ex;
             else
@@ -1503,7 +1503,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         }
                         break;
                 }
-                arg = semantic(arg, sc);
+                arg = expressionSemantic(arg, sc);
                 //printf("\targ = '%s'\n", arg->toChars());
                 arguments->setDim(i + 1);
                 (*arguments)[i] =  arg;
@@ -1808,7 +1808,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             gate->semantic(sc);
 
             Expression *ae = new DeclarationExp(loc, gate);
-            eprefix = semantic(ae, sc);
+            eprefix = expressionSemantic(ae, sc);
         }
 
         for (ptrdiff_t i = start; i != end; i += step)
@@ -1858,21 +1858,21 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     assert(tmp->edtor);
                     Expression *e = tmp->edtor;
                     e = new LogicalExp(e->loc, TOKoror, new VarExp(e->loc, gate), e);
-                    tmp->edtor = semantic(e, sc);
+                    tmp->edtor = expressionSemantic(e, sc);
                     //printf("edtor: %s\n", tmp->edtor->toChars());
                 }
 
                 // eprefix => (eprefix, auto __pfx/y = arg)
                 DeclarationExp *ae = new DeclarationExp(loc, tmp);
-                eprefix = Expression::combine(eprefix, semantic(ae, sc));
+                eprefix = Expression::combine(eprefix, expressionSemantic(ae, sc));
 
                 // arg => __pfx/y
                 arg = new VarExp(loc, tmp);
-                arg = semantic(arg, sc);
+                arg = expressionSemantic(arg, sc);
                 if (isRef)
                 {
                     arg = new PtrExp(loc, arg);
-                    arg = semantic(arg, sc);
+                    arg = expressionSemantic(arg, sc);
                 }
 
                 /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
@@ -1886,7 +1886,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (i == lastthrow)
                 {
                     Expression *e = new AssignExp(gate->loc, new VarExp(gate->loc, gate), new IntegerExp(gate->loc, 1, Type::tbool));
-                    eprefix = Expression::combine(eprefix, semantic(e, sc));
+                    eprefix = Expression::combine(eprefix, expressionSemantic(e, sc));
                     gate = NULL;
                 }
             }
@@ -1921,7 +1921,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
         TypeTuple *tup = new TypeTuple(args);
         Expression *e = new TypeidExp(loc, tup);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         arguments->insert(0, e);
     }
 
@@ -2724,7 +2724,7 @@ Lagain:
         if (fd)
         {
             e = new CastExp(loc, e, Type::tbool);
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
 
@@ -3730,7 +3730,7 @@ Lagain:
 
             e = v->expandInitializer(loc);
             v->inuse++;
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             v->inuse--;
             return e;
         }
@@ -3743,14 +3743,14 @@ Lagain:
             e = new DotVarExp(loc, new ThisExp(loc), v);
         else
             e = new VarExp(loc, v);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
     {
         //printf("'%s' is a function literal\n", fld->toChars());
         e = new FuncExp(loc, fld);
-        return semantic(e, sc);
+        return expressionSemantic(e, sc);
     }
     if (FuncDeclaration *f = s->isFuncDeclaration())
     {
@@ -3785,28 +3785,28 @@ Lagain:
             return new ErrorExp();
         }
         ScopeExp *ie = new ScopeExp(loc, imp->pkg);
-        return semantic(ie, sc);
+        return expressionSemantic(ie, sc);
     }
     if (Package *pkg = s->isPackage())
     {
         ScopeExp *ie = new ScopeExp(loc, pkg);
-        return semantic(ie, sc);
+        return expressionSemantic(ie, sc);
     }
     if (Module *mod = s->isModule())
     {
         ScopeExp *ie = new ScopeExp(loc, mod);
-        return semantic(ie, sc);
+        return expressionSemantic(ie, sc);
     }
 
     if (Nspace *ns = s->isNspace())
     {
         ScopeExp *ie = new ScopeExp(loc, ns);
-        return semantic(ie, sc);
+        return expressionSemantic(ie, sc);
     }
 
     if (Type *t = s->getType())
     {
-        return semantic(new TypeExp(loc, t), sc);
+        return expressionSemantic(new TypeExp(loc, t), sc);
     }
 
     if (TupleDeclaration *tup = s->isTupleDeclaration())
@@ -3815,7 +3815,7 @@ Lagain:
             e = new DotVarExp(loc, new ThisExp(loc), tup);
         else
             e = new TupleExp(loc, tup);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
 
@@ -3828,7 +3828,7 @@ Lagain:
         if (!s->isTemplateInstance())
             goto Lagain;
         e = new ScopeExp(loc, ti);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
     if (TemplateDeclaration *td = s->isTemplateDeclaration())
@@ -3843,7 +3843,7 @@ Lagain:
         }
         else
             e = new TemplateExp(loc, td);
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
 
@@ -4548,7 +4548,7 @@ Expression *StructLiteralExp::addDtorHook(Scope *sc)
         VarDeclaration *tmp = copyToTemp(0, buf, this);
         Expression *ae = new DeclarationExp(loc, tmp);
         Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
     return this;
@@ -5208,7 +5208,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
 
         TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
         Expression *ex = new ScopeExp(loc, ti);
-        ex = ::semantic(ex, td->_scope);
+        ex = expressionSemantic(ex, td->_scope);
 
         // Reset inference target for the later re-semantic
         fd->treq = NULL;
@@ -5925,7 +5925,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
         return true;
 
     Expression *e = new DotIdExp(loc, e1, ti->name);
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     if (e->op == TOKdot)
         e = ((DotExp *)e)->e2;
 
@@ -6074,7 +6074,7 @@ Expression *CallExp::addDtorHook(Scope *sc)
             DeclarationExp *de = new DeclarationExp(loc, tmp);
             VarExp *ve = new VarExp(loc, tmp);
             Expression *e = new CommaExp(loc, de, ve);
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
     }
@@ -7060,7 +7060,7 @@ void CondExp::hookDtors(Scope *sc)
                         vcond->semantic(sc);
 
                         Expression *de = new DeclarationExp(ce->econd->loc, vcond);
-                        de = semantic(de, sc);
+                        de = expressionSemantic(de, sc);
 
                         Expression *ve = new VarExp(ce->econd->loc, vcond);
                         ce->econd = Expression::combine(de, ve);
@@ -7072,7 +7072,7 @@ void CondExp::hookDtors(Scope *sc)
                         v->edtor = new LogicalExp(v->edtor->loc, TOKandand, ve, v->edtor);
                     else
                         v->edtor = new LogicalExp(v->edtor->loc, TOKoror, ve, v->edtor);
-                    v->edtor = semantic(v->edtor, sc);
+                    v->edtor = expressionSemantic(v->edtor, sc);
                     //printf("\t--v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
                 }
             }
@@ -7153,7 +7153,7 @@ Expression *FileInitExp::resolveLoc(Loc loc, Scope *sc)
         s = loc.filename != NULL ? loc.filename : sc->_module->ident->toChars();
 
     Expression *e = new StringExp(loc, const_cast<char *>(s));
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     e = e->castTo(sc, type);
     return e;
 }
@@ -7187,7 +7187,7 @@ Expression *ModuleInitExp::resolveLoc(Loc loc, Scope *sc)
     else
         s = sc->_module->toPrettyChars();
     Expression *e = new StringExp(loc, const_cast<char *>(s));
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     e = e->castTo(sc, type);
     return e;
 }
@@ -7209,7 +7209,7 @@ Expression *FuncInitExp::resolveLoc(Loc loc, Scope *sc)
     else
         s = "";
     Expression *e = new StringExp(loc, const_cast<char *>(s));
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     e = e->castTo(sc, type);
     return e;
 }
@@ -7243,7 +7243,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
     }
 
     Expression *e = new StringExp(loc, const_cast<char *>(s));
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     e = e->castTo(sc, type);
     return e;
 }
@@ -7313,14 +7313,14 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
         ae->lengthVar = NULL;       // Create it only if required
         ae->currentDimension = i;   // Dimension for $, if required
 
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = resolveProperties(sc, e);
 
         if (ae->lengthVar && sc->func)
         {
             // If $ was used, declare it now
             Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
-            de = semantic(de, sc);
+            de = expressionSemantic(de, sc);
             *pe0 = Expression::combine(*pe0, de);
         }
         sc = sc->pop();
@@ -7331,7 +7331,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 
             Objects *tiargs = new Objects();
             Expression *edim = new IntegerExp(ae->loc, i, Type::tsize_t);
-            edim = semantic(edim, sc);
+            edim = expressionSemantic(edim, sc);
             tiargs->push(edim);
 
             Expressions *fargs = new Expressions();
@@ -7348,7 +7348,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 
             e = new DotTemplateInstanceExp(ae->loc, ae->e1, slice->ident, tiargs);
             e = new CallExp(ae->loc, e, fargs);
-            e = semantic(e, sc);
+            e = expressionSemantic(e, sc);
         }
 
         if (!e->type)
@@ -7377,7 +7377,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 StringExp *semanticString(Scope *sc, Expression *exp, const char *s)
 {
     sc = sc->startCTFE();
-    exp = semantic(exp, sc);
+    exp = expressionSemantic(exp, sc);
     exp = resolveProperties(sc, exp);
     sc = sc->endCTFE();
 
@@ -7423,7 +7423,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression
     for (size_t i = 0; i < 2; ++i)
     {
         Expression *e = i == 0 ? ie->lwr : ie->upr;
-        e = semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = resolveProperties(sc, e);
         if (!e->type)
         {
@@ -7437,7 +7437,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression
     {
         // If $ was used, declare it now
         Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
-        de = semantic(de, sc);
+        de = expressionSemantic(de, sc);
         *pe0 = Expression::combine(*pe0, de);
     }
     sc = sc->pop();

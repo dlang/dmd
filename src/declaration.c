@@ -420,7 +420,7 @@ void AliasDeclaration::aliasSemantic(Scope *sc)
             }
 
             Expression *e = new FuncExp(loc, aliassym);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             if (e->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)e;
@@ -1075,7 +1075,7 @@ void VarDeclaration::semantic(Scope *sc)
         size_t nelems = Parameter::dim(tt->arguments);
         Expression *ie = (_init && !_init->isVoidInitializer()) ? initializerToExpression(_init) : NULL;
         if (ie)
-            ie = ::semantic(ie, sc);
+            ie = expressionSemantic(ie, sc);
 
         if (nelems > 0 && ie)
         {
@@ -1453,7 +1453,7 @@ Lnomatch:
 
             Expression *e = tv->defaultInitLiteral(loc);
             e = new BlitExp(loc, new VarExp(loc, this), e);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
@@ -1513,7 +1513,7 @@ Lnomatch:
                     if (!e)
                     {
                         // Run semantic, but don't need to interpret
-                        _init = ::semantic(_init, sc, type, INITnointerpret);
+                        _init = initializerSemantic(_init, sc, type, INITnointerpret);
                         e = initializerToExpression(_init);
                         if (!e)
                         {
@@ -1532,7 +1532,7 @@ Lnomatch:
                 else
                     exp = new ConstructExp(loc, e1, exp);
                 canassign++;
-                exp = ::semantic(exp, sc);
+                exp = expressionSemantic(exp, sc);
                 canassign--;
                 exp = exp->optimize(WANTvalue);
 
@@ -1579,7 +1579,7 @@ Lnomatch:
             else
             {
                 // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+                _init = initializerSemantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
             }
         }
         else if (parent->isAggregateDeclaration())
@@ -1606,7 +1606,7 @@ Lnomatch:
 
                     bool needctfe = isDataseg() || (storage_class & STCmanifest);
                     if (needctfe) sc = sc->startCTFE();
-                    exp = ::semantic(exp, sc);
+                    exp = expressionSemantic(exp, sc);
                     exp = resolveProperties(sc, exp);
                     if (needctfe) sc = sc->endCTFE();
 
@@ -1642,7 +1642,7 @@ Lnomatch:
                     }
                     ei->exp = exp;
                 }
-                _init = ::semantic(_init, sc, type, INITinterpret);
+                _init = initializerSemantic(_init, sc, type, INITinterpret);
                 inuse--;
                 if (global.errors > errors)
                 {
@@ -1666,9 +1666,9 @@ Ldtor:
     if (edtor)
     {
         if (sc->func && storage_class & (STCstatic | STCgshared))
-            edtor = ::semantic(edtor, sc->_module->_scope);
+            edtor = expressionSemantic(edtor, sc->_module->_scope);
         else
-            edtor = ::semantic(edtor, sc);
+            edtor = expressionSemantic(edtor, sc);
 
 #if 0 // currently disabled because of std.stdio.stdin, stdout and stderr
         if (isDataseg() && !(storage_class & STCextern))
@@ -1700,7 +1700,7 @@ void VarDeclaration::semantic2(Scope *sc)
     {
         inuse++;
         // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-        _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+        _init = initializerSemantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
     }
     if (_init && storage_class & STCmanifest)
@@ -2033,7 +2033,7 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     if (_scope)
     {
         inuse++;
-        _init = ::semantic(_init, _scope, type, INITinterpret);
+        _init = initializerSemantic(_init, _scope, type, INITinterpret);
         _scope = NULL;
         inuse--;
     }

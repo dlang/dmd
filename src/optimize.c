@@ -95,7 +95,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                     {
                         // const var initialized with non-const expression
                         ei = ei->implicitCastTo(NULL, v->type);
-                        ei = semantic(ei, NULL);
+                        ei = expressionSemantic(ei, NULL);
                     }
                     else
                         goto L1;

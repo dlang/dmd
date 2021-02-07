@@ -230,7 +230,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     Expression *ev = new VarExp(e->loc, fd);
     Expression *ec = new CallExp(e->loc, ev, arguments);
 
-    return semantic(ec, sc);
+    return expressionSemantic(ec, sc);
 }
 
 Expression *arrayOp(BinAssignExp *e, Scope *sc)

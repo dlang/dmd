@@ -495,7 +495,7 @@ const char *DeprecatedDeclaration::getMessage()
         _scope = NULL;
 
         sc = sc->startCTFE();
-        msg = ::semantic(msg, sc);
+        msg = expressionSemantic(msg, sc);
         msg = resolveProperties(sc, msg);
         sc = sc->endCTFE();
         msg = msg->ctfeInterpret();
@@ -695,7 +695,7 @@ structalign_t AlignDeclaration::getAlignment(Scope *sc)
         return salign = STRUCTALIGN_DEFAULT;
 
     sc = sc->startCTFE();
-    ealign = ::semantic(ealign, sc);
+    ealign = expressionSemantic(ealign, sc);
     ealign = resolveProperties(sc, ealign);
     sc = sc->endCTFE();
     ealign = ealign->ctfeInterpret();
@@ -952,7 +952,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 sc = sc->startCTFE();
-                e = ::semantic(e, sc);
+                e = expressionSemantic(e, sc);
                 e = resolveProperties(sc, e);
                 sc = sc->endCTFE();
 
@@ -1020,7 +1020,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             sc = sc->startCTFE();
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             sc = sc->endCTFE();
 
             (*args)[0] = e;
@@ -1116,7 +1116,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                     Expression *e = (*args)[i];
 
                     sc = sc->startCTFE();
-                    e = ::semantic(e, sc);
+                    e = expressionSemantic(e, sc);
                     e = resolveProperties(sc, e);
                     sc = sc->endCTFE();
 
@@ -1684,7 +1684,7 @@ static void udaExpressionEval(Scope *sc, Expressions *exps)
         Expression *e = (*exps)[i];
         if (e)
         {
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             if (definitelyValueParameter(e))
                 e = e->ctfeInterpret();
             if (e->op == TOKtuple)

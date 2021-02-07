@@ -30,7 +30,7 @@ class ExpInitializer;
 
 enum NeedInterpret { INITnointerpret, INITinterpret };
 
-Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
+Initializer *initializerSemantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 class Initializer : public ASTNode
 {

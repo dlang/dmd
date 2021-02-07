@@ -424,8 +424,8 @@ Expression *extractSideEffect(Scope *sc, const char *name,
 
     Expression *de = new DeclarationExp(vd->loc, vd);
     Expression *ve = new VarExp(vd->loc, vd);
-    de = semantic(de, sc);
-    ve = semantic(ve, sc);
+    de = expressionSemantic(de, sc);
+    ve = expressionSemantic(ve, sc);
 
     *e0 = Expression::combine(*e0, de);
     return ve;

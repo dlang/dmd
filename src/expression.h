@@ -58,7 +58,7 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-Expression *semantic(Expression *e, Scope *sc);
+Expression *expressionSemantic(Expression *e, Scope *sc);
 Expression *semanticX(DotIdExp *exp, Scope *sc);
 Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
 Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);

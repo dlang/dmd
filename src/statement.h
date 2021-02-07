@@ -50,10 +50,10 @@ class StaticForeach;
 // Back end
 struct code;
 
-Statement *semantic(Statement *s, Scope *sc);
+Statement *statementSemantic(Statement *s, Scope *sc);
 Statement *semanticNoScope(Statement *s, Scope *sc);
 Statement *semanticScope(Statement *s, Scope *sc, Statement *sbreak, Statement *scontinue);
-void semantic(Catch *c, Scope *sc);
+void catchSemantic(Catch *c, Scope *sc);
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);

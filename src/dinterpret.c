@@ -2100,7 +2100,7 @@ public:
                 if (v->_scope)
                 {
                     v->inuse++;
-                    v->_init = ::semantic(v->_init, v->_scope, v->type, INITinterpret); // might not be run on aggregate members
+                    v->_init = initializerSemantic(v->_init, v->_scope, v->type, INITinterpret); // might not be run on aggregate members
                     v->inuse--;
                 }
                 e = initializerToExpression(v->_init, v->type);
@@ -2194,7 +2194,7 @@ public:
             e = s->dsym->type->defaultInitLiteral(loc);
             if (e->op == TOKerror)
                 error(loc, "CTFE failed because of previous errors in %s.init", s->toChars());
-            e = ::semantic(e, NULL);
+            e = expressionSemantic(e, NULL);
             if (e->op == TOKerror)
                 e = CTFEExp::cantexp;
             else // Convert NULL to CTFEExp

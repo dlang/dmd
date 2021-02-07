@@ -62,7 +62,7 @@ bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors
     sc = sc->startCTFE();
     sc->flags |= SCOPEcondition;
 
-    e = semantic(e, sc);
+    e = expressionSemantic(e, sc);
     e = resolveProperties(sc, e);
 
     sc = sc->endCTFE();

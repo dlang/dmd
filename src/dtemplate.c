@@ -1550,7 +1550,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
             // Deduce prmtype from the defaultArg.
             farg = fparam->defaultArg->syntaxCopy();
-            farg = ::semantic(farg, paramscope);
+            farg = expressionSemantic(farg, paramscope);
             farg = resolveProperties(paramscope, farg);
         }
         else
@@ -3847,7 +3847,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             // (it may be from a parent template, for example)
                         }
 
-                        e2 = ::semantic(e2, sc);      // Bugzilla 13417
+                        e2 = expressionSemantic(e2, sc);      // Bugzilla 13417
                         e2 = e2->ctfeInterpret();
 
                         //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
@@ -4470,7 +4470,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 TemplateInstance *ti = new TemplateInstance(e->loc, e->td, tiargs);
                 Expression *ex = new ScopeExp(e->loc, ti);
-                ex = ::semantic(ex, e->td->_scope);
+                ex = expressionSemantic(ex, e->td->_scope);
 
                 // Reset inference target for the later re-semantic
                 e->fd->treq = NULL;
@@ -5462,7 +5462,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
             goto Lnomatch;
 
         ei = new VarExp(loc, f);
-        ei = ::semantic(ei, sc);
+        ei = expressionSemantic(ei, sc);
 
         /* If a function is really property-like, and then
          * it's CTFEable, ei will be a literal expression.
@@ -5522,7 +5522,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         Expression *e = specValue;
 
         sc = sc->startCTFE();
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = resolveProperties(sc, e);
         sc = sc->endCTFE();
         e = e->implicitCastTo(sc, vt);
@@ -5530,7 +5530,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
         ei = ei->syntaxCopy();
         sc = sc->startCTFE();
-        ei = ::semantic(ei, sc);
+        ei = expressionSemantic(ei, sc);
         sc = sc->endCTFE();
         ei = ei->implicitCastTo(sc, vt);
         ei = ei->ctfeInterpret();
@@ -5606,7 +5606,7 @@ RootObject *TemplateValueParameter::defaultArg(Loc instLoc, Scope *sc)
     if (e)
     {
         e = e->syntaxCopy();
-        if ((e = ::semantic(e, sc)) == NULL)
+        if ((e = expressionSemantic(e, sc)) == NULL)
             return NULL;
         if ((e = resolveProperties(sc, e)) == NULL)
             return NULL;
@@ -6768,7 +6768,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             if (flags & 1) // only used by __traits
             {
-                ea = ::semantic(ea, sc);
+                ea = expressionSemantic(ea, sc);
 
                 // must not interpret the args, excepting template parameters
                 if (ea->op != TOKvar ||
@@ -6780,7 +6780,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             else
             {
                 sc = sc->startCTFE();
-                ea = ::semantic(ea, sc);
+                ea = expressionSemantic(ea, sc);
                 sc = sc->endCTFE();
 
                 if (ea->op == TOKvar)

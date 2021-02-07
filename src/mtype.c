@@ -2055,7 +2055,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         {
             e = new StringExp(loc, (char *)deco, strlen(deco));
             Scope sc;
-            e = ::semantic(e, &sc);
+            e = expressionSemantic(e, &sc);
         }
     }
     else if (ident == Id::stringof)
@@ -2063,7 +2063,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         const char *s = toChars();
         e = new StringExp(loc, const_cast<char *>(s), strlen(s));
         Scope sc;
-        e = ::semantic(e, &sc);
+        e = expressionSemantic(e, &sc);
     }
     else if (flag && this != Type::terror)
     {
@@ -2149,7 +2149,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 
 Lreturn:
     if (e)
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
     return e;
 }
 
@@ -2208,7 +2208,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              */
             e = build_overload(e->loc, sc, e, NULL, fd);
             e = new DotIdExp(e->loc, e, ident);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             --nest;
             return e;
         }
@@ -3561,7 +3561,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return Type::dotExp(sc, e, ident, flag);
     }
     if (!(flag & 1) || e)
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
     return e;
 }
 
@@ -3825,7 +3825,7 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
          * __vector(float[4]), and a type paint won't do.
          */
         e = new AddrExp(e->loc, e);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         e = e->castTo(sc, basetype->nextOf()->pointerTo());
         return e;
     }
@@ -3834,7 +3834,7 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         //e = e->castTo(sc, basetype);
         // Keep lvalue-ness
         e = new VectorArrayExp(e->loc, e);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
     if (ident == Id::_init || ident == Id::offsetof || ident == Id::stringof || ident == Id::__xalignof)
@@ -3936,7 +3936,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     e = Type::dotExp(sc, e, ident, flag);
 
     if (!(flag & 1) || e)
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
     return e;
 }
 
@@ -4007,7 +4007,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             sym->parent = sc->scopesym;
             sc = sc->push(sym);
             sc = sc->startCTFE();
-            dim = ::semantic(dim, sc);
+            dim = expressionSemantic(dim, sc);
             sc = sc->endCTFE();
             sc = sc->pop();
 
@@ -4100,7 +4100,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         e = TypeArray::dotExp(sc, e, ident, flag);
     }
     if (!(flag & 1) || e)
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
     return e;
 }
 
@@ -5755,7 +5755,7 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
     if (ident == Id::ptr)
     {
         e = new DelegatePtrExp(e->loc, e);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
     }
     else if (ident == Id::funcptr)
     {
@@ -5765,7 +5765,7 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
             return new ErrorExp();
         }
         e = new DelegateFuncptrExp(e->loc, e);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
     }
     else
     {
@@ -5899,7 +5899,7 @@ void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
         else if (sindex)
             eindex = ::resolve(loc, sc, sindex, false);
         Expression *e = new IndexExp(loc, ::resolve(loc, sc, s, false), eindex);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         resolveExp(e, pt, pe, ps);
         return;
     }
@@ -5916,7 +5916,7 @@ void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
         return;
     }
     sc = sc->startCTFE();
-    eindex = ::semantic(eindex, sc);
+    eindex = expressionSemantic(eindex, sc);
     sc = sc->endCTFE();
 
     eindex = eindex->ctfeInterpret();
@@ -5996,7 +5996,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 assert(ex);
 
                 ex = typeToExpressionHelper(this, ex, i + 1);
-                ex = ::semantic(ex, sc);
+                ex = expressionSemantic(ex, sc);
                 resolveExp(ex, pt, pe, ps);
                 return;
             }
@@ -6066,7 +6066,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         e = new VarExp(loc, s->isDeclaration(), true);
 
                     e = typeToExpressionHelper(this, e, i);
-                    e = ::semantic(e, sc);
+                    e = expressionSemantic(e, sc);
                     resolveExp(e, pt, pe, ps);
                     return;
                 }
@@ -6133,7 +6133,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         {
             //printf("'%s' is a function literal\n", fld->toChars());
             *pe = new FuncExp(loc, fld);
-            *pe = ::semantic(*pe, sc);
+            *pe = expressionSemantic(*pe, sc);
             return;
         }
 L1:
@@ -6408,7 +6408,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
          */
         Scope *sc2 = sc->push();
         sc2->intypeof = 1;
-        Expression *exp2 = ::semantic(exp, sc2);
+        Expression *exp2 = expressionSemantic(exp, sc2);
         exp2 = resolvePropertiesOnly(sc2, exp2);
         sc2->pop();
 
@@ -6466,7 +6466,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         else
         {
             Expression *e = typeToExpressionHelper(this, new TypeExp(loc, t));
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             resolveExp(e, pt, pe, ps);
         }
     }
@@ -6550,7 +6550,7 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         else
         {
             Expression *e = typeToExpressionHelper(this, new TypeExp(loc, t));
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             resolveExp(e, pt, pe, ps);
         }
     }
@@ -6676,7 +6676,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
         const char *s = toChars();
         e = new StringExp(loc, const_cast<char *>(s), strlen(s));
         Scope sc;
-        e = ::semantic(e, &sc);
+        e = expressionSemantic(e, &sc);
     }
     else if (ident == Id::_mangleof)
     {
@@ -6862,7 +6862,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         /* Create a TupleExp out of the fields of the struct e:
          * (e.field0, e.field1, e.field2, ...)
          */
-        e = ::semantic(e, sc);  // do this before turning on noaccesscheck
+        e = expressionSemantic(e, sc);  // do this before turning on noaccesscheck
 
         sym->size(e->loc);      // do semantic of type
 
@@ -6890,7 +6890,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
         sc2->flags = sc->flags | SCOPEnoaccesscheck;
-        e = ::semantic(e, sc2);
+        e = expressionSemantic(e, sc2);
         sc2->pop();
         return e;
     }
@@ -6943,14 +6943,14 @@ L1:
             }
             checkAccess(e->loc, sc, NULL, v);
             Expression *ve = new VarExp(e->loc, v);
-            ve = ::semantic(ve, sc);
+            ve = expressionSemantic(ve, sc);
             return ve;
         }
     }
 
     if (Type *t = s->getType())
     {
-        return ::semantic(new TypeExp(e->loc, t), sc);
+        return expressionSemantic(new TypeExp(e->loc, t), sc);
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
@@ -6968,7 +6968,7 @@ L1:
             e = new TemplateExp(e->loc, td);
         else
             e = new DotTemplateExp(e->loc, e, td);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
 
@@ -6988,7 +6988,7 @@ L1:
             e = new ScopeExp(e->loc, ti);
         else
             e = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
-        return ::semantic(e, sc);
+        return expressionSemantic(e, sc);
     }
 
     if (s->isImport() || s->isModule() || s->isPackage())
@@ -7021,7 +7021,7 @@ L1:
         if (TupleDeclaration *tup = d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, tup);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
         if (d->needThis() && sc->intypeof != 1)
@@ -7032,7 +7032,7 @@ L1:
             if (hasThis(sc))
             {
                 e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-                e = ::semantic(e, sc);
+                e = expressionSemantic(e, sc);
                 return e;
             }
         }
@@ -7052,12 +7052,12 @@ L1:
         checkAccess(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
 
     e = new DotVarExp(e->loc, e, d);
-    e = ::semantic(e, sc);
+    e = expressionSemantic(e, sc);
     return e;
 }
 
@@ -7370,7 +7370,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     {
         /* Create a TupleExp
          */
-        e = ::semantic(e, sc);  // do this before turning on noaccesscheck
+        e = expressionSemantic(e, sc);  // do this before turning on noaccesscheck
 
         sym->size(e->loc); // do semantic of type
 
@@ -7401,7 +7401,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
         sc2->flags = sc->flags | SCOPEnoaccesscheck;
-        e = ::semantic(e, sc2);
+        e = expressionSemantic(e, sc2);
         sc2->pop();
         return e;
     }
@@ -7418,7 +7418,7 @@ L1:
             if (e->op == TOKtype)
                 return Type::getProperty(e->loc, ident, 0);
             e = new DotTypeExp(e->loc, e, sym);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
         if (ClassDeclaration *cbase = sym->searchBase(ident))
@@ -7429,7 +7429,7 @@ L1:
                 e = new CastExp(e->loc, e, ifbase->type);
             else
                 e = new DotTypeExp(e->loc, e, cbase);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
 
@@ -7492,7 +7492,7 @@ L1:
              */
             e = e->castTo(sc, tvoidptr->immutableOf()->pointerTo()->pointerTo());
             e = new PtrExp(e->loc, e);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
 
@@ -7504,7 +7504,7 @@ L1:
             e = e->castTo(sc, tvoidptr->pointerTo());
             e = new AddExp(e->loc, e, new IntegerExp(1));
             e = new PtrExp(e->loc, e);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
 
@@ -7595,14 +7595,14 @@ L1:
             }
             checkAccess(e->loc, sc, NULL, v);
             Expression *ve = new VarExp(e->loc, v);
-            ve = ::semantic(ve, sc);
+            ve = expressionSemantic(ve, sc);
             return ve;
         }
     }
 
     if (Type *t = s->getType())
     {
-        return ::semantic(new TypeExp(e->loc, t), sc);
+        return expressionSemantic(new TypeExp(e->loc, t), sc);
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
@@ -7620,7 +7620,7 @@ L1:
             e = new TemplateExp(e->loc, td);
         else
             e = new DotTemplateExp(e->loc, e, td);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
 
@@ -7640,7 +7640,7 @@ L1:
             e = new ScopeExp(e->loc, ti);
         else
             e = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
-        return ::semantic(e, sc);
+        return expressionSemantic(e, sc);
     }
 
     if (s->isImport() || s->isModule() || s->isPackage())
@@ -7673,7 +7673,7 @@ L1:
         if (TupleDeclaration *tup = d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, tup);
-            e = ::semantic(e, sc);
+            e = expressionSemantic(e, sc);
             return e;
         }
         if (d->needThis() && sc->intypeof != 1)
@@ -7685,7 +7685,7 @@ L1:
             {
                 // This is almost same as getRightThis() in expression.c
                 Expression *e1 = new ThisExp(e->loc);
-                e1 = ::semantic(e1, sc);
+                e1 = expressionSemantic(e1, sc);
             L2:
                 Type *t = e1->type->toBasetype();
                 ClassDeclaration *cd = e->type->isClassHandle();
@@ -7694,7 +7694,7 @@ L1:
                 {
                     e = new DotTypeExp(e1->loc, e1, cd);
                     e = new DotVarExp(e->loc, e, d);
-                    e = ::semantic(e, sc);
+                    e = expressionSemantic(e, sc);
                     return e;
                 }
                 if (tcd && tcd->isNested())
@@ -7706,7 +7706,7 @@ L1:
                     e1->type = tcd->vthis->type;
                     e1->type = e1->type->addMod(t->mod);
                     // Do not call checkNestedRef()
-                    //e1 = ::semantic(e1, sc);
+                    //e1 = expressionSemantic(e1, sc);
 
                     // Skip up over nested functions, and get the enclosing
                     // class type.
@@ -7731,10 +7731,10 @@ L1:
                     {   e1->type = s->isClassDeclaration()->type;
                         e1->type = e1->type->addMod(t->mod);
                         if (n > 1)
-                            e1 = ::semantic(e1, sc);
+                            e1 = expressionSemantic(e1, sc);
                     }
                     else
-                        e1 = ::semantic(e1, sc);
+                        e1 = expressionSemantic(e1, sc);
                     goto L2;
                 }
             }
@@ -7756,12 +7756,12 @@ L1:
         checkAccess(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
-        e = ::semantic(e, sc);
+        e = expressionSemantic(e, sc);
         return e;
     }
 
     e = new DotVarExp(e->loc, e, d);
-    e = ::semantic(e, sc);
+    e = expressionSemantic(e, sc);
     return e;
 }
 
@@ -8072,8 +8072,8 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             sym->parent = sc->scopesym;
             sc = sc->push(sym);
             sc = sc->startCTFE();
-            lwr = ::semantic(lwr, sc);
-            upr = ::semantic(upr, sc);
+            lwr = expressionSemantic(lwr, sc);
+            upr = expressionSemantic(upr, sc);
             sc = sc->endCTFE();
             sc = sc->pop();
 

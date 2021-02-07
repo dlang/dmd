@@ -148,7 +148,7 @@ static Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
         sc = sc->push(sym);
 
         sc = sc->startCTFE();
-        exp = ::semantic(exp, sc);
+        exp = expressionSemantic(exp, sc);
         sc = sc->endCTFE();
 
         sc->pop();
@@ -156,7 +156,7 @@ static Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
     else
     {
         sc = sc->startCTFE();
-        exp = ::semantic(exp, sc);
+        exp = expressionSemantic(exp, sc);
         sc = sc->endCTFE();
     }
 
@@ -170,7 +170,7 @@ static Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *ex
     sc = sc->push(sym);
 
     sc = sc->startCTFE();
-    exp = ::semantic(exp, sc);
+    exp = expressionSemantic(exp, sc);
     sc = sc->endCTFE();
 
     sc->pop();
@@ -885,14 +885,14 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                         Expression *e = fparam->defaultArg;
                         if (fparam->storageClass & (STCref | STCout))
                         {
-                            e = ::semantic(e, argsc);
+                            e = expressionSemantic(e, argsc);
                             e = resolveProperties(argsc, e);
                         }
                         else
                         {
                             e = inferType(e, fparam->type);
                             Initializer *iz = new ExpInitializer(e->loc, e);
-                            iz = ::semantic(iz, argsc, fparam->type, INITnointerpret);
+                            iz = initializerSemantic(iz, argsc, fparam->type, INITnointerpret);
                             e = initializerToExpression(iz);
                         }
                         if (e->op == TOKfunction)               // see Bugzilla 4820
@@ -903,7 +903,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                             // and copying the literal itself is wrong.
                             e = new VarExp(e->loc, fe->fd, false);
                             e = new AddrExp(e->loc, e);
-                            e = ::semantic(e, argsc);
+                            e = expressionSemantic(e, argsc);
                         }
                         e = e->implicitCastTo(argsc, fparam->type);
 

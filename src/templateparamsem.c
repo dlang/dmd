@@ -107,7 +107,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
         else if (ea)
         {
             sc = sc->startCTFE();
-            ea = ::semantic(ea, sc);
+            ea = expressionSemantic(ea, sc);
             sc = sc->endCTFE();
             o = ea->ctfeInterpret();
         }
