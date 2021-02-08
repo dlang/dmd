@@ -379,7 +379,6 @@ int intrinsic_op(FuncDeclaration *fd)
 
     if (id1 == Id::std && id2 == Id::math)
     {
-    Lstdmath:
         if (argtype1 == Type::tfloat80 || id3 == Id::_sqrt)
             goto Lmath;
         if (id3 == Id::fabs &&

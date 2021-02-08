@@ -895,8 +895,8 @@ public:
                 size_t d = (size_t)tsa->dim->toInteger();
                 Expressions *elements = new Expressions();
                 elements->setDim(d);
-                for (size_t i = 0; i < d; i++)
-                    (*elements)[i] = e;
+                for (size_t j = 0; j < d; j++)
+                    (*elements)[j] = e;
                 ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, itype, elements);
                 result = ae;
                 return;

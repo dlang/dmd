@@ -275,7 +275,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                 uinteger_t d = mtype->dim->toUInteger();
                 if (d >= sd->objects->length)
                 {
-                    ::error(loc, "tuple index %llu exceeds %u", d, sd->objects->length);
+                    ::error(loc, "tuple index %llu exceeds %llu", (unsigned long long)d, (unsigned long long)sd->objects->length);
                     return error();
                 }
 
@@ -367,7 +367,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                     uinteger_t d = mtype->dim->toUInteger();
                     if (d >= tt->arguments->length)
                     {
-                        ::error(loc, "tuple index %llu exceeds %u", d, tt->arguments->length);
+                        ::error(loc, "tuple index %llu exceeds %llu", (unsigned long long)d, (unsigned long long)tt->arguments->length);
                         return error();
                     }
                     Type *telem = (*tt->arguments)[(size_t)d]->type;
@@ -1139,7 +1139,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                             break;
                         default:
                             if (Dsymbol *sym = isDsymbol(src))
-                                (*elems)[i] = mtype->sym;
+                                (*elems)[i] = sym;
                             else
                                 (*elems)[i] = src;
                         }
@@ -1368,7 +1368,8 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
 
             if (!(i1 <= i2 && i2 <= tt->arguments->length))
             {
-                ::error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->length);
+                ::error(loc, "slice `[%llu..%llu]` is out of range of [0..%llu]",
+                    (unsigned long long)i1, (unsigned long long)i2, (unsigned long long)tt->arguments->length);
                 return error();
             }
 

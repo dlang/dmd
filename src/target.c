@@ -644,7 +644,7 @@ const char *TargetCPP::typeInfoMangle(ClassDeclaration *cd)
 #endif
 }
 
-const char *TargetCPP::thunkMangle(FuncDeclaration *fd, int offset)
+const char *TargetCPP::thunkMangle(FuncDeclaration *, int)
 {
     return NULL;
 }
@@ -689,7 +689,7 @@ Type *TargetCPP::parameterType(Parameter *p)
  * Returns:
  *      true if isFundamental was set by function
  */
-bool TargetCPP::fundamentalType(const Type *t, bool& isFundamental)
+bool TargetCPP::fundamentalType(const Type *, bool &)
 {
     return false;
 }

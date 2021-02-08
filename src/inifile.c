@@ -284,6 +284,7 @@ void parseConfFile(StringTable *environment, const char *path, size_t length, un
                 break;
 
             case '[':           // look for [Environment]
+            {
                 p = skipspace(p + 1);
                 char *pn;
                 for (pn = p; isalnum((utf8_t)*pn); pn++)
@@ -316,7 +317,7 @@ void parseConfFile(StringTable *environment, const char *path, size_t length, un
                     }
                 }
                 break;
-
+            }
             default:
                 if (envsection)
                 {

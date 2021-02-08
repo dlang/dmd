@@ -1106,9 +1106,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             emitProtection(buf, ad->protection);
             buf->printf("alias %s = ", ad->toChars());
 
-            if (Dsymbol *s = ad->aliassym)  // ident alias
+            if (Dsymbol *sa = ad->aliassym)  // ident alias
             {
-                prettyPrintDsymbol(s, ad->parent);
+                prettyPrintDsymbol(sa, ad->parent);
             }
             else if (Type *type = ad->getType())  // type alias
             {

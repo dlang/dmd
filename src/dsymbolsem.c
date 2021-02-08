@@ -1247,7 +1247,7 @@ public:
         if (d)
         {
             Scope *sc2 = ad->newScope(sc);
-            bool errors;
+            bool errors = false;
             for (size_t i = 0; i < d->length; i++)
             {
                 Dsymbol *s = (*d)[i];

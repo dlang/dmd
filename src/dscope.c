@@ -473,11 +473,11 @@ Dsymbol *Scope::insert(Dsymbol *s)
     }
     else if (WithScopeSymbol *ss = s->isWithScopeSymbol())
     {
-        if (VarDeclaration *vd = ss->withstate->wthis)
+        if (VarDeclaration *wthis = ss->withstate->wthis)
         {
             if (lastVar)
-                vd->lastVar = lastVar;
-            lastVar = vd;
+                wthis->lastVar = lastVar;
+            lastVar = wthis;
         }
         return NULL;
     }

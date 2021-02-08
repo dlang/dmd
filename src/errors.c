@@ -306,7 +306,7 @@ void vmessage(const Loc &loc, const char *format, va_list ap)
     if (*p)
     {
         fprintf(stdout, "%s: ", p);
-        mem.xfree((void*)p);
+        mem.xfree(const_cast<char*>(p));
     }
     OutBuffer tmp;
     tmp.vprintf(format, ap);
