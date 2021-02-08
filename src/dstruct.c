@@ -247,32 +247,6 @@ void AggregateDeclaration::setScope(Scope *sc)
         ScopeDsymbol::setScope(sc);
 }
 
-void AggregateDeclaration::semantic2(Scope *sc)
-{
-    //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
-    if (!members)
-        return;
-
-    if (_scope)
-    {
-        error("has forward references");
-        return;
-    }
-
-    Scope *sc2 = newScope(sc);
-
-    determineSize(loc);
-
-    for (size_t i = 0; i < members->length; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        //printf("\t[%d] %s\n", i, s->toChars());
-        s->semantic2(sc2);
-    }
-
-    sc2->pop();
-}
-
 /***************************************
  * Find all instance fields, then push them into `fields`.
  *
@@ -1169,7 +1143,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (deferred && !global.gag)
     {
-        deferred->semantic2(sc);
+        semantic2(deferred, sc);
         semantic3(deferred, sc);
     }
 }

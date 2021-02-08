@@ -131,7 +131,6 @@ public:
     AggregateDeclaration(Loc loc, Identifier *id);
     virtual Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    void semantic2(Scope *sc);
     bool determineFields();
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;

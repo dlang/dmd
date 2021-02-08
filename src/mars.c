@@ -1523,7 +1523,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
-        m->semantic2(NULL);
+        semantic2(m, NULL);
     }
     if (global.errors)
         fatal();

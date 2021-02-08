@@ -787,7 +787,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
                  * in `init` before its use.
                  */
                 if (vd->semanticRun < PASSsemantic2done && vd->_scope)
-                    vd->semantic2(vd->_scope);
+                    semantic2(vd, vd->_scope);
 
                 ExpInitializer *ei = init->isExpInitializer();
                 Type *tb = vd->type->toBasetype();

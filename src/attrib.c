@@ -191,25 +191,6 @@ void AttribDeclaration::semantic(Scope *sc)
     semanticRun = PASSsemanticdone;
 }
 
-void AttribDeclaration::semantic2(Scope *sc)
-{
-    Dsymbols *d = include(sc);
-
-    if (d)
-    {
-        Scope *sc2 = newScope(sc);
-
-        for (size_t i = 0; i < d->length; i++)
-        {
-            Dsymbol *s = (*d)[i];
-            s->semantic2(sc2);
-        }
-
-        if (sc2 != sc)
-            sc2->pop();
-    }
-}
-
 void AttribDeclaration::addComment(const utf8_t *comment)
 {
     //printf("AttribDeclaration::addComment %s\n", comment);
@@ -453,22 +434,6 @@ void DeprecatedDeclaration::setScope(Scope *sc)
     return AttribDeclaration::setScope(sc);
 }
 
-/**
- * Run the DeprecatedDeclaration's semantic2 phase then its members.
- *
- * The message set via a `DeprecatedDeclaration` can be either of:
- * - a string literal
- * - an enum
- * - a static immutable
- * So we need to call ctfe to resolve it.
- * Afterward forwards to the members' semantic2.
- */
-void DeprecatedDeclaration::semantic2(Scope *sc)
-{
-    getMessage();
-    StorageClassDeclaration::semantic2(sc);
-}
-
 const char *DeprecatedDeclaration::getMessage()
 {
     if (Scope *sc = _scope)
@@ -659,12 +624,6 @@ Scope *AlignDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle,
         sc->protection, sc->explicitProtection, this,
         sc->inlining);
-}
-
-void AlignDeclaration::semantic2(Scope *sc)
-{
-    getAlignment(sc);
-    AttribDeclaration::semantic2(sc);
 }
 
 structalign_t AlignDeclaration::getAlignment(Scope *sc)
@@ -1658,7 +1617,7 @@ void UserAttributeDeclaration::semantic(Scope *sc)
     return AttribDeclaration::semantic(sc);
 }
 
-static void udaExpressionEval(Scope *sc, Expressions *exps)
+void udaExpressionEval(Scope *sc, Expressions *exps)
 {
     for (size_t i = 0; i < exps->length; i++)
     {
@@ -1676,17 +1635,6 @@ static void udaExpressionEval(Scope *sc, Expressions *exps)
             (*exps)[i] = e;
         }
     }
-}
-
-void UserAttributeDeclaration::semantic2(Scope *sc)
-{
-    if (decl && atts && atts->length && _scope)
-    {
-        _scope = NULL;
-        udaExpressionEval(sc, atts);
-    }
-
-    AttribDeclaration::semantic2(sc);
 }
 
 Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *udas2)

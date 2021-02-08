@@ -80,7 +80,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc)
     sc->stc = 0;
     sc->linkage = LINKc;
     fd->semantic(sc);
-    fd->semantic2(sc);
+    semantic2(fd, sc);
     unsigned errors = global.startGagging();
     semantic3(fd, sc);
     if (global.endGagging(errors))

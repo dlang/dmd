@@ -1395,7 +1395,7 @@ public:
                 sc3->stc |= STCdeprecated;
 
             ti->semantic(sc3);
-            ti->semantic2(sc3);
+            semantic2(ti, sc3);
             semantic3(ti, sc3);
             Expression *e = resolve(Loc(), sc3, ti->toAlias(), false);
 

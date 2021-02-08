@@ -2178,7 +2178,7 @@ public:
 
     void visit(StaticAssertStatement *s)
     {
-        s->sa->semantic2(sc);
+        semantic2(s->sa, sc);
     }
 
     void visit(SwitchStatement *ss)

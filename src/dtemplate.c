@@ -6285,7 +6285,7 @@ Lerror:
          * are forward referenced. Find a way to defer semantic()
          * on this template.
          */
-        semantic2(sc2);
+        semantic2(this, sc2);
     }
     if (global.errors != errorsave)
         goto Laftersemantic;
@@ -7529,56 +7529,6 @@ void TemplateInstance::declareParameters(Scope *sc)
     }
 }
 
-void TemplateInstance::semantic2(Scope *sc)
-{
-    if (semanticRun >= PASSsemantic2)
-        return;
-    semanticRun = PASSsemantic2;
-    if (!errors && members)
-    {
-        TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
-        assert(tempdecl);
-
-        sc = tempdecl->_scope;
-        assert(sc);
-        sc = sc->push(argsym);
-        sc = sc->push(this);
-        sc->tinst = this;
-        sc->minst = minst;
-
-        int needGagging = (gagged && !global.gag);
-        unsigned int olderrors = global.errors;
-        int oldGaggedErrors = -1;       // dead-store to prevent spurious warning
-        if (needGagging)
-            oldGaggedErrors = global.startGagging();
-
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->semantic2(sc);
-            if (gagged && global.errors != olderrors)
-                break;
-        }
-
-        if (global.errors != olderrors)
-        {
-            if (!errors)
-            {
-                if (!tempdecl->literal)
-                    error(loc, "error instantiating");
-                if (tinst)
-                    tinst->printInstantiationTrace();
-            }
-            errors = true;
-        }
-        if (needGagging)
-            global.endGagging(oldGaggedErrors);
-
-        sc = sc->pop();
-        sc->pop();
-    }
-}
-
 /**************************************
  * Given an error instantiating the TemplateInstance,
  * give the nested TemplateInstance instantiations that got
@@ -8319,7 +8269,7 @@ void TemplateMixin::semantic(Scope *sc)
     AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
     if (sc->func && !ad)
     {
-        semantic2(sc2);
+        semantic2(this, sc2);
         semantic3(this, sc2);
     }
 
@@ -8333,26 +8283,6 @@ void TemplateMixin::semantic(Scope *sc)
     sc2->pop();
     argscope->pop();
     scy->pop();
-}
-
-void TemplateMixin::semantic2(Scope *sc)
-{
-    if (semanticRun >= PASSsemantic2)
-        return;
-    semanticRun = PASSsemantic2;
-    if (members)
-    {
-        assert(sc);
-        sc = sc->push(argsym);
-        sc = sc->push(this);
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->semantic2(sc);
-        }
-        sc = sc->pop();
-        sc->pop();
-    }
 }
 
 const char *TemplateMixin::kind() const

@@ -325,7 +325,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     sc2->linkage = LINKd;
 
     fop->semantic(sc2);
-    fop->semantic2(sc2);
+    semantic2(fop, sc2);
     // Bugzilla 15044: fop->semantic3 isn't run here for lazy forward reference resolution.
 
     sc2->pop();
@@ -548,7 +548,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
     sc2->linkage = LINKd;
 
     fop->semantic(sc2);
-    fop->semantic2(sc2);
+    semantic2(fop, sc2);
 
     sc2->pop();
     if (global.endGagging(errors))    // if errors happened
@@ -637,7 +637,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     sc2->linkage = LINKd;
 
     fop->semantic(sc2);
-    fop->semantic2(sc2);
+    semantic2(fop, sc2);
 
     sc2->pop();
     if (global.endGagging(errors))    // if errors happened
@@ -761,7 +761,7 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
     sc2->linkage = LINKd;
 
     fop->semantic(sc2);
-    fop->semantic2(sc2);
+    semantic2(fop, sc2);
 
     sc2->pop();
 

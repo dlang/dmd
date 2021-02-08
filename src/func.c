@@ -29,7 +29,6 @@
 #include "parse.h"
 #include "root/rmem.h"
 #include "visitor.h"
-#include "objc.h"
 
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
@@ -38,7 +37,6 @@ TypeIdentifier *getThrowable();
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 MATCH MODmethodConv(MOD modfrom, MOD modto);
-Objc *objc();
 
 /***********************************************************
  * Tuple of result identifier (possibly null) and statement.
@@ -1035,33 +1033,6 @@ Ldone:
         Parameter *param = f->parameterList[i];
         if (param && param->userAttribDecl)
             param->userAttribDecl->semantic(sc);
-    }
-}
-
-void FuncDeclaration::semantic2(Scope *sc)
-{
-    if (semanticRun >= PASSsemantic2done)
-        return;
-    assert(semanticRun <= PASSsemantic2);
-    semanticRun = PASSsemantic2;
-
-    objc()->setSelector(this, sc);
-    objc()->validateSelector(this);
-
-    if (parent->isClassDeclaration())
-    {
-        objc()->checkLinkage(this);
-    }
-    if (!type || type->ty != Tfunction)
-        return;
-    TypeFunction *f = type->toTypeFunction();
-    const size_t nparams = f->parameterList.length();
-    // semantic for parameters' UDAs
-    for (size_t i = 0; i < nparams; i++)
-    {
-        Parameter *param = f->parameterList[i];
-        if (param && param->userAttribDecl)
-            param->userAttribDecl->semantic2(sc);
     }
 }
 

@@ -1634,7 +1634,7 @@ public:
             exp->fd->semantic(sc);
             if (olderrors == global.errors)
             {
-                exp->fd->semantic2(sc);
+                semantic2(exp->fd, sc);
                 if (olderrors == global.errors)
                     semantic3(exp->fd, sc);
             }
@@ -1846,7 +1846,7 @@ public:
         }
         if (global.errors == olderrors)
         {
-            e->declaration->semantic2(sc);
+            semantic2(e->declaration, sc);
             if (global.errors == olderrors)
             {
                 semantic3(e->declaration, sc);

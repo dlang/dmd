@@ -877,7 +877,7 @@ Lancestorsdone:
 
     if (deferred && !global.gag)
     {
-        deferred->semantic2(sc);
+        semantic2(deferred, sc);
         semantic3(deferred, sc);
     }
     //printf("-ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);

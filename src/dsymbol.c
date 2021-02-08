@@ -470,15 +470,6 @@ void Dsymbol::semantic(Scope *)
     error("%p has no semantic routine", this);
 }
 
-/*************************************
- * Does semantic analysis on initializers and members of aggregates.
- */
-
-void Dsymbol::semantic2(Scope *)
-{
-    // Most Dsymbols have no further semantic analysis needed
-}
-
 /*********************************************
  * Search for ident as member of s.
  * Params:
