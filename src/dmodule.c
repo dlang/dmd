@@ -813,49 +813,6 @@ void Module::importAll(Scope *)
     sc->pop();          // 2 pops because Scope::createGlobal() created 2
 }
 
-void Module::semantic(Scope *)
-{
-    if (semanticRun != PASSinit)
-        return;
-
-    //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-    semanticRun = PASSsemantic;
-
-    // Note that modules get their own scope, from scratch.
-    // This is so regardless of where in the syntax a module
-    // gets imported, it is unaffected by context.
-    Scope *sc = _scope;                  // see if already got one from importAll()
-    if (!sc)
-    {
-        Scope::createGlobal(this);      // create root scope
-    }
-
-    //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
-
-    // Pass 1 semantic routines: do public side of the definition
-    for (size_t i = 0; i < members->length; i++)
-    {
-        Dsymbol *s = (*members)[i];
-
-        //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
-        s->semantic(sc);
-        runDeferredSemantic();
-    }
-
-    if (userAttribDecl)
-    {
-        userAttribDecl->semantic(sc);
-    }
-
-    if (!_scope)
-    {
-        sc = sc->pop();
-        sc->pop();              // 2 pops because Scope::createGlobal() created 2
-    }
-    semanticRun = PASSsemanticdone;
-    //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-}
-
 /**********************************
  * Determine if we need to generate an instance of ModuleInfo
  * for this Module.
@@ -1008,7 +965,7 @@ void Module::runDeferredSemantic()
         {
             Dsymbol *s = todo[i];
 
-            s->semantic(NULL);
+            dsymbolSemantic(s, NULL);
             //printf("deferred: %s, parent = %s\n", s->toChars(), s->parent->toChars());
         }
         //printf("\tdeferred.length = %d, len = %d, dprogress = %d\n", deferred.length, len, dprogress);
@@ -1228,12 +1185,6 @@ bool Package::isAncestorPackageOf(const Package * const pkg) const
     if (!pkg || !pkg->parent)
         return false;
     return isAncestorPackageOf(pkg->parent->isPackage());
-}
-
-void Package::semantic(Scope *)
-{
-    if (semanticRun < PASSsemanticdone)
-        semanticRun = PASSsemanticdone;
 }
 
 /****************************************************

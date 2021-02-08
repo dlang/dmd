@@ -933,7 +933,7 @@ public:
                 result = exp;
                 return;
             }
-            ti->semantic(sc);
+            dsymbolSemantic(ti, sc);
             if (!ti->inst || ti->errors)
                 return setError();
 
@@ -1000,7 +1000,7 @@ public:
 
         //printf("sds2 = %s, '%s'\n", sds2->kind(), sds2->toChars());
         //printf("\tparent = '%s'\n", sds2->parent->toChars());
-        sds2->semantic(sc);
+        dsymbolSemantic(sds2, sc);
 
         if (Type *t = sds2->getType())    // (Aggregate|Enum)Declaration
         {
@@ -1470,7 +1470,7 @@ public:
 
     void visit(SymOffExp *e)
     {
-        //var->semantic(sc);
+        //dsymbolSemantic(var, sc);
         if (!e->type)
             e->type = e->var->type->pointerTo();
         if (VarDeclaration *v = e->var->isVarDeclaration())
@@ -1594,7 +1594,7 @@ public:
              * foo(a=>a); // in IFTI, treq == T delegate(int)
              */
             //if (exp->fd->treq)
-            //    exp->fd->treq = exp->fd->treq->semantic(exp->loc, sc);
+            //    exp->fd->treq = typeSemantic(exp->fd->treq, exp->loc, sc);
 
             exp->genIdent(sc);
 
@@ -1616,7 +1616,7 @@ public:
             if (exp->td)
             {
                 assert(exp->td->parameters && exp->td->parameters->length);
-                exp->td->semantic(sc);
+                dsymbolSemantic(exp->td, sc);
                 exp->type = Type::tvoid; // temporary type
 
                 if (exp->fd->treq)       // defer type determination
@@ -1631,7 +1631,7 @@ public:
             }
 
             unsigned olderrors = global.errors;
-            exp->fd->semantic(sc);
+            dsymbolSemantic(exp->fd, sc);
             if (olderrors == global.errors)
             {
                 semantic2(exp->fd, sc);
@@ -1697,7 +1697,7 @@ public:
             exp->genIdent(sc);
 
             assert(exp->td->parameters && exp->td->parameters->length);
-            exp->td->semantic(sc);
+            dsymbolSemantic(exp->td, sc);
 
             TypeFunction *tfl = (TypeFunction *)exp->fd->type;
             size_t dim = tfl->parameterList.length();
@@ -1774,7 +1774,7 @@ public:
             // Do semantic() on initializer first, so:
             //      int a = a;
             // will be illegal.
-            e->declaration->semantic(sc);
+            dsymbolSemantic(e->declaration, sc);
             s->parent = sc->parent;
         }
 
@@ -1839,7 +1839,7 @@ public:
             if (sc2->stc & (STCpure | STCnothrow | STCnogc))
                 sc2 = sc->push();
             sc2->stc &= ~(STCpure | STCnothrow | STCnogc);
-            e->declaration->semantic(sc2);
+            dsymbolSemantic(e->declaration, sc2);
             if (sc2 != sc)
                 sc2->pop();
             s->parent = sc->parent;
@@ -2054,7 +2054,7 @@ public:
                         Parameters *args = new Parameters;
                         args->reserve(cd->baseclasses->length);
                         if (cd->semanticRun < PASSsemanticdone)
-                            cd->semantic(NULL);
+                            dsymbolSemantic(cd, NULL);
                         for (size_t i = 0; i < cd->baseclasses->length; i++)
                         {
                             BaseClass *b = (*cd->baseclasses)[i];
@@ -2226,7 +2226,7 @@ public:
                     m = tp->matchArg(e->loc, sc, &tiargs, i, e->parameters, &dedtypes, &s);
                     if (m <= MATCHnomatch)
                         goto Lno;
-                    s->semantic(sc);
+                    dsymbolSemantic(s, sc);
                     if (!sc->insert(s))
                         e->error("declaration %s is already defined", s->toChars());
 
@@ -2253,7 +2253,7 @@ public:
                 s = new TupleDeclaration(e->loc, e->id, &(tup->objects));
             else
                 s = new AliasDeclaration(e->loc, e->id, tded);
-            s->semantic(sc);
+            dsymbolSemantic(s, sc);
             /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
              * More investigation is needed.
              */
@@ -3681,7 +3681,7 @@ public:
             TemplateInstance *ti = dti->ti;
             {
                 //assert(ti->needsTypeInference(sc));
-                ti->semantic(sc);
+                dsymbolSemantic(ti, sc);
                 if (!ti->inst || ti->errors)    // if template failed to expand
                     return setError();
                 Dsymbol *s = ti->toAlias();
@@ -3699,7 +3699,7 @@ public:
             if (ti)
             {
                 //assert(ti->needsTypeInference(sc));
-                ti->semantic(sc);
+                dsymbolSemantic(ti, sc);
                 if (!ti->inst || ti->errors)    // if template failed to expand
                     return setError();
                 Dsymbol *s = ti->toAlias();
@@ -4175,7 +4175,7 @@ public:
                 if (fd && f)
                 {
                     v = copyToTemp(0, "__tmpea", exp->e1);
-                    v->semantic(sc);
+                    dsymbolSemantic(v, sc);
                     ea = new DeclarationExp(exp->loc, v);
                     ea->type = v->type;
                 }
@@ -7121,7 +7121,7 @@ public:
             if (s->mod)
             {
                 s->mod->importAll(NULL);
-                s->mod->semantic(NULL);
+                dsymbolSemantic(s->mod, NULL);
             }
             impStdMath = s;
         }
@@ -8669,7 +8669,7 @@ Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag)
                 goto Lerr;
             if (exp->ti->needsTypeInference(sc))
                 return exp;
-            exp->ti->semantic(sc);
+            dsymbolSemantic(exp->ti, sc);
             if (!exp->ti->inst || exp->ti->errors)    // if template failed to expand
                 return new ErrorExp();
             Dsymbol *s = exp->ti->toAlias();
@@ -8718,7 +8718,7 @@ Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag)
             return new ErrorExp();
         if (exp->ti->needsTypeInference(sc))
             return exp;
-        exp->ti->semantic(sc);
+        dsymbolSemantic(exp->ti, sc);
         if (!exp->ti->inst || exp->ti->errors)    // if template failed to expand
             return new ErrorExp();
         Dsymbol *s = exp->ti->toAlias();
@@ -8754,7 +8754,7 @@ Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag)
             }
             if (exp->ti->needsTypeInference(sc))
                 return exp;
-            exp->ti->semantic(sc);
+            dsymbolSemantic(exp->ti, sc);
             if (!exp->ti->inst || exp->ti->errors)    // if template failed to expand
                 return new ErrorExp();
             Dsymbol *s = exp->ti->toAlias();

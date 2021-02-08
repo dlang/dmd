@@ -461,15 +461,6 @@ void Dsymbol::importAll(Scope *)
 {
 }
 
-/*************************************
- * Does semantic analysis on the public face of declarations.
- */
-
-void Dsymbol::semantic(Scope *)
-{
-    error("%p has no semantic routine", this);
-}
-
 /*********************************************
  * Search for ident as member of s.
  * Params:
@@ -572,7 +563,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             }
             ti->tempdecl = td;
             if (!ti->semanticRun)
-                ti->semantic(sc);
+                dsymbolSemantic(ti, sc);
             sm = ti->toAlias();
             break;
         }
@@ -996,10 +987,6 @@ void ForwardingScopeDsymbol::importScope(Dsymbol *s, Prot protection)
     forward->importScope(s, protection);
 }
 
-void ForwardingScopeDsymbol::semantic(Scope *)
-{
-}
-
 const char *ForwardingScopeDsymbol::kind() const
 {
     return "local scope";
@@ -1034,10 +1021,6 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     sds->members = arraySyntaxCopy(members);
     sds->endlinnum = endlinnum;
     return sds;
-}
-
-void ScopeDsymbol::semantic(Scope *)
-{
 }
 
 /*****************************************
@@ -1574,7 +1557,7 @@ Dsymbol *ArrayScopeSymbol::search(const Loc &loc, Identifier *ident, int)
             Expression *e = new IntegerExp(Loc(), td->objects->length, Type::tsize_t);
             v->_init = new ExpInitializer(Loc(), e);
             v->storage_class |= STCtemp | STCstatic | STCconst;
-            v->semantic(sc);
+            dsymbolSemantic(v, sc);
             return v;
         }
 
@@ -1586,7 +1569,7 @@ Dsymbol *ArrayScopeSymbol::search(const Loc &loc, Identifier *ident, int)
             Expression *e = new IntegerExp(Loc(), type->arguments->length, Type::tsize_t);
             v->_init = new ExpInitializer(Loc(), e);
             v->storage_class |= STCtemp | STCstatic | STCconst;
-            v->semantic(sc);
+            dsymbolSemantic(v, sc);
             return v;
         }
 
@@ -1733,7 +1716,7 @@ Dsymbol *ArrayScopeSymbol::search(const Loc &loc, Identifier *ident, int)
             }
             *pvar = v;
         }
-        (*pvar)->semantic(sc);
+        dsymbolSemantic(*pvar, sc);
         return (*pvar);
     }
     return NULL;

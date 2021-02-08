@@ -34,7 +34,7 @@ Expression *expandVar(int result, VarDeclaration *v)
     if (!v)
         return e;
     if (!v->originalType && v->semanticRun < PASSsemanticdone) // semantic() not yet run
-        v->semantic(NULL);
+        dsymbolSemantic(v, NULL);
 
     if (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
     {

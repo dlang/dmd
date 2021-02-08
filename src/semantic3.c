@@ -76,7 +76,7 @@ static Expression *addInvariant(AggregateDeclaration *ad, VarDeclaration *vthis)
 
         //e = new DsymbolExp(Loc(), inv);
         //e = new CallExp(Loc(), e);
-        //e = e->semantic(sc2);
+        //dsymbolSemantic(e, sc2);
 
         /* https://issues.dlang.org/show_bug.cgi?id=13113
          * Currently virtual invariant calls completely
@@ -484,7 +484,7 @@ public:
                     // Declare _arguments[]
                     funcdecl->v_arguments = new VarDeclaration(Loc(), Type::typeinfotypelist->type, Id::_arguments_typeinfo, NULL);
                     funcdecl->v_arguments->storage_class |= STCtemp | STCparameter;
-                    funcdecl->v_arguments->semantic(sc2);
+                    dsymbolSemantic(funcdecl->v_arguments, sc2);
                     sc2->insert(funcdecl->v_arguments);
                     funcdecl->v_arguments->parent = funcdecl;
 
@@ -492,7 +492,7 @@ public:
                     Type *t = Type::dtypeinfo->type->arrayOf();
                     _arguments = new VarDeclaration(Loc(), t, Id::_arguments, NULL);
                     _arguments->storage_class |= STCtemp;
-                    _arguments->semantic(sc2);
+                    dsymbolSemantic(_arguments, sc2);
                     sc2->insert(_arguments);
                     _arguments->parent = funcdecl;
                 }
@@ -502,7 +502,7 @@ public:
                     Type *t = target.va_listType(funcdecl->loc, sc);
                     funcdecl->v_argptr = new VarDeclaration(Loc(), t, Id::_argptr, NULL);
                     funcdecl->v_argptr->storage_class |= STCtemp;
-                    funcdecl->v_argptr->semantic(sc2);
+                    dsymbolSemantic(funcdecl->v_argptr, sc2);
                     sc2->insert(funcdecl->v_argptr);
                     funcdecl->v_argptr->parent = funcdecl;
                 }
@@ -542,7 +542,7 @@ public:
                         stc |= STCmaybescope;
                     stc |= fparam->storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                     v->storage_class = stc;
-                    v->semantic(sc2);
+                    dsymbolSemantic(v, sc2);
                     if (!sc2->insert(v))
                         funcdecl->error("parameter %s.%s is already defined", funcdecl->toChars(), v->toChars());
                     else
@@ -1394,7 +1394,7 @@ public:
             if (ad->isDeprecated())
                 sc3->stc |= STCdeprecated;
 
-            ti->semantic(sc3);
+            dsymbolSemantic(ti, sc3);
             semantic2(ti, sc3);
             semantic3(ti, sc3);
             Expression *e = resolve(Loc(), sc3, ti->toAlias(), false);

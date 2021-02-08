@@ -37,6 +37,7 @@ enum PASS;
 
 bool tpsemantic(TemplateParameter *tp, Scope *sc, TemplateParameters *parameters);
 RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters);
+void templateInstanceSemantic(TemplateInstance *tempinst, Scope *sc, Expressions *fargs);
 
 class Tuple : public RootObject
 {
@@ -83,7 +84,6 @@ public:
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
         Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind() const;
@@ -324,8 +324,6 @@ public:
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc, Expressions *fargs);
-    void semantic(Scope *sc);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -364,7 +362,6 @@ public:
 
     TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);

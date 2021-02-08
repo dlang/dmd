@@ -4947,7 +4947,7 @@ int Type::covariant(Type *t, StorageClass *pstc, bool fix17349)
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
         if (cd->semanticRun < PASSsemanticdone && !cd->isBaseInfoComplete())
-            cd->semantic(NULL);
+            dsymbolSemantic(cd, NULL);
         if (!cd->isBaseInfoComplete())
         {
             return 3;   // forward references
@@ -6022,7 +6022,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 // https://issues.dlang.org/show_bug.cgi?id=19913
                 // v->type would be null if it is a forward referenced member.
                 if (v->type == NULL)
-                    v->semantic(sc);
+                    dsymbolSemantic(v, sc);
                 if (v->storage_class & (STCconst | STCimmutable | STCmanifest) ||
                     v->type->isConst() || v->type->isImmutable())
                 {
@@ -6306,7 +6306,7 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
     *pt = NULL;
     *ps = NULL;
     //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst->toChars());
-    tempinst->semantic(sc);
+    dsymbolSemantic(tempinst, sc);
     if (!global.gag && tempinst->errors)
     {
         *pt = terror;
@@ -6614,7 +6614,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         return getProperty(e->loc, ident, flag & 1);
 
     if (sym->semanticRun < PASSsemanticdone)
-        sym->semantic(NULL);
+        dsymbolSemantic(sym, NULL);
     if (!sym->members)
     {
         if (sym->isSpecial())
@@ -6977,7 +6977,7 @@ L1:
     {
         if (!ti->semanticRun)
         {
-            ti->semantic(sc);
+            dsymbolSemantic(ti, sc);
             if (!ti->inst || ti->errors)    // if template failed to expand
                 return new ErrorExp();
         }
@@ -7037,7 +7037,7 @@ L1:
             }
         }
         if (d->semanticRun == PASSinit)
-            d->semantic(NULL);
+            dsymbolSemantic(d, NULL);
         checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d);
         if (d->isVarDeclaration() && d->needThis())
@@ -7511,7 +7511,7 @@ L1:
         if (ident == Id::outer && sym->vthis)
         {
             if (sym->vthis->semanticRun == PASSinit)
-                sym->vthis->semantic(NULL);
+                dsymbolSemantic(sym->vthis, NULL);
 
             if (ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration())
             {
@@ -7629,7 +7629,7 @@ L1:
     {
         if (!ti->semanticRun)
         {
-            ti->semantic(sc);
+            dsymbolSemantic(ti, sc);
             if (!ti->inst || ti->errors)    // if template failed to expand
                 return new ErrorExp();
         }
@@ -7741,7 +7741,7 @@ L1:
         }
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
         if (d->semanticRun == PASSinit)
-            d->semantic(NULL);
+            dsymbolSemantic(d, NULL);
         checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d);
         if (d->isVarDeclaration() && d->needThis())
@@ -7798,9 +7798,9 @@ MATCH TypeClass::implicitConvTo(Type *to)
     {
         //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
         if (cdto->semanticRun < PASSsemanticdone && !cdto->isBaseInfoComplete())
-            cdto->semantic(NULL);
+            dsymbolSemantic(cdto, NULL);
         if (sym->semanticRun < PASSsemanticdone && !sym->isBaseInfoComplete())
-            sym->semantic(NULL);
+            dsymbolSemantic(sym, NULL);
         if (cdto->isBaseOf(sym, NULL) && MODimplicitConv(mod, to->mod))
         {
             //printf("'to' is base\n");

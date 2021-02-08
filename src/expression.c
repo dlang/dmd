@@ -513,7 +513,7 @@ static bool checkPropertyCall(Expression *e)
              */
             if (!tf->deco && ce->f->semanticRun < PASSsemanticdone)
             {
-                ce->f->semantic(NULL);
+                dsymbolSemantic(ce->f, NULL);
                 tf = (TypeFunction *)ce->f->type;
             }
         }
@@ -1293,7 +1293,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
              */
             VarDeclaration *tmp = copyToTemp(STCrvalue, "__copytmp", e);
             tmp->storage_class |= STCnodtor;
-            tmp->semantic(sc);
+            dsymbolSemantic(tmp, sc);
             Expression *de = new DeclarationExp(e->loc, tmp);
             Expression *ve = new VarExp(e->loc, tmp);
             de->type = Type::tvoid;
@@ -1805,7 +1805,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             Identifier *idtmp = Identifier::generateId("__gate");
             gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
             gate->storage_class |= STCtemp | STCctfe | STCvolatile;
-            gate->semantic(sc);
+            dsymbolSemantic(gate, sc);
 
             Expression *ae = new DeclarationExp(loc, gate);
             eprefix = expressionSemantic(ae, sc);
@@ -1839,7 +1839,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 VarDeclaration *tmp = copyToTemp(0,
                     needsDtor ? "__pfx" : "__pfy",
                     !isRef ? arg : arg->addressOf());
-                tmp->semantic(sc);
+                dsymbolSemantic(tmp, sc);
 
                 /* Modify the destructor so it only runs if gate==false, i.e.,
                  * only if there was a throw while constructing the args
@@ -3821,7 +3821,7 @@ Lagain:
 
     if (TemplateInstance *ti = s->isTemplateInstance())
     {
-        ti->semantic(sc);
+        dsymbolSemantic(ti, sc);
         if (!ti->inst || ti->errors)
             return new ErrorExp();
         s = ti->toAlias();
@@ -7057,7 +7057,7 @@ void CondExp::hookDtors(Scope *sc)
                     if (!vcond)
                     {
                         vcond = copyToTemp(STCvolatile, "__cond", ce->econd);
-                        vcond->semantic(sc);
+                        dsymbolSemantic(vcond, sc);
 
                         Expression *de = new DeclarationExp(ce->econd->loc, vcond);
                         de = expressionSemantic(de, sc);

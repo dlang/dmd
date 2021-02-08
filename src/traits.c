@@ -946,7 +946,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
         }
         if (s->semanticRun == PASSinit)
-            s->semantic(NULL);
+            dsymbolSemantic(s, NULL);
 
         const char *protName = protectionToChars(s->prot().kind);   // TODO: How about package(names)
         assert(protName);
@@ -1618,7 +1618,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         if (cd && e->ident == Id::allMembers)
         {
             if (cd->semanticRun < PASSsemanticdone)
-                cd->semantic(NULL);    // Bugzilla 13668: Try to resolve forward reference
+                dsymbolSemantic(cd, NULL);    // Bugzilla 13668: Try to resolve forward reference
 
             struct PushBaseMembers
             {

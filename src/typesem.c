@@ -494,7 +494,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                  */
                 StructDeclaration *sd = ((TypeStruct *)tbase)->sym;
                 if (sd->semanticRun < PASSsemanticdone)
-                    sd->semantic(NULL);
+                    dsymbolSemantic(sd, NULL);
 
                 // duplicate a part of StructDeclaration::semanticTypeInfoMembers
                 //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", mtype->toChars(), sd->xeq, sd->xerreq, sd->xhash);
@@ -561,7 +561,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
             {
                 ClassDeclaration *cd = ((TypeClass *)tbase)->sym;
                 if (cd->semanticRun < PASSsemanticdone)
-                    cd->semantic(NULL);
+                    dsymbolSemantic(cd, NULL);
 
                 if (!ClassDeclaration::object)
                 {

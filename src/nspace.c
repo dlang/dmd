@@ -86,43 +86,6 @@ void Nspace::setScope(Scope *sc)
     }
 }
 
-void Nspace::semantic(Scope *sc)
-{
-    if (semanticRun != PASSinit)
-        return;
-    if (_scope)
-    {
-        sc = _scope;
-        _scope = NULL;
-    }
-    if (!sc)
-        return;
-
-    semanticRun = PASSsemantic;
-    parent = sc->parent;
-    if (members)
-    {
-        assert(sc);
-        sc = sc->push(this);
-        sc->linkage = LINKcpp;          // note that namespaces imply C++ linkage
-        sc->parent = this;
-
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->importAll(sc);
-        }
-
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->semantic(sc);
-        }
-        sc->pop();
-    }
-    semanticRun = PASSsemanticdone;
-}
-
 const char *Nspace::kind() const
 {
     return "namespace";
@@ -137,7 +100,7 @@ Dsymbol *Nspace::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s::Nspace::search('%s')\n", toChars(), ident->toChars());
     if (_scope && !symtab)
-        semantic(_scope);
+        dsymbolSemantic(this, _scope);
 
     if (!members || !symtab) // opaque or semantic() is not yet called
     {
@@ -188,7 +151,7 @@ void Nspace::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool is
 {
     //printf("Nspace::setFieldOffset() %s\n", toChars());
     if (_scope)                  // if fwd reference
-        semantic(NULL);         // try to resolve it
+        dsymbolSemantic(this, NULL);         // try to resolve it
     if (members)
     {
         for (size_t i = 0; i < members->length; i++)

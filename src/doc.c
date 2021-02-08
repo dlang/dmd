@@ -663,7 +663,8 @@ static size_t getCodeIndent(const char *src)
 /** Recursively expand template mixin member docs into the scope. */
 static void expandTemplateMixinComments(TemplateMixin *tm, OutBuffer *buf, Scope *sc)
 {
-    if (!tm->semanticRun) tm->semantic(sc);
+    if (!tm->semanticRun)
+        dsymbolSemantic(tm, sc);
     TemplateDeclaration *td = (tm && tm->tempdecl) ?
         tm->tempdecl->isTemplateDeclaration() : NULL;
     if (td && td->members)

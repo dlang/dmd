@@ -24,7 +24,6 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void semantic(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }

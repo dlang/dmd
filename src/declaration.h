@@ -30,6 +30,7 @@ struct Ensure
     Ensure syntaxCopy();
     static Ensures *arraySyntaxCopy(Ensures *a);
 };
+class AliasDeclaration;
 class FuncDeclaration;
 class ExpInitializer;
 class StructDeclaration;
@@ -119,6 +120,7 @@ struct Match
 
 void functionResolve(Match *m, Dsymbol *fd, Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs);
 int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *));
+void aliasSemantic(AliasDeclaration *ds, Scope *sc);
 
 void ObjectNotFound(Identifier *id);
 
@@ -136,7 +138,6 @@ public:
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     Declaration(Identifier *id);
-    void semantic(Scope *sc);
     const char *kind() const;
     d_uns64 size(Loc loc);
     bool checkDisabled(Loc loc, Scope *sc, bool isAliasedDeclaration = false);
@@ -211,8 +212,6 @@ public:
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
-    void aliasSemantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
     const char *kind() const;
     Type *getType();
@@ -235,7 +234,6 @@ public:
 
     OverDeclaration(Identifier *ident, Dsymbol *s, bool hasOverloads = true);
     const char *kind() const;
-    void semantic(Scope *sc);
     bool equals(RootObject *o);
     bool overloadInsert(Dsymbol *s);
 
@@ -279,7 +277,6 @@ public:
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
     AggregateDeclaration *isThis();
@@ -329,7 +326,6 @@ public:
     TypeInfoDeclaration(Type *tinfo);
     static TypeInfoDeclaration *create(Type *tinfo);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *toChars();
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
@@ -647,7 +643,6 @@ public:
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     static FuncDeclaration *create(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool functionSemantic();
     bool functionSemantic3();
     bool checkForwardRef(Loc loc);
@@ -775,7 +770,6 @@ class CtorDeclaration : public FuncDeclaration
 public:
     CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind() const;
     const char *toChars();
     bool isVirtual();
@@ -791,7 +785,6 @@ class PostBlitDeclaration : public FuncDeclaration
 public:
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -807,7 +800,6 @@ public:
     DtorDeclaration(Loc loc, Loc endloc);
     DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind() const;
     const char *toChars();
     bool isVirtual();
@@ -825,7 +817,6 @@ public:
     StaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
     StaticCtorDeclaration(Loc loc, Loc endloc, const char *name, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     bool isVirtual();
     bool addPreInvariant();
@@ -854,7 +845,6 @@ public:
     StaticDtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
     StaticDtorDeclaration(Loc loc, Loc endloc, const char *name, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     bool isVirtual();
     bool hasStaticCtorOrDtor();
@@ -880,7 +870,6 @@ class InvariantDeclaration : public FuncDeclaration
 public:
     InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -899,7 +888,6 @@ public:
 
     UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     bool isVirtual();
     bool addPreInvariant();
@@ -917,7 +905,6 @@ public:
 
     NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, VarArg varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind() const;
     bool isVirtual();
     bool addPreInvariant();
@@ -935,7 +922,6 @@ public:
 
     DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind() const;
     bool isDelete();
     bool isVirtual();

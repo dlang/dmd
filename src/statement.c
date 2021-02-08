@@ -1469,7 +1469,7 @@ Statement *ScopeGuardStatement::scopeCode(Scope *sc, Statement **sentry, Stateme
              *  sfinally: if (!x) statement;
              */
             VarDeclaration *v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type::tbool));
-            v->semantic(sc);
+            dsymbolSemantic(v, sc);
             *sentry = new ExpStatement(loc, v);
 
             Expression *e = new IntegerExp(Loc(), 1, Type::tbool);

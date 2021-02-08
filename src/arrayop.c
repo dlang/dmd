@@ -79,7 +79,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc)
     sc->parent = sc->_module->importedFrom;
     sc->stc = 0;
     sc->linkage = LINKc;
-    fd->semantic(sc);
+    dsymbolSemantic(fd, sc);
     semantic2(fd, sc);
     unsigned errors = global.startGagging();
     semantic3(fd, sc);

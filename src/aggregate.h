@@ -201,7 +201,6 @@ public:
     StructDeclaration(Loc loc, Identifier *id, bool inObject);
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     void semanticTypeInfoMembers();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
@@ -297,7 +296,6 @@ public:
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void semantic(Scope *sc);
     bool isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210
@@ -311,7 +309,6 @@ public:
     bool hasMonitor();
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
-    void interfaceSemantic(Scope *sc);
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
@@ -335,7 +332,6 @@ public:
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void semantic(Scope *sc);
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind() const;

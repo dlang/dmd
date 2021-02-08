@@ -2083,7 +2083,7 @@ public:
 
             if (!v->originalType && v->semanticRun < PASSsemanticdone) // semantic() not yet run
             {
-                v->semantic(NULL);
+                dsymbolSemantic(v, NULL);
                 if (v->type->ty == Terror)
                     return CTFEExp::cantexp;
             }

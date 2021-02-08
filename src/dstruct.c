@@ -281,7 +281,7 @@ bool AggregateDeclaration::determineFields()
             AggregateDeclaration *ad = ((SV *)param)->agg;
 
             if (v->semanticRun < PASSsemanticdone)
-                v->semantic(NULL);
+                dsymbolSemantic(v, NULL);
             // Note: Aggregate fields or size could have determined during v->semantic.
             if (ad->sizeok != SIZEOKnone)
                 return 1;
@@ -354,7 +354,7 @@ bool AggregateDeclaration::determineSize(Loc loc)
     }
 
     if (_scope)
-        semantic(NULL);
+        dsymbolSemantic(this, NULL);
 
     // Determine the instance size of base class first.
     if (ClassDeclaration *cd = isClassDeclaration())
@@ -881,7 +881,7 @@ Dsymbol *AggregateDeclaration::searchCtor()
             {
                 CtorDeclaration *f = s->isCtorDeclaration();
                 if (f && f->semanticRun == PASSinit)
-                    f->semantic(NULL);
+                    dsymbolSemantic(f, NULL);
                 return 0;
             }
         };
@@ -937,223 +937,12 @@ Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
     return ScopeDsymbol::syntaxCopy(sd);
 }
 
-void StructDeclaration::semantic(Scope *sc)
-{
-    //printf("StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
-
-    //static int count; if (++count == 20) halt();
-
-    if (semanticRun >= PASSsemanticdone)
-        return;
-    unsigned errors = global.errors;
-
-    //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
-    Scope *scx = NULL;
-    if (_scope)
-    {
-        sc = _scope;
-        scx = _scope;            // save so we don't make redundant copies
-        _scope = NULL;
-    }
-
-    if (!parent)
-    {
-        assert(sc->parent && sc->func);
-        parent = sc->parent;
-    }
-    assert(parent && !isAnonymous());
-
-    if (this->errors)
-        type = Type::terror;
-    if (semanticRun == PASSinit)
-        type = type->addSTC(sc->stc | storage_class);
-    type = typeSemantic(type, loc, sc);
-
-    if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
-    {
-        TemplateInstance *ti = ((TypeStruct *)type)->sym->isInstantiated();
-        if (ti && isError(ti))
-            ((TypeStruct *)type)->sym = this;
-    }
-
-    // Ungag errors when not speculative
-    Ungag ungag = ungagSpeculative();
-
-    if (semanticRun == PASSinit)
-    {
-        protection = sc->protection;
-
-        alignment = sc->alignment();
-
-        storage_class |= sc->stc;
-        if (storage_class & STCdeprecated)
-            isdeprecated = true;
-        if (storage_class & STCabstract)
-            error("structs, unions cannot be abstract");
-        userAttribDecl = sc->userAttribDecl;
-
-        if (sc->linkage == LINKcpp)
-            classKind = ClassKind::cpp;
-    }
-    else if (symtab && !scx)
-    {
-        return;
-    }
-    semanticRun = PASSsemantic;
-
-    if (!members)               // if opaque declaration
-    {
-        semanticRun = PASSsemanticdone;
-        return;
-    }
-    if (!symtab)
-    {
-        symtab = new DsymbolTable();
-
-        for (size_t i = 0; i < members->length; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
-            s->addMember(sc, this);
-        }
-    }
-
-    Scope *sc2 = newScope(sc);
-
-    /* Set scope so if there are forward references, we still might be able to
-     * resolve individual members like enums.
-     */
-    for (size_t i = 0; i < members->length; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
-        s->setScope(sc2);
-    }
-
-    for (size_t i = 0; i < members->length; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->importAll(sc2);
-    }
-
-    for (size_t i = 0; i < members->length; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->semantic(sc2);
-    }
-
-    if (!determineFields())
-    {
-        assert(type->ty == Terror);
-        sc2->pop();
-        semanticRun = PASSsemanticdone;
-        return;
-    }
-
-    /* Following special member functions creation needs semantic analysis
-     * completion of sub-structs in each field types. For example, buildDtor
-     * needs to check existence of elaborate dtor in type of each fields.
-     * See the case in compilable/test14838.d
-     */
-    for (size_t i = 0; i < fields.length; i++)
-    {
-        VarDeclaration *v = fields[i];
-        Type *tb = v->type->baseElemOf();
-        if (tb->ty != Tstruct)
-            continue;
-        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-        if (sd->semanticRun >= PASSsemanticdone)
-            continue;
-
-        sc2->pop();
-
-        _scope = scx ? scx : sc->copy();
-        _scope->setNoFree();
-        _scope->_module->addDeferredSemantic(this);
-
-        //printf("\tdeferring %s\n", toChars());
-        return;
-    }
-
-    /* Look for special member functions.
-     */
-    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
-
-    // Look for the constructor
-    ctor = searchCtor();
-
-    dtor = buildDtor(this, sc2);
-    postblit = buildPostBlit(this, sc2);
-
-    buildOpAssign(this, sc2);
-    buildOpEquals(this, sc2);
-
-    if (global.params.useTypeInfo && Type::dtypeinfo)  // these functions are used for TypeInfo
-    {
-        xeq = buildXopEquals(this, sc2);
-        xcmp = buildXopCmp(this, sc2);
-        xhash = buildXtoHash(this, sc2);
-    }
-
-    inv = buildInv(this, sc2);
-
-    Module::dprogress++;
-    semanticRun = PASSsemanticdone;
-    //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
-
-    sc2->pop();
-
-    if (ctor)
-    {
-        Dsymbol *scall = search(Loc(), Id::call);
-        if (scall)
-        {
-            unsigned xerrors = global.startGagging();
-            sc = sc->push();
-            sc->tinst = NULL;
-            sc->minst = NULL;
-            FuncDeclaration *fcall = resolveFuncCall(loc, sc, scall, NULL, NULL, NULL, 1);
-            sc = sc->pop();
-            global.endGagging(xerrors);
-
-            if (fcall && fcall->isStatic())
-            {
-                error(fcall->loc, "static opCall is hidden by constructors and can never be called");
-                errorSupplemental(fcall->loc, "Please use a factory method instead, or replace all constructors with static opCall.");
-            }
-        }
-    }
-
-    if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
-    {
-        // https://issues.dlang.org/show_bug.cgi?id=19024
-        StructDeclaration *sd = ((TypeStruct *)type)->sym;
-        error("already exists at %s. Perhaps in another function with the same name?", sd->loc.toChars());
-    }
-
-    if (global.errors != errors)
-    {
-        // The type is no good.
-        type = Type::terror;
-        this->errors = true;
-        if (deferred)
-            deferred->errors = true;
-    }
-
-    if (deferred && !global.gag)
-    {
-        semantic2(deferred, sc);
-        semantic3(deferred, sc);
-    }
-}
-
 Dsymbol *StructDeclaration::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (_scope && !symtab)
-        semantic(_scope);
+        dsymbolSemantic(this, _scope);
 
     if (!members || !symtab)    // opaque or semantic() is not yet called
     {

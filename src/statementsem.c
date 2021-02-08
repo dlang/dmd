@@ -861,7 +861,7 @@ public:
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", fs->aggr);
-            vinit->semantic(sc);
+            dsymbolSemantic(vinit, sc);
             fs->aggr = new VarExp(fs->aggr->loc, vinit);
         }
 
@@ -1285,7 +1285,7 @@ public:
                     else
                     {
                         r = copyToTemp(0, "__r", fs->aggr);
-                        r->semantic(sc);
+                        dsymbolSemantic(r, sc);
                         init = new ExpStatement(loc, r);
                         if (vinit)
                             init = new CompoundStatement(loc, new ExpStatement(loc, vinit), init);
@@ -1318,7 +1318,7 @@ public:
                     else
                     {
                         VarDeclaration *vd = copyToTemp(STCref, "__front", einit);
-                        vd->semantic(sc);
+                        dsymbolSemantic(vd, sc);
                         makeargs = new ExpStatement(loc, vd);
 
                         Type *tfront = NULL;
@@ -1956,7 +1956,7 @@ public:
             ifs->match = new VarDeclaration(ifs->loc, ifs->prm->type, ifs->prm->ident, ei);
             ifs->match->parent = sc->func;
             ifs->match->storage_class |= ifs->prm->storageClass;
-            ifs->match->semantic(scd);
+            dsymbolSemantic(ifs->match, scd);
 
             DeclarationExp *de = new DeclarationExp(ifs->loc, ifs->match);
             VarExp *ve = new VarExp(ifs->loc, ifs->match);
@@ -3181,7 +3181,7 @@ public:
              *  try { body } finally { _d_monitorexit(tmp); }
              */
             VarDeclaration *tmp = copyToTemp(0, "__sync", ss->exp);
-            tmp->semantic(sc);
+            dsymbolSemantic(tmp, sc);
 
             Statements *cs = new Statements();
             cs->push(new ExpStatement(ss->loc, tmp));
@@ -3225,7 +3225,7 @@ public:
              * Backend optimizer could remove this unused variable.
              */
             VarDeclaration *v = new VarDeclaration(ss->loc, Type::tvoidptr, Identifier::generateId("__sync"), NULL);
-            v->semantic(sc);
+            dsymbolSemantic(v, sc);
             cs->push(new ExpStatement(ss->loc, v));
 
             Parameters* args = new Parameters;
@@ -3309,7 +3309,7 @@ public:
             {
                 init = new ExpInitializer(ws->loc, ws->exp);
                 ws->wthis = new VarDeclaration(ws->loc, ws->exp->type, Id::withSym, init);
-                ws->wthis->semantic(sc);
+                dsymbolSemantic(ws->wthis, sc);
 
                 sym = new WithScopeSymbol(ws);
                 sym->parent = sc->scopesym;
@@ -3329,7 +3329,7 @@ public:
                      * }
                      */
                     VarDeclaration *tmp = copyToTemp(0, "__withtmp", ws->exp);
-                    tmp->semantic(sc);
+                    dsymbolSemantic(tmp, sc);
                     ExpStatement *es = new ExpStatement(ws->loc, tmp);
                     ws->exp = new VarExp(ws->loc, tmp);
                     Statement *ss = new ScopeStatement(ws->loc, new CompoundStatement(ws->loc, es, ws), ws->endloc);
@@ -3339,7 +3339,7 @@ public:
                 Expression *e = ws->exp->addressOf();
                 init = new ExpInitializer(ws->loc, e);
                 ws->wthis = new VarDeclaration(ws->loc, e->type, Id::withSym, init);
-                ws->wthis->semantic(sc);
+                dsymbolSemantic(ws->wthis, sc);
                 sym = new WithScopeSymbol(ws);
                 // Need to set the scope to make use of resolveAliasThis
                 sym->setScope(sc);
@@ -3722,7 +3722,7 @@ public:
                 s->aliasdecls.push(ad);
             }
 
-            s->semantic(sc);
+            dsymbolSemantic(s, sc);
             // https://issues.dlang.org/show_bug.cgi?id=19942
             // If the module that's being imported doesn't exist, don't add it to the symbol table
             // for the current scope.
@@ -3821,7 +3821,7 @@ void catchSemantic(Catch *c, Scope *sc)
         if (c->ident)
         {
             c->var = new VarDeclaration(c->loc, c->type, c->ident, NULL);
-            c->var->semantic(sc);
+            dsymbolSemantic(c->var, sc);
             sc->insert(c->var);
         }
         c->handler = statementSemantic(c->handler, sc);

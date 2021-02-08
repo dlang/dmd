@@ -1500,7 +1500,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
-        m->semantic(NULL);
+        dsymbolSemantic(m, NULL);
     }
     if (global.errors)
         fatal();

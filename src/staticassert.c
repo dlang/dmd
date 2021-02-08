@@ -42,10 +42,6 @@ void StaticAssert::addMember(Scope *, ScopeDsymbol *)
     // we didn't add anything
 }
 
-void StaticAssert::semantic(Scope *)
-{
-}
-
 bool StaticAssert::oneMember(Dsymbol **ps, Identifier *)
 {
     //printf("StaticAssert::oneMember())\n");

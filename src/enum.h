@@ -47,7 +47,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
-    void semantic(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Type *getType();
     const char *kind() const;
@@ -89,7 +88,6 @@ public:
         StorageClass stc, UserAttributeDeclaration *uad, DeprecatedDeclaration *dd);
     Dsymbol *syntaxCopy(Dsymbol *s);
     const char *kind() const;
-    void semantic(Scope *sc);
     Expression *getVarExp(Loc loc, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }

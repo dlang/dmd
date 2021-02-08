@@ -147,7 +147,7 @@ void Compiler::genCmain(Scope *sc)
     global.params.verbose = false;
     m->importedFrom = m;
     m->importAll(NULL);
-    m->semantic(NULL);
+    dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
     global.params.verbose = v;
