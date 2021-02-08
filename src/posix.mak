@@ -273,7 +273,7 @@ ROOT_OBJS = \
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
 	toobj.o toctype.o toelfdebug.o toir.o \
-	irstate.o typinf.o iasm.o iasmdmd.o
+	irstate.o typinf.o iasm.o iasmdmd.o iasmgcc.o
 
 
 ifeq ($(D_OBJC),1)
