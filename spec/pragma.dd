@@ -5,23 +5,29 @@ $(SPEC_S Pragmas,
 $(HEADERNAV_TOC)
 
 $(GRAMMAR
+$(GNAME PragmaDeclaration):
+    $(GLINK Pragma);
+    $(GLINK Pragma) $(GLINK2 attribute, DeclarationBlock)
+
+$(GNAME PragmaStatement):
+    $(GLINK Pragma);
+    $(GLINK Pragma) $(GLINK NoScopeStatement)
+
 $(GNAME Pragma):
     $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
     $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D ,) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
 )
 
 
-        $(P Pragmas are a way to pass special information to the compiler
-        and to add vendor specific extensions to D.
-        Pragmas can be used by themselves terminated with a $(SINGLEQUOTE ;),
-        they can influence a statement, a block of statements, a declaration, or
+        $(P Pragmas pass special information to the implementation
+        and can add vendor specific extensions.
+        Pragmas can be used by themselves terminated with a $(TT ;),
+        and can apply to a statement, a block of statements, a declaration, or
         a block of declarations.
         )
 
-        $(P Pragmas can appear as either declarations,
-        $(I Pragma) $(GLINK2 attribute, DeclarationBlock),
-        or as statements,
-        $(GLINK2 statement, PragmaStatement).
+        $(P Pragmas can be either a $(GLINK PragmaDeclaration)
+        or a $(GLINK PragmaStatement).
         )
 
 -----------------

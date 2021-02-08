@@ -56,9 +56,9 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
     $(GLINK ScopeGuardStatement)
     $(GLINK ThrowStatement)
     $(GLINK AsmStatement)
-    $(GLINK PragmaStatement)
     $(GLINK MixinStatement)
     $(GLINK ForeachRangeStatement)
+    $(GLINK2 pragma, PragmaStatement)
     $(GLINK2 version, ConditionalStatement)
     $(GLINK2 version, StaticForeachStatement)
     $(GLINK2 version, StaticAssert)
@@ -1869,8 +1869,7 @@ else
 $(H2 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
 
 $(GRAMMAR
-$(GNAME PragmaStatement):
-    $(GLINK2 pragma, Pragma) $(PSSEMI)
+$(GLINK2 pragma, PragmaStatement)
 )
 
 $(H2 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
