@@ -1,5 +1,5 @@
 /*_ mem.h */
-/* Copyright (C) 1986-2020 by The D Language Foundation, All Rights Reserved */
+/* Copyright (C) 1986-2021 by The D Language Foundation, All Rights Reserved */
 /* All Rights Reserved                                                       */
 /* Written by Walter Bright                                                  */
 

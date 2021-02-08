@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+// Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
 /*
@@ -583,15 +583,15 @@ typedef int bool;
 #define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001-2019 by The D Language Foundation"
 #else
 #ifdef DEBUG
-#define COPYRIGHT "Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved\n\
+#define COPYRIGHT "Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved\n\
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
 #if __linux__
-#define COPYRIGHT "Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved\n\
+#define COPYRIGHT "Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else
-#define COPYRIGHT "Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved\n\
+#define COPYRIGHT "Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved\n\
 Written by Walter Bright"
 #endif
 #endif
