@@ -73,6 +73,8 @@ task:
     OS_NAME: darwin
     # override Cirrus default OS (`darwin`)
     OS: osx
+    # 12 CPU cores and 24 GB of memory are available
+    N: 12
     matrix:
       - TASK_NAME_SUFFIX: DMD (latest)
       - TASK_NAME_SUFFIX: DMD (coverage)
