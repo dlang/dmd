@@ -1470,8 +1470,9 @@ Type toStaticArrayType(SliceExp e)
 /**************************************
  * Do an explicit cast.
  * Assume that the expression `e` does not have any indirections.
+ * (Parameter 'att' is used to stop 'alias this' recursion)
  */
-Expression castTo(Expression e, Scope* sc, Type t)
+Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 {
     extern (C++) final class CastTo : Visitor
     {
@@ -1551,22 +1552,18 @@ Expression castTo(Expression e, Scope* sc, Type t)
             // Return the expression if it succeeds, null otherwise.
             Expression tryAliasThisCast()
             {
-                Expression result;
-                AggregateDeclaration t1ad = isAggregate(t1b);
-                if (!t1ad)
+                if (att && t1b.equivalent(att))
                     return null;
-
-                AggregateDeclaration toad = isAggregate(tob);
-                if (t1ad == toad || !t1ad.aliasthis)
-                    return null;
+                else if (!att && t1b.checkAliasThisRec())
+                    att = t1b;
 
                 /* Forward the cast to our alias this member, rewrite to:
                  *   cast(to)e1.aliasthis
                  */
-                result = resolveAliasThis(sc, e);
+                auto exp = resolveAliasThis(sc, e);
                 const errors = global.startGagging();
-                result = result.castTo(sc, t);
-                return global.endGagging(errors) ? null : result;
+                exp = castTo(exp, sc, t, att);
+                return global.endGagging(errors) ? null : exp;
             }
 
             bool hasAliasThis;
