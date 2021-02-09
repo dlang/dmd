@@ -119,7 +119,7 @@ public:
                 if (!tempinst->errors)
                 {
                     if (!tempdecl->literal)
-                        error(tempinst->loc, "error instantiating");
+                        tempinst->error(tempinst->loc, "error instantiating");
                     if (tempinst->tinst)
                         tempinst->tinst->printInstantiationTrace();
                 }

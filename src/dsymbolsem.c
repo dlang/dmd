@@ -205,7 +205,7 @@ public:
         AggregateDeclaration *ad = p->isAggregateDeclaration();
         if (!ad)
         {
-            ::error(dsym->loc, "alias this can only be a member of aggregate, not %s %s",
+            error(dsym->loc, "alias this can only be a member of aggregate, not %s %s",
                 p->kind(), p->toChars());
             return;
         }
@@ -216,14 +216,14 @@ public:
         {
             s = sc->search(dsym->loc, dsym->ident, NULL);
             if (s)
-                ::error(dsym->loc, "%s is not a member of %s", s->toChars(), ad->toChars());
+                error(dsym->loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else
-                ::error(dsym->loc, "undefined identifier %s", dsym->ident->toChars());
+                error(dsym->loc, "undefined identifier %s", dsym->ident->toChars());
             return;
         }
         else if (ad->aliasthis && s != ad->aliasthis)
         {
-            ::error(dsym->loc, "there can be only one alias this");
+            error(dsym->loc, "there can be only one alias this");
             return;
         }
 
@@ -250,7 +250,7 @@ public:
             assert(t);
             if (ad->type->implicitConvTo(t) > MATCHnomatch)
             {
-                ::error(dsym->loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
+                error(dsym->loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
             }
         }
 
@@ -522,7 +522,7 @@ public:
                 size_t tedim = te->exps->length;
                 if (tedim != nelems)
                 {
-                    ::error(dsym->loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
+                    error(dsym->loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
                     for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                         te->exps->push(new ErrorExp());
                 }
@@ -1274,7 +1274,7 @@ public:
         AggregateDeclaration *ad = p->isAggregateDeclaration();
         if (!ad)
         {
-            ::error(scd->loc, "%s can only be a part of an aggregate, not %s %s",
+            error(scd->loc, "%s can only be a part of an aggregate, not %s %s",
                 scd->kind(), p->kind(), p->toChars());
             scd->errors = true;
             return;
@@ -1492,7 +1492,7 @@ public:
             goto Lnodecl;
         }
         else
-            pd->error("unrecognized pragma(%s)", pd->ident->toChars());
+            error(pd->loc, "unrecognized pragma(%s)", pd->ident->toChars());
 
     Ldecl:
         if (pd->decl)
@@ -1675,7 +1675,7 @@ public:
         if (ed->semanticRun == PASSsemantic)
         {
             assert(ed->memtype);
-            ::error(ed->loc, "circular reference to enum base type %s", ed->memtype->toChars());
+            error(ed->loc, "circular reference to enum base type %s", ed->memtype->toChars());
             ed->errors = true;
             ed->semanticRun = PASSsemanticdone;
             return;
@@ -2991,7 +2991,7 @@ public:
                                 ::deprecation(funcdecl->loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute",
                                     fdv->toPrettyChars(), funcdecl->toPrettyChars());
                             else
-                                ::error(funcdecl->loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
+                                error(funcdecl->loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
                                     fdv->toPrettyChars(), funcdecl->toPrettyChars());
                         }
                     }
@@ -3268,7 +3268,7 @@ public:
         AggregateDeclaration *ad = p->isAggregateDeclaration();
         if (!ad)
         {
-            ::error(ctd->loc, "constructor can only be a member of aggregate, not %s %s",
+            error(ctd->loc, "constructor can only be a member of aggregate, not %s %s",
                 p->kind(), p->toChars());
             ctd->type = Type::terror;
             ctd->errors = true;
@@ -3351,7 +3351,7 @@ public:
         StructDeclaration *ad = p->isStructDeclaration();
         if (!ad)
         {
-            ::error(pbd->loc, "postblit can only be a member of struct/union, not %s %s",
+            error(pbd->loc, "postblit can only be a member of struct/union, not %s %s",
                 p->kind(), p->toChars());
             pbd->type = Type::terror;
             pbd->errors = true;
@@ -3388,7 +3388,7 @@ public:
         AggregateDeclaration *ad = p->isAggregateDeclaration();
         if (!ad)
         {
-            ::error(dd->loc, "destructor can only be a member of aggregate, not %s %s",
+            error(dd->loc, "destructor can only be a member of aggregate, not %s %s",
                 p->kind(), p->toChars());
             dd->type = Type::terror;
             dd->errors = true;
@@ -3425,7 +3425,7 @@ public:
         if (!p->isScopeDsymbol())
         {
             const char *s = (scd->isSharedStaticCtorDeclaration() ? "shared " : "");
-            ::error(scd->loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s",
+            error(scd->loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s",
                 s, p->kind(), p->toChars());
             scd->type = Type::terror;
             scd->errors = true;
@@ -3489,7 +3489,7 @@ public:
         if (!p->isScopeDsymbol())
         {
             const char *s = (sdd->isSharedStaticDtorDeclaration() ? "shared " : "");
-            ::error(sdd->loc, "%sstatic destructor can only be member of module/aggregate/template, not %s %s",
+            error(sdd->loc, "%sstatic destructor can only be member of module/aggregate/template, not %s %s",
                 s, p->kind(), p->toChars());
             sdd->type = Type::terror;
             sdd->errors = true;
@@ -3555,7 +3555,7 @@ public:
         AggregateDeclaration *ad = p->isAggregateDeclaration();
         if (!ad)
         {
-            ::error(invd->loc, "invariant can only be a member of aggregate, not %s %s",
+            error(invd->loc, "invariant can only be a member of aggregate, not %s %s",
                 p->kind(), p->toChars());
             invd->type = Type::terror;
             invd->errors = true;
@@ -3596,7 +3596,7 @@ public:
         Dsymbol *p = utd->parent->pastMixin();
         if (!p->isScopeDsymbol())
         {
-            ::error(utd->loc, "unittest can only be a member of module/aggregate/template, not %s %s",
+            error(utd->loc, "unittest can only be a member of module/aggregate/template, not %s %s",
                 p->kind(), p->toChars());
             utd->type = Type::terror;
             utd->errors = true;
@@ -3629,7 +3629,7 @@ public:
         Dsymbol *p = nd->parent->pastMixin();
         if (!p->isAggregateDeclaration())
         {
-            ::error(nd->loc, "allocator can only be a member of aggregate, not %s %s",
+            error(nd->loc, "allocator can only be a member of aggregate, not %s %s",
                 p->kind(), p->toChars());
             nd->type = Type::terror;
             nd->errors = true;
@@ -3672,7 +3672,7 @@ public:
         Dsymbol *p = deld->parent->pastMixin();
         if (!p->isAggregateDeclaration())
         {
-            ::error(deld->loc, "deallocator can only be a member of aggregate, not %s %s",
+            error(deld->loc, "deallocator can only be a member of aggregate, not %s %s",
                 p->kind(), p->toChars());
             deld->type = Type::terror;
             deld->errors = true;
@@ -3881,8 +3881,8 @@ public:
 
                 if (fcall && fcall->isStatic())
                 {
-                    error(fcall->loc, "static opCall is hidden by constructors and can never be called");
-                    errorSupplemental(fcall->loc, "Please use a factory method instead, or replace all constructors with static opCall.");
+                    sd->error(fcall->loc, "`static opCall` is hidden by constructors and can never be called");
+                    errorSupplemental(fcall->loc, "Please use a factory method instead, or replace all constructors with `static opCall`.");
                 }
             }
         }
@@ -4195,7 +4195,7 @@ public:
                     cldec->com = true;
                 if (cldec->isCPPclass() && !b->sym->isCPPinterface())
                 {
-                    ::error(cldec->loc, "C++ class '%s' cannot implement D interface '%s'",
+                    error(cldec->loc, "C++ class '%s' cannot implement D interface '%s'",
                         cldec->toPrettyChars(), b->sym->toPrettyChars());
                 }
             }
@@ -4382,7 +4382,7 @@ public:
             {
                 VarDeclaration *v = cldec->fields[i];
                 if (v->storage_class & STCnodefaultctor)
-                    ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
+                    error(v->loc, "field %s must be initialized in constructor", v->toChars());
             }
         }
 
@@ -4427,7 +4427,7 @@ public:
         if (FuncDeclaration *f = hasIdentityOpAssign(cldec, sc2))
         {
             if (!(f->storage_class & STCdisable))
-                error(f->loc, "identity assignment operator overload is illegal");
+                cldec->error(f->loc, "identity assignment operator overload is illegal");
         }
 
         cldec->inv = buildInv(cldec, sc2);
@@ -4788,7 +4788,7 @@ void templateInstanceSemantic(TemplateInstance *tempinst, Scope *sc, Expressions
         Ungag ungag(global.gag);
         if (!tempinst->gagged)
             global.gag = 0;
-        error(tempinst->loc, "recursive template expansion");
+        tempinst->error(tempinst->loc, "recursive template expansion");
         if (tempinst->gagged)
             tempinst->semanticRun = PASSinit;
         else
@@ -5275,7 +5275,7 @@ Lerror:
         if (!tempinst->errors)
         {
             if (!tempdecl->literal)
-                error(tempinst->loc, "error instantiating");
+                tempinst->error(tempinst->loc, "error instantiating");
             if (tempinst->tinst)
                 tempinst->tinst->printInstantiationTrace();
         }
