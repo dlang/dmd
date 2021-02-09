@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -379,7 +379,6 @@ int intrinsic_op(FuncDeclaration *fd)
 
     if (id1 == Id::std && id2 == Id::math)
     {
-    Lstdmath:
         if (argtype1 == Type::tfloat80 || id3 == Id::_sqrt)
             goto Lmath;
         if (id3 == Id::fabs &&

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -787,7 +787,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
                  * in `init` before its use.
                  */
                 if (vd->semanticRun < PASSsemantic2done && vd->_scope)
-                    vd->semantic2(vd->_scope);
+                    semantic2(vd, vd->_scope);
 
                 ExpInitializer *ei = init->isExpInitializer();
                 Type *tb = vd->type->toBasetype();

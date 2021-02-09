@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -306,7 +306,7 @@ void vmessage(const Loc &loc, const char *format, va_list ap)
     if (*p)
     {
         fprintf(stdout, "%s: ", p);
-        mem.xfree((void*)p);
+        mem.xfree(const_cast<char*>(p));
     }
     OutBuffer tmp;
     tmp.vprintf(format, ap);

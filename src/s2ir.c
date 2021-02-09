@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -555,7 +555,7 @@ public:
             {   CaseStatement *cs = (*s->cases)[i];
 
                 if (cs->exp->op != TOKstring)
-                {   s->error("case '%s' is not a string", cs->exp->toChars()); // BUG: this should be an assert
+                {   s->error("case `%s` is not a string", cs->exp->toChars()); // BUG: this should be an assert
                 }
                 else
                 {

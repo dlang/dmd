@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -657,7 +657,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             {
                                 TypeFunction *tf = (TypeFunction *)fd->type;
                                 if (tf->ty == Tfunction)
-                                    cd->error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
+                                    cd->error("use of %s%s is hidden by %s; use `alias %s = %s.%s;` to introduce base class overload set",
                                         fd->toPrettyChars(),
                                         parametersTypeToChars(tf->parameterList),
                                         cd->toChars(),

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -1500,7 +1500,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
-        m->semantic(NULL);
+        dsymbolSemantic(m, NULL);
     }
     if (global.errors)
         fatal();
@@ -1523,7 +1523,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
-        m->semantic2(NULL);
+        semantic2(m, NULL);
     }
     if (global.errors)
         fatal();
@@ -1534,7 +1534,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
-        m->semantic3(NULL);
+        semantic3(m, NULL);
     }
     Module::runDeferredSemantic3();
     if (global.errors)

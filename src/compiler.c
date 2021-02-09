@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -147,9 +147,9 @@ void Compiler::genCmain(Scope *sc)
     global.params.verbose = false;
     m->importedFrom = m;
     m->importAll(NULL);
-    m->semantic(NULL);
-    m->semantic2(NULL);
-    m->semantic3(NULL);
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
     global.params.verbose = v;
 
     entrypoint = m;

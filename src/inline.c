@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -453,7 +453,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
         void visit(ThisExp *e)
         {
             //if (!ids->vthis)
-                //e->error("no 'this' when inlining %s", ids->parent->toChars());
+                //e->error("no `this` when inlining %s", ids->parent->toChars());
             if (!ids->vthis)
             {
                 result = e;

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -285,7 +285,7 @@ Type *Target::va_listType(const Loc &loc, Scope *sc)
         if (global.params.is64bit)
         {
             tvalist = (new TypeIdentifier(Loc(), Identifier::idPool("__va_list_tag")))->pointerTo();
-            tvalist = tvalist->semantic(loc, sc);
+            tvalist = typeSemantic(tvalist, loc, sc);
         }
         else
         {
@@ -644,7 +644,7 @@ const char *TargetCPP::typeInfoMangle(ClassDeclaration *cd)
 #endif
 }
 
-const char *TargetCPP::thunkMangle(FuncDeclaration *fd, int offset)
+const char *TargetCPP::thunkMangle(FuncDeclaration *, int)
 {
     return NULL;
 }
@@ -689,7 +689,7 @@ Type *TargetCPP::parameterType(Parameter *p)
  * Returns:
  *      true if isFundamental was set by function
  */
-bool TargetCPP::fundamentalType(const Type *t, bool& isFundamental)
+bool TargetCPP::fundamentalType(const Type *, bool &)
 {
     return false;
 }

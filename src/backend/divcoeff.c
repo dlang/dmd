@@ -1,5 +1,5 @@
 /*
-Copyright: Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
+Copyright: Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
 Authors: Walter Bright
 License: boost.org/LICENSE_1_0.txt, Boost License 1.0
 Source: https://github.com/D-Programming-Language/dmd/blob/master/src/backend/divcoeff.c

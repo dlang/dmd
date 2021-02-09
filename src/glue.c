@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -1143,7 +1143,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
              */
             StringExp *se = StringExp::create(Loc(), s->Sident);
             se->type = Type::tstring;
-            se->type = se->type->semantic(Loc(), NULL);
+            se->type = typeSemantic(se->type, Loc(), NULL);
             Expressions *exps = Expressions_create();
             exps->push(se);
             FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");

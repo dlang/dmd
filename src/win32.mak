@@ -1,6 +1,6 @@
 #_ win32.mak
 #
-# Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+# Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
 # All Rights Reserved
 # written by Walter Bright
 # http://www.digitalmars.com
@@ -157,13 +157,15 @@ FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	safe.obj sideeffect.obj intrange.obj blockexit.obj canthrow.obj target.obj nspace.obj \
 	objc.obj errors.obj escape.obj tokens.obj globals.obj \
-	utils.obj expressionsem.obj statementsem.obj typesem.obj
+	utils.obj \
+	dsymbolsem.obj semantic2.obj semantic3.obj \
+	expressionsem.obj statementsem.obj templateparamsem.obj typesem.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj iasmdmd.obj objc_glue_stubs.obj
+	libomf.obj scanomf.obj iasm.obj iasmdmd.obj iasmgcc.obj objc_glue_stubs.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -204,12 +206,14 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	apply.c sapply.c safe.c sideeffect.c ctfe.h \
 	intrange.h intrange.c blockexit.c canthrow.c target.c target.h visitor.h \
 	tokens.h tokens.c globals.h globals.c objc.h objc.c \
-	utils.c expressionsem.c statementsem.c typesem.obj
+	utils.c \
+	dsymbolsem.c semantic2.c semantic3.c \
+	expressionsem.c statementsem.c templateparamsem.c typesem.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c iasmdmd.c \
+	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c iasmdmd.c iasmgcc.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c objc_glue_stubs.c objc_glue.c
 
@@ -422,6 +426,9 @@ iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
 
 iasmdmd.obj : $(CH) $(TOTALH) $C\iasm.h iasmdmd.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasmdmd
+
+iasmgcc.obj : $(CH) $(TOTALH) $C\iasm.h iasmgcc.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasmgcc
 
 # D front/back end
 bcomplex.obj : $C\bcomplex.c
@@ -770,6 +777,10 @@ utf.obj : utf.h utf.c
 dtemplate.obj : $(TOTALH) template.h dtemplate.c
 dversion.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h dversion.c
 utils.obj : $(TOTALH) utils.c
+dsymbolsem.obj : $(TOTALH) dsymbolsem.c
+semantic2.obj : $(TOTALH) semantic2.c
+semantic3.obj : $(TOTALH) semantic3.c
 expressionsem.obj : $(TOTALH) expressionsem.c
 statementsem.obj : $(TOTALH) statementsem.c
+templateparamsem.obj : $(TOTALH) templateparamsem.c
 typesem.obj : $(TOTALH) typesem.c
