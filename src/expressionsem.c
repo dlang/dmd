@@ -535,7 +535,7 @@ public:
         return;
 
     Lerr:
-        e->error("'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
+        e->error("`this` is only defined in non-static member functions, not %s", sc->parent->toChars());
         return setError();
     }
 
@@ -570,7 +570,7 @@ public:
                     cd = cd->baseClass;
                     if (!cd)
                     {
-                        e->error("class %s has no 'super'", s->toChars());
+                        e->error("class %s has no `super`", s->toChars());
                         goto Lerr;
                     }
                     e->type = cd->type;
@@ -615,7 +615,7 @@ public:
         return;
 
     Lerr:
-        e->error("'super' is only allowed in non-static class member functions");
+        e->error("`super` is only allowed in non-static class member functions");
         return setError();
     }
 
@@ -978,7 +978,7 @@ public:
                      */
                     if (ti->inuse)
                     {
-                        exp->error("recursive expansion of %s '%s'", ti->kind(), ti->toPrettyChars());
+                        exp->error("recursive expansion of %s `%s`", ti->kind(), ti->toPrettyChars());
                         return setError();
                     }
 
@@ -1048,7 +1048,7 @@ public:
             cdthis = exp->thisexp->type->isClassHandle();
             if (!cdthis)
             {
-                exp->error("'this' for nested class must be a class type, not %s", exp->thisexp->type->toChars());
+                exp->error("`this` for nested class must be a class type, not %s", exp->thisexp->type->toChars());
                 return setError();
             }
 
@@ -1132,7 +1132,7 @@ public:
                 {
                     FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
                     if (fd && fd->isAbstract())
-                        errorSupplemental(exp->loc, "function '%s' is not implemented", fd->toFullSignature());
+                        errorSupplemental(exp->loc, "function `%s` is not implemented", fd->toFullSignature());
                 }
                 return setError();
             }
@@ -1155,7 +1155,7 @@ public:
                         {
                             if (!sp)
                             {
-                                exp->error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
+                                exp->error("outer class %s `this` needed to `new` nested class %s", cdn->toChars(), cd->toChars());
                                 return setError();
                             }
                             ClassDeclaration *cdp = sp->isClassDeclaration();
@@ -1174,7 +1174,7 @@ public:
                     if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
                     {
                         //printf("cdthis = %s\n", cdthis->toChars());
-                        exp->error("'this' for nested class must be of type %s, not %s",
+                        exp->error("`this` for nested class must be of type %s, not %s",
                             cdn->toChars(), exp->thisexp->type->toChars());
                         return setError();
                     }
@@ -1195,7 +1195,7 @@ public:
                     // make sure the parent context fdn of cd is reachable from sc
                     if (checkNestedRef(sc->parent, fdn))
                     {
-                        exp->error("outer function context of %s is needed to 'new' nested class %s",
+                        exp->error("outer function context of %s is needed to `new` nested class %s",
                             fdn->toPrettyChars(), cd->toPrettyChars());
                         return setError();
                     }
@@ -3393,7 +3393,7 @@ public:
         }
         else if (!t1)
         {
-            exp->error("function expected before (), not '%s'", exp->e1->toChars());
+            exp->error("function expected before (), not `%s`", exp->e1->toChars());
             return setError();
         }
         else if (t1->ty == Terror)
@@ -3471,7 +3471,7 @@ public:
                     }
                     else if (isNeedThisScope(sc, exp->f))
                     {
-                        exp->error("need 'this' for '%s' of type '%s'", exp->f->toChars(), exp->f->type->toChars());
+                        exp->error("need `this` for `%s` of type `%s`", exp->f->toChars(), exp->f->type->toChars());
                         return setError();
                     }
                 }
@@ -3516,19 +3516,19 @@ public:
                 bool err = false;
                 if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
                 {
-                    exp->error("pure %s '%s' cannot call impure %s '%s'",
+                    exp->error("pure %s `%s` cannot call impure %s `%s`",
                           sc->func->kind(), sc->func->toPrettyChars(), p, exp->e1->toChars());
                     err = true;
                 }
                 if (!tf->isnogc && sc->func->setGC())
                 {
-                    exp->error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                    exp->error("@nogc %s `%s` cannot call non-@nogc %s `%s`",
                           sc->func->kind(), sc->func->toPrettyChars(), p, exp->e1->toChars());
                     err = true;
                 }
                 if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
                 {
-                    exp->error("@safe %s '%s' cannot call @system %s '%s'",
+                    exp->error("@safe %s `%s` cannot call @system %s `%s`",
                           sc->func->kind(), sc->func->toPrettyChars(), p, exp->e1->toChars());
                     err = true;
                 }
@@ -3598,7 +3598,7 @@ public:
                 }
                 else if (isNeedThisScope(sc, exp->f))
                 {
-                    exp->error("need 'this' for '%s' of type '%s'", exp->f->toChars(), exp->f->type->toChars());
+                    exp->error("need `this` for `%s` of type `%s`", exp->f->toChars(), exp->f->type->toChars());
                     return setError();
                 }
             }
@@ -3633,7 +3633,7 @@ public:
         if (!exp->type)
         {
             exp->e1 = e1org;     // Bugzilla 10922, avoid recursive expression printing
-            exp->error("forward reference to inferred return type of function call '%s'", exp->toChars());
+            exp->error("forward reference to inferred return type of function call `%s`", exp->toChars());
             return setError();
         }
 
@@ -3851,7 +3851,7 @@ public:
                     {
                         if (sc->func->setUnsafe())
                         {
-                            exp->error("'this' reference necessary to take address of member %s in @safe function %s",
+                            exp->error("`this` reference necessary to take address of member %s in @safe function %s",
                                 f->toChars(), sc->func->toChars());
                         }
                     }
@@ -3955,7 +3955,7 @@ public:
                 break;
 
             default:
-                exp->error("can only * a pointer, not a '%s'", exp->e1->type->toChars());
+                exp->error("can only * a pointer, not a `%s`", exp->e1->type->toChars());
                 /* fall through */
 
             case Terror:
@@ -4468,7 +4468,7 @@ public:
         {
             if (exp->lwr || exp->upr)
             {
-                exp->error("cannot slice type '%s'", exp->e1->toChars());
+                exp->error("cannot slice type `%s`", exp->e1->toChars());
                 return setError();
             }
             Expression *e = new TypeExp(exp->loc, exp->e1->type->arrayOf());
@@ -4999,7 +4999,7 @@ public:
                     ;
                 else if (sc->func && sc->func->setUnsafe())
                 {
-                    exp->error("safe function '%s' cannot index pointer '%s'",
+                    exp->error("safe function `%s` cannot index pointer `%s`",
                         sc->func->toPrettyChars(), exp->e1->toChars());
                     return setError();
                 }
@@ -5145,7 +5145,7 @@ public:
         if (exp->e1->op == TOKslice)
         {
             const char *s = exp->op == TOKplusplus ? "increment" : "decrement";
-            exp->error("cannot post-%s array slice '%s', use pre-%s instead", s, exp->e1->toChars(), s);
+            exp->error("cannot post-%s array slice `%s`, use pre-%s instead", s, exp->e1->toChars(), s);
             return setError();
         }
 
@@ -7787,7 +7787,7 @@ public:
             (t1->ty == Tarray || t1->ty == Tsarray ||
              t2->ty == Tarray || t2->ty == Tsarray))
         {
-            exp->error("'%s' is not defined for array comparisons", Token::toChars(exp->op));
+            exp->error("`%s` is not defined for array comparisons", Token::toChars(exp->op));
             return setError();
         }
         if (altop != TOKreserved)
@@ -7797,18 +7797,18 @@ public:
                 if (altop == TOKerror)
                 {
                     const char *s = exp->op == TOKunord ? "false" : "true";
-                    exp->error("floating point operator '%s' always returns %s for non-floating comparisons",
+                    exp->error("floating point operator `%s` always returns %s for non-floating comparisons",
                         Token::toChars(exp->op), s);
                 }
                 else
                 {
-                    exp->error("use '%s' for non-floating comparisons rather than floating point operator '%s'",
+                    exp->error("use `%s` for non-floating comparisons rather than floating point operator `%s`",
                         Token::toChars(altop), Token::toChars(exp->op));
                 }
             }
             else
             {
-                exp->error("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
+                exp->error("use std.math.isNaN to deal with NaN operands rather than floating point operator `%s`",
                     Token::toChars(exp->op));
             }
             return setError();
@@ -8303,13 +8303,13 @@ Expression *semanticX(DotIdExp *exp, Scope *sc)
     // Bugzilla 14416: Template has no built-in properties except for 'stringof'.
     if ((exp->e1->op == TOKdottd || exp->e1->op == TOKtemplate) && exp->ident != Id::stringof)
     {
-        exp->error("template %s does not have property '%s'", exp->e1->toChars(), exp->ident->toChars());
+        exp->error("template %s does not have property `%s`", exp->e1->toChars(), exp->ident->toChars());
         return new ErrorExp();
     }
 
     if (!exp->e1->type)
     {
-        exp->error("expression %s does not have property '%s'", exp->e1->toChars(), exp->ident->toChars());
+        exp->error("expression %s does not have property `%s`", exp->e1->toChars(), exp->ident->toChars());
         return new ErrorExp();
     }
 
@@ -8416,9 +8416,9 @@ Expression *semanticY(DotIdExp *exp, Scope *sc, int flag)
                     (!v->type->deco && v->inuse))
                 {
                     if (v->inuse)
-                        exp->error("circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+                        exp->error("circular reference to %s `%s`", v->kind(), v->toPrettyChars());
                     else
-                        exp->error("forward reference to %s '%s'", v->kind(), v->toPrettyChars());
+                        exp->error("forward reference to %s `%s`", v->kind(), v->toPrettyChars());
                     return new ErrorExp();
                 }
                 if (v->type->ty == Terror)
@@ -8432,7 +8432,7 @@ Expression *semanticY(DotIdExp *exp, Scope *sc, int flag)
                      */
                     if (v->inuse)
                     {
-                        ::error(exp->loc, "circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                        ::error(exp->loc, "circular initialization of %s `%s`", v->kind(), v->toPrettyChars());
                         return new ErrorExp();
                     }
                     e = v->expandInitializer(exp->loc);
@@ -8571,11 +8571,11 @@ Expression *semanticY(DotIdExp *exp, Scope *sc, int flag)
                 exp->error("undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`",
                     exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars(), s->toPrettyChars());
             else
-                exp->error("undefined identifier '%s' in %s '%s', did you mean %s '%s'?",
+                exp->error("undefined identifier `%s` in %s `%s`, did you mean %s `%s`?",
                     exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars(), s->kind(), s->toChars());
         }
         else
-            exp->error("undefined identifier '%s' in %s '%s'",
+            exp->error("undefined identifier `%s` in %s `%s`",
                        exp->ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars());
         return new ErrorExp();
     }

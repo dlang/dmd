@@ -801,7 +801,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return f->isNested() ? True(e) : False(e);
         }
 
-        e->error("aggregate or function expected instead of '%s'", o->toChars());
+        e->error("aggregate or function expected instead of `%s`", o->toChars());
         return new ErrorExp();
     }
     else if (e->ident == Id::isDisabled)
@@ -1888,9 +1888,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     }
 
     if (const char *sub = (const char *)speller(e->ident->toChars(), &trait_search_fp, NULL, idchars))
-        e->error("unrecognized trait '%s', did you mean '%s'?", e->ident->toChars(), sub);
+        e->error("unrecognized trait `%s`, did you mean `%s`?", e->ident->toChars(), sub);
     else
-        e->error("unrecognized trait '%s'", e->ident->toChars());
+        e->error("unrecognized trait `%s`", e->ident->toChars());
     return new ErrorExp();
 
     e->error("wrong number of arguments %d", (int)dim);

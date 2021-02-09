@@ -776,7 +776,7 @@ static Expression *interpretFunction(UnionExp *pue, FuncDeclaration *fd, InterSt
     {
         // error, no this. Prevent segfault.
         // Here should be unreachable by the strict 'this' check in front-end.
-        fd->error("need 'this' to access member %s", fd->toChars());
+        fd->error("need `this` to access member %s", fd->toChars());
         return CTFEExp::cantexp;
     }
 
@@ -800,7 +800,7 @@ static Expression *interpretFunction(UnionExp *pue, FuncDeclaration *fd, InterSt
             if (!istate && (fparam->storageClass & STCout))
             {
                 // initializing an out parameter involves writing to it.
-                earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
+                earg->error("global %s cannot be passed as an `out` parameter at compile time", earg->toChars());
                 return CTFEExp::cantexp;
             }
             // Convert all reference arguments into lvalue references
@@ -1859,7 +1859,7 @@ public:
                    result->op == TOKclassreference);
             return;
         }
-        e->error("value of 'this' is not known at compile time");
+        e->error("value of `this` is not known at compile time");
         result = CTFEExp::cantexp;
     }
 
@@ -2094,7 +2094,7 @@ public:
             {
                 if (v->inuse)
                 {
-                    error(loc, "circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                    error(loc, "circular initialization of %s `%s`", v->kind(), v->toPrettyChars());
                     return CTFEExp::cantexp;
                 }
                 if (v->_scope)
@@ -2392,7 +2392,7 @@ public:
 
             if (result->op == TOKnull)
             {
-                e->error("null pointer dereference evaluating typeid. '%s' is null", ex->toChars());
+                e->error("null pointer dereference evaluating typeid. `%s` is null", ex->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -2821,7 +2821,7 @@ public:
                     VarDeclaration *v = c->fields[i];
                     if (v->inuse)
                     {
-                        e->error("circular reference to '%s'", v->toPrettyChars());
+                        e->error("circular reference to `%s`", v->toPrettyChars());
                         result = CTFEExp::cantexp;
                         return;
                     }
@@ -5476,7 +5476,7 @@ public:
         {
             if (result->op != TOKclassreference)
             {
-                e->error("delete on invalid class reference '%s'", result->toChars());
+                e->error("delete on invalid class reference `%s`", result->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -5507,7 +5507,7 @@ public:
                 if (result->op != TOKaddress ||
                     ((AddrExp *)result)->e1->op != TOKstructliteral)
                 {
-                    e->error("delete on invalid struct pointer '%s'", result->toChars());
+                    e->error("delete on invalid struct pointer `%s`", result->toChars());
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -5538,7 +5538,7 @@ public:
             {
                 if (result->op != TOKarrayliteral)
                 {
-                    e->error("delete on invalid struct array '%s'", result->toChars());
+                    e->error("delete on invalid struct array `%s`", result->toChars());
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -5897,9 +5897,9 @@ public:
         if (result->op != TOKaddress)
         {
             if (result->op == TOKnull)
-                e->error("dereference of null pointer '%s'", e->e1->toChars());
+                e->error("dereference of null pointer `%s`", e->e1->toChars());
             else
-                e->error("dereference of invalid pointer '%s'", result->toChars());
+                e->error("dereference of invalid pointer `%s`", result->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -5950,9 +5950,9 @@ public:
         if (ex->op == TOKnull)
         {
             if (ex->type->toBasetype()->ty == Tclass)
-                e->error("class '%s' is null and cannot be dereferenced", e->e1->toChars());
+                e->error("class `%s` is null and cannot be dereferenced", e->e1->toChars());
             else
-                e->error("CTFE internal error: null this '%s'", e->e1->toChars());
+                e->error("CTFE internal error: null this `%s`", e->e1->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -6179,7 +6179,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     }
     else if (e->op == TOKvoid)
     {
-        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
+        error(loc, "uninitialized variable `%s` cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
         return new ErrorExp();
     }
 

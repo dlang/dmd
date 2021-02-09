@@ -5816,9 +5816,9 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
         {
             s = sc->search_correct(id);
             if (s)
-                error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
+                error("template `%s` is not defined, did you mean %s?", id->toChars(), s->toChars());
             else
-                error("template '%s' is not defined", id->toChars());
+                error("template `%s` is not defined", id->toChars());
             return false;
         }
 
@@ -5934,7 +5934,7 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
             }
             if (!s)
             {
-                error("template '%s' is not defined", id->toChars());
+                error("template `%s` is not defined", id->toChars());
                 return false;
             }
         }
@@ -6716,7 +6716,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                 }
                 else
                 {
-                    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+                    error("cannot use local `%s` as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
                     errors = true;
                 }
             }

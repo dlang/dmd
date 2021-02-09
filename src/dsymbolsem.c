@@ -417,7 +417,7 @@ public:
             }
         }
         if ((dsym->storage_class & STCauto) && !inferred)
-            dsym->error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+            dsym->error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
 
         if (tb->ty == Ttuple)
         {
@@ -619,11 +619,11 @@ public:
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym->error("cannot be 'scope' and '%s'", buf.peekChars());
+                dsym->error("cannot be `scope` and `%s`", buf.peekChars());
             }
             else if (dsym->isMember())
             {
-                dsym->error("field cannot be 'scope'");
+                dsym->error("field cannot be `scope`");
             }
             else if (!dsym->type->hasPointers())
             {
@@ -681,7 +681,7 @@ public:
                 AggregateDeclaration *ad2 = ti->tempdecl->isMember();
                 if (ad2 && dsym->storage_class != STCundefined)
                 {
-                    dsym->error("cannot use template to add field to aggregate '%s'", ad2->toChars());
+                    dsym->error("cannot use template to add field to aggregate `%s`", ad2->toChars());
                 }
             }
         }
@@ -1141,9 +1141,9 @@ public:
                 {
                     Dsymbol *s = imp->mod->search_correct(imp->names[i]);
                     if (s)
-                        imp->mod->error(imp->loc, "import '%s' not found, did you mean %s '%s'?", imp->names[i]->toChars(), s->kind(), s->toChars());
+                        imp->mod->error(imp->loc, "import `%s` not found, did you mean %s `%s`?", imp->names[i]->toChars(), s->kind(), s->toChars());
                     else
-                        imp->mod->error(imp->loc, "import '%s' not found", imp->names[i]->toChars());
+                        imp->mod->error(imp->loc, "import `%s` not found", imp->names[i]->toChars());
                     ad->type = Type::terror;
                 }
             }
@@ -1383,7 +1383,7 @@ public:
                 (*pd->args)[0] = e;
                 Dsymbol *sa = getDsymbol(e);
                 if (!sa || !sa->isFuncDeclaration())
-                    pd->error("function name expected for start address, not '%s'", e->toChars());
+                    pd->error("function name expected for start address, not `%s`", e->toChars());
             }
             goto Lnodecl;
         }
@@ -1529,7 +1529,7 @@ public:
     Lnodecl:
         if (pd->decl)
         {
-            pd->error("pragma is missing closing ';'");
+            pd->error("pragma is missing closing `;`");
             goto Ldecl; // do them anyway, to avoid segfaults.
         }
     }
@@ -2034,7 +2034,7 @@ public:
             e = e->ctfeInterpret();
             if (e->toInteger())
             {
-                em->error("initialization with (%s.%s + 1) causes overflow for type '%s'", emprev->ed->toChars(), emprev->toChars(), em->ed->type->toBasetype()->toChars());
+                em->error("initialization with (%s.%s + 1) causes overflow for type `%s`", emprev->ed->toChars(), emprev->toChars(), em->ed->type->toBasetype()->toChars());
                 goto Lerrors;
             }
 
@@ -2132,7 +2132,7 @@ public:
 
             if (!tp->declareParameter(paramscope))
             {
-                error(tp->loc, "parameter '%s' multiply defined", tp->ident->toChars());
+                error(tp->loc, "parameter `%s` multiply defined", tp->ident->toChars());
                 tempdecl->errors = true;
             }
             if (!tpsemantic(tp, paramscope, tempdecl->parameters))
@@ -2631,7 +2631,7 @@ public:
             {
                 OutBuffer buf;
                 MODtoBuffer(&buf, tf->mod);
-                funcdecl->error("without 'this' cannot be %s", buf.peekChars());
+                funcdecl->error("without `this` cannot be %s", buf.peekChars());
                 tf->mod = 0;    // remove qualifiers
             }
 
@@ -2731,7 +2731,7 @@ public:
         f = (TypeFunction *)funcdecl->type;
 
         if ((funcdecl->storage_class & STCauto) && !f->isref && !funcdecl->inferRetType)
-            funcdecl->error("storage class 'auto' has no effect if return type is not inferred");
+            funcdecl->error("storage class `auto` has no effect if return type is not inferred");
         /* Functions can only be 'scope' if they have a 'this'
          */
         if (f->isscope && !funcdecl->isNested() && !ad)
@@ -2744,7 +2744,7 @@ public:
             /* Non-static nested functions have a hidden 'this' pointer to which
              * the 'return' applies
              */
-            funcdecl->error("static member has no 'this' to which 'return' can apply");
+            funcdecl->error("static member has no `this` to which `return` can apply");
         }
 
         if (funcdecl->isAbstract() && !funcdecl->isVirtual())
@@ -2991,7 +2991,7 @@ public:
                                 ::deprecation(funcdecl->loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute",
                                     fdv->toPrettyChars(), funcdecl->toPrettyChars());
                             else
-                                error(funcdecl->loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
+                                error(funcdecl->loc, "implicitly overriding base class method %s with %s deprecated; add `override` attribute",
                                     fdv->toPrettyChars(), funcdecl->toPrettyChars());
                         }
                     }
@@ -3077,7 +3077,7 @@ public:
                          * an interface function?
                          */
                         //if (!funcdecl->isOverride())
-                            //warning(funcdecl->loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                            //warning(funcdecl->loc, "overrides base class function %s, but is not marked with `override`", fdv->toPrettyChars());
 
                         if (fdv->tintro)
                             ti = fdv->tintro;
@@ -3122,7 +3122,7 @@ public:
                 }
 
                 if (s)
-                    funcdecl->error("does not override any function, did you mean to override '%s%s'?",
+                    funcdecl->error("does not override any function, did you mean to override `%s%s`?",
                         bc->sym->isCPPclass() ? "extern (C++) " : "", s->toPrettyChars());
                 else
                     funcdecl->error("does not override any function");
@@ -3193,7 +3193,7 @@ public:
                 ClassDeclaration *cd = ti->tempdecl->isClassMember();
                 if (cd)
                 {
-                    funcdecl->error("cannot use template to add virtual function to class '%s'", cd->toChars());
+                    funcdecl->error("cannot use template to add virtual function to class `%s`", cd->toChars());
                 }
             }
         }
@@ -3973,7 +3973,7 @@ public:
             if (cldec->storage_class & STCdeprecated)
                 cldec->isdeprecated = true;
             if (cldec->storage_class & STCauto)
-                cldec->error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+                cldec->error("storage class `auto` is invalid when declaring a class, did you mean to use `scope`?");
             if (cldec->storage_class & STCscope)
                 cldec->isscope = true;
             if (cldec->storage_class & STCabstract)
@@ -4195,7 +4195,7 @@ public:
                     cldec->com = true;
                 if (cldec->isCPPclass() && !b->sym->isCPPinterface())
                 {
-                    error(cldec->loc, "C++ class '%s' cannot implement D interface '%s'",
+                    error(cldec->loc, "C++ class `%s` cannot implement D interface `%s`",
                         cldec->toPrettyChars(), b->sym->toPrettyChars());
                 }
             }

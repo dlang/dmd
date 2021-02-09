@@ -521,7 +521,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                 {
                     if (search_function(sd, Id::eq))
                     {
-                        ::error(loc, "%sAA key type %s does not have 'bool opEquals(ref const %s) const'",
+                        ::error(loc, "%sAA key type %s does not have `bool opEquals(ref const %s) const`",
                                 s, sd->toChars(), sd->toChars());
                     }
                     else
@@ -535,7 +535,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                 {
                     if (search_function(sd, Id::eq))
                     {
-                        ::error(loc, "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined",
+                        ::error(loc, "%sAA key type %s should have `size_t toHash() const nothrow @safe` if opEquals defined",
                                 s, sd->toChars());
                     }
                     else
@@ -746,7 +746,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
 
                 if (tf->isreturn && !tf->isref && !tf->next->hasPointers())
                 {
-                    ::error(loc, "function type '%s' has 'return' but does not return any indirections", tf->toChars());
+                    ::error(loc, "function type `%s` has `return` but does not return any indirections", tf->toChars());
                 }
             }
 
@@ -821,7 +821,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                             if (0 && !tf->isref)
                             {
                                 StorageClass stc = fparam->storageClass & (STCref | STCout);
-                                ::error(loc, "parameter %s is 'return %s' but function does not return by ref",
+                                ::error(loc, "parameter %s is `return %s` but function does not return by ref",
                                     fparam->ident ? fparam->ident->toChars() : "",
                                     stcToChars(stc));
                                 errors = true;
@@ -835,7 +835,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                             }
                             else if (!tf->isref && tf->next && !tf->next->hasPointers())
                             {
-                                ::error(loc, "parameter %s is 'return' but function does not return any indirections",
+                                ::error(loc, "parameter %s is `return` but function does not return any indirections",
                                     fparam->ident ? fparam->ident->toChars() : "");
                                 errors = true;
                             }
@@ -877,7 +877,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                     {
                         wildparams |= 1;
                         //if (tf->next && !wildreturn)
-                        //    ::error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
+                        //    ::error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with `ref`)");
                     }
 
                     if (fparam->defaultArg)
@@ -950,7 +950,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                                     OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam->storageClass & STCauto) : 0));
                                     OutBuffer buf2;  stcToBuffer(&buf2, stc2);
 
-                                    ::error(loc, "incompatible parameter storage classes '%s' and '%s'",
+                                    ::error(loc, "incompatible parameter storage classes `%s` and `%s`",
                                               buf1.peekChars(), buf2.peekChars());
                                     errors = true;
                                     stc = stc1 | (stc & ~(STCref | STCout | STClazy));
@@ -988,7 +988,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                         }
                         else
                         {
-                            ::error(loc, "'auto' can only be used as part of 'auto ref' for template function parameters");
+                            ::error(loc, "`auto` can only be used as part of `auto ref` for template function parameters");
                             errors = true;
                         }
                     }

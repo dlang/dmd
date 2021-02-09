@@ -2164,7 +2164,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         }
                         else if (f->needThis())
                         {
-                            e->error("no 'this' to create delegate for %s", f->toChars());
+                            e->error("no `this` to create delegate for %s", f->toChars());
                             result = new ErrorExp();
                             return;
                         }

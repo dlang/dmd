@@ -483,7 +483,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
         void visit(CompoundAsmStatement *s)
         {
             if (mustNotThrow && !(s->stc & STCnothrow))
-                s->deprecation("asm statement is assumed to throw - mark it with 'nothrow' if it does not");
+                s->deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
 
             // Assume the worst
             result = BEfallthru | BEreturn | BEgoto | BEhalt;

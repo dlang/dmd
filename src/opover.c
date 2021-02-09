@@ -939,7 +939,7 @@ Expression *op_overload(Expression *e, Scope *sc)
             if ((t1->ty == Tclass && e->e2->op == TOKnull) ||
                 (t2->ty == Tclass && e->e1->op == TOKnull))
             {
-                e->error("use '%s' instead of '%s' when comparing with null",
+                e->error("use `%s` instead of `%s` when comparing with null",
                     Token::toChars(e->op == TOKequal ? TOKidentity : TOKnotidentity),
                     Token::toChars(e->op));
                 result = new ErrorExp();

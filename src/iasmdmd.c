@@ -678,9 +678,9 @@ TYPE_SIZE_ERROR:
                 if (bRetry)
                 {
                     if(bInvalid64bit)
-                        asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
+                        asmerr("operand for `%s` invalid in 64bit mode", asm_opstr(pop));
                     else
-                        asmerr("bad type/size of operands '%s'", asm_opstr(pop));
+                        asmerr("bad type/size of operands `%s`", asm_opstr(pop));
                 }
                 bRetry = true;
                 goto RETRY;
@@ -971,7 +971,7 @@ TYPE_SIZE_ERROR:
 RETURN_IT:
     if (bRetry && !bFake)
     {
-        asmerr("bad type/size of operands '%s'", asm_opstr(pop));
+        asmerr("bad type/size of operands `%s`", asm_opstr(pop));
     }
     return ptbRet;
 }
@@ -1053,7 +1053,7 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
 
     // If specified 'offset' or 'segment' but no symbol
     if ((popnd->bOffset || popnd->bSeg) && !popnd->s)
-        error(asmstate.loc, "specified 'offset' or 'segment' but no symbol");
+        asmerr("specified 'offset' or 'segment' but no symbol");
 
     if (asmstate.ucItype == ITfloat)
         return asm_determine_float_flags(popnd);
@@ -2327,9 +2327,9 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             }
         }
         if (v->isThreadlocal())
-            error(asmstate.loc, "cannot directly load TLS variable '%s'", v->toChars());
+            error(asmstate.loc, "cannot directly load TLS variable `%s`", v->toChars());
         else if (v->isDataseg() && global.params.pic)
-            error(asmstate.loc, "cannot directly load global variable '%s' with PIC code", v->toChars());
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC code", v->toChars());
     }
     em = s->isEnumMember();
     if (em)
@@ -3373,7 +3373,7 @@ static unsigned asm_type_size(Type * ptype)
     {
         switch ((int)ptype->size())
         {
-            case 0:     asmerr("bad type/size of operands '%s'", "0 size");    break;
+            case 0:     asmerr("bad type/size of operands `%s`", "0 size");    break;
             case 1:     u = _8;         break;
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
@@ -3412,7 +3412,7 @@ static code *asm_da_parse(OP *pop)
         {
             LabelDsymbol *label = asmstate.sc->func->searchLabel(asmtok->ident);
             if (!label)
-                error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
+                error(asmstate.loc, "label `%s` not found", asmtok->ident->toChars());
 
             code *c = code_calloc();
             c->Iop = ASM;
@@ -4076,7 +4076,7 @@ static OPND *asm_br_exp()
                 asm_TKlbra_seen++;
                 o2 = asm_cond_exp();
                 asm_TKlbra_seen--;
-                asm_chktok(TOKrbracket,"] expected instead of '%s'");
+                asm_chktok(TOKrbracket,"] expected instead of `%s`");
 #ifdef EXTRA_DEBUG
                 printf("Saw a right bracket\n");
 #endif
@@ -4326,7 +4326,7 @@ static OPND *asm_primary_exp()
                             o1->base = &(aregFp[n]);
                     }
                     asm_chktok(TOKint32v, "integer expected");
-                    asm_chktok(TOKrparen, ") expected instead of '%s'");
+                    asm_chktok(TOKrparen, ") expected instead of `%s`");
                 }
                 else
                     o1->base = &regFp;
@@ -4389,7 +4389,7 @@ static OPND *asm_primary_exp()
                         }
                         else
                         {
-                            asmerr("bad type/size of operands '%s'", e->toChars());
+                            asmerr("bad type/size of operands `%s`", e->toChars());
                         }
                     }
                     else if (e->op == TOKvar)
@@ -4399,7 +4399,7 @@ static OPND *asm_primary_exp()
                     }
                     else
                     {
-                        asmerr("bad type/size of operands '%s'", e->toChars());
+                        asmerr("bad type/size of operands `%s`", e->toChars());
                     }
                 }
 
@@ -4691,7 +4691,7 @@ AFTER_EMIT:
 
     if (tok_value != TOKeof)
     {
-        asmerr("end of instruction expected, not '%s'", asmtok->toChars());  // end of line expected
+        asmerr("end of instruction expected, not `%s`", asmtok->toChars());  // end of line expected
     }
     //return asmstate.bReturnax;
     return s;

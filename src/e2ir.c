@@ -999,7 +999,7 @@ elem *toElem(Expression *e, IRState *irs)
             //printf("\tparent = '%s'\n", se->var->parent ? se->var->parent->toChars() : "null");
             if (se->op == TOKvar && se->var->needThis())
             {
-                se->error("need 'this' to access member %s", se->toChars());
+                se->error("need `this` to access member %s", se->toChars());
                 result = el_long(TYsize_t, 0);
                 return;
             }
@@ -3164,7 +3164,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    ce->error("Internal Compiler Error: cannot append '%s' to '%s'", tb2->toChars(), tb1->toChars());
+                    ce->error("Internal Compiler Error: cannot append `%s` to `%s`", tb2->toChars(), tb1->toChars());
                     assert(0);
                 }
 

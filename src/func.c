@@ -446,7 +446,7 @@ bool FuncDeclaration::checkForwardRef(Loc loc)
     if (!type->deco)
     {
         bool inSemantic3 = (inferRetType && semanticRun >= PASSsemantic3);
-        ::error(loc, "forward reference to %s'%s'",
+        ::error(loc, "forward reference to %s`%s`",
             (inSemantic3 ? "inferred return type of function " : ""),
             toChars());
         return true;
@@ -1537,7 +1537,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         }
         else if (od)
         {
-            ::error(loc, "none of the overloads of '%s' are callable using argument types !(%s)%s",
+            ::error(loc, "none of the overloads of `%s` are callable using argument types !(%s)%s",
                 od->ident->toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
         }
         else
@@ -1552,7 +1552,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
                 MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
                 MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
                 if (hasOverloads)
-                    ::error(loc, "none of the overloads of '%s' are callable using a %sobject, candidates are:",
+                    ::error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
                         fd->ident->toChars(), thisBuf.peekChars());
                 else
                     ::error(loc, "%smethod %s is not callable using a %sobject",
@@ -1562,7 +1562,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             {
                 //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
                 if (hasOverloads)
-                    ::error(loc, "none of the overloads of '%s' are callable using argument types %s, candidates are:",
+                    ::error(loc, "none of the overloads of `%s` are callable using argument types %s, candidates are:",
                             fd->ident->toChars(), fargsBuf.peekChars());
                 else
                     fd->error(loc, "%s%s is not callable using argument types %s",

@@ -623,7 +623,7 @@ static bool isReserved(const char *ident)
 void checkReserved(Loc loc, const char *ident)
 {
     if (isReserved(ident))
-        error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+        error(loc, "version identifier `%s` is reserved and cannot be set", ident);
 }
 
 void VersionCondition::addGlobalIdent(const char *ident)

@@ -1075,7 +1075,7 @@ public:
                                 IntRange dimrange = getIntRange(ta->dim);
                                 if (!IntRange::fromType(var->type).contains(dimrange))
                                 {
-                                    fs->error("index type '%s' cannot cover index range 0..%llu", p->type->toChars(), ta->dim->toInteger());
+                                    fs->error("index type `%s` cannot cover index range 0..%llu", p->type->toChars(), ta->dim->toInteger());
                                     goto Lerror2;
                                 }
                                 fs->key->range = new IntRange(SignExtendedNumber(0), dimrange.imax);
@@ -2104,7 +2104,7 @@ public:
                 Dsymbol *sa = getDsymbol(e);
                 if (!sa || !sa->isFuncDeclaration())
                 {
-                    ps->error("function name expected for start address, not '%s'", e->toChars());
+                    ps->error("function name expected for start address, not `%s`", e->toChars());
                     goto Lerror;
                 }
                 if (ps->_body)
@@ -2229,7 +2229,7 @@ public:
 
             if (ss->condition->op != TOKerror)
             {
-                ss->error("'%s' must be of integral or string type, it is a %s",
+                ss->error("`%s` must be of integral or string type, it is a %s",
                     ss->condition->toChars(), ss->condition->type->toChars());
                 conditionError = true;
                 break;
@@ -2332,7 +2332,7 @@ public:
             ss->hasNoDefault = 1;
 
             if (!ss->isFinal && (!ss->_body || !ss->_body->isErrorStatement()))
-                ss->error("switch statement without a default; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
+                ss->error("switch statement without a default; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
             // Generate runtime error if the default is hit
             Statements *a = new Statements();
@@ -3016,7 +3016,7 @@ public:
                     Statement *s = ls->statement;
 
                     if (!s || !s->hasBreak())
-                        bs->error("label '%s' has no break", bs->ident->toChars());
+                        bs->error("label `%s` has no break", bs->ident->toChars());
                     else if (ls->tf != sc->tf)
                         bs->error("cannot break out of finally block");
                     else
@@ -3028,7 +3028,7 @@ public:
                     return setError();
                 }
             }
-            bs->error("enclosing label '%s' for break not found", bs->ident->toChars());
+            bs->error("enclosing label `%s` for break not found", bs->ident->toChars());
             return setError();
         }
         else if (!sc->sbreak)
@@ -3103,7 +3103,7 @@ public:
                     Statement *s = ls->statement;
 
                     if (!s || !s->hasContinue())
-                        cs->error("label '%s' has no continue", cs->ident->toChars());
+                        cs->error("label `%s` has no continue", cs->ident->toChars());
                     else if (ls->tf != sc->tf)
                         cs->error("cannot continue out of finally block");
                     else
@@ -3114,7 +3114,7 @@ public:
                     return setError();
                 }
             }
-            cs->error("enclosing label '%s' for continue not found", cs->ident->toChars());
+            cs->error("enclosing label `%s` for continue not found", cs->ident->toChars());
             return setError();
         }
         else if (!sc->scontinue)
@@ -3153,7 +3153,7 @@ public:
             ClassDeclaration *cd = ss->exp->type->isClassHandle();
             if (!cd)
             {
-                ss->error("can only synchronize on class objects, not '%s'", ss->exp->type->toChars());
+                ss->error("can only synchronize on class objects, not `%s`", ss->exp->type->toChars());
                 return setError();
             }
             else if (cd->isInterfaceDeclaration())
@@ -3348,7 +3348,7 @@ public:
             }
             else
             {
-                ws->error("with expressions must be aggregate types or pointers to them, not '%s'", olde->type->toChars());
+                ws->error("with expressions must be aggregate types or pointers to them, not `%s`", olde->type->toChars());
                 return setError();
             }
         }
@@ -3648,7 +3648,7 @@ public:
         LabelDsymbol *ls2 = fd->searchLabel(ls->ident);
         if (ls2->statement)
         {
-            ls->error("label '%s' already defined", ls2->toChars());
+            ls->error("label `%s` already defined", ls2->toChars());
             return setError();
         }
         else
@@ -3692,11 +3692,11 @@ public:
         // use setImpure/setGC when the deprecation cycle is over
         PURE purity;
         if (!(cas->stc & STCpure) && (purity = sc->func->isPureBypassingInference()) != PUREimpure && purity != PUREfwdref)
-            cas->deprecation("asm statement is assumed to be impure - mark it with 'pure' if it is not");
+            cas->deprecation("asm statement is assumed to be impure - mark it with `pure` if it is not");
         if (!(cas->stc & STCnogc) && sc->func->isNogcBypassingInference())
-            cas->deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");
+            cas->deprecation("asm statement is assumed to use the GC - mark it with `@nogc` if it does not");
         if (!(cas->stc & (STCtrusted|STCsafe)) && sc->func->setUnsafe())
-            cas->error("asm statement is assumed to be @system - mark it with '@trusted' if it is not");
+            cas->error("asm statement is assumed to be @system - mark it with `@trusted` if it is not");
 
         sc->pop();
         result = cas;
@@ -3789,7 +3789,7 @@ void catchSemantic(Catch *c, Scope *sc)
         ClassDeclaration *cd = c->type->toBasetype()->isClassHandle();
         if (!cd)
         {
-            error(c->loc, "can only catch class objects, not '%s'", c->type->toChars());
+            error(c->loc, "can only catch class objects, not `%s`", c->type->toChars());
             c->errors = true;
         }
         else if (cd->isCPPclass())
@@ -3807,14 +3807,14 @@ void catchSemantic(Catch *c, Scope *sc)
         }
         else if (cd != ClassDeclaration::throwable && !ClassDeclaration::throwable->isBaseOf(cd, NULL))
         {
-            error(c->loc, "can only catch class objects derived from Throwable, not '%s'", c->type->toChars());
+            error(c->loc, "can only catch class objects derived from Throwable, not `%s`", c->type->toChars());
             c->errors = true;
         }
         else if (sc->func && !sc->intypeof && !c->internalCatch &&
                  cd != ClassDeclaration::exception && !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
                  sc->func->setUnsafe())
         {
-            error(c->loc, "can only catch class objects derived from Exception in @safe code, not '%s'", c->type->toChars());
+            error(c->loc, "can only catch class objects derived from Exception in @safe code, not `%s`", c->type->toChars());
             c->errors = true;
         }
 

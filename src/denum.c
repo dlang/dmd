@@ -300,7 +300,7 @@ Dsymbol *EnumDeclaration::search(const Loc &loc, Identifier *ident, int flags)
 
     if (!members || !symtab || _scope)
     {
-        error("is forward referenced when looking for '%s'", ident->toChars());
+        error("is forward referenced when looking for `%s`", ident->toChars());
         //*(char*)0=0;
         return NULL;
     }

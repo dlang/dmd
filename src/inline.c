@@ -453,7 +453,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
         void visit(ThisExp *e)
         {
             //if (!ids->vthis)
-                //e->error("no 'this' when inlining %s", ids->parent->toChars());
+                //e->error("no `this` when inlining %s", ids->parent->toChars());
             if (!ids->vthis)
             {
                 result = e;

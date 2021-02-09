@@ -83,7 +83,7 @@ public:
 
         if (f->setGC())
         {
-            e->error("array literal in @nogc %s '%s' may cause GC allocation",
+            e->error("array literal in @nogc %s `%s` may cause GC allocation",
                 f->kind(), f->toPrettyChars());
             err = true;
             return;
@@ -98,7 +98,7 @@ public:
 
         if (f->setGC())
         {
-            e->error("associative array literal in @nogc %s '%s' may cause GC allocation",
+            e->error("associative array literal in @nogc %s `%s` may cause GC allocation",
                 f->kind(), f->toPrettyChars());
             err = true;
             return;
@@ -120,12 +120,12 @@ public:
 
         if (f->setGC())
         {
-            e->error("cannot use 'new' in @nogc %s '%s'",
+            e->error("cannot use `new` in @nogc %s `%s`",
                 f->kind(), f->toPrettyChars());
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "'new' causes GC allocation");
+        f->printGCUsage(e->loc, "`new` causes GC allocation");
     }
 
     void visit(DeleteExp *e)
@@ -159,12 +159,12 @@ public:
 
         if (f->setGC())
         {
-            e->error("cannot use 'delete' in @nogc %s '%s'",
+            e->error("cannot use `delete` in @nogc %s `%s`",
                 f->kind(), f->toPrettyChars());
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "'delete' requires GC");
+        f->printGCUsage(e->loc, "`delete` requires GC");
     }
 
     void visit(IndexExp* e)
@@ -174,7 +174,7 @@ public:
         {
             if (f->setGC())
             {
-                e->error("indexing an associative array in @nogc %s '%s' may cause GC allocation",
+                e->error("indexing an associative array in @nogc %s `%s` may cause GC allocation",
                     f->kind(), f->toPrettyChars());
                 err = true;
                 return;
@@ -189,12 +189,12 @@ public:
         {
             if (f->setGC())
             {
-                e->error("setting 'length' in @nogc %s '%s' may cause GC allocation",
+                e->error("setting `length` in @nogc %s `%s` may cause GC allocation",
                     f->kind(), f->toPrettyChars());
                 err = true;
                 return;
             }
-            f->printGCUsage(e->loc, "setting 'length' may cause GC allocation");
+            f->printGCUsage(e->loc, "setting `length` may cause GC allocation");
         }
     }
 
@@ -202,7 +202,7 @@ public:
     {
         if (f->setGC())
         {
-            e->error("cannot use operator ~= in @nogc %s '%s'",
+            e->error("cannot use operator ~= in @nogc %s `%s`",
                 f->kind(), f->toPrettyChars());
             err = true;
             return;
@@ -214,7 +214,7 @@ public:
     {
         if (f->setGC())
         {
-            e->error("cannot use operator ~ in @nogc %s '%s'",
+            e->error("cannot use operator ~ in @nogc %s `%s`",
                 f->kind(), f->toPrettyChars());
             err = true;
             return;

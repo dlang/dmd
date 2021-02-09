@@ -425,7 +425,7 @@ const char *DeprecatedDeclaration::getMessage()
         if (StringExp *se = msg->toStringExp())
             msgstr = (char *)se->string;
         else
-            msg->error("compile time constant expected, not '%s'", msg->toChars());
+            msg->error("compile time constant expected, not `%s`", msg->toChars());
     }
     return msgstr;
 }
@@ -554,7 +554,7 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
         Module *m = sc->_module;
         Package* pkg = m->parent ? m->parent->isPackage() : NULL;
         if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
-            error("does not bind to one of ancestor packages of module '%s'",
+            error("does not bind to one of ancestor packages of module `%s`",
                m->toPrettyChars(true));
     }
 

@@ -365,7 +365,7 @@ Dsymbol *ClassDeclaration::search(const Loc &loc, Identifier *ident, int flags)
 
     if (!members || !symtab)    // opaque or addMember is not yet done
     {
-        error("is forward referenced when looking for '%s'", ident->toChars());
+        error("is forward referenced when looking for `%s`", ident->toChars());
         //*(char*)0=0;
         return NULL;
     }
@@ -998,7 +998,7 @@ bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newin
             //printf("newinstance = %d fd->toParent() = %s ifd->toParent() = %s\n",
                 //newinstance, fd->toParent()->toChars(), ifd->toParent()->toChars());
             if (newinstance && fd->toParent() != cd && ifd->toParent() == sym)
-                cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
+                cd->error("interface function `%s` is not implemented", ifd->toFullSignature());
 
             if (fd->toParent() == cd)
                 result = true;
@@ -1008,7 +1008,7 @@ bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newin
             //printf("            not found %p\n", fd);
             // BUG: should mark this class as abstract?
             if (!cd->isAbstract())
-                cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
+                cd->error("interface function `%s` is not implemented", ifd->toFullSignature());
 
             fd = NULL;
         }

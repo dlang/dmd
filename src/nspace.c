@@ -104,7 +104,7 @@ Dsymbol *Nspace::search(const Loc &loc, Identifier *ident, int flags)
 
     if (!members || !symtab) // opaque or semantic() is not yet called
     {
-        error("is forward referenced when looking for '%s'", ident->toChars());
+        error("is forward referenced when looking for `%s`", ident->toChars());
         return NULL;
     }
 

@@ -555,7 +555,7 @@ public:
             {   CaseStatement *cs = (*s->cases)[i];
 
                 if (cs->exp->op != TOKstring)
-                {   s->error("case '%s' is not a string", cs->exp->toChars()); // BUG: this should be an assert
+                {   s->error("case `%s` is not a string", cs->exp->toChars()); // BUG: this should be an assert
                 }
                 else
                 {

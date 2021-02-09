@@ -657,7 +657,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             {
                                 TypeFunction *tf = (TypeFunction *)fd->type;
                                 if (tf->ty == Tfunction)
-                                    cd->error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
+                                    cd->error("use of %s%s is hidden by %s; use `alias %s = %s.%s;` to introduce base class overload set",
                                         fd->toPrettyChars(),
                                         parametersTypeToChars(tf->parameterList),
                                         cd->toChars(),

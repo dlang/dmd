@@ -117,7 +117,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                     }
                     else
                     {
-                        e1->error("need 'this' of type %s to access member %s"
+                        e1->error("need `this` of type %s to access member %s"
                                   " from static function %s",
                             ad->toChars(), var->toChars(), f->toChars());
                         e1 = new ErrorExp();
@@ -2174,7 +2174,7 @@ Expression *Expression::toLvalue(Scope *, Expression *e)
         loc = e->loc;
 
     if (e->op == TOKtype)
-        error("%s '%s' is a type, not an lvalue", e->type->kind(), e->type->toChars());
+        error("%s `%s` is a type, not an lvalue", e->type->kind(), e->type->toChars());
     else
         error("%s is not an lvalue", e->toChars());
 
@@ -2258,7 +2258,7 @@ bool Expression::checkScalar()
         return true;
     if (!type->isscalar())
     {
-        error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
+        error("`%s` is not a scalar, it is a %s", toChars(), type->toChars());
         return true;
     }
     return checkValue();
@@ -2272,7 +2272,7 @@ bool Expression::checkNoBool()
         return true;
     if (type->toBasetype()->ty == Tbool)
     {
-        error("operation not allowed on bool '%s'", toChars());
+        error("operation not allowed on bool `%s`", toChars());
         return true;
     }
     return false;
@@ -2286,7 +2286,7 @@ bool Expression::checkIntegral()
         return true;
     if (!type->isintegral())
     {
-        error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+        error("`%s` is not of integral type, it is a %s", toChars(), type->toChars());
         return true;
     }
     return checkValue();
@@ -2300,7 +2300,7 @@ bool Expression::checkArithmetic()
         return true;
     if (!type->isintegral() && !type->isfloating())
     {
-        error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+        error("`%s` is not of arithmetic type, it is a %s", toChars(), type->toChars());
         return true;
     }
     return checkValue();
@@ -2408,7 +2408,7 @@ bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         FuncDeclaration *ff = outerfunc;
         if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
-            error("pure %s '%s' cannot call impure %s '%s'",
+            error("pure %s `%s` cannot call impure %s `%s`",
                 ff->kind(), ff->toPrettyChars(), f->kind(), f->toPrettyChars());
             return true;
         }
@@ -2473,7 +2473,7 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
                 break;
             if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
             {
-                error("pure %s '%s' cannot access mutable static data '%s'",
+                error("pure %s `%s` cannot access mutable static data `%s`",
                     ff->kind(), ff->toPrettyChars(), v->toChars());
                 err = true;
                 break;
@@ -2527,7 +2527,7 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
                     OutBuffer vbuf;
                     MODMatchToBuffer(&ffbuf, ff->type->mod, v->type->mod);
                     MODMatchToBuffer(&vbuf, v->type->mod, ff->type->mod);
-                    error("%s%s '%s' cannot access %sdata '%s'",
+                    error("%s%s `%s` cannot access %sdata `%s`",
                         ffbuf.peekChars(), ff->kind(), ff->toPrettyChars(), vbuf.peekChars(), v->toChars());
                     err = true;
                     break;
@@ -2544,7 +2544,7 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
     {
         if (sc->func->setUnsafe())
         {
-            error("safe %s '%s' cannot access __gshared data '%s'",
+            error("safe %s `%s` cannot access __gshared data `%s`",
                 sc->func->kind(), sc->func->toChars(), v->toChars());
             err = true;
         }
@@ -2577,7 +2577,7 @@ bool Expression::checkSafety(Scope *sc, FuncDeclaration *f)
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
 
-            error("@safe %s '%s' cannot call @system %s '%s'",
+            error("@safe %s `%s` cannot call @system %s `%s`",
                 sc->func->kind(), sc->func->toPrettyChars(), f->kind(), f->toPrettyChars());
             return true;
         }
@@ -2609,7 +2609,7 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
 
-            error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+            error("@nogc %s `%s` cannot call non-@nogc %s `%s`",
                 sc->func->kind(), sc->func->toPrettyChars(), f->kind(), f->toPrettyChars());
             return true;
         }
@@ -2656,7 +2656,7 @@ bool Expression::checkRightThis(Scope *sc)
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
+            error("need `this` for `%s` of type `%s`", ve->var->toChars(), ve->var->type->toChars());
             return true;
         }
     }
@@ -3712,9 +3712,9 @@ Lagain:
             (!v->type->deco && v->inuse))  // during variable type semantic
         {
             if (v->inuse)    // variable type depends on the variable itself
-                ::error(loc, "circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+                ::error(loc, "circular reference to %s `%s`", v->kind(), v->toPrettyChars());
             else             // variable type cannot be determined
-                ::error(loc, "forward reference to %s '%s'", v->kind(), v->toPrettyChars());
+                ::error(loc, "forward reference to %s `%s`", v->kind(), v->toPrettyChars());
             return new ErrorExp();
         }
         if (v->type->ty == Terror)
@@ -3724,7 +3724,7 @@ Lagain:
         {
             if (v->inuse)
             {
-                ::error(loc, "circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                ::error(loc, "circular initialization of %s `%s`", v->kind(), v->toPrettyChars());
                 return new ErrorExp();
             }
 
@@ -3847,7 +3847,7 @@ Lagain:
         return e;
     }
 
-    ::error(loc, "%s '%s' is not a variable", s->kind(), s->toChars());
+    ::error(loc, "%s `%s` is not a variable", s->kind(), s->toChars());
     return new ErrorExp();
 }
 
@@ -4845,7 +4845,7 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverl
         // FIXME: This error report will never be handled anyone.
         // It should be done before the SymOffExp construction.
         if (v->needThis())
-            ::error(loc, "need 'this' for address of %s", v->toChars());
+            ::error(loc, "need `this` for address of %s", v->toChars());
     }
     this->offset = offset;
 }
@@ -4898,7 +4898,7 @@ Expression *VarExp::toLvalue(Scope *, Expression *)
 {
     if (var->storage_class & STCmanifest)
     {
-        error("manifest constant '%s' is not lvalue", var->toChars());
+        error("manifest constant `%s` is not lvalue", var->toChars());
         return new ErrorExp();
     }
     if (var->storage_class & STClazy)
@@ -4913,7 +4913,7 @@ Expression *VarExp::toLvalue(Scope *, Expression *)
     }
     if (var->ident == Id::dollar)   // Bugzilla 13574
     {
-        error("'$' is not an lvalue");
+        error("`$` is not an lvalue");
         return new ErrorExp();
     }
     return this;
@@ -4931,7 +4931,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
     if (var->storage_class & STCmanifest)
     {
-        error("cannot modify manifest constant '%s'", toChars());
+        error("cannot modify manifest constant `%s`", toChars());
         return new ErrorExp();
     }
     // See if this expression is a modifiable lvalue (i.e. not const)
@@ -5141,7 +5141,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         if (tok == TOKfunction)
         {
             if (!flag)
-                error("cannot match function literal to delegate type '%s'", to->toChars());
+                error("cannot match function literal to delegate type `%s`", to->toChars());
             return MATCHnomatch;
         }
         tof = (TypeFunction *)to->nextOf();
@@ -5151,7 +5151,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         if (tok == TOKdelegate)
         {
             if (!flag)
-                error("cannot match delegate literal to function pointer type '%s'", to->toChars());
+                error("cannot match delegate literal to function pointer type `%s`", to->toChars());
             return MATCHnomatch;
         }
         tof = (TypeFunction *)to->nextOf();
@@ -5448,12 +5448,12 @@ Expression *UnaExp::incompatibleTypes()
 
     if (e1->op == TOKtype)
     {
-        error("incompatible type for (%s(%s)): cannot use '%s' with types",
+        error("incompatible type for (%s(%s)): cannot use `%s` with types",
               Token::toChars(op), e1->toChars(), Token::toChars(op));
     }
     else
     {
-        error("incompatible type for (%s(%s)): '%s'",
+        error("incompatible type for (%s(%s)): `%s`",
               Token::toChars(op), e1->toChars(), e1->type->toChars());
     }
     return new ErrorExp();
@@ -5641,12 +5641,12 @@ Expression *BinExp::incompatibleTypes()
     TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
     if (e1->op == TOKtype || e2->op == TOKtype)
     {
-        error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
+        error("incompatible types for ((%s) %s (%s)): cannot use `%s` with types",
             e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
     }
     else
     {
-        error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+        error("incompatible types for ((%s) %s (%s)): `%s` and `%s`",
             e1->toChars(), Token::toChars(thisOp), e2->toChars(),
             e1->type->toChars(), e2->type->toChars());
     }
@@ -5815,7 +5815,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                     else
                     {
                         const char *modStr = !var->type->isMutable() ? MODtoChars(var->type->mod) : MODtoChars(e1->type->mod);
-                        ::error(loc, "%s field '%s' initialized multiple times", modStr, var->toChars());
+                        ::error(loc, "%s field `%s` initialized multiple times", modStr, var->toChars());
                     }
                 }
                 else if (sc->noctor || (fi & CSXlabel))
@@ -5825,7 +5825,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                     else
                     {
                         const char *modStr = !var->type->isMutable() ? MODtoChars(var->type->mod) : MODtoChars(e1->type->mod);
-                        ::error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var->toChars());
+                        ::error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var->toChars());
                     }
                 }
                 sc->fieldinit[i] |= CSXthis_ctor;
@@ -5848,13 +5848,13 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                 else if (sc->func->fes)
                 {
                     const char *p = var->isField() ? "field" : var->kind();
-                    ::error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
+                    ::error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
                         MODtoChars(var->type->mod), p, var->toChars());
                 }
                 else
                 {
                     const char *p = var->isField() ? "field" : var->kind();
-                    ::error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
+                    ::error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
                         MODtoChars(var->type->mod), p, var->toChars(), sc->func->toChars());
                 }
             }

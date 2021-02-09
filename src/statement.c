@@ -1141,12 +1141,12 @@ static bool checkVar(SwitchStatement *s, VarDeclaration *vd)
     }
     else if (vd->ident == Id::withSym)
     {
-        s->deprecation("'switch' skips declaration of 'with' temporary at %s", vd->loc.toChars());
+        s->deprecation("`switch` skips declaration of `with` temporary at %s", vd->loc.toChars());
         return true;
     }
     else
     {
-        s->deprecation("'switch' skips declaration of variable %s at %s", vd->toPrettyChars(), vd->loc.toChars());
+        s->deprecation("`switch` skips declaration of variable %s at %s", vd->toPrettyChars(), vd->loc.toChars());
         return true;
     }
 
@@ -1556,7 +1556,7 @@ bool GotoStatement::checkLabel()
 {
     if (!label->statement)
     {
-        error("label '%s' is undefined", label->toChars());
+        error("label `%s` is undefined", label->toChars());
         return true;
     }
 

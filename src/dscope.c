@@ -398,7 +398,7 @@ static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol *
                 ident == Id::length && sc->scopesym->isArrayScopeSymbol() &&
                 sc->enclosing && sc->enclosing->search(loc, ident, NULL, flags))
             {
-                warning(s->loc, "array 'length' hides other 'length' name in outer scope");
+                warning(s->loc, "array `length` hides other `length` name in outer scope");
             }
             if (pscopesym)
                 *pscopesym = sc->scopesym;

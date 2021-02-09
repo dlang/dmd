@@ -814,7 +814,7 @@ public:
                     unsigned int nothrowErrors = global.errors;
                     blockexit = blockExit(funcdecl->fbody, funcdecl, f->isnothrow);
                     if (f->isnothrow && (global.errors != nothrowErrors))
-                        error(funcdecl->loc, "nothrow %s '%s' may throw", funcdecl->kind(), funcdecl->toPrettyChars());
+                        error(funcdecl->loc, "nothrow %s `%s` may throw", funcdecl->kind(), funcdecl->toPrettyChars());
                     if (funcdecl->flags & FUNCFLAGnothrowInprocess)
                     {
                         if (funcdecl->type == f) f = (TypeFunction *)f->copy();
@@ -1141,7 +1141,7 @@ public:
                             bool isnothrow = f->isnothrow & !(funcdecl->flags & FUNCFLAGnothrowInprocess);
                             int blockexit = blockExit(s, funcdecl, isnothrow);
                             if (f->isnothrow && isnothrow && blockexit & BEthrow)
-                                error(funcdecl->loc, "nothrow %s '%s' may throw", funcdecl->kind(), funcdecl->toPrettyChars());
+                                error(funcdecl->loc, "nothrow %s `%s` may throw", funcdecl->kind(), funcdecl->toPrettyChars());
                             if (funcdecl->flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                                 f->isnothrow = false;
                             if (blockExit(sbody, funcdecl, f->isnothrow) == BEfallthru)

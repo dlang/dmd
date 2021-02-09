@@ -2079,9 +2079,9 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         if (this != Type::terror)
         {
             if (s)
-                error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+                error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident->toChars(), toChars(), s->toChars());
             else
-                error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+                error(loc, "no property `%s` for type `%s`", ident->toChars(), toChars());
         }
         e = new ErrorExp();
     }
@@ -6082,10 +6082,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         assert(id->dyncast() == DYNCAST_IDENTIFIER);
                         sm = s->search_correct((Identifier *)id);
                         if (sm)
-                            error(loc, "identifier '%s' of '%s' is not defined, did you mean %s '%s'?",
+                            error(loc, "identifier `%s` of `%s` is not defined, did you mean %s `%s`?",
                                   id->toChars(), toChars(), sm->kind(), sm->toChars());
                         else
-                            error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                            error(loc, "identifier `%s` of `%s` is not defined", id->toChars(), toChars());
                     }
                     *pe = new ErrorExp();
                 }
@@ -6117,9 +6117,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 (!v->type->deco && v->inuse))
             {
                 if (v->inuse)   // Bugzilla 9494
-                    error(loc, "circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+                    error(loc, "circular reference to %s `%s`", v->kind(), v->toPrettyChars());
                 else
-                    error(loc, "forward reference to %s '%s'", v->kind(), v->toPrettyChars());
+                    error(loc, "forward reference to %s `%s`", v->kind(), v->toPrettyChars());
                 *pt = Type::terror;
                 return;
             }
@@ -6154,7 +6154,7 @@ L1:
         if (t->ty == Tinstance && t != this && !t->deco)
         {
             if (!((TypeInstance *)t)->tempinst->errors)
-                error(loc, "forward reference to '%s'", t->toChars());
+                error(loc, "forward reference to `%s`", t->toChars());
             *pt = Type::terror;
             return;
         }
@@ -6625,7 +6625,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         }
         else if (!(flag & 1))
         {
-            sym->error("is forward referenced when looking for '%s'", ident->toChars());
+            sym->error("is forward referenced when looking for `%s`", ident->toChars());
             e = new ErrorExp();
         }
         else
@@ -6646,10 +6646,10 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         if (!(flag & 1) && !res)
         {
             if (Dsymbol *ns = sym->search_correct(ident))
-                e->error("no property '%s' for type '%s'. Did you mean '%s.%s' ?",
+                e->error("no property `%s` for type `%s`. Did you mean `%s.%s` ?",
                     ident->toChars(), toChars(), toChars(), ns->toChars());
             else
-                e->error("no property '%s' for type '%s'",
+                e->error("no property `%s` for type `%s`",
                     ident->toChars(), toChars());
 
             return new ErrorExp();
@@ -6926,9 +6926,9 @@ L1:
             (!v->type->deco && v->inuse))
         {
             if (v->inuse) // Bugzilla 9494
-                e->error("circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+                e->error("circular reference to %s `%s`", v->kind(), v->toPrettyChars());
             else
-                e->error("forward reference to %s '%s'", v->kind(), v->toPrettyChars());
+                e->error("forward reference to %s `%s`", v->kind(), v->toPrettyChars());
             return new ErrorExp();
         }
         if (v->type->ty == Terror)
@@ -6938,7 +6938,7 @@ L1:
         {
             if (v->inuse)
             {
-                e->error("circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                e->error("circular initialization of %s `%s`", v->kind(), v->toPrettyChars());
                 return new ErrorExp();
             }
             checkAccess(e->loc, sc, NULL, v);
@@ -7095,7 +7095,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         Expression *e;
         if (vd->inuse)
         {
-            error(loc, "circular reference to '%s'", vd->toPrettyChars());
+            error(loc, "circular reference to `%s`", vd->toPrettyChars());
             return new ErrorExp();
         }
         if (vd->offset < offset || vd->type->size() == 0)
@@ -7578,9 +7578,9 @@ L1:
             (!v->type->deco && v->inuse))
         {
             if (v->inuse) // Bugzilla 9494
-                e->error("circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+                e->error("circular reference to %s `%s`", v->kind(), v->toPrettyChars());
             else
-                e->error("forward reference to %s '%s'", v->kind(), v->toPrettyChars());
+                e->error("forward reference to %s `%s`", v->kind(), v->toPrettyChars());
             return new ErrorExp();
         }
         if (v->type->ty == Terror)
@@ -7590,7 +7590,7 @@ L1:
         {
             if (v->inuse)
             {
-                e->error("circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                e->error("circular initialization of %s `%s`", v->kind(), v->toPrettyChars());
                 return new ErrorExp();
             }
             checkAccess(e->loc, sc, NULL, v);
@@ -8004,7 +8004,7 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else
     {
-        error(loc, "no property '%s' for tuple '%s'", ident->toChars(), toChars());
+        error(loc, "no property `%s` for tuple `%s`", ident->toChars(), toChars());
         e = new ErrorExp();
     }
     return e;

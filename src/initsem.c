@@ -95,10 +95,10 @@ public:
                     {
                         s = sd->search_correct(id);
                         if (s)
-                            error(i->loc, "'%s' is not a member of '%s', did you mean %s '%s'?",
+                            error(i->loc, "`%s` is not a member of `%s`, did you mean %s `%s`?",
                                   id->toChars(), sd->toChars(), s->kind(), s->toChars());
                         else
-                            error(i->loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
+                            error(i->loc, "`%s` is not a member of `%s`", id->toChars(), sd->toChars());
                         result = new ErrorInitializer();
                         return;
                     }
@@ -128,7 +128,7 @@ public:
                 VarDeclaration *vd = sd->fields[fieldi];
                 if ((*elements)[fieldi])
                 {
-                    error(i->loc, "duplicate initializer for field '%s'", vd->toChars());
+                    error(i->loc, "duplicate initializer for field `%s`", vd->toChars());
                     errors = true;
                     continue;
                 }
@@ -386,7 +386,7 @@ public:
         }
         if (i->exp->op == TOKtype)
         {
-            i->exp->error("initializer must be an expression, not '%s'", i->exp->toChars());
+            i->exp->error("initializer must be an expression, not `%s`", i->exp->toChars());
             result = new ErrorInitializer();
             return;
         }
@@ -394,7 +394,7 @@ public:
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i->exp))
         {
-            i->exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", i->exp->toChars());
+            i->exp->error("cannot use non-constant CTFE pointer in an initializer `%s`", i->exp->toChars());
             result = new ErrorInitializer();
             return;
         }
