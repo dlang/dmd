@@ -76,33 +76,70 @@ $(UL
 
 $(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
 
-    $(P This pragma must directly precede an $(D extern(C)) function declaration
-        that must take no argument, even default ones.
-        The function this pragma applies to will be inserted in `.init_array`
-        or `.ctors`, depending on the target and compiler implementation.
-        It is equivalent to GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((constructor))`).
+    $(P Annotates a function so it is run after the C runtime library is initialized
+        and before the D runtime library is initialized.
     )
------------------
-__gshared int initCount;
 
-pragma(crt_constructor)
-extern(C) void initializer() { initCount += 1; }
------------------
+    $(P The function must:)
 
-    $(P It is useful for system programming and interfacing with C/C++,
+    $(OL
+        $(LI be `extern (C)`)
+        $(LI not have any parameters)
+        $(LI not be a non-static member function)
+        $(LI be a function definition, not a declaration (i.e. it must have a function body))
+        $(LI not return a type that has a destructor)
+        $(LI not be a nested function)
+    )
+
+    ---
+    __gshared int initCount;
+
+    pragma(crt_constructor)
+    extern(C) void initializer() { initCount += 1; }
+    ---
+
+    $(P No arguments to the pragma are allowed.)
+
+    $(P A function may be annotated with both `pragma(crt_constructor)`
+        and `pragma(crt_destructor)`.
+    )
+
+    $(P Annotating declarations other than function definitions has no effect.)
+
+    $(P Annotating a struct or class definition does not affect the members of
+    the aggregate.)
+
+    $(BEST_PRACTICE Use for system programming and interfacing with C/C++,
         for example to allow for initialization of the runtime when loading a DSO,
         or as a simple replacement for `shared static this` in
         $(DDLINK spec/betterc, betterC mode, betterC mode).
     )
-    $(P A module may contain any number of functions annotated with `crt_constructor`.
-        The order in which functions are called is undefined and shouldn't be relied upon.
-        A function can be annotated as both `crt_constructor` and `crt_destructor` (see below).
-        The runtime is not initialized when the function is called.
-        This pragma does not take any argument and can only be applied to a single declaration,
-        so using them in an $(GLINK2 grammar, AttributeSpecifier) is disallowed.
+
+    $(IMPLEMENTATION_DEFINED The order in which functions annotated with `pragma(crt_constructor)`
+        are run is implementation defined.
     )
 
-    $(P `crt_constructor` and `crt_destructor` were implemented in
+    $(BEST_PRACTICE to control the order in which the functions are called within one module, write
+        a single function that calls them in the desired order, and only annotate that function.
+    )
+
+    $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
+        code before `main()` is called. C++ compilers use it to run static
+        constructors and destructors.
+        For example, GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((constructor))`)
+        is equivalent.
+        Digital Mars C uses $(TT _STI) and $(TT _STD) identifier prefixes to mark crt_constructor and crt_destructor functions.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+        A reference to the annotated function will be inserted in
+        the $(TT .init_array) section for Elf systems,
+        the $(TT XI) section for Win32 OMF systems,
+        the $(TT .CRT$XCU) section for Windows MSCOFF systems,
+        and the $(TT __mod_init_func) section for OSX systems.
+    )
+
+    $(NOTE `crt_constructor` and `crt_destructor` were implemented in
         $(LINK2 $(ROOT_DIR)changelog/2.078.0.html, v2.078.0 (2018-01-01)).
         Some compilers exposed non-standard, compiler-specific mechanism before.
     )
