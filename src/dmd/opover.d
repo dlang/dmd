@@ -595,8 +595,11 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     return;
                 }
                 // Didn't find it. Forward to aliasthis
-                if (ad.aliasthis)
+                auto t1b = e.e1.type.toBasetype();
+                if (ad.aliasthis && !(e.att1 && t1b.equivalent(e.att1)))
                 {
+                    if (!e.att1 && t1b.checkAliasThisRec())
+                        e.att1 = t1b;
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
                      */
