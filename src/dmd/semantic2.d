@@ -352,6 +352,16 @@ private extern(C++) final class Semantic2Visitor : Visitor
     {
         if (fd.semanticRun >= PASS.semantic2done)
             return;
+
+        if (fd.semanticRun < PASS.semanticdone && !fd.errors)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=21614
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            fd.dsymbolSemantic(sc);
+        }
         assert(fd.semanticRun <= PASS.semantic2);
         fd.semanticRun = PASS.semantic2;
 
