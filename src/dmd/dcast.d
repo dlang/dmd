@@ -1467,27 +1467,6 @@ Type toStaticArrayType(SliceExp e)
     return null;
 }
 
-// Try casting the alias this member. Return the expression if it succeeds, null otherwise.
-private Expression tryAliasThisCast(Expression e, Scope* sc, Type tob, Type t1b, Type t)
-{
-    Expression result;
-    AggregateDeclaration t1ad = isAggregate(t1b);
-    if (!t1ad)
-        return null;
-
-    AggregateDeclaration toad = isAggregate(tob);
-    if (t1ad == toad || !t1ad.aliasthis)
-        return null;
-
-    /* Forward the cast to our alias this member, rewrite to:
-     *   cast(to)e1.aliasthis
-     */
-    result = resolveAliasThis(sc, e);
-    const errors = global.startGagging();
-    result = result.castTo(sc, t);
-    return global.endGagging(errors) ? null : result;
-}
-
 /**************************************
  * Do an explicit cast.
  * Assume that the expression `e` does not have any indirections.
@@ -1568,6 +1547,28 @@ Expression castTo(Expression e, Scope* sc, Type t)
             const(bool) tob_isA = ((tob.isintegral() || tob.isfloating()) && tob.ty != Tvector);
             const(bool) t1b_isA = ((t1b.isintegral() || t1b.isfloating()) && t1b.ty != Tvector);
 
+            // Try casting the alias this member.
+            // Return the expression if it succeeds, null otherwise.
+            Expression tryAliasThisCast()
+            {
+                Expression result;
+                AggregateDeclaration t1ad = isAggregate(t1b);
+                if (!t1ad)
+                    return null;
+
+                AggregateDeclaration toad = isAggregate(tob);
+                if (t1ad == toad || !t1ad.aliasthis)
+                    return null;
+
+                /* Forward the cast to our alias this member, rewrite to:
+                 *   cast(to)e1.aliasthis
+                 */
+                result = resolveAliasThis(sc, e);
+                const errors = global.startGagging();
+                result = result.castTo(sc, t);
+                return global.endGagging(errors) ? null : result;
+            }
+
             bool hasAliasThis;
             if (AggregateDeclaration t1ad = isAggregate(t1b))
             {
@@ -1629,7 +1630,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (hasAliasThis)
                 {
-                    result = tryAliasThisCast(e, sc, tob, t1b, t);
+                    result = tryAliasThisCast();
                     if (result)
                         return;
                 }
@@ -1719,7 +1720,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                  */
                 if (hasAliasThis)
                 {
-                    result = tryAliasThisCast(e, sc, tob, t1b, t);
+                    result = tryAliasThisCast();
                     if (result)
                         return;
                 }
