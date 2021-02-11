@@ -190,8 +190,8 @@ pragma(lib, "foo.lib");
 -----------------
 
     $(IMPLEMENTATION_DEFINED
-    Typically, the string literal specifies the file name of a library file. This name
-    is inserted into the generated object file, or otherwise is passed to the linker,
+    The string literal specifies the file name of a library file. This name
+    is inserted into the generated object file, or otherwise passed to the linker,
     so the linker automatically links in that library.
     )
 
@@ -204,9 +204,8 @@ pragma(linkerDirective, "/FAILIFMISMATCH:_ITERATOR_DEBUG_LEVEL=2");
 -----------------
 
     $(IMPLEMENTATION_DEFINED
-    $(P The string literal specifies a linker directive to be embedded in the generated object file.)
-
-    $(P Linker directives are only supported for MS-COFF output.)
+    The string literal specifies a linker directive to be embedded in the generated object file.
+    Linker directives are only supported for MS-COFF output.
     )
 
 $(H3 $(LNAME2 mangle, $(D pragma mangle)))
