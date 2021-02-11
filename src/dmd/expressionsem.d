@@ -3350,7 +3350,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // ti is an instance which requires IFTI.
                 exp.sds = ti;
                 exp.type = Type.tvoid;
-                result = exp;
+
+                /* https://issues.dlang.org/show_bug.cgi?id=21451
+                 *
+                 * At this point, the ScopeExp is returned to the caller.
+                 * The caller then decides what happens with it, however,
+                 * in the case of traits(compiles) no additional analysis
+                 * is performed. However, here we know that the template
+                 * instance is a function call to a templated function,
+                 * therefore, simply wrap it in a CallExp and perform
+                 * semantic on it.
+                 */
+                if (sc.flags & SCOPE.compile)
+                {
+                    Expression e = new CallExp(exp.loc, exp, ti.fargs);
+                    result = e.expressionSemantic(sc);
+                }
+                else
+                {
+                    result = exp;
+                }
                 return;
             }
             ti.dsymbolSemantic(sc);
