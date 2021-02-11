@@ -149,15 +149,15 @@ pragma(inline)
         )
         $(LI
 ---
-pragma(inline, boolean_expression)
+pragma(inline, AssignExpression)
 ---
-        If the expression evaluates to false the functions are never inlined, otherwise they are always inlined.
+        The $(GLINK2 expression, AssignExpression) is evaluated and must have a type that can be converted
+        to a boolean.
+        If the result is false the functions are never inlined, otherwise they are always inlined.
         )
       )
 
-    $(P There can be only zero or one $(I AssignExpression)s. If one is there, it must
-    be `true`, `false`, or an integer value. An integer value is implicitly converted
-    to a bool.)
+    $(P More than one $(I AssignExpression) is not allowed.)
 
     $(P If there are multiple pragma inlines in a function,
     the lexically last one takes effect.)
