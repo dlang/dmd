@@ -19,6 +19,11 @@ else version (CRuntime_UClibc) enum SharedELF = true;
 else enum SharedELF = false;
 static if (SharedELF):
 
+version (MIPS32)  version = MIPS_Any;
+version (MIPS64)  version = MIPS_Any;
+version (RISCV32) version = RISCV_Any;
+version (RISCV64) version = RISCV_Any;
+
 // debug = PRINTF;
 import core.internal.elf.dl;
 import core.memory;
@@ -725,17 +730,29 @@ version (Shared)
             if (dyn.d_tag == DT_STRTAB)
             {
                 version (CRuntime_Musl)
-                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
+                    enum relocate = true;
                 else version (linux)
-                    strtab = cast(const(char)*)dyn.d_un.d_ptr;
+                {
+                    // This might change in future glibc releases (after 2.29) as dynamic sections
+                    // are not required to be read-only on RISC-V. This was copy & pasted from MIPS
+                    // while upstreaming RISC-V support. Otherwise MIPS is the only arch which sets
+                    // in glibc: #define DL_RO_DYN_SECTION 1
+                    version (RISCV_Any)     enum relocate = true;
+                    else version (MIPS_Any) enum relocate = true;
+                    else                    enum relocate = false;
+                }
                 else version (FreeBSD)
-                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
+                    enum relocate = true;
                 else version (NetBSD)
-                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
+                    enum relocate = true;
                 else version (DragonFlyBSD)
-                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
+                    enum relocate = true;
                 else
                     static assert(0, "unimplemented");
+
+                const base = relocate ? cast(const char*) object.baseAddress : null;
+                strtab = base + dyn.d_un.d_ptr;
+
                 break;
             }
         }
@@ -875,9 +892,7 @@ else version (ARM)
     enum TLS_DTV_OFFSET = 0x0;
 else version (AArch64)
     enum TLS_DTV_OFFSET = 0x0;
-else version (RISCV32)
-    enum TLS_DTV_OFFSET = 0x800;
-else version (RISCV64)
+else version (RISCV_Any)
     enum TLS_DTV_OFFSET = 0x800;
 else version (HPPA)
     enum TLS_DTV_OFFSET = 0x0;
@@ -889,9 +904,7 @@ else version (PPC)
     enum TLS_DTV_OFFSET = 0x8000;
 else version (PPC64)
     enum TLS_DTV_OFFSET = 0x8000;
-else version (MIPS32)
-    enum TLS_DTV_OFFSET = 0x8000;
-else version (MIPS64)
+else version (MIPS_Any)
     enum TLS_DTV_OFFSET = 0x8000;
 else
     static assert( false, "Platform not supported." );

@@ -126,9 +126,11 @@ SRCS=\
 	src\core\sys\darwin\dlfcn.d \
 	src\core\sys\darwin\err.d \
 	src\core\sys\darwin\execinfo.d \
+	src\core\sys\darwin\ifaddrs.d \
 	src\core\sys\darwin\pthread.d \
 	src\core\sys\darwin\stdlib.d \
 	src\core\sys\darwin\string.d \
+	\
 	src\core\sys\darwin\mach\dyld.d \
 	src\core\sys\darwin\mach\getsect.d \
 	src\core\sys\darwin\mach\kern_return.d \
@@ -138,6 +140,7 @@ SRCS=\
 	src\core\sys\darwin\mach\semaphore.d \
 	src\core\sys\darwin\mach\stab.d \
 	src\core\sys\darwin\mach\thread_act.d \
+	\
 	src\core\sys\darwin\netinet\in_.d \
 	\
 	src\core\sys\darwin\sys\cdefs.d \
