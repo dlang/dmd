@@ -503,11 +503,14 @@ dmd -cov -unittest myprog.d
             unittesting a library, as it enables running the unittests
             in a library without having to manually define an entry-point function.`,
         ),
-        Option("makedeps",
-            "print module dependencies in Makefile compatible format to stdout"
-        ),
-        Option("makedeps=<filename>",
-            "write module dependencies in Makefile compatible format to filename (only imports)"
+        Option("makedeps[=<filename>]",
+            "print dependencies in Makefile compatible format to filename or stdout.",
+            `Print dependencies in Makefile compatible format.
+            If filename is omitted, it prints to stdout.
+            The emitted targets are the compiled artifacts (executable, object files, libraries).
+            The emitted dependencies are imported modules and imported string files (via $(B -J) switch).
+            Special characters in a dependency or target filename are escaped in the GNU Make manner.
+            `,
         ),
         Option("man",
             "open web browser on manual page",

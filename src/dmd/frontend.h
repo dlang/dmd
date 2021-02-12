@@ -602,6 +602,7 @@ class FuncInitExp;
 class PrettyFuncInitExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
+class BinAssignExp;
 class TypeInfoClassDeclaration;
 struct ObjcClassDeclaration;
 class TypeFunction;
@@ -1124,6 +1125,7 @@ public:
     PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
+    virtual BinAssignExp* isBinAssignExp();
     void accept(Visitor* v);
 };
 
@@ -3852,6 +3854,7 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
+    BinAssignExp* isBinAssignExp();
     void accept(Visitor* v);
 };
 
@@ -6926,8 +6929,9 @@ struct Param
     _d_dynamicArray< const char > mscrtlib;
     _d_dynamicArray< const char > moduleDepsFile;
     OutBuffer* moduleDeps;
+    bool emitMakeDeps;
     _d_dynamicArray< const char > makeDepsFile;
-    OutBuffer* makeDeps;
+    Array<const char* > makeDeps;
     MessageStyle messageStyle;
     bool run;
     Array<const char* > runargs;
@@ -7054,6 +7058,7 @@ struct Param
         mscrtlib(),
         moduleDepsFile(),
         moduleDeps(),
+        emitMakeDeps(),
         makeDepsFile(),
         makeDeps(),
         messageStyle((MessageStyle)0u),
@@ -7927,4 +7932,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-

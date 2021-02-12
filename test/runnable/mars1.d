@@ -2369,6 +2369,30 @@ void test11435b()
     abc(px[0..2]);
 }
 
+////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21513
+
+struct Stuff
+{
+    size_t c;         // declare after items and not crash !
+    ubyte[1] items;
+}
+
+void grow(ref Stuff stuff)
+{
+    with (stuff)
+    {
+        const oldCapacity = c;
+        items.ptr[0..oldCapacity] = items.ptr[0..0]; // use literal 0 instead of
+        items.ptr[0] = 0;                            // oldcapacity and no crash !
+    }
+}
+
+void test21513()
+{
+    Stuff stuff;
+    grow(stuff);
+}
 
 ////////////////////////////////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=21526
@@ -2498,6 +2522,7 @@ int main()
     test11435a();
     test11435b();
     test21256();
+    test21513();
 
     printf("Success\n");
     return 0;
