@@ -17,13 +17,7 @@
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
  */
-
-/*          Copyright Sean Kelly 2005 - 2016.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
-module gc.impl.manual.gc;
+module core.internal.gc.impl.manual.gc;
 
 import core.gc.gcinterface;
 

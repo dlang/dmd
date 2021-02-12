@@ -66,6 +66,14 @@ SRCS=\
 	src\core\internal\elf\dl.d \
 	src\core\internal\elf\io.d \
 	\
+	src\core\internal\gc\bits.d \
+	src\core\internal\gc\os.d \
+	src\core\internal\gc\pooltable.d \
+	src\core\internal\gc\proxy.d \
+	src\core\internal\gc\impl\conservative\gc.d \
+	src\core\internal\gc\impl\manual\gc.d \
+	src\core\internal\gc\impl\proto\gc.d \
+	\
 	src\core\internal\util\array.d \
 	src\core\internal\util\math.d \
 	\
@@ -509,14 +517,6 @@ SRCS=\
 	src\core\thread\osthread.d \
 	src\core\thread\context.d \
 	src\core\thread\package.d \
-	\
-	src\gc\bits.d \
-	src\gc\impl\conservative\gc.d \
-	src\gc\os.d \
-	src\gc\pooltable.d \
-	src\gc\proxy.d \
-	src\gc\impl\manual\gc.d \
-	src\gc\impl\proto\gc.d \
 	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \

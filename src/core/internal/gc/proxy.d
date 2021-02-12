@@ -1,19 +1,13 @@
 /**
  * Contains the external GC interface.
  *
- * Copyright: Copyright Digital Mars 2005 - 2016.
+ * Copyright: D Language Foundation 2005 - 2021.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  */
+module core.internal.gc.proxy;
 
-/*          Copyright Digital Mars 2005 - 2016.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
-module gc.proxy;
-
-import gc.impl.proto.gc;
+import core.internal.gc.impl.proto.gc;
 import core.gc.config;
 import core.gc.gcinterface;
 import core.gc.registry : createGCInstance;
