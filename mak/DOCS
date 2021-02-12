@@ -127,6 +127,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_dlfcn.html \
 	$(DOCDIR)\core_sys_darwin_err.html \
 	$(DOCDIR)\core_sys_darwin_execinfo.html \
+	$(DOCDIR)\core_sys_darwin_fcntl.html \
 	$(DOCDIR)\core_sys_darwin_ifaddrs.html \
 	$(DOCDIR)\core_sys_darwin_pthread.html \
 	$(DOCDIR)\core_sys_darwin_string.html \
