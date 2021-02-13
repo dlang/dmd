@@ -3528,11 +3528,41 @@ void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects)
     }
 }
 
+/*************************************************************
+ * Pretty print function parameters.
+ * Params:
+ *  parameters = parameters to print, such as TypeFunction.parameters.
+ *  varargs = kind of varargs, see TypeFunction.varargs.
+ * Returns: Null-terminated string representing parameters.
+ */
 const char *parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
     PrettyPrintVisitor v(&buf, &hgs);
     v.parametersToBuffer(pl.parameters, pl.varargs);
+    return buf.extractChars();
+}
+
+/*************************************************************
+ * Pretty print function parameter.
+ * Params:
+ *  parameter = parameter to print.
+ *  tf = TypeFunction which holds parameter.
+ *  fullQual = whether to fully qualify types.
+ * Returns: Null-terminated string representing parameters.
+ */
+const char *parameterToChars(Parameter *parameter, TypeFunction *tf, bool fullQual)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    hgs.fullQual = fullQual;
+    PrettyPrintVisitor v(&buf, &hgs);
+
+    parameter->accept(&v);
+    if (tf->parameterList.varargs == 2 && parameter == tf->parameterList[tf->parameterList.parameters->length - 1])
+    {
+        buf.writestring("...");
+    }
     return buf.extractChars();
 }
