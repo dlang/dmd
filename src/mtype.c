@@ -5175,16 +5175,36 @@ void TypeFunction::purityLevel()
     tf->purity = purity;
 }
 
+// arguments get specially formatted
+static const char *getParamError(TypeFunction *tf, Expression *arg, Parameter *par)
+{
+    if (global.gag && !global.params.showGaggedErrors)
+        return NULL;
+    // show qualification when toChars() is the same but types are different
+    const char *at = arg->type->toChars();
+    bool qual = !arg->type->equals(par->type) && strcmp(at, par->type->toChars()) == 0;
+    if (qual)
+        at = arg->type->toPrettyChars(true);
+    OutBuffer buf;
+    // only mention rvalue if it's relevant
+    const bool rv = !arg->isLvalue() && (par->storageClass & (STCref | STCout)) != 0;
+    buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+        rv ? "rvalue " : "", arg->toChars(), at,
+        parameterToChars(par, tf, qual));
+    return buf.extractChars();
+}
+
 /********************************
  * 'args' are being matched to function 'this'
  * Determine match level.
  * Input:
  *      flag    1       performing a partial ordering match
+ *      pMessage        address to store error message, or null
  * Returns:
  *      MATCHxxxx
  */
 
-MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
+MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag, const char **pMessage)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
@@ -5309,7 +5329,10 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                 if (m && !arg->isLvalue())
                 {
                     if (p->storageClass & STCout)
+                    {
+                        if (pMessage) *pMessage = getParamError(this, arg, p);
                         goto Nomatch;
+                    }
 
                     if (arg->op == TOKstring && tp->ty == Tsarray)
                     {
@@ -5331,7 +5354,10 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                         }
                     }
                     else
+                    {
+                        if (pMessage) *pMessage = getParamError(this, arg, p);
                         goto Nomatch;
+                    }
                 }
 
                 /* Find most derived alias this type being matched.
@@ -5351,7 +5377,10 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                  *  ref T[dim] <- an lvalue of const(T[dim]) argument
                  */
                 if (!ta->constConv(tp))
+                {
+                    if (pMessage) *pMessage = getParamError(this, arg, p);
                     goto Nomatch;
+                }
             }
         }
 
@@ -5408,7 +5437,10 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                                 m = arg->implicitConvTo(ta->next);
 
                             if (m == MATCHnomatch)
+                            {
+                                if (pMessage) *pMessage = getParamError(this, arg, p);
                                 goto Nomatch;
+                            }
                             if (m < match)
                                 match = m;
                         }
@@ -5420,9 +5452,11 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                     goto Ldone;
 
                 default:
-                    goto Nomatch;
+                    break;
                 }
             }
+            if (pMessage && u < nargs)
+                *pMessage = getParamError(this, (*args)[u], p);
             goto Nomatch;
         }
         if (m < match)
