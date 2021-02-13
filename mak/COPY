@@ -127,6 +127,7 @@ COPY=\
 	$(IMPDIR)\core\sys\darwin\dlfcn.d \
 	$(IMPDIR)\core\sys\darwin\err.d \
 	$(IMPDIR)\core\sys\darwin\execinfo.d \
+	$(IMPDIR)\core\sys\darwin\ifaddrs.d \
 	$(IMPDIR)\core\sys\darwin\pthread.d \
 	$(IMPDIR)\core\sys\darwin\stdlib.d \
 	$(IMPDIR)\core\sys\darwin\string.d \
