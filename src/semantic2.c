@@ -274,6 +274,17 @@ public:
     {
         if (fd->semanticRun >= PASSsemantic2done)
             return;
+
+        if (fd->semanticRun < PASSsemanticdone && !fd->errors)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=21614
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            dsymbolSemantic(fd, sc);
+        }
+
         assert(fd->semanticRun <= PASSsemantic2);
         fd->semanticRun = PASSsemantic2;
 
