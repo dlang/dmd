@@ -961,7 +961,7 @@ extern (C++) final class StaticIfCondition : Condition
  * Returns:
  *      true if found
  */
-bool findCondition(Identifiers* ids, Identifier ident)
+bool findCondition(Identifiers* ids, Identifier ident) @safe nothrow pure
 {
     if (ids)
     {

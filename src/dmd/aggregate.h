@@ -278,6 +278,7 @@ public:
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
+    const char *toPrettyChars(bool QualifyTypes = false);
     ClassDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool isBaseOf2(ClassDeclaration *cd);

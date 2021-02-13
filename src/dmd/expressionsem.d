@@ -6012,12 +6012,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(")");
             ob.writenl();
         }
-        if (global.params.makeDeps && global.params.oneobj)
+        if (global.params.emitMakeDeps)
         {
-            OutBuffer* ob = global.params.makeDeps;
-            ob.writestringln(" \\");
-            ob.writestring("  ");
-            escapePath(ob, toPosixPath(name));
+            global.params.makeDeps.push(name);
         }
 
         {
@@ -6093,6 +6090,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Rewriting CallExp's also avoids some issues with the inliner/debug generation
                 if (op.hasSideEffect(true))
                 {
+                    // https://issues.dlang.org/show_bug.cgi?id=21590
+                    // Don't create unnecessary temporaries and detect `assert(a = b)`
+                    if (op.isAssignExp() || op.isBinAssignExp())
+                    {
+                        auto left = (cast(BinExp) op).e1;
+
+                        // Find leftmost expression to handle other rewrites,
+                        // e.g. --(++a) => a += 1 -= 1
+                        while (left.isAssignExp() || left.isBinAssignExp())
+                            left = (cast(BinExp) left).e1;
+
+                        // Only use the assignee if it's a variable and skip
+                        // other lvalues (e.g. ref's returned by functions)
+                        if (left.isVarExp())
+                            return left;
+
+                        // Sanity check that `op` can be converted to boolean
+                        op.toBoolean(sc);
+                    }
+
                     const stc = op.isLvalue() ? STC.ref_ : 0;
                     auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
@@ -8795,22 +8812,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
+                    // https://issues.dlang.org/show_bug.cgi?id=21586
+                    // Rewrite CondExp or e1 will miss direct construction, e.g.
+                    // e1 = a ? S(1) : ...; -> AST: e1 = a ? (S(0)).this(1) : ...;
+                    // a temporary created and an extra destructor call.
+                    // AST will be rewritten to:
+                    // a ? e1 = 0, e1.this(1) : ...; -> blitting plus construction
+                    if (e2x.op == TOK.question)
+                    {
+                        /* Rewrite as:
+                         *  a ? e1 = b : e1 = c;
+                         */
+                        CondExp econd = cast(CondExp)e2x;
+                        Expression ea1 = new ConstructExp(econd.e1.loc, e1x, econd.e1);
+                        Expression ea2 = new ConstructExp(econd.e2.loc, e1x, econd.e2);
+                        Expression e = new CondExp(exp.loc, econd.econd, ea1, ea2);
+                        result = e.expressionSemantic(sc);
+                        return;
+                    }
                     if (sd.postblit || sd.hasCopyCtor)
                     {
                         /* We have a copy constructor for this
                          */
-                        if (e2x.op == TOK.question)
-                        {
-                            /* Rewrite as:
-                             *  a ? e1 = b : e1 = c;
-                             */
-                            CondExp econd = cast(CondExp)e2x;
-                            Expression ea1 = new ConstructExp(econd.e1.loc, e1x, econd.e1);
-                            Expression ea2 = new ConstructExp(econd.e1.loc, e1x, econd.e2);
-                            Expression e = new CondExp(exp.loc, econd.econd, ea1, ea2);
-                            result = e.expressionSemantic(sc);
-                            return;
-                        }
 
                         if (e2x.isLvalue())
                         {

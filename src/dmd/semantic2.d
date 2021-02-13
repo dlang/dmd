@@ -350,10 +350,18 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(FuncDeclaration fd)
     {
-        import dmd.dmangle : mangleToFuncSignature;
-
         if (fd.semanticRun >= PASS.semantic2done)
             return;
+
+        if (fd.semanticRun < PASS.semanticdone && !fd.errors)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=21614
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            fd.dsymbolSemantic(sc);
+        }
         assert(fd.semanticRun <= PASS.semantic2);
         fd.semanticRun = PASS.semantic2;
 
@@ -365,14 +373,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
         // void foo();
         if (fd.fbody && fd.overnext && !fd.errors)
         {
-            OutBuffer buf1;
-            OutBuffer buf2;
-
             // Always starts the lookup from 'this', because the conflicts with
             // previous overloads are already reported.
             alias f1 = fd;
             auto tf1 = cast(TypeFunction) f1.type;
-            mangleToFuncSignature(buf1, f1);
+            auto parent1 = f1.toParent2();
 
             overloadApply(f1, (Dsymbol s)
             {
@@ -382,6 +387,20 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
                 // Don't have to check conflict between declaration and definition.
                 if (f2.fbody is null)
+                    return 0;
+
+                // Functions with different manglings can never conflict
+                if (f1.linkage != f2.linkage)
+                    return 0;
+
+                // Functions with different names never conflict
+                // (they can form overloads sets introduced by an alias)
+                if (f1.ident != f2.ident)
+                    return 0;
+
+                // Functions with different parents never conflict
+                // (E.g. when aliasing a free function into a struct)
+                if (parent1 != f2.toParent2())
                     return 0;
 
                 /* Check for overload merging with base class member functions.
@@ -397,46 +416,42 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
                 auto tf2 = cast(TypeFunction) f2.type;
 
-                // extern (C) functions always conflict each other.
-                auto parent1 = f1.toParent2();
-                if (f1.ident == f2.ident &&
-                    parent1 == f2.toParent2() &&
-                    parent1.isModule() &&
-                    (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
-                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp) &&
+                // Overloading based on storage classes
+                if (tf1.mod != tf2.mod || ((f1.storage_class ^ f2.storage_class) & STC.static_))
+                    return 0;
 
-                    // But allow the hack to declare overloads with different parameters/STC's
-                    (!tf1.attributesEqual(tf2) || tf1.parameterList != tf2.parameterList))
+                const sameAttr = tf1.attributesEqual(tf2);
+                const sameParams = tf1.parameterList == tf2.parameterList;
+
+                // Allow the hack to declare overloads with different parameters/STC's
+                // @@@DEPRECATED_2.094@@@
+                // Deprecated in 2020-08, make this an error in 2.104
+                if (parent1.isModule() &&
+                    f1.linkage != LINK.d && f1.linkage != LINK.cpp &&
+                    (!sameAttr || !sameParams)
+                )
                 {
-                    // @@@DEPRECATED_2.094@@@
-                    // Deprecated in 2020-08, make this an error in 2.104
                     f2.deprecation("cannot overload `extern(%s)` function at %s",
                             linkageToChars(f1.linkage),
                             f1.loc.toChars());
-
-                    // Enable this when turning the deprecation into an error
-                    // f2.type = Type.terror;
-                    // f2.errors = true;
                     return 0;
                 }
 
-                buf2.reset();
-                mangleToFuncSignature(buf2, f2);
+                // Different parameters don't conflict in extern(C++/D)
+                if (!sameParams)
+                    return 0;
 
-                auto s1 = buf1.peekChars();
-                auto s2 = buf2.peekChars();
+                // Different attributes don't conflict in extern(D)
+                if (!sameAttr && f1.linkage == LINK.d)
+                    return 0;
 
-                //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
-                if (strcmp(s1, s2) == 0)
-                {
-                    error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
-                            f2.kind(),
-                            f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList),
-                            f1.loc.toChars());
-                    f2.type = Type.terror;
-                    f2.errors = true;
-                }
+                error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
+                        f2.kind(),
+                        f2.toPrettyChars(),
+                        parametersTypeToChars(tf2.parameterList),
+                        f1.loc.toChars());
+                f2.type = Type.terror;
+                f2.errors = true;
                 return 0;
             });
         }

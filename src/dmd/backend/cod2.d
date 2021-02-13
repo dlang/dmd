@@ -4031,6 +4031,7 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     else
     {
+        getregs(cdb,mSI | mDI | mCX);
         code* cnop;
         if (zeroCheck)
         {
@@ -4041,7 +4042,6 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             genjmp(cdb, JE, FLcode, cast(block *)cnop);  // JZ cnop
         }
 
-        getregs(cdb,mSI | mDI | mCX);
         if (I16 && config.flags4 & CFG4speed)          // if speed optimization
         {
             // Note this doesn't work if CX is 0
