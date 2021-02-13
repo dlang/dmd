@@ -1034,162 +1034,170 @@ static if (1)
         resetSyms.reset();
 
         /* ======================================== */
-
-        debug_str.initialize();
-        //Outbuffer *debug_str_buf = debug_str.buf;
-
-        /* ======================================== */
-
-        debug_ranges.initialize();
-
-        /* ======================================== */
-
-        debug_loc.initialize();
-
-        /* ======================================== */
-
-        if (infoFileName_table)
         {
-            AAchars.destroy(infoFileName_table);
-            infoFileName_table = null;
+            debug_str.initialize();
+            //Outbuffer *debug_str_buf = debug_str.buf;
         }
 
-        debug_line.initialize();
+        /* ======================================== */
+        {
+            debug_ranges.initialize();
+        }
 
-        debugline = DebugLineHeader.init;
+        /* ======================================== */
+        {
+            debug_loc.initialize();
+        }
 
-        debug_line.buf.write(&debugline, debugline.sizeof);
-
-        // include_directories
-        version (SCPP)
-            for (size_t i = 0; i < pathlist.length(); ++i)
+        /* ======================================== */
+        {
+            if (infoFileName_table)
             {
-                debug_line.buf.writeString(pathlist[i]);
-                debug_line.buf.writeByte(0);
+                AAchars.destroy(infoFileName_table);
+                infoFileName_table = null;
             }
 
-        version (MARS)
-        version (none)
-            for (int i = 0; i < global.params.imppath.dim; i++)
+            debug_line.initialize();
+
+            debugline = DebugLineHeader.init;
+
+            debug_line.buf.write(&debugline, debugline.sizeof);
+
+            // include_directories
+            version (SCPP)
+                for (size_t i = 0; i < pathlist.length(); ++i)
+                {
+                    debug_line.buf.writeString(pathlist[i]);
+                    debug_line.buf.writeByte(0);
+                }
+
+            version (MARS)
+            version (none)
+                for (int i = 0; i < global.params.imppath.dim; i++)
+                {
+                    debug_line.buf.writeString((*global.params.imppath)[i]);
+                    debug_line.buf.writeByte(0);
+                }
+
+            debug_line.buf.writeByte(0);              // terminated with 0 byte
+        }
+
+        /* ======================================== */
+        {
+            debug_abbrev.initialize();
+            abbrevcode = 1;
+
+            // Free only if starting another file. Waste of time otherwise.
+            if (abbrev_table)
             {
-                debug_line.buf.writeString((*global.params.imppath)[i]);
-                debug_line.buf.writeByte(0);
+                AApair.destroy(abbrev_table);
+                abbrev_table = null;
             }
 
-        debug_line.buf.writeByte(0);              // terminated with 0 byte
+            static immutable ubyte[21] abbrevHeader =
+            [
+                1,                      // abbreviation code
+                DW_TAG_compile_unit,
+                1,
+                DW_AT_producer,  DW_FORM_string,
+                DW_AT_language,  DW_FORM_data1,
+                DW_AT_name,      DW_FORM_string,
+                DW_AT_comp_dir,  DW_FORM_string,
+                DW_AT_low_pc,    DW_FORM_addr,
+                DW_AT_entry_pc,  DW_FORM_addr,
+                DW_AT_ranges,    DW_FORM_data4,
+                DW_AT_stmt_list, DW_FORM_data4,
+                0,               0,
+            ];
 
-        /* ======================================== */
-
-        debug_abbrev.initialize();
-        abbrevcode = 1;
-
-        // Free only if starting another file. Waste of time otherwise.
-        if (abbrev_table)
-        {
-            AApair.destroy(abbrev_table);
-            abbrev_table = null;
+            debug_abbrev.buf.write(abbrevHeader.ptr,abbrevHeader.sizeof);
         }
 
-        static immutable ubyte[21] abbrevHeader =
-        [
-            1,                      // abbreviation code
-            DW_TAG_compile_unit,
-            1,
-            DW_AT_producer,  DW_FORM_string,
-            DW_AT_language,  DW_FORM_data1,
-            DW_AT_name,      DW_FORM_string,
-            DW_AT_comp_dir,  DW_FORM_string,
-            DW_AT_low_pc,    DW_FORM_addr,
-            DW_AT_entry_pc,  DW_FORM_addr,
-            DW_AT_ranges,    DW_FORM_data4,
-            DW_AT_stmt_list, DW_FORM_data4,
-            0,               0,
-        ];
-
-        debug_abbrev.buf.write(abbrevHeader.ptr,abbrevHeader.sizeof);
-
         /* ======================================== */
-
-        debug_info.initialize();
-
-        debuginfo = DebugInfoHeader.init;
-        if (I64)
-            debuginfo.address_size = 8;
-
-        // https://issues.dlang.org/show_bug.cgi?id=16563
-        assert(debuginfo.alignof == 1);
-        debug_info.buf.write(&debuginfo, debuginfo.sizeof);
-
-        static if (ELFOBJ)
-            dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
-
-        debug_info.buf.writeuLEB128(1);                   // abbreviation code
-
-        version (MARS)
         {
-            debug_info.buf.write("Digital Mars D ");
-            debug_info.buf.writeString(config._version);     // DW_AT_producer
-            // DW_AT_language
-            debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
+            debug_info.initialize();
+
+            debuginfo = DebugInfoHeader.init;
+            if (I64)
+                debuginfo.address_size = 8;
+
+            // https://issues.dlang.org/show_bug.cgi?id=16563
+            assert(debuginfo.alignof == 1);
+            debug_info.buf.write(&debuginfo, debuginfo.sizeof);
+
+            static if (ELFOBJ)
+                dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
+
+            debug_info.buf.writeuLEB128(1);                   // abbreviation code
+
+            version (MARS)
+            {
+                debug_info.buf.write("Digital Mars D ");
+                debug_info.buf.writeString(config._version);     // DW_AT_producer
+                // DW_AT_language
+                debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
+            }
+            else version (SCPP)
+            {
+                debug_info.buf.write("Digital Mars C ");
+                debug_info.buf.writeString(global._version);      // DW_AT_producer
+                debug_info.buf.writeByte(DW_LANG_C89);            // DW_AT_language
+            }
+            else
+                static assert(0);
+
+            debug_info.buf.writeString(filename);             // DW_AT_name
+
+            char* cwd = getcwd(null, 0);
+            debug_info.buf.writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
+            free(cwd);
+
+            append_addr(debug_info.buf, 0);               // DW_AT_low_pc
+            append_addr(debug_info.buf, 0);               // DW_AT_entry_pc
+
+            static if (ELFOBJ)
+                dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_ranges.seg);
+
+            debug_info.buf.write32(0);                        // DW_AT_ranges
+
+            static if (ELFOBJ)
+                dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_line.seg);
+
+            debug_info.buf.write32(0);                        // DW_AT_stmt_list
+
+            memset(typidx_tab.ptr, 0, typidx_tab.sizeof);
         }
-        else version (SCPP)
+
+        /* ======================================== */
         {
-            debug_info.buf.write("Digital Mars C ");
-            debug_info.buf.writeString(global._version);      // DW_AT_producer
-            debug_info.buf.writeByte(DW_LANG_C89);            // DW_AT_language
+            debug_pubnames.initialize();
+            int seg = debug_pubnames.seg;
+
+            debug_pubnames.buf.write32(0);             // unit_length
+            debug_pubnames.buf.write16(2);           // version_
+
+            static if (ELFOBJ)
+                dwarf_addrel(seg,debug_pubnames.buf.length(),debug_info.seg);
+
+            debug_pubnames.buf.write32(0);             // debug_info_offset
+            debug_pubnames.buf.write32(0);             // debug_info_length
         }
-        else
-            static assert(0);
-
-        debug_info.buf.writeString(filename);             // DW_AT_name
-
-        char* cwd = getcwd(null, 0);
-        debug_info.buf.writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
-        free(cwd);
-
-        append_addr(debug_info.buf, 0);               // DW_AT_low_pc
-        append_addr(debug_info.buf, 0);               // DW_AT_entry_pc
-
-        static if (ELFOBJ)
-            dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_ranges.seg);
-
-        debug_info.buf.write32(0);                        // DW_AT_ranges
-
-        static if (ELFOBJ)
-            dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_line.seg);
-
-        debug_info.buf.write32(0);                        // DW_AT_stmt_list
-
-        memset(typidx_tab.ptr, 0, typidx_tab.sizeof);
 
         /* ======================================== */
+        {
+            debug_aranges.initialize();
 
-        debug_pubnames.initialize();
-        int seg = debug_pubnames.seg;
+            debug_aranges.buf.write32(0);              // unit_length
+            debug_aranges.buf.write16(2);            // version_
 
-        debug_pubnames.buf.write32(0);             // unit_length
-        debug_pubnames.buf.write16(2);           // version_
+            static if (ELFOBJ)
+                dwarf_addrel(debug_aranges.seg,debug_aranges.buf.length(),debug_info.seg);
 
-        static if (ELFOBJ)
-            dwarf_addrel(seg,debug_pubnames.buf.length(),debug_info.seg);
-
-        debug_pubnames.buf.write32(0);             // debug_info_offset
-        debug_pubnames.buf.write32(0);             // debug_info_length
-
-        /* ======================================== */
-
-        debug_aranges.initialize();
-
-        debug_aranges.buf.write32(0);              // unit_length
-        debug_aranges.buf.write16(2);            // version_
-
-        static if (ELFOBJ)
-            dwarf_addrel(debug_aranges.seg,debug_aranges.buf.length(),debug_info.seg);
-
-        debug_aranges.buf.write32(0);              // debug_info_offset
-        debug_aranges.buf.writeByte(I64 ? 8 : 4);  // address_size
-        debug_aranges.buf.writeByte(0);            // segment_size
-        debug_aranges.buf.write32(0);              // pad to 16
+            debug_aranges.buf.write32(0);              // debug_info_offset
+            debug_aranges.buf.writeByte(I64 ? 8 : 4);  // address_size
+            debug_aranges.buf.writeByte(0);            // segment_size
+            debug_aranges.buf.write32(0);              // pad to 16
+        }
     }
 
 
