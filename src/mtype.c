@@ -8533,3 +8533,25 @@ bool Parameter::isCovariantScope(bool returnByRef, StorageClass from, StorageCla
 
     return covariant[SR::buildSR(returnByRef, from)][SR::buildSR(returnByRef, to)];
 }
+
+/**
+ * For printing two types with qualification when necessary.
+ * Params:
+ *    t1 = The first type to receive the type name for
+ *    t2 = The second type to receive the type name for
+ * Returns:
+ *    The fully-qualified names of both types if the two type names are not the same,
+ *    or the unqualified names of both types if the two type names are the same.
+ */
+void toAutoQualChars(const char **result, Type *t1, Type *t2)
+{
+    const char *s1 = t1->toChars();
+    const char *s2 = t2->toChars();
+    if (strcmp(s1, s2) == 0)
+    {
+        s1 = t1->toPrettyChars(true);
+        s2 = t2->toPrettyChars(true);
+    }
+    result[0] = s1;
+    result[1] = s2;
+}

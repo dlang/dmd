@@ -47,6 +47,7 @@ MOD MODmerge(MOD mod1, MOD mod2);
 void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg);
+void toAutoQualChars(const char **result, Type *t1, Type *t2);
 
 /*************************************************************
  * Given var, we need to get the
@@ -5288,8 +5289,10 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
     }
     else if (!flag)
     {
+        const char *ts[2];
+        toAutoQualChars(ts, tx, to);
         error("cannot implicitly convert expression (%s) of type %s to %s",
-                toChars(), tx->toChars(), to->toChars());
+                toChars(), ts[0], ts[1]);
     }
     return m;
 }
@@ -5644,11 +5647,17 @@ Expression *BinExp::incompatibleTypes()
         error("incompatible types for ((%s) %s (%s)): cannot use `%s` with types",
             e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
     }
+    else if (e1->type->equals(e2->type))
+    {
+        error("incompatible types for ((%s) %s (%s)): both operands are of type `%s`",
+            e1->toChars(), Token::toChars(thisOp), e2->toChars(), e1->type->toChars());
+    }
     else
     {
+        const char *ts[2];
+        toAutoQualChars(ts, e1->type, e2->type);
         error("incompatible types for ((%s) %s (%s)): `%s` and `%s`",
-            e1->toChars(), Token::toChars(thisOp), e2->toChars(),
-            e1->type->toChars(), e2->type->toChars());
+            e1->toChars(), Token::toChars(thisOp), e2->toChars(), ts[0], ts[1]);
     }
     return new ErrorExp();
 }
