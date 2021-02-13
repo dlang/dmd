@@ -251,6 +251,22 @@ void testUnaryFormat()
     assert(getMessage(assert(--(++zero))) == "0 != true");
 }
 
+void testAssignments()
+{
+    int a = 1;
+    int b = 2;
+    assert(getMessage(assert(a -= --b)) == "0 != true");
+
+    static ref int c()
+    {
+        static int counter;
+        counter++;
+        return counter;
+    }
+
+    assert(getMessage(assert(--c())) == "0 != true");
+}
+
 void main()
 {
     test8765();
@@ -260,4 +276,5 @@ void main()
     test21471();
     testMixinExpression();
     testUnaryFormat();
+    testAssignments();
 }

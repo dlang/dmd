@@ -7071,6 +7071,12 @@ extern (C++) final class Parameter : ASTNode
     }
 
     extern (D) private static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
+
+    extern (D) bool opEquals(const Parameter other) const
+    {
+        return this.storageClass == other.storageClass
+            && this.type == other.type;
+    }
 }
 
 /*************************************************************

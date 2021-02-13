@@ -263,8 +263,9 @@ struct Param
     DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
-    DString makeDepsFile;       // filename for makedeps output
-    OutBuffer *makeDeps;        // contents to be written to makedeps file
+    bool emitMakeDeps;                // whether to emit makedeps
+    DString makeDepsFile;             // filename for makedeps output
+    Array<const char *> makeDeps;     // dependencies for makedeps
 
     MessageStyle messageStyle;  // style of file/line annotations on messages
 
