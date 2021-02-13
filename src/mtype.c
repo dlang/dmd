@@ -5194,6 +5194,17 @@ static const char *getParamError(TypeFunction *tf, Expression *arg, Parameter *p
     return buf.extractChars();
 }
 
+static const char *getMatchError(const char *format, ...)
+{
+    if (global.gag && !global.params.showGaggedErrors)
+        return NULL;
+    OutBuffer buf;
+    va_list ap;
+    va_start(ap, format);
+    buf.vprintf(format, ap);
+    return buf.extractChars();
+}
+
 /********************************
  * 'args' are being matched to function 'this'
  * Determine match level.
@@ -5241,12 +5252,15 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag, const ch
 
     size_t nparams = parameterList.length();
     size_t nargs = args ? args->length : 0;
-    if (nparams == nargs)
-        ;
-    else if (nargs > nparams)
+    if (nargs > nparams)
     {
         if (parameterList.varargs == VARARGnone)
-            goto Nomatch;               // too many args; no match
+        {
+            // suppress early exit if an error message is wanted,
+            // so we can check any matching args are valid
+            if (!pMessage)
+                goto Nomatch;           // too many args; no match
+        }
         match = MATCHconvert;           // match ... with a "conversion" match level
     }
 
@@ -5406,7 +5420,11 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag, const ch
                     tsa = (TypeSArray *)tb;
                     sz = tsa->dim->toInteger();
                     if (sz != nargs - u)
+                    {
+                        if (pMessage)
+                            *pMessage = getMatchError("expected %llu variadic argument(s), not %zu", sz, nargs - u);
                         goto Nomatch;
+                    }
                     /* fall through */
                 case Tarray:
                     {
@@ -5457,6 +5475,9 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag, const ch
             }
             if (pMessage && u < nargs)
                 *pMessage = getParamError(this, (*args)[u], p);
+            else if (pMessage)
+                *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+                    u + 1, parameterToChars(p, this, false));
             goto Nomatch;
         }
         if (m < match)
@@ -5464,6 +5485,12 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag, const ch
     }
 
 Ldone:
+    if (pMessage && !parameterList.varargs && nargs > nparams)
+    {
+        // all parameters had a match, but there are surplus args
+        *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+        goto Nomatch;
+    }
     //printf("match = %d\n", match);
     return match;
 
