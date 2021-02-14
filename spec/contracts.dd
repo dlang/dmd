@@ -26,31 +26,7 @@ $(HTMLTAG3V img, src="$(ROOT_DIR)images/d4.gif" style="max-width:100%" alt="Cont
 
 $(H2 $(LNAME2 assert_contracts, Assert Contract))
 
-        $(P The most basic contract is the
-        $(GLINK2 expression, AssertExpression).
-        An $(B assert) declares an expression that must evaluate to true, with an
-        optional failure string as a second argument:)
-------
-assert(expression);
-assert(expression, "message to display on failure");
-------
-        $(P As a contract, an $(D assert) represents a guarantee that the code
-        $(I must) uphold. Any failure of this expression represents a logic
-        error in the code that must be fixed in the source code.  A program for
-        which the assert contract is false is, by definition, invalid.)
-
-        $(P As a debugging aid, the compiler may insert a runtime check to
-        verify that the expression is indeed true.  If it is false, an
-        `AssertError` is thrown.  When compiling for release, this check is not
-        generated.  The special $(D assert(0)) expression, however, is
-        generated even in release mode. See the $(GLINK2 expression, AssertExpression)
-        documentation for more information.)
-
-        $(P The compiler is free to assume the assert expression is true and
-        optimize subsequent code accordingly.)
-
-        $(UNDEFINED_BEHAVIOR The subsequent execution of the program after an
-        assert contract is false.)
+        $(P See $(GLINK2 expression, AssertExpression).)
 
 $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
