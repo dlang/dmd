@@ -4,30 +4,25 @@ $(SPEC_S Contract Programming,
 
 $(HEADERNAV_TOC)
 
-        $(P Contracts are a breakthrough technique to reduce the programming effort
-        for large projects. Contracts are the concept of preconditions, postconditions,
-        errors, and invariants.
-        )
+        $(P Contracts enable specifying conditions that must hold true
+        when the flow of runtime execution reaches the contract.
+        If a contract is not true, then the program is assumed to have entered
+        an undefined state.)
 
-        $(P Building contract support into the language makes for:)
+        $(RATIONALE
+        $(P Building contract support into the language provides:)
 
         $(OL
         $(LI a consistent look and feel for the contracts)
         $(LI tool support)
-        $(LI it's possible the compiler can generate better code using information gathered
+        $(LI the implementation can generate better code using information gathered
         from the contracts)
         $(LI easier management and enforcement of contracts)
         $(LI handling of contract inheritance)
         )
+        )
 
 $(HTMLTAG3V img, src="$(ROOT_DIR)images/d4.gif" style="max-width:100%" alt="Contracts make D bug resistant" border="0")
-
-        $(P The idea of a contract is simple - it's just an expression that must evaluate to true.
-        If it does not, the contract is broken, and by definition, the program has a bug in it.
-        Contracts form part of the specification for a program, moving it from the documentation
-        to the code itself. And as every programmer knows, documentation tends to be incomplete,
-        out of date, wrong, or non-existent. Moving the contracts into the code makes them
-        verifiable against the program.)
 
 $(H2 $(LNAME2 assert_contracts, Assert Contract))
 
