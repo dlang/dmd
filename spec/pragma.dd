@@ -252,32 +252,47 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
     $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
     )
 
+    $(P It only applies to function and variable symbols. Other symbols are ignored.)
+
     $(IMPLEMENTATION_DEFINED On macOS and Win32, an extra underscore (`_`) is prepended to the string
         since 2.079, as is done by the C/C++ toolchain. This allows using the same `pragma(mangle)`
         for all compatible (POSIX in one case, win64 in another) platforms instead of having to special-case.
     )
 
-    $(IMPLEMENTATION_DEFINED It's only effective
-        when the symbol is a function declaration or a variable declaration.
-        For example this allows linking to a symbol which is a D keyword, which would normally
-        be disallowed as a symbol name:
+    $(RATIONALE
+        $(UL
+        $(LI Enables linking to symbol names that D cannot represent.)
+        $(LI Enables linking to a symbol which is a D keyword, since an $(GLINK_LEX Identifier)
+        cannot be a keyword.)
+        )
+        ---
+        pragma(mangle, "body")
+        extern(C) void body_func();
+        ---
     )
------------------
-pragma(mangle, "body")
-extern(C) void body_func();
------------------
 
 
 $(H3 $(LNAME2 msg, $(D pragma msg)))
 
-    $(P Constructs a message from the $(I ArgumentList).)
+    $(P Each $(ASSIGNEXPRESSION) is evaluated at compile time and then all are combined into a message.)
 
------------------
-pragma(msg, "compiling...", 1, 1.0);
------------------
+    ---
+    pragma(msg, "compiling...", 6, 1.0); // prints "compiling...61.0" at compile time
+    ---
 
-    $(IMPLEMENTATION_DEFINED The arguments are typically presented to the user during compilation,
-    such as by printing them to the standard error stream.)
+    $(IMPLEMENTATION_DEFINED The form the message takes and how it is presented to the user.
+    One way is by printing them to the standard error stream.)
+
+    $(RATIONALE Analogously to how `writeln()` performs a role of writing informational messages during runtime,
+        `pragma(msg)` performs the equivalent role at compile time.
+        For example,
+        ---
+        static if (kilroy)
+            pragma(msg, "Kilroy was here");
+        else
+            pragma(msg, "Kilroy got lost");
+        ---
+    )
 
 $(H3 $(LNAME2 printf, $(D pragma printf)))
 
