@@ -564,20 +564,6 @@ static if (1)
         AApair *functype_table;  // not sure why this cannot be combined with type_table
         Outbuffer *functypebuf;
 
-        struct DebugInfoHeader
-        {
-          align (1):
-            uint total_length  = 0;
-            ushort version_    = 3;
-            uint abbrev_offset = 0;
-            ubyte address_size = 4;
-        }
-
-        // https://issues.dlang.org/show_bug.cgi?id=16563
-        static assert(DebugInfoHeader.alignof == 1 && DebugInfoHeader.sizeof == 11);
-
-        DebugInfoHeader debuginfo;
-
         // .debug_line
         size_t linebuf_filetab_end;
 
@@ -600,6 +586,24 @@ static if (1)
 
         public uint[TYMAX] typidx_tab;
     }
+
+    /*****************************************
+     * Replace the bytes in `buf` from the `offset` by `data`.
+     *
+     * Params:
+     *      buf = buffer where `data` will be written
+     *      offset = offset of the bytes in `buf` to replace
+     *      data = bytes to write
+     */
+    extern(D) void rewrite(T)(Outbuffer* buf, uint offset, T data)
+    {
+        ulong end = offset + data.sizeof;
+        for(uint i = 0; i < end - offset; ++i)
+            buf.buf[offset + i] = (data >> (8 * i)) & 0xff;
+    }
+
+    alias rewrite32 = rewrite!uint;
+    alias rewrite64 = rewrite!ulong;
 
     /*****************************************
      * Append .debug_frame header to buf.
@@ -1129,13 +1133,14 @@ static if (1)
         {
             debug_info.initialize();
 
-            debuginfo = DebugInfoHeader.init;
-            if (I64)
-                debuginfo.address_size = 8;
 
-            // https://issues.dlang.org/show_bug.cgi?id=16563
-            assert(debuginfo.alignof == 1);
-            debug_info.buf.write(&debuginfo, debuginfo.sizeof);
+            // Compilation Unit Header
+            {
+                debug_info.buf.write32(0);                      // unit length
+                debug_info.buf.write16(3);                      // version
+                debug_info.buf.write32(0);                      // debug abbrev offset
+                debug_info.buf.writeByte(I64 ? 8 : 4);          // Address size
+            }
 
             static if (ELFOBJ)
                 dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
@@ -1439,13 +1444,12 @@ static if (1)
 
         /* ================================================= */
 
-        debug_info.buf.writeByte(0);      // ending abbreviation code
+        // debug_info
+        {
+            debug_info.buf.writeByte(0);    // ending abbreviation code
+            rewrite32(debug_info.buf, 0, cast(uint) debug_info.buf.length() - 4); // rewrites the unit length
+        }
 
-        debuginfo.total_length = cast(uint)debug_info.buf.length() - 4;
-
-        // https://issues.dlang.org/show_bug.cgi?id=16563
-        assert(debuginfo.alignof == 1);
-        memcpy(debug_info.buf.buf, &debuginfo, debuginfo.sizeof);
 
         /* ================================================= */
 
