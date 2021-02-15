@@ -4267,6 +4267,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.mod = mod;
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
+        t.islive = islive;
         t.purity = purity;
         t.isproperty = isproperty;
         t.isref = isref;
