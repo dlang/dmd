@@ -18,7 +18,7 @@ void foo2(const C2 c);
 struct Foo3
 {
    int k;
-   ~this() @trusted @disable @nogc { k = 1; }
+   ~this() @trusted @disable @nogc @live { k = 1; }
    this(this) { k = 2; }
 }
 

@@ -6731,6 +6731,7 @@ struct ASTBase
             SCstring(STC.tls, "__thread"),
             SCstring(STC.gshared, Token.toString(TOK.gshared)),
             SCstring(STC.nogc, "@nogc"),
+            SCstring(STC.live, "@live"),
             SCstring(STC.property, "@property"),
             SCstring(STC.safe, "@safe"),
             SCstring(STC.trusted, "@trusted"),
