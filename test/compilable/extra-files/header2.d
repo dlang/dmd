@@ -144,11 +144,22 @@ void test13275()
 // https://issues.dlang.org/show_bug.cgi?id=9766
 align (1) struct S9766
 {
+align {}
 align (true ? 2 : 3):
     int var1;
 
 align:
     int var2;
+}
+
+align(2) struct S12200_1
+{
+align:
+}
+
+align(2) struct S12200_2
+{
+align(1):
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=16649

@@ -984,7 +984,13 @@ public:
     {
         buf.writestring("align ");
         if (d.ealign)
-            buf.printf("(%s) ", d.ealign.toChars());
+        {
+            buf.printf("(%s)", d.ealign.toChars());
+            AttribDeclaration ad = cast(AttribDeclaration)d;
+            if (ad.decl && ad.decl.dim < 2)
+                buf.writeByte(' ');
+        }
+
         visit(cast(AttribDeclaration)d);
     }
 

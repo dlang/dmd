@@ -102,11 +102,20 @@ void foo11217()(inout int[] arr)
 void test13275();
 align (1) struct S9766
 {
-	align (true ? 2 : 3) 
+	align {}
+	align (true ? 2 : 3)
 	{
 		int var1;
 		align int var2;
 	}
+}
+align (2) struct S12200_1
+{
+	align {}
+}
+align (2) struct S12200_2
+{
+	align (1) {}
 }
 void leFoo()()
 {
