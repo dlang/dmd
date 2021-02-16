@@ -1137,9 +1137,18 @@ static if (1)
             // Compilation Unit Header
             {
                 debug_info.buf.write32(0);                      // unit length
-                debug_info.buf.write16(3);                      // version
-                debug_info.buf.write32(0);                      // debug abbrev offset
-                debug_info.buf.writeByte(I64 ? 8 : 4);          // Address size
+                debug_info.buf.write16(config.dwarf);           // version
+                if (config.dwarf >= 5)
+                {
+                    debug_info.buf.writeByte(DW_UT_compile);    // Unit Type
+                    debug_info.buf.writeByte(I64 ? 8 : 4);      // Address size
+                    debug_info.buf.write32(0);                  // debug abbrev offset
+                }
+                else
+                {
+                    debug_info.buf.write32(0);                  // debug abbrev offset
+                    debug_info.buf.writeByte(I64 ? 8 : 4);      // Address size
+                }
             }
 
             static if (ELFOBJ)

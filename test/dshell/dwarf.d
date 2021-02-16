@@ -56,7 +56,7 @@ int main()
 
 
         string exe = OUTPUT_BASE ~ slash ~ filename;
-        run("$DMD -m$MODEL -of" ~ exe ~ "$EXE -conf= -fPIE -g"
+        run("$DMD -m$MODEL -of" ~ exe ~ "$EXE -conf= -fPIE -g " ~ getExtraArgs(path)
             ~ " -I" ~ extra_dwarf_dir ~ " " ~ path);
 
         // Write objdump result to a file
@@ -100,3 +100,45 @@ int main()
     return failed;
 }
 
+string getExtraArgs(string dfile)
+{
+    string result;
+    bool begin;
+
+    auto f = File(dfile, "r");
+
+    foreach (line; f.byLine)
+    {
+
+        if (line.length < 2)
+            continue;
+
+        if (line.startsWith("/*"))
+        {
+            begin = true;
+        }
+        
+        if (begin)
+        {
+            string[] args = line.split(":").to!(string[]);
+            if (args.length == 2)
+            {
+                switch (args[0])
+                {
+                    case "EXTRA_ARGS":
+                        result ~= args[1];
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if (line.indexOf("*/") != -1)
+            {
+                break;
+            }
+        }
+    }
+    f.close();
+    return result;
+}
