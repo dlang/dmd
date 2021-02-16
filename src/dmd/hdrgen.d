@@ -900,9 +900,7 @@ public:
             buf.writenl();
             return;
         }
-        if (d.decl.dim == 0)
-            buf.writestring("{}");
-        else if (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration())
+        if (d.decl.dim == 0 || (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration()))
         {
             // hack for bugzilla 8081
             buf.writestring("{}");
