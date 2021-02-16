@@ -637,6 +637,7 @@ class TemplateTupleParameter;
 struct Mcache;
 struct TYPE;
 class TypeBasic;
+class TypeNone;
 class TypeError;
 class TypeVector;
 class TypeSArray;
@@ -1258,6 +1259,7 @@ public:
     static Type* tdstring;
     static Type* terror;
     static Type* tnull;
+    static Type* tnone;
     static Type* tsize_t;
     static Type* tptrdiff_t;
     static Type* thash_t;
@@ -1376,6 +1378,7 @@ public:
     virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
     virtual TypeBasic* isTypeBasic();
+    TypeNone* isTypeNone();
     TypeError* isTypeError();
     TypeVector* isTypeVector();
     TypeSArray* isTypeSArray();
@@ -2393,8 +2396,6 @@ class TupleDeclaration final : public Declaration
 {
 public:
     Array<RootObject* >* objects;
-    bool isexp;
-    TypeTuple* tupletype;
     TupleDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     Type* getType();
@@ -4942,6 +4943,12 @@ enum class DotExpFlag
 {
     gag = 1,
     noDeref = 2,
+};
+
+class TypeNone final : public Type
+{
+public:
+    const char* kind() const;
 };
 
 class TypeError final : public Type
