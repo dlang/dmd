@@ -146,13 +146,33 @@ $(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
 
 $(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
 
-    $(P Similarly, `pragma(crt_destructor)` must also directly precede an `extern(C)`
-        function declaration that must take no argument, even default ones.
-        The function this pragma applies to will be inserted in `.fini_array`
-        or `.dtors`, depending on the target and compiler implementation.
-        It is equivalent to GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((destructor))`).
+    $(P `pragma(crt_destructor)` works the same as `pragma(crt_destructor)` except:)
+
+    $(P Annotates a function so it is run after the D runtime library is terminated
+        and before the C runtime library is terminated.
+        Calling C's `exit()` function also causes the annotated functions to run.
     )
------------------
+
+    $(P The order in which the annotated functions are run is the reverse of those functions
+        annotated with `pragma(crt_constructor)`.)
+
+    $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
+        code after `main()` returns or `exit()` is called. C++ compilers use it to run static
+        destructors.
+        For example, GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((destructor))`)
+        is equivalent.
+        Digital Mars C uses $(TT _STI) and $(TT _STD) identifier prefixes to mark crt_constructor and crt_destructor functions.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+        A reference to the annotated function will be inserted in
+        the $(TT .fini_array) section for Elf systems,
+        the $(TT XC) section for Win32 OMF systems,
+        the $(TT .CRT$XPU) section for Windows MSCOFF systems,
+        and the $(TT __mod_term_func) section for OSX systems.
+    )
+
+---
 __gshared int initCount;
 
 pragma(crt_constructor)
@@ -164,11 +184,8 @@ extern(C) void deinitialize() { initCount -= 1; }
 pragma(crt_constructor)
 pragma(crt_destructor)
 extern(C) void innuendo() { printf("Inside a constructor... Or destructor?\n"); }
------------------
+---
 
-    $(P The runtime might have been terminated and not be usable anymore when the destructors are called.
-        Otherwise, usage and requirements of `crt_destructor` are similar to those of `crt_constructor`.
-    )
 
 $(H3 $(LNAME2 inline, $(D pragma inline)))
 
