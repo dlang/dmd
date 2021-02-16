@@ -1670,6 +1670,8 @@ public:
             buf.writestring("@safe ");
         if (d.storage_class & STC.nogc)
             buf.writestring("@nogc ");
+        if (d.storage_class & STC.live)
+            buf.writestring("@live ");
         if (d.storage_class & STC.disable)
             buf.writestring("@disable ");
 
@@ -2791,6 +2793,7 @@ string stcToString(ref StorageClass stc)
         SCstring(STC.tls, "__thread"),
         SCstring(STC.gshared, Token.toString(TOK.gshared)),
         SCstring(STC.nogc, "@nogc"),
+        SCstring(STC.live, "@live"),
         SCstring(STC.property, "@property"),
         SCstring(STC.safe, "@safe"),
         SCstring(STC.trusted, "@trusted"),
