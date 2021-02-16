@@ -595,10 +595,9 @@ static if (1)
      *      offset = offset of the bytes in `buf` to replace
      *      data = bytes to write
      */
-    extern(D) void rewrite(T)(Outbuffer* buf, uint offset, T data)
+    extern(D) void rewrite(T)(Outbuffer* buf, size_t offset, T data)
     {
-        ulong end = offset + data.sizeof;
-        for(uint i = 0; i < end - offset; ++i)
+        foreach(size_t i; 0 .. data.sizeof)
             buf.buf[offset + i] = (data >> (8 * i)) & 0xff;
     }
 
