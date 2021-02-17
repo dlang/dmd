@@ -597,8 +597,7 @@ static if (1)
      */
     extern(D) void rewrite(T)(Outbuffer* buf, size_t offset, T data)
     {
-        foreach(size_t i; 0 .. data.sizeof)
-            buf.buf[offset + i] = (data >> (8 * i)) & 0xff;
+        *(cast(T*)&buf.buf[offset]) = data;
     }
 
     alias rewrite32 = rewrite!uint;
