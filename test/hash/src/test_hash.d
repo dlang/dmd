@@ -13,6 +13,7 @@ void main()
     issue19568();
     issue19582();
     issue20034();
+    issue21642();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -230,6 +231,19 @@ void issue20034()
     }
     // should compile
     assert(hashOf(E.a, 1));
+}
+
+/// [REG 2.084] hashOf will fail to compile for some structs/unions that recursively contain shared enums
+void issue21642() @safe nothrow pure
+{
+    enum C : char { _ = 1, }
+    union U { C c; void[0] _; }
+    shared union V { U u; }
+    cast(void) hashOf(V.init);
+    // Also test the underlying reason the above was failing.
+    import core.internal.convert : toUbyte;
+    shared C c;
+    assert(toUbyte(c) == [ubyte(1)]);
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
