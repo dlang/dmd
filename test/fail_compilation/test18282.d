@@ -1,13 +1,14 @@
 /* REQUIRED_ARGS: -preview=dip1000
    TEST_OUTPUT:
 ---
-fail_compilation/test18282.d(25): Error: scope variable `aa` may not be returned
-fail_compilation/test18282.d(34): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(20): Error: scope variable `ls` may not be returned
+fail_compilation/test18282.d(26): Error: scope variable `aa` may not be returned
 fail_compilation/test18282.d(35): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(36): Error: scope variable `staa` may not be returned
-fail_compilation/test18282.d(44): Error: copying `S2000(& i)` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(53): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(53): Error: copying `& c` into allocated memory escapes a reference to local variable `c`
+fail_compilation/test18282.d(36): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(37): Error: scope variable `staa` may not be returned
+fail_compilation/test18282.d(45): Error: copying `S2000(& i)` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(54): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(54): Error: copying `& c` into allocated memory escapes a reference to local variable `c`
 ---
  */
 

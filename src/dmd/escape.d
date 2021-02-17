@@ -1649,7 +1649,9 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(IndexExp e)
         {
-            if (e.e1.type.toBasetype().ty == Tsarray ||
+            auto arrayType = e.e1.type.toBasetype().ty;
+            if (arrayType == Tsarray ||
+                (arrayType == Tarray && !live) ||
                 live && e.type.hasPointers())
             {
                 e.e1.accept(this);
