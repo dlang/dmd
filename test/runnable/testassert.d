@@ -296,6 +296,32 @@ void testTupleFormat()
         const msg = getMessage(assert(a.tupleof == b.tupleof));
         assert(msg == `(1, 2) != (3, 4)`);
     }
+
+    // Also works when creating temporaries for the TupleExp
+    {
+        static struct S
+        {
+            int a, b;
+        }
+
+        static S get()
+        {
+            static int i;
+            return S(i++, i++);
+        }
+
+        auto a = get().tupleof;
+        auto b = get().tupleof;
+
+        string msg = getMessage(assert(a == b));
+        assert(msg == `(0, 1) != (2, 3)`);
+
+        msg = getMessage(assert(get().tupleof == AliasSeq!(2, 3)));
+        assert(msg == `(4, 5) != (2, 3)`);
+
+        msg = getMessage(assert(get().tupleof == get().tupleof));
+        assert(msg == `(6, 7) != (8, 9)`);
+    }
 }
 
 void main()

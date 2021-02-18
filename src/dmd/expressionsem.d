@@ -6110,6 +6110,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         op.toBoolean(sc);
                     }
 
+                    // Tuples with side-effects already receive a temporary during semantic
+                    if (op.type.isTypeTuple())
+                    {
+                        auto te = op.isTupleExp();
+                        assert(te);
+
+                        // Create a new tuple without the associated temporary
+                        auto res = new TupleExp(op.loc, te.exps);
+                        return res.expressionSemantic(sc);
+                    }
+
                     const stc = op.isLvalue() ? STC.ref_ : 0;
                     auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
