@@ -3,7 +3,7 @@ import core.internal.dassert : _d_assert_fail;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
-    test(_d_assert_fail!(A, B)(comp, a, b), msg, line);
+    test(_d_assert_fail!(A)(comp, a, b), msg, line);
 }
 
 void test(const string actual, const string expected, size_t line = __LINE__)
@@ -167,10 +167,10 @@ void testStruct()()
     }
 
     NoCopy n;
-    test(_d_assert_fail("!=", n, n), "NoCopy() == NoCopy()");
+    test(_d_assert_fail!(typeof(n))("!=", n, n), "NoCopy() == NoCopy()");
 
     shared NoCopy sn;
-    test(_d_assert_fail("!=", sn, sn), "NoCopy() == NoCopy()");
+    test(_d_assert_fail!(typeof(sn))("!=", sn, sn), "NoCopy() == NoCopy()");
 }
 
 void testAA()()
@@ -180,16 +180,18 @@ void testAA()()
     test!"in"("foo", ["bar": true], `"foo" !in ["bar": true]`);
 }
 
-
 void testAttributes() @safe pure @nogc nothrow
 {
     int a;
-    string s = _d_assert_fail("==", a, 0);
-    string s2 = _d_assert_fail("!", a);
+    string s = _d_assert_fail!(int, char)("==", a, 'c', 1, 'd');
+    assert(s == `(0, 'c') != (1, 'd')`);
+
+    string s2 = _d_assert_fail!int("", a);
+    assert(s2 == `0 != true`);
 
     // Test instatiation of legacy hooks
-    s = _d_assert_fail!"=="(a, 0);
-    s2 = _d_assert_fail!"!"(a);
+    s2 = _d_assert_fail("==", a, 1);
+    assert(s2 == `0 != 1`);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
@@ -227,13 +229,13 @@ void testEnum()
 
     ubyte[] data;
     enum ctfe = UUID();
-    test(_d_assert_fail("==", ctfe.data, data), "[1] != []");
+    test(_d_assert_fail!(ubyte[])("==", ctfe.data, data), "[1] != []");
 }
 
 void testUnary()
 {
-    test(_d_assert_fail("", 9), "9 != true");
-    test(_d_assert_fail("!", [1, 2, 3]), "[1, 2, 3] == true");
+    test(_d_assert_fail!int("", 9), "9 != true");
+    test(_d_assert_fail!(int[])("!", [1, 2, 3]), "[1, 2, 3] == true");
 }
 
 void main()

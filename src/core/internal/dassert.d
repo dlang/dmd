@@ -19,18 +19,6 @@
  */
 module core.internal.dassert;
 
-// Legacy hooks currently used by dmd, remove once dmd uses
-// the new runtime versions defined below
-string _d_assert_fail(string op, A)(auto ref const scope A a)
-{
-    return _d_assert_fail!(A)(op, a);
-}
-
-string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
-{
-    return _d_assert_fail!(A, B)(comp, a, b);
-}
-
 /**
  * Generates rich assert error messages for unary expressions
  *
@@ -49,25 +37,42 @@ string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref cons
  */
 string _d_assert_fail(A)(const scope string op, auto ref const scope A a)
 {
-    string val = miniFormatFakeAttributes(a);
+    string[2] vals = [ miniFormatFakeAttributes(a), "true" ];
     immutable token = op == "!" ? "==" : "!=";
-    return combine(val, token, "true");
+    return combine(vals[0 .. 1], token, vals[1 .. $]);
 }
 
 /**
  * Generates rich assert error messages for binary expressions
  *
  * The binary expression `assert(x == y)` will be turned into
- * `assert(x == y, _d_assert_fail("==", x, y))`.
+ * `assert(x == y, _d_assert_fail!(typeof(x))("==", x, y))`.
  *
  * Params:
  *   comp = Comparison operator that was used in the expression.
- *   a  = Left hand side operand.
- *   b  = Right hand side operand.
+ *   a  = Left hand side operand (can be a tuple).
+ *   b  = Right hand side operand (can be a tuple).
  *
  * Returns:
  *   A string such as "$a $comp $b".
  */
+template _d_assert_fail(A...)
+{
+    string _d_assert_fail(B...)(
+        const scope string comp, auto ref const scope A a, auto ref const scope B b)
+    if (B.length > 0)
+    {
+        string[A.length + B.length] vals;
+        static foreach (idx; 0 .. A.length)
+            vals[idx] = miniFormatFakeAttributes(a[idx]);
+        static foreach (idx; 0 .. B.length)
+            vals[A.length + idx] = miniFormatFakeAttributes(b[idx]);
+        immutable token = invertCompToken(comp);
+        return combine(vals[0 .. A.length], token, vals[A.length .. $]);
+    }
+}
+
+// Legacy definition
 string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, auto ref const scope B b)
 {
     /*
@@ -80,23 +85,48 @@ string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, a
     string valA = miniFormatFakeAttributes(a);
     string valB = miniFormatFakeAttributes(b);
     immutable token = invertCompToken(comp);
-    return combine(valA, token, valB);
+    return combine([valA], token, [valB]);
 }
 
 /// Combines the supplied arguments into one string "valA token valB"
-private string combine(const scope string valA, const scope string token,
-const scope string valB) pure nothrow @nogc @safe
+private string combine(const scope string[] valA, const scope string token,
+    const scope string[] valB) pure nothrow @nogc @safe
 {
-    const totalLen = valA.length + token.length + valB.length + 2;
+    // Each separator is 2 chars (", "), plus the two spaces around the token.
+    size_t totalLen = (valA.length - 1) * 2 +
+        (valB.length - 1) * 2 + 2 + token.length;
+    foreach (v; valA) totalLen += v.length;
+    foreach (v; valB) totalLen += v.length;
+
+    // Include braces when printing tuples
+    const printBraces = (valA.length + valB.length) > 2;
+    if (printBraces) totalLen += 4; // '(', ')' for both tuples
+
     char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
     // @nogc-concat of "<valA> <comp> <valB>"
-    auto n = valA.length;
-    buffer[0 .. n] = valA;
+    static void formatTuple (scope char[] buffer, ref size_t n, in string[] vals, in bool printBraces)
+    {
+        if (printBraces) buffer[n++] = '(';
+        foreach (idx, v; vals)
+        {
+            if (idx)
+            {
+                buffer[n++] = ',';
+                buffer[n++] = ' ';
+            }
+            buffer[n .. n + v.length] = v;
+            n += v.length;
+        }
+        if (printBraces) buffer[n++] = ')';
+    }
+
+    size_t n;
+    formatTuple(buffer, n, valA, printBraces);
     buffer[n++] = ' ';
     buffer[n .. n + token.length] = token;
     n += token.length;
     buffer[n++] = ' ';
-    buffer[n .. n + valB.length] = valB;
+    formatTuple(buffer, n, valB, printBraces);
     return (() @trusted => cast(string) buffer)();
 }
 
@@ -165,7 +195,8 @@ private string miniFormat(V)(const scope ref V v)
 
         // Format invalid enum values as their base type
         enum cast_ = "cast(" ~ V.stringof ~ ")";
-        return combine(cast_, "", miniFormat(*(cast(BaseType*) &v)));
+        const val = miniFormat(*(cast(BaseType*) &v));
+        return combine([ cast_ ], "", [ val ]);
     }
     else static if (is(V == bool))
     {
@@ -371,7 +402,7 @@ private string invertCompToken(string comp) pure nothrow @nogc @safe
         case "!in":
             return "in";
         default:
-            assert(0, combine("Invalid comparison operator", "-", comp));
+            assert(0, combine(["Invalid comparison operator"], "-", [comp]));
     }
 }
 
