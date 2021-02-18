@@ -285,6 +285,7 @@ enum ENUMTY : int
     Tuns128,
     Ttraits,
     Tmixin,
+    Tnoreturn,
     TMAX,
 }
 
@@ -334,6 +335,7 @@ alias Tint128 = ENUMTY.Tint128;
 alias Tuns128 = ENUMTY.Tuns128;
 alias Ttraits = ENUMTY.Ttraits;
 alias Tmixin = ENUMTY.Tmixin;
+alias Tnoreturn = ENUMTY.Tnoreturn;
 alias TMAX = ENUMTY.TMAX;
 
 alias TY = ubyte;
@@ -449,6 +451,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) __gshared Type terror;      // for error recovery
     extern (C++) __gshared Type tnull;       // for null type
+    extern (C++) __gshared Type tnoreturn;   // for bottom type typeof(*null)
 
     extern (C++) __gshared Type tsize_t;     // matches size_t alias
     extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
@@ -501,6 +504,7 @@ extern (C++) abstract class Type : ASTNode
             sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
             sizeTy[Ttraits] = __traits(classInstanceSize, TypeTraits);
             sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
+            sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
             return sizeTy;
         }();
 
@@ -861,6 +865,7 @@ extern (C++) abstract class Type : ASTNode
             basic[basetab[i]] = t;
         }
         basic[Terror] = new TypeError();
+        basic[Tnoreturn] = new TypeNoreturn();
 
         tvoid = basic[Tvoid];
         tint8 = basic[Tint8];
@@ -892,6 +897,7 @@ extern (C++) abstract class Type : ASTNode
 
         tshiftcnt = tint32;
         terror = basic[Terror];
+        tnoreturn = basic[Tnoreturn];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
 
@@ -2699,6 +2705,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
         inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
+        inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
     }
 
     override void accept(Visitor v)
@@ -6646,6 +6653,57 @@ extern (C++) final class TypeNull : Type
     override d_uns64 size(const ref Loc loc) const
     {
         return tvoidptr.size(loc);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class TypeNoreturn : Type
+{
+    extern (D) this()
+    {
+        //printf("TypeNoreturn %p\n", this);
+        super(Tnoreturn);
+    }
+
+    override const(char)* kind() const
+    {
+        return "noreturn";
+    }
+
+    override TypeNoreturn syntaxCopy()
+    {
+        // No semantic analysis done, no need to copy
+        return this;
+    }
+
+    override MATCH implicitConvTo(Type to)
+    {
+        //printf("TypeNoreturn::implicitConvTo(this=%p, to=%p)\n", this, to);
+        //printf("from: %s\n", toChars());
+        //printf("to  : %s\n", to.toChars());
+        MATCH m = Type.implicitConvTo(to);
+        return (m == MATCH.exact) ? MATCH.exact : MATCH.convert;
+    }
+
+    override bool isBoolean() const
+    {
+        return false;
+    }
+
+    override d_uns64 size(const ref Loc loc) const
+    {
+        return 0;
+    }
+
+    override uint alignsize()
+    {
+        return 0;
     }
 
     override void accept(Visitor v)
