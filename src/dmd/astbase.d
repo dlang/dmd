@@ -204,6 +204,7 @@ struct ASTBase
         Tuns128,
         Ttraits,
         Tmixin,
+        Tnoreturn,
         TMAX
     }
 
@@ -253,6 +254,7 @@ struct ASTBase
     alias Tuns128 = ENUMTY.Tuns128;
     alias Ttraits = ENUMTY.Ttraits;
     alias Tmixin = ENUMTY.Tmixin;
+    alias Tnoreturn = ENUMTY.Tnoreturn;
     alias TMAX = ENUMTY.TMAX;
 
     alias TY = ubyte;
@@ -2766,6 +2768,7 @@ struct ASTBase
         extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
         extern (C++) __gshared Type terror;      // for error recovery
         extern (C++) __gshared Type tnull;       // for null type
+        extern (C++) __gshared Type tnoreturn;   // for bottom type
 
         extern (C++) __gshared Type tsize_t;     // matches size_t alias
         extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
@@ -2814,6 +2817,7 @@ struct ASTBase
                 sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
                 sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
                 sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
+                sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
                 return sizeTy;
             }();
 
@@ -2889,6 +2893,7 @@ struct ASTBase
                 basic[basetab[i]] = t;
             }
             basic[Terror] = new TypeError();
+            basic[Tnoreturn] = new TypeNoreturn();
 
             tvoid = basic[Tvoid];
             tint8 = basic[Tint8];
@@ -2920,6 +2925,7 @@ struct ASTBase
 
             tshiftcnt = tint32;
             terror = basic[Terror];
+            tnoreturn = basic[Tnoreturn];
             tnull = new TypeNull();
             tnull.deco = tnull.merge().deco;
 
@@ -3760,6 +3766,25 @@ struct ASTBase
         }
 
         override TypeNull syntaxCopy()
+        {
+            // No semantic analysis done, no need to copy
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeNoreturn : Type
+    {
+        extern (D) this()
+        {
+            super(Tnoreturn);
+        }
+
+        override TypeNoreturn syntaxCopy()
         {
             // No semantic analysis done, no need to copy
             return this;

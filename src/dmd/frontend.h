@@ -656,6 +656,7 @@ class TypeSlice;
 class TypeNull;
 class TypeMixin;
 class TypeTraits;
+class TypeNoreturn;
 class TemplateTypeParameter;
 class TemplateValueParameter;
 class TemplateAliasParameter;
@@ -1258,6 +1259,7 @@ public:
     static Type* tdstring;
     static Type* terror;
     static Type* tnull;
+    static Type* tnoreturn;
     static Type* tsize_t;
     static Type* tptrdiff_t;
     static Type* thash_t;
@@ -1279,7 +1281,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[46LLU];
+    static Type* basic[47LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -1397,6 +1399,7 @@ public:
     TypeNull* isTypeNull();
     TypeMixin* isTypeMixin();
     TypeTraits* isTypeTraits();
+    TypeNoreturn* isTypeNoreturn();
     void accept(Visitor* v);
     TypeFunction* toTypeFunction();
 };
@@ -4921,7 +4924,8 @@ enum class ENUMTY
     Tuns128 = 43,
     Ttraits = 44,
     Tmixin = 45,
-    TMAX = 46,
+    Tnoreturn = 46,
+    TMAX = 47,
 };
 
 typedef uint8_t TY;
@@ -5422,6 +5426,18 @@ public:
     bool hasPointers();
     bool isBoolean() /* const */;
     d_uns64 size(const Loc& loc) /* const */;
+    void accept(Visitor* v);
+};
+
+class TypeNoreturn final : public Type
+{
+public:
+    const char* kind() const;
+    TypeNoreturn* syntaxCopy();
+    MATCH implicitConvTo(Type* to);
+    bool isBoolean() /* const */;
+    d_uns64 size(const Loc& loc) /* const */;
+    uint32_t alignsize();
     void accept(Visitor* v);
 };
 

@@ -210,6 +210,7 @@ private immutable char[TMAX] mangleChar =
     Tvector      : '@',
     Ttraits      : '@',
     Tmixin       : '@',
+    Tnoreturn    : '@',  // fix later
 ];
 
 unittest
