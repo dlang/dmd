@@ -158,9 +158,9 @@ struct Outbuffer
     /**
      * Writes an 8 bit byte, no reserve check.
      */
-    void writeByten(ubyte v)
+    void writeByten(int v)
     {
-        *p++ = v;
+        *p++ = cast(ubyte)v;
     }
 
     /**
@@ -169,7 +169,7 @@ struct Outbuffer
     void writeByte(int v)
     {
         reserve(1);
-        *p++ = cast(ubyte)v;
+        writeByten(v);
     }
 
     /**
@@ -192,13 +192,30 @@ struct Outbuffer
     }
 
     /**
+     * Writes a 32 bit int, no reserve check.
+     */
+    void write32n(int v)
+    {
+        *cast(int *)p = v;
+        p += 4;
+    }
+
+    /**
      * Writes a 32 bit int.
      */
     void write32(int v)
     {
         reserve(4);
-        *cast(int *)p = v;
-        p += 4;
+        write32n(v);
+    }
+
+    /**
+     * Writes a 64 bit long, no reserve check
+     */
+    void write64n(long v)
+    {
+        *cast(long *)p = v;
+        p += 8;
     }
 
     /**
@@ -207,10 +224,8 @@ struct Outbuffer
     void write64(long v)
     {
         reserve(8);
-        *cast(long *)p = v;
-        p += 8;
+        write64n(v);
     }
-
 
     /**
      * Writes a 32 bit float.
