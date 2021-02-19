@@ -1909,12 +1909,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     e = e.expressionSemantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
-                    // pragma(msg) is allowed to contain types as well as expressions
-                    if (e.type && e.type.ty == Tvoid)
-                    {
-                        error(pd.loc, "Cannot pass argument `%s` to `pragma msg` because it is `void`", e.toChars());
-                        return;
-                    }
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOK.error)
                     {
