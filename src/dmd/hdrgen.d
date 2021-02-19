@@ -3807,6 +3807,12 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writeByte(')');
     }
 
+    void visitNoreturn(TypeNoreturn t)
+    {
+        buf.writestring("noreturn");
+    }
+
+
     switch (t.ty)
     {
         default:        return t.isTypeBasic() ?
@@ -3834,5 +3840,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tslice:     return visitSlice(cast(TypeSlice)t);
         case Tnull:      return visitNull(cast(TypeNull)t);
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
+        case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
     }
 }
