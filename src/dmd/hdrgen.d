@@ -1866,8 +1866,16 @@ public:
                 buf.writeByte(')');
                 if (target.ptrsize == 8)
                     goto case Tuns64;
-                else
+                else if (target.ptrsize == 4 ||
+                         target.ptrsize == 2)
                     goto case Tuns32;
+                else
+                    assert(0);
+
+            case Tvoid:
+                buf.writestring("cast(void)0");
+                break;
+
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().

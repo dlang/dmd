@@ -179,7 +179,7 @@ extern (C++) final class CTFEExp : Expression
         case TOK.cantExpression:
             return "<cant>";
         case TOK.voidExpression:
-            return "<void>";
+            return "cast(void)0";
         case TOK.showCtfeContext:
             return "<error>";
         case TOK.break_:
