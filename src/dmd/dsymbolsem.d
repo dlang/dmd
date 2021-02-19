@@ -5963,8 +5963,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     }
 
     tempinst.hasNestedArgs(tempinst.tiargs, tempdecl.isstatic);
-    if (tempinst.errors)
-        goto Lerror;
 
     // Copy the tempdecl namespace (not the scope one)
     tempinst.cppnamespace = tempdecl.cppnamespace;
