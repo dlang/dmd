@@ -1623,7 +1623,7 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
 
                 if (arg.op == TOK.type)
                 {
-                    if (reportErrors)
+                    if (reportErrors && !global.gag)
                     {
                         arg.error("cannot pass type `%s` as a function argument", arg.toChars());
                         arg = ErrorExp.get();
@@ -1633,7 +1633,7 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
             }
             else if (arg.type.toBasetype().ty == Tfunction)
             {
-                if (reportErrors)
+                if (reportErrors && !global.gag)
                 {
                     arg.error("cannot pass function `%s` as a function argument", arg.toChars());
                     arg = ErrorExp.get();
