@@ -6964,6 +6964,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         case Terror:
             return setError();
 
+        case Tnull:
+            exp.type = Type.tnoreturn;  // typeof(*null) is bottom type
+            break;
+
         default:
             exp.error("can only `*` a pointer, not a `%s`", exp.e1.type.toChars());
             goto case Terror;
