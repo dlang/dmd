@@ -81,6 +81,7 @@ class TypeClass;
 class TypeTuple;
 class TypeSlice;
 class TypeNull;
+class TypeNoreturn;
 class TypeTraits;
 class TypeMixin;
 
@@ -426,6 +427,7 @@ public:
     virtual void visit(TypeBasic *t) { visit((Type *)t); }
     virtual void visit(TypeError *t) { visit((Type *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
+    virtual void visit(TypeNoreturn *t) { visit((Type *)t); }
     virtual void visit(TypeVector *t) { visit((Type *)t); }
     virtual void visit(TypeEnum *t) { visit((Type *)t); }
     virtual void visit(TypeTuple *t) { visit((Type *)t); }

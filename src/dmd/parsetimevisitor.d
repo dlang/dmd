@@ -140,6 +140,7 @@ public:
     void visit(AST.TypeBasic t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeError t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNull t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeNoreturn t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeVector t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeEnum t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTuple t) { visit(cast(AST.Type)t); }

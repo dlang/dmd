@@ -2893,7 +2893,10 @@ struct ASTBase
                 basic[basetab[i]] = t;
             }
             basic[Terror] = new TypeError();
-            basic[Tnoreturn] = new TypeNoreturn();
+
+            tnoreturn = new TypeNoreturn();
+            tnoreturn.deco = tnoreturn.merge().deco;
+            basic[Tnoreturn] = tnoreturn;
 
             tvoid = basic[Tvoid];
             tint8 = basic[Tint8];

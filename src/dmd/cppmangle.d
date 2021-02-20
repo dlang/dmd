@@ -1623,6 +1623,14 @@ extern(C++):
         writeBasicType(t, 'D', 'n');
     }
 
+    override void visit(TypeNoreturn t)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        writeBasicType(t, 0, 'v');      // mangle like `void`
+    }
+
     override void visit(TypeBasic t)
     {
         if (t.isImmutable() || t.isShared())

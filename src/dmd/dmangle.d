@@ -186,7 +186,7 @@ private immutable char[TMAX] mangleChar =
     //              K   // ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild
+    //              N   // Nh:vector Ng:wild Nn:noreturn
     //              O   // shared
     Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
@@ -210,7 +210,7 @@ private immutable char[TMAX] mangleChar =
     Tvector      : '@',
     Ttraits      : '@',
     Tmixin       : '@',
-    Tnoreturn    : '@',  // fix later
+    Tnoreturn    : '@',         // becomes 'Nn'
 ];
 
 unittest
@@ -586,6 +586,11 @@ public:
     override void visit(TypeNull t)
     {
         visit(cast(Type)t);
+    }
+
+    override void visit(TypeNoreturn t)
+    {
+        buf.writestring("Nn");
     }
 
     ////////////////////////////////////////////////////////////////////////////
