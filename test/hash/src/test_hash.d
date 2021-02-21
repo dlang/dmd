@@ -338,11 +338,9 @@ void pr2243()
     enum Bar vsexpr = Bar();
     enum int[int] aaexpr = [99:2, 12:6, 45:4];
     enum Gun eexpr = Gun.A;
-    enum cdouble cexpr = 7+4i;
     enum Foo[] staexpr = [Foo(), Foo(), Foo()];
     enum Bar[] vsaexpr = [Bar(), Bar(), Bar()];
     enum realexpr = 7.88;
-    enum raexpr = [8.99L+86i, 3.12L+99i, 5.66L+12i];
     enum nullexpr = null;
     enum plstr = Plain();
     enum plarrstr = [Plain(), Plain(), Plain()];
@@ -366,7 +364,6 @@ void pr2243()
     enum h10 = vsexpr.hashOf();
     enum h11 = aaexpr.hashOf();
     enum h12 = eexpr.hashOf();
-    enum h13 = cexpr.hashOf();
     enum h14 = hashOf(new Boo);
     enum h15 = staexpr.hashOf();
     enum h16 = hashOf([new Boo, new Boo, new Boo]);
@@ -387,7 +384,6 @@ void pr2243()
     auto h27 = ptrexpr.hashOf();
 
     enum h28 = realexpr.hashOf();
-    enum h29 = raexpr.hashOf();
     enum h30 = nullexpr.hashOf();
     enum h31 = plstr.hashOf();
     enum h32 = plarrstr.hashOf();
@@ -405,7 +401,6 @@ void pr2243()
     auto v10 = vsexpr;
     auto v11 = aaexpr;
     auto v12 = eexpr;
-    auto v13 = cexpr;
     auto v14 = new Boo;
     auto v15 = staexpr;
     auto v16 = [new Boo, new Boo, new Boo];
@@ -427,7 +422,6 @@ void pr2243()
     auto v26 = dgexpr;
     auto v27 = ptrexpr;
     auto v28 = realexpr;
-    auto v29 = raexpr;
 
     //runtime hashes
     auto rth1 = hashOf(v1);
@@ -442,7 +436,6 @@ void pr2243()
     auto rth10 = hashOf(v10);
     auto rth11 = hashOf(v11);
     auto rth12 = hashOf(v12);
-    auto rth13 = hashOf(v13);
     auto rth14 = hashOf(v14);
     auto rth15 = hashOf(v15);
     auto rth16 = hashOf(v16);
@@ -460,7 +453,6 @@ void pr2243()
     auto rth26 = hashOf(v26);
     auto rth27 = hashOf(v27);
     auto rth28 = hashOf(v28);
-    auto rth29 = hashOf(v29);
 
     auto rth31 = hashOf(v31);
     auto rth32 = hashOf(v32);
@@ -478,7 +470,6 @@ void pr2243()
     assert(h10 == rth10);
     assert(h11 == rth11);
     assert(h12 == rth12);
-    assert(h13 == rth13);
     assert(h14 == rth14);
     assert(h15 == rth15);
     assert(h16 == rth16);
@@ -493,8 +484,7 @@ void pr2243()
     assert(h25 == rth25);
     assert(h26 == rth26);
     assert(h27 == rth27);
-    assert(h28 == rth28);
-    assert(h29 == rth29);*/
+    assert(h28 == rth28);*/
     assert(h30 == rth30);
     assert(h31 == rth31);
     assert(h32 == rth32);
@@ -520,7 +510,6 @@ void pr2243()
     auto tih10 = tiHashOf(v10);
     auto tih11 = tiHashOf(v11);
     auto tih12 = tiHashOf(v12);
-    auto tih13 = tiHashOf(v13);
     auto tih14 = tiHashOf(v14);
     auto tih15 = tiHashOf(v15);
     auto tih16 = tiHashOf(v16);
@@ -536,7 +525,6 @@ void pr2243()
     auto tih26 = tiHashOf(v26);
     auto tih27 = tiHashOf(v27);
     auto tih28 = tiHashOf(v28);
-    auto tih29 = tiHashOf(v29);
     auto tih30 = tiHashOf(v30);
     auto tih31 = tiHashOf(v31);
     auto tih32 = tiHashOf(v32);
@@ -554,7 +542,6 @@ void pr2243()
     //assert(tih10 == rth10); // need compiler-generated __xtoHash changes
     assert(tih11 == rth11);
     assert(tih12 == rth12);
-    assert(tih13 == rth13);
     assert(tih14 == rth14);
     assert(tih15 == rth15);
     assert(tih16 == rth16);
@@ -570,7 +557,6 @@ void pr2243()
     assert(tih26 == rth26);
     assert(tih27 == rth27);
     assert(tih28 == rth28);
-    assert(tih29 == rth29);
     assert(tih30 == rth30);
     assert(tih31 == rth31);
     assert(tih32 == rth32);
