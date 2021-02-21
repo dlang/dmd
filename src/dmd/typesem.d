@@ -28,7 +28,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dmangle;
-import dmd.dmodule : Module;
+import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -255,10 +255,22 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         int flags = t is null ? SearchLocalsOnly : IgnorePrivateImports;
 
         Dsymbol sm = s.searchX(loc, sc, id, flags);
-        if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
+        if (sm)
         {
-            .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
-            sm = null;
+            if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
+            {
+                .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
+                sm = null;
+            }
+            // Same check as in Expression.semanticY(DotIdExp)
+            else if (sm.isPackage() && checkAccess(sc, cast(Package)sm))
+            {
+                // @@@DEPRECATED_2.096@@@
+                // Should be an error in 2.106. Just remove the deprecation call
+                // and uncomment the null assignment
+                deprecation(loc, "%s %s is not accessible here, perhaps add 'static import %s;'", sm.kind(), sm.toPrettyChars(), sm.toPrettyChars());
+                //sm = null;
+            }
         }
         if (global.errors != errorsave)
         {
