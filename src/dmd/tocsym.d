@@ -354,6 +354,9 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn())
+                s.Sflags |= SFLexit;    // the function never returns
+
             f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
             if (fd.endloc.linnum)
             {

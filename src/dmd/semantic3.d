@@ -779,6 +779,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     assert(!funcdecl.returnLabel);
                 }
+                else if (f.next.ty == Tnoreturn)
+                {
+                }
                 else
                 {
                     const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
