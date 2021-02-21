@@ -787,24 +787,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
                     if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm)
                     {
-                        Expression e;
                         if (!funcdecl.hasReturnExp)
                             funcdecl.error("has no `return` statement, but is expected to return a value of type `%s`", f.next.toChars());
                         else
                             funcdecl.error("no `return exp;` or `assert(0);` at end of function");
-                        if (global.params.useAssert == CHECKENABLE.on && !global.params.useInline)
-                        {
-                            /* Add an assert(0, msg); where the missing return
-                             * should be.
-                             */
-                            e = new AssertExp(funcdecl.endloc, IntegerExp.literal!0, new StringExp(funcdecl.loc, "missing return expression"));
-                        }
-                        else
-                            e = new HaltExp(funcdecl.endloc);
-                        e = new CommaExp(Loc.initial, e, f.next.defaultInit(Loc.initial));
-                        e = e.expressionSemantic(sc2);
-                        Statement s = new ExpStatement(Loc.initial, e);
-                        funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
                     }
                 }
 
