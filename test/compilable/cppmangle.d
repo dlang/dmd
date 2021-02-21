@@ -1275,3 +1275,22 @@ version (Win64) extern(C++)
     extern(C++, struct) class DefaultClass20700_2 {}
     static assert(test20700_4.mangleof == `?test20700_4@@YAXPEAU?$TStruct20700_2@PEAUDefaultClass20700_2@@VDefaultStruct20700_2@@@@@Z`);
 }
+
+/*****************************************/
+
+alias noreturn = typeof(*null);
+
+extern (C++)
+{
+    alias fpcpp = noreturn function();
+    int funccpp(fpcpp);
+
+    version (Posix)
+        static assert(funccpp.mangleof == "_Z7funccppPFvvE");
+
+    version (Win32)
+        static assert(funccpp.mangleof == "?funccpp@@YAHP6AXXZ@Z");
+
+    version (Win64)
+        static assert(funccpp.mangleof == "?funccpp@@YAHP6AXXZ@Z");
+}

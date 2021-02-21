@@ -145,6 +145,18 @@ public:
         flags &= ~IGNORE_CONST;
     }
 
+    override void visit(TypeNoreturn type)
+    {
+        if (checkImmutableShared(type))
+            return;
+        if (checkTypeSaved(type))
+            return;
+
+        buf.writeByte('X');             // yes, mangle it like `void`
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
+    }
+
     override void visit(TypeBasic type)
     {
         //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
