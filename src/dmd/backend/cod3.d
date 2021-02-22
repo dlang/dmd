@@ -1219,7 +1219,6 @@ static if (NTEXCEPTIONS)
             goto L4;
 
         case BCret:
-        case BCexit:
             retregs = 0;
             gencodelem(cdb,e,&retregs,true);
         L4:
@@ -1233,12 +1232,7 @@ static if (NTEXCEPTIONS)
                 pop87();                // account for return value
             }
 
-            if (bl.BC == BCexit)
-            {
-                if (config.flags4 & CFG4optimized)
-                    mfuncreg = mfuncregsave;
-            }
-            else if (MARS || usednteh & NTEH_try)
+            if (MARS || usednteh & NTEH_try)
             {
                 block *bt = bl;
                 while ((bt = bt.Btry) != null)
@@ -1281,6 +1275,13 @@ version (MARS)
                     }
                 }
             }
+            break;
+
+        case BCexit:
+            retregs = 0;
+            gencodelem(cdb,e,&retregs,true);
+            if (config.flags4 & CFG4optimized)
+                mfuncreg = mfuncregsave;
             break;
 
         case BCasm:
