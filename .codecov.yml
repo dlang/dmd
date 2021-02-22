@@ -6,15 +6,17 @@ codecov:
     # We don't want to wait for the CodeCov report
     # See https://github.com/codecov/support/issues/312
     require_ci_to_pass: false
-    after_n_builds: 1  # send notifications after the first upload
+    after_n_builds: 5  # send notifications after all coverage pipeline finish
     wait_for_ci: false
 
   bot: dlang-bot
   ci:
     # https://docs.codecov.io/docs/detecting-ci-services
-    # Only CircleCi generates coverages files atm.
+    # Azure, CircleCi and Cirrus generate coverages files
     # Don't wait for the other CIs
     - circleci.com
+    - cirrus-ci.com
+    - dev.azure.com
     - !dtest.dlang.io
     - !auto-tester.puremagic.com
     - !appveyor.com
