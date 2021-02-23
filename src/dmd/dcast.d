@@ -1332,7 +1332,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
                     struct ClassCheck
                     {
-                        extern (C++) static bool convertible(Loc loc, ClassDeclaration cd, MOD mod)
+                        extern (C++) static bool convertible(Expression e, ClassDeclaration cd, MOD mod)
                         {
                             for (size_t i = 0; i < cd.fields.dim; i++)
                             {
@@ -1345,6 +1345,11 @@ MATCH implicitConvTo(Expression e, Type t)
                                     }
                                     else if (ExpInitializer ei = _init.isExpInitializer())
                                     {
+                                        // https://issues.dlang.org/show_bug.cgi?id=21319
+                                        // This is to prevent re-analyzing the same expression
+                                        // over and over again.
+                                        if (ei.exp == e)
+                                            return false;
                                         Type tb = v.type.toBasetype();
                                         if (implicitMod(ei.exp, tb, mod) == MATCH.nomatch)
                                             return false;
@@ -1356,14 +1361,14 @@ MATCH implicitConvTo(Expression e, Type t)
                                         return false;
                                     }
                                 }
-                                else if (!v.type.isZeroInit(loc))
+                                else if (!v.type.isZeroInit(e.loc))
                                     return false;
                             }
-                            return cd.baseClass ? convertible(loc, cd.baseClass, mod) : true;
+                            return cd.baseClass ? convertible(e, cd.baseClass, mod) : true;
                         }
                     }
 
-                    if (!ClassCheck.convertible(e.loc, cd, mod))
+                    if (!ClassCheck.convertible(e, cd, mod))
                         return;
                 }
             }
