@@ -187,7 +187,7 @@ int traceHandlerOpApplyImpl(size_t numFrames,
 
 
     if (!image.isValid())
-        return locations[startIdx .. $].processCallstack(null, image.baseAddress, dg);
+        return locations[startIdx .. $].processCallstack(null, 0, dg);
 
     // find address -> file, line mapping using dwarf debug_line
     return image.processDebugLineSectionData(
