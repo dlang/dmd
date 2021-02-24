@@ -13,6 +13,8 @@ import core.stdc.stdarg;
 import core.stdc.config;
 import core.stdc.stdint;
 
+import core.stdcpp.xutility;
+
 extern (C++)
         int foob(int i, int j, int k);
 
@@ -475,23 +477,6 @@ extern (C++, std)
     {
     }
 
-    // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
-    version (none)
-    {
-        extern (C++, __cxx11)
-        {
-            struct basic_string(T, C = char_traits!T, A = allocator!T)
-            {
-            }
-        }
-    }
-    else
-    {
-        extern (C++, class) struct basic_string(T, C = char_traits!T, A = allocator!T)
-        {
-        }
-    }
-
     struct basic_istream(T, C = char_traits!T)
     {
     }
@@ -513,18 +498,35 @@ extern (C++, std)
     }
 }
 
+// https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+version (all)
+{
+    extern (C++, (StdNamespace))
+    {
+        struct basic_string(T, C = char_traits!T, A = allocator!T)
+        {
+        }
+    }
+}
+else
+{
+    extern (C++, class) struct basic_string(T, C = char_traits!T, A = allocator!T)
+    {
+    }
+}
+
 extern (C++)
 {
     version (linux)
     {
         void foo14(std.vector!(int) p);
-        void foo14a(std.basic_string!(char) *p);
-        void foo14b(std.basic_string!(int) *p);
+        void foo14a(basic_string!(char) *p);
+        void foo14b(basic_string!(int) *p);
         void foo14c(std.basic_istream!(char) *p);
         void foo14d(std.basic_ostream!(char) *p);
         void foo14e(std.basic_iostream!(char) *p);
 
-        void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
+        void foo14f(std.char_traits!char* x, basic_string!char* p, basic_string!char* q);
     }
 }
 
@@ -1594,7 +1596,7 @@ void test19134()
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=18955
-alias std_string = std.basic_string!(char);
+alias std_string = basic_string!(char);
 
 extern(C++) void callback18955(ref const(std_string) str)
 {
