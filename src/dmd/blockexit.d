@@ -107,8 +107,6 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                         return;
                     }
                 }
-                if (s.exp.type.toBasetype().isTypeNoreturn())
-                    result = BE.halt;
                 if (canThrow(s.exp, func, mustNotThrow))
                     result |= BE.throw_;
             }
