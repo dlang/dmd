@@ -195,7 +195,7 @@ codecov()
     # CodeCov gets confused by lst files which it can't match
     rm -rf test/runnable/extra-files
     download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
-    bash ./codecov.sh -p . -Z
+    bash ./codecov.sh -p . -Z || echo "Failed to upload coverage reports!"
     rm codecov.sh
 }
 
