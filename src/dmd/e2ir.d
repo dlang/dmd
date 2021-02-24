@@ -3540,6 +3540,15 @@ elem *toElem(Expression e, IRState *irs)
 
             if (irs.params.cov && aae.e2.loc.linnum)
                 e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
+
+            /* Until the backend understands TYnoreturn,
+             * resort to a workaround here.
+             * If aae.e2 is Tnoreturn, rewrite e as:
+             *   (e,false) for &&, and (e,true) for ||
+             */
+            if (aae.e2.type.ty == Tnoreturn)
+                e = el_combine(e, el_long(TYbool, aae.op == TOK.orOr));
+
             result = e;
         }
 

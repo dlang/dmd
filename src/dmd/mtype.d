@@ -6697,7 +6697,7 @@ extern (C++) final class TypeNoreturn : Type
 
     override bool isBoolean() const
     {
-        return false;
+        return true;  // bottom type can be implicitly converted to any other type
     }
 
     override d_uns64 size(const ref Loc loc) const

@@ -5399,7 +5399,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("HaltExp::semantic()\n");
         }
-        e.type = Type.tvoid;
+        e.type = Type.tnoreturn;
         result = e;
     }
 
@@ -6310,9 +6310,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = e;
                 return;
             }
+            exp.type = Type.tnoreturn;
         }
-
-        exp.type = Type.tvoid;
+        else
+            exp.type = Type.tvoid;
 
         result = !temporariesPrefix
             ? exp
@@ -10936,7 +10937,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("`%s` is not an expression", exp.e2.toChars());
             return setError();
         }
-        if (e1x.op == TOK.error)
+        if (e1x.op == TOK.error || e1x.type.ty == Tnoreturn)
         {
             result = e1x;
             return;
