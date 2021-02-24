@@ -1224,6 +1224,25 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     continue;
                 }
 
+                // -preview=in: Always add `ref` when used with `extern(C++)` functions
+                // Done here to allow passing opaque types with `in`
+                if (global.params.previewIn && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
+                {
+                    switch (tf.linkage)
+                    {
+                    case LINK.cpp:
+                        fparam.storageClass |= STC.ref_;
+                        break;
+                    case LINK.default_, LINK.d:
+                        break;
+                    default:
+                        .error(loc, "cannot use `in` parameters with `extern(%s)` functions",
+                               linkageToChars(tf.linkage));
+                        .errorSupplemental(loc, "parameter `%s` declared as `in` here", fparam.toChars());
+                        break;
+                    }
+                }
+
                 if (t.ty == Tfunction)
                 {
                     .error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
