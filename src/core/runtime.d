@@ -10,8 +10,6 @@
 
 module core.runtime;
 
-import core.internal.execinfo;
-
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -20,6 +18,17 @@ else version (TVOS)
     version = Darwin;
 else version (WatchOS)
     version = Darwin;
+
+version (DRuntime_Use_Libunwind)
+{
+    import core.internal.backtrace.libunwind;
+    // This shouldn't be necessary but ensure that code doesn't get mixed
+    // It does however prevent the unittest SEGV handler to be installed,
+    // which is desireable as it uses backtrace directly.
+    private enum hasExecinfo = false;
+}
+else
+    import core.internal.execinfo;
 
 /// C interface for Runtime.loadLibrary
 extern (C) void* rt_loadLibrary(const char* name);
@@ -730,8 +739,14 @@ unittest
     }
 }
 
+version (DRuntime_Use_Libunwind)
+{
+    import core.internal.backtrace.handler;
+
+    alias DefaultTraceInfo = LibunwindHandler;
+}
 /// Default implementation for most POSIX systems
-static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
+else static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     import core.demangle;
     import core.stdc.stdlib : free;
@@ -791,56 +806,30 @@ static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
 
     override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
-        // NOTE: The first few frames with the current implementation are
-        //       inside core.runtime and the object code, so eliminate
-        //       these for readability.  The alternative would be to
-        //       exclude the first N frames that are in a list of
-        //       mangled function names.
-        // The frames are:
-        // - core.runtime.DefaultTraceInfo.__ctor()
-        // - core.runtime.defaultTraceHandler(void*)
-        // - _d_traceContext
-        // - _d_createTrace
-        // - _d_throwdwarf
-        // If it's an assertion failure, `_d_assertp`
-        version (Darwin)
-            enum FIRSTFRAME = 5;
-        else
-            enum FIRSTFRAME = 5;
-
         version (linux) enum enableDwarf = true;
         else version (FreeBSD) enum enableDwarf = true;
         else version (DragonFlyBSD) enum enableDwarf = true;
         else version (Darwin) enum enableDwarf = true;
         else enum enableDwarf = false;
 
+        const framelist = backtrace_symbols( callstack.ptr, numframes );
+        scope(exit) free(cast(void*) framelist);
+
         static if (enableDwarf)
         {
             import core.internal.backtrace.dwarf;
-
-            if (numframes >= FIRSTFRAME)
-            {
-                return traceHandlerOpApplyImpl(
-                    callstack[FIRSTFRAME .. numframes],
-                    dg
-                    );
-            }
-            else
-            {
-                return 0;
-            }
+            return traceHandlerOpApplyImpl(numframes,
+                i => callstack[i],
+                (i) { auto str = framelist[i][0 .. strlen(framelist[i])]; return getMangledSymbolName(str); },
+                dg);
         }
         else
         {
-            const framelist = backtrace_symbols( callstack.ptr, numframes );
-            scope(exit) free(cast(void*) framelist);
-
             int ret = 0;
-            for ( int i = FIRSTFRAME; i < numframes; ++i )
+            for (size_t pos = 0; pos < numframes; ++pos)
             {
                 char[4096] fixbuf = void;
-                auto buf = framelist[i][0 .. strlen(framelist[i])];
-                auto pos = cast(size_t)(i - FIRSTFRAME);
+                auto buf = framelist[pos][0 .. strlen(framelist[pos])];
                 buf = fixline( buf, fixbuf );
                 ret = dg( pos, buf );
                 if ( ret )

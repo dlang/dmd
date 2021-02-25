@@ -52,7 +52,7 @@ module core.internal.backtrace.dwarf;
 import core.internal.execinfo;
 import core.internal.string;
 
-static if (hasExecinfo):
+version (Posix):
 
 version (OSX)
     version = Darwin;
@@ -159,76 +159,128 @@ struct Location
     }
 }
 
-int traceHandlerOpApplyImpl(const(void*)[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
+int traceHandlerOpApplyImpl(size_t numFrames,
+                            scope const(void)* delegate(size_t) getNthAddress,
+                            scope const(char)[] delegate(size_t) getNthFuncName,
+                            scope int delegate(ref size_t, ref const(char[])) dg)
 {
-    import core.stdc.stdio : snprintf;
-    import core.sys.posix.stdlib : free;
-
-    const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
-    scope(exit) free(cast(void*) frameList);
-
     auto image = Image.openSelf();
 
-    int processCallstack(const(ubyte)[] debugLineSectionData)
+    Array!Location locations;
+    locations.length = numFrames;
+    size_t startIdx;
+    foreach (idx; 0 .. numFrames)
     {
-        // find address -> file, line mapping using dwarf debug_line
-        Array!Location locations;
-        locations.length = callstack.length;
-        foreach (size_t i; 0 .. callstack.length)
-        {
-            locations[i].address = callstack[i];
-            locations[i].procedure = getMangledSymbolName(frameList[i][0 .. strlen(frameList[i])]);
-        }
+        locations[idx].address = getNthAddress(idx);
+        locations[idx].procedure = getNthFuncName(idx);
 
-        if (debugLineSectionData)
-            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
-
-        char[1536] buffer = void;
-        size_t bufferLength;
-        scope sink = (scope const char[] data) {
-                // We cannot write anymore
-                if (bufferLength > buffer.length)
-                    return;
-
-                if (bufferLength + data.length > buffer.length)
-                {
-                    buffer[bufferLength .. $] = data[0 .. buffer.length - bufferLength];
-                    buffer[$ - 3 .. $] = "...";
-                    // +1 is a marker for the '...', otherwise if the symbol
-                    // name was to exactly fill the buffer,
-                    // we'd discard anything else without printing the '...'.
-                    bufferLength = buffer.length + 1;
-                    return;
-                }
-
-                buffer[bufferLength .. bufferLength + data.length] = data;
-                bufferLength += data.length;
-        };
-
-        foreach (idx, const ref loc; locations)
-        {
-            bufferLength = 0;
-            loc.toString(sink);
-
-            auto lvalue = buffer[0 .. bufferLength > $ ? $ : bufferLength];
-            if (auto ret = dg(idx, lvalue))
-                return ret;
-
-            if (loc.procedure == "_Dmain")
-                break;
-        }
-
-        return 0;
+        // NOTE: The first few frames with the current implementation are
+        //       inside core.runtime and the object code, so eliminate
+        //       these for readability.
+        // They also might depend on build parameters, which would make
+        // using a fixed number of frames otherwise brittle.
+        version (LDC) enum BaseExceptionFunctionName = "_d_throw_exception";
+        else          enum BaseExceptionFunctionName = "_d_throwdwarf";
+        if (!startIdx && locations[idx].procedure == BaseExceptionFunctionName)
+            startIdx = idx + 1;
     }
 
-    return image.isValid
-        ? image.processDebugLineSectionData(&processCallstack)
-        : processCallstack(null);
+
+    if (!image.isValid())
+        return locations[startIdx .. $].processCallstack(null, 0, dg);
+
+    // find address -> file, line mapping using dwarf debug_line
+    return image.processDebugLineSectionData(
+        (line) => locations[startIdx .. $].processCallstack(line, image.baseAddress, dg));
+}
+
+struct TraceInfoBuffer
+{
+    private char[1536] buf = void;
+    private size_t position;
+
+    // BUG: https://issues.dlang.org/show_bug.cgi?id=21285
+    @safe pure nothrow @nogc
+    {
+        ///
+        inout(char)[] opSlice() inout return
+        {
+            return this.buf[0 .. this.position > $ ? $ : this.position];
+        }
+
+        ///
+        void reset()
+        {
+            this.position = 0;
+        }
+    }
+
+    /// Used as `sink` argument to `Location.toString`
+    void put(scope const char[] data)
+    {
+        // We cannot write anymore
+        if (this.position > this.buf.length)
+            return;
+
+        if (this.position + data.length > this.buf.length)
+        {
+            this.buf[this.position .. $] = data[0 .. this.buf.length - this.position];
+            this.buf[$ - 3 .. $] = "...";
+            // +1 is a marker for the '...', otherwise if the symbol
+            // name was to exactly fill the buffer,
+            // we'd discard anything else without printing the '...'.
+            this.position = this.buf.length + 1;
+            return;
+        }
+
+        this.buf[this.position .. this.position + data.length] = data;
+        this.position += data.length;
+    }
 }
 
 private:
 
-// the lifetime of the Location data is bound to the lifetime of debugLineSectionData
+int processCallstack(Location[] locations, const(ubyte)[] debugLineSectionData,
+                     size_t baseAddress, scope int delegate(ref size_t, ref const(char[])) dg)
+{
+    if (debugLineSectionData)
+        resolveAddresses(debugLineSectionData, locations, baseAddress);
+
+    TraceInfoBuffer buffer;
+    foreach (idx, const ref loc; locations)
+    {
+        buffer.reset();
+        loc.toString(&buffer.put);
+
+        auto lvalue = buffer[];
+        if (auto ret = dg(idx, lvalue))
+            return ret;
+
+        if (loc.procedure == "_Dmain")
+            break;
+    }
+
+    return 0;
+}
+
+/**
+ * Resolve the addresses of `locations` using `debugLineSectionData`
+ *
+ * Runs the DWARF state machine on `debugLineSectionData`,
+ * assuming it represents a debugging program describing the addresses
+ * in a continous and increasing manner.
+ *
+ * After this function successfully completes, `locations` will contains
+ * file / lines informations.
+ *
+ * Note that the lifetime of the `Location` data is bound to the lifetime
+ * of `debugLineSectionData`.
+ *
+ * Params:
+ *   debugLineSectionData = A DWARF program to feed the state machine
+ *   locations = The locations to resolve
+ *   baseAddress = The offset to apply to every address
+ */
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     debug(DwarfDebugMachine) import core.stdc.stdio;

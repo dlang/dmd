@@ -4,6 +4,7 @@
  * Copyright: Copyright Digital Mars 2000 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
+ * Source: $(DRUNTIMESRC rt/_aaA.d)
  */
 module rt.aaA;
 
@@ -11,6 +12,7 @@ module rt.aaA;
 extern (C) immutable int _aaVersion = 1;
 
 import core.memory : GC;
+import core.internal.util.math : min, max;
 
 // grow threshold
 private enum GROW_NUM = 4;
@@ -477,16 +479,6 @@ pure nothrow @nogc unittest
     //                            0, 1, 2, 3, 4, 5, 6, 7, 8,  9
     foreach (const n, const pow2; [1, 1, 2, 4, 4, 8, 8, 8, 8, 16])
         assert(nextpow2(n) == pow2);
-}
-
-private T min(T)(T a, T b) pure nothrow @nogc
-{
-    return a < b ? a : b;
-}
-
-private T max(T)(T a, T b) pure nothrow @nogc
-{
-    return b < a ? a : b;
 }
 
 //==============================================================================

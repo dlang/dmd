@@ -5,9 +5,10 @@
  *
  * Source: $(DRUNTIMESRC core/_simd.d)
  *
- * Copyright: Copyright Digital Mars 2012.
+ * Copyright: Copyright Digital Mars 2012-2020
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   $(HTTP digitalmars.com, Walter Bright),
+ * Source:    $(DRUNTIMESRC core/_simd.d)
  */
 
 module core.simd;
@@ -135,47 +136,48 @@ version (D_SIMD)
         XORPD = 0x660F57,
 
         // Use STO and LOD instead of MOV to distinguish the direction
-        STOSS  = 0xF30F11,
-        STOSD  = 0xF20F11,
-        STOAPS = 0x000F29,
-        STOAPD = 0x660F29,
-        STODQA = 0x660F7F,
-        STOD   = 0x660F7E,        // MOVD reg/mem64, xmm   66 0F 7E /r
-        STOQ   = 0x660FD6,
+        // (Destination is first operand, Source is second operand)
+        STOSS  = 0xF30F11,        /// MOVSS xmm1/m32, xmm2
+        STOSD  = 0xF20F11,        /// MOVSD xmm1/m64, xmm2
+        STOAPS = 0x000F29,        /// MOVAPS xmm2/m128, xmm1
+        STOAPD = 0x660F29,        /// MOVAPD xmm2/m128, xmm1
+        STODQA = 0x660F7F,        /// MOVDQA xmm2/m128, xmm1
+        STOD   = 0x660F7E,        /// MOVD reg/mem64, xmm   66 0F 7E /r
+        STOQ   = 0x660FD6,        /// MOVQ xmm2/m64, xmm1
 
-        LODSS  = 0xF30F10,
-        LODSD  = 0xF20F10,
-        LODAPS = 0x000F28,
-        LODAPD = 0x660F28,
-        LODDQA = 0x660F6F,
-        LODD   = 0x660F6E,        // MOVD xmm, reg/mem64   66 0F 6E /r
-        LODQ   = 0xF30F7E,
+        LODSS  = 0xF30F10,        /// MOVSS xmm1, xmm2/m32
+        LODSD  = 0xF20F10,        /// MOVSD xmm1, xmm2/m64
+        LODAPS = 0x000F28,        /// MOVAPS xmm1, xmm2/m128
+        LODAPD = 0x660F28,        /// MOVAPD xmm1, xmm2/m128
+        LODDQA = 0x660F6F,        /// MOVDQA xmm1, xmm2/m128
+        LODD   = 0x660F6E,        /// MOVD xmm, reg/mem64   66 0F 6E /r
+        LODQ   = 0xF30F7E,        /// MOVQ xmm1, xmm2/m64
 
-        LODDQU   = 0xF30F6F,      // MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
-        STODQU   = 0xF30F7F,      // MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
-        MOVDQ2Q  = 0xF20FD6,      // MOVDQ2Q mmx, xmm          F2 0F D6 /r
-        MOVHLPS  = 0x0F12,        // MOVHLPS xmm1, xmm2        0F 12 /r
-        LODHPD   = 0x660F16,
-        STOHPD   = 0x660F17,      // MOVHPD mem64, xmm         66 0F 17 /r
-        LODHPS   = 0x0F16,
-        STOHPS   = 0x0F17,
-        MOVLHPS  = 0x0F16,
-        LODLPD   = 0x660F12,
-        STOLPD   = 0x660F13,
-        LODLPS   = 0x0F12,
-        STOLPS   = 0x0F13,
-        MOVMSKPD = 0x660F50,
-        MOVMSKPS = 0x0F50,
-        MOVNTDQ  = 0x660FE7,
-        MOVNTI   = 0x0FC3,
-        MOVNTPD  = 0x660F2B,
-        MOVNTPS  = 0x0F2B,
-        MOVNTQ   = 0x0FE7,
-        MOVQ2DQ  = 0xF30FD6,
-        LODUPD   = 0x660F10,
-        STOUPD   = 0x660F11,
-        LODUPS   = 0x0F10,
-        STOUPS   = 0x0F11,
+        LODDQU   = 0xF30F6F,      /// MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
+        STODQU   = 0xF30F7F,      /// MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
+        MOVDQ2Q  = 0xF20FD6,      /// MOVDQ2Q mmx, xmm          F2 0F D6 /r
+        MOVHLPS  = 0x0F12,        /// MOVHLPS xmm1, xmm2        0F 12 /r
+        LODHPD   = 0x660F16,      /// MOVHPD xmm1, m64
+        STOHPD   = 0x660F17,      /// MOVHPD mem64, xmm1        66 0F 17 /r
+        LODHPS   = 0x0F16,        /// MOVHPS xmm1, m64
+        STOHPS   = 0x0F17,        /// MOVHPS m64, xmm1
+        MOVLHPS  = 0x0F16,        /// MOVLHPS xmm1, xmm2
+        LODLPD   = 0x660F12,      /// MOVLPD xmm1, m64
+        STOLPD   = 0x660F13,      /// MOVLPD m64, xmm1
+        LODLPS   = 0x0F12,        /// MOVLPS xmm1, m64
+        STOLPS   = 0x0F13,        /// MOVLPS m64, xmm1
+        MOVMSKPD = 0x660F50,      /// MOVMSKPD reg, xmm
+        MOVMSKPS = 0x0F50,        /// MOVMSKPS reg, xmm
+        MOVNTDQ  = 0x660FE7,      /// MOVNTDQ m128, xmm1
+        MOVNTI   = 0x0FC3,        /// MOVNTI m32, r32
+        MOVNTPD  = 0x660F2B,      /// MOVNTPD m128, xmm1
+        MOVNTPS  = 0x0F2B,        /// MOVNTPS m128, xmm1
+        MOVNTQ   = 0x0FE7,        /// MOVNTQ m64, mm
+        MOVQ2DQ  = 0xF30FD6,      /// MOVQ2DQ
+        LODUPD   = 0x660F10,      /// MOVUPD xmm1, xmm2/m128
+        STOUPD   = 0x660F11,      /// MOVUPD xmm2/m128, xmm1
+        LODUPS   = 0x0F10,        /// MOVUPS xmm1, xmm2/m128
+        STOUPS   = 0x0F11,        /// MOVUPS xmm2/m128, xmm1
 
         PACKSSDW = 0x660F6B,
         PACKSSWB = 0x660F63,

@@ -3,7 +3,7 @@ include ../common.mak
 TESTS := attributes sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 \
 		 sigmaskgc startbackgc recoverfree nocollect
 
-SRC_GC = ../../src/gc/impl/conservative/gc.d
+SRC_GC = ../../src/core/internal/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
 # ../../src/object.d causes duplicate symbols
 UDFLAGS = $(DFLAGS) -unittest -version=CoreUnittest

@@ -39,24 +39,9 @@ private
     }
 }
 
-private immutable bool callStructDtorsDuringGC;
-
 extern (C) void lifetime_init()
 {
     // this is run before static ctors, so it is safe to modify immutables
-    import rt.config;
-    string s = rt_configOption("callStructDtorsDuringGC");
-    if (s != null)
-    {
-        // @@@DEPRECATED_v2.094@@@
-        // Deprecated in v2.088.
-        // To be removed in v2.094, if not earlier.
-        import core.stdc.stdio : fprintf, stderr;
-        fprintf(stderr, "Deprecation: The `callStructDtorsDuringGC` option has been deprecated and will be removed in a future release.\n");
-        cast() callStructDtorsDuringGC = s[0] == '1' || s[0] == 'y' || s[0] == 'Y';
-    }
-    else
-        cast() callStructDtorsDuringGC = true;
 }
 
 /**
@@ -219,9 +204,6 @@ inout(TypeInfo) unqualify(inout(TypeInfo) cti) pure nothrow @nogc
 // size used to store the TypeInfo at the end of an allocation for structs that have a destructor
 size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 {
-    if (!callStructDtorsDuringGC)
-        return 0;
-
     if (ti && typeid(ti) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
     {
         auto sti = cast(TypeInfo_Struct)cast(void*)ti;
@@ -1120,7 +1102,7 @@ extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims)
  * Allocate an uninitialized non-array item.
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
  */
-extern (C) void* _d_newitemU(in TypeInfo _ti)
+extern (C) void* _d_newitemU(in TypeInfo _ti) pure nothrow
 {
     auto ti = unqualify(_ti);
     auto flags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
@@ -1143,7 +1125,7 @@ extern (C) void* _d_newitemU(in TypeInfo _ti)
 }
 
 /// Same as above, zero initializes the item.
-extern (C) void* _d_newitemT(in TypeInfo _ti)
+extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -1152,7 +1134,7 @@ extern (C) void* _d_newitemT(in TypeInfo _ti)
 }
 
 /// Same as above, for item with non-zero initializer.
-extern (C) void* _d_newitemiT(in TypeInfo _ti)
+extern (C) void* _d_newitemiT(in TypeInfo _ti) pure nothrow
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -2628,33 +2610,30 @@ deprecated unittest
     delete arr1;
     assert(dtorCount == 7);
 
-    if (callStructDtorsDuringGC)
-    {
-        dtorCount = 0;
-        S1* s2 = new S1;
-        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-        assert(dtorCount == 1);
-        GC.free(s2);
+    dtorCount = 0;
+    S1* s2 = new S1;
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 1);
+    GC.free(s2);
 
-        dtorCount = 0;
-        const(S1)* s3 = new const(S1);
-        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-        assert(dtorCount == 1);
-        GC.free(cast(void*)s3);
+    dtorCount = 0;
+    const(S1)* s3 = new const(S1);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 1);
+    GC.free(cast(void*)s3);
 
-        dtorCount = 0;
-        shared(S1)* s4 = new shared(S1);
-        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-        assert(dtorCount == 1);
-        GC.free(cast(void*)s4);
+    dtorCount = 0;
+    shared(S1)* s4 = new shared(S1);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 1);
+    GC.free(cast(void*)s4);
 
-        dtorCount = 0;
-        const(S1)[] carr1 = new const(S1)[5];
-        BlkInfo blkinf1 = GC.query(carr1.ptr);
-        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-        assert(dtorCount == 5);
-        GC.free(blkinf1.base);
-    }
+    dtorCount = 0;
+    const(S1)[] carr1 = new const(S1)[5];
+    BlkInfo blkinf1 = GC.query(carr1.ptr);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 5);
+    GC.free(blkinf1.base);
 
     dtorCount = 0;
     S1[] arr2 = new S1[10];
@@ -2662,14 +2641,11 @@ deprecated unittest
     arr2.assumeSafeAppend;
     assert(dtorCount == 4); // destructors run explicitely?
 
-    if (callStructDtorsDuringGC)
-    {
-        dtorCount = 0;
-        BlkInfo blkinf = GC.query(arr2.ptr);
-        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-        assert(dtorCount == 6);
-        GC.free(blkinf.base);
-    }
+    dtorCount = 0;
+    BlkInfo blkinf = GC.query(arr2.ptr);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 6);
+    GC.free(blkinf.base);
 
     // associative arrays
     import rt.aaA : entryDtor;
@@ -2679,44 +2655,32 @@ deprecated unittest
     S1[int] aa1;
     aa1[0] = S1(0);
     aa1[1] = S1(1);
-    if (callStructDtorsDuringGC)
-    {
-        dtorCount = 0;
-        aa1 = null;
-        GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
-        assert(dtorCount == 2);
-    }
+    dtorCount = 0;
+    aa1 = null;
+    GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
+    assert(dtorCount == 2);
 
     int[S1] aa2;
     aa2[S1(0)] = 0;
     aa2[S1(1)] = 1;
     aa2[S1(2)] = 2;
-    if (callStructDtorsDuringGC)
-    {
-        dtorCount = 0;
-        aa2 = null;
-        GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
-        assert(dtorCount == 3);
-    }
+    dtorCount = 0;
+    aa2 = null;
+    GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
+    assert(dtorCount == 3);
 
     S1[2][int] aa3;
     aa3[0] = [S1(0),S1(2)];
     aa3[1] = [S1(1),S1(3)];
-    if (callStructDtorsDuringGC)
-    {
-        dtorCount = 0;
-        aa3 = null;
-        GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
-        assert(dtorCount == 4);
-    }
+    dtorCount = 0;
+    aa3 = null;
+    GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
+    assert(dtorCount == 4);
 }
 
 // test struct dtor handling not causing false pointers
 unittest
 {
-    if (!callStructDtorsDuringGC)
-        return;
-
     // for 64-bit, allocate a struct of size 40
     static struct S
     {
@@ -2824,9 +2788,6 @@ unittest
 debug(SENTINEL) {} else
 unittest
 {
-    if (!callStructDtorsDuringGC)
-        return;
-
     bool test(E)()
     {
         import core.exception;

@@ -3,6 +3,7 @@
  * Copyright: Copyright Digital Mars 2011 - 2012.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
+ * Source: $(DRUNTIMESRC rt/tlsgc.d)
  */
 
 /*          Copyright Digital Mars 2011.

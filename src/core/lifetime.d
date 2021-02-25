@@ -121,11 +121,11 @@ T emplace(T, Args...)(T chunk, auto ref Args args)
     else alias args1 = args;
 
     // Call the ctor if any
-    static if (is(typeof(chunk.__ctor(args1))))
+    static if (is(typeof(chunk.__ctor(forward!args1))))
     {
         // T defines a genuine constructor accepting args
         // Go the classic route: write .init first, then call ctor
-        chunk.__ctor(args1);
+        chunk.__ctor(forward!args1);
     }
     else
     {
@@ -205,7 +205,7 @@ T emplace(T, Args...)(void[] chunk, auto ref Args args)
     import core.internal.traits : maxAlignment;
     enum classSize = __traits(classInstanceSize, T);
     testEmplaceChunk(chunk, classSize, maxAlignment!(void*, typeof(T.tupleof)));
-    return emplace!T(cast(T)(chunk.ptr), args);
+    return emplace!T(cast(T)(chunk.ptr), forward!args);
 }
 
 ///
@@ -241,22 +241,36 @@ T emplace(T, Args...)(void[] chunk, auto ref Args args)
 {
     static class __conv_EmplaceTestClass
     {
+        @nogc @safe pure nothrow:
         int i = 3;
-        this(int i) @nogc @safe pure nothrow
+        this(int i)
         {
-            assert(this.i == 3 && i == 5);
-            this.i = i;
+            assert(this.i == 3);
+            this.i = 10 + i;
         }
-        this(int i, ref int j) @nogc @safe pure nothrow
+        this(ref int i)
         {
-            assert(i == 5 && j == 6);
+            assert(this.i == 3);
+            this.i = 20 + i;
+        }
+        this(int i, ref int j)
+        {
+            assert(this.i == 3 && i == 5 && j == 6);
             this.i = i;
             ++j;
         }
     }
+
     int var = 6;
     align(__conv_EmplaceTestClass.alignof) ubyte[__traits(classInstanceSize, __conv_EmplaceTestClass)] buf;
     auto support = (() @trusted => cast(__conv_EmplaceTestClass)(buf.ptr))();
+
+    auto fromRval = emplace!__conv_EmplaceTestClass(support, 1);
+    assert(fromRval.i == 11);
+
+    auto fromLval = emplace!__conv_EmplaceTestClass(support, var);
+    assert(fromLval.i == 26);
+
     auto k = emplace!__conv_EmplaceTestClass(support, 5, var);
     assert(k.i == 5);
     assert(var == 7);
@@ -282,7 +296,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     import core.internal.lifetime : emplaceRef;
 
     testEmplaceChunk(chunk, T.sizeof, T.alignof);
-    emplaceRef!(T, Unqual!T)(*cast(Unqual!T*) chunk.ptr, args);
+    emplaceRef!(T, Unqual!T)(*cast(Unqual!T*) chunk.ptr, forward!args);
     return cast(T*) chunk.ptr;
 }
 
@@ -617,7 +631,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
         this(ref S2){}
     }
     S2 s2 = void;
-    static assert(!__traits(compiles, emplace(&s2, 1)));
+    //static assert(!__traits(compiles, emplace(&s2, 1)));
     emplace(&s2, S2.init);
 
     static struct SS1
@@ -930,51 +944,6 @@ version (CoreUnittest)
         emplace(&s, S3.init);
     }
 }
-
-/+ these tests can't be performed in druntime, but a mirror still exists in phobos...
-@safe unittest //@@@9559@@@
-{
-    import std.algorithm.iteration : map;
-    import std.array : array;
-    import std.typecons : Nullable;
-    alias I = Nullable!int;
-    auto ints = [0, 1, 2].map!(i => i & 1 ? I.init : I(i))();
-    auto asArray = array(ints);
-}
-@system unittest //http://forum.dlang.org/post/nxbdgtdlmwscocbiypjs@forum.dlang.org
-{
-    import std.array : array;
-    import std.datetime : SysTime, UTC;
-    import std.math : isNaN;
-    static struct A
-    {
-        double i;
-    }
-    static struct B
-    {
-        invariant()
-        {
-            if (j == 0)
-                assert(a.i.isNaN(), "why is 'j' zero?? and i is not NaN?");
-            else
-                assert(!a.i.isNaN());
-        }
-        SysTime when; // comment this line avoid the breakage
-        int j;
-        A a;
-    }
-    B b1 = B.init;
-    assert(&b1); // verify that default eyes invariants are ok;
-    auto b2 = B(SysTime(0, UTC()), 1, A(1));
-    assert(&b2);
-    auto b3 = B(SysTime(0, UTC()), 1, A(1));
-    assert(&b3);
-    auto arr = [b2, b3];
-    assert(arr[0].j == 1);
-    assert(arr[1].j == 1);
-    auto a2 = arr.array(); // << bang, invariant is raised, also if b2 and b3 are good
-}
-+/
 
 //static arrays
 @system unittest

@@ -1,11 +1,11 @@
 /**
  * A sorted array to quickly lookup pools.
  *
- * Copyright: Copyright Digital Mars 2001 -.
+ * Copyright: D Language Foundation 2001 - 2021
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, David Friedman, Sean Kelly, Martin Nowak
  */
-module gc.pooltable;
+module core.internal.gc.pooltable;
 
 static import cstdlib=core.stdc.stdlib;
 

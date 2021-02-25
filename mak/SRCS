@@ -53,7 +53,10 @@ SRCS=\
 	\
 	src\core\internal\backtrace\dwarf.d \
 	src\core\internal\backtrace\elf.d \
+	src\core\internal\backtrace\handler.d \
+	src\core\internal\backtrace\libunwind.d \
 	src\core\internal\backtrace\macho.d \
+	src\core\internal\backtrace\unwind.d \
 	\
 	src\core\internal\container\array.d \
 	src\core\internal\container\common.d \
@@ -63,7 +66,16 @@ SRCS=\
 	src\core\internal\elf\dl.d \
 	src\core\internal\elf\io.d \
 	\
+	src\core\internal\gc\bits.d \
+	src\core\internal\gc\os.d \
+	src\core\internal\gc\pooltable.d \
+	src\core\internal\gc\proxy.d \
+	src\core\internal\gc\impl\conservative\gc.d \
+	src\core\internal\gc\impl\manual\gc.d \
+	src\core\internal\gc\impl\proto\gc.d \
+	\
 	src\core\internal\util\array.d \
+	src\core\internal\util\math.d \
 	\
 	src\core\internal\vararg\aarch64.d \
 	src\core\internal\vararg\sysv_x64.d \
@@ -114,6 +126,7 @@ SRCS=\
 	\
 	src\core\sys\bionic\err.d \
 	src\core\sys\bionic\fcntl.d \
+	src\core\sys\bionic\stdlib.d \
 	src\core\sys\bionic\string.d \
 	src\core\sys\bionic\unistd.d \
 	\
@@ -121,8 +134,10 @@ SRCS=\
 	src\core\sys\darwin\dlfcn.d \
 	src\core\sys\darwin\err.d \
 	src\core\sys\darwin\execinfo.d \
+	src\core\sys\darwin\fcntl.d \
 	src\core\sys\darwin\ifaddrs.d \
 	src\core\sys\darwin\pthread.d \
+	src\core\sys\darwin\stdlib.d \
 	src\core\sys\darwin\string.d \
 	\
 	src\core\sys\darwin\mach\dyld.d \
@@ -140,12 +155,14 @@ SRCS=\
 	src\core\sys\darwin\sys\cdefs.d \
 	src\core\sys\darwin\sys\event.d \
 	src\core\sys\darwin\sys\mman.d \
+	src\core\sys\darwin\sys\sysctl.d \
 	\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\err.d \
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\netinet\in_.d \
 	src\core\sys\freebsd\pthread_np.d \
+	src\core\sys\freebsd\stdlib.d \
 	src\core\sys\freebsd\string.d \
 	src\core\sys\freebsd\time.d \
 	src\core\sys\freebsd\unistd.d \
@@ -161,12 +178,14 @@ SRCS=\
 	src\core\sys\freebsd\sys\link_elf.d \
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\sys\mount.d \
+	src\core\sys\freebsd\sys\sysctl.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
 	src\core\sys\dragonflybsd\err.d \
 	src\core\sys\dragonflybsd\execinfo.d \
 	src\core\sys\dragonflybsd\netinet\in_.d \
 	src\core\sys\dragonflybsd\pthread_np.d \
+	src\core\sys\dragonflybsd\stdlib.d \
 	src\core\sys\dragonflybsd\string.d \
 	src\core\sys\dragonflybsd\time.d \
 	\
@@ -181,6 +200,7 @@ SRCS=\
 	src\core\sys\dragonflybsd\sys\link_elf.d \
 	src\core\sys\dragonflybsd\sys\mman.d \
 	src\core\sys\dragonflybsd\sys\socket.d \
+	src\core\sys\dragonflybsd\sys\sysctl.d \
 	\
 	src\core\sys\linux\config.d \
 	src\core\sys\linux\dlfcn.d \
@@ -219,6 +239,7 @@ SRCS=\
 	src\core\sys\netbsd\dlfcn.d \
 	src\core\sys\netbsd\err.d \
 	src\core\sys\netbsd\execinfo.d \
+	src\core\sys\netbsd\stdlib.d \
 	src\core\sys\netbsd\string.d \
 	src\core\sys\netbsd\time.d \
 	\
@@ -230,9 +251,11 @@ SRCS=\
 	src\core\sys\netbsd\sys\featuretest.d \
 	src\core\sys\netbsd\sys\link_elf.d \
 	src\core\sys\netbsd\sys\mman.d \
+	src\core\sys\netbsd\sys\sysctl.d \
 	\
 	src\core\sys\openbsd\dlfcn.d \
 	src\core\sys\openbsd\err.d \
+	src\core\sys\openbsd\stdlib.d \
 	src\core\sys\openbsd\string.d \
 	src\core\sys\openbsd\time.d \
 	\
@@ -243,6 +266,7 @@ SRCS=\
 	src\core\sys\openbsd\sys\elf_common.d \
 	src\core\sys\openbsd\sys\link_elf.d \
 	src\core\sys\openbsd\sys\mman.d \
+	src\core\sys\openbsd\sys\sysctl.d \
 	\
 	src\core\sys\posix\arpa\inet.d \
 	src\core\sys\posix\aio.d \
@@ -309,6 +333,7 @@ SRCS=\
 	src\core\sys\solaris\execinfo.d \
 	src\core\sys\solaris\libelf.d \
 	src\core\sys\solaris\link.d \
+	src\core\sys\solaris\stdlib.d \
 	src\core\sys\solaris\time.d \
 	src\core\sys\solaris\sys\elf.d \
 	src\core\sys\solaris\sys\elf_386.d \
@@ -497,14 +522,6 @@ SRCS=\
 	src\core\thread\context.d \
 	src\core\thread\package.d \
 	\
-	src\gc\bits.d \
-	src\gc\impl\conservative\gc.d \
-	src\gc\os.d \
-	src\gc\pooltable.d \
-	src\gc\proxy.d \
-	src\gc\impl\manual\gc.d \
-	src\gc\impl\proto\gc.d \
-	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
 	src\rt\aaA.d \
@@ -545,7 +562,6 @@ SRCS=\
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	src\rt\tracegc.d \
-	src\rt\unwind.d \
 	\
 	src\rt\util\typeinfo.d \
 	src\rt\util\utility.d \

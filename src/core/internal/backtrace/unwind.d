@@ -1,13 +1,14 @@
 /**
- * Written in the D programming language.
- * Equivalent to unwind.h
+ * Binding for libunwind/libgc's `unwind.h`
+ *
+ * Those bindings expose the `_Unwind_*` symbols used by druntime
+ * to do exception handling.
  *
  * See_Also:
  *      Itanium C++ ABI: Exception Handling ($Revision: 1.22 $)
- * Source: $(DRUNTIMESRC rt/_unwind.d)
+ * Source: $(DRUNTIMESRC core/internal/backtrace/_unwind.d)
  */
-
-module rt.unwind;
+module core.internal.backtrace.unwind;
 
 import core.stdc.stdint;
 

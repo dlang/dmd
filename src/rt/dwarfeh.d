@@ -16,7 +16,7 @@ module rt.dwarfeh;
 version (Posix):
 
 import rt.dmain2: _d_print_throwable;
-import rt.unwind;
+import core.internal.backtrace.unwind;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 

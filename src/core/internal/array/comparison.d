@@ -201,12 +201,6 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
     compareMinMax!real;
     compareMinMax!float;
     compareMinMax!double;
-    compareMinMax!ireal;
-    compareMinMax!ifloat;
-    compareMinMax!idouble;
-    compareMinMax!creal;
-    //compareMinMax!cfloat;
-    compareMinMax!cdouble;
 
     // qualifiers
     compareMinMax!(const real);

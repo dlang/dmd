@@ -3,7 +3,7 @@ import core.internal.dassert : _d_assert_fail;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
-    test(_d_assert_fail!(comp, A, B)(a, b), msg, line);
+    test(_d_assert_fail!(A)(comp, a, b), msg, line);
 }
 
 void test(const string actual, const string expected, size_t line = __LINE__)
@@ -50,14 +50,6 @@ void testFloatingPoint()()
     test(float.max, -float.max, "3.40282e+38 != -3.40282e+38");
     test(double.max, -double.max, "1.79769e+308 != -1.79769e+308");
     test(real(1), real(-1), "1 != -1");
-
-    test(ifloat.max, -ifloat.max, "3.40282e+38i != -3.40282e+38i");
-    test(idouble.max, -idouble.max, "1.79769e+308i != -1.79769e+308i");
-    test(ireal(1i), ireal(-1i), "1i != -1i");
-
-    test(cfloat.max, -cfloat.max, "3.40282e+38 + 3.40282e+38i != -3.40282e+38 + -3.40282e+38i");
-    test(cdouble.max, -cdouble.max, "1.79769e+308 + 1.79769e+308i != -1.79769e+308 + -1.79769e+308i");
-    test(creal(1 + 2i), creal(-1 + 2i), "1 + 2i != -1 + 2i");
 }
 
 void testPointers()
@@ -175,10 +167,10 @@ void testStruct()()
     }
 
     NoCopy n;
-    test(_d_assert_fail!"!="(n, n), "NoCopy() == NoCopy()");
+    test(_d_assert_fail!(typeof(n))("!=", n, n), "NoCopy() == NoCopy()");
 
     shared NoCopy sn;
-    test(_d_assert_fail!"!="(sn, sn), "NoCopy() == NoCopy()");
+    test(_d_assert_fail!(typeof(sn))("!=", sn, sn), "NoCopy() == NoCopy()");
 }
 
 void testAA()()
@@ -188,12 +180,18 @@ void testAA()()
     test!"in"("foo", ["bar": true], `"foo" !in ["bar": true]`);
 }
 
-
 void testAttributes() @safe pure @nogc nothrow
 {
     int a;
-    string s = _d_assert_fail!"=="(a, 0);
-    string s2 = _d_assert_fail!"!"(a);
+    string s = _d_assert_fail!(int, char)("==", a, 'c', 1, 'd');
+    assert(s == `(0, 'c') != (1, 'd')`);
+
+    string s2 = _d_assert_fail!int("", a);
+    assert(s2 == `0 != true`);
+
+    // Test instatiation of legacy hooks
+    s2 = _d_assert_fail("==", a, 1);
+    assert(s2 == `0 != 1`);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
@@ -231,13 +229,13 @@ void testEnum()
 
     ubyte[] data;
     enum ctfe = UUID();
-    test(_d_assert_fail!"=="(ctfe.data, data), "[1] != []");
+    test(_d_assert_fail!(ubyte[])("==", ctfe.data, data), "[1] != []");
 }
 
 void testUnary()
 {
-    test(_d_assert_fail!""(9), "9 != true");
-    test(_d_assert_fail!"!"([1, 2, 3]), "[1, 2, 3] == true");
+    test(_d_assert_fail!int("", 9), "9 != true");
+    test(_d_assert_fail!(int[])("!", [1, 2, 3]), "[1, 2, 3] == true");
 }
 
 void main()
