@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statementsem.d, _statementsem.d)
@@ -48,6 +48,7 @@ import dmd.intrange;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
+import dmd.printast;
 import dmd.root.outbuffer;
 import dmd.root.string;
 import dmd.semantic2;
@@ -1094,7 +1095,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         fs.aggr = fs.aggr.optimize(WANTvalue);
         if (fs.aggr.op == TOK.error)
             return setError();
-        Expression oaggr = fs.aggr;
+        Expression oaggr = fs.aggr;     // remember original for error messages
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOK.type && !fs.aggr.isLvalue())
@@ -1106,6 +1107,16 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             vinit.dsymbolSemantic(sc);
             fs.aggr = new VarExp(fs.aggr.loc, vinit);
         }
+
+        /* If aggregate is a vector type, add the .array to make it a static array
+         */
+        if (fs.aggr.type)
+            if (auto tv = fs.aggr.type.toBasetype().isTypeVector())
+            {
+                auto vae = new VectorArrayExp(fs.aggr.loc, fs.aggr);
+                vae.type = tv.basetype;
+                fs.aggr = vae;
+            }
 
         Dsymbol sapply = null;                  // the inferred opApply() or front() function
         if (!inferForeachAggregate(sc, fs.op == TOK.foreach_, fs.aggr, sapply))
@@ -2534,7 +2545,7 @@ else
                 break;
 
             auto ad = isAggregate(ss.condition.type);
-            if (ad && ad.aliasthis && ss.condition.type != att)
+            if (ad && ad.aliasthis && !(att && ss.condition.type.equivalent(att)))
             {
                 if (!att && ss.condition.type.checkAliasThisRec())
                     att = ss.condition.type;
@@ -2677,7 +2688,7 @@ else
                     (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);
-                    sl.expressionSemantic(sc);
+                    sl = sl.expressionSemantic(sc);
 
                     s = new SwitchErrorStatement(ss.loc, sl);
                 }
@@ -2764,7 +2775,7 @@ else
             sl = new DotTemplateInstanceExp(ss.loc, sl, Id.__switch, compileTimeArgs);
 
             sl = new CallExp(ss.loc, sl, arguments);
-            sl.expressionSemantic(sc);
+            sl = sl.expressionSemantic(sc);
             ss.condition = sl;
 
             auto i = 0;
@@ -3681,12 +3692,12 @@ else
         else
         {
             /* Generate our own critical section, then rewrite as:
-             *  static shared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
-             *  _d_criticalenter(&__critsec[0]);
-             *  try { body } finally { _d_criticalexit(&__critsec[0]); }
+             *  static shared void* __critsec;
+             *  _d_criticalenter2(&__critsec);
+             *  try { body } finally { _d_criticalexit(__critsec); }
              */
             auto id = Identifier.generateId("__critsec");
-            auto t = Type.tint8.sarrayOf(target.ptrsize + target.critsecsize());
+            auto t = Type.tvoidptr;
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
             tmp.storage_class |= STC.temp | STC.shared_ | STC.static_;
             Expression tmpExp = new VarExp(ss.loc, tmp);
@@ -3705,17 +3716,14 @@ else
             args.push(new Parameter(0, t.pointerTo(), null, null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
-            Expression int0 = new IntegerExp(ss.loc, dinteger_t(0), Type.tint8);
-            Expression e = new AddrExp(ss.loc, new IndexExp(ss.loc, tmpExp, int0));
+            Expression e = new AddrExp(ss.loc, tmpExp);
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, fdenter, e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STC.nothrow_);
-            e = new AddrExp(ss.loc, new IndexExp(ss.loc, tmpExp, int0));
-            e = e.expressionSemantic(sc);
-            e = new CallExp(ss.loc, fdexit, e);
+            e = new CallExp(ss.loc, fdexit, tmpExp);
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(ss.loc, e);
             s = new TryFinallyStatement(ss.loc, ss._body, s);
@@ -3723,9 +3731,6 @@ else
 
             s = new CompoundStatement(ss.loc, cs);
             result = s.statementSemantic(sc);
-
-            // set the explicit __critsec alignment after semantic()
-            tmp.alignment = target.ptrsize;
         }
     }
 

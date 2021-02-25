@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -81,6 +81,7 @@ class TypeClass;
 class TypeTuple;
 class TypeSlice;
 class TypeNull;
+class TypeNoreturn;
 class TypeTraits;
 class TypeMixin;
 
@@ -101,7 +102,7 @@ class DeprecatedDeclaration;
 class LinkDeclaration;
 class CPPMangleDeclaration;
 class CPPNamespaceDeclaration;
-class ProtDeclaration;
+class VisibilityDeclaration;
 class AlignDeclaration;
 class AnonDeclaration;
 class PragmaDeclaration;
@@ -362,7 +363,7 @@ public:
     virtual void visit(AlignDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(CPPMangleDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(CPPNamespaceDeclaration *s) { visit((AttribDeclaration *)s); }
-    virtual void visit(ProtDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(VisibilityDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(PragmaDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ConditionalDeclaration *s) { visit((AttribDeclaration *)s); }
@@ -426,6 +427,7 @@ public:
     virtual void visit(TypeBasic *t) { visit((Type *)t); }
     virtual void visit(TypeError *t) { visit((Type *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
+    virtual void visit(TypeNoreturn *t) { visit((Type *)t); }
     virtual void visit(TypeVector *t) { visit((Type *)t); }
     virtual void visit(TypeEnum *t) { visit((Type *)t); }
     virtual void visit(TypeTuple *t) { visit((Type *)t); }

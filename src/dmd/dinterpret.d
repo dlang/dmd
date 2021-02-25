@@ -3,7 +3,7 @@
  *
  * Specification: ($LINK2 https://dlang.org/spec/function.html#interpretation, Compile Time Function Execution (CTFE))
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinterpret.d, _dinterpret.d)
@@ -38,6 +38,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
+import dmd.printast;
 import dmd.root.rmem;
 import dmd.root.array;
 import dmd.root.region;
@@ -308,6 +309,7 @@ public:
 
     extern (C++) Expression getValue(VarDeclaration v)
     {
+        //printf("getValue() %s\n", v.toChars());
         if ((v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE())
         {
             assert(v.ctfeAdrOnStack < globalValues.dim);
@@ -319,6 +321,7 @@ public:
 
     extern (C++) void setValue(VarDeclaration v, Expression e)
     {
+        //printf("setValue() %s : %s\n", v.toChars(), e.toChars());
         assert(!v.isDataseg() || v.isCTFE());
         assert(v.ctfeAdrOnStack < stackPointer());
         values[v.ctfeAdrOnStack] = e;
@@ -326,6 +329,7 @@ public:
 
     extern (C++) void push(VarDeclaration v)
     {
+        //printf("push() %s\n", v.toChars());
         assert(!v.isDataseg() || v.isCTFE());
         if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone && v.ctfeAdrOnStack >= framepointer)
         {
@@ -422,9 +426,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         return CTFEExp.cantexp;
     }
 
-    Type tb = fd.type.toBasetype();
-    assert(tb.ty == Tfunction);
-    TypeFunction tf = cast(TypeFunction)tb;
+    auto tf = fd.type.toBasetype().isTypeFunction();
     if (tf.parameterList.varargs != VarArg.none && arguments &&
         ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
     {
@@ -501,11 +503,11 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             if (earg.op == TOK.structLiteral && !(fparam.storageClass & (STC.const_ | STC.immutable_)))
                 earg = copyLiteral(earg).copy();
         }
-        if (earg.op == TOK.thrownException)
+        if (auto tee = earg.isThrownExceptionExp())
         {
             if (istate)
-                return earg;
-            (cast(ThrownExceptionExp)earg).generateUncaughtError();
+                return tee;
+            tee.generateUncaughtError();
             return CTFEExp.cantexp;
         }
         eargs[i] = earg;
@@ -555,9 +557,9 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         ctfeGlobals.stack.push(v);
 
         if (fparam.isReference() && earg.op == TOK.variable &&
-            (cast(VarExp)earg).var.toParent2() == fd)
+            earg.isVarExp().var.toParent2() == fd)
         {
-            VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
+            VarDeclaration vx = earg.isVarExp().var.isVarDeclaration();
             if (!vx)
             {
                 fd.error("cannot interpret `%s` as a `ref` parameter", earg.toChars());
@@ -658,23 +660,22 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     // If fell off the end of a void function, return void
     if (!e && tf.next.ty == Tvoid)
         e = CTFEExp.voidexp;
-    if (tf.isref && e.op == TOK.variable && (cast(VarExp)e).var == fd.vthis)
+    if (tf.isref && e.op == TOK.variable && e.isVarExp().var == fd.vthis)
         e = thisarg;
     if (tf.isref && fd.isThis2 && e.op == TOK.index)
     {
-        auto ie = cast(IndexExp)e;
+        auto ie = e.isIndexExp();
         auto pe = ie.e1.isPtrExp();
         auto ve = !pe ?  null : pe.e1.isVarExp();
         if (ve && ve.var == fd.vthis)
         {
             auto ne = ie.e2.isIntegerExp();
             assert(ne);
-            assert(thisarg.op == TOK.address);
-            e = (cast(AddrExp)thisarg).e1;
-            e = (*(cast(ArrayLiteralExp)e).elements)[cast(size_t)ne.getInteger()];
-            if (e.op == TOK.address)
+            auto ale = thisarg.isAddrExp().e1.isArrayLiteralExp();
+            e = (*ale.elements)[cast(size_t)ne.getInteger()];
+            if (auto ae = e.isAddrExp())
             {
-                e = (cast(AddrExp)e).e1;
+                e = ae.e1;
             }
         }
     }
@@ -686,11 +687,11 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     ctfeGlobals.stack.endFrame();
 
     // If it generated an uncaught exception, report error.
-    if (!istate && e.op == TOK.thrownException)
+    if (!istate && e.isThrownExceptionExp())
     {
         if (e == pue.exp())
             e = pue.copy();
-        (cast(ThrownExceptionExp)e).generateUncaughtError();
+        e.isThrownExceptionExp().generateUncaughtError();
         e = CTFEExp.cantexp;
     }
 
@@ -1435,9 +1436,9 @@ public:
         Expression e = interpret(s._body, istate);
 
         // An exception was thrown
-        if (e && e.op == TOK.thrownException)
+        if (e && e.isThrownExceptionExp())
         {
-            ThrownExceptionExp ex = cast(ThrownExceptionExp)e;
+            ThrownExceptionExp ex = e.isThrownExceptionExp();
             Type extype = ex.thrown.originalClass().type;
 
             // Search for an appropriate catch clause.
@@ -1568,11 +1569,11 @@ public:
             result = ey;
             return;
         }
-        if (ey && ey.op == TOK.thrownException)
+        if (ey && ey.isThrownExceptionExp())
         {
             // Check for collided exceptions
-            if (ex && ex.op == TOK.thrownException)
-                ex = chainExceptions(cast(ThrownExceptionExp)ex, cast(ThrownExceptionExp)ey);
+            if (ex && ex.isThrownExceptionExp())
+                ex = chainExceptions(ex.isThrownExceptionExp(), ey.isThrownExceptionExp());
             else
                 ex = ey;
         }
@@ -2997,16 +2998,6 @@ public:
             er = interpret(pue, ex, istate);
             if (exceptionOrCant(er))
                 return false;
-            if (er.isConst() != 1)
-            {
-                if (er.op == TOK.arrayLiteral)
-                    // Until we get it to work, issue a reasonable error message
-                    e.error("cannot interpret array literal expression `%s` at compile time", e.toChars());
-                else
-                    e.error("CTFE internal error: non-constant value `%s`", ex.toChars());
-                result = CTFEExp.cantexp;
-                return false;
-            }
             return true;
         }
 
@@ -3031,7 +3022,67 @@ public:
                 return;
             }
         }
-        *pue = (*fp)(e.loc, e.type, e1, e2);
+
+        /******************************************
+         * Perform the operation fp on operands e1 and e2.
+         */
+        UnionExp evaluate(Loc loc, Type type, Expression e1, Expression e2)
+        {
+            UnionExp ue = void;
+            auto ae1 = e1.isArrayLiteralExp();
+            auto ae2 = e2.isArrayLiteralExp();
+            if (ae1 || ae2)
+            {
+                /* Cases:
+                 * 1. T[] op T[]
+                 * 2. T op T[]
+                 * 3. T[] op T
+                 */
+                if (ae1 && e2.implicitConvTo(e1.type.toBasetype().nextOf())) // case 3
+                    ae2 = null;
+                else if (ae2 && e1.implicitConvTo(e2.type.toBasetype().nextOf())) // case 2
+                    ae1 = null;
+                // else case 1
+
+                auto aex = ae1 ? ae1 : ae2;
+                if (!aex.elements)
+                {
+                    emplaceExp!ArrayLiteralExp(&ue, loc, type, cast(Expressions*) null);
+                    return ue;
+                }
+                const length = aex.elements.length;
+                Expressions* elements = new Expressions(length);
+
+                emplaceExp!ArrayLiteralExp(&ue, loc, type, elements);
+                foreach (i; 0 .. length)
+                {
+                    Expression e1x = ae1 ? ae1[i] : e1;
+                    Expression e2x = ae2 ? ae2[i] : e2;
+                    UnionExp uex = evaluate(loc, e1x.type, e1x, e2x);
+                    // This can be made more efficient by making use of ue.basis
+                    (*elements)[i] = uex.copy();
+                }
+                return ue;
+            }
+
+            if (e1.isConst() != 1)
+            {
+                // The following should really be an assert()
+                e1.error("CTFE internal error: non-constant value `%s`", e1.toChars());
+                emplaceExp!CTFEExp(&ue, TOK.cantExpression);
+                return ue;
+            }
+            if (e2.isConst() != 1)
+            {
+                e2.error("CTFE internal error: non-constant value `%s`", e2.toChars());
+                emplaceExp!CTFEExp(&ue, TOK.cantExpression);
+                return ue;
+            }
+
+            return (*fp)(loc, type, e1, e2);
+        }
+
+        *pue = evaluate(e.loc, e.type, e1, e2);
         result = (*pue).exp();
         if (CTFEExp.isCantExp(result))
             e.error("`%s` cannot be interpreted at compile time", e.toChars());
@@ -3697,6 +3748,7 @@ public:
 
     private Expression assignToLvalue(BinExp e, Expression e1, Expression newval)
     {
+        //printf("assignToLvalue() e: %s e1: %s newval: %s\n", e.toChars(), e1.toChars(), newval.toChars());
         VarDeclaration vd = null;
         Expression* payload = null; // dead-store to prevent spurious warning
         Expression oldval;
@@ -3788,6 +3840,17 @@ public:
 
         Type t1b = e1.type.toBasetype();
         bool wantCopy = t1b.baseElemOf().ty == Tstruct;
+
+        if (auto ve = newval.isVectorExp())
+        {
+            // Ensure ve is an array literal, and not a broadcast
+            if (ve.e1.op == TOK.int64 || ve.e1.op == TOK.float64) // if broadcast
+            {
+                UnionExp ue = void;
+                Expression ex = interpretVectorToArray(&ue, ve);
+                ve.e1 = (ex == ue.exp()) ? ue.copy() : ex;
+            }
+        }
 
         if (newval.op == TOK.structLiteral && oldval)
         {
@@ -4803,12 +4866,11 @@ public:
             {
                 // Make a virtual function call.
                 // Get the function from the vtable of the original class
-                assert(pthis.op == TOK.classReference);
-                ClassDeclaration cd = (cast(ClassReferenceExp)pthis).originalClass();
+                ClassDeclaration cd = pthis.isClassReferenceExp().originalClass();
 
                 // We can't just use the vtable index to look it up, because
                 // vtables for interfaces don't get populated until the glue layer.
-                fd = cd.findFunc(fd.ident, cast(TypeFunction)fd.type);
+                fd = cd.findFunc(fd.ident, fd.type.isTypeFunction());
                 assert(fd);
             }
         }
@@ -4882,10 +4944,10 @@ public:
         // (this is particularly important for struct constructors)
         if (e.e1.op == TOK.declaration &&
             e.e2.op == TOK.variable &&
-            (cast(DeclarationExp)e.e1).declaration == (cast(VarExp)e.e2).var &&
-            (cast(VarExp)e.e2).var.storage_class & STC.ctfe)
+            e.e1.isDeclarationExp().declaration == e.e2.isVarExp().var &&
+            e.e2.isVarExp().var.storage_class & STC.ctfe)
         {
-            VarExp ve = cast(VarExp)e.e2;
+            VarExp ve = e.e2.isVarExp();
             VarDeclaration v = ve.var.isVarDeclaration();
             ctfeGlobals.stack.push(v);
             if (!v._init && !getValue(v))
@@ -4988,7 +5050,7 @@ public:
     static Expression interpretVectorToArray(UnionExp* pue, VectorExp e)
     {
         if (auto ale = e.e1.isArrayLiteralExp())
-            return ale;
+            return ale;         // it's already an array literal
         if (e.e1.op == TOK.int64 || e.e1.op == TOK.float64)
         {
             // Convert literal __vector(int) -> __vector([array])
@@ -4998,7 +5060,7 @@ public:
             auto type = (e.type.ty == Tvector) ? e.type.isTypeVector().basetype : e.type.isTypeSArray();
             assert(type);
             emplaceExp!(ArrayLiteralExp)(pue, e.loc, type, elements);
-            auto ale = cast(ArrayLiteralExp)pue.exp();
+            auto ale = pue.exp().isArrayLiteralExp();
             ale.ownedByCtfe = OwnedBy.ctfe;
             return ale;
         }
@@ -5029,7 +5091,7 @@ public:
         if (e1 == pue.exp())
             e1 = pue.copy();
         emplaceExp!(VectorExp)(pue, e.loc, e1, e.to);
-        auto ve = cast(VectorExp)pue.exp();
+        auto ve = pue.exp().isVectorExp();
         ve.type = e.type;
         ve.dim = e.dim;
         ve.ownedByCtfe = OwnedBy.ctfe;
@@ -7352,6 +7414,7 @@ private void setValueWithoutChecking(VarDeclaration vd, Expression newval)
 
 private void setValue(VarDeclaration vd, Expression newval)
 {
+    //printf("setValue() vd: %s newval: %s\n", vd.toChars(), newval.toChars());
     version (none)
     {
         if (!((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval)))

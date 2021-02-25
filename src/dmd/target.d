@@ -15,7 +15,7 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
@@ -251,16 +251,6 @@ extern (C++) struct Target
             return size;
 
         return (8 < size) ? 8 : size;
-    }
-
-    /**
-     * Size of the target OS critical section.
-     * Returns:
-     *      size in bytes
-     */
-    extern (C++) uint critsecsize()
-    {
-        return c.criticalSectionSize;
     }
 
     /**
@@ -589,7 +579,21 @@ extern (C++) struct Target
             return false;                 // returns a pointer
         }
 
-        Type tn = tf.next.toBasetype();
+        Type tn = tf.next;
+        if (auto te = tn.isTypeEnum())
+        {
+            if (te.sym.isSpecial())
+            {
+                // Special enums with target-specific return style
+                if (te.sym.ident == Id.__c_complex_float)
+                    tn = Type.tcomplex32.castMod(tn.mod);
+                else if (te.sym.ident == Id.__c_complex_double)
+                    tn = Type.tcomplex64.castMod(tn.mod);
+                else if (te.sym.ident == Id.__c_complex_real)
+                    tn = Type.tcomplex80.castMod(tn.mod);
+            }
+        }
+        tn = tn.toBasetype();
         //printf("tn = %s\n", tn.toChars());
         d_uns64 sz = tn.size();
         Type tns = tn;
@@ -878,6 +882,20 @@ extern (C++) struct Target
         }
     }
 
+    /**
+     * Params:
+     *  tf = type of function being called
+     * Returns: `true` if the callee invokes destructors for arguments.
+     */
+    extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf)
+    {
+        // On windows, the callee destroys arguments always regardless of function linkage,
+        // and regardless of whether the caller or callee cleans the stack.
+        return params.targetOS == TargetOS.Windows ||
+               // C++ on non-Windows platforms has the caller destroying the arguments
+               tf.linkage != LINK.cpp;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     /* All functions after this point are extern (D), as they are only relevant
      * for targets of DMD, and should not be used in front-end code.
@@ -931,7 +949,6 @@ struct TargetC
 {
     uint longsize;            /// size of a C `long` or `unsigned long` type
     uint long_doublesize;     /// size of a C `long double`
-    uint criticalSectionSize; /// size of os critical section
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
@@ -954,51 +971,6 @@ struct TargetC
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
-
-        criticalSectionSize = getCriticalSectionSize(params);
-    }
-
-    private static uint getCriticalSectionSize(ref const Param params) pure
-    {
-        if (params.targetOS == TargetOS.Windows)
-        {
-            // sizeof(CRITICAL_SECTION) for Windows.
-            return params.isLP64 ? 40 : 24;
-        }
-        else if (params.targetOS == TargetOS.linux)
-        {
-            // sizeof(pthread_mutex_t) for Linux.
-            if (params.is64bit)
-                return params.isLP64 ? 40 : 32;
-            else
-                return params.isLP64 ? 40 : 24;
-        }
-        else if (params.targetOS == TargetOS.FreeBSD)
-        {
-            // sizeof(pthread_mutex_t) for FreeBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.targetOS == TargetOS.OpenBSD)
-        {
-            // sizeof(pthread_mutex_t) for OpenBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.targetOS == TargetOS.DragonFlyBSD)
-        {
-            // sizeof(pthread_mutex_t) for DragonFlyBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.targetOS == TargetOS.OSX)
-        {
-            // sizeof(pthread_mutex_t) for OSX.
-            return params.isLP64 ? 64 : 44;
-        }
-        else if (params.targetOS == TargetOS.Solaris)
-        {
-            // sizeof(pthread_mutex_t) for Solaris.
-            return 24;
-        }
-        assert(0);
     }
 }
 

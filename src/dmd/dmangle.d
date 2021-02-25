@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmangle.d, _dmangle.d)
@@ -13,6 +13,109 @@
  */
 
 module dmd.dmangle;
+
+/******************************************************************************
+ * Returns exact mangled name of function.
+ */
+extern (C++) const(char)* mangleExact(FuncDeclaration fd)
+{
+    if (!fd.mangleString)
+    {
+        OutBuffer buf;
+        scope Mangler v = new Mangler(&buf);
+        v.mangleExact(fd);
+        fd.mangleString = buf.extractChars();
+    }
+    return fd.mangleString;
+}
+
+extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
+{
+    if (t.deco)
+        buf.writestring(t.deco);
+    else
+    {
+        scope Mangler v = new Mangler(buf, t);
+        v.visitWithMask(t, 0);
+    }
+}
+
+extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    e.accept(v);
+}
+
+extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    s.accept(v);
+}
+
+extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    v.mangleTemplateInstance(ti);
+}
+
+/******************************************************************************
+ * Mangle function signatures ('this' qualifier, and parameter types)
+ * to check conflicts in function overloads.
+ * It's different from fd.type.deco. For example, fd.type.deco would be null
+ * if fd is an auto function.
+ *
+ * Params:
+ *    buf = `OutBuffer` to write the mangled function signature to
+*     fd  = `FuncDeclaration` to mangle
+ */
+void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
+{
+    auto tf = fd.type.isTypeFunction();
+
+    scope Mangler v = new Mangler(&buf);
+
+    MODtoDecoBuffer(&buf, tf.mod);
+    foreach (idx, param; tf.parameterList)
+        param.accept(v);
+    buf.writeByte('Z' - tf.parameterList.varargs);
+}
+
+
+/// Returns: `true` if the given character is a valid mangled character
+package bool isValidMangling(dchar c) nothrow
+{
+    return
+        c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '0' && c <= '9' ||
+        c != 0 && strchr("$%().:?@[]_", c) ||
+        isUniAlpha(c);
+}
+
+// valid mangled characters
+unittest
+{
+    assert('a'.isValidMangling);
+    assert('B'.isValidMangling);
+    assert('2'.isValidMangling);
+    assert('@'.isValidMangling);
+    assert('_'.isValidMangling);
+}
+
+// invalid mangled characters
+unittest
+{
+    assert(!'-'.isValidMangling);
+    assert(!0.isValidMangling);
+    assert(!'/'.isValidMangling);
+    assert(!'\\'.isValidMangling);
+}
+
+
+/***************************************** private ***************************************/
+
+private:
+
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -55,8 +158,7 @@ private immutable char[TMAX] mangleChar =
     Tuns32       : 'k',
     Tint64       : 'l',
     Tuns64       : 'm',
-    Tnone        : 'n',
-    Tnull        : 'n', // yes, same as TypeNone
+    Tnull        : 'n',
     Timaginary32 : 'o',
     Timaginary64 : 'p',
     Tcomplex32   : 'q',
@@ -84,7 +186,7 @@ private immutable char[TMAX] mangleChar =
     //              K   // ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild
+    //              N   // Nh:vector Ng:wild Nn:noreturn
     //              O   // shared
     Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
@@ -98,6 +200,7 @@ private immutable char[TMAX] mangleChar =
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
+    Tnone        : '@',
     Tident       : '@',
     Tinstance    : '@',
     Terror       : '@',
@@ -107,6 +210,7 @@ private immutable char[TMAX] mangleChar =
     Tvector      : '@',
     Ttraits      : '@',
     Tmixin       : '@',
+    Tnoreturn    : '@',         // becomes 'Nn'
 ];
 
 unittest
@@ -484,6 +588,11 @@ public:
         visit(cast(Type)t);
     }
 
+    override void visit(TypeNoreturn t)
+    {
+        buf.writestring("Nn");
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     void mangleDecl(Declaration sthis)
     {
@@ -504,6 +613,7 @@ public:
 
     void mangleParent(Dsymbol s)
     {
+        //printf("mangleParent() %s %s\n", s.kind(), s.toChars());
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
@@ -511,10 +621,12 @@ public:
             p = s.parent;
         if (p)
         {
+            uint localNum = s.localNum;
             mangleParent(p);
             auto ti = p.isTemplateInstance();
             if (ti && !ti.isTemplateMixin())
             {
+                localNum = ti.tempdecl.localNum;
                 mangleTemplateInstance(ti);
             }
             else if (p.getIdent())
@@ -525,6 +637,25 @@ public:
             }
             else
                 buf.writeByte('0');
+
+            /* There can be multiple different declarations in the same
+             * function that have the same mangled name.
+             * This results in localNum having a non-zero number, which
+             * is used to add a fake parent of the form `__Sddd` to make
+             * the mangled names unique.
+             * https://issues.dlang.org/show_bug.cgi?id=20565
+             */
+            if (localNum)
+            {
+                uint ndigits = 1;
+                auto n = localNum;
+                while (n >= 10)
+                {
+                    n /= 10;
+                    ++ndigits;
+                }
+                buf.printf("%u__S%u", ndigits + 4, localNum);
+            }
         }
     }
 
@@ -592,6 +723,8 @@ public:
         const par = d.toParent(); //toParent() skips over mixin templates
         if (!par || par.isModule() || d.linkage == LINK.cpp)
         {
+            if (d.linkage != LINK.d && d.localNum)
+                d.error("the same declaration cannot be in multiple scopes with non-D linkage");
             final switch (d.linkage)
             {
                 case LINK.d:
@@ -699,7 +832,7 @@ public:
         }
         if (FuncDeclaration fd = od.aliassym.isFuncDeclaration())
         {
-            if (!od.hasOverloads || fd.isUnique())
+            if (fd.isUnique())
             {
                 mangleExact(fd);
                 return;
@@ -707,7 +840,7 @@ public:
         }
         if (TemplateDeclaration td = od.aliassym.isTemplateDeclaration())
         {
-            if (!od.hasOverloads || td.overnext is null)
+            if (td.overnext is null)
             {
                 mangleSymbol(td);
                 return;
@@ -1147,78 +1280,4 @@ public:
         }
         visitWithMask(p.type, (p.storageClass & STC.in_) ? MODFlags.const_ : 0);
     }
-}
-
-/// Returns: `true` if the given character is a valid mangled character
-package bool isValidMangling(dchar c) nothrow
-{
-    return
-        c >= 'A' && c <= 'Z' ||
-        c >= 'a' && c <= 'z' ||
-        c >= '0' && c <= '9' ||
-        c != 0 && strchr("$%().:?@[]_", c) ||
-        isUniAlpha(c);
-}
-
-// valid mangled characters
-unittest
-{
-    assert('a'.isValidMangling);
-    assert('B'.isValidMangling);
-    assert('2'.isValidMangling);
-    assert('@'.isValidMangling);
-    assert('_'.isValidMangling);
-}
-
-// invalid mangled characters
-unittest
-{
-    assert(!'-'.isValidMangling);
-    assert(!0.isValidMangling);
-    assert(!'/'.isValidMangling);
-    assert(!'\\'.isValidMangling);
-}
-
-/******************************************************************************
- * Returns exact mangled name of function.
- */
-extern (C++) const(char)* mangleExact(FuncDeclaration fd)
-{
-    if (!fd.mangleString)
-    {
-        OutBuffer buf;
-        scope Mangler v = new Mangler(&buf);
-        v.mangleExact(fd);
-        fd.mangleString = buf.extractChars();
-    }
-    return fd.mangleString;
-}
-
-extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
-{
-    if (t.deco)
-        buf.writestring(t.deco);
-    else
-    {
-        scope Mangler v = new Mangler(buf, t);
-        v.visitWithMask(t, 0);
-    }
-}
-
-extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    e.accept(v);
-}
-
-extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    s.accept(v);
-}
-
-extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    v.mangleTemplateInstance(ti);
 }

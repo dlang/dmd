@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/traits.html, Traits)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/traits.d, _traits.d)
@@ -122,6 +122,7 @@ shared static this()
         "hasMember",
         "identifier",
         "getProtection",
+        "getVisibility",
         "parent",
         "child",
         "getLinkage",
@@ -134,7 +135,6 @@ shared static this()
         "derivedMembers",
         "isSame",
         "compiles",
-        "parameters",
         "getAliasThis",
         "getAttributes",
         "getFunctionAttributes",
@@ -428,7 +428,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
-        e.ident != Id.getProtection &&
+        e.ident != Id.getProtection && e.ident != Id.getVisibility &&
         e.ident != Id.getAttributes)
     {
         // Pretend we're in a deprecated scope so that deprecation messages
@@ -821,7 +821,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
-    if (e.ident == Id.getProtection)
+    if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
         if (dim != 1)
             return dimError(1);
@@ -838,13 +838,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             if (!isError(o))
-                e.error("argument `%s` has no protection", o.toChars());
+                e.error("argument `%s` has no visibility", o.toChars());
             return ErrorExp.get();
         }
         if (s.semanticRun == PASS.init)
             s.dsymbolSemantic(null);
 
-        auto protName = protectionToString(s.prot().kind); // TODO: How about package(names)
+        auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)
         assert(protName);
         auto se = new StringExp(e.loc, protName);
         return se.expressionSemantic(sc);
@@ -1055,33 +1055,31 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
              */
             auto exps = new Expressions();
             Dsymbol f;
-            if (ex.op == TOK.variable)
+            if (auto ve = ex.isVarExp)
             {
-                VarExp ve = cast(VarExp)ex;
-                f = ve.var.isFuncDeclaration();
+                if (ve.var.isFuncDeclaration() || ve.var.isOverDeclaration())
+                    f = ve.var;
                 ex = null;
             }
-            else if (ex.op == TOK.dotVariable)
+            else if (auto dve = ex.isDotVarExp)
             {
-                DotVarExp dve = cast(DotVarExp)ex;
-                f = dve.var.isFuncDeclaration();
+                if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
+                    f = dve.var;
                 if (dve.e1.op == TOK.dotType || dve.e1.op == TOK.this_)
                     ex = null;
                 else
                     ex = dve.e1;
             }
-            else if (ex.op == TOK.template_)
+            else if (auto te = ex.isTemplateExp)
             {
-                VarExp ve = cast(VarExp)ex;
-                auto td = ve.var.isTemplateDeclaration();
+                auto td = te.td;
                 f = td;
                 if (td && td.funcroot)
                     f = td.funcroot;
                 ex = null;
             }
-            else if (ex.op == TOK.dotTemplateDeclaration)
+            else if (auto dte = ex.isDotTemplateExp)
             {
-                DotTemplateExp dte = cast(DotTemplateExp)ex;
                 auto td = dte.td;
                 f = td;
                 if (td && td.funcroot)
@@ -1137,7 +1135,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                                     td.instances[tib] = null;
                                     td.instances.clear();
                                 }
-                                td = cast(TemplateDeclaration) td.syntaxCopy(null);
+                                td = td.syntaxCopy(null);
                                 import core.stdc.string : memcpy;
                                 memcpy(cast(void*) td, cast(void*) s,
                                         __traits(classInstanceSize, TemplateDeclaration));
@@ -1155,7 +1153,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
 
                 auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
-                fa.protection = fd.protection;
+                fa.visibility = fd.visibility;
 
                 auto e = ex ? new DotVarExp(Loc.initial, ex, fa, false)
                             : new DsymbolExp(Loc.initial, fa, false);
@@ -1843,7 +1841,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     uniqueUnitTests[cast(void*)ud] = true;
 
                     auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
-                    ad.protection = ud.protection;
+                    ad.visibility = ud.visibility;
 
                     auto e = new DsymbolExp(Loc.initial, ad, false);
                     exps.push(e);

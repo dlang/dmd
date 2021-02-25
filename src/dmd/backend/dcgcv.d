@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -74,7 +74,7 @@ extern (C) void TOOFFSET(void* p, targ_size_t value)
 
 extern __gshared char* ftdbname;
 
-// Convert from SFL protections to CV4 protections
+// Convert from SFL visibilities to CV4 protections
 uint SFLtoATTR(uint sfl) { return 4 - ((sfl & SFLpmask) >> 5); }
 
 __gshared

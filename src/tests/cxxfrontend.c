@@ -220,7 +220,7 @@ void test_visitors()
     tp->accept(&tv);
     assert(tv.type == true);
 
-    LinkDeclaration *ld = LinkDeclaration::create(LINK::d, NULL);
+    LinkDeclaration *ld = LinkDeclaration::create(loc, LINK::d, NULL);
     assert(ld->isAttribDeclaration() == static_cast<AttribDeclaration *>(ld));
     assert(ld->linkage == LINK::d);
     ld->accept(&tv);
@@ -292,6 +292,32 @@ void test_semantic()
 
     ClassDeclaration *cd = ad->isClassDeclaration();
     assert(cd && cd->hasMonitor());
+
+    assert(!global.endGagging(errors));
+}
+
+/**********************************/
+
+void test_skip_importall()
+{
+    /* Similar to test_semantic(), but importAll step is skipped.  */
+    const char *buf =
+        "module rootobject;\n"
+        "class RootObject : Object { }";
+
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+
+    Module *m = Module::create("rootobject.d", Identifier::idPool("rootobject"), 0, 0);
+
+    unsigned errors = global.startGagging();
+
+    m->srcBuffer = srcBuffer;
+    m->parse();
+    m->importedFrom = m;
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
 
     assert(!global.endGagging(errors));
 }
@@ -519,6 +545,7 @@ int main(int argc, char **argv)
     test_compiler_globals();
     test_visitors();
     test_semantic();
+    test_skip_importall();
     test_expression();
     test_target();
     test_emplace();

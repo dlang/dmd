@@ -1,5 +1,5 @@
 // REQUIRED_ARGS:
-// PERMUTE_ARGS: -mcpu=native -inline
+// PERMUTE_ARGS: -mcpu=native -inline -O
 
 version (D_SIMD)
 {
@@ -2102,6 +2102,16 @@ void test7()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18867
+
+ulong2 foo18867(ulong s)
+{
+    ulong2 v;
+    v[0] = s;
+    return v;
+}
+
+/*****************************************/
 
 
 auto test20052()
@@ -2129,6 +2139,38 @@ void16 simd_stox(XMM opcode)(void16 op1, void16 op2)
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21469
+
+int4 foo21469(short a)
+{
+    return cast(int4)(short8(a));
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20041
+
+immutable(float4) foo20041()
+{
+    float4 raw = 2.0f;
+    raw.array[0] = 1;
+    return cast(immutable)raw;
+}
+
+void test20041()
+{
+    static immutable float4 v = foo20041();
+
+    assert(v.array[0] == 1);
+    assert(v.array[1] == 2);
+    assert(v.array[2] == 2);
+    assert(v.array[3] == 2);
+
+//    foreach(d; 0 .. 4)
+//      printf("%g ", v[d]);
+//    printf("\n");
+}
+
+/*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21364
 
 struct X21364
@@ -2150,6 +2192,28 @@ void test21364()
 {
     X21364 x = X21364();
     foo21364(1, x, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19632
+
+void test19632()
+{
+    int4 v = [1, 2, 3, 4];
+    int sum = 0;
+    foreach (ref e; v)
+        sum += (e *= 2);
+    assert(v.array[] == [2, 4, 6, 8]);
+    assert(sum == 20);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19788
+
+void test19788()
+{
+    enum v = __vector(float[4]).init;
+    const(float)[] a = v[];
 }
 
 /*****************************************/
@@ -2198,7 +2262,10 @@ int main()
     test6();
     test7();
     test20981();
+    test20041();
     test21364();
+    test19632();
+    test19788();
 
     return 0;
 }

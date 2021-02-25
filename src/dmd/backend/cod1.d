@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.d, backend/cod1.d)
@@ -1945,13 +1945,12 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
             if (retregs & XMMREGS)
             {
                 reg = findreg(retregs & XMMREGS);
-                // MOVSD floatreg, XMM?
-                cdb.genxmmreg(xmmstore(tym), reg, 0, tym);
                 if (mask(rreg) & XMMREGS)
-                    // MOVSD XMM?, floatreg
-                    cdb.genxmmreg(xmmload(tym), rreg, 0, tym);
+                    genmovreg(cdb, rreg, reg, tym);
                 else
                 {
+                    // MOVSD floatreg, XMM?
+                    cdb.genxmmreg(xmmstore(tym), reg, 0, tym);
                     // MOV rreg,floatreg
                     cdb.genfltreg(0x8B,rreg,0);
                     if (sz == 8)
@@ -4007,12 +4006,8 @@ static if (0)
     }
 }
 
-    reg_t reg1 = NOREG, reg2 = NOREG;
-
-    if (config.exe == EX_WIN64) // Win64 is currently broken
-        retregs = regmask(e.Ety, tym1);
-    else
-        retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+    reg_t reg1, reg2;
+    retregs = allocretregs(e.Ety, e.ET, tym1, reg1, reg2);
 
     assert(retregs || !*pretregs);
 
@@ -4083,7 +4078,7 @@ static if (0)
             assert(global87.stackused == 0);
             push87(cdb);
             push87(cdb);                // two items on 8087 stack
-            fixresult_complex87(cdb, e, retregs, pretregs);
+            fixresult_complex87(cdb, e, retregs, pretregs, true);
             return;
         }
         else
@@ -4306,13 +4301,16 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
             break;
     }
     regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
-    if (tyvector(tym))
+    if (tyvector(tym) ||
+        config.fpxmmregs && tyxmmreg(tym) &&
+        // If not already in x87 register from function call return
+        !((e.Eoper == OPcall || e.Eoper == OPucall) && I32))
     {
         retregs = XMMREGS;
         codelem(cdb, e, &retregs, false);
         const op = xmmstore(tym);
         const r = findreg(retregs);
-        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FLfuncarg, funcargtos - 16);   // MOV funcarg[EBP],r
+        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FLfuncarg, funcargtos - sz);   // MOV funcarg[EBP],r
         checkSetVex(cdb.last(),tym);
         return;
     }

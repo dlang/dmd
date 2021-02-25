@@ -1,7 +1,7 @@
 /**
  * Converts expressions to Intermediate Representation (IR) for the backend.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
@@ -259,7 +259,13 @@ private elem *callfunc(const ref Loc loc,
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
-                elems[i] = addressElem(ea, arg.type, true);
+                VarDeclaration v;
+                if (VarExp ve = arg.isVarExp())
+                    v = ve.var.isVarDeclaration();
+                bool copy = !(v && v.isArgDtorVar); // copy unless the destructor is going to be run on it
+                                                    // then assume the frontend took care of the copying and pass it by ref
+
+                elems[i] = addressElem(ea, arg.type, copy);
                 continue;
             }
 
@@ -3227,6 +3233,19 @@ elem *toElem(Expression e, IRState *irs)
                     return setResult2(e);
                 }
 
+                if (ae.op == TOK.assign)
+                {
+                    if (auto ve1 = ae.e1.isVectorArrayExp())
+                    {
+                        // Use an OPeq rather than an OPstreq
+                        e1 = toElem(ve1.e1, irs);
+                        elem* e2 = toElem(ae.e2, irs);
+                        e2.Ety = e1.Ety;
+                        elem* e = el_bin(OPeq, e2.Ety, e1, e2);
+                        return setResult2(e);
+                    }
+                }
+
                 /* https://issues.dlang.org/show_bug.cgi?id=13661
                  * Even if the elements in rhs are all rvalues and
                  * don't have to call postblits, this assignment should call
@@ -5710,6 +5729,29 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
     //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOK.blit, sym, fillHoles);
 
+    Type forcetype = null;
+    if (sle.stype)
+    {
+        if (TypeEnum te = sle.stype.isTypeEnum())
+        {
+            // Reinterpret the struct literal as a complex type.
+            if (te.sym.isSpecial() &&
+                (te.sym.ident == Id.__c_complex_float ||
+                 te.sym.ident == Id.__c_complex_double ||
+                 te.sym.ident == Id.__c_complex_real))
+            {
+                forcetype = sle.stype;
+            }
+        }
+    }
+
+    static elem* Lreinterpret(Loc loc, elem* e, Type type)
+    {
+        elem* ep = el_una(OPind, totym(type), el_una(OPaddr, TYnptr, e));
+        elem_setLoc(ep, loc);
+        return ep;
+    }
+
     if (sle.useStaticInit)
     {
         /* Use the struct declaration's init symbol
@@ -5731,6 +5773,8 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
             //e = el_combine(e, ev);
             elem_setLoc(e, sle.loc);
         }
+        if (forcetype)
+            return Lreinterpret(sle.loc, e, forcetype);
         return e;
     }
 
@@ -5913,6 +5957,8 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
     ev.ET = Type_toCtype(sle.sd.type);
     e = el_combine(e, ev);
     elem_setLoc(e, sle.loc);
+    if (forcetype)
+        return Lreinterpret(sle.loc, e, forcetype);
     return e;
 }
 
@@ -6451,6 +6497,9 @@ bool type_zeroCopy(type* t)
  */
 elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
 {
+    //printf("e1:\n"); elem_print(e1);
+    //printf("e2:\n"); elem_print(e2);
+    //if (t) printf("t: %s\n", t.toChars());
     elem *e = el_bin(OPeq, e2.Ety, e1, e2);
     switch (tybasic(e2.Ety))
     {
@@ -6462,6 +6511,7 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
             e.Eoper = OPstreq;
             if (!tx)
                 tx = Type_toCtype(t);
+            //printf("tx:\n"); type_print(tx);
             e.ET = tx;
 //            if (type_zeroCopy(tx))
 //                e.Eoper = OPcomma;

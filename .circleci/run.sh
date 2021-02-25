@@ -2,7 +2,7 @@
 
 set -uexo pipefail
 
-HOST_DMD_VER=2.088.0 # same as in dmd/src/posix.mak
+HOST_DMD_VER=2.095.0 # same as in dmd/src/bootstrap.sh
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
@@ -195,7 +195,7 @@ codecov()
     # CodeCov gets confused by lst files which it can't match
     rm -rf test/runnable/extra-files
     download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
-    bash ./codecov.sh -p . -Z
+    bash ./codecov.sh -p . -Z || echo "Failed to upload coverage reports!"
     rm codecov.sh
 }
 

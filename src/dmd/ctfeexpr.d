@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -179,7 +179,7 @@ extern (C++) final class CTFEExp : Expression
         case TOK.cantExpression:
             return "<cant>";
         case TOK.voidExpression:
-            return "<void>";
+            return "cast(void)0";
         case TOK.showCtfeContext:
             return "<error>";
         case TOK.break_:

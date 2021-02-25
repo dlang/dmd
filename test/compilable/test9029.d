@@ -1,7 +1,4 @@
-/* TEST_OUTPUT:
----
----
-*/
+// https://issues.dlang.org/show_bug.cgi?id=9029
 enum NameOf(alias S) = S.stringof;
 
 static assert(NameOf!int == "int");

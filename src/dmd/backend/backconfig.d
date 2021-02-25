@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
@@ -54,6 +54,7 @@ extern (C) void out_config_init(
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
+        ubyte dwarf,            // DWARF version used
         string _version         // Compiler version
         )
 {
@@ -74,6 +75,23 @@ version (MARS)
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
     model &= 32 | 64;
+
+    if (dwarf < 3 || dwarf > 5)
+    {
+        if (dwarf)
+        {
+            import dmd.backend.errors;
+            error(null, 0, 0, "DWARF version %u is not supported", dwarf);
+        }
+
+        // Default DWARF version
+        config.dwarf = 3;
+    }
+    else
+    {
+        config.dwarf = dwarf;
+    }
+
 static if (TARGET_WINDOS)
 {
     if (model == 64)

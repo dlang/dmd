@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -98,7 +98,7 @@ public:
     Type *type;
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
-    Prot protection;
+    Visibility visibility;
     LINK linkage;
     short inuse;                // used to detect cycles
     uint8_t adFlags;
@@ -135,7 +135,7 @@ public:
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
-    Prot prot();
+    Visibility visible();
 
     Declaration *isDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -151,7 +151,7 @@ public:
 
     TypeTuple *tupletype;       // !=NULL if this is a type tuple
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    TupleDeclaration *syntaxCopy(Dsymbol *);
     const char *kind() const;
     Type *getType();
     Dsymbol *toAlias2();
@@ -171,7 +171,7 @@ public:
     Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
-    Dsymbol *syntaxCopy(Dsymbol *);
+    AliasDeclaration *syntaxCopy(Dsymbol *);
     bool overloadInsert(Dsymbol *s);
     const char *kind() const;
     Type *getType();
@@ -190,7 +190,6 @@ class OverDeclaration : public Declaration
 public:
     Dsymbol *overnext;          // next in overload list
     Dsymbol *aliassym;
-    bool hasOverloads;
 
     const char *kind() const;
     bool equals(const RootObject *o) const;
@@ -238,10 +237,11 @@ public:
     bool doNotInferScope;       // do not infer 'scope' for this variable
     bool doNotInferReturn;      // do not infer 'return' for this variable
     unsigned char isdataseg;    // private data for isDataseg
+    bool isArgDtorVar;          // temporary created to handle scope destruction of a function argument
 
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
-    Dsymbol *syntaxCopy(Dsymbol *);
+    VarDeclaration *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
     AggregateDeclaration *isThis();
@@ -283,7 +283,7 @@ public:
     Type *tinfo;
 
     static TypeInfoDeclaration *create(Type *tinfo);
-    Dsymbol *syntaxCopy(Dsymbol *);
+    TypeInfoDeclaration *syntaxCopy(Dsymbol *);
     const char *toChars() const;
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
@@ -423,12 +423,12 @@ public:
 class ThisDeclaration : public VarDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    ThisDeclaration *syntaxCopy(Dsymbol *);
     ThisDeclaration *isThisDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
-enum ILS
+enum class ILS : unsigned char
 {
     ILSuninitialized,   // not computed yet
     ILSno,              // cannot inline
@@ -586,7 +586,7 @@ public:
     ObjcFuncDeclaration objc;
 
     static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type);
-    Dsymbol *syntaxCopy(Dsymbol *);
+    FuncDeclaration *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
     bool equals(const RootObject *o) const;
@@ -667,7 +667,7 @@ public:
     // backend
     bool deferToObj;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    FuncLiteralDeclaration *syntaxCopy(Dsymbol *);
     bool isNested() const;
     AggregateDeclaration *isThis();
     bool isVirtual() const;
@@ -686,7 +686,7 @@ class CtorDeclaration : public FuncDeclaration
 {
 public:
     bool isCpCtor;
-    Dsymbol *syntaxCopy(Dsymbol *);
+    CtorDeclaration *syntaxCopy(Dsymbol *);
     const char *kind() const;
     const char *toChars() const;
     bool isVirtual() const;
@@ -700,7 +700,7 @@ public:
 class PostBlitDeclaration : public FuncDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    PostBlitDeclaration *syntaxCopy(Dsymbol *);
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();
@@ -713,7 +713,7 @@ public:
 class DtorDeclaration : public FuncDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    DtorDeclaration *syntaxCopy(Dsymbol *);
     const char *kind() const;
     const char *toChars() const;
     bool isVirtual() const;
@@ -728,7 +728,7 @@ public:
 class StaticCtorDeclaration : public FuncDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    StaticCtorDeclaration *syntaxCopy(Dsymbol *);
     AggregateDeclaration *isThis();
     bool isVirtual() const;
     bool addPreInvariant();
@@ -742,7 +742,7 @@ public:
 class SharedStaticCtorDeclaration : public StaticCtorDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    SharedStaticCtorDeclaration *syntaxCopy(Dsymbol *);
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -753,7 +753,7 @@ class StaticDtorDeclaration : public FuncDeclaration
 public:
     VarDeclaration *vgate;      // 'gate' variable
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    StaticDtorDeclaration *syntaxCopy(Dsymbol *);
     AggregateDeclaration *isThis();
     bool isVirtual() const;
     bool hasStaticCtorOrDtor();
@@ -767,7 +767,7 @@ public:
 class SharedStaticDtorDeclaration : public StaticDtorDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    SharedStaticDtorDeclaration *syntaxCopy(Dsymbol *);
 
     SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -776,7 +776,7 @@ public:
 class InvariantDeclaration : public FuncDeclaration
 {
 public:
-    Dsymbol *syntaxCopy(Dsymbol *);
+    InvariantDeclaration *syntaxCopy(Dsymbol *);
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();
@@ -793,7 +793,7 @@ public:
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    UnitTestDeclaration *syntaxCopy(Dsymbol *);
     AggregateDeclaration *isThis();
     bool isVirtual() const;
     bool addPreInvariant();
@@ -809,7 +809,7 @@ public:
     Parameters *parameters;
     VarArg varargs;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    NewDeclaration *syntaxCopy(Dsymbol *);
     const char *kind() const;
     bool isVirtual() const;
     bool addPreInvariant();

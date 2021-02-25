@@ -1,7 +1,7 @@
 /**
  * Find side-effects of expressions.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d, _sideeffect.d)
@@ -62,8 +62,13 @@ extern (C++) bool isTrivialExp(Expression e)
 
 /********************************************
  * Determine if Expression has any side effects.
+ *
+ * Params:
+ *   e = the expression
+ *   assumeImpureCalls = whether function calls should always be assumed to
+ *                       be impure (e.g. debug is allowed to violate purity)
  */
-extern (C++) bool hasSideEffect(Expression e)
+extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
@@ -76,7 +81,7 @@ extern (C++) bool hasSideEffect(Expression e)
         override void visit(Expression e)
         {
             // stop walking if we determine this expression has side effects
-            stop = lambdaHasSideEffect(e);
+            stop = lambdaHasSideEffect(e, assumeImpureCalls);
         }
     }
 
@@ -142,7 +147,7 @@ int callSideEffectLevel(Type t)
     return 0;
 }
 
-private bool lambdaHasSideEffect(Expression e)
+private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     switch (e.op)
     {
@@ -178,6 +183,9 @@ private bool lambdaHasSideEffect(Expression e)
         return true;
     case TOK.call:
         {
+            if (assumeImpureCalls)
+                return true;
+
             CallExp ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.

@@ -2,18 +2,33 @@
 // REQUIRED_ARGS: -d -preview=dip1000 -o- -X -Xf${RESULTS_DIR}/compilable/json.out
 // POST_SCRIPT: compilable/extra-files/json-postscript.sh
 // EXTRA_FILES: imports/jsonimport1.d imports/jsonimport2.d imports/jsonimport3.d imports/jsonimport4.d
-/* TEST_OUTPUT:
----
----
-*/
 
 module json;
 
-
+shared static this() {}
 static this() {}
-
+shared static ~this() {}
 static ~this() {}
 
+template X(T)
+{
+    shared static this() {}
+    static this() {}
+    shared static ~this() {}
+    static ~this() {}
+}
+
+alias SSCDX = X!int;
+
+class SSCDClass
+{
+    shared static this() {}
+    static this() {}
+    shared static ~this() {}
+    static ~this() {}
+}
+
+#line 17
 
 alias int myInt;
 myInt x; // https://issues.dlang.org/show_bug.cgi?id=3404

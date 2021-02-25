@@ -82,6 +82,10 @@ struct W1
     W1()
     {
     }
+    W1(MS ms, /* MSN */ S msn = S(42)) :
+        ms(ms),
+        msn(msn)
+        {}
 };
 
 struct W2
@@ -91,6 +95,9 @@ struct W2
         w1()
     {
     }
+    W2(W1 w1) :
+        w1(w1)
+        {}
 };
 
 extern W2 w2;
@@ -107,6 +114,9 @@ struct S
         i()
     {
     }
+    S(int32_t i) :
+        i(i)
+        {}
 };
 
 extern S s;
@@ -128,6 +138,9 @@ struct S2
         s()
     {
     }
+    S2(S s) :
+        s(s)
+        {}
 };
 
 extern S2 s2;

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgsched.c, backend/cgsched.d)
@@ -158,7 +158,7 @@ private void cgsched_pentium(code **pc,regm_t scratch)
 /************************************
  * Entry point
  */
-void cgsched_block(block* b)
+public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
         config.target_cpu >= TARGET_Pentium &&
@@ -2956,7 +2956,7 @@ private void code_swap(code *c1,code *c2)
     c2.next = cs.next;
 }
 
-code *peephole(code *cstart,regm_t scratch)
+private code *peephole(code *cstart,regm_t scratch)
 {
     // Look for cases of:
     //  MOV r1,r2

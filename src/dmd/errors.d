@@ -1,7 +1,7 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
@@ -654,19 +654,18 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
                 {
                     inBacktick = false;
                     OutBuffer codebuf;
-                    codebuf.write(buf[iCodeStart + 1 .. i]);
+                    codebuf.write(buf[iCodeStart .. i]);
                     codebuf.writeByte(0);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     colorHighlightCode(codebuf);
-                    buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+                    buf.remove(iCodeStart, i - iCodeStart);
                     immutable pre = "";
                     i = buf.insert(iCodeStart, pre);
                     i = buf.insert(i, codebuf[]);
-                    i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }
                 inBacktick = true;
-                iCodeStart = i;
+                iCodeStart = i + 1;
                 break;
 
             default:

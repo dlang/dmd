@@ -1,9 +1,3 @@
-/*
-TEST_OUTPUT:
----
----
-*/
-
 import core.stdc.stdio;
 
 alias bool bit;

@@ -1,7 +1,7 @@
 /**
  * Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++.
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmanglewin.d, _cppmanglewin.d)
@@ -141,6 +141,18 @@ public:
             return;
 
         buf.writestring("$$T");
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
+    }
+
+    override void visit(TypeNoreturn type)
+    {
+        if (checkImmutableShared(type))
+            return;
+        if (checkTypeSaved(type))
+            return;
+
+        buf.writeByte('X');             // yes, mangle it like `void`
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
     }
@@ -502,12 +514,12 @@ extern(D):
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
             if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
-                switch (d.protection.kind)
+                switch (d.visibility.kind)
                 {
-                case Prot.Kind.private_:
+                case Visibility.Kind.private_:
                     buf.writeByte('E');
                     break;
-                case Prot.Kind.protected_:
+                case Visibility.Kind.protected_:
                     buf.writeByte('M');
                     break;
                 default:
@@ -517,12 +529,12 @@ extern(D):
             }
             else
             {
-                switch (d.protection.kind)
+                switch (d.visibility.kind)
                 {
-                case Prot.Kind.private_:
+                case Visibility.Kind.private_:
                     buf.writeByte('A');
                     break;
-                case Prot.Kind.protected_:
+                case Visibility.Kind.protected_:
                     buf.writeByte('I');
                     break;
                 default:
@@ -544,12 +556,12 @@ extern(D):
         else if (d.isMember2()) // static function
         {
             // <flags> ::= <virtual/protection flag> <calling convention flag>
-            switch (d.protection.kind)
+            switch (d.visibility.kind)
             {
-            case Prot.Kind.private_:
+            case Visibility.Kind.private_:
                 buf.writeByte('C');
                 break;
-            case Prot.Kind.protected_:
+            case Visibility.Kind.protected_:
                 buf.writeByte('K');
                 break;
             default:
@@ -590,12 +602,12 @@ extern(D):
         }
         else
         {
-            switch (d.protection.kind)
+            switch (d.visibility.kind)
             {
-            case Prot.Kind.private_:
+            case Visibility.Kind.private_:
                 buf.writeByte('0');
                 break;
-            case Prot.Kind.protected_:
+            case Visibility.Kind.protected_:
                 buf.writeByte('1');
                 break;
             default:

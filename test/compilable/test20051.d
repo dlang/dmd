@@ -1,11 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=20051
-
-/*
-TEST_OUTPUT:
----
----
-*/
-
 struct Templ2(Args...)
 {
 }

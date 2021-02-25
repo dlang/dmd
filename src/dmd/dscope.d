@@ -3,7 +3,7 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
@@ -41,7 +41,7 @@ import dmd.tokens;
 //version=LOGSEARCH;
 
 
-// Flags that would not be inherited beyond scope nesting
+// List of flags that can be applied to this `Scope`
 enum SCOPE
 {
     ctor          = 0x0001,   /// constructor type
@@ -68,10 +68,11 @@ enum SCOPE
     scanf         = 0x8_0000, /// scanf-style function
 }
 
-// Flags that are carried along with a scope push()
-enum SCOPEpush = SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
-                 SCOPE.printf | SCOPE.scanf;
+/// Flags that are carried along with a scope push()
+private enum PersistentFlags =
+    SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
+    SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
+    SCOPE.printf | SCOPE.scanf;
 
 struct Scope
 {
@@ -121,9 +122,9 @@ struct Scope
     /// inlining strategy for functions
     PragmaDeclaration inlining;
 
-    /// protection for class members
-    Prot protection = Prot(Prot.Kind.public_);
-    int explicitProtection;         /// set if in an explicit protection attribute
+    /// visibility for class members
+    Visibility visibility = Visibility(Visibility.Kind.public_);
+    int explicitVisibility;         /// set if in an explicit visibility attribute
 
     StorageClass stc;               /// storage class
 
@@ -208,7 +209,7 @@ struct Scope
         s.slabel = null;
         s.nofree = false;
         s.ctorflow.fieldinit = ctorflow.fieldinit.arraydup;
-        s.flags = (flags & SCOPEpush);
+        s.flags = (flags & PersistentFlags);
         s.lastdc = null;
         assert(&this != s);
         return s;
@@ -554,7 +555,7 @@ struct Scope
             if (scopesym != s.parent)
             {
                 ++cost; // got to the symbol through an import
-                if (s.prot().kind == Prot.Kind.private_)
+                if (s.visible().kind == Visibility.Kind.private_)
                     return null;
             }
             return s;

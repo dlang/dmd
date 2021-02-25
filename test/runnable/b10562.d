@@ -1,8 +1,3 @@
-/*
-TEST_OUTPUT:
----
----
-*/
 void main()
 {
     {

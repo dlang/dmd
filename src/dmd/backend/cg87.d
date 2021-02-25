@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1987-1995 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.d, backend/cg87.d)
@@ -771,7 +771,7 @@ ubyte loadconst(elem *e, int im)
  */
 
 
-void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
+void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs, bool isReturnValue = false)
 {
     //printf("fixresult87(e = %p, retregs = x%x, *pretregs = x%x)\n", e,retregs,*pretregs);
     //printf("fixresult87(e = %p, retregs = %s, *pretregs = %s)\n", e,regm_str(retregs),regm_str(*pretregs));
@@ -779,7 +779,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
 
     if ((*pretregs | retregs) & mST01)
     {
-        fixresult_complex87(cdb, e, retregs, pretregs);
+        fixresult_complex87(cdb, e, retregs, pretregs, isReturnValue);
         return;
     }
 
@@ -3604,7 +3604,7 @@ private void genctst(ref CodeBuilder cdb,elem *e,int pop)
  */
 
 
-void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
+void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs, bool isReturnValue = false)
 {
     static if (0)
     {
@@ -3615,6 +3615,17 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pret
     assert(!*pretregs || retregs);
     tym_t tym = tybasic(e.Ety);
     uint sz = _tysize[tym];
+
+    if (isReturnValue)
+    {
+        // In loadComplex and complex_eq87, complex numbers have the real part
+        // pushed to the FPU stack first (ST1), then the imaginary part (ST0).
+        // However, the Intel 64 bit ABI scheme requires that types classified
+        // as complex x87 instead have the real part returned in ST0, and the
+        // imaginary part in ST1.
+        if (retregs == mST01 && I64 && (config.exe & EX_posix))
+            cdb.genf2(0xD9, 0xC8 + 1);          // FXCH ST(1)
+    }
 
     if (*pretregs == 0 && retregs == mST01)
     {

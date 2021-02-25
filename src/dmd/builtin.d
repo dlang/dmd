@@ -3,7 +3,7 @@
  *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/builtin.d, _builtin.d)
@@ -92,12 +92,10 @@ BUILTIN determine_builtin(FuncDeclaration func)
     if (id2 != Id.math && id2 != Id.bitop)
         return BUILTIN.unimp;
 
-    if (!md.packages)
-        return BUILTIN.unimp;
     if (md.packages.length != 1)
         return BUILTIN.unimp;
 
-    const id1 = (*md.packages)[0];
+    const id1 = md.packages[0];
     if (id1 != Id.core && id1 != Id.std)
         return BUILTIN.unimp;
     const id3 = fd.ident;

@@ -321,8 +321,7 @@ void test15407exp()
     { auto r = [1] * 6 ? [1] * 6 : [1] * 6; }
 }
 
-/*
-TEST_OUTPUT:
+/* TEST_OUTPUT:
 ---
 fail_compilation/fail_arrayop2.d(342): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(345): Error: array operation `[1] * 6` without destination memory not allowed
@@ -332,7 +331,8 @@ fail_compilation/fail_arrayop2.d(350): Error: array operation `[1] * 6` without 
 fail_compilation/fail_arrayop2.d(353): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(356): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(359): Error: array operation `"str"[] + cast(immutable(char))1` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(367): Error: CTFE internal error: non-constant value `"uvt"[]`
+fail_compilation/fail_arrayop2.d(367): Error: CTFE internal error: non-constant value `"uvt"`
+fail_compilation/fail_arrayop2.d(367): Error: `"uvt"[] - '\x01'` cannot be interpreted at compile time
 ---
 */
 // Test all statements, which can take arrays as their operands.

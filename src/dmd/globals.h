@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -118,6 +118,14 @@ enum class CxxHeaderMode
     verbose /// Generate headers and add comments for hidden declarations
 };
 
+/// Trivalent boolean to represent the state of a `revert`able change
+enum class FeatureState : signed char
+{
+    default_ = -1, /// Not specified by the user
+    disabled = 0,  /// Specified as `-revert=`
+    enabled = 1    /// Specified as `-preview=`
+};
+
 // Put command line switches in here
 struct Param
 {
@@ -140,9 +148,7 @@ struct Param
     bool vcomplex;      // identify complex/imaginary type usage
     unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
-    bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
-    bool map;           // generate linker .map file
     bool is64bit;       // generate 64 bit code
     bool isLP64;        // generate code for LP64
     TargetOS targetOS;      // operating system to generate code for
@@ -152,8 +158,7 @@ struct Param
     bool stackstomp;    // add stack stomping code
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
-    bool useDIP25;      // implement http://wiki.dlang.org/DIP25
-    bool noDIP25;       // revert to pre-DIP25 behavior
+    FeatureState useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool useDIP1021;    // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
@@ -170,6 +175,7 @@ struct Param
     bool useExceptions; // support exception handling
     bool noSharedAccess; // read/write access to shared memory objects
     bool previewIn;     // `in` means `scope const`, perhaps `ref`, accepts rvalues
+    bool shortenedMethods; // allow => in normal function declarations
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
@@ -262,14 +268,6 @@ struct Param
     Array<const char *> makeDeps;     // dependencies for makedeps
 
     MessageStyle messageStyle;  // style of file/line annotations on messages
-
-    // Hidden debug switches
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
 
     bool run;           // run resulting executable
     Strings runargs;    // arguments for executable

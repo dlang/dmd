@@ -1,10 +1,4 @@
-/*
-EXTRA_FILES: imports/test15371.d
-TEST_OUTPUT:
----
----
-*/
-
+// EXTRA_FILES: imports/test15371.d
 import imports.test15371;
 
 void main()

@@ -529,9 +529,9 @@ package mixin template ParseVisitMethods(AST)
         visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(AST.ProtDeclaration d)
+    override void visit(AST.VisibilityDeclaration d)
     {
-        //printf("Visiting ProtDeclaration\n");
+        //printf("Visiting VisibilityDeclaration\n");
         visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
@@ -784,7 +784,10 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.AliasAssign d)
     {
         //printf("Visting AliasAssign\n");
-        visitType(d.type);
+        if (d.aliassym)
+            d.aliassym.accept(this);
+        else
+            visitType(d.type);
     }
 
     override void visit(AST.VarDeclaration d)

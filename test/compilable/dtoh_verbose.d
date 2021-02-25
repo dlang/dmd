@@ -43,14 +43,14 @@ struct _d_dynamicArray
 // Ignored function dtoh_verbose.bar because of linkage
 // Ignored non-cpp struct S because of linkage
 // Ignored non-cpp class C
-// Ignored function dtoh_verbose.bar because it's extern
+// Ignored function dtoh_verbose.bar because it is extern
 // Ignored variable dtoh_verbose.i1 because of linkage
 // Ignored template dtoh_verbose.templ(T)(T t) because of linkage
 // Ignored function dtoh_verbose.templ!int.templ
-// Ignored enum dtoh_verbose.arrayOpaque because of it's base type
+// Ignored enum dtoh_verbose.arrayOpaque because of its base type
 struct Hidden
 {
-    // Ignored function dtoh_verbose.Hidden.hidden because it's private
+    // Ignored function dtoh_verbose.Hidden.hidden because it is private
     Hidden()
     {
     }

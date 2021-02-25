@@ -3,7 +3,7 @@
  *
  * Also used to convert AST nodes to D code in general, e.g. for error messages or `printf` debugging.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.d, _hdrgen.d)
@@ -862,12 +862,9 @@ public:
         {
             buf.printf("%s = ", imp.aliasId.toChars());
         }
-        if (imp.packages && imp.packages.dim)
+        foreach (const pid; imp.packages)
         {
-            foreach (const pid; *imp.packages)
-            {
-                buf.printf("%s.", pid.toChars());
-            }
+            buf.printf("%s.", pid.toChars());
         }
         buf.writestring(imp.id.toString());
         if (imp.names.dim)
@@ -903,9 +900,7 @@ public:
             buf.writenl();
             return;
         }
-        if (d.decl.dim == 0)
-            buf.writestring("{}");
-        else if (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration())
+        if (d.decl.dim == 0 || (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration()))
         {
             // hack for bugzilla 8081
             buf.writestring("{}");
@@ -972,12 +967,12 @@ public:
         visit(cast(AttribDeclaration)d);
     }
 
-    override void visit(ProtDeclaration d)
+    override void visit(VisibilityDeclaration d)
     {
-        protectionToBuffer(buf, d.protection);
+        visibilityToBuffer(buf, d.visibility);
         buf.writeByte(' ');
         AttribDeclaration ad = cast(AttribDeclaration)d;
-        if (ad.decl.dim == 1 && (*ad.decl)[0].isProtDeclaration)
+        if (ad.decl.dim == 1 && (*ad.decl)[0].isVisibilityDeclaration)
             visit(cast(AttribDeclaration)(*ad.decl)[0]);
         else
             visit(cast(AttribDeclaration)d);
@@ -987,7 +982,13 @@ public:
     {
         buf.writestring("align ");
         if (d.ealign)
-            buf.printf("(%s) ", d.ealign.toChars());
+        {
+            buf.printf("(%s)", d.ealign.toChars());
+            AttribDeclaration ad = cast(AttribDeclaration)d;
+            if (ad.decl && ad.decl.dim < 2)
+                buf.writeByte(' ');
+        }
+
         visit(cast(AttribDeclaration)d);
     }
 
@@ -1448,7 +1449,10 @@ public:
     {
         buf.writestring(d.ident.toString());
         buf.writestring(" = ");
-        typeToBuffer(d.type, null, buf, hgs);
+        if (d.aliassym)
+            d.aliassym.accept(this);
+        else // d.type
+            typeToBuffer(d.type, null, buf, hgs);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -1670,6 +1674,8 @@ public:
             buf.writestring("@safe ");
         if (d.storage_class & STC.nogc)
             buf.writestring("@nogc ");
+        if (d.storage_class & STC.live)
+            buf.writestring("@live ");
         if (d.storage_class & STC.disable)
             buf.writestring("@disable ");
 
@@ -1860,8 +1866,16 @@ public:
                 buf.writeByte(')');
                 if (target.ptrsize == 8)
                     goto case Tuns64;
-                else
+                else if (target.ptrsize == 4 ||
+                         target.ptrsize == 2)
                     goto case Tuns32;
+                else
+                    assert(0);
+
+            case Tvoid:
+                buf.writestring("cast(void)0");
+                break;
+
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().
@@ -2259,21 +2273,26 @@ public:
         // are used for other constructs
         auto vd = ve.var.isVarDeclaration();
         assert(vd && vd._init);
-        auto exp = vd._init.isExpInitializer.exp;
-        assert(exp);
-        Expression commaExtract;
-        if (auto ce = exp.isConstructExp())
-            commaExtract = ce.e2;
-        else if (auto se = exp.isStructLiteralExp)
-            commaExtract = se;
+
+        if (auto ei = vd._init.isExpInitializer())
+        {
+            Expression commaExtract;
+            auto exp = ei.exp;
+            if (auto ce = exp.isConstructExp())
+                commaExtract = ce.e2;
+            else if (auto se = exp.isStructLiteralExp())
+                commaExtract = se;
+
+            if (commaExtract)
+            {
+                expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+                return;
+            }
+        }
 
         // not one of the known cases, go on the old path
-        if (!commaExtract)
-        {
-            visit(cast(BinExp)e);
-            return;
-        }
-        expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+        visit(cast(BinExp)e);
+        return;
     }
 
     override void visit(MixinExp e)
@@ -2751,74 +2770,63 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
  */
 string stcToString(ref StorageClass stc)
 {
-    struct SCstring
+    static struct SCstring
     {
         StorageClass stc;
-        TOK tok;
         string id;
     }
 
-    __gshared SCstring* table =
+    // Note: The identifier needs to be `\0` terminated
+    // as some code assumes it (e.g. when printing error messages)
+    static immutable SCstring[] table =
     [
-        SCstring(STC.auto_, TOK.auto_),
-        SCstring(STC.scope_, TOK.scope_),
-        SCstring(STC.static_, TOK.static_),
-        SCstring(STC.extern_, TOK.extern_),
-        SCstring(STC.const_, TOK.const_),
-        SCstring(STC.final_, TOK.final_),
-        SCstring(STC.abstract_, TOK.abstract_),
-        SCstring(STC.synchronized_, TOK.synchronized_),
-        SCstring(STC.deprecated_, TOK.deprecated_),
-        SCstring(STC.override_, TOK.override_),
-        SCstring(STC.lazy_, TOK.lazy_),
-        SCstring(STC.alias_, TOK.alias_),
-        SCstring(STC.out_, TOK.out_),
-        SCstring(STC.in_, TOK.in_),
-        SCstring(STC.manifest, TOK.enum_),
-        SCstring(STC.immutable_, TOK.immutable_),
-        SCstring(STC.shared_, TOK.shared_),
-        SCstring(STC.nothrow_, TOK.nothrow_),
-        SCstring(STC.wild, TOK.inout_),
-        SCstring(STC.pure_, TOK.pure_),
-        SCstring(STC.ref_, TOK.ref_),
-        SCstring(STC.return_, TOK.return_),
-        SCstring(STC.tls),
-        SCstring(STC.gshared, TOK.gshared),
-        SCstring(STC.nogc, TOK.at, "@nogc"),
-        SCstring(STC.property, TOK.at, "@property"),
-        SCstring(STC.safe, TOK.at, "@safe"),
-        SCstring(STC.trusted, TOK.at, "@trusted"),
-        SCstring(STC.system, TOK.at, "@system"),
-        SCstring(STC.disable, TOK.at, "@disable"),
-        SCstring(STC.future, TOK.at, "@__future"),
-        SCstring(STC.local, TOK.at, "__local"),
-        SCstring(0, TOK.reserved)
+        SCstring(STC.auto_, Token.toString(TOK.auto_)),
+        SCstring(STC.scope_, Token.toString(TOK.scope_)),
+        SCstring(STC.static_, Token.toString(TOK.static_)),
+        SCstring(STC.extern_, Token.toString(TOK.extern_)),
+        SCstring(STC.const_, Token.toString(TOK.const_)),
+        SCstring(STC.final_, Token.toString(TOK.final_)),
+        SCstring(STC.abstract_, Token.toString(TOK.abstract_)),
+        SCstring(STC.synchronized_, Token.toString(TOK.synchronized_)),
+        SCstring(STC.deprecated_, Token.toString(TOK.deprecated_)),
+        SCstring(STC.override_, Token.toString(TOK.override_)),
+        SCstring(STC.lazy_, Token.toString(TOK.lazy_)),
+        SCstring(STC.alias_, Token.toString(TOK.alias_)),
+        SCstring(STC.out_, Token.toString(TOK.out_)),
+        SCstring(STC.in_, Token.toString(TOK.in_)),
+        SCstring(STC.manifest, Token.toString(TOK.enum_)),
+        SCstring(STC.immutable_, Token.toString(TOK.immutable_)),
+        SCstring(STC.shared_, Token.toString(TOK.shared_)),
+        SCstring(STC.nothrow_, Token.toString(TOK.nothrow_)),
+        SCstring(STC.wild, Token.toString(TOK.inout_)),
+        SCstring(STC.pure_, Token.toString(TOK.pure_)),
+        SCstring(STC.ref_, Token.toString(TOK.ref_)),
+        SCstring(STC.return_, Token.toString(TOK.return_)),
+        SCstring(STC.tls, "__thread"),
+        SCstring(STC.gshared, Token.toString(TOK.gshared)),
+        SCstring(STC.nogc, "@nogc"),
+        SCstring(STC.live, "@live"),
+        SCstring(STC.property, "@property"),
+        SCstring(STC.safe, "@safe"),
+        SCstring(STC.trusted, "@trusted"),
+        SCstring(STC.system, "@system"),
+        SCstring(STC.disable, "@disable"),
+        SCstring(STC.future, "@__future"),
+        SCstring(STC.local, "__local"),
     ];
-    for (int i = 0; table[i].stc; i++)
+    foreach (ref entry; table)
     {
-        StorageClass tbl = table[i].stc;
+        const StorageClass tbl = entry.stc;
         assert(tbl & STCStorageClass);
         if (stc & tbl)
         {
             stc &= ~tbl;
-            if (tbl == STC.tls) // TOKtls was removed
-                return "__thread";
-            TOK tok = table[i].tok;
-            if (tok != TOK.at && !table[i].id.length)
-                table[i].id = Token.toString(tok); // lazilly initialize table
-            return table[i].id;
+            return entry.id;
         }
     }
     //printf("stc = %llx\n", stc);
     return null;
 }
-
-const(char)* stcToChars(ref StorageClass stc)
-{
-    const s = stcToString(stc);
-    return &s[0];  // assume 0 terminated
-}
-
 
 /// Ditto
 extern (D) string trustToString(TRUST trust) pure nothrow
@@ -2874,13 +2882,13 @@ string linkageToString(LINK linkage) pure nothrow
     }
 }
 
-void protectionToBuffer(OutBuffer* buf, Prot prot)
+void visibilityToBuffer(OutBuffer* buf, Visibility vis)
 {
-    buf.writestring(protectionToString(prot.kind));
-    if (prot.kind == Prot.Kind.package_ && prot.pkg)
+    buf.writestring(visibilityToString(vis.kind));
+    if (vis.kind == Visibility.Kind.package_ && vis.pkg)
     {
         buf.writeByte('(');
-        buf.writestring(prot.pkg.toPrettyChars(true));
+        buf.writestring(vis.pkg.toPrettyChars(true));
         buf.writeByte(')');
     }
 }
@@ -2889,30 +2897,30 @@ void protectionToBuffer(OutBuffer* buf, Prot prot)
  * Returns:
  *   a human readable representation of `kind`
  */
-const(char)* protectionToChars(Prot.Kind kind)
+const(char)* visibilityToChars(Visibility.Kind kind)
 {
     // Null terminated because we return a literal
-    return protectionToString(kind).ptr;
+    return visibilityToString(kind).ptr;
 }
 
 /// Ditto
-extern (D) string protectionToString(Prot.Kind kind) nothrow pure
+extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure
 {
     final switch (kind)
     {
-    case Prot.Kind.undefined:
+    case Visibility.Kind.undefined:
         return null;
-    case Prot.Kind.none:
+    case Visibility.Kind.none:
         return "none";
-    case Prot.Kind.private_:
+    case Visibility.Kind.private_:
         return "private";
-    case Prot.Kind.package_:
+    case Visibility.Kind.package_:
         return "package";
-    case Prot.Kind.protected_:
+    case Visibility.Kind.protected_:
         return "protected";
-    case Prot.Kind.public_:
+    case Visibility.Kind.public_:
         return "public";
-    case Prot.Kind.export_:
+    case Visibility.Kind.export_:
         return "export";
     }
 }
@@ -3807,6 +3815,12 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writeByte(')');
     }
 
+    void visitNoreturn(TypeNoreturn t)
+    {
+        buf.writestring("noreturn");
+    }
+
+
     switch (t.ty)
     {
         default:        return t.isTypeBasic() ?
@@ -3834,5 +3848,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tslice:     return visitSlice(cast(TypeSlice)t);
         case Tnull:      return visitNull(cast(TypeNull)t);
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
+        case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
     }
 }

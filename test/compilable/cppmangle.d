@@ -1,9 +1,4 @@
-/**
-EXTRA_FILES: cppmangle2.d
-TEST_OUTPUT:
----
----
-*/
+// EXTRA_FILES: cppmangle2.d
 // Test C++ name mangling.
 // https://issues.dlang.org/show_bug.cgi?id=4059
 // https://issues.dlang.org/show_bug.cgi?id=5148
@@ -1279,4 +1274,23 @@ version (Win64) extern(C++)
     extern(C++, class) struct DefaultStruct20700_2 {}
     extern(C++, struct) class DefaultClass20700_2 {}
     static assert(test20700_4.mangleof == `?test20700_4@@YAXPEAU?$TStruct20700_2@PEAUDefaultClass20700_2@@VDefaultStruct20700_2@@@@@Z`);
+}
+
+/*****************************************/
+
+alias noreturn = typeof(*null);
+
+extern (C++)
+{
+    alias fpcpp = noreturn function();
+    int funccpp(fpcpp);
+
+    version (Posix)
+        static assert(funccpp.mangleof == "_Z7funccppPFvvE");
+
+    version (Win32)
+        static assert(funccpp.mangleof == "?funccpp@@YAHP6AXXZ@Z");
+
+    version (Win64)
+        static assert(funccpp.mangleof == "?funccpp@@YAHP6AXXZ@Z");
 }

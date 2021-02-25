@@ -4,7 +4,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
@@ -1623,6 +1623,14 @@ extern(C++):
         writeBasicType(t, 'D', 'n');
     }
 
+    override void visit(TypeNoreturn t)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        writeBasicType(t, 0, 'v');      // mangle like `void`
+    }
+
     override void visit(TypeBasic t)
     {
         if (t.isImmutable() || t.isShared())
@@ -1835,7 +1843,7 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        /* __c_(u)long(long) get special mangling
+        /* __c_(u)long(long) and others get special mangling
          */
         const id = t.sym.ident;
         //printf("enum id = '%s'\n", id.toChars());
@@ -1849,6 +1857,12 @@ extern(C++):
             return writeBasicType(t, 0, 'x');
         else if (id == Id.__c_ulonglong)
             return writeBasicType(t, 0, 'y');
+        else if (id == Id.__c_complex_float)
+            return writeBasicType(t, 'C', 'f');
+        else if (id == Id.__c_complex_double)
+            return writeBasicType(t, 'C', 'd');
+        else if (id == Id.__c_complex_real)
+            return writeBasicType(t, 'C', 'e');
 
         doSymbol(t);
     }

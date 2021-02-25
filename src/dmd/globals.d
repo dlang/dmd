@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -138,6 +138,14 @@ enum CxxHeaderMode : uint
     verbose /// Generate headers and add comments for hidden declarations
 }
 
+/// Trivalent boolean to represent the state of a `revert`able change
+enum FeatureState : byte
+{
+    default_ = -1, /// Not specified by the user
+    disabled = 0,  /// Specified as `-revert=`
+    enabled = 1    /// Specified as `-preview=`
+}
+
 // Put command line switches in here
 extern (C++) struct Param
 {
@@ -160,9 +168,7 @@ extern (C++) struct Param
     bool vcomplex;          // identify complex/imaginary type usage
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
-    bool alwaysframe;       // always emit standard stack frame
     bool optimize;          // run optimizer
-    bool map;               // generate linker .map file
     bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
     bool isLP64;            // generate code for LP64
     TargetOS targetOS;      // operating system to generate code for
@@ -172,8 +178,7 @@ extern (C++) struct Param
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
-    bool useDIP25;          // implement http://wiki.dlang.org/DIP25
-    bool noDIP25;           // revert to pre-DIP25 behavior
+    FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25
     bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
@@ -190,6 +195,7 @@ extern (C++) struct Param
     bool useExceptions = true;   // support exception handling
     bool noSharedAccess;         // read/write access to shared memory objects
     bool previewIn;         // `in` means `[ref] scope const`, accepts rvalues
+    bool shortenedMethods; // allow => in normal function declarations
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
@@ -204,7 +210,7 @@ extern (C++) struct Param
      */
     bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
-    bool dtorFields;        // destruct fields of partially constructed objects
+    FeatureState dtorFields; // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
@@ -295,14 +301,6 @@ extern (C++) struct Param
 
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
-    // Hidden debug switches
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
-
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
 
@@ -339,7 +337,7 @@ extern (C++) struct Global
     string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    string copyright = "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path

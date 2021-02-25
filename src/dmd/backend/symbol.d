@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -859,7 +859,7 @@ debug
                     return;
                 }
 
-                /* We could be freeing the symbol before it's class is  */
+                /* We could be freeing the symbol before its class is   */
                 /* freed, so remove it from the class's field list      */
                 if (f.Fclass)
                 {   list_t tl;

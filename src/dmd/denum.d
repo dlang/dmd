@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
@@ -50,7 +50,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Type type;              // the TypeEnum
     Type memtype;           // type of the members
 
-    Prot protection;
+    Visibility visibility;
     Expression maxval;
     Expression minval;
     Expression defaultval;  // default initializer
@@ -64,14 +64,15 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         //printf("EnumDeclaration() %s\n", toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override EnumDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
-        return ScopeDsymbol.syntaxCopy(ed);
+        ScopeDsymbol.syntaxCopy(ed);
+        return ed;
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -143,7 +144,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         }
 
-        if (!members || !symtab || _scope)
+        if (!isSpecial() && (!members || !symtab || _scope))
         {
             error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
@@ -160,9 +161,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return isdeprecated;
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     /******************************
@@ -407,7 +408,7 @@ extern (C++) final class EnumMember : VarDeclaration
         depdecl = dd;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override EnumMember syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new EnumMember(
@@ -415,8 +416,8 @@ extern (C++) final class EnumMember : VarDeclaration
             value ? value.syntaxCopy() : null,
             origType ? origType.syntaxCopy() : null,
             storage_class,
-            userAttribDecl ? cast(UserAttributeDeclaration)userAttribDecl.syntaxCopy(s) : null,
-            depdecl ? cast(DeprecatedDeclaration)depdecl.syntaxCopy(s) : null);
+            userAttribDecl ? userAttribDecl.syntaxCopy(s) : null,
+            depdecl ? depdecl.syntaxCopy(s) : null);
     }
 
     override const(char)* kind() const
@@ -469,5 +470,8 @@ bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
             ident == Id.__c_longlong ||
             ident == Id.__c_ulonglong ||
             ident == Id.__c_long_double ||
-            ident == Id.__c_wchar_t;
+            ident == Id.__c_wchar_t ||
+            ident == Id.__c_complex_float ||
+            ident == Id.__c_complex_double ||
+            ident == Id.__c_complex_real;
 }

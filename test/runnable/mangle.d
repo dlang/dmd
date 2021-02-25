@@ -611,6 +611,13 @@ static assert(testLive.mangleof == "_D6mangle8testLiveFNmZi");
 
 /***************************************************/
 
+alias noreturn = typeof(*null);
+alias fpd = noreturn function();
+int funcd(fpd);
+static assert(funcd.mangleof == "_D6mangle5funcdFPFZNnZi");
+
+/***************************************************/
+
 void main()
 {
     test10077h();

@@ -4,7 +4,7 @@
  * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
  * The function call is then inlined if this cost is below a threshold.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inline.d, _inline.d)
@@ -1013,6 +1013,15 @@ public:
             }
             if (auto e = exp.isCommaExp())
             {
+                /* If expression declares temporaries which have to be destructed
+                 * at the end of the scope then it is better handled as an expression.
+                 */
+                if (expNeedsDtor(e.e1))
+                {
+                    inlineScan(exp);
+                    return null;
+                }
+
                 auto s1 = inlineScanExpAsStatement(e.e1);
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
@@ -2019,11 +2028,22 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
             auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
-            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_);
+            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_ | STC.nodtor);
             vto.linkage = vfrom.linkage;
             vto.parent = parent;
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
             //printf("vto.parent = '%s'\n", parent.toChars());
+
+            if (VarExp ve = arg.isVarExp())
+            {
+                VarDeclaration va = ve.var.isVarDeclaration();
+                if (va && va.isArgDtorVar)
+                {
+                    assert(vto.storage_class & STC.nodtor);
+                    // The destructor is called on va so take it by ref
+                    vto.storage_class |= STC.ref_;
+                }
+            }
 
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
             ei.exp = new BlitExp(vto.loc, vto, arg);
@@ -2263,7 +2283,7 @@ private bool argumentsNeedDtors(Expressions* arguments)
     {
         foreach (arg; *arguments)
         {
-            if (argNeedsDtor(arg))
+            if (expNeedsDtor(arg))
                 return true;
         }
     }
@@ -2271,25 +2291,25 @@ private bool argumentsNeedDtors(Expressions* arguments)
 }
 
 /************************************************************
- * See if argument to a function is creating temporaries that
- * will need destruction after the function is executed.
+ * See if expression is creating temporaries that
+ * will need destruction at the end of the scope.
  * Params:
- *      arg = argument to function
+ *      exp = expression
  * Returns:
  *      true if temporaries need destruction
  */
 
-private bool argNeedsDtor(Expression arg)
+private bool expNeedsDtor(Expression exp)
 {
     extern (C++) final class NeedsDtor : StoppableVisitor
     {
         alias visit = typeof(super).visit;
-        Expression arg;
+        Expression exp;
 
     public:
-        extern (D) this(Expression arg)
+        extern (D) this(Expression exp)
         {
-            this.arg = arg;
+            this.exp = exp;
         }
 
         override void visit(Expression)
@@ -2298,8 +2318,7 @@ private bool argNeedsDtor(Expression arg)
 
         override void visit(DeclarationExp de)
         {
-            if (de != arg)
-                Dsymbol_needsDtor(de.declaration);
+            Dsymbol_needsDtor(de.declaration);
         }
 
         void Dsymbol_needsDtor(Dsymbol s)
@@ -2355,6 +2374,6 @@ private bool argNeedsDtor(Expression arg)
         }
     }
 
-    scope NeedsDtor ct = new NeedsDtor(arg);
-    return walkPostorder(arg, ct);
+    scope NeedsDtor ct = new NeedsDtor(exp);
+    return walkPostorder(exp, ct);
 }

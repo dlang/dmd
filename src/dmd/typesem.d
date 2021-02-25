@@ -1,7 +1,7 @@
 /**
  * Semantic analysis for D types.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/typesem.d, _typesem.d)
@@ -407,14 +407,6 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         t = s.getType();
         if (t)
             break;
-        // If the symbol is an import, try looking inside the import
-        if (Import si = s.isImport())
-        {
-            s = si.search(loc, s.ident);
-            if (s && s != si)
-                continue;
-            s = si;
-        }
         ps = s;
         return;
     }
@@ -727,6 +719,9 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
             return (cast(Type)o).addMod(mtype.mod);
         }
+
+        if (t && t.ty == Terror)
+            return error();
 
         Type tn = mtype.next.typeSemantic(loc, sc);
         if (tn.ty == Terror)
@@ -1304,7 +1299,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
              */
             Scope* argsc = sc.push();
             argsc.stc = 0; // don't inherit storage class
-            argsc.protection = Prot(Prot.Kind.public_);
+            argsc.visibility = Visibility(Visibility.Kind.public_);
             argsc.func = null;
 
             size_t dim = tf.parameterList.length;
@@ -1431,7 +1426,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                             auto stc = fparam.storageClass & (STC.ref_ | STC.out_);
                             .error(loc, "parameter `%s` is `return %s` but function does not return by `ref`",
                                 fparam.ident ? fparam.ident.toChars() : "",
-                                stcToChars(stc));
+                                stcToString(stc).ptr);
                             errors = true;
                         }
                     }
@@ -1969,22 +1964,16 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
     Type visitMixin(TypeMixin mtype)
     {
         //printf("TypeMixin::semantic() %s\n", toChars());
-        auto o = mtype.compileTypeMixin(loc, sc);
-        if (auto t = o.isType())
-        {
-            return t.typeSemantic(loc, sc).addMod(mtype.mod);
-        }
-        else if (auto e = o.isExpression())
-        {
-            e = e.expressionSemantic(sc);
-            if (auto et = e.isTypeExp())
-                return et.type.addMod(mtype.mod);
-            else
-            {
-                if (!global.errors)
-                    .error(e.loc, "`%s` does not give a valid type", o.toChars);
-            }
-        }
+
+        Expression e;
+        Type t;
+        Dsymbol s;
+        mtype.resolve(loc, sc, e, t, s);
+
+        if (t && t.ty != Terror)
+            return t;
+
+        .error(mtype.loc, "`mixin(%s)` does not give a valid type", mtype.obj.toChars);
         return error();
     }
 
@@ -3079,8 +3068,18 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
 
     void visitMixin(TypeMixin mt)
     {
-        auto o = mt.compileTypeMixin(loc, sc);
+        RootObject o = mt.obj;
 
+        // if already resolved just set pe/pt/ps and return.
+        if (o)
+        {
+            pe = o.isExpression();
+            pt = o.isType();
+            ps = o.isDsymbol();
+            return;
+        }
+
+        o = mt.compileTypeMixin(loc, sc);
         if (auto t = o.isType())
         {
             resolve(t, loc, sc, pe, pt, ps, intypeid);
@@ -3091,12 +3090,15 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         {
             e = e.expressionSemantic(sc);
             if (auto et = e.isTypeExp())
-                return returnType(et.type.addMod(mt.mod));
+                returnType(et.type.addMod(mt.mod));
             else
                 returnExp(e);
         }
         else
             returnError();
+
+        // save the result
+        mt.obj = pe ? pe : (pt ? pt : ps);
     }
 
     void visitTraits(TypeTraits tt)
@@ -3347,6 +3349,16 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             // stringof should not add a cast to the output
             return visitType(mt);
         }
+
+        // Properties based on the vector element type and are values of the element type
+        if (ident == Id.max || ident == Id.min || ident == Id.min_normal ||
+            ident == Id.nan || ident == Id.infinity || ident == Id.epsilon)
+        {
+            auto vet = mt.basetype.isTypeSArray().next; // vector element type
+            if (auto ev = getProperty(vet, sc, e.loc, ident, DotExpFlag.gag))
+                return ev.castTo(sc, mt); // 'broadcast' ev to the vector elements
+        }
+
         return mt.basetype.dotExp(sc, e.castTo(sc, mt.basetype), ident, flag);
     }
 
@@ -3975,7 +3987,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     L1:
         if (!s)
         {
-            // See if it's 'this' class or a base class
+            // See if it's a 'this' class or a base class
             if (mt.sym.ident == ident)
             {
                 if (e.op == TOK.type)

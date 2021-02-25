@@ -1,7 +1,7 @@
 /**
  * Configures and initializes the backend.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
@@ -20,6 +20,7 @@ extern (C++):
 import dmd.globals;
 import dmd.dclass;
 import dmd.dmodule;
+import dmd.mars;
 import dmd.mtype;
 
 import dmd.root.filename;
@@ -50,6 +51,7 @@ extern (C) void out_config_init(
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
+        ubyte dwarf,            // DWARF version used
         string _version         // Compiler version
         );
 
@@ -93,26 +95,27 @@ void backend_init()
         params.verbose,
         params.optimize,
         params.symdebug,
-        params.alwaysframe,
+        dmdParams.alwaysframe,
         params.stackstomp,
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
         params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,
+        dmdParams.dwarf,
         global.versionString()
     );
 
     debug
     {
         out_config_debug(
-            params.debugb,
-            params.debugc,
-            params.debugf,
-            params.debugr,
+            dmdParams.debugb,
+            dmdParams.debugc,
+            dmdParams.debugf,
+            dmdParams.debugr,
             false,
-            params.debugx,
-            params.debugy
+            dmdParams.debugx,
+            dmdParams.debugy
         );
     }
 }

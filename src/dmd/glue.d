@@ -1,7 +1,7 @@
 /**
  * Generate the object file for function declarations and critical sections.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -136,7 +136,7 @@ void obj_write_deferred(Library library)
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
-            //  so output it into it's own object file without ModuleInfo
+            //  so output it into its own object file without ModuleInfo
             objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
             objmod.termfile();
@@ -1263,6 +1263,7 @@ tym_t totym(Type tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
+        case Tnoreturn: t = TYvoid;     break;
 
         case Tstruct:
             t = TYstruct;
@@ -1278,6 +1279,12 @@ tym_t totym(Type tx)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
                 t = TYdouble;
+            else if (id == Id.__c_complex_float)
+                t = TYcfloat;
+            else if (id == Id.__c_complex_double)
+                t = TYcdouble;
+            else if (id == Id.__c_complex_real)
+                t = TYcldouble;
             else
                 t = totym(tb);
             break;

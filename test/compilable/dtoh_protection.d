@@ -105,6 +105,9 @@ public:
             publicInner()
         {
         }
+        PublicInnerStruct(int32_t publicInner) :
+            publicInner(publicInner)
+            {}
     };
 
 private:
@@ -118,6 +121,9 @@ private:
             publicInner()
         {
         }
+        PrivateInnerClass(int32_t publicInner) :
+            publicInner(publicInner)
+            {}
     };
 
 public:

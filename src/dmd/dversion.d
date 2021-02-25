@@ -4,7 +4,7 @@
  * Specification: $(LINK2 https://dlang.org/spec/version.html#version-specification, Version Specification),
  *                $(LINK2 https://dlang.org/spec/version.html#debug_specification, Debug Specification).
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dversion.d, _dversion.d)
@@ -45,7 +45,7 @@ extern (C++) final class DebugSymbol : Dsymbol
         this.level = level;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override DebugSymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
@@ -139,7 +139,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         this.level = level;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override VersionSymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ds = ident ? new VersionSymbol(loc, ident)

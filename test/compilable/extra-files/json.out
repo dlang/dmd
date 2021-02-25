@@ -6,11 +6,38 @@
             {
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
+                "endchar": 23,
+                "endline": 8,
+                "kind": "shared static constructor",
+                "line": 8,
+                "name": "_sharedStaticCtor_L8_C1",
+                "protection": "public",
+                "storageClass": [
+                    "static"
+                ]
+            },
+            {
+                "char": 1,
+                "deco": "VALUE_REMOVED_FOR_TEST",
                 "endchar": 16,
-                "endline": 13,
-                "kind": "function",
-                "line": 13,
-                "name": "_staticCtor_L13_C1",
+                "endline": 9,
+                "kind": "static constructor",
+                "line": 9,
+                "name": "_staticCtor_L9_C1",
+                "protection": "public",
+                "storageClass": [
+                    "static"
+                ]
+            },
+            {
+                "char": 1,
+                "deco": "VALUE_REMOVED_FOR_TEST",
+                "endchar": 24,
+                "endline": 10,
+                "kind": "shared static destructor",
+                "line": 10,
+                "name": "_sharedStaticDtor_L10_C1",
+                "protection": "public",
                 "storageClass": [
                     "static"
                 ]
@@ -19,20 +46,150 @@
                 "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "endchar": 17,
-                "endline": 15,
-                "kind": "function",
-                "line": 15,
-                "name": "_staticDtor_L15_C1",
+                "endline": 11,
+                "kind": "static destructor",
+                "line": 11,
+                "name": "_staticDtor_L11_C1",
+                "protection": "public",
                 "storageClass": [
                     "static"
                 ]
+            },
+            {
+                "char": 1,
+                "kind": "template",
+                "line": 13,
+                "members": [
+                    {
+                        "char": 5,
+                        "endchar": 27,
+                        "endline": 15,
+                        "kind": "shared static constructor",
+                        "line": 15,
+                        "name": "_sharedStaticCtor_L15_C5",
+                        "storageClass": [
+                            "static"
+                        ]
+                    },
+                    {
+                        "char": 5,
+                        "endchar": 20,
+                        "endline": 16,
+                        "kind": "static constructor",
+                        "line": 16,
+                        "name": "_staticCtor_L16_C5",
+                        "storageClass": [
+                            "static"
+                        ]
+                    },
+                    {
+                        "char": 5,
+                        "endchar": 28,
+                        "endline": 17,
+                        "kind": "shared static destructor",
+                        "line": 17,
+                        "name": "_sharedStaticDtor_L17_C5",
+                        "storageClass": [
+                            "static"
+                        ]
+                    },
+                    {
+                        "char": 5,
+                        "endchar": 21,
+                        "endline": 18,
+                        "kind": "static destructor",
+                        "line": 18,
+                        "name": "_staticDtor_L18_C5",
+                        "storageClass": [
+                            "static"
+                        ]
+                    }
+                ],
+                "name": "X",
+                "parameters": [
+                    {
+                        "kind": "type",
+                        "name": "T"
+                    }
+                ],
+                "protection": "public"
+            },
+            {
+                "char": 1,
+                "kind": "alias",
+                "line": 21,
+                "name": "SSCDX",
+                "originalType": "X!int",
+                "protection": "public"
+            },
+            {
+                "char": 1,
+                "kind": "class",
+                "line": 23,
+                "members": [
+                    {
+                        "char": 5,
+                        "deco": "VALUE_REMOVED_FOR_TEST",
+                        "endchar": 27,
+                        "endline": 25,
+                        "kind": "shared static constructor",
+                        "line": 25,
+                        "name": "_sharedStaticCtor_L25_C5",
+                        "protection": "public",
+                        "storageClass": [
+                            "static"
+                        ]
+                    },
+                    {
+                        "char": 5,
+                        "deco": "VALUE_REMOVED_FOR_TEST",
+                        "endchar": 20,
+                        "endline": 26,
+                        "kind": "static constructor",
+                        "line": 26,
+                        "name": "_staticCtor_L26_C5",
+                        "protection": "public",
+                        "storageClass": [
+                            "static"
+                        ]
+                    },
+                    {
+                        "char": 5,
+                        "deco": "VALUE_REMOVED_FOR_TEST",
+                        "endchar": 28,
+                        "endline": 27,
+                        "kind": "shared static destructor",
+                        "line": 27,
+                        "name": "_sharedStaticDtor_L27_C5",
+                        "protection": "public",
+                        "storageClass": [
+                            "static"
+                        ]
+                    },
+                    {
+                        "char": 5,
+                        "deco": "VALUE_REMOVED_FOR_TEST",
+                        "endchar": 21,
+                        "endline": 28,
+                        "kind": "static destructor",
+                        "line": 28,
+                        "name": "_staticDtor_L28_C5",
+                        "protection": "public",
+                        "storageClass": [
+                            "static"
+                        ]
+                    }
+                ],
+                "name": "SSCDClass",
+                "protection": "public"
             },
             {
                 "char": 11,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
                 "line": 18,
-                "name": "myInt"
+                "name": "myInt",
+                "protection": "public"
             },
             {
                 "char": 7,
@@ -40,7 +197,8 @@
                 "kind": "variable",
                 "line": 19,
                 "name": "x",
-                "originalType": "myInt"
+                "originalType": "myInt",
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -60,7 +218,8 @@
                                 "type": "T"
                             }
                         ],
-                        "name": "Foo"
+                        "name": "Foo",
+                        "protection": "public"
                     }
                 ],
                 "name": "Foo",
@@ -69,7 +228,8 @@
                         "kind": "type",
                         "name": "T"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -90,7 +250,8 @@
                                 "name": "t"
                             }
                         ],
-                        "name": "Bar"
+                        "name": "Bar",
+                        "protection": "public"
                     }
                 ],
                 "name": "Bar",
@@ -100,7 +261,8 @@
                         "kind": "value",
                         "name": "T"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -120,7 +282,8 @@
                                 "type": "const T[0]()"
                             }
                         ],
-                        "name": "Baz"
+                        "name": "Baz",
+                        "protection": "public"
                     }
                 ],
                 "name": "Baz",
@@ -129,7 +292,8 @@
                         "kind": "tuple",
                         "name": "T"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -142,7 +306,8 @@
                         "kind": "alias",
                         "name": "T"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "base": "json.Bar!1.Bar",
@@ -161,7 +326,8 @@
                         "kind": "constructor",
                         "line": 28,
                         "name": "this",
-                        "originalType": "()"
+                        "originalType": "()",
+                        "protection": "public"
                     },
                     {
                         "char": 5,
@@ -170,7 +336,8 @@
                         "endline": 29,
                         "kind": "destructor",
                         "line": 29,
-                        "name": "~this"
+                        "name": "~this",
+                        "protection": "public"
                     },
                     {
                         "char": 12,
@@ -181,6 +348,7 @@
                         "line": 31,
                         "name": "foo",
                         "originalType": "()",
+                        "protection": "public",
                         "storageClass": [
                             "static"
                         ]
@@ -207,16 +375,19 @@
                         "overrides": [
                             "json.Baz!(int, 2, null).Baz.t"
                         ],
+                        "protection": "public",
                         "storageClass": [
                             "override"
                         ]
                     },
                     {
                         "kind": "alias",
-                        "name": "__xdtor"
+                        "name": "__xdtor",
+                        "protection": "public"
                     }
                 ],
-                "name": "Bar2"
+                "name": "Bar2",
+                "protection": "public"
             },
             {
                 "base": "json.Bar2",
@@ -247,7 +418,8 @@
                                 "deco": "VALUE_REMOVED_FOR_TEST",
                                 "name": "i"
                             }
-                        ]
+                        ],
+                        "protection": "public"
                     },
                     {
                         "char": 32,
@@ -266,7 +438,8 @@
                         ]
                     }
                 ],
-                "name": "Bar3"
+                "name": "Bar3",
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -280,7 +453,8 @@
                         "line": 44,
                         "name": "bar2",
                         "offset": 0,
-                        "originalType": "Bar2"
+                        "originalType": "Bar2",
+                        "protection": "public"
                     },
                     {
                         "char": 5,
@@ -293,7 +467,8 @@
                                 "kind": "variable",
                                 "line": 47,
                                 "name": "s",
-                                "offset": 0
+                                "offset": 0,
+                                "protection": "public"
                             },
                             {
                                 "char": 17,
@@ -301,7 +476,8 @@
                                 "kind": "variable",
                                 "line": 48,
                                 "name": "i",
-                                "offset": 0
+                                "offset": 0,
+                                "protection": "public"
                             },
                             {
                                 "char": 16,
@@ -310,13 +486,16 @@
                                 "line": 50,
                                 "name": "o",
                                 "offset": 0,
-                                "originalType": "Object"
+                                "originalType": "Object",
+                                "protection": "public"
                             }
                         ],
-                        "name": "U"
+                        "name": "U",
+                        "protection": "public"
                     }
                 ],
-                "name": "Foo2"
+                "name": "Foo2",
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -350,7 +529,8 @@
                                 "type": "void()"
                             }
                         ],
-                        "name": "Foo3"
+                        "name": "Foo3",
+                        "protection": "public"
                     }
                 ],
                 "name": "Foo3",
@@ -360,7 +540,8 @@
                         "kind": "value",
                         "name": "b"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 16,
@@ -384,7 +565,8 @@
                         "default": "new Bar3(7)",
                         "name": "foo"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 15,
@@ -393,7 +575,8 @@
                 "endline": 96,
                 "kind": "function",
                 "line": 79,
-                "name": "outer"
+                "name": "outer",
+                "protection": "public"
             },
             {
                 "char": 8,
@@ -470,10 +653,12 @@
                                 "kind": "type",
                                 "name": "T"
                             }
-                        ]
+                        ],
+                        "protection": "public"
                     }
                 ],
-                "name": "S"
+                "name": "S",
+                "protection": "public"
             },
             {
                 "char": 9,
@@ -485,7 +670,8 @@
                         "kind": "struct",
                         "line": 111,
                         "members": [],
-                        "name": "S1_9755"
+                        "name": "S1_9755",
+                        "protection": "public"
                     }
                 ],
                 "name": "S1_9755",
@@ -507,7 +693,8 @@
                         "kind": "struct",
                         "line": 112,
                         "members": [],
-                        "name": "S2_9755"
+                        "name": "S2_9755",
+                        "protection": "public"
                     }
                 ],
                 "name": "S2_9755",
@@ -534,7 +721,8 @@
                                 "kind": "class",
                                 "line": 116,
                                 "members": [],
-                                "name": "CI_9755"
+                                "name": "CI_9755",
+                                "protection": "public"
                             }
                         ],
                         "name": "CI_9755",
@@ -547,7 +735,8 @@
                         "protection": "protected"
                     }
                 ],
-                "name": "C_9755"
+                "name": "C_9755",
+                "protection": "public"
             },
             {
                 "char": 14,
@@ -557,6 +746,7 @@
                 "line": 120,
                 "name": "c_10011",
                 "originalType": "Object",
+                "protection": "public",
                 "storageClass": [
                     "const"
                 ]
@@ -572,6 +762,7 @@
                         "kind": "enum member",
                         "line": 125,
                         "name": "unspecified1",
+                        "protection": "public",
                         "value": "0"
                     },
                     {
@@ -579,6 +770,7 @@
                         "kind": "enum member",
                         "line": 126,
                         "name": "one",
+                        "protection": "public",
                         "value": "2"
                     },
                     {
@@ -586,6 +778,7 @@
                         "kind": "enum member",
                         "line": 127,
                         "name": "two",
+                        "protection": "public",
                         "value": "3"
                     },
                     {
@@ -593,6 +786,7 @@
                         "kind": "enum member",
                         "line": 128,
                         "name": "FILE_NOT_FOUND",
+                        "protection": "public",
                         "value": "101"
                     },
                     {
@@ -600,6 +794,7 @@
                         "kind": "enum member",
                         "line": 129,
                         "name": "unspecified3",
+                        "protection": "public",
                         "value": "102"
                     },
                     {
@@ -607,6 +802,7 @@
                         "kind": "enum member",
                         "line": 130,
                         "name": "unspecified4",
+                        "protection": "public",
                         "value": "103"
                     },
                     {
@@ -614,10 +810,12 @@
                         "kind": "enum member",
                         "line": 131,
                         "name": "four",
+                        "protection": "public",
                         "value": "4"
                     }
                 ],
-                "name": "Numbers"
+                "name": "Numbers",
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -631,7 +829,8 @@
                         "kind": "type",
                         "name": "T"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 5,
@@ -640,7 +839,8 @@
                 "init": "1",
                 "kind": "variable",
                 "line": 138,
-                "name": "a0"
+                "name": "a0",
+                "protection": "public"
             },
             {
                 "char": 5,
@@ -648,7 +848,8 @@
                 "init": "1",
                 "kind": "variable",
                 "line": 138,
-                "name": "a1"
+                "name": "a1",
+                "protection": "public"
             },
             {
                 "char": 5,
@@ -656,7 +857,8 @@
                 "init": "1",
                 "kind": "variable",
                 "line": 138,
-                "name": "a2"
+                "name": "a2",
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -678,7 +880,8 @@
                         "kind": "tuple",
                         "name": "T"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {},
             {
@@ -687,7 +890,8 @@
                 "kind": "alias",
                 "line": 145,
                 "name": "b0",
-                "originalType": "a"
+                "originalType": "a",
+                "protection": "public"
             },
             {},
             {
@@ -695,7 +899,8 @@
                 "kind": "alias",
                 "line": 145,
                 "name": "b1",
-                "originalType": "a"
+                "originalType": "a",
+                "protection": "public"
             },
             {},
             {
@@ -703,7 +908,8 @@
                 "kind": "alias",
                 "line": 145,
                 "name": "b2",
-                "originalType": "a"
+                "originalType": "a",
+                "protection": "public"
             },
             {
                 "char": 9,
@@ -723,7 +929,8 @@
                             "return"
                         ]
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 6,
@@ -742,7 +949,8 @@
                             "return"
                         ]
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 10,
@@ -762,7 +970,8 @@
                             "return"
                         ]
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -776,7 +985,8 @@
                         "endline": 170,
                         "kind": "function",
                         "line": 167,
-                        "name": "foo"
+                        "name": "foo",
+                        "protection": "public"
                     },
                     {
                         "char": 11,
@@ -785,7 +995,8 @@
                         "endline": 175,
                         "kind": "function",
                         "line": 172,
-                        "name": "foo2"
+                        "name": "foo2",
+                        "protection": "public"
                     },
                     {
                         "char": 15,
@@ -794,7 +1005,8 @@
                         "endline": 180,
                         "kind": "function",
                         "line": 177,
-                        "name": "foo3"
+                        "name": "foo3",
+                        "protection": "public"
                     },
                     {
                         "char": 7,
@@ -803,12 +1015,14 @@
                         "line": 182,
                         "name": "p",
                         "offset": 0,
+                        "protection": "public",
                         "storageClass": [
                             "@safe"
                         ]
                     }
                 ],
-                "name": "SafeS"
+                "name": "SafeS",
+                "protection": "public"
             },
             {
                 "char": 12,
@@ -816,6 +1030,7 @@
                 "kind": "variable",
                 "line": 185,
                 "name": "vlinkageDefault",
+                "protection": "public",
                 "storageClass": [
                     "extern"
                 ]
@@ -825,7 +1040,8 @@
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "variable",
                 "line": 186,
-                "name": "vlinkageD"
+                "name": "vlinkageD",
+                "protection": "public"
             },
             {
                 "char": 15,
@@ -833,7 +1049,8 @@
                 "kind": "variable",
                 "line": 187,
                 "linkage": "c",
-                "name": "vlinakgeC"
+                "name": "vlinakgeC",
+                "protection": "public"
             },
             {
                 "char": 27,
@@ -842,6 +1059,7 @@
                 "line": 188,
                 "linkage": "cpp",
                 "name": "vlinkageCpp",
+                "protection": "public",
                 "storageClass": [
                     "__gshared"
                 ]
@@ -852,7 +1070,8 @@
                 "kind": "variable",
                 "line": 189,
                 "linkage": "windows",
-                "name": "vlinkageWindows"
+                "name": "vlinkageWindows",
+                "protection": "public"
             },
             {
                 "char": 25,
@@ -860,7 +1079,8 @@
                 "kind": "variable",
                 "line": 190,
                 "linkage": "objc",
-                "name": "vlinkageObjc"
+                "name": "vlinkageObjc",
+                "protection": "public"
             },
             {
                 "char": 12,
@@ -868,6 +1088,7 @@
                 "kind": "function",
                 "line": 192,
                 "name": "flinkageDefault",
+                "protection": "public",
                 "storageClass": [
                     "extern"
                 ]
@@ -877,7 +1098,8 @@
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
                 "line": 193,
-                "name": "flinkageD"
+                "name": "flinkageD",
+                "protection": "public"
             },
             {
                 "char": 15,
@@ -885,7 +1107,8 @@
                 "kind": "function",
                 "line": 194,
                 "linkage": "c",
-                "name": "linakgeC"
+                "name": "linakgeC",
+                "protection": "public"
             },
             {
                 "char": 17,
@@ -893,7 +1116,8 @@
                 "kind": "function",
                 "line": 195,
                 "linkage": "cpp",
-                "name": "flinkageCpp"
+                "name": "flinkageCpp",
+                "protection": "public"
             },
             {
                 "char": 21,
@@ -901,7 +1125,8 @@
                 "kind": "function",
                 "line": 196,
                 "linkage": "windows",
-                "name": "flinkageWindows"
+                "name": "flinkageWindows",
+                "protection": "public"
             },
             {
                 "char": 25,
@@ -909,7 +1134,8 @@
                 "kind": "function",
                 "line": 197,
                 "linkage": "objc",
-                "name": "flinkageObjc"
+                "name": "flinkageObjc",
+                "protection": "public"
             },
             {
                 "char": 7,
@@ -923,7 +1149,8 @@
                         "kind": "value",
                         "name": "n"
                     }
-                ]
+                ],
+                "protection": "public"
             },
             {
                 "char": 1,
@@ -931,7 +1158,8 @@
                 "kind": "alias",
                 "line": 208,
                 "name": "F",
-                "originalType": "size_t function(size_t a)"
+                "originalType": "size_t function(size_t a)",
+                "protection": "public"
             }
         ],
         "name": "json"

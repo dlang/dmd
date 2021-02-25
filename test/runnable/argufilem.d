@@ -1,9 +1,5 @@
 /*
 EXTRA_SOURCES: imports/argufile.d
-TEST_OUTPUT:
----
----
-
 RUN_OUTPUT:
 ---
 bob is 7 years old

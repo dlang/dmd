@@ -1,9 +1,3 @@
-/*
-TEST_OUTPUT:
----
----
-*/
-
 // https://issues.dlang.org/show_bug.cgi?id=1170
 type x;
 mixin("alias int type;");

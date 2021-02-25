@@ -2,7 +2,7 @@
  * Miscellaneous declarations, including typedef, alias, variable declarations including the
  * implicit this declaration, type tuples, ClassInfo, ModuleInfo and various TypeInfos.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/declaration.d, _declaration.d)
@@ -292,7 +292,7 @@ extern (C++) abstract class Declaration : Dsymbol
     Type type;
     Type originalType;  // before semantic analysis
     StorageClass storage_class = STC.undefined_;
-    Prot protection;
+    Visibility visibility;
     LINK linkage = LINK.default_;
     short inuse;          // used to detect cycles
 
@@ -306,13 +306,13 @@ extern (C++) abstract class Declaration : Dsymbol
     final extern (D) this(Identifier ident)
     {
         super(ident);
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
     final extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(loc, ident);
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
     override const(char)* kind() const
@@ -419,7 +419,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
                 {
                     if (!flag)
-                        error(loc, "cannot modify parameter 'this' in contract");
+                        error(loc, "cannot modify parameter `this` in contract");
                     return Modifiable.initialization; // do not report type related errors
                 }
             }
@@ -568,9 +568,9 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.future) != 0;
     }
 
-    override final Prot prot() pure nothrow @nogc @safe
+    override final Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     override final inout(Declaration) isDeclaration() inout
@@ -598,7 +598,7 @@ extern (C++) final class TupleDeclaration : Declaration
         this.objects = objects;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override TupleDeclaration syntaxCopy(Dsymbol s)
     {
         assert(0);
     }
@@ -744,7 +744,7 @@ extern (C++) final class AliasDeclaration : Declaration
         return new AliasDeclaration(loc, id, type);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AliasDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
@@ -787,18 +787,22 @@ extern (C++) final class AliasDeclaration : Declaration
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
             auto sa = aliassym.toAlias();
+
+            if (auto td = s.toAlias().isTemplateDeclaration())
+                s = td.funcroot ? td.funcroot : td;
+
             if (auto fd = sa.isFuncDeclaration())
             {
                 auto fa = new FuncAliasDeclaration(ident, fd);
-                fa.protection = protection;
+                fa.visibility = visibility;
                 fa.parent = parent;
                 aliassym = fa;
                 return aliassym.overloadInsert(s);
             }
             if (auto td = sa.isTemplateDeclaration())
             {
-                auto od = new OverDeclaration(ident, td);
-                od.protection = protection;
+                auto od = new OverDeclaration(ident, td.funcroot ? td.funcroot : td);
+                od.visibility = visibility;
                 od.parent = parent;
                 aliassym = od;
                 return aliassym.overloadInsert(s);
@@ -808,7 +812,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 if (sa.ident != ident || sa.parent != parent)
                 {
                     od = new OverDeclaration(ident, od);
-                    od.protection = protection;
+                    od.visibility = visibility;
                     od.parent = parent;
                     aliassym = od;
                 }
@@ -819,7 +823,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 if (sa.ident != ident || sa.parent != parent)
                 {
                     os = new OverloadSet(ident, os);
-                    // TODO: protection is lost here b/c OverloadSets have no protection attribute
+                    // TODO: visibility is lost here b/c OverloadSets have no visibility attribute
                     // Might no be a practical issue, b/c the code below fails to resolve the overload anyhow.
                     // ----
                     // module os1;
@@ -834,7 +838,7 @@ extern (C++) final class AliasDeclaration : Declaration
                     // import os1, os2;
                     // void test() { merged(123); } // should only look at os2.merged
                     //
-                    // os.protection = protection;
+                    // os.visibility = visibility;
                     os.parent = parent;
                     aliassym = os;
                 }
@@ -992,23 +996,11 @@ extern (C++) final class OverDeclaration : Declaration
 {
     Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
-    bool hasOverloads;
 
-    extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
+    extern (D) this(Identifier ident, Dsymbol s)
     {
         super(ident);
         this.aliassym = s;
-        this.hasOverloads = hasOverloads;
-        if (hasOverloads)
-        {
-            if (OverDeclaration od = aliassym.isOverDeclaration())
-                this.hasOverloads = od.hasOverloads;
-        }
-        else
-        {
-            // for internal use
-            assert(!aliassym.isOverDeclaration());
-        }
     }
 
     override const(char)* kind() const
@@ -1025,25 +1017,9 @@ extern (C++) final class OverDeclaration : Declaration
         if (!s)
             return false;
 
-        auto od1 = this;
         if (auto od2 = s.isOverDeclaration())
-        {
-            return od1.aliassym.equals(od2.aliassym) && od1.hasOverloads == od2.hasOverloads;
-        }
-        if (aliassym == s)
-        {
-            if (hasOverloads)
-                return true;
-            if (auto fd = s.isFuncDeclaration())
-            {
-                return fd.isUnique();
-            }
-            if (auto td = s.isTemplateDeclaration())
-            {
-                return td.overnext is null;
-            }
-        }
-        return false;
+            return this.aliassym.equals(od2.aliassym);
+        return this.aliassym == s;
     }
 
     override bool overloadInsert(Dsymbol s)
@@ -1064,15 +1040,6 @@ extern (C++) final class OverDeclaration : Declaration
 
     Dsymbol isUnique()
     {
-        if (!hasOverloads)
-        {
-            if (aliassym.isFuncDeclaration() ||
-                aliassym.isTemplateDeclaration())
-            {
-                return aliassym;
-            }
-        }
-
         Dsymbol result = null;
         overloadApply(aliassym, (Dsymbol s)
         {
@@ -1141,6 +1108,8 @@ extern (C++) class VarDeclaration : Declaration
     bool doNotInferReturn;          // do not infer 'return' for this variable
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
 
+    bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     in
     {
@@ -1172,7 +1141,7 @@ extern (C++) class VarDeclaration : Declaration
         return new VarDeclaration(loc, type, ident, _init, storage_class);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override VarDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
@@ -1299,12 +1268,12 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isExport() const
     {
-        return protection.kind == Prot.Kind.export_;
+        return visibility.kind == Visibility.Kind.export_;
     }
 
     override final bool isImportedSymbol() const
     {
-        if (protection.kind == Prot.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
+        if (visibility.kind == Visibility.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
         return false;
     }
@@ -1732,7 +1701,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         super(Loc.initial, Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
         this.tinfo = tinfo;
         storage_class = STC.static_ | STC.gshared;
-        protection = Prot(Prot.Kind.public_);
+        visibility = Visibility(Visibility.Kind.public_);
         linkage = LINK.c;
         alignment = target.ptrsize;
     }
@@ -1742,7 +1711,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         return new TypeInfoDeclaration(tinfo);
     }
 
-    override final Dsymbol syntaxCopy(Dsymbol s)
+    override final TypeInfoDeclaration syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
     }
@@ -2179,7 +2148,7 @@ extern (C++) final class ThisDeclaration : VarDeclaration
         storage_class |= STC.nodtor;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override ThisDeclaration syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
     }

@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dstruct.d, _dstruct.d)
@@ -245,12 +245,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return new StructDeclaration(loc, id, inObject);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override StructDeclaration syntaxCopy(Dsymbol s)
     {
         StructDeclaration sd =
             s ? cast(StructDeclaration)s
               : new StructDeclaration(loc, ident, false);
-        return ScopeDsymbol.syntaxCopy(sd);
+        ScopeDsymbol.syntaxCopy(sd);
+        return sd;
     }
 
     final void semanticTypeInfoMembers()
@@ -605,39 +606,53 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return index < numArgTypes() ? (*argTypes.arguments)[index].type : null;
     }
 
-    final bool hasNonDisabledCtor()
+
+    /***************************************
+     * Verifies whether the struct declaration has a
+     * constructor that is not a copy constructor.
+     * Optionally, it can check whether the struct
+     * declaration has a regular constructor, that
+     * is not disabled.
+     *
+     * Params:
+     *      checkDisabled = if the struct has a regular
+                            non-disabled constructor
+     * Returns:
+     *      true, if the struct has a regular (optionally,
+     *      not disabled) constructor, false otherwise.
+     */
+    final bool hasRegularCtor(bool checkDisabled = false)
     {
-        static extern (C++) class HasNonDisabledCtorVisitor : Visitor
-        {
-            bool result;
-
-            this() {}
-
-            alias visit = Visitor.visit;
-
-            override void visit(CtorDeclaration cd)
-            {
-                if (!(cd.storage_class & STC.disable))
-                    result = true;
-            }
-
-            override void visit(TemplateDeclaration td)
-            {
-                result = true;
-            }
-
-            override void visit(OverloadSet os)
-            {
-                for (size_t i = 0; i < os.a.dim; i++)
-                    os.a[i].accept(this);
-            }
-        }
-
         if (!ctor)
             return false;
-        scope v = new HasNonDisabledCtorVisitor();
-        ctor.accept(v);
-        return v.result;
+
+        bool result;
+        overloadApply(ctor, (Dsymbol s)
+        {
+            if (auto td = s.isTemplateDeclaration())
+            {
+                if (checkDisabled && td.onemember)
+                {
+                    if (auto ctorDecl = td.onemember.isCtorDeclaration())
+                    {
+                        if (ctorDecl.storage_class & STC.disable)
+                            return 0;
+                    }
+                }
+                result = true;
+                return 1;
+            }
+            if (auto ctorDecl = s.isCtorDeclaration())
+            {
+                if (!ctorDecl.isCpCtor && (!checkDisabled || !(ctorDecl.storage_class & STC.disable)))
+                {
+                    result = true;
+                    return 1;
+                }
+            }
+            return 0;
+        });
+        return result;
     }
 }
 
@@ -740,11 +755,12 @@ extern (C++) final class UnionDeclaration : StructDeclaration
         super(loc, id, false);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override UnionDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ud = new UnionDeclaration(loc, ident);
-        return StructDeclaration.syntaxCopy(ud);
+        StructDeclaration.syntaxCopy(ud);
+        return ud;
     }
 
     override const(char)* kind() const

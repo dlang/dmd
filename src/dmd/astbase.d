@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -204,6 +204,7 @@ struct ASTBase
         Tuns128,
         Ttraits,
         Tmixin,
+        Tnoreturn,
         TMAX
     }
 
@@ -253,6 +254,7 @@ struct ASTBase
     alias Tuns128 = ENUMTY.Tuns128;
     alias Ttraits = ENUMTY.Ttraits;
     alias Tmixin = ENUMTY.Tmixin;
+    alias Tnoreturn = ENUMTY.Tnoreturn;
     alias TMAX = ENUMTY.TMAX;
 
     alias TY = ubyte;
@@ -529,13 +531,15 @@ struct ASTBase
     {
         Identifier ident;
         Type type;
+        Dsymbol aliassym;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Type type)
+        extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym)
         {
             super(null);
             this.loc = loc;
             this.ident = ident;
             this.type = type;
+            this.aliassym = aliassym;
         }
 
         override inout(AliasAssign) isAliasAssign() inout
@@ -552,7 +556,7 @@ struct ASTBase
     extern (C++) abstract class Declaration : Dsymbol
     {
         StorageClass storage_class;
-        Prot protection;
+        Visibility visibility;
         LINK linkage;
         Type type;
         short inuse;
@@ -562,7 +566,7 @@ struct ASTBase
         {
             super(id);
             storage_class = STC.undefined_;
-            protection = Prot(Prot.Kind.undefined);
+            visibility = Visibility(Visibility.Kind.undefined);
             linkage = LINK.default_;
         }
 
@@ -594,16 +598,16 @@ struct ASTBase
 
     extern (C++) class Import : Dsymbol
     {
-        Identifiers* packages;
+        Identifier[] packages;
         Identifier id;
         Identifier aliasId;
         int isstatic;
-        Prot protection;
+        Visibility visibility;
 
         Identifiers names;
         Identifiers aliases;
 
-        extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
+        extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
         {
             super(null);
             this.loc = loc;
@@ -611,17 +615,17 @@ struct ASTBase
             this.id = id;
             this.aliasId = aliasId;
             this.isstatic = isstatic;
-            this.protection = Prot(Prot.Kind.private_);
+            this.visibility = Visibility(Visibility.Kind.private_);
 
             if (aliasId)
             {
                 // import [cstdio] = std.stdio;
                 this.ident = aliasId;
             }
-            else if (packages && packages.dim)
+            else if (packages.length > 0)
             {
                 // import [std].stdio;
-                this.ident = (*packages)[0];
+                this.ident = packages[0];
             }
             else
             {
@@ -1057,7 +1061,7 @@ struct ASTBase
     {
         Type type;
         Type memtype;
-        Prot protection;
+        Visibility visibility;
 
         extern (D) this(const ref Loc loc, Identifier id, Type memtype)
         {
@@ -1065,7 +1069,7 @@ struct ASTBase
             this.loc = loc;
             type = new TypeEnum(this);
             this.memtype = memtype;
-            protection = Prot(Prot.Kind.undefined);
+            visibility = Visibility(Visibility.Kind.undefined);
         }
 
         override void accept(Visitor v)
@@ -1076,7 +1080,7 @@ struct ASTBase
 
     extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
-        Prot protection;
+        Visibility visibility;
         Sizeok sizeok;
         Type type;
 
@@ -1084,7 +1088,7 @@ struct ASTBase
         {
             super(id);
             this.loc = loc;
-            protection = Prot(Prot.Kind.public_);
+            visibility = Visibility(Visibility.Kind.public_);
             sizeok = Sizeok.none;
         }
 
@@ -1107,7 +1111,7 @@ struct ASTBase
         bool literal;
         bool ismixin;
         bool isstatic;
-        Prot protection;
+        Visibility visibility;
         Dsymbol onemember;
 
         extern (D) this(const ref Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
@@ -1120,7 +1124,7 @@ struct ASTBase
             this.literal = literal;
             this.ismixin = ismixin;
             this.isstatic = true;
-            this.protection = Prot(Prot.Kind.undefined);
+            this.visibility = Visibility(Visibility.Kind.undefined);
 
             if (members && ident)
             {
@@ -1181,7 +1185,7 @@ struct ASTBase
             return this;
         }
 
-        Objects* arraySyntaxCopy(Objects* objs)
+        static Objects* arraySyntaxCopy(Objects* objs)
         {
             Objects* a = null;
             if (objs)
@@ -1194,7 +1198,7 @@ struct ASTBase
             return a;
         }
 
-        RootObject objectSyntaxCopy(RootObject o)
+        static RootObject objectSyntaxCopy(RootObject o)
         {
             if (!o)
                 return null;
@@ -1205,7 +1209,7 @@ struct ASTBase
             return o;
         }
 
-        override Dsymbol syntaxCopy(Dsymbol s)
+        override TemplateInstance syntaxCopy(Dsymbol s)
         {
             TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
             ti.tiargs = arraySyntaxCopy(tiargs);
@@ -1271,6 +1275,21 @@ struct ASTBase
             this.atts = atts;
         }
 
+        override UserAttributeDeclaration syntaxCopy(Dsymbol s)
+        {
+            Expressions* a = this.atts ? new Expressions(this.atts.length) : null;
+            Dsymbols* d = this.decl ? new Dsymbols(this.decl.length) : null;
+
+            if (this.atts)
+                foreach (idx, entry; *this.atts)
+                    (*a)[idx] = entry.syntaxCopy();
+            if (this.decl)
+                foreach (idx, entry; *this.decl)
+                    (*d)[idx] = entry.syntaxCopy(null);
+
+            return new UserAttributeDeclaration(a, d);
+        }
+
         extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
@@ -1297,10 +1316,10 @@ struct ASTBase
     {
         LINK linkage;
 
-        extern (D) this(LINK p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, LINK p, Dsymbols* decl)
         {
-            super(decl);
-            linkage = p;
+            super(loc, null, decl);
+            this.linkage = p;
         }
 
         override void accept(Visitor v)
@@ -1347,9 +1366,9 @@ struct ASTBase
     {
         CPPMANGLE cppmangle;
 
-        extern (D) this(CPPMANGLE p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, CPPMANGLE p, Dsymbols* decl)
         {
-            super(decl);
+            super(loc, null, decl);
             cppmangle = p;
         }
 
@@ -1363,15 +1382,14 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(Identifier ident, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
         {
-            super(decl);
-            this.ident = ident;
+            super(loc, ident, decl);
         }
 
-        extern (D) this(Expression exp, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
         {
-            super(decl);
+            super(loc, null, decl);
             this.exp = exp;
         }
 
@@ -1381,23 +1399,23 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class ProtDeclaration : AttribDeclaration
+    extern (C++) final class VisibilityDeclaration : AttribDeclaration
     {
-        Prot protection;
-        Identifiers* pkg_identifiers;
+        Visibility visibility;
+        Identifier[] pkg_identifiers;
 
-        extern (D) this(const ref Loc loc, Prot p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Visibility v, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
-            this.protection = p;
+            this.visibility = v;
         }
-        extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
-            this.protection.kind = Prot.Kind.package_;
-            this.protection.pkg = null;
+            this.visibility.kind = Visibility.Kind.package_;
+            this.visibility.pkg = null;
             this.pkg_identifiers = pkg_identifiers;
         }
 
@@ -1918,7 +1936,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? cast(UserAttributeDeclaration) userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -2750,6 +2768,7 @@ struct ASTBase
         extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
         extern (C++) __gshared Type terror;      // for error recovery
         extern (C++) __gshared Type tnull;       // for null type
+        extern (C++) __gshared Type tnoreturn;   // for bottom type
 
         extern (C++) __gshared Type tsize_t;     // matches size_t alias
         extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
@@ -2798,6 +2817,7 @@ struct ASTBase
                 sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
                 sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
                 sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
+                sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
                 return sizeTy;
             }();
 
@@ -2874,6 +2894,10 @@ struct ASTBase
             }
             basic[Terror] = new TypeError();
 
+            tnoreturn = new TypeNoreturn();
+            tnoreturn.deco = tnoreturn.merge().deco;
+            basic[Tnoreturn] = tnoreturn;
+
             tvoid = basic[Tvoid];
             tint8 = basic[Tint8];
             tuns8 = basic[Tuns8];
@@ -2904,6 +2928,7 @@ struct ASTBase
 
             tshiftcnt = tint32;
             terror = basic[Terror];
+            tnoreturn = basic[Tnoreturn];
             tnull = new TypeNull();
             tnull.deco = tnull.merge().deco;
 
@@ -3725,7 +3750,7 @@ struct ASTBase
             super(Terror);
         }
 
-        override Type syntaxCopy()
+        override TypeError syntaxCopy()
         {
             return this;
         }
@@ -3743,7 +3768,26 @@ struct ASTBase
             super(Tnull);
         }
 
-        override Type syntaxCopy()
+        override TypeNull syntaxCopy()
+        {
+            // No semantic analysis done, no need to copy
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeNoreturn : Type
+    {
+        extern (D) this()
+        {
+            super(Tnoreturn);
+        }
+
+        override TypeNoreturn syntaxCopy()
         {
             // No semantic analysis done, no need to copy
             return this;
@@ -3765,7 +3809,7 @@ struct ASTBase
             this.basetype = basetype;
         }
 
-        override Type syntaxCopy()
+        override TypeVector syntaxCopy()
         {
             return new TypeVector(basetype.syntaxCopy());
         }
@@ -3786,7 +3830,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override Type syntaxCopy()
+        override TypeEnum syntaxCopy()
         {
             return this;
         }
@@ -3826,10 +3870,10 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override Type syntaxCopy()
+        override TypeTuple syntaxCopy()
         {
             Parameters* args = Parameter.arraySyntaxCopy(arguments);
-            Type t = new TypeTuple(args);
+            auto t = new TypeTuple(args);
             t.mod = mod;
             return t;
         }
@@ -3851,7 +3895,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override Type syntaxCopy()
+        override TypeClass syntaxCopy()
         {
             return this;
         }
@@ -3874,7 +3918,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override Type syntaxCopy()
+        override TypeStruct syntaxCopy()
         {
             return this;
         }
@@ -3893,17 +3937,15 @@ struct ASTBase
             // BUG: what about references to static arrays?
         }
 
-        override Type syntaxCopy()
+        override TypeReference syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypeReference(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeReference(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -3945,9 +3987,9 @@ struct ASTBase
             this.upr = upr;
         }
 
-        override Type syntaxCopy()
+        override TypeSlice syntaxCopy()
         {
-            Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
+            auto t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
             t.mod = mod;
             return t;
         }
@@ -3966,17 +4008,15 @@ struct ASTBase
             ty = Tdelegate;
         }
 
-        override Type syntaxCopy()
+        override TypeDelegate syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypeDelegate(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeDelegate(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -3992,17 +4032,15 @@ struct ASTBase
             super(Tpointer, t);
         }
 
-        override Type syntaxCopy()
+        override TypePointer syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypePointer(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypePointer(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -4075,7 +4113,7 @@ struct ASTBase
                 this.trust = TRUST.trusted;
         }
 
-        override Type syntaxCopy()
+        override TypeFunction syntaxCopy()
         {
             Type treturn = next ? next.syntaxCopy() : null;
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
@@ -4272,17 +4310,15 @@ struct ASTBase
             super(Tarray, t);
         }
 
-        override Type syntaxCopy()
+        override TypeDArray syntaxCopy()
         {
             Type t = next.syntaxCopy();
             if (t == next)
-                t = this;
-            else
-            {
-                t = new TypeDArray(t);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeDArray(t);
+            result.mod = mod;
+            return result;
         }
 
         override void accept(Visitor v)
@@ -4302,18 +4338,16 @@ struct ASTBase
             this.index = index;
         }
 
-        override Type syntaxCopy()
+        override TypeAArray syntaxCopy()
         {
             Type t = next.syntaxCopy();
             Type ti = index.syntaxCopy();
             if (t == next && ti == index)
-                t = this;
-            else
-            {
-                t = new TypeAArray(t, ti);
-                t.mod = mod;
-            }
-            return t;
+                return this;
+
+            auto result = new TypeAArray(t, ti);
+            result.mod = mod;
+            return result;
         }
 
         override Expression toExpression()
@@ -4344,13 +4378,13 @@ struct ASTBase
             this.dim = dim;
         }
 
-        override Type syntaxCopy()
+        override TypeSArray syntaxCopy()
         {
             Type t = next.syntaxCopy();
             Expression e = dim.syntaxCopy();
-            t = new TypeSArray(t, e);
-            t.mod = mod;
-            return t;
+            auto result = new TypeSArray(t, e);
+            result.mod = mod;
+            return result;
         }
 
         override Expression toExpression()
@@ -4402,7 +4436,7 @@ struct ASTBase
                 if (id.dyncast() == DYNCAST.dsymbol)
                 {
                     TemplateInstance ti = cast(TemplateInstance)id;
-                    ti = cast(TemplateInstance)ti.syntaxCopy(null);
+                    ti = ti.syntaxCopy(null);
                     id = ti;
                 }
                 else if (id.dyncast() == DYNCAST.expression)
@@ -4477,9 +4511,9 @@ struct ASTBase
             v.visit(this);
         }
 
-        override Type syntaxCopy()
+        override TypeTraits syntaxCopy()
         {
-            TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
+            TraitsExp te = exp.syntaxCopy();
             TypeTraits tt = new TypeTraits(loc, te);
             tt.mod = mod;
             return tt;
@@ -4490,6 +4524,7 @@ struct ASTBase
     {
         Loc loc;
         Expressions* exps;
+        RootObject obj;
 
         extern (D) this(const ref Loc loc, Expressions* exps)
         {
@@ -4498,7 +4533,7 @@ struct ASTBase
             this.exps = exps;
         }
 
-        override Type syntaxCopy()
+        override TypeMixin syntaxCopy()
         {
             static Expressions* arraySyntaxCopy(Expressions* exps)
             {
@@ -4533,7 +4568,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override Type syntaxCopy()
+        override TypeIdentifier syntaxCopy()
         {
             auto t = new TypeIdentifier(loc, ident);
             t.syntaxCopyHelper(this);
@@ -4559,7 +4594,7 @@ struct ASTBase
             super(Treturn, loc);
         }
 
-        override Type syntaxCopy()
+        override TypeReturn syntaxCopy()
         {
             auto t = new TypeReturn(loc);
             t.syntaxCopyHelper(this);
@@ -4583,7 +4618,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override Type syntaxCopy()
+        override TypeTypeof syntaxCopy()
         {
             auto t = new TypeTypeof(loc, exp.syntaxCopy());
             t.syntaxCopyHelper(this);
@@ -4607,9 +4642,9 @@ struct ASTBase
             this.tempinst = tempinst;
         }
 
-        override Type syntaxCopy()
+        override TypeInstance syntaxCopy()
         {
-            auto t = new TypeInstance(loc, cast(TemplateInstance)tempinst.syntaxCopy(null));
+            auto t = new TypeInstance(loc, tempinst.syntaxCopy(null));
             t.syntaxCopyHelper(this);
             t.mod = mod;
             return t;
@@ -4889,6 +4924,11 @@ struct ASTBase
             super(loc, TOK.traits, __traits(classInstanceSize, TraitsExp));
             this.ident = ident;
             this.args = args;
+        }
+
+        override TraitsExp syntaxCopy()
+        {
+            return new TraitsExp(loc, ident, TemplateInstance.arraySyntaxCopy(args));
         }
 
         override void accept(Visitor v)
@@ -6560,11 +6600,11 @@ struct ASTBase
     {
         Loc loc;
         Identifier id;
-        Identifiers *packages;
+        Identifier[] packages;
         bool isdeprecated;
         Expression msg;
 
-        extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
+        extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Expression msg, bool isdeprecated)
         {
             this.loc = loc;
             this.packages = packages;
@@ -6576,21 +6616,17 @@ struct ASTBase
         extern (C++) const(char)* toChars() const
         {
             OutBuffer buf;
-            if (packages && packages.dim)
+            foreach (const pid; packages)
             {
-                for (size_t i = 0; i < packages.dim; i++)
-                {
-                    const Identifier pid = (*packages)[i];
-                    buf.writestring(pid.toString());
-                    buf.writeByte('.');
-                }
+                buf.writestring(pid.toString());
+                buf.writeByte('.');
             }
             buf.writestring(id.toString());
             return buf.extractChars();
         }
     }
 
-    struct Prot
+    struct Visibility
     {
         enum Kind : ubyte
         {
@@ -6641,23 +6677,23 @@ struct ASTBase
     }
 
 
-    static const(char)* protectionToChars(Prot.Kind kind)
+    static const(char)* visibilityToChars(Visibility.Kind kind)
     {
         final switch (kind)
         {
-        case Prot.Kind.undefined:
+        case Visibility.Kind.undefined:
             return null;
-        case Prot.Kind.none:
+        case Visibility.Kind.none:
             return "none";
-        case Prot.Kind.private_:
+        case Visibility.Kind.private_:
             return "private";
-        case Prot.Kind.package_:
+        case Visibility.Kind.package_:
             return "package";
-        case Prot.Kind.protected_:
+        case Visibility.Kind.protected_:
             return "protected";
-        case Prot.Kind.public_:
+        case Visibility.Kind.public_:
             return "public";
-        case Prot.Kind.export_:
+        case Visibility.Kind.export_:
             return "export";
         }
     }
@@ -6669,8 +6705,8 @@ struct ASTBase
             stc &= ~STC.scope_;
         while (stc)
         {
-            const(char)* p = stcToChars(stc);
-            if (!p) // there's no visible storage classes
+            const p = stcToString(stc);
+            if (!p.length) // there's no visible storage classes
                 break;
             if (!result)
                 result = true;
@@ -6686,64 +6722,60 @@ struct ASTBase
         return t.toExpression;
     }
 
-    static const(char)* stcToChars(ref StorageClass stc)
+    static string stcToString(ref StorageClass stc)
     {
-        struct SCstring
+        static struct SCstring
         {
             StorageClass stc;
-            TOK tok;
-            const(char)* id;
+            string id;
         }
 
-        __gshared SCstring* table =
+        // Note: The identifier needs to be `\0` terminated
+        // as some code assumes it (e.g. when printing error messages)
+        static immutable SCstring[] table =
         [
-            SCstring(STC.auto_, TOK.auto_),
-            SCstring(STC.scope_, TOK.scope_),
-            SCstring(STC.static_, TOK.static_),
-            SCstring(STC.extern_, TOK.extern_),
-            SCstring(STC.const_, TOK.const_),
-            SCstring(STC.final_, TOK.final_),
-            SCstring(STC.abstract_, TOK.abstract_),
-            SCstring(STC.synchronized_, TOK.synchronized_),
-            SCstring(STC.deprecated_, TOK.deprecated_),
-            SCstring(STC.override_, TOK.override_),
-            SCstring(STC.lazy_, TOK.lazy_),
-            SCstring(STC.alias_, TOK.alias_),
-            SCstring(STC.out_, TOK.out_),
-            SCstring(STC.in_, TOK.in_),
-            SCstring(STC.manifest, TOK.enum_),
-            SCstring(STC.immutable_, TOK.immutable_),
-            SCstring(STC.shared_, TOK.shared_),
-            SCstring(STC.nothrow_, TOK.nothrow_),
-            SCstring(STC.wild, TOK.inout_),
-            SCstring(STC.pure_, TOK.pure_),
-            SCstring(STC.ref_, TOK.ref_),
-            SCstring(STC.tls),
-            SCstring(STC.gshared, TOK.gshared),
-            SCstring(STC.nogc, TOK.at, "@nogc"),
-            SCstring(STC.property, TOK.at, "@property"),
-            SCstring(STC.safe, TOK.at, "@safe"),
-            SCstring(STC.trusted, TOK.at, "@trusted"),
-            SCstring(STC.system, TOK.at, "@system"),
-            SCstring(STC.live, TOK.at, "@live"),
-            SCstring(STC.disable, TOK.at, "@disable"),
-            SCstring(STC.future, TOK.at, "@__future"),
-            SCstring(0, TOK.reserved)
+            SCstring(STC.auto_, Token.toString(TOK.auto_)),
+            SCstring(STC.scope_, Token.toString(TOK.scope_)),
+            SCstring(STC.static_, Token.toString(TOK.static_)),
+            SCstring(STC.extern_, Token.toString(TOK.extern_)),
+            SCstring(STC.const_, Token.toString(TOK.const_)),
+            SCstring(STC.final_, Token.toString(TOK.final_)),
+            SCstring(STC.abstract_, Token.toString(TOK.abstract_)),
+            SCstring(STC.synchronized_, Token.toString(TOK.synchronized_)),
+            SCstring(STC.deprecated_, Token.toString(TOK.deprecated_)),
+            SCstring(STC.override_, Token.toString(TOK.override_)),
+            SCstring(STC.lazy_, Token.toString(TOK.lazy_)),
+            SCstring(STC.alias_, Token.toString(TOK.alias_)),
+            SCstring(STC.out_, Token.toString(TOK.out_)),
+            SCstring(STC.in_, Token.toString(TOK.in_)),
+            SCstring(STC.manifest, Token.toString(TOK.enum_)),
+            SCstring(STC.immutable_, Token.toString(TOK.immutable_)),
+            SCstring(STC.shared_, Token.toString(TOK.shared_)),
+            SCstring(STC.nothrow_, Token.toString(TOK.nothrow_)),
+            SCstring(STC.wild, Token.toString(TOK.inout_)),
+            SCstring(STC.pure_, Token.toString(TOK.pure_)),
+            SCstring(STC.ref_, Token.toString(TOK.ref_)),
+            SCstring(STC.return_, Token.toString(TOK.return_)),
+            SCstring(STC.tls, "__thread"),
+            SCstring(STC.gshared, Token.toString(TOK.gshared)),
+            SCstring(STC.nogc, "@nogc"),
+            SCstring(STC.live, "@live"),
+            SCstring(STC.property, "@property"),
+            SCstring(STC.safe, "@safe"),
+            SCstring(STC.trusted, "@trusted"),
+            SCstring(STC.system, "@system"),
+            SCstring(STC.disable, "@disable"),
+            SCstring(STC.future, "@__future"),
+            SCstring(STC.local, "__local"),
         ];
-        for (int i = 0; table[i].stc; i++)
+        foreach (ref entry; table)
         {
-            StorageClass tbl = table[i].stc;
+            const StorageClass tbl = entry.stc;
             assert(tbl & STCStorageClass);
             if (stc & tbl)
             {
                 stc &= ~tbl;
-                if (tbl == STC.tls) // TOKtls was removed
-                    return "__thread";
-                TOK tok = table[i].tok;
-                if (tok == TOK.at)
-                    return table[i].id;
-                else
-                    return Token.toChars(tok);
+                return entry.id;
             }
         }
         //printf("stc = %llx\n", stc);

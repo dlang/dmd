@@ -5,7 +5,7 @@
  * Mostly code generation for assignment operators.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
@@ -684,6 +684,12 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             !(sz == 1 && e1.EV.Voffset == 1)
            )
         {
+            if (varregm & XMMREGS)
+            {
+                // Could be an integer vector in the XMMREGS
+                xmmeq(cdb, e, CMP, e1, e2, pretregs);
+                return;
+            }
             regvar = true;
             retregs = varregm;
             reg = varreg;       // evaluate directly in target register

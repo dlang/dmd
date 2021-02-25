@@ -1,9 +1,4 @@
-/*
-TEST_OUTPUT:
----
----
-*/
-
+// https://issues.dlang.org/show_bug.cgi?id=19774
 C bar()
 {
     return C(42);

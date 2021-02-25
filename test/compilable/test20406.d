@@ -1,9 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=20406
-/* TEST_OUTPUT:
----
----
-*/
-
 struct S
 {
 	@disable this();

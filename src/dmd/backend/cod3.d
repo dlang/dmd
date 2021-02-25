@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -1108,14 +1108,7 @@ static if (NTEXCEPTIONS)
 
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
-            reg1 = reg2 = NOREG;
-            if (config.exe == EX_WIN64) // broken
-                retregs = regmask(e.Ety, funcsym_p.ty());
-            else
-            {
-                retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
-                assert(reg1 != NOREG || !retregs);
-            }
+            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
@@ -1175,6 +1168,8 @@ static if (NTEXCEPTIONS)
             else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
             {
                 assert(reg1 == lreg && reg2 == NOREG);
+                regm_t pretregs = mask(reg1) | mask(reg2);
+                fixresult87(cdb, e, retregs, &pretregs, true);
             }
             // fix return registers
             else if (tybasic(e.Ety) == TYcfloat)
@@ -1207,7 +1202,7 @@ static if (NTEXCEPTIONS)
                 {
                     assert(reg1 == AX && reg2 == DX);
                     regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult_complex87(cdb, e, retregs, &pretregs);
+                    fixresult_complex87(cdb, e, retregs, &pretregs, true);
                 }
             }
             else if (reg2 == NOREG)
@@ -1224,7 +1219,6 @@ static if (NTEXCEPTIONS)
             goto L4;
 
         case BCret:
-        case BCexit:
             retregs = 0;
             gencodelem(cdb,e,&retregs,true);
         L4:
@@ -1238,12 +1232,7 @@ static if (NTEXCEPTIONS)
                 pop87();                // account for return value
             }
 
-            if (bl.BC == BCexit)
-            {
-                if (config.flags4 & CFG4optimized)
-                    mfuncreg = mfuncregsave;
-            }
-            else if (MARS || usednteh & NTEH_try)
+            if (MARS || usednteh & NTEH_try)
             {
                 block *bt = bl;
                 while ((bt = bt.Btry) != null)
@@ -1286,6 +1275,13 @@ version (MARS)
                     }
                 }
             }
+            break;
+
+        case BCexit:
+            retregs = 0;
+            gencodelem(cdb,e,&retregs,true);
+            if (config.flags4 & CFG4optimized)
+                mfuncreg = mfuncregsave;
             break;
 
         case BCasm:
@@ -1337,22 +1333,30 @@ version (MARS)
  *    ty    = return type
  *    t     = return type extended info
  *    tyf   = function type
- *    reg1  = output for the first part register
- *    reg2  = output for the second part register
+ *    reg1  = set to the first part register, else NOREG
+ *    reg2  = set to the second part register, else NOREG
  *
  * Returns:
  *    a bit mask of return registers.
  *    0 if function returns on the stack or returns void.
  */
-regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
+regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
-    tym_t ty1 = ty;
-    tym_t ty2 = TYMAX;
+    //printf("allocretregs()\n");
+    reg1 = reg2 = NOREG;
 
-    *reg1 = *reg2 = NOREG;
+    if (!(config.exe & EX_posix))
+        return regmask(ty, tyf);    // for non-Posix ABI
 
-    if (tybasic(ty) == TYvoid)
+    /* The rest is for the Itanium ABI
+     */
+
+    const tyb = tybasic(ty);
+    if (tyb == TYvoid)
         return 0;
+
+    tym_t ty1 = tyb;
+    tym_t ty2 = TYMAX;  // stays TYMAX if only one register is needed
 
     if (ty & mTYxmmgpr)
     {
@@ -1365,48 +1369,46 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
         ty2 = TYdouble;
     }
 
-    if (tybasic(ty) == TYstruct)
+    if (tyb == TYstruct)
     {
         assert(t);
         ty1 = t.Tty;
     }
 
+    const tyfb = tybasic(tyf);
     switch (tyrelax(ty1))
     {
         case TYcent:
-            if (!I64 || config.exe == EX_WIN64)
+            if (I32)
                 return 0;
             ty1 = ty2 = TYllong;
             break;
 
         case TYcdouble:
-            if (tybasic(tyf) == TYjfunc && I32)
+            if (tyfb == TYjfunc && I32)
                 break;
-            if (!I64 || config.exe == EX_WIN64)
+            if (I32)
                 return 0;
             ty1 = ty2 = TYdouble;
             break;
 
         case TYcfloat:
-            if (tybasic(tyf) == TYjfunc && I32)
+            if (tyfb == TYjfunc && I32)
                 break;
-            if (!I64)
+            if (I32)
                 goto case TYllong;
-            if (config.exe == EX_WIN64)
-                ty1 = TYllong;
-            else
-                ty1 = TYdouble;
+            ty1 = TYdouble;
             break;
 
         case TYcldouble:
-            if (tybasic(tyf) == TYjfunc && I32)
+            if (tyfb == TYjfunc && I32)
                 break;
-            if (!I64 || config.exe == EX_WIN64)
+            if (I32)
                 return 0;
             break;
 
         case TYllong:
-            if (!I64)
+            if (I32)
                 ty1 = ty2 = TYlong;
             break;
 
@@ -1423,42 +1425,15 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
 
         case TYstruct:
             assert(t);
-            if (I64 && config.exe != EX_WIN64)
+            if (I64)
             {
                 assert(tybasic(t.Tty) == TYstruct);
-                type *targ1 = t.Ttag.Sstruct.Sarg1type;
-                type *targ2 = t.Ttag.Sstruct.Sarg2type;
-                if (targ1)
+                if (const targ1 = t.Ttag.Sstruct.Sarg1type)
                     ty1 = targ1.Tty;
                 else
                     return 0;
-                if (targ2)
+                if (const targ2 = t.Ttag.Sstruct.Sarg2type)
                     ty2 = targ2.Tty;
-                break;
-            }
-            else if (!(t.Ttag.Sstruct.Sflags & STRnotpod))
-            {
-                // windows only, return POD of 1, 2, 4, or 8 bytes on EAX(:EDX)
-                if (!(config.exe & (EX_WIN64 | EX_WIN32)))
-                    return 0;
-
-                uint sz = cast(uint) type_size(t);
-
-                if (sz > 8 || sz == 0)
-                    return 0;
-
-                if (sz == 8)
-                {
-                    if (config.exe == EX_WIN64)
-                        ty1 = TYllong;
-                    else
-                        ty1 = ty2 = TYlong;
-                }
-                else if (sz == 4 || sz == 2 || sz == 1)
-                    ty1 = TYlong;
-                else
-                    return 0;
-
                 break;
             }
             return 0;
@@ -1467,48 +1442,44 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
             break;
     }
 
+    /* now we have ty1 and ty2, use that to determine which register
+     * is used for ty1 and which for ty2
+     */
 
     static struct RetRegsAllocator
     {
     nothrow:
-        static reg_t[2] gp_regs = [AX, DX];
-        static reg_t[2] xmm_regs = [XMM0, XMM1];
+        static immutable reg_t[2] gpr_regs = [AX, DX];
+        static immutable reg_t[2] xmm_regs = [XMM0, XMM1];
 
         uint cntgpr = 0,
              cntxmm = 0;
 
-        reg_t gpr() { return gp_regs[cntgpr++]; }
+        reg_t gpr() { return gpr_regs[cntgpr++]; }
         reg_t xmm() { return xmm_regs[cntxmm++]; }
     }
 
-    tym_t tym = ty1;
-    reg_t *reg = reg1;
     RetRegsAllocator rralloc;
-    for (int v = 0; v < 2; ++v)
+
+    reg_t allocreg(tym_t tym)
     {
-        if (tym == TYMAX) continue;
+        if (tym == TYMAX)
+            return NOREG;
         switch (tysize(tym))
         {
         case 1:
         case 2:
         case 4:
             if (tyfloating(tym))
-            {
-                if (I64)
-                    *reg = rralloc.xmm();
-                else
-                    *reg = ST0;
-            }
+                return I64 ? rralloc.xmm() : ST0;
             else
-                *reg = rralloc.gpr();
-            break;
+                return rralloc.gpr();
 
         case 8:
             if (tycomplex(tym))
             {
-                assert(tybasic(tyf) == TYjfunc && I32);
-                *reg = ST01;
-                break;
+                assert(tyfb == TYjfunc && I32);
+                return ST01;
             }
             assert(I64 || tyfloating(tym));
             goto case 4;
@@ -1516,32 +1487,30 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
         default:
             if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
             {
-                *reg = ST0;
-                break;
+                return ST0;
             }
             else if (tybasic(tym) == TYcldouble)
             {
-                *reg = ST01;
-                break;
+                return ST01;
             }
-            else if (tycomplex(tym) && tybasic(tyf) == TYjfunc && I32)
+            else if (tycomplex(tym) && tyfb == TYjfunc && I32)
             {
-                *reg = ST01;
-                break;
+                return ST01;
             }
             else if (tysimd(tym))
             {
-                *reg = rralloc.xmm();
-                break;
+                return rralloc.xmm();
             }
 
             debug WRTYxx(tym);
             assert(0);
         }
-        tym = ty2;
-        reg = reg2;
     }
-    return (mask(*reg1) | mask(*reg2)) & ~mask(NOREG);
+
+    reg1 = allocreg(ty1);
+    reg2 = allocreg(ty2);
+
+    return (mask(reg1) | mask(reg2)) & ~mask(NOREG);
 }
 
 /***********************************************

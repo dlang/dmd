@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/ddoc.html, Documentation Generator)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/doc.d, _doc.d)
@@ -790,12 +790,9 @@ private void emitAnchor(ref OutBuffer buf, Dsymbol s, Scope* sc, bool forHeader 
                 // fully qualify imports so `core.stdc.string` doesn't appear as `core`
                 void printFullyQualifiedImport()
                 {
-                    if (imp.packages && imp.packages.dim)
+                    foreach (const pid; imp.packages)
                     {
-                        foreach (const pid; *imp.packages)
-                        {
-                            buf.printf("%s.", pid.toChars());
-                        }
+                        buf.printf("%s.", pid.toChars());
                     }
                     buf.writestring(imp.id.toString());
                 }
@@ -917,25 +914,25 @@ private void emitMemberComments(ScopeDsymbol sds, ref OutBuffer buf, Scope* sc)
         buf.writestring(")");
 }
 
-private void emitProtection(ref OutBuffer buf, Import i)
+private void emitVisibility(ref OutBuffer buf, Import i)
 {
     // imports are private by default, which is different from other declarations
-    // so they should explicitly show their protection
-    emitProtection(buf, i.protection);
+    // so they should explicitly show their visibility
+    emitVisibility(buf, i.visibility);
 }
 
-private void emitProtection(ref OutBuffer buf, Declaration d)
+private void emitVisibility(ref OutBuffer buf, Declaration d)
 {
-    auto prot = d.protection;
-    if (prot.kind != Prot.Kind.undefined && prot.kind != Prot.Kind.public_)
+    auto vis = d.visibility;
+    if (vis.kind != Visibility.Kind.undefined && vis.kind != Visibility.Kind.public_)
     {
-        emitProtection(buf, prot);
+        emitVisibility(buf, vis);
     }
 }
 
-private void emitProtection(ref OutBuffer buf, Prot prot)
+private void emitVisibility(ref OutBuffer buf, Visibility vis)
 {
-    protectionToBuffer(&buf, prot);
+    visibilityToBuffer(&buf, vis);
     buf.writeByte(' ');
 }
 
@@ -1052,7 +1049,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
 
         override void visit(Import imp)
         {
-            if (imp.prot().kind != Prot.Kind.public_ && sc.protection.kind != Prot.Kind.export_)
+            if (imp.visible().kind != Visibility.Kind.public_ && sc.visibility.kind != Visibility.Kind.export_)
                 return;
 
             if (imp.comment)
@@ -1084,7 +1081,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                         return;
                     }
                 }
-                if (d.protection.kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
+                if (d.visibility.kind == Visibility.Kind.private_ || sc.visibility.kind == Visibility.Kind.private_)
                     return;
             }
             if (!com)
@@ -1105,7 +1102,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             }
             else
             {
-                if (ad.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
+                if (ad.visible().kind == Visibility.Kind.private_ || sc.visibility.kind == Visibility.Kind.private_)
                     return;
                 if (!ad.comment)
                     return;
@@ -1118,7 +1115,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         override void visit(TemplateDeclaration td)
         {
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td.toChars(), td.kind());
-            if (td.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
+            if (td.visible().kind == Visibility.Kind.private_ || sc.visibility.kind == Visibility.Kind.private_)
                 return;
             if (!td.comment)
                 return;
@@ -1132,7 +1129,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
 
         override void visit(EnumDeclaration ed)
         {
-            if (ed.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
+            if (ed.visible().kind == Visibility.Kind.private_ || sc.visibility.kind == Visibility.Kind.private_)
                 return;
             if (ed.isAnonymous() && ed.members)
             {
@@ -1153,7 +1150,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         override void visit(EnumMember em)
         {
             //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em.toChars(), em.comment);
-            if (em.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
+            if (em.visible().kind == Visibility.Kind.private_ || sc.visibility.kind == Visibility.Kind.private_)
                 return;
             if (!em.comment)
                 return;
@@ -1183,13 +1180,13 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             }
         }
 
-        override void visit(ProtDeclaration pd)
+        override void visit(VisibilityDeclaration pd)
         {
             if (pd.decl)
             {
                 Scope* scx = sc;
                 sc = sc.copy();
-                sc.protection = pd.protection;
+                sc.visibility = pd.visibility;
                 visit(cast(AttribDeclaration)pd);
                 scx.lastdc = sc.lastdc;
                 sc = sc.pop();
@@ -1252,7 +1249,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 buf.writestring("deprecated ");
             if (Declaration d = s.isDeclaration())
             {
-                emitProtection(*buf, d);
+                emitVisibility(*buf, d);
                 if (d.isStatic())
                     buf.writestring("static ");
                 else if (d.isFinal())
@@ -1292,7 +1289,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
         {
             HdrGenState hgs;
             hgs.ddoc = true;
-            emitProtection(*buf, i);
+            emitVisibility(*buf, i);
             .toCBuffer(i, buf, &hgs);
         }
 
@@ -1361,7 +1358,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             if (ad.isDeprecated())
                 buf.writestring("deprecated ");
-            emitProtection(*buf, ad);
+            emitVisibility(*buf, ad);
             buf.printf("alias %s = ", ad.toChars());
             if (Dsymbol s = ad.aliassym) // ident alias
             {
@@ -1436,7 +1433,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             version (none)
             {
-                emitProtection(buf, ad);
+                emitVisibility(buf, ad);
             }
             buf.printf("%s %s", ad.kind(), ad.toChars());
             buf.writestring(";\n");
@@ -1449,7 +1446,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             version (none)
             {
-                emitProtection(buf, sd);
+                emitVisibility(buf, sd);
             }
             if (TemplateDeclaration td = getEponymousParent(sd))
             {
@@ -1469,7 +1466,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             version (none)
             {
-                emitProtection(*buf, cd);
+                emitVisibility(*buf, cd);
             }
             if (TemplateDeclaration td = getEponymousParent(cd))
             {
@@ -1907,7 +1904,7 @@ struct DocComment
                 s = td;
             for (UnitTestDeclaration utd = s.ddocUnittest; utd; utd = utd.ddocUnittest)
             {
-                if (utd.protection.kind == Prot.Kind.private_ || !utd.comment || !utd.fbody)
+                if (utd.visibility.kind == Visibility.Kind.private_ || !utd.comment || !utd.fbody)
                     continue;
                 // Strip whitespaces to avoid showing empty summary
                 const(char)* c = utd.comment;
@@ -2610,12 +2607,9 @@ private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
                 // fully qualify imports so `core.stdc.string` doesn't appear as `core`
                 string fullyQualifiedImport;
-                if (imp.packages && imp.packages.dim)
+                foreach (const pid; imp.packages)
                 {
-                    foreach (const pid; *imp.packages)
-                    {
-                        fullyQualifiedImport ~= pid.toString() ~ ".";
-                    }
+                    fullyQualifiedImport ~= pid.toString() ~ ".";
                 }
                 fullyQualifiedImport ~= imp.id.toString();
 

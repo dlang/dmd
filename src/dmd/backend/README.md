@@ -1,6 +1,12 @@
 Files in the Back End
 =====================
 
+:warning: When contributing to the backend, make sure youd don't break DMC :warning:
+
+The backend is shared with DMC, the DigitalMars C/C++ compiler.
+
+To ensure compatibility, [check its source tree here](https://github.com/DigitalMars/Compiler/tree/master/dm/src/dmc).
+
 Data Structures
 ---------------
 * **aarray.d**        hash table
@@ -32,10 +38,10 @@ Debug Information
 * **cv4.d**           CodeView 4 symbolic debug info declarations
 * **cv8.d**           CodeView 8 symbolic debug info generation
 * **dcgcv.d**         CodeView 4 symbolic debug info generation
-* **dwarf.d**         interface to Dwarf generation
-* **dwarf2.d**        Dwarf 3 spec declarations
-* **dwarfdbginf.d**   generate Dwarf debug info
-* **dwarfeh.d**       Dwarf Exception handling tables
+* **dwarf.d**         interface to DWARF generation
+* **dwarf2.d**        DWARF specification declarations
+* **dwarfdbginf.d**   generate DWARF debug info
+* **dwarfeh.d**       DWARF Exception handling tables
 * **ee.d**            DMC++ IDDE debugger expression evaluation
 
 Object File Generation

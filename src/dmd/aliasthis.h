@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2009-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2009-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -23,7 +23,7 @@ public:
     Dsymbol    *sym;
     bool       isDeprecated_;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    AliasThis *syntaxCopy(Dsymbol *);
     const char *kind() const;
     AliasThis *isAliasThis() { return this; }
     void accept(Visitor *v) { v->visit(this); }

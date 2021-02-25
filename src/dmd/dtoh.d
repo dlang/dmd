@@ -2,7 +2,7 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
@@ -17,6 +17,8 @@ import core.stdc.ctype;
 
 import dmd.astcodegen;
 import dmd.arraytypes;
+import dmd.dsymbol;
+import dmd.errors;
 import dmd.globals;
 import dmd.identifier;
 import dmd.root.filename;
@@ -36,6 +38,9 @@ private struct DMDType
     __gshared Identifier c_ulonglong;
     __gshared Identifier c_long_double;
     __gshared Identifier c_wchar_t;
+    __gshared Identifier c_complex_float;
+    __gshared Identifier c_complex_double;
+    __gshared Identifier c_complex_real;
 
     static void _init()
     {
@@ -45,6 +50,9 @@ private struct DMDType
         c_ulonglong     = Identifier.idPool("__c_ulonglong");
         c_long_double   = Identifier.idPool("__c_long_double");
         c_wchar_t       = Identifier.idPool("__c_wchar_t");
+        c_complex_float  = Identifier.idPool("__c_complex_float");
+        c_complex_double = Identifier.idPool("__c_complex_double");
+        c_complex_real = Identifier.idPool("__c_complex_real");
     }
 }
 
@@ -257,7 +265,8 @@ public:
     LINK linkage = LINK.d;
     bool forwardedAA;
     AST.Type* origType;
-    AST.Prot.Kind currentProt; /// Last written protection level
+    /// Last written visibility level
+    AST.Visibility.Kind currentVisibility;
     AST.STC storageClass; /// Currently applicable storage classes
 
     int ignoredCounter; /// How many symbols were ignored
@@ -345,45 +354,168 @@ public:
     }
 
     /// Writes the corresponding access specifier if necessary
-    private void writeProtection(const AST.Prot.Kind kind)
+    private void writeProtection(const AST.Visibility.Kind kind)
     {
-        // Don't write protection for global declarations
+        // Don't write visibility for global declarations
         if (!adparent)
             return;
 
         string token;
 
-        switch(kind) with(AST.Prot.Kind)
+        switch(kind) with(AST.Visibility.Kind)
         {
             case none, private_:
-                if (this.currentProt == AST.Prot.Kind.private_)
+                if (this.currentVisibility == AST.Visibility.Kind.private_)
                     return;
-                this.currentProt = AST.Prot.Kind.private_;
+                this.currentVisibility = AST.Visibility.Kind.private_;
                 token = "private:";
                 break;
 
             case package_, protected_:
-                if (this.currentProt == AST.Prot.Kind.protected_)
+                if (this.currentVisibility == AST.Visibility.Kind.protected_)
                     return;
-                this.currentProt = AST.Prot.Kind.protected_;
+                this.currentVisibility = AST.Visibility.Kind.protected_;
                 token = "protected:";
                 break;
 
             case undefined, public_, export_:
-                if (this.currentProt == AST.Prot.Kind.public_)
+                if (this.currentVisibility == AST.Visibility.Kind.public_)
                     return;
-                this.currentProt = AST.Prot.Kind.public_;
+                this.currentVisibility = AST.Visibility.Kind.public_;
                 token = "public:";
                 break;
 
             default:
-                printf("Unexpected protection: %d!\n", kind);
+                printf("Unexpected visibility: %d!\n", kind);
                 assert(0);
         }
 
         buf.level--;
         buf.writestringln(token);
         buf.level++;
+    }
+
+    /**
+     * Writes an identifier into `buf` and checks for reserved identifiers. The
+     * parameter `canFix` determines how this function handles C++ keywords:
+     *
+     * `false` => Raise a warning and print the identifier as-is
+     * `true`  => Append an underscore to the identifier
+     *
+     * Params:
+     *   s        = the symbol denoting the identifier
+     *   canFixup = whether the identifier may be changed without affecting
+     *              binary compatibility
+     */
+    private void writeIdentifier(const AST.Dsymbol s, const bool canFix = false)
+    {
+        writeIdentifier(s.ident, s.loc, s.kind(), canFix);
+    }
+
+    /** Overload of `writeIdentifier` used for all AST nodes not descending from Dsymbol **/
+    private void writeIdentifier(const Identifier ident, const Loc loc, const char* kind, const bool canFix = false)
+    {
+        bool needsFix;
+
+        void warnCxxCompat(const(char)* reason)
+        {
+            if (canFix)
+            {
+                needsFix = true;
+                return;
+            }
+
+            static bool warned = false;
+            warning(loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
+
+            if (!warned)
+            {
+                warningSupplemental(loc, "The generated C++ header will contain " ~
+                                    "identifiers that are keywords in C++");
+                warned = true;
+            }
+        }
+
+        if (global.params.warnings != DiagnosticReporting.off || canFix)
+        {
+            // Warn about identifiers that are keywords in C++.
+            switch (ident.toString())
+            {
+                // C++ operators
+                case "and":
+                case "and_eq":
+                case "bitand":
+                case "bitor":
+                case "compl":
+                case "not":
+                case "not_eq":
+                case "or":
+                case "or_eq":
+                case "xor":
+                case "xor_eq":
+                    warnCxxCompat("special operator in C++");
+                    break;
+
+                // C++ keywords
+                case "const_cast":
+                case "delete":
+                case "dynamic_cast":
+                case "explicit":
+                case "friend":
+                case "inline":
+                case "mutable":
+                case "namespace":
+                case "operator":
+                case "register":
+                case "reinterpret_cast":
+                case "signed":
+                case "static_cast":
+                case "typedef":
+                case "typename":
+                case "unsigned":
+                case "using":
+                case "virtual":
+                case "volatile":
+                    warnCxxCompat("keyword in C++");
+                    break;
+
+                // C++11 keywords
+                case "alignas":
+                case "alignof":
+                case "char16_t":
+                case "char32_t":
+                case "constexpr":
+                case "decltype":
+                case "noexcept":
+                case "nullptr":
+                case "static_assert":
+                case "thread_local":
+                    if (global.params.cplusplus >= CppStdRevision.cpp11)
+                        warnCxxCompat("keyword in C++11");
+                    break;
+
+                // C++20 keywords
+                case "char8_t":
+                case "consteval":
+                case "constinit":
+                // Concepts-related keywords
+                case "concept":
+                case "requires":
+                // Coroutines-related keywords
+                case "co_await":
+                case "co_yield":
+                case "co_return":
+                    if (global.params.cplusplus >= CppStdRevision.cpp20)
+                        warnCxxCompat("keyword in C++20");
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        buf.writestring(ident.toString());
+        if (needsFix)
+            buf.writeByte('_');
     }
 
     override void visit(AST.Dsymbol s)
@@ -419,7 +551,7 @@ public:
 
         foreach (s; *decl)
         {
-            if (adparent || s.prot().kind >= AST.Prot.Kind.public_)
+            if (adparent || s.visible().kind >= AST.Visibility.Kind.public_)
                 s.accept(this);
         }
     }
@@ -467,7 +599,7 @@ public:
         }
         foreach (s; *m.members)
         {
-            if (s.prot().kind < AST.Prot.Kind.public_)
+            if (s.visible().kind < AST.Visibility.Kind.public_)
                 continue;
             s.accept(this);
         }
@@ -497,7 +629,7 @@ public:
             if (fd.isVirtual() && fd.introducing)
             {
                 // Hide placeholders because they are not ABI compatible
-                writeProtection(AST.Prot.Kind.private_);
+                writeProtection(AST.Visibility.Kind.private_);
 
                 __gshared int counter; // Ensure unique names in all cases
                 buf.printf("virtual void __vtable_slot_%u();", counter++);
@@ -507,16 +639,16 @@ public:
         }
         if (!adparent && !fd.fbody)
         {
-            ignored("function %s because it's extern", fd.toPrettyChars());
+            ignored("function %s because it is extern", fd.toPrettyChars());
             return;
         }
-        if (fd.protection.kind == AST.Prot.Kind.none || fd.protection.kind == AST.Prot.Kind.private_)
+        if (fd.visibility.kind == AST.Visibility.Kind.none || fd.visibility.kind == AST.Visibility.Kind.private_)
         {
-            ignored("function %s because it's private", fd.toPrettyChars());
+            ignored("function %s because it is private", fd.toPrettyChars());
             return;
         }
 
-        writeProtection(fd.protection.kind);
+        writeProtection(fd.visibility.kind);
 
         if (tf && tf.linkage == LINK.c)
             buf.writestring("extern \"C\" ");
@@ -552,7 +684,7 @@ public:
         }
 
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
-            writeProtection(AST.Prot.Kind.private_);
+            writeProtection(AST.Visibility.Kind.private_);
         funcToBuffer(tf, fd);
         // FIXME: How to determine if fd is const without tf?
         if (adparent && tf && (tf.isConst() || tf.isImmutable()))
@@ -576,7 +708,7 @@ public:
             buf.writestring(" = delete");
         buf.writestringln(";");
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
-            writeProtection(AST.Prot.Kind.public_);
+            writeProtection(AST.Visibility.Kind.public_);
 
         if (!adparent)
             buf.writenl();
@@ -629,12 +761,12 @@ public:
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
 
-            if (vd.protection.kind == AST.Prot.Kind.none || vd.protection.kind == AST.Prot.Kind.private_) {
-                ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.protectionToChars(vd.protection.kind));
+            if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_) {
+                ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.visibilityToChars(vd.visibility.kind));
                 return;
             }
 
-            writeProtection(vd.protection.kind);
+            writeProtection(vd.visibility.kind);
 
             final switch (kind)
             {
@@ -644,7 +776,9 @@ public:
                         goto case;
                     buf.writestring("enum : ");
                     determineEnumType(type).accept(this);
-                    buf.printf(" { %s = ", vd.ident.toChars());
+                    buf.writestring(" { ");
+                    writeIdentifier(vd, true);
+                    buf.writestring(" = ");
                     auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
                     buf.writestring(" };");
@@ -654,7 +788,9 @@ public:
                     buf.writestring("static ");
                     auto target = determineEnumType(type);
                     target.accept(this);
-                    buf.printf(" const %s = ", vd.ident.toChars());
+                    buf.writestring(" const ");
+                    writeIdentifier(vd, true);
+                    buf.writestring(" = ");
                     auto e = AST.initializerToExpression(vd._init);
                     printExpressionFor(target, e);
                     buf.writestring(";");
@@ -676,8 +812,8 @@ public:
                 ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
             }
-            writeProtection(vd.protection.kind);
-            typeToBuffer(vd.type, vd.ident);
+            writeProtection(vd.visibility.kind);
+            typeToBuffer(vd.type, vd, adparent && !(vd.storage_class & (AST.STC.static_ | AST.STC.gshared)));
             buf.writestringln(";");
             return;
         }
@@ -695,22 +831,22 @@ public:
                 ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
-            writeProtection(vd.protection.kind);
+            writeProtection(vd.visibility.kind);
             if (vd.linkage == LINK.c)
                 buf.writestring("extern \"C\" ");
             else if (!adparent)
                 buf.writestring("extern ");
             if (adparent)
                 buf.writestring("static ");
-            typeToBuffer(vd.type, vd.ident);
+            typeToBuffer(vd.type, vd);
             writeDeclEnd();
             return;
         }
 
         if (adparent && vd.type && vd.type.deco)
         {
-            writeProtection(vd.protection.kind);
-            typeToBuffer(vd.type, vd.ident);
+            writeProtection(vd.visibility.kind);
+            typeToBuffer(vd.type, vd, true);
             buf.writestringln(";");
 
             if (auto t = vd.type.isTypeStruct())
@@ -746,7 +882,7 @@ public:
             printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
             scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
         }
-        writeProtection(ad.protection.kind);
+        writeProtection(ad.visibility.kind);
 
         if (auto t = ad.type)
         {
@@ -765,7 +901,7 @@ public:
             scope(exit) origType = null;
 
             buf.writestring("typedef ");
-            typeToBuffer(origType ? *origType : t, ad.ident);
+            typeToBuffer(origType ? *origType : t, ad);
             writeDeclEnd();
             return;
         }
@@ -783,7 +919,7 @@ public:
             buf.writestring("typedef ");
             sd.type.accept(this);
             buf.writestring(" ");
-            buf.writestring(ad.ident.toChars());
+            writeIdentifier(ad);
             writeDeclEnd();
             return;
         }
@@ -796,13 +932,15 @@ public:
             }
 
             printTemplateParams(td);
-            buf.printf("using %s = %s<", ad.ident.toChars(), td.ident.toChars());
+            buf.writestring("using ");
+            writeIdentifier(ad);
+            buf.printf(" = %s<", td.ident.toChars());
 
             foreach (const idx, const p; *td.parameters)
             {
                 if (idx)
                     buf.writestring(", ");
-                buf.writestring(p.ident.toChars());
+                writeIdentifier(p.ident, p.loc, "parameter", true);
             }
             buf.writestringln(">;");
             return;
@@ -819,17 +957,18 @@ public:
 
     override void visit(AST.Nspace ns)
     {
-        handleNspace(ns.ident, ns.members);
+        handleNspace(ns, ns.members);
     }
 
     override void visit(AST.CPPNamespaceDeclaration ns)
     {
-        handleNspace(ns.ident, ns.decl);
+        handleNspace(ns, ns.decl);
     }
 
-    void handleNspace(Identifier name, Dsymbols* members)
+    void handleNspace(AST.Dsymbol namespace, Dsymbols* members)
     {
-        buf.printf("namespace %s", name.toChars());
+        buf.writestring("namespace ");
+        writeIdentifier(namespace);
         buf.writenl();
         buf.writestring("{");
         buf.writenl();
@@ -882,9 +1021,10 @@ public:
             printf("[AST.StructDeclaration enter] %s\n", sd.toChars());
             scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
         }
-        auto td = sd.isInstantiated();
-        if (td && td !is tdparent)
+
+        if (isSkippableTemplateInstance(sd))
             return;
+
         if (cast(void*)sd in visited)
             return;
 
@@ -900,7 +1040,7 @@ public:
 
         pushAlignToBuffer(sd.alignment);
 
-        writeProtection(sd.protection.kind);
+        writeProtection(sd.visibility.kind);
 
         const structAsClass = sd.cppmangle == CPPMANGLE.asClass;
         if (sd.isUnionDeclaration())
@@ -908,7 +1048,7 @@ public:
         else
             buf.writestring(structAsClass ? "class " : "struct ");
 
-        buf.writestring(sd.ident.toChars());
+        writeIdentifier(sd);
         if (!sd.members)
         {
             buf.writestringln(";");
@@ -919,9 +1059,9 @@ public:
         buf.writenl();
         buf.writestring("{");
 
-        const protStash = this.currentProt;
-        this.currentProt = structAsClass ? AST.Prot.Kind.private_ : AST.Prot.Kind.public_;
-        scope (exit) this.currentProt = protStash;
+        const protStash = this.currentVisibility;
+        this.currentVisibility = structAsClass ? AST.Visibility.Kind.private_ : AST.Visibility.Kind.public_;
+        scope (exit) this.currentVisibility = protStash;
 
         buf.level++;
         buf.writenl();
@@ -935,7 +1075,7 @@ public:
         // Generate default ctor
         if (!sd.noDefaultCtor && !sd.isUnionDeclaration())
         {
-            writeProtection(AST.Prot.Kind.public_);
+            writeProtection(AST.Visibility.Kind.public_);
             buf.printf("%s()", sd.ident.toChars());
             size_t varCount;
             bool first = true;
@@ -965,7 +1105,8 @@ public:
                     {
                         buf.writestringln(",");
                     }
-                    buf.printf("%s(", vd.ident.toChars());
+                    writeIdentifier(vd, true);
+                    buf.writeByte('(');
 
                     if (vd._init)
                     {
@@ -979,41 +1120,61 @@ public:
             buf.writenl();
             buf.writestringln("{");
             buf.writestringln("}");
-        }
-
-        version (none)
-        {
-            if (varCount)
+            auto ctor = sd.ctor ? sd.ctor.isFuncDeclaration() : null;
+            if (varCount && (!ctor || ctor.storage_class & AST.STC.disable))
             {
-                buf.printf("    %s(", sd.ident.toChars());
-                bool first = true;
+                buf.printf("%s(", sd.ident.toChars());
+                first = true;
                 foreach (m; *sd.members)
                 {
                     if (auto vd = m.isVarDeclaration())
                     {
                         if (!memberField(vd))
                             continue;
-                        if (first)
-                            first = false;
-                        else
+                        if (!first)
                             buf.writestring(", ");
                         assert(vd.type);
                         assert(vd.ident);
-                        typeToBuffer(vd.type, vd.ident);
+                        typeToBuffer(vd.type, vd, true);
+                        // Don't print default value for first parameter to not clash
+                        // with the default ctor defined above
+                        if (!first)
+                        {
+                            buf.writestring(" = ");
+                            if (vd._init && !vd._init.isVoidInitializer())
+                                printExpressionFor(vd.type, AST.initializerToExpression(vd._init));
+                            else
+                                printExpressionFor(vd.type, vd.type.defaultInitLiteral(Loc.initial));
+                        }
+                        first = false;
                     }
                 }
-                buf.printf(") {");
+                buf.writestring(") :");
+                buf.level++;
+                buf.writenl();
+
+                first = true;
                 foreach (m; *sd.members)
                 {
                     if (auto vd = m.isVarDeclaration())
                     {
                         if (!memberField(vd))
                             continue;
-                        buf.printf(" this->%s = %s;", vd.ident.toChars(), vd.ident.toChars());
+
+                        if (first)
+                            first = false;
+                        else
+                            buf.writestringln(",");
+
+                        writeIdentifier(vd, true);
+                        buf.writeByte('(');
+                        writeIdentifier(vd, true);
+                        buf.writeByte(')');
                     }
                 }
-                buf.printf(" }");
                 buf.writenl();
+                buf.writestringln("{}");
+                buf.level--;
             }
         }
 
@@ -1087,6 +1248,10 @@ public:
             printf("[AST.ClassDeclaration enter] %s\n", cd.toChars());
             scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
         }
+
+        if (isSkippableTemplateInstance(cd))
+            return;
+
         if (cast(void*)cd in visited)
             return;
         visited[cast(void*)cd] = true;
@@ -1096,11 +1261,11 @@ public:
             return;
         }
 
-        writeProtection(cd.protection.kind);
+        writeProtection(cd.visibility.kind);
 
         const classAsStruct = cd.cppmangle == CPPMANGLE.asStruct;
         buf.writestring(classAsStruct ? "struct " : "class ");
-        buf.writestring(cd.ident.toChars());
+        writeIdentifier(cd);
 
         if (cd.storage_class & AST.STC.final_ || (tdparent && this.storageClass & AST.STC.final_))
             buf.writestring(" final");
@@ -1115,9 +1280,13 @@ public:
             // e.g. class A(T) : B!T { ... }
             if (base.sym is null)
             {
-                auto ti = base.type.isTypeInstance();
-                assert(ti);
-                visitTi(ti.tempinst);
+                base.type.accept(this);
+            }
+            // base.type references onemember for template instances
+            // and hence skips the TypeInstance...
+            else if (auto ti = base.sym.isInstantiated())
+            {
+                visitTi(ti);
             }
             else
             {
@@ -1137,9 +1306,9 @@ public:
         buf.writenl();
         buf.writestringln("{");
 
-        const protStash = this.currentProt;
-        this.currentProt = classAsStruct ? AST.Prot.Kind.public_ : AST.Prot.Kind.private_;
-        scope (exit) this.currentProt = protStash;
+        const protStash = this.currentVisibility;
+        this.currentVisibility = classAsStruct ? AST.Visibility.Kind.public_ : AST.Visibility.Kind.private_;
+        scope (exit) this.currentVisibility = protStash;
 
         auto save = adparent;
         adparent = cd;
@@ -1172,6 +1341,12 @@ public:
             //ignored("non-cpp enum %s because of linkage\n", ed.toChars());
             //return;
         //}
+
+        if (ed.isSpecial())
+        {
+            //ignored("%s because it is a special C++ type", ed.toPrettyChars());
+            return;
+        }
 
         // we need to know a bunch of stuff about the enum...
         bool isAnonymous = ed.ident is null;
@@ -1210,7 +1385,7 @@ public:
             // Cannot apply namespace workaround for non-integral types
             else if (kind != EnumKind.Int && kind != EnumKind.Numeric)
             {
-                ignored("enum %s because of it's base type", ed.toPrettyChars());
+                ignored("enum %s because of its base type", ed.toPrettyChars());
                 return;
             }
         }
@@ -1219,7 +1394,7 @@ public:
         bool manifestConstants = !isOpaque && (!type || (isAnonymous && kind == EnumKind.Other));
         assert(!manifestConstants || isAnonymous);
 
-        writeProtection(ed.protection.kind);
+        writeProtection(ed.visibility.kind);
 
         // write the enum header
         if (!manifestConstants)
@@ -1234,7 +1409,7 @@ public:
                     if (!isAnonymous)
                     {
                         buf.writestring(" class ");
-                        buf.writestring(ed.ident.toString());
+                        writeIdentifier(ed);
                     }
                     if (kind == EnumKind.Numeric)
                     {
@@ -1245,7 +1420,7 @@ public:
                 else if (!isAnonymous)
                 {
                     buf.writeByte(' ');
-                    buf.writestring(ed.ident.toString());
+                    writeIdentifier(ed);
                 }
             }
             else
@@ -1254,7 +1429,7 @@ public:
                 if(!isAnonymous)
                 {
                     buf.writeByte(' ');
-                    buf.writestring(ed.ident.toString());
+                    writeIdentifier(ed);
                 }
             }
             // Opaque enums have no members, hence skip the body
@@ -1285,10 +1460,14 @@ public:
                 // C++-98 compatible enums must use the typename as a prefix to avoid
                 // collisions with other identifiers in scope.  For consistency with D,
                 // the enum member `Type.member` is emitted as `Type_member` in C++-98.
-                if (isAnonymous || global.params.cplusplus >= CppStdRevision.cpp11)
-                    buf.printf("%s = ", m.ident.toChars());
-                else
-                    buf.printf("%s_%s = ", ed.ident.toChars(), m.ident.toChars());
+                if (!isAnonymous && global.params.cplusplus < CppStdRevision.cpp11)
+                {
+                    writeIdentifier(ed);
+                    buf.writeByte('_');
+                }
+                writeIdentifier(m, true);
+                buf.writestring(" = ");
+
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
                 buf.writestring(",");
@@ -1298,7 +1477,10 @@ public:
             {
                 buf.writestring("enum : ");
                 determineEnumType(memberType).accept(this);
-                buf.printf(" { %s = ", m.ident.toChars());
+                buf.writestring(" { ");
+                writeIdentifier(m, true);
+                buf.writestring(" = ");
+
                 auto ie = cast(AST.IntegerExp)m.value;
                 visitInteger(ie.toInteger(), memberType);
                 buf.writestring(" };");
@@ -1308,7 +1490,9 @@ public:
                 buf.writestring("static ");
                 auto target = determineEnumType(memberType);
                 target.accept(this);
-                buf.printf(" const %s = ", m.ident.toChars());
+                buf.writestring(" const ");
+                writeIdentifier(m, true);
+                buf.writestring(" = ");
                 printExpressionFor(target, m.origValue);
                 buf.writestring(";");
             }
@@ -1329,20 +1513,29 @@ public:
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
-    private void typeToBuffer(AST.Type t, Identifier ident)
+    /**
+     * Prints a member/parameter/variable declaration into `buf`.
+     *
+     * Params:
+     *   t        = the type (used if `this.origType` is null)
+     *   s        = the symbol denoting the identifier
+     *   canFixup = whether the identifier may be changed without affecting
+     *              binary compatibility (forwarded to `writeIdentifier`)
+     */
+    private void typeToBuffer(AST.Type t, AST.Dsymbol s, const bool canFixup = false)
     {
         debug (Debug_DtoH)
         {
-            printf("[typeToBuffer(AST.Type) enter] %s ident %s\n", t.toChars(), ident.toChars());
-            scope(exit) printf("[typeToBuffer(AST.Type) exit] %s ident %s\n", t.toChars(), ident.toChars());
+            printf("[typeToBuffer(AST.Type, AST.Dsymbol) enter] %s sym %s\n", t.toChars(), s.toChars());
+            scope(exit) printf("[typeToBuffer(AST.Type, AST.Dsymbol) exit] %s sym %s\n", t.toChars(), s.toChars());
         }
 
-        this.ident = ident;
+        this.ident = s.ident;
         origType ? origType.accept(this) : t.accept(this);
         if (this.ident)
         {
             buf.writeByte(' ');
-            buf.writestring(ident.toChars());
+            writeIdentifier(s, canFixup);
         }
         this.ident = null;
         if (auto tsa = t.isTypeSArray())
@@ -1374,7 +1567,7 @@ public:
         if (t.idents.length)
             buf.writestring("typename ");
 
-        buf.writestring(t.ident.toChars());
+        writeIdentifier(t.ident, t.loc, "type", tdparent !is null);
 
         foreach (arg; t.idents)
         {
@@ -1563,6 +1756,12 @@ public:
                 buf.writestring("long double");
             else if (ed.ident == DMDType.c_wchar_t)
                 buf.writestring("wchar_t");
+            else if (ed.ident == DMDType.c_complex_float)
+                buf.writestring("_Complex float");
+            else if (ed.ident == DMDType.c_complex_double)
+                buf.writestring("_Complex double");
+            else if (ed.ident == DMDType.c_complex_real)
+                buf.writestring("_Complex long double");
             else
             {
                 //ed.print();
@@ -1744,7 +1943,7 @@ public:
             else
                 buf.writestring(", ");
             buf.writestring("typename ");
-            buf.writestring(p.ident.toChars());
+            writeIdentifier(p.ident, p.loc, "template parameter", true);
         }
         buf.writestringln(">");
     }
@@ -1787,7 +1986,6 @@ public:
             scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", fd.toChars());
         }
 
-        Identifier ident = fd.ident;
         auto originalType = cast(AST.TypeFunction)fd.originalType;
 
         if (fd.isCtorDeclaration() || fd.isDtorDeclaration())
@@ -1813,7 +2011,7 @@ public:
             if (tf.isref)
                 buf.writeByte('&');
             buf.writeByte(' ');
-            buf.writestring(ident.toChars());
+            writeIdentifier(fd);
         }
 
         buf.writeByte('(');
@@ -1849,7 +2047,8 @@ public:
             buf.writeByte('&');
         buf.writeByte(' ');
         if (ident)
-            buf.writestring(ident.toChars());
+            // FIXME: Parameter is missing a Loc
+            writeIdentifier(ident, Loc.initial, "parameter", true);
         ident = null;
 
         if (p.defaultArg)
@@ -1863,7 +2062,7 @@ public:
     /**
      * Prints `exp` as an expression of type `target` while inserting
      * appropriate code when implicit conversion does not translate
-     * directly to C++, e.g. from an enum to it's base type.
+     * directly to C++, e.g. from an enum to its base type.
      *
      * Params:
      *   target = the type `exp` is converted to
@@ -1880,7 +2079,7 @@ public:
 
             auto source = exp.type;
 
-            // DotVarExp resolve conversions, e.g from an enum to it's base type
+            // DotVarExp resolve conversions, e.g from an enum to its base type
             if (auto dve = exp.isDotVarExp())
                 source = dve.var.type;
 
@@ -1998,7 +2197,7 @@ public:
             printPrefix(e.var.parent);
 
         includeSymbol(e.var);
-        buf.writestring(e.toString());
+        writeIdentifier(e.var, !!e.var.isThis());
     }
 
     override void visit(AST.CallExp e)
@@ -2013,7 +2212,7 @@ public:
         const isFp = e.e1.isPtrExp();
         if (isFp)
             buf.writeByte('(');
-        else
+        else if (e.f)
             includeSymbol(e.f);
 
         e.e1.accept(this);
@@ -2051,7 +2250,10 @@ public:
             buf.writeByte('.');
         }
 
-        buf.writestring(e.var.toChars());
+        // Should only be used to access non-static members
+        assert(e.var.isThis());
+
+        writeIdentifier(e.var, true);
     }
 
     override void visit(AST.DotIdExp e)
@@ -2236,7 +2438,7 @@ public:
             printf("[AST.StructLiteralExp enter] %s\n", sle.toChars());
             scope(exit) printf("[AST.StructLiteralExp exit] %s\n", sle.toChars());
         }
-        buf.writestring(sle.sd.ident.toChars());
+        sle.sd.type.accept(this);
         buf.writeByte('(');
         foreach(i, e; *sle.elements)
         {
@@ -2284,5 +2486,12 @@ public:
             buf.writenl();
             va_end(ap);
         }
+    }
+
+    /** Checks whether s is a template instance that should not be emitted **/
+    private bool isSkippableTemplateInstance(AST.Dsymbol s)
+    {
+        auto td = s.isInstantiated();
+        return td && td !is tdparent;
     }
 }

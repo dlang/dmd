@@ -28,7 +28,7 @@
  *   arguments, and uses it if found.
  * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtemplate.d, _dtemplate.d)
@@ -561,7 +561,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAliasSeq; /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
-    Prot protection;
+    Visibility visibility;
     int inuse;              /// for recursive expansion detection
 
     // threaded list of previous instantiation attempts on stack
@@ -599,7 +599,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.literal = literal;
         this.ismixin = ismixin;
         this.isstatic = true;
-        this.protection = Prot(Prot.Kind.undefined);
+        this.visibility = Visibility(Visibility.Kind.undefined);
 
         // Compute in advance for Ddoc's use
         // https://issues.dlang.org/show_bug.cgi?id=11153: ident could be NULL if parsing fails.
@@ -649,7 +649,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
     }
 
-    override Dsymbol syntaxCopy(Dsymbol)
+    override TemplateDeclaration syntaxCopy(Dsymbol)
     {
         //printf("TemplateDeclaration.syntaxCopy()\n");
         TemplateParameters* p = null;
@@ -772,9 +772,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return buf.extractChars();
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     /****************************
@@ -1160,7 +1160,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (fd)
             {
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type.syntaxCopy();
+                TypeFunction tf = (cast(TypeFunction) fd.type).syntaxCopy();
 
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
@@ -1904,7 +1904,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     if (m == MATCH.nomatch)
                     {
                         AggregateDeclaration ad = isAggregate(farg.type);
-                        if (ad && ad.aliasthis && argtype != att)
+                        if (ad && ad.aliasthis && !(att && argtype.equivalent(att)))
                         {
                             if (!att && argtype.checkAliasThisRec())   // https://issues.dlang.org/show_bug.cgi?id=12537
                                 att = argtype;
@@ -2756,7 +2756,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (tf.equals(m.lastf.type) &&
                 fd.storage_class == m.lastf.storage_class &&
                 fd.parent == m.lastf.parent &&
-                fd.protection == m.lastf.protection &&
+                fd.visibility == m.lastf.visibility &&
                 fd.linkage == m.lastf.linkage)
             {
                 if (fd.fbody && !m.lastf.fbody)
@@ -5373,7 +5373,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateTypeParameter syntaxCopy()
     {
         return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
@@ -5459,7 +5459,7 @@ extern (C++) final class TemplateThisParameter : TemplateTypeParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateThisParameter syntaxCopy()
     {
         return new TemplateThisParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
@@ -5497,7 +5497,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateValueParameter syntaxCopy()
     {
         return new TemplateValueParameter(loc, ident,
             valType.syntaxCopy(),
@@ -5600,7 +5600,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateAliasParameter syntaxCopy()
     {
         return new TemplateAliasParameter(loc, ident, specType ? specType.syntaxCopy() : null, objectSyntaxCopy(specAlias), objectSyntaxCopy(defaultAlias));
     }
@@ -5682,7 +5682,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return this;
     }
 
-    override TemplateParameter syntaxCopy()
+    override TemplateTupleParameter syntaxCopy()
     {
         return new TemplateTupleParameter(loc, ident);
     }
@@ -5869,7 +5869,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return a;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override TemplateInstance syntaxCopy(Dsymbol s)
     {
         TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
         ti.tiargs = arraySyntaxCopy(tiargs);
@@ -7593,9 +7593,9 @@ extern (C++) final class TemplateMixin : TemplateInstance
         this.tqual = tqual;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override TemplateInstance syntaxCopy(Dsymbol s)
     {
-        auto tm = new TemplateMixin(loc, ident, cast(TypeQualified)tqual.syntaxCopy(), tiargs);
+        auto tm = new TemplateMixin(loc, ident, tqual.syntaxCopy(), tiargs);
         return TemplateInstance.syntaxCopy(tm);
     }
 

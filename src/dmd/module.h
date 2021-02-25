@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -125,7 +125,7 @@ public:
     void importAll(Scope *sc);
     int needModuleInfo();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
-    bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
+    bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void runDeferredSemantic();

@@ -1,7 +1,7 @@
 /**
  * This module defines some utility functions for DMD.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utils.d, _utils.d)
@@ -81,7 +81,7 @@ FileBuffer readFile(Loc loc, const(char)[] filename)
 extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
 {
     ensurePathToNameExists(Loc.initial, filename);
-    if (!File.write(filename, data))
+    if (!File.update(filename, data))
     {
         error(loc, "Error writing file '%*.s'", cast(int) filename.length, filename.ptr);
         fatal();

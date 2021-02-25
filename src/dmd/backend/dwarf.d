@@ -1,7 +1,10 @@
 /**
- * Definitions for DWARF debug infos (v3)
+ * Definitions for DWARF debug infos (v3 to v5)
  *
- * See_Also: $(LINK2 http://dwarfstd.org/doc/Dwarf3.pdf, DWARF standard)
+ * See_Also:
+ *  - $(LINK2 http://www.dwarfstd.org/doc/Dwarf3.pdf, DWARFv3 standard)
+ *  - $(LINK2 http://www.dwarfstd.org/doc/DWARF4.pdf, DWARFv4 standard)
+ *  - $(LINK2 http://www.dwarfstd.org/doc/DWARF5.pdf, DWARFv5 standard)
  * Source: $(DMDSRC backend/_dwarf.d)
  */
 
@@ -15,8 +18,6 @@ import dmd.backend.type;
 extern (C++):
 
 nothrow:
-
-enum DWARF_VERSION = 3;
 
 void dwarf_initfile(const(char) *filename);
 void dwarf_termfile();

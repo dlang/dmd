@@ -1,7 +1,7 @@
 /**
  * Generate debug info in the CV4 debug format.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
@@ -64,24 +64,24 @@ extern (C++):
 
 /******************************
  * CV4 pg. 25
- * Convert D protection attribute to cv attribute.
+ * Convert D visibility attribute to cv attribute.
  */
 
-uint PROTtoATTR(Prot.Kind prot) pure nothrow @safe @nogc
+uint visibilityToCVAttr(Visibility.Kind vis) pure nothrow @safe @nogc
 {
     uint attribute;
 
-    final switch (prot)
+    final switch (vis)
     {
-        case Prot.Kind.private_:       attribute = 1;  break;
-        case Prot.Kind.package_:       attribute = 2;  break;
-        case Prot.Kind.protected_:     attribute = 2;  break;
-        case Prot.Kind.public_:        attribute = 3;  break;
-        case Prot.Kind.export_:        attribute = 3;  break;
+        case Visibility.Kind.private_:       attribute = 1;  break;
+        case Visibility.Kind.package_:       attribute = 2;  break;
+        case Visibility.Kind.protected_:     attribute = 2;  break;
+        case Visibility.Kind.public_:        attribute = 3;  break;
+        case Visibility.Kind.export_:        attribute = 3;  break;
 
-        case Prot.Kind.undefined:
-        case Prot.Kind.none:
-            //printf("prot = %d\n", prot);
+        case Visibility.Kind.undefined:
+        case Visibility.Kind.none:
+            //printf("vis = %d\n", vis);
             assert(0);
     }
     return attribute;
@@ -742,7 +742,7 @@ void toDebug(ClassDeclaration cd)
             {
                 BaseClass *bc = (*cd.baseclasses)[i];
                 const idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);
-                const uint attribute = PROTtoATTR(Prot.Kind.public_);
+                const uint attribute = visibilityToCVAttr(Visibility.Kind.public_);
 
                 uint elementlen;
                 final switch (config.fulltypes)
@@ -1026,7 +1026,7 @@ int cvMember(Dsymbol s, ubyte *p)
                 q += 2;
         //      for (s = sf; s; s = s.Sfunc.Foversym)
                 {
-                    uint attribute = PROTtoATTR(fd.prot().kind);
+                    uint attribute = visibilityToCVAttr(fd.visible().kind);
 
                     /* 0*4 vanilla method
                      * 1*4 virtual method
@@ -1135,7 +1135,7 @@ int cvMember(Dsymbol s, ubyte *p)
             else
             {
                 idx_t typidx = cv_typidx(Type_toCtype(vd.type));
-                uint attribute = PROTtoATTR(vd.prot().kind);
+                uint attribute = visibilityToCVAttr(vd.visible().kind);
                 assert((attribute & ~3) == 0);
                 switch (config.fulltypes)
                 {
