@@ -28,6 +28,10 @@ $(GNAME BaseInterfaceList):
     form of interfaces, meant to be binary compatible with C++.
     )
 
+    $(P [Objective-C Interfaces](objc_interface.html#protocols) are another form
+    of interfaces, meant to be binary compatible with Objective-C protocols.
+    )
+
 
     $(P Interfaces cannot derive from classes; only from other interfaces.
     Classes cannot derive from an interface multiple times.

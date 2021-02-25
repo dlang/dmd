@@ -1091,6 +1091,31 @@ $(GNAME CastExpression):
         }
         ---
 
+
+    $(P Casting a static array to another static array is done only if the
+        array lengths multiplied by the element sizes match; a mismatch
+        is illegal.
+        The cast is done as a type paint (aka a reinterpret cast).
+        The contents of the array are not changed.)
+
+        ---
+        import core.stdc.stdio;
+
+        void main()
+        {
+            byte[16] b = 3;
+            int[4] ia = cast(int[4]) b;
+            foreach (i; ia)
+                printf("%x\n", i);
+            /* prints:
+               3030303
+               3030303
+               3030303
+               3030303
+             */
+        }
+        ---
+
     $(P Casting a floating point literal from one type to another
         changes its type, but internally it is retained at full
         precision for the purposes of constant folding.)

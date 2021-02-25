@@ -29,10 +29,13 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 gshared, $(D __gshared))
     $(GLINK AtAttribute)
-    $(RELATIVE_LINK2 nothrow, $(D nothrow))
-    $(RELATIVE_LINK2 pure, $(D pure))
+    $(GLINK FunctionAttributeKwd)
     $(RELATIVE_LINK2 ref, $(D ref))
     $(RELATIVE_LINK2 return, $(D return))
+
+$(GNAME FunctionAttributeKwd):
+    $(RELATIVE_LINK2 nothrow, $(D nothrow))
+    $(RELATIVE_LINK2 pure, $(D pure))
 
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
@@ -101,7 +104,7 @@ $(GNAME NamespaceList):
         $(D C) and $(D D) must be supplied, the others are what
         makes sense for the implementation.
         $(D C++) offers limited compatibility with C++.
-        $(D Objective-C) offers limited compatibility with Objective-C,
+        $(D Objective-C) offers compatibility with Objective-C,
         see the $(LINK2 objc_interface.html, Interfacing to Objective-C)
         documentation for more information.
         $(D System) is the same as $(D Windows) on Windows platforms,

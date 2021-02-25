@@ -1012,9 +1012,9 @@ $(GNAME Postblit):
     defined in the previous section. For backward compatibility reasons, a `struct` that
     explicitly defines both a copy constructor and a postblit will only use the postblit
     for implicit copying. However, if the postblit is disabled, the copy constructor will
-    be used. If a struct defines a copy constructor and has fields that define
-    postblits, the user-defined copy constructor will have priority over the generated
-    postblit.)
+    be used. If a struct defines a copy constructor (user-defined or generated) and has
+    fields that define postblits, a deprecation will be issued, informing that the postblit
+    will have priority over the copy constructor.)
 
         $(P $(I Copy construction) is defined as initializing
          a struct instance from another struct of the same type.

@@ -76,46 +76,103 @@ $(UL
 
 $(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
 
-    $(P This pragma must directly precede an $(D extern(C)) function declaration
-        that must take no argument, even default ones.
-        The function this pragma applies to will be inserted in `.init_array`
-        or `.ctors`, depending on the target and compiler implementation.
-        It is equivalent to GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((constructor))`).
+    $(P Annotates a function so it is run after the C runtime library is initialized
+        and before the D runtime library is initialized.
     )
------------------
-__gshared int initCount;
 
-pragma(crt_constructor)
-extern(C) void initializer() { initCount += 1; }
------------------
+    $(P The function must:)
 
-    $(P It is useful for system programming and interfacing with C/C++,
+    $(OL
+        $(LI be `extern (C)`)
+        $(LI not have any parameters)
+        $(LI not be a non-static member function)
+        $(LI be a function definition, not a declaration (i.e. it must have a function body))
+        $(LI not return a type that has a destructor)
+        $(LI not be a nested function)
+    )
+
+    ---
+    __gshared int initCount;
+
+    pragma(crt_constructor)
+    extern(C) void initializer() { initCount += 1; }
+    ---
+
+    $(P No arguments to the pragma are allowed.)
+
+    $(P A function may be annotated with both `pragma(crt_constructor)`
+        and `pragma(crt_destructor)`.
+    )
+
+    $(P Annotating declarations other than function definitions has no effect.)
+
+    $(P Annotating a struct or class definition does not affect the members of
+    the aggregate.)
+
+    $(BEST_PRACTICE Use for system programming and interfacing with C/C++,
         for example to allow for initialization of the runtime when loading a DSO,
         or as a simple replacement for `shared static this` in
         $(DDLINK spec/betterc, betterC mode, betterC mode).
     )
-    $(P A module may contain any number of functions annotated with `crt_constructor`.
-        The order in which functions are called is undefined and shouldn't be relied upon.
-        A function can be annotated as both `crt_constructor` and `crt_destructor` (see below).
-        The runtime is not initialized when the function is called.
-        This pragma does not take any argument and can only be applied to a single declaration,
-        so using them in an $(GLINK2 grammar, AttributeSpecifier) is disallowed.
+
+    $(IMPLEMENTATION_DEFINED The order in which functions annotated with `pragma(crt_constructor)`
+        are run is implementation defined.
     )
 
-    $(P `crt_constructor` and `crt_destructor` were implemented in
+    $(BEST_PRACTICE to control the order in which the functions are called within one module, write
+        a single function that calls them in the desired order, and only annotate that function.
+    )
+
+    $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
+        code before `main()` is called. C++ compilers use it to run static
+        constructors and destructors.
+        For example, GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((constructor))`)
+        is equivalent.
+        Digital Mars C uses $(TT _STI) and $(TT _STD) identifier prefixes to mark crt_constructor and crt_destructor functions.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+        A reference to the annotated function will be inserted in
+        the $(TT .init_array) section for Elf systems,
+        the $(TT XI) section for Win32 OMF systems,
+        the $(TT .CRT$XCU) section for Windows MSCOFF systems,
+        and the $(TT __mod_init_func) section for OSX systems.
+    )
+
+    $(NOTE `crt_constructor` and `crt_destructor` were implemented in
         $(LINK2 $(ROOT_DIR)changelog/2.078.0.html, v2.078.0 (2018-01-01)).
         Some compilers exposed non-standard, compiler-specific mechanism before.
     )
 
 $(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
 
-    $(P Similarly, `pragma(crt_destructor)` must also directly precede an `extern(C)`
-        function declaration that must take no argument, even default ones.
-        The function this pragma applies to will be inserted in `.fini_array`
-        or `.dtors`, depending on the target and compiler implementation.
-        It is equivalent to GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((destructor))`).
+    $(P `pragma(crt_destructor)` works the same as `pragma(crt_destructor)` except:)
+
+    $(P Annotates a function so it is run after the D runtime library is terminated
+        and before the C runtime library is terminated.
+        Calling C's `exit()` function also causes the annotated functions to run.
     )
------------------
+
+    $(P The order in which the annotated functions are run is the reverse of those functions
+        annotated with `pragma(crt_constructor)`.)
+
+    $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
+        code after `main()` returns or `exit()` is called. C++ compilers use it to run static
+        destructors.
+        For example, GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((destructor))`)
+        is equivalent.
+        Digital Mars C uses $(TT _STI) and $(TT _STD) identifier prefixes to mark crt_constructor and crt_destructor functions.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+        A reference to the annotated function will be inserted in
+        the $(TT .fini_array) section for Elf systems,
+        the $(TT XC) section for Win32 OMF systems,
+        the $(TT .CRT$XPU) section for Windows MSCOFF systems,
+        and the $(TT __mod_term_func) section for OSX systems.
+    )
+
+---
 __gshared int initCount;
 
 pragma(crt_constructor)
@@ -127,11 +184,8 @@ extern(C) void deinitialize() { initCount -= 1; }
 pragma(crt_constructor)
 pragma(crt_destructor)
 extern(C) void innuendo() { printf("Inside a constructor... Or destructor?\n"); }
------------------
+---
 
-    $(P The runtime might have been terminated and not be usable anymore when the destructors are called.
-        Otherwise, usage and requirements of `crt_destructor` are similar to those of `crt_constructor`.
-    )
 
 $(H3 $(LNAME2 inline, $(D pragma inline)))
 
@@ -149,15 +203,15 @@ pragma(inline)
         )
         $(LI
 ---
-pragma(inline, boolean_expression)
+pragma(inline, AssignExpression)
 ---
-        If the expression evaluates to false the functions are never inlined, otherwise they are always inlined.
+        The $(GLINK2 expression, AssignExpression) is evaluated and must have a type that can be converted
+        to a boolean.
+        If the result is false the functions are never inlined, otherwise they are always inlined.
         )
       )
 
-    $(P There can be only zero or one $(I AssignExpression)s. If one is there, it must
-    be `true`, `false`, or an integer value. An integer value is implicitly converted
-    to a bool.)
+    $(P More than one $(I AssignExpression) is not allowed.)
 
     $(P If there are multiple pragma inlines in a function,
     the lexically last one takes effect.)
@@ -190,8 +244,8 @@ pragma(lib, "foo.lib");
 -----------------
 
     $(IMPLEMENTATION_DEFINED
-    Typically, the string literal specifies the file name of a library file. This name
-    is inserted into the generated object file, or otherwise is passed to the linker,
+    The string literal specifies the file name of a library file. This name
+    is inserted into the generated object file, or otherwise passed to the linker,
     so the linker automatically links in that library.
     )
 
@@ -204,9 +258,8 @@ pragma(linkerDirective, "/FAILIFMISMATCH:_ITERATOR_DEBUG_LEVEL=2");
 -----------------
 
     $(IMPLEMENTATION_DEFINED
-    $(P The string literal specifies a linker directive to be embedded in the generated object file.)
-
-    $(P Linker directives are only supported for MS-COFF output.)
+    The string literal specifies a linker directive to be embedded in the generated object file.
+    Linker directives are only supported for MS-COFF output.
     )
 
 $(H3 $(LNAME2 mangle, $(D pragma mangle)))
@@ -216,32 +269,47 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
     $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
     )
 
+    $(P It only applies to function and variable symbols. Other symbols are ignored.)
+
     $(IMPLEMENTATION_DEFINED On macOS and Win32, an extra underscore (`_`) is prepended to the string
         since 2.079, as is done by the C/C++ toolchain. This allows using the same `pragma(mangle)`
         for all compatible (POSIX in one case, win64 in another) platforms instead of having to special-case.
     )
 
-    $(IMPLEMENTATION_DEFINED It's only effective
-        when the symbol is a function declaration or a variable declaration.
-        For example this allows linking to a symbol which is a D keyword, which would normally
-        be disallowed as a symbol name:
+    $(RATIONALE
+        $(UL
+        $(LI Enables linking to symbol names that D cannot represent.)
+        $(LI Enables linking to a symbol which is a D keyword, since an $(GLINK_LEX Identifier)
+        cannot be a keyword.)
+        )
+        ---
+        pragma(mangle, "body")
+        extern(C) void body_func();
+        ---
     )
------------------
-pragma(mangle, "body")
-extern(C) void body_func();
------------------
 
 
 $(H3 $(LNAME2 msg, $(D pragma msg)))
 
-    $(P Constructs a message from the $(I ArgumentList).)
+    $(P Each $(ASSIGNEXPRESSION) is evaluated at compile time and then all are combined into a message.)
 
------------------
-pragma(msg, "compiling...", 1, 1.0);
------------------
+    ---
+    pragma(msg, "compiling...", 6, 1.0); // prints "compiling...61.0" at compile time
+    ---
 
-    $(IMPLEMENTATION_DEFINED The arguments are typically presented to the user during compilation,
-    such as by printing them to the standard error stream.)
+    $(IMPLEMENTATION_DEFINED The form the message takes and how it is presented to the user.
+    One way is by printing them to the standard error stream.)
+
+    $(RATIONALE Analogously to how `writeln()` performs a role of writing informational messages during runtime,
+        `pragma(msg)` performs the equivalent role at compile time.
+        For example,
+        ---
+        static if (kilroy)
+            pragma(msg, "Kilroy was here");
+        else
+            pragma(msg, "Kilroy got lost");
+        ---
+    )
 
 $(H3 $(LNAME2 printf, $(D pragma printf)))
 
