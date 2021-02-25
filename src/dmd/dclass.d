@@ -992,6 +992,24 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     {
         v.visit(this);
     }
+
+	/****************************************
+	 * Gets an array of all parents of this class. This includes all parent
+	 * classes, all interfaces implemented by this class, and all interfaces
+	 * implemented by parent classes.
+	 */
+	final BaseClass*[] allParents()
+	{
+		if (baseClass is null)
+			return [];
+		BaseClass*[] parents = baseClass.allParents();
+		foreach (base; interfaces)
+		{
+			parents ~= base;
+			parents ~= base.sym.allParents();
+		}
+		return parents;
+	}
 }
 
 /***********************************************************
