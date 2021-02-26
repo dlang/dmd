@@ -625,7 +625,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
         /// Checks that the given class implements all methods of its interfaces.
         static void checkInterfaceImplementations(ClassDeclaration cd)
         {
-            foreach (base; cd.allParents)
+            BaseClasses bases;
+            cd.allInterfaces(bases);
+            foreach (base; bases)
             {
                 // first entry is ClassInfo reference
                 auto methods = base.sym.vtbl[base.sym.vtblOffset .. $];
@@ -660,7 +662,21 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         //printf("            not found %p\n", fd);
                         // BUG: should mark this class as abstract?
                         if (!cd.isAbstract())
-                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                        {
+                            bool isDirectInterface = false;
+                            foreach (directInterface; cd.interfaces)
+                            {
+                                if (base is directInterface)
+                                {
+                                    isDirectInterface = true;
+                                    break;
+                                }
+                            }
+                            if (isDirectInterface)
+                                cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                            else
+                                cd.deprecation("interface function `%s` is not implemented", ifd.toFullSignature());
+                        }
                     }
                 }
             }
