@@ -143,7 +143,9 @@ enum
     TYfgPtr             = 0x5E, // GS: pointer (I32) FS: pointer (I64)
     TYrestrictPtr       = 0x5F, // restrict pointer
 
-    TYMAX               = 0x60,
+    TYnoreturn          = 0x60, // bottom type
+
+    TYMAX               = 0x61,
 }
 
 alias TYerror = TYint;
