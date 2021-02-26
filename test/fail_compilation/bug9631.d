@@ -64,7 +64,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/bug9631.d(79): Error: function `bug9631.arg.f(int i, S s)` is not callable using argument types `(int, S)`
 fail_compilation/bug9631.d(79):        cannot pass argument `y` of type `bug9631.tem!().S` to parameter `bug9631.S s`
-fail_compilation/bug9631.d(80): Error: function literal `__lambda2(S s)` is not callable using argument types `(S)`
+fail_compilation/bug9631.d(80): Error: function literal `__lambda4(S s)` is not callable using argument types `(S)`
 fail_compilation/bug9631.d(80):        cannot pass argument `x` of type `bug9631.S` to parameter `bug9631.tem!().S s`
 fail_compilation/bug9631.d(86): Error: constructor `bug9631.arg.A.this(S _param_0)` is not callable using argument types `(S)`
 fail_compilation/bug9631.d(86):        cannot pass argument `S(0)` of type `bug9631.tem!().S` to parameter `bug9631.S _param_0`

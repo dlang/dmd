@@ -5225,12 +5225,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (sc.func)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=11720
-                // include Dataseg variables
                 if ((s.isFuncDeclaration() ||
                      s.isAggregateDeclaration() ||
                      s.isEnumDeclaration() ||
                      s.isTemplateDeclaration() ||
-                     v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
+                     v
+                    ) && !sc.func.localsymtab.insert(s))
                 {
                     // Get the previous symbol
                     Dsymbol originalSymbol = sc.func.localsymtab.lookup(s.ident);
