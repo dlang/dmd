@@ -168,24 +168,6 @@ template Test10842(F, T)
 
 void test10842()
 {
-    foreach (From; Seq!(bool, byte, ubyte, short, ushort, int, uint, long, ulong, float, double, real))
-    {
-        foreach (To; Seq!(ifloat, idouble, ireal))
-        {
-            if (!Test10842!(From, To).test())
-                assert(0);
-        }
-    }
-
-    foreach (From; Seq!(ifloat, idouble, ireal))
-    {
-        foreach (To; Seq!(/*bool*, */byte, ubyte, short, ushort, int, uint, long, ulong, float, double, real))
-        {
-            if (!Test10842!(From, To).test())
-                assert(0);
-        }
-    }
-
     if (!Test10842!(typeof(null), string).test())   // 10842
         assert(0);
 }
@@ -220,18 +202,11 @@ void test14218()
     version (DigitalMars)
     {
         // Questionable but currently accepted by DMD (but not GDC).
-        foreach (To; Seq!( float,  double,  real,
-                           ifloat, idouble, ireal))
+        foreach (To; Seq!( float,  double,  real))
         {
             auto x = cast(To)null;
             assert(x == 0);     // 0i
         }
-
-        // Internal error: backend/el.c in el_long()
-        //foreach (To; Seq!(cfloat, cdouble, creal))
-        //{
-        //    static assert(!__traits(compiles, { auto x = cast(To)null; }));
-        //}
     }
 }
 

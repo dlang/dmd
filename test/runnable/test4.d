@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/test4.d(754): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/test4.d(717): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 
@@ -549,25 +549,6 @@ void test16()
 
 /* ================================ */
 
-void test17()
-{
-    creal z = 1. + 2.0i;
-
-    real r = z.re;
-    assert(r == 1.0);
-
-    real i = z.im;
-    assert(i == 2.0);
-
-    assert(r.im == 0.0);
-    assert(r.re == 1.0);
-
-    assert(i.re == 2.0);
-    assert(i.im == 0.0i);
-}
-
-/* ================================ */
-
 private const uint[256] crc_table = [
     0x00000000u, 0x77073096u, 0xee0e612cu, 0x990951bau, 0x076dc419u,
     0x2d02ef8du
@@ -641,24 +622,6 @@ void test20()
 //printf("test d\n");
     i = (*fpd)(7, 8);
     assert(i == 78);
-}
-
-
-/* ================================ */
-
-void test21()
-{
-    ireal imag = 2.5i;
-    printf ("test of imag*imag = %Lf\n",imag*imag);
-    assert(imag * imag == -6.25);
-}
-
-/* ================================ */
-
-void test22()
-{
-    creal z1 = 1. - 2.0i;
-    ireal imag_part = z1.im/1i;
 }
 
 
@@ -1473,12 +1436,9 @@ int main()
     test14();
     //test15();
     test16();
-    test17();
     test18();
     test19();
     test20();
-    test21();
-    test22();
     test23();
     test24();
 //    test26();

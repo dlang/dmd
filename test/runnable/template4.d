@@ -245,31 +245,6 @@ void test6()
 
 /*********************************************************/
 
-template factorial7(float n, cdouble c, string sss, string ttt)
-{
-    static if (n == 1)
-        const float factorial7 = 1;
-    else
-        const float factorial7 = n * 2;
-}
-
-template bar7(wstring abc, dstring def)
-{
-    const int x = 3;
-}
-
-void test7()
-{
-    float f = factorial7!(4.25, 6.8+3i, "hello", null);
-    printf("%g\n", f);
-    assert(f == 8.5);
-    int i = bar7!("abc"w, "def"d).x;
-    printf("%d\n", i);
-    assert(i == 3);
-}
-
-/*********************************************************/
-
 template whale(string walrus)
 {
     const char [] whale = walrus;
@@ -1140,7 +1115,6 @@ int main()
     test4();
     test5();
     test6();
-    test7();
     test8();
     test9();
     test10();

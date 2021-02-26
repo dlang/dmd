@@ -661,16 +661,6 @@ void test43()
 
 /***************************************************/
 
-void test44()
-{
-    ifloat f = 1.0fi;
-//    f *= 2.0fi; // illegal but compiles
-    printf("%g\n", f);
-//    assert(f == 0i);
-}
-
-/***************************************************/
-
 int foo45(int i)
 {
    if(i==0){
@@ -2841,12 +2831,6 @@ double[100_000] arr = 0.0;
 
 /***************************************************/
 
-alias ireal BUG3919;
-alias typeof(BUG3919.init*BUG3919.init) ICE3919;
-alias typeof(BUG3919.init/BUG3919.init) ICE3920;
-
-/***************************************************/
-
 struct S179 {
     char a, b, c, d;
 }
@@ -3507,7 +3491,6 @@ void test215()
 {
     class C {}
     enum assocarrayliteral = Q!( [1:2] ).q.stringof;
-    enum complex80 = Q!( 1+1.0i ).q.stringof;
     //enum dottype = Q!( C.Object.toString ).q.stringof;
     enum halt = 0.stringof;    // ICE w/ -release
     //enum remove = Q!( [1:2].remove(1) ).q.stringof;
@@ -5193,14 +5176,6 @@ void test246()
 }
 
 /***************************************************/
-
-double sqrt8454(double d) { return d/2; }
-void foo8454(cdouble m) {}
-void test8454() {
-    foo8454(0 - sqrt8454(1.0) * 1i);
-}
-
-/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=8423
 
 struct S8423
@@ -6238,7 +6213,6 @@ int main()
     test41();
     test42();
     test43();
-    test44();
     test45();
     test46();
     test47();
@@ -6454,7 +6428,6 @@ int main()
     test6189_2();
     test8199();
     test246();
-    test8454();
     test8423();
     test8496();
     test8840();
