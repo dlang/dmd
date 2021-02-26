@@ -121,6 +121,14 @@ $(GNAME ShortenedFunctionBody):
     $(D =>) $(GLINK AssignExpression) $(D ;)
 )
 
+        $(P Examples:)
+
+        ---
+        int hasSpecifiedBody() { return 1; }
+        int hasMissingBody();
+        int hasShortenedBody() => 1;
+        ---
+
         $(P $(B Note:) The `ShortenedFunctionBody` form requires the `-preview=shortenedMethods`
         command-line switch, which is available starting in v2.096.0.)
 
