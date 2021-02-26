@@ -5,12 +5,10 @@ PERMUTE_ARGS:
 RUN_OUTPUT:
 ---
 1
-1
+2
 3
 4
 ---
-
-print => 2 will be fixed by https://github.com/dlang/dmd/pull/12235
 */
 
 void main()
