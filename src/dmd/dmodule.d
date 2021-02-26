@@ -1050,6 +1050,21 @@ extern (C++) final class Module : Package
             this.ident = md.id;
             Package ppack = null;
             dst = Package.resolve(md.packages, &this.parent, &ppack);
+
+            // Mark the package path as accessible from the current module
+            // https://issues.dlang.org/show_bug.cgi?id=21661
+            // Code taken from Import.addPackageAccess()
+            if (md.packages.length > 0)
+            {
+                // module a.b.c.d;
+                auto p = ppack; // a
+                addAccessiblePackage(p, Visibility(Visibility.Kind.private_));
+                foreach (id; md.packages[1 .. $]) // [b, c]
+                {
+                    p = cast(Package) p.symtab.lookup(id);
+                    addAccessiblePackage(p, Visibility(Visibility.Kind.private_));
+                }
+            }
             assert(dst);
             Module m = ppack ? ppack.isModule() : null;
             if (m && (strcmp(m.srcfile.name(), "package.d") != 0 &&
