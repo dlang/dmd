@@ -132,6 +132,8 @@ test_dub_package() {
             DFLAGS="-de" dub $dubcmd --single --compiler="${abs_build_path}/dmd" "$file"
         done
         popd
+        # Test building DMD via dub
+        dub 2>&1 | grep "D Compiler"
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi

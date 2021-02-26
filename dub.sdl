@@ -1,11 +1,10 @@
 name "dmd"
 description "The DMD compiler"
 authors "Walter Bright"
-copyright "Copyright © 1999-2018, The D Language Foundation"
+copyright "Copyright © 1999-2019, The D Language Foundation"
 license "BSL-1.0"
 
 targetType "none"
-dependency ":frontend" version="*"
 
 subPackage {
   name "root"
@@ -35,7 +34,9 @@ subPackage {
     "CallbackAPI" \
     "DMDLIB"
 
-  preGenerateCommands `
+  stringImportPaths "generated/dub"
+
+  preBuildCommands `
     "$${DUB_EXE}" \
     --arch=$${DUB_ARCH} \
     --compiler=$${DC} \
@@ -45,9 +46,7 @@ subPackage {
     /etc
    ` platform="posix"
 
-  preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
-
-  stringImportPaths "generated/dub"
+  preBuildCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
 
   dependency "dmd:root" version="*"
 }
@@ -67,6 +66,30 @@ subPackage {
   versions "CallbackAPI"
 
   dependency "dmd:lexer" version="*"
+}
+
+subPackage {
+  name "backend"
+  targetType "library"
+  sourcePaths "src/dmd/backend"
+  stringImportPaths "res"
+  stringImportPaths "generated/dub"
+
+  versions \
+    "GC" \
+    "MARS"
+
+  preBuildCommands `
+    "$${DUB_EXE}" \
+    --arch=$${DUB_ARCH} \
+    --compiler=$${DC} \
+    --single "$${DUB_PACKAGE_DIR}config.d" \
+    -- "$${DUB_PACKAGE_DIR}generated/dub" \
+    "$${DUB_PACKAGE_DIR}VERSION" \
+    /etc
+   ` platform="posix"
+
+  preBuildCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
 }
 
 subPackage {
@@ -132,4 +155,55 @@ subPackage {
   }.d"
 
   dependency "dmd:parser" version="*"
+}
+
+/* The 'full' subpackage includes frontend + backend*/
+subPackage {
+  name "full"
+
+  targetType "library"
+  sourcePaths "src/dmd"
+  stringImportPaths "res"
+  stringImportPaths "generated/dub"
+
+  versions \
+    "GC" \
+    "NoMain" \
+    "MARS"
+
+  preBuildCommands `
+    "$${DUB_EXE}" \
+    --arch=$${DUB_ARCH} \
+    --compiler=$${DC} \
+    --single "$${DUB_PACKAGE_DIR}config.d" \
+    -- "$${DUB_PACKAGE_DIR}generated/dub" \
+    "$${DUB_PACKAGE_DIR}VERSION" \
+    /etc
+   ` platform="posix"
+
+  preBuildCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
+}
+
+configuration "application" {
+    name "dmd"
+    targetType "executable"
+
+    sourcePaths "src/dmd"
+    excludedSourceFiles "src/dmd/backend/*"
+    excludedSourceFiles "src/examples/*"
+    excludedSourceFiles "src/vcbuild/*"
+    excludedSourceFiles "src/build.d"
+    excludedSourceFiles "src/frontend.d"
+
+    stringImportPaths "res"
+    stringImportPaths "generated/dub"
+
+    dependency "dmd:backend" version="*"
+}
+
+/* Set dmd:frontend as the default library config */
+configuration "library" {
+    targetType "none"
+    sourcePaths
+    dependency "dmd:frontend" version="*"
 }
