@@ -102,6 +102,7 @@ $(GRAMMAR
 $(GNAME FunctionBody):
     $(GLINK SpecifiedFunctionBody)
     $(GLINK MissingFunctionBody)
+    $(GLINK ShortenedFunctionBody)
 
 $(GNAME FunctionLiteralBody):
     $(GLINK SpecifiedFunctionBody)
@@ -115,7 +116,13 @@ $(GNAME MissingFunctionBody):
     $(D ;)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D ;)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
+
+$(GNAME ShortenedFunctionBody):
+    $(D =>) $(GLINK AssignExpression) $(D ;)
 )
+
+        $(P $(B Note:) The `ShortenedFunctionBody` form requires the `-preview=shortenedMethods`
+        command-line switch, which is available starting in v2.096.0.)
 
 $(H3 Function contracts)
 
