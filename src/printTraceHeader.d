@@ -122,7 +122,7 @@ void main(string[] args)
     import core.stdc.stdlib;
 
     uint[] parents = (cast(uint*) calloc(records.length, uint.sizeof))[0 .. records.length];
-    uint[] depth = (cast(uint*) calloc(records.length, uint.sizeof))[0 .. records.length];
+    uint[] depths = (cast(uint*) calloc(records.length, uint.sizeof))[0 .. records.length];
     uint[2][] selfTime = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0
         .. records.length];
     uint[2][] selfMem = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0
@@ -148,7 +148,7 @@ void main(string[] args)
             if (i && records[i - 1].end_ticks > r.end_ticks)
             {
                 parents[i] = cast(uint)(i - 1);
-                depth[i] = currentDepth++;
+                depths[i] = currentDepth++;
                 selfTime[i-1][1] -= time;
                 selfMem[i-1][1] -= mem;
                 parentsFound++;
@@ -168,8 +168,9 @@ void main(string[] args)
                         selfMem[currentParent][1] -= mem;
 
                         assert(selfTime[currentParent][1] > 1);
-                        currentDepth = depth[currentParent] + 1;
-                        depth[i] = currentDepth;
+                        currentDepth = depths[currentParent] + 1;
+                        depths[i] = currentDepth;
+                        parents[i] = currentParent;
                         parentsFound++;
                         break;
                     }
@@ -197,7 +198,7 @@ void main(string[] args)
         {
             const r = records[i];
 
-            writeln(indent[0 .. depth[i]], ' ', r.end_ticks - r.begin_ticks, "|",
+            writeln(indent[0 .. depths[i]], ' ', r.end_ticks - r.begin_ticks, "|",
                     selfTime[i], "|", phases[r.phase_id - 1], "|", getSymbolName(fileBytes,
                         r), "|", getSymbolLocation(fileBytes, r), "|",);
 
