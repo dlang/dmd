@@ -3890,9 +3890,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Linterfaces:
             bool foundVtblMatch = false;
 
-            BaseClasses bases;
-            cd.allInterfaces(bases);
-            foreach (b; bases)
+            cd.forAllInterfaces((b)
             {
                 vi = funcdecl.findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
                 switch (vi)
@@ -3951,7 +3949,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                     }
                 }
-            }
+            });
             if (foundVtblMatch)
             {
                 goto L2;

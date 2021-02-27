@@ -994,19 +994,21 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     /****************************************
-     * Gets an array of all implemented interfaces of this class. This includes
-     * all interfaces implemented by parent classes, all interfaces implemented
-     * by this class, and all interfaces which are extended by other interfaces.
+     * Loops over all implemented interfaces of this class. This  all interfaces
+     * implemented by parent classes, all interfaces by this class, and all
+     * interfaces which are extended by other interfaces.
+     * Params:
+     *     callback = A callback which will be executed for each parent interface that is found.
      */
-    final void allInterfaces(ref BaseClasses bases)
+    extern(D) final void forAllInterfaces(scope void delegate(BaseClass*) callback)
     {
         if (baseClass is null)
             return;
-        baseClass.allInterfaces(bases);
+        baseClass.forAllInterfaces(callback);
         foreach (base; interfaces)
         {
-            bases.push(base);
-            base.sym.allInterfaces(bases);
+            callback(base);
+            base.sym.forAllInterfaces(callback);
         }
     }
 }
