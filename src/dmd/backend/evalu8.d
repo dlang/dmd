@@ -242,23 +242,26 @@ version (SCPP)
 
 int iftrue(elem *e)
 {
-  while (1)
-  {
+    while (1)
+    {
         assert(e);
         elem_debug(e);
         switch (e.Eoper)
-        {       case OPcomma:
-                case OPinfo:
-                        e = e.EV.E2;
-                        break;
-                case OPrelconst:
-                case OPconst:
-                case OPstring:
-                        return boolres(e);
-                default:
-                        return false;
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPrelconst:
+            case OPconst:
+            case OPstring:
+                return boolres(e);
+
+            default:
+                return false;
         }
-  }
+    }
 }
 
 /***************************
@@ -267,22 +270,24 @@ int iftrue(elem *e)
 
 int iffalse(elem *e)
 {
-        while (1)
-        {       assert(e);
-                elem_debug(e);
-                switch (e.Eoper)
-                {       case OPcomma:
-                        case OPinfo:
-                                e = e.EV.E2;
-                                break;
-                        case OPconst:
-                                return !boolres(e);
-                        //case OPstring:
-                        //case OPrelconst:
-                        default:
-                                return false;
-                }
+    while (1)
+    {
+        assert(e);
+        elem_debug(e);
+        switch (e.Eoper)
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPconst:
+                return !boolres(e);
+
+            default:
+                return false;
         }
+    }
 }
 
 
