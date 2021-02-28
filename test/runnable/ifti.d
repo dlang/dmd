@@ -100,8 +100,6 @@ void main() {
     t[];
     t[1..2];
     u[1..2.5];
-    t[1i] = 5;
-    t[-4.5..7i] = "hello";
     t == t;
     auto b = t != t; // without assignment -> "! has no effect in expression"
     t == u;

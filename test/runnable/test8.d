@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/test8.d(283): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+runnable/test8.d(261): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -168,28 +168,6 @@ void test8()
 
     foo[1] = 1;
     g = new gap8(foo);
-}
-
-
-/***********************************/
-
-void test9()
-{
-    ireal imag = 2.5i;
-    //printf ("test of imag*imag = %Lf\n",imag*imag);
-    real f = imag * imag;
-    assert(f == -6.25);
-}
-
-/***********************************/
-
-void test10()
-{
-    creal z = 1 + 2.5i;
-    real e = z.im;
-
-    printf ("e = %Lf\n", e);
-    assert(e == 2.5);
 }
 
 
@@ -613,21 +591,6 @@ void test34()
             assert(b[i][j] == 16);
 }
 
-
-/***********************************/
-
-void test35()
-{
-    ifloat b = cast(ifloat)1i;
-    assert(b == 1.0i);
-
-    ifloat c = 2fi;
-    assert(c == 2.0i);
-
-    c = 0fi;
-    assert(c == 0i);
-}
-
 /***********************************/
 
 string itoa(int i)
@@ -782,21 +745,6 @@ void test42()
 
 /***********************************/
 
-void test43()
-{
-    creal C,Cj;
-    real y1,x1;
-
-    C = x1 + y1*1i + Cj;
-    C = 1i*y1 + x1 + Cj;
-    C = Cj + 1i*y1 + x1;
-    C = y1*1i + Cj + x1;
-    C = 1i*y1 + Cj;
-    C = Cj + 1i*y1;
-}
-
-/***********************************/
-
 int x44;
 
 class A44 {
@@ -889,46 +837,6 @@ void test50()
 
 /***********************************/
 
-/+
-void foo51(creal a)
-{
-  writeln(a);
-  assert(a == -8i);
-}
-
-void test51()
-{
-  cdouble a = (2-2i)*(2-2i);
-
-  // This fails
-  writeln(a);
-  assert(a == -8i);
-
-  // This works
-  writeln((2-2i)*(2-2i));
-
-  // This fails
-  foo51((2-2i)*(2-2i));
-}
-+/
-
-void foo51(creal a)
-{
-    assert(a == -8i);
-}
-
-void test51()
-{
-    assert((2-2i)*(2-2i) == -8i);
-
-    cdouble a = (2-2i)*(2-2i);
-    assert(a == -8i);
-
-    foo51((2-2i)*(2-2i));
-}
-
-/***********************************/
-
 int main()
 {
     test1();
@@ -939,8 +847,6 @@ int main()
     test6();
     test7();
     test8();
-    test9();
-    test10();
     test11();
     test12();
     test13();
@@ -962,21 +868,18 @@ int main()
     test32();
     test33();
     test34();
-    test35();
     test36();
     test37();
     test38();
     test39();
     test40();
     test42();
-    test43();
     test44();
     test45();
     test46();
     test48();
     test49();
     test50();
-    test51();
 
     printf("Success\n");
     return 0;

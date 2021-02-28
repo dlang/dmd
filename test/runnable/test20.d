@@ -490,34 +490,6 @@ void test22()
 
 /*****************************************/
 
-void test23()
-{
-    float f;
-    double d;
-    real r;
-
-    if (f > ifloat.max)
-        goto Loverflow;
-    if (d > ifloat.max)
-        goto Loverflow;
-    if (r > ifloat.max)
-        goto Loverflow;
-
-    if (ifloat.max < f)
-        goto Loverflow;
-    if (ifloat.max < d)
-        goto Loverflow;
-    if (ifloat.max < r)
-        goto Loverflow;
-
-    return;
-
-  Loverflow:
-    return;
-}
-
-/*****************************************/
-
 interface I24 { }
 
 void test24()
@@ -578,15 +550,6 @@ void Lookup( int which )
 
 void test29()
 {
-}
-
-/*****************************************/
-
-void test30()
-{
-  double d = 1;
-  cdouble cd = 1+0i;
-  assert(cd == 1.0 + 0i);
 }
 
 /*****************************************/
@@ -868,19 +831,6 @@ void test46()
   assert( x.color is 5 );
   assert( x.key is null );
   assert( x.value is null );
-}
-
-/*****************************************/
-
-void test47()
-{
-   cdouble[] a;
-   cdouble[] b;
-   foreach(ref cdouble d; b)
-     {
-       d = -a[0];
-       for(;;){}
-     }
 }
 
 /*****************************************/
@@ -1252,14 +1202,12 @@ int main()
     test20();
     test21();
     test22();
-    test23();
     test24();
     test25();
     test26();
     test27();
     test28();
     test29();
-    test30();
     test31();
     test33();
     test34();
@@ -1273,7 +1221,6 @@ int main()
     test44();
     test45();
     test46();
-    test47();
     test48();
     test49();
     test50();

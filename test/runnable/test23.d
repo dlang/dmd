@@ -322,27 +322,6 @@ void test15()
 
 /*******************************************/
 
-creal x16;
-
-void foo16()
-{
-        x16 = -x16;
-}
-
-void bar16()
-{
-        return foo16();
-}
-
-void test16()
-{
-        x16 = 2.0L + 0.0Li;
-        bar16();
-        assert(x16 == -2.0L + 0.0Li);
-}
-
-/*******************************************/
-
 void test17()
 {
     version(D_InlineAsm_X86_64)
@@ -1417,7 +1396,6 @@ void main()
     test13();
     test14();
     test15();
-    test16();
     test17();
     test18();
     test19();

@@ -117,67 +117,6 @@ void test5()
 
 /*************************************/
 
-void test6()
-{
-    ireal a = 6.5i % 3i;
-    printf("%Lfi %Lfi\n", a, a - .5i);
-    assert(a == .5i);
-
-    a = 6.5i % 3;
-    printf("%Lfi %Lfi\n", a, a - .5i);
-    assert(a == .5i);
-
-    real b = 6.5 % 3i;
-    printf("%Lf %Lf\n", b, b - .5);
-    assert(b == .5);
-
-    b = 6.5 % 3;
-    printf("%Lf %Lf\n", b, b - .5);
-    assert(b == .5);
-}
-
-/*************************************/
-
-void test7()
-{
-    cfloat f = 1+0i;
-    f %= 2fi;
-    printf("%f + %fi\n", f.re, f.im);
-    assert(f == 1 + 0i);
-
-    cdouble d = 1+0i;
-    d %= 2i;
-    printf("%f + %fi\n", d.re, d.im);
-    assert(d == 1 + 0i);
-
-    creal r = 1+0i;
-    r %= 2i;
-    printf("%Lf + %Lfi\n", r.re, r.im);
-    assert(r == 1 + 0i);
-}
-
-/*************************************/
-
-void test8()
-{
-    cfloat f = 1+0i;
-    f %= 2i;
-    printf("%f + %fi\n", f.re, f.im);
-    assert(f == 1);
-
-    cdouble d = 1+0i;
-    d = d % 2i;
-    printf("%f + %fi\n", d.re, d.im);
-    assert(d == 1);
-
-    creal r = 1+0i;
-    r = r % 2i;
-    printf("%Lf + %Lfi\n", r.re, r.im);
-    assert(r == 1);
-}
-
-/*************************************/
-
 class A9
 {
     this(int[] params ...)
@@ -227,103 +166,6 @@ void test11()
 {
     printf("%d\n", 3);
     printf("xhello world!\n");
-}
-
-/*************************************/
-
-void assertEqual(real* a, real* b, string file = __FILE__, size_t line = __LINE__)
-{
-    auto x = cast(ubyte*)a;
-    auto y = cast(ubyte*)b;
-
-    // Only compare the 10 value bytes, the padding bytes are of undefined
-    // value.
-    version (X86) enum count = 10;
-    else version (X86_64) enum count = 10;
-    else enum count = real.sizeof;
-    for (size_t i = 0; i < count; i++)
-    {
-        if (x[i] != y[i])
-        {
-            printf("%02zd: %02x %02x\n", i, x[i], y[i]);
-            import core.exception;
-            throw new AssertError(file, line);
-        }
-    }
-}
-
-void assertEqual(creal* a, creal* b, string file = __FILE__, size_t line = __LINE__)
-{
-    assertEqual(cast(real*)a, cast(real*)b, file, line);
-    assertEqual(cast(real*)a + 1, cast(real*)b + 1, file, line);
-}
-
-void test12()
-{
-    creal a = creal.nan;
-    creal b = real.nan + ireal.nan;
-    assertEqual(&a, &b);
-
-    real c= real.nan;
-    real d=a.re;
-    assertEqual(&c, &d);
-
-    d=a.im;
-    assertEqual(&c, &d);
-}
-
-/*************************************/
-
-void test13()
-{
-    creal a = creal.infinity;
-    creal b = real.infinity + ireal.infinity;
-    assertEqual(&a, &b);
-
-    real c = real.infinity;
-    real d=a.re;
-    assertEqual(&c, &d);
-
-    d=a.im;
-    assertEqual(&c, &d);
-}
-
-/*************************************/
-
-void test14()
-{
-    creal a = creal.nan;
-    creal b = creal.nan;
-    b = real.nan + ireal.nan;
-    assertEqual(&a, &b);
-
-    real c = real.nan;
-    real d=a.re;
-    assertEqual(&c, &d);
-
-    d=a.im;
-    assertEqual(&c, &d);
-}
-
-/*************************************/
-
-ireal x15;
-
-void foo15()
-{
-    x15 = -x15;
-}
-
-void bar15()
-{
-    return foo15();
-}
-
-void test15()
-{
-    x15=2i;
-    bar15();
-    assert(x15==-2i);
 }
 
 /*************************************/
@@ -425,41 +267,6 @@ void test21()
 
 /*************************************/
 
-void test22()
-{
-    static creal[] params = [1+0i, 3+0i, 5+0i];
-
-    printf("params[0] = %Lf + %Lfi\n", params[0].re, params[0].im);
-    printf("params[1] = %Lf + %Lfi\n", params[1].re, params[1].im);
-    printf("params[2] = %Lf + %Lfi\n", params[2].re, params[2].im);
-
-    creal[] sums = new creal[3];
-    sums[] = 0+0i;
-
-    foreach(creal d; params)
-    {
-        creal prod = d;
-
-        printf("prod = %Lf + %Lfi\n", prod.re, prod.im);
-        for(int i; i<2; i++)
-        {
-            sums[i] += prod;
-            prod *= d;
-        }
-        sums[2] += prod;
-    }
-
-    printf("sums[0] = %Lf + %Lfi", sums[0].re, sums[0].im);
-    assert(sums[0].re==9);
-    assert(sums[0].im==0);
-    assert(sums[1].re==35);
-    assert(sums[1].im==0);
-    assert(sums[2].re==153);
-    assert(sums[2].im==0);
-}
-
-/*************************************/
-
 const int c23 = b23 * b23;
 const int a23 = 1;
 const int b23 = a23 * 3;
@@ -474,51 +281,6 @@ mixin T23!(c23);
 void test23()
 {
     assert(x23.length==9);
-}
-
-/*************************************/
-
-ifloat func_24_1(ifloat f, double d)
-{
-//    f /= cast(cdouble)d;
-    return f;
-}
-
-ifloat func_24_2(ifloat f, double d)
-{
-    f = cast(ifloat)(f / cast(cdouble)d);
-    return f;
-}
-
-float func_24_3(float f, double d)
-{
-//    f /= cast(cdouble)d;
-    return f;
-}
-
-float func_24_4(float f, double d)
-{
-    f = cast(float)(f / cast(cdouble)d);
-    return f;
-}
-
-void test24()
-{
-    ifloat f = func_24_1(10i, 8);
-    printf("%fi\n", f);
-//    assert(f == 1.25i);
-
-    f = func_24_2(10i, 8);
-    printf("%fi\n", f);
-    assert(f == 1.25i);
-
-    float g = func_24_3(10, 8);
-    printf("%f\n", g);
-//    assert(g == 1.25);
-
-    g = func_24_4(10, 8);
-    printf("%f\n", g);
-    assert(g == 1.25);
 }
 
 /*************************************/
@@ -539,43 +301,6 @@ void test25()
 
 /*************************************/
 
-string toString26(cdouble z)
-{
-    char[ulong.sizeof*8] buf;
-
-    auto len = snprintf(buf.ptr, buf.sizeof, "%f+%fi", z.re, z.im);
-    return buf[0 .. len].idup;
-}
-
-void test26()
-{
-  static cdouble[] A = [1+0i, 0+1i, 1+1i];
-  string s;
-
-  foreach( cdouble z; A )
-  {
-    s = toString26(z);
-    printf("%.*s  ", cast(int)s.length, s.ptr);
-  }
-  printf("\n");
-
-  for(int ii=0; ii<A.length; ii++ )
-    A[ii] += -1i*A[ii];
-
-  assert(A[0] == 1 - 1i);
-  assert(A[1] == 1 + 1i);
-  assert(A[2] == 2);
-
-  foreach( cdouble z; A )
-  {
-    s = toString26(z);
-    printf("%.*s  ", cast(int)s.length, s.ptr);
-  }
-  printf("\n");
-}
-
-/*************************************/
-
 void test27()
 {   int x;
 
@@ -584,14 +309,6 @@ void test27()
     assert((int*function(int ...)[]).mangleof == "APFiXPi");
     assert(typeof(x).mangleof == "i");
     assert(x.mangleof == "_D6test226test27FZ1xi");
-}
-
-/*************************************/
-
-void test28()
-{
-    alias cdouble X;
-    X four = cast(X) (4.0i + 0.4);
 }
 
 /*************************************/
@@ -1277,29 +994,18 @@ int main()
     test3();
     test4();
     test5();
-    test6();
-    test7();
-    test8();
     test9();
     test10();
     test11();
-    test12();
-    test13();
-    test14();
-    test15();
     test16();
     test17();
     test18();
     test19();
     test20();
     test21();
-    test22();
     test23();
-    test24();
     test25();
-    test26();
     test27();
-    test28();
     test29();
     test30();
     test31();
