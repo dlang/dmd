@@ -3712,17 +3712,20 @@ else
             v.dsymbolSemantic(sc);
             cs.push(new ExpStatement(ss.loc, v));
 
-            auto args = new Parameters();
-            args.push(new Parameter(0, t.pointerTo(), null, null, null));
+            auto enterArgs = new Parameters();
+            enterArgs.push(new Parameter(0, t.pointerTo(), null, null, null));
 
-            FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
+            FuncDeclaration fdenter = FuncDeclaration.genCfunc(enterArgs, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression e = new AddrExp(ss.loc, tmpExp);
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, fdenter, e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
-            FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STC.nothrow_);
+            auto exitArgs = new Parameters();
+            exitArgs.push(new Parameter(0, t, null, null, null));
+
+            FuncDeclaration fdexit = FuncDeclaration.genCfunc(exitArgs, Type.tvoid, Id.criticalexit, STC.nothrow_);
             e = new CallExp(ss.loc, fdexit, tmpExp);
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(ss.loc, e);
