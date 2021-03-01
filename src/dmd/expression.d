@@ -1510,6 +1510,11 @@ extern (C++) abstract class Expression : ASTNode
         if (!type || !type.isShared() || type.isTypeStruct() || type.isTypeClass())
             return false;
 
+        // Allow RMW on temporary as they are compiler generated
+        if (auto ve = ex ? ex.isVarExp() : null)
+            if (ve.var.storage_class & STC.temp)
+                return false;
+
         // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
         switch (rmwOp)
         {
