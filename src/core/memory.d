@@ -1555,7 +1555,7 @@ unittest
 }
 
 // in rt.lifetime:
-private extern (C) void* _d_newitemU(in TypeInfo _ti) @system pure nothrow;
+private extern (C) void* _d_newitemU(scope const TypeInfo _ti) @system pure nothrow;
 
 /**
 Moves a value to a new GC allocation.
