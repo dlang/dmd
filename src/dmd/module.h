@@ -164,7 +164,7 @@ struct ModuleDeclaration
 {
     Loc loc;
     Identifier *id;
-    Identifiers *packages;            // array of Identifier's representing packages
+    DArray<Identifier*> packages;  // array of Identifier's representing packages
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
 
