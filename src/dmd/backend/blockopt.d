@@ -2390,6 +2390,9 @@ private void blassertsplit()
             goto L1;
         }
         b.Belem = bl_delist2(earray);
+        if (b.BC == BCretexp && !b.Belem)
+            b.Belem = el_long(TYint, 1);
+
     }
     elems.dtor();
 }

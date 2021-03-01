@@ -2176,12 +2176,12 @@ elem *toElem(Expression e, IRState *irs)
                             emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
 
                         ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG));
-                        ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, ae.loc.linnum), efilename, emsg, null));
+                        ea = el_bin(OPcall, TYnoreturn, ea, el_params(el_long(TYint, ae.loc.linnum), efilename, emsg, null));
                     }
                     else
                     {
                         ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT));
-                        ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ae.loc.linnum), efilename));
+                        ea = el_bin(OPcall, TYnoreturn, ea, el_param(el_long(TYint, ae.loc.linnum), efilename));
                     }
                 }
                 else
@@ -2189,7 +2189,7 @@ elem *toElem(Expression e, IRState *irs)
                     auto eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
                     auto efile = toEfilenamePtr(m);
                     auto eline = el_long(TYint, ae.loc.linnum);
-                    ea = el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
+                    ea = el_bin(OPcall, TYnoreturn, eassert, el_param(eline, efile));
                 }
                 if (einv)
                 {
@@ -3540,14 +3540,6 @@ elem *toElem(Expression e, IRState *irs)
 
             if (irs.params.cov && aae.e2.loc.linnum)
                 e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
-
-            /* Until the backend understands TYnoreturn,
-             * resort to a workaround here.
-             * If aae.e2 is Tnoreturn, rewrite e as:
-             *   (e,false) for &&, and (e,true) for ||
-             */
-            if (aae.e2.type.ty == Tnoreturn)
-                e = el_combine(e, el_long(TYbool, aae.op == TOK.orOr));
 
             result = e;
         }
@@ -6474,7 +6466,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
 elem *genHalt(const ref Loc loc)
 {
     elem *e = el_calloc();
-    e.Ety = TYvoid;
+    e.Ety = TYnoreturn;
     e.Eoper = OPhalt;
     elem_setLoc(e, loc);
     return e;

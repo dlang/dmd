@@ -1263,7 +1263,7 @@ tym_t totym(Type tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
-        case Tnoreturn: t = TYvoid;     break;
+        case Tnoreturn: t = TYnoreturn; break;
 
         case Tstruct:
             t = TYstruct;

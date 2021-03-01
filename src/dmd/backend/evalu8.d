@@ -258,6 +258,9 @@ int iftrue(elem *e)
             case OPstring:
                 return boolres(e);
 
+            case OPoror:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
             default:
                 return false;
         }
@@ -283,6 +286,9 @@ int iffalse(elem *e)
 
             case OPconst:
                 return !boolres(e);
+
+            case OPandand:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
 
             default:
                 return false;

@@ -612,6 +612,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
     switch (tybasic(tym))
     {
         case TYvoid:
+        case TYnoreturn:
         case TYstruct:
         case TYarray:
             return 0;
@@ -1352,7 +1353,7 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
      */
 
     const tyb = tybasic(ty);
-    if (tyb == TYvoid)
+    if (tyb == TYvoid || tyb == TYnoreturn)
         return 0;
 
     tym_t ty1 = tyb;
