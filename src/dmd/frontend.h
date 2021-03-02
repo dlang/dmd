@@ -6070,6 +6070,7 @@ public:
 class WhileStatement final : public Statement
 {
 public:
+    Parameter* param;
     Expression* condition;
     Statement* _body;
     Loc endloc;

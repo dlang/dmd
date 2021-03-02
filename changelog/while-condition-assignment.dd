@@ -1,0 +1,17 @@
+`while (auto n = expression)` is now supported
+
+Up until this release, `while (auto n = expression)` was not
+supported, although the `if` counterpart: `if (auto n = expression)`
+compiled succesfully. Starting with the current compiler version,
+`while (auto n = expression)` is accepted, having the exact
+same semantics as:
+
+---
+while (true)
+{
+    if (auto n = expression)
+    { /* loop body */ }
+    else
+    { break; }
+}
+---

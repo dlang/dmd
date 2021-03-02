@@ -5524,6 +5524,90 @@ final class Parser(AST) : Lexer
 
     }
 
+    /***
+     * Parse an assignment condition for if or while statements.
+     *
+     * Returns:
+     *      The variable that is declared inside the condition
+     */
+    AST.Parameter parseAssignCondition()
+    {
+        AST.Parameter param = null;
+        StorageClass storageClass = 0;
+        StorageClass stc = 0;
+LagainStc:
+        if (stc)
+        {
+            storageClass = appendStorageClass(storageClass, stc);
+            nextToken();
+        }
+        switch (token.value)
+        {
+        case TOK.ref_:
+            stc = STC.ref_;
+            goto LagainStc;
+
+        case TOK.auto_:
+            stc = STC.auto_;
+            goto LagainStc;
+
+        case TOK.const_:
+            if (peekNext() != TOK.leftParentheses)
+            {
+                stc = STC.const_;
+                goto LagainStc;
+            }
+            break;
+
+        case TOK.immutable_:
+            if (peekNext() != TOK.leftParentheses)
+            {
+                stc = STC.immutable_;
+                goto LagainStc;
+            }
+            break;
+
+        case TOK.shared_:
+            if (peekNext() != TOK.leftParentheses)
+            {
+                stc = STC.shared_;
+                goto LagainStc;
+            }
+            break;
+
+        case TOK.inout_:
+            if (peekNext() != TOK.leftParentheses)
+            {
+                stc = STC.wild;
+                goto LagainStc;
+            }
+            break;
+
+        default:
+            break;
+        }
+        auto n = peek(&token);
+        if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
+        {
+            Identifier ai = token.ident;
+            AST.Type at = null; // infer parameter type
+            nextToken();
+            check(TOK.assign);
+            param = new AST.Parameter(storageClass, at, ai, null, null);
+        }
+        else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
+        {
+            Identifier ai;
+            AST.Type at = parseType(&ai);
+            check(TOK.assign);
+            param = new AST.Parameter(storageClass, at, ai, null, null);
+        }
+        else if (storageClass != 0)
+            error("found `%s` while expecting `=` or identifier", n.toChars());
+
+        return param;
+    }
+
     /*****************************************
      * Input:
      *      flags   PSxxxx
@@ -5847,13 +5931,15 @@ final class Parser(AST) : Lexer
             }
         case TOK.while_:
             {
+                AST.Parameter param = null;
                 nextToken();
                 check(TOK.leftParentheses);
+                param = parseAssignCondition();
                 AST.Expression condition = parseExpression();
                 check(TOK.rightParentheses);
                 Loc endloc;
                 AST.Statement _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
-                s = new AST.WhileStatement(loc, condition, _body, endloc);
+                s = new AST.WhileStatement(loc, condition, _body, endloc, param);
                 break;
             }
         case TOK.semicolon:
@@ -5947,79 +6033,7 @@ final class Parser(AST) : Lexer
 
                 nextToken();
                 check(TOK.leftParentheses);
-
-                StorageClass storageClass = 0;
-                StorageClass stc = 0;
-            LagainStc:
-                if (stc)
-                {
-                    storageClass = appendStorageClass(storageClass, stc);
-                    nextToken();
-                }
-                switch (token.value)
-                {
-                case TOK.ref_:
-                    stc = STC.ref_;
-                    goto LagainStc;
-
-                case TOK.auto_:
-                    stc = STC.auto_;
-                    goto LagainStc;
-
-                case TOK.const_:
-                    if (peekNext() != TOK.leftParentheses)
-                    {
-                        stc = STC.const_;
-                        goto LagainStc;
-                    }
-                    break;
-
-                case TOK.immutable_:
-                    if (peekNext() != TOK.leftParentheses)
-                    {
-                        stc = STC.immutable_;
-                        goto LagainStc;
-                    }
-                    break;
-
-                case TOK.shared_:
-                    if (peekNext() != TOK.leftParentheses)
-                    {
-                        stc = STC.shared_;
-                        goto LagainStc;
-                    }
-                    break;
-
-                case TOK.inout_:
-                    if (peekNext() != TOK.leftParentheses)
-                    {
-                        stc = STC.wild;
-                        goto LagainStc;
-                    }
-                    break;
-
-                default:
-                    break;
-                }
-                auto n = peek(&token);
-                if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
-                {
-                    Identifier ai = token.ident;
-                    AST.Type at = null; // infer parameter type
-                    nextToken();
-                    check(TOK.assign);
-                    param = new AST.Parameter(storageClass, at, ai, null, null);
-                }
-                else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
-                {
-                    Identifier ai;
-                    AST.Type at = parseType(&ai);
-                    check(TOK.assign);
-                    param = new AST.Parameter(storageClass, at, ai, null, null);
-                }
-                else if (storageClass != 0)
-                    error("found `%s` while expecting `=` or identifier", n.toChars());
-
+                param = parseAssignCondition();
                 condition = parseExpression();
                 check(TOK.rightParentheses);
                 {
