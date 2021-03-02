@@ -1,5 +1,21 @@
-// PERMUTE_ARGS: -inline -g -O
-
+/* PERMUTE_ARGS: -inline -g -O
+TEST_OUTPUT:
+---
+runnable/testcontracts.d(323): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(324): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(325): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(326): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(328): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(329): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(330): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(331): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(502): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(503): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(504): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(505): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(505): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+---
+*/
 extern(C) int printf(const char*, ...);
 
 /*******************************************/
