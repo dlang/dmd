@@ -504,7 +504,24 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         /* Rewrite as a for(;condition;) loop
          * https://dlang.org/spec/statement.html#while-statement
          */
-        Statement s = new ForStatement(ws.loc, null, ws.condition, null, ws._body, ws.endloc);
+        Expression cond = ws.condition;
+        Statement _body = ws._body;
+        if (ws.param)
+        {
+            /**
+             * If the while loop is of form `while(auto a = exp) { loop_body }`,
+             * rewrite to:
+             *
+             * while(true)
+             *     if (auto a = exp)
+             *     { loop_body }
+             *     else
+             *     { break; }
+             */
+            _body = new IfStatement(ws.loc, ws.param, ws.condition, ws._body, new BreakStatement(ws.loc, null), ws.endloc);
+            cond = IntegerExp.createBool(true);
+        }
+        Statement s = new ForStatement(ws.loc, null, cond, null, _body, ws.endloc);
         s = s.statementSemantic(sc);
         result = s;
     }

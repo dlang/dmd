@@ -1155,16 +1155,18 @@ extern (C++) final class ForwardingStatement : Statement
  */
 extern (C++) final class WhileStatement : Statement
 {
+    Parameter param;
     Expression condition;
     Statement _body;
     Loc endloc;             // location of closing curly bracket
 
-    extern (D) this(const ref Loc loc, Expression condition, Statement _body, Loc endloc)
+    extern (D) this(const ref Loc loc, Expression condition, Statement _body, Loc endloc, Parameter param = null)
     {
         super(loc, STMT.While);
         this.condition = condition;
         this._body = _body;
         this.endloc = endloc;
+        this.param = param;
     }
 
     override WhileStatement syntaxCopy()
@@ -1172,7 +1174,7 @@ extern (C++) final class WhileStatement : Statement
         return new WhileStatement(loc,
             condition.syntaxCopy(),
             _body ? _body.syntaxCopy() : null,
-            endloc);
+            endloc, param ? param.syntaxCopy() : null);
     }
 
     override bool hasBreak() const pure nothrow

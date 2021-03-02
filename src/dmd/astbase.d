@@ -2130,11 +2130,12 @@ struct ASTBase
 
     extern (C++) final class WhileStatement : Statement
     {
+        Parameter param;
         Expression condition;
         Statement _body;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc)
+        extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc, Parameter param = null)
         {
             super(loc, STMT.While);
             condition = c;

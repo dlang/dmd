@@ -162,6 +162,17 @@ align(2) struct S12200_2
 align(1):
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=16140
+void gun()()
+{
+    int[] res;
+    while (auto va = fun()) {}  // expression expected, not 'auto'
+
+    while (true)
+        if (auto va = fun()) {}
+        else break;
+}
+
 // https://issues.dlang.org/show_bug.cgi?id=16649
 void leFoo()()
 {

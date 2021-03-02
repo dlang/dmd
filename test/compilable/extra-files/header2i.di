@@ -219,6 +219,19 @@ align (2) struct S12200_2
 {
 	align (1) {}
 }
+void gun()()
+{
+	int[] res;
+	while (auto va = fun())
+	{
+	}
+	while (true)
+	if (auto va = fun())
+	{
+	}
+	else
+		break;
+}
 void leFoo()()
 {
 	sign = a == 2 ? false : (y < 0) ^ sign;

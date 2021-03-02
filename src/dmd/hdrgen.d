@@ -250,6 +250,20 @@ public:
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
+        if (auto p = s.param)
+        {
+            // Print condition assignment
+            StorageClass stc = p.storageClass;
+            if (!p.type && !stc)
+                stc = STC.auto_;
+            if (stcToBuffer(buf, stc))
+                buf.writeByte(' ');
+            if (p.type)
+                typeToBuffer(p.type, p.ident, buf, hgs);
+            else
+                buf.writestring(p.ident.toString());
+            buf.writestring(" = ");
+        }
         s.condition.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
