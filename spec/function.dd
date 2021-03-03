@@ -1684,7 +1684,8 @@ int mercury(return ref int i)
 }
 ---
 
-$(P Template functions, auto functions, nested functions and lambdas can deduce the `return` attribute.)
+$(P Template functions, auto functions, nested functions and $(DDSUBLINK spec/expression, function_literals, lambdas)
+ can deduce the `return` attribute.)
 
 ---
 ref int templateFunction()(ref int i)
@@ -1818,7 +1819,8 @@ class C
 }
 ---
 
-        $(P Template functions, auto functions, nested functions and lambdas can deduce
+        $(P Template functions, auto functions, nested functions and
+        $(DDSUBLINK spec/expression, function_literals, lambdas) can deduce
         the `return scope` attribute.)
 
 $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))

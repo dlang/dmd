@@ -322,7 +322,7 @@ dg(3);   // call o.member(3)
 -------------------
 
     $(P The equivalent of member function pointers can be constructed
-    using anonymous lambda functions:)
+    using $(DDSUBLINK spec/expression, function_literals, anonymous lambda functions):)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---

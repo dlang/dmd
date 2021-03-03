@@ -80,7 +80,8 @@ assignments as follows: `++expr` becomes `((expr) += 1)`, and `--expr` becomes `
 Therefore, the result of prefix `++` and `--` is the lvalue after the side effect has been
 effected.)
 
-$(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to lambda
+$(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
+$(DDSUBLINK spec/expression, function_literals, lambda)
 invocations as follows: `expr++` becomes `(ref T x){auto t = x; ++x; return t;}(expr)`, and
 `expr--` becomes `(ref T x){auto t = x; --x; return t;}(expr)`. Therefore, the result of postfix
 `++` and `--` is an rvalue just before the side effect has been effected.)
@@ -1661,11 +1662,11 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
+    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
     $(GLINK FunctionLiteralBody)
-    $(GLINK Lambda)
+    $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
 $(GNAME ParameterWithAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
@@ -1673,12 +1674,16 @@ $(GNAME ParameterWithAttributes):
 $(GNAME ParameterWithMemberAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 
+$(GNAME FunctionLiteralBody2):
+    $(D =>) $(GLINK AssignExpression)
+    $(GLINK FunctionLiteralBody)
+
 $(GNAME FunctionLiteralBody):
     $(GLINK2 statement, BlockStatement)
     $(GLINK2 function, FunctionContracts)$(OPT) $(GLINK2 function, BodyStatement)
 )
 
-    $(P $(I FunctionLiteral)s enable embedding anonymous functions
+    $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
         and anonymous delegates directly into expressions.
         $(I Type) is the return type of the function or delegate,
         if omitted it is inferred from any $(I ReturnStatement)s
@@ -1803,38 +1808,9 @@ $(GNAME FunctionLiteralBody):
         }
         -------------
 
-    $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
-        the $(D function) form is analogous to static
-        or non-nested functions, and the $(D delegate) form is
-        analogous to non-static nested functions. In other words,
-        a delegate literal can access stack variables in its enclosing
-        function, a function literal cannot.
-    )
+    $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
 
-$(H3 $(LNAME2 lambdas, Lambdas))
-
-$(GRAMMAR
-$(GNAME Lambda):
-    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
-)
-
-    $(P $(I Lambda)s are a shorthand syntax for $(GLINK FunctionLiteral)s.)
-
-    $(OL
-        $(LI $(P Just one $(IDENTIFIER) is rewritten to
-             $(GLINK2 function, Parameters):)
-
-             $(D $(LPAREN)) $(IDENTIFIER) $(D $(RPAREN))
-        )
-        $(LI $(P The following part $(D =>) $(I AssignExpression) is rewritten to
-             $(GLINK FunctionLiteralBody):)
-
-             $(D { return) $(I AssignExpression) $(D ; })
-        )
-    )
+    $(P The syntax $(D Identifier => AssignExpression) is equivalent to $(D (Identifier) { return AssignExpression; }).)
 
     $(P Example usage:)
 
@@ -1855,6 +1831,15 @@ $(GNAME Lambda):
             writeln(mul_n(i));   // prints 15
         }
         ---
+
+
+    $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
+        the $(D function) form is analogous to static
+        or non-nested functions, and the $(D delegate) form is
+        analogous to non-static nested functions. In other words,
+        a delegate literal can access stack variables in its enclosing
+        function, a function literal cannot.
+    )
 
 $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 

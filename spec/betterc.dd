@@ -71,7 +71,7 @@ $(H2 $(LNAME2 retained, Retained Features))
     $(OL
     $(LI Unrestricted use of compile-time features)
     $(LI Full metaprogramming facilities)
-    $(LI Nested functions, nested structs, delegates and lambdas)
+    $(LI Nested functions, nested structs, delegates and $(DDSUBLINK spec/expression, function_literals, lambdas))
     $(LI Member functions, constructors, destructors, operating overloading, etc.)
     $(LI The full module system)
     $(LI Array slicing, and array bounds checking)
