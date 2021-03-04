@@ -1552,10 +1552,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             // Return the expression if it succeeds, null otherwise.
             Expression tryAliasThisCast()
             {
-                if (att && t1b.equivalent(att))
+                if (isRecursiveAliasThis(att, t1b))
                     return null;
-                else if (!att && t1b.checkAliasThisRec())
-                    att = t1b;
 
                 /* Forward the cast to our alias this member, rewrite to:
                  *   cast(to)e1.aliasthis
@@ -3103,10 +3101,8 @@ Lagain:
             }
             else if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
             {
-                if (att1 && e1.type.equivalent(att1))
+                if (isRecursiveAliasThis(att1, e1.type))
                     return null;
-                if (!att1 && e1.type.checkAliasThisRec())
-                    att1 = e1.type;
                 //printf("att tmerge(c || c) e1 = %s\n", e1.type.toChars());
                 e1 = resolveAliasThis(sc, e1);
                 t1 = e1.type;
@@ -3114,10 +3110,8 @@ Lagain:
             }
             else if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
             {
-                if (att2 && e2.type.equivalent(att2))
+                if (isRecursiveAliasThis(att2, e2.type))
                     return null;
-                if (!att2 && e2.type.checkAliasThisRec())
-                    att2 = e2.type;
                 //printf("att tmerge(c || c) e2 = %s\n", e2.type.toChars());
                 e2 = resolveAliasThis(sc, e2);
                 t2 = e2.type;
@@ -3155,20 +3149,16 @@ Lagain:
             Expression e2b = null;
             if (ts2.sym.aliasthis)
             {
-                if (att2 && e2.type.equivalent(att2))
+                if (isRecursiveAliasThis(att2, e2.type))
                     return null;
-                if (!att2 && e2.type.checkAliasThisRec())
-                    att2 = e2.type;
                 //printf("att tmerge(s && s) e2 = %s\n", e2.type.toChars());
                 e2b = resolveAliasThis(sc, e2);
                 i1 = e2b.implicitConvTo(t1);
             }
             if (ts1.sym.aliasthis)
             {
-                if (att1 && e1.type.equivalent(att1))
+                if (isRecursiveAliasThis(att1, e1.type))
                     return null;
-                if (!att1 && e1.type.checkAliasThisRec())
-                    att1 = e1.type;
                 //printf("att tmerge(s && s) e1 = %s\n", e1.type.toChars());
                 e1b = resolveAliasThis(sc, e1);
                 i2 = e1b.implicitConvTo(t2);
@@ -3200,10 +3190,8 @@ Lagain:
     {
         if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
         {
-            if (att1 && e1.type.equivalent(att1))
+            if (isRecursiveAliasThis(att1, e1.type))
                 return null;
-            if (!att1 && e1.type.checkAliasThisRec())
-                att1 = e1.type;
             //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
             e1 = resolveAliasThis(sc, e1);
             t1 = e1.type;
@@ -3212,10 +3200,8 @@ Lagain:
         }
         if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
         {
-            if (att2 && e2.type.equivalent(att2))
+            if (isRecursiveAliasThis(att2, e2.type))
                 return null;
-            if (!att2 && e2.type.checkAliasThisRec())
-                att2 = e2.type;
             //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
             e2 = resolveAliasThis(sc, e2);
             t2 = e2.type;

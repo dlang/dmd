@@ -1573,10 +1573,8 @@ extern (C++) abstract class Expression : ASTNode
                 }
 
                 // Forward to aliasthis.
-                if (ad.aliasthis && !(att && tb.equivalent(att)))
+                if (ad.aliasthis && !isRecursiveAliasThis(att, tb))
                 {
-                    if (!att && tb.checkAliasThisRec())
-                        att = tb;
                     e = resolveAliasThis(sc, e);
                     t = e.type;
                     tb = e.type.toBasetype();

@@ -2545,10 +2545,8 @@ else
                 break;
 
             auto ad = isAggregate(ss.condition.type);
-            if (ad && ad.aliasthis && !(att && ss.condition.type.equivalent(att)))
+            if (ad && ad.aliasthis && !isRecursiveAliasThis(att, ss.condition.type))
             {
-                if (!att && ss.condition.type.checkAliasThisRec())
-                    att = ss.condition.type;
                 if (auto e = resolveAliasThis(sc, ss.condition, true))
                 {
                     ss.condition = e;
