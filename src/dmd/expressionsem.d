@@ -9250,13 +9250,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetlengthTImpl, "resizing arrays"))
                 return setError();
 
+            exp.e2 = exp.e2.expressionSemantic(sc);
+            auto lc = lastComma(exp.e2);
+            lc = lc.optimize(WANTvalue);
             // use slice expression when arr.length = 0 to avoid runtime call
-            if(exp.e2.isConst() && exp.e2.toUInteger() == 0)
+            if(lc.op == TOK.int64 && lc.toInteger() == 0)
             {
-                IntervalExp ie = new IntervalExp(ale.loc, exp.e2, exp.e2);
-                Expression se = new SliceExp(ale.loc, ale.e1, ie);
+                Expression se = new SliceExp(ale.loc, ale.e1, lc, lc);
                 Expression as = new AssignExp(ale.loc, ale.e1, se);
-                auto res = as.expressionSemantic(sc);
+                as = as.expressionSemantic(sc);
+                auto res = Expression.combine(as, exp.e2);
+                res.type = ale.type;
                 return setResult(res);
             }
 
