@@ -1520,7 +1520,8 @@ void main()
         $(P If the two arguments are expressions made up of literals
         or enums that evaluate to the same value, true is returned.)
 
-        $(P If the two arguments are both lambda functions (or aliases
+        $(P If the two arguments are both
+        $(DDSUBLINK spec/expression, function_literals, lambda functions) (or aliases
         to lambda functions), then they are compared for equality. For
         the comparison to be computed correctly, the following conditions
         must be met for both lambda functions:)
