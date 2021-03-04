@@ -896,6 +896,11 @@ Lagain:
             return e;
         }
 
+        // We need to run semantics to correctly set 'STC.field' if it is a member variable
+        // that could be forward referenced. This is needed for 'v.needThis()' to work
+        if (v.isThis())
+            v.dsymbolSemantic(sc);
+
         // Change the ancestor lambdas to delegate before hasThis(sc) call.
         if (v.checkNestedReference(sc, loc))
             return ErrorExp.get();
