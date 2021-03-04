@@ -1691,11 +1691,7 @@ $(GNAME FunctionLiteralBody):
         $(GLINK ParameterWithAttributes) or $(GLINK ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
-        The type of a function literal is pointer to function or
-        pointer to delegate.
-        If the keywords $(D function) or $(D delegate) are omitted,
-        it is inferred from whether $(I FunctionLiteralBody) is actually
-        accessing to the outer context.
+        The type of a function literal is a delegate or a pointer to function.
     )
 
     $(P For example:)
@@ -1722,7 +1718,8 @@ $(GNAME FunctionLiteralBody):
         }
         -------------
 
-    $(P Also:)
+    $(P A delegate is necessary if the $(I FunctionLiteralBody2) accesses any non-static
+        local variables in enclosing functions.)
 
         -------------
         int abc(int delegate(int i));
@@ -1749,8 +1746,22 @@ $(GNAME FunctionLiteralBody):
         }
         -------------
 
-    $(P and the following where the return type $(D int) and
-        $(D function)/$(D delegate) are inferred:)
+    $(P The use of `ref` declares the return value is done by reference:)
+
+        ---
+        void main()
+        {
+            int x;
+            auto dg = delegate ref int() { return x; }
+            x = 3;
+            assert(fp() == 3);
+        }
+        ---
+
+    $(P If $(D function) or $(D delegate) is omitted,
+        it is inferred to be `delegate` if accessing
+        variables in enclosing functions, otherwise `function` is inferred.
+        )
 
         -------------
         int abc(int delegate(int i));
@@ -1760,11 +1771,11 @@ $(GNAME FunctionLiteralBody):
         {
             int b = 3;
 
-            abc( (int c) { return 6 + b; } );  // inferred to delegate
-            def( (int c) { return c * 2; } );  // inferred to function
-          //def( (int c) { return c * b; } );  // error!
+            abc( int(int c) { return 6 + b; } );  // inferred to delegate
+            def( uint(uint c) { return c * 2; } ); // inferred to function
+          //def( int(int c) { return c * b; } );  // error!
             // Because the FunctionLiteralBody accesses b, then the function literal type
-            // is inferred to delegate. But def cannot receive delegate.
+            // is inferred to delegate. But def cannot accept a delegate argument.
         }
         -------------
 
@@ -1784,6 +1795,20 @@ $(GNAME FunctionLiteralBody):
         }
         -------------
 
+        ---
+        auto fp1 = function (i) { return 1; } // error, cannot infer type of `i`
+        ---
+
+    $(P If the function literal is assigned to an alias, the inference
+        of the parameter types is done when the types are needed, as
+        the function literal becomes a template.)
+
+        ---
+        alias fp3 = function (i) { return 1; };   // ok, infer type of `i` when used
+        int j = fp3(4);       // `i` is inferred as `int` here
+        double d = fp3(10.3); // `i` is inferred as `double` here
+        ---
+
     $(P Anonymous delegates can behave like arbitrary statement literals.
         For example, here an arbitrary statement is executed by a loop:)
 
@@ -1795,7 +1820,7 @@ $(GNAME FunctionLiteralBody):
 
             void loop(int k, int j, void delegate() statement)
             {
-                for (int i = k; i < j; i++)
+                foreach (i; k .. j)
                 {
                     statement();
                 }
@@ -1809,10 +1834,6 @@ $(GNAME FunctionLiteralBody):
         -------------
 
     $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
-
-    $(P The syntax $(D Identifier => AssignExpression) is equivalent to $(D (Identifier) { return AssignExpression; }).)
-
-    $(P Example usage:)
 
         ---
         import std.stdio;
@@ -1832,12 +1853,39 @@ $(GNAME FunctionLiteralBody):
         }
         ---
 
+    $(P The syntax $(D Identifier => AssignExpression) is equivalent to $(D (Identifier) { return AssignExpression; }).)
 
-    $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
+        ---
+        // the following two declarations are equivalent
+        alias fp = i => 1;
+        alias fp = (i) { return 1; };
+        ---
+
+    $(BEST_PRACTICE The minimal form of the function literal is most useful as
+        an argument to a template alias parameter:
+        ---
+        int motor(alias fp)(int i)
+        {
+            return fp(i) + 1;
+        }
+
+        int engine()
+        {
+            return motor!(i => i * 2)(6); // returns 13
+        }
+        ---
+        )
+
+    $(NOTE The syntax `Identifier { statement; }` is not supported because because it is
+        easily confused with statements `x = Identifier; { statement; };`
+        if the semicolons were accidentally omitted.
+        )
+
+    $(NOTE When comparing function literals with $(DDSUBLINK spec/function, nested, nested functions),
         the $(D function) form is analogous to static
         or non-nested functions, and the $(D delegate) form is
-        analogous to non-static nested functions. In other words,
-        a delegate literal can access stack variables in its enclosing
+        analogous to non-static nested functions. I.e.
+        a delegate literal can access non-static local variables in an enclosing
         function, a function literal cannot.
     )
 
