@@ -217,6 +217,7 @@ public:
     ModuleInitExp* isModuleInitExp();
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
+    MangledFuncInitExp* isMangledFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
     virtual BinAssignExp* isBinAssignExp();
 
@@ -1306,6 +1307,13 @@ public:
 };
 
 class PrettyFuncInitExp : public DefaultInitExp
+{
+public:
+    Expression *resolveLoc(const Loc &loc, Scope *sc);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class MangledFuncInitExp : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc);

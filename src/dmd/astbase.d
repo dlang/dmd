@@ -5742,6 +5742,19 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class MangledFuncInitExp : DefaultInitExp
+    {
+        extern (D) this(const ref Loc loc)
+        {
+            super(loc, TOK.mangledFunction, __traits(classInstanceSize, MangledFuncInitExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class FileInitExp : DefaultInitExp
     {
         extern (D) this(const ref Loc loc, TOK tok)

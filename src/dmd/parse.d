@@ -78,6 +78,7 @@ immutable PREC[TOK.max_] precedence =
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
     TOK.prettyFunction : PREC.primary,
+    TOK.mangledFunction : PREC.primary,
     TOK.typeid_ : PREC.primary,
     TOK.is_ : PREC.primary,
     TOK.assert_ : PREC.primary,
@@ -2131,6 +2132,7 @@ final class Parser(AST) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.mangledFunction:
         case TOK.this_:
             {
                 // Template argument is an expression
@@ -5633,6 +5635,7 @@ final class Parser(AST) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.mangledFunction:
         Lexp:
             {
                 AST.Expression exp = parseExpression();
@@ -6844,7 +6847,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ and __MANGLED_FUNCTION__.
      */
     private AST.Expression parseDefaultInitExp()
     {
@@ -6860,6 +6863,7 @@ final class Parser(AST) : Lexer
             case TOK.moduleString:   e = new AST.ModuleInitExp(token.loc); break;
             case TOK.functionString: e = new AST.FuncInitExp(token.loc); break;
             case TOK.prettyFunction: e = new AST.PrettyFuncInitExp(token.loc); break;
+            case TOK.mangledFunction: e = new AST.MangledFuncInitExp(token.loc); break;
             default: goto LExp;
             }
             nextToken();
@@ -7081,6 +7085,7 @@ final class Parser(AST) : Lexer
                     case TOK.moduleString:
                     case TOK.functionString:
                     case TOK.prettyFunction:
+                    case TOK.mangledFunction:
                         goto L2;
 
                     default:
@@ -7931,6 +7936,11 @@ final class Parser(AST) : Lexer
             nextToken();
             break;
 
+        case TOK.mangledFunction:
+            e = new AST.MangledFuncInitExp(loc);
+            nextToken();
+            break;
+
         case TOK.true_:
             e = new AST.IntegerExp(loc, 1, AST.Type.tbool);
             nextToken();
@@ -8578,6 +8588,7 @@ final class Parser(AST) : Lexer
                         case TOK.moduleString:
                         case TOK.functionString:
                         case TOK.prettyFunction:
+                        case TOK.mangledFunction:
                         case TOK.wchar_:
                         case TOK.dchar_:
                         case TOK.bool_:
