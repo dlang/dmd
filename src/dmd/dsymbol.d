@@ -326,7 +326,9 @@ extern (C++) class Dsymbol : ASTNode
             return false;
         auto s = cast(Dsymbol)o;
         // Overload sets don't have an ident
-        if (s && ident && s.ident && ident.equals(s.ident))
+        // Function-local declarations may have identical names
+        // if they are declared in different scopes
+        if (s && ident && s.ident && ident.equals(s.ident) && localNum == s.localNum)
             return true;
         return false;
     }

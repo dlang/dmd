@@ -234,10 +234,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda4` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda4` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
 ---
 */
 
