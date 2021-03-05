@@ -1,0 +1,16 @@
+Added `__MANGLED_FUNCTION__` special keywords
+
+This special keyword will allow the usage of the mangled function symbol on
+situations where `mixin(callee).mangleof` don't work.
+
+e.g. when you have a nested function, you can't do:
+
+---
+void main()
+{
+    void foo()
+    {
+        mixin(__FUNCTION__).mangleof.writeln;
+    }
+}
+---
