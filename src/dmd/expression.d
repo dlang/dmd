@@ -35,6 +35,7 @@ import dmd.declaration;
 import dmd.delegatize;
 import dmd.dimport;
 import dmd.dinterpret;
+import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -1022,7 +1023,7 @@ extern (C++) abstract class Expression : ASTNode
     }
 
     /****************************************
-     * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __FILE_FULL_PATH__ to loc.
+     * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __MANGLED_FUNCTION__, __FILE_FULL_PATH__ to loc.
      */
     Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
@@ -1782,6 +1783,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(ModuleInitExp)     isModuleInitExp() { return op == TOK.moduleString ? cast(typeof(return))this : null; }
         inout(FuncInitExp)       isFuncInitExp() { return op == TOK.functionString ? cast(typeof(return))this : null; }
         inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == TOK.prettyFunction ? cast(typeof(return))this : null; }
+        inout(MangledFuncInitExp) isMangledFuncInitExp() { return op == TOK.mangledFunction ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == TOK.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == TOK.thrownException ? cast(typeof(return))this : null; }
     }
@@ -6759,9 +6761,10 @@ extern (C++) final class CondExp : BinExp
 /// Returns: if this token is the `op` for a derived `DefaultInitExp` class.
 bool isDefaultInitOp(TOK op) pure nothrow @safe @nogc
 {
-    return  op == TOK.prettyFunction    || op == TOK.functionString ||
-            op == TOK.line              || op == TOK.moduleString   ||
-            op == TOK.file              || op == TOK.fileFullPath   ;
+    return  op == TOK.prettyFunction    || op == TOK.mangledFunction ||
+            op == TOK.functionString    || op == TOK.line            ||
+            op == TOK.moduleString      || op == TOK.file            ||
+            op == TOK.fileFullPath;
 }
 
 /***********************************************************
@@ -6912,6 +6915,35 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         {
             s = "";
         }
+
+        Expression e = new StringExp(loc, s.toDString());
+        e = e.expressionSemantic(sc);
+        e.type = Type.tstring;
+        return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class MangledFuncInitExp : DefaultInitExp
+{
+    extern (D) this(const ref Loc loc)
+    {
+        super(loc, TOK.mangledFunction, __traits(classInstanceSize, MangledFuncInitExp));
+    }
+
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
+    {
+        FuncDeclaration fd = (sc.callsc && sc.callsc.func)
+                        ? sc.callsc.func
+                        : sc.func;
+
+        const(char)* s = fd ? mangleExact(fd) : "";
 
         Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);

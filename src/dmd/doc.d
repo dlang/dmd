@@ -2792,6 +2792,7 @@ private bool isReservedName(const(char)[] str)
         "__MODULE__",
         "__FUNCTION__",
         "__PRETTY_FUNCTION__",
+        "__MANGLED_FUNCTION__",
         "__DATE__",
         "__TIME__",
         "__TIMESTAMP__",

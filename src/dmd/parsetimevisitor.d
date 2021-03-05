@@ -224,6 +224,7 @@ public:
     // DefaultInitExp
     void visit(AST.FuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.PrettyFuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }
+    void visit(AST.MangledFuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.FileInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.LineInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.ModuleInitExp e) { visit(cast(AST.DefaultInitExp)e); }

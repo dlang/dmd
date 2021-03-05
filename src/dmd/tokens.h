@@ -167,6 +167,7 @@ enum
         TOKmodulestring,
         TOKfuncstring,
         TOKprettyfunc,
+        TOKmangledfunc,
         TOKshared,
         TOKat,
         TOKpow,

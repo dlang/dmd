@@ -465,20 +465,21 @@ enum class TOK : uint8_t
     moduleString = 219u,
     functionString = 220u,
     prettyFunction = 221u,
-    shared_ = 222u,
-    at = 223u,
-    pow = 224u,
-    powAssign = 225u,
-    goesTo = 226u,
-    vector = 227u,
-    pound = 228u,
-    interval = 229u,
-    voidExpression = 230u,
-    cantExpression = 231u,
-    showCtfeContext = 232u,
-    objcClassReference = 233u,
-    vectorArray = 234u,
-    max_ = 235u,
+    mangledFunction = 222u,
+    shared_ = 223u,
+    at = 224u,
+    pow = 225u,
+    powAssign = 226u,
+    goesTo = 227u,
+    vector = 228u,
+    pound = 229u,
+    interval = 230u,
+    voidExpression = 231u,
+    cantExpression = 232u,
+    showCtfeContext = 233u,
+    objcClassReference = 234u,
+    vectorArray = 235u,
+    max_ = 236u,
 };
 
 class StringExp;
@@ -600,6 +601,7 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
+class MangledFuncInitExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
 class BinAssignExp;
@@ -1124,6 +1126,7 @@ public:
     ModuleInitExp* isModuleInitExp();
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
+    MangledFuncInitExp* isMangledFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
     virtual BinAssignExp* isBinAssignExp();
@@ -4440,6 +4443,13 @@ public:
     void accept(Visitor* v);
 };
 
+class MangledFuncInitExp final : public DefaultInitExp
+{
+public:
+    Expression* resolveLoc(const Loc& loc, Scope* sc);
+    void accept(Visitor* v);
+};
+
 class ObjcClassReferenceExp final : public Expression
 {
 public:
@@ -5765,6 +5775,7 @@ public:
     virtual void visit(typename AST::ArrayExp e);
     virtual void visit(typename AST::FuncInitExp e);
     virtual void visit(typename AST::PrettyFuncInitExp e);
+    virtual void visit(typename AST::MangledFuncInitExp e);
     virtual void visit(typename AST::FileInitExp e);
     virtual void visit(typename AST::LineInitExp e);
     virtual void visit(typename AST::ModuleInitExp e);
@@ -7458,6 +7469,7 @@ struct Id
     static Identifier* MODULE;
     static Identifier* FUNCTION;
     static Identifier* PRETTY_FUNCTION;
+    static Identifier* MANGLED_FUNCTION;
     static Identifier* DATE;
     static Identifier* TIME;
     static Identifier* TIMESTAMP;

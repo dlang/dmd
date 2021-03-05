@@ -1780,7 +1780,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
-                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ and __MANGLED_FUNCTION__
                 arg = arg.resolveLoc(loc, sc);
                 arguments.push(arg);
                 nargs++;
@@ -11579,6 +11579,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(PrettyFuncInitExp e)
     {
         //printf("PrettyFuncInitExp::semantic()\n");
+        e.type = Type.tstring;
+        if (sc.func)
+        {
+            result = e.resolveLoc(Loc.initial, sc);
+            return;
+        }
+
+        result = e;
+    }
+
+    override void visit(MangledFuncInitExp e)
+    {
+        //printf("MangledFuncInitExp::semantic()\n");
         e.type = Type.tstring;
         if (sc.func)
         {

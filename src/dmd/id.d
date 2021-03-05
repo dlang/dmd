@@ -166,6 +166,7 @@ immutable Msgtable[] msgtable =
     { "MODULE", "__MODULE__" },
     { "FUNCTION", "__FUNCTION__" },
     { "PRETTY_FUNCTION", "__PRETTY_FUNCTION__" },
+    { "MANGLED_FUNCTION", "__MANGLED_FUNCTION__" },
     { "DATE", "__DATE__" },
     { "TIME", "__TIME__" },
     { "TIMESTAMP", "__TIMESTAMP__" },

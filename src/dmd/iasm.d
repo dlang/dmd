@@ -16,6 +16,7 @@ module dmd.iasm;
 import dmd.dscope;
 import dmd.func;
 import dmd.statement;
+import core.stdc.stdio;
 
 version (MARS)
 {
