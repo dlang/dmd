@@ -235,17 +235,22 @@ private string miniFormat(V)(const scope ref V v)
     else static if (__traits(isFloating, V))
     {
         import core.stdc.config : LD = c_long_double;
+        // Workaround for https://issues.dlang.org/show_bug.cgi?id=20759
+        static if (is(LD == real))
+            enum realFmt = "%Lg";
+        else
+            enum realFmt = "%g";
 
         char[60] val;
         int len;
         static if (is(V == float) || is(V == double))
             len = sprintf(&val[0], "%g", v);
         else static if (is(V == real))
-            len = sprintf(&val[0], "%Lg", cast(LD) v);
+            len = sprintf(&val[0], realFmt, cast(LD) v);
         else static if (is(V == cfloat) || is(V == cdouble))
             len = sprintf(&val[0], "%g + %gi", v.re, v.im);
         else static if (is(V == creal))
-            len = sprintf(&val[0], "%Lg + %Lgi", cast(LD) v.re, cast(LD) v.im);
+            len = sprintf(&val[0], realFmt ~ " + " ~ realFmt ~ 'i', cast(LD) v.re, cast(LD) v.im);
         else static if (is(V == ifloat) || is(V == idouble))
             len = sprintf(&val[0], "%gi", v);
         else // ireal
@@ -255,7 +260,7 @@ private string miniFormat(V)(const scope ref V v)
                 alias R = ireal;
             else
                 alias R = idouble;
-            len = sprintf(&val[0], "%Lgi", cast(R) v);
+            len = sprintf(&val[0], realFmt ~ 'i', cast(R) v);
         }
         return val.idup[0 .. len];
     }
