@@ -185,8 +185,8 @@ struct Param
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     bool vsafe;         // use enhanced @safe checking
     bool ehnogc;        // use @nogc exception handling
-    bool dtorFields;        // destruct fields of partially constructed objects
-                            // https://issues.dlang.org/show_bug.cgi?id=14246
+    FeatureState dtorFields;  // destruct fields of partially constructed objects
+                              // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
     CppStdRevision cplusplus;  // version of C++ name mangling to support
