@@ -4,6 +4,9 @@ $(SPEC_S Interfaces,
 
 $(HEADERNAV_TOC)
 
+    $(P An $(I Interface) describes a list of functions that a class which inherits
+    from the interface must implement.)
+
 $(GRAMMAR
 $(GNAME InterfaceDeclaration):
     $(D interface) $(GLINK_LEX Identifier) $(D ;)
@@ -14,24 +17,26 @@ $(GNAME BaseInterfaceList):
     $(D :) $(GLINK2 class, Interfaces)
 )
 
-    $(P Interfaces describe a list of functions that a class that inherits
-    from the interface must implement.
-    A class that implements an interface can be converted to a reference
+    $(IMPLEMENTATION_DEFINED $(P Specialized interfaces may be supported:)
+
+    $(OL
+    $(LI $(RELATIVE_LINK2 com-interfaces, $(I COM Interfaces))
+    are binary compatible with COM/OLE/ActiveX objects for Windows.
+    )
+
+    $(LI $(RELATIVE_LINK2 cpp-interfaces, $(I C++ Interfaces))
+    are binary compatible with C++ abstract classes.
+    )
+
+    $(LI [Objective-C Interfaces](objc_interface.html#protocols)
+    are binary compatible with Objective-C protocols.
+    )
+    )
+    )
+
+
+    $(P A class that implements an interface can be implicitly converted to a reference
     to that interface.)
-
-    $(P Some operating system objects, like COM/OLE/ActiveX for Win32,
-    have specialized interfaces. D interfaces that are compatible with
-    COM/OLE/ActiveX are called $(RELATIVE_LINK2 com-interfaces, $(I COM Interfaces)).
-    )
-
-    $(P $(RELATIVE_LINK2 cpp-interfaces, $(I C++ Interfaces)) are another
-    form of interfaces, meant to be binary compatible with C++.
-    )
-
-    $(P [Objective-C Interfaces](objc_interface.html#protocols) are another form
-    of interfaces, meant to be binary compatible with Objective-C protocols.
-    )
-
 
     $(P Interfaces cannot derive from classes; only from other interfaces.
     Classes cannot derive from an interface multiple times.
