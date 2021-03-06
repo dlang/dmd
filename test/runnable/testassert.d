@@ -324,6 +324,28 @@ void testTupleFormat()
     }
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=21682
+void testStaticOperators()
+{
+    static class environment {
+        static bool opCmp(scope const(char)[] name)
+        {
+            return false;
+        }
+
+        static bool opBinaryRight(string op : "in")(scope const(char)[] name)
+        {
+            return false;
+        }
+    }
+
+    string msg = getMessage(assert(environment < "Hello"));
+    assert(msg == `"environment" >= "Hello"`);
+
+    msg = getMessage(assert("Hello" in environment));
+    assert(msg == `"Hello" !in "environment"`);
+}
+
 void main()
 {
     test8765();
@@ -335,4 +357,5 @@ void main()
     testUnaryFormat();
     testAssignments();
     testTupleFormat();
+    testStaticOperators();
 }
