@@ -6084,6 +6084,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 op = op.expressionSemantic(sc);
                 op = resolveProperties(sc, op);
 
+                // Detect assert's using static operator overloads (e.g. `"var" in environment`)
+                if (auto te = op.isTypeExp())
+                {
+                    // Replace the TypeExp with it's textual representation
+                    // Including "..." in the error message isn't quite right but
+                    // proper solutions require more drastic changes, e.g. directly
+                    // using miniFormat and combine instead of calling _d_assert_fail
+                    auto name = new StringExp(te.loc, te.toString());
+                    return name.expressionSemantic(sc);
+                }
+
                 // Create a temporary for expressions with side effects
                 // Defensively assume that function calls may have side effects even
                 // though it's not detected by hasSideEffect (e.g. `debug puts("Hello")` )
