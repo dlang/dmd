@@ -320,13 +320,23 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         override void visit(VarExp e)
         {
-            if (keepLvalue)
+            VarDeclaration v = e.var.isVarDeclaration();
+
+            if (!(keepLvalue && v && !(v.storage_class & STC.manifest)))
+                ret = fromConstInitializer(result, e);
+
+            // if unoptimized, try to optimize the dtor expression
+            // (e.g., might be a LogicalExp with constant lhs)
+            if (ret == e && v && v.edtor)
             {
-                VarDeclaration v = e.var.isVarDeclaration();
-                if (v && !(v.storage_class & STC.manifest))
-                    return;
+                // prevent infinite recursion (`<var>.~this()`)
+                if (!v.inuse)
+                {
+                    v.inuse++;
+                    expOptimize(v.edtor, WANTvalue);
+                    v.inuse--;
+                }
             }
-            ret = fromConstInitializer(result, e);
         }
 
         override void visit(TupleExp e)
@@ -604,13 +614,15 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 Type t1 = e.e1.type.toBasetype();
                 if (t1.ty == Tdelegate)
                     t1 = t1.nextOf();
-                assert(t1.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)t1;
-                for (size_t i = 0; i < e.arguments.dim; i++)
+                // t1 can apparently be void for __ArrayDtor(T) calls
+                if (auto tf = t1.isTypeFunction())
                 {
-                    Parameter p = tf.parameterList[i];
-                    bool keep = p && p.isReference();
-                    expOptimize((*e.arguments)[i], WANTvalue, keep);
+                    for (size_t i = 0; i < e.arguments.dim; i++)
+                    {
+                        Parameter p = tf.parameterList[i];
+                        bool keep = p && p.isReference();
+                        expOptimize((*e.arguments)[i], WANTvalue, keep);
+                    }
                 }
             }
         }
@@ -1066,8 +1078,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 ret = Expression_optimize(ret, result, false);
                 return;
             }
-            if (expOptimize(e.e2, WANTvalue))
-                return;
+            expOptimize(e.e2, WANTvalue);
             if (e.e1.isConst())
             {
                 if (e.e2.isConst())
