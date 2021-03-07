@@ -114,3 +114,45 @@ void test_20682(scope ref D d) @safe
     a ~= f2_20682(d);
     a ~= cast(int) d.p;
 }
+
+// Phobos failure
+void formattedWrite(immutable char[2] args) @safe
+{
+    scope immutable char[] val = args;
+}
+
+void ctfeRead(const ubyte[2] array) @safe
+{
+    short result;
+
+    foreach_reverse (b; array)
+        result = cast(short) ((result << 8) | b);
+
+    foreach (b; array)
+        result = cast(short) ((result << 8) | b);
+}
+
+void demangle() @safe
+{
+    static struct DotSplitter
+    {
+        const(char)[] s;
+
+        @property bool empty() const { return !s.length; }
+
+        @property const(char)[] front() const return { return s; }
+
+        void popFront() {}
+    }
+
+    foreach (comp; DotSplitter(""))
+    {
+        const copy = comp;
+    }
+}
+
+// Missing test coverage
+int*[4] testArray() @safe
+{
+    return typeof(return).init;
+}
