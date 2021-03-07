@@ -18,7 +18,7 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TABLE_3COLS Basic Data Types,
     $(THEAD Keyword, Default Initializer ($(D .init)), Description)
     $(TROW $(D void), no default initializer, `void` has no value)
-    $(TROW $(D bool), $(D false), boolean value)
+    $(TROW $(RELATIVE_LINK2 bool, $(D bool)), $(D false), boolean value)
     $(TROW $(D byte), $(D 0), signed 8 bits)
     $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
     $(TROW $(D short), $(D 0), signed 16 bits)
@@ -349,10 +349,10 @@ $(H2 $(LNAME2 mixin_types, $(D Mixin Types)))
 
 $(GRAMMAR
 $(GNAME MixinType):
-    $(D mixin $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
+    $(D mixin $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
 )
 
-    $(P Each $(GLINK AssignExpression) in the $(I ArgumentList) is
+    $(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
         evaluated at compile time, and the result must be representable
         as a string.
         The resulting strings are concatenated to form a string.
