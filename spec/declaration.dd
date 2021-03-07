@@ -229,24 +229,23 @@ $(GNAME StructMemberInitializer):
 
 $(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 
-$(P Declaration syntax generally reads right to left:)
+$(P Declaration syntax generally reads right to left, including arrays:)
 
 --------------------
 int x;    // x is an int
 int* x;   // x is a pointer to int
 int** x;  // x is a pointer to a pointer to int
+
 int[] x;  // x is an array of ints
 int*[] x; // x is an array of pointers to ints
 int[]* x; // x is a pointer to an array of ints
+
+int[3] x;     // x is a static array of 3 ints
+int[3][5] x;  // x is a static array of 5 static arrays of 3 ints
+int[3]*[5] x; // x is a static array of 5 pointers to static arrays of 3 ints
 --------------------
 
-$(P Arrays read right to left as well:)
-
---------------------
-int[3] x;     // x is an array of 3 ints
-int[3][5] x;  // x is an array of 5 arrays of 3 ints
-int[3]*[5] x; // x is an array of 5 pointers to arrays of 3 ints
---------------------
+$(H3 $(LNAME2 pointers-to-functions, Pointers to Functions))
 
 $(P
 Pointers to functions are declared using the $(D function) keyword:
@@ -262,19 +261,24 @@ int function(char)[] x; // x is an array of
                      // and returning an int
 --------------------
 
+$(H3 $(LNAME2 c-style-declarations, C-Style Declarations))
+
 $(P
 C-style array, function pointer and pointer to array declarations are deprecated:
 )
 
 --------------------
-int x[3];          // x is an array of 3 ints
-int x[3][5];       // x is an array of 3 arrays of 5 ints
-int (*x[5])[3];    // x is an array of 5 pointers to arrays of 3 ints
+int x[3];          // x is a static array of 3 ints
+int x[3][5];       // x is a static array of 3 arrays of 5 ints
+
+int (*x[5])[3];    // x is a static array of 5 pointers to static arrays of 3 ints
 int (*x)(char);    // x is a pointer to a function taking a char argument
                    // and returning an int
 int (*[] x)(char); // x is an array of pointers to functions
                    // taking a char argument and returning an int
 --------------------
+
+$(H3 $(LNAME2 declaring-multiple-symbols, Declaring Multiple Symbols))
 
 $(P
 In a declaration declaring multiple symbols, all the declarations
@@ -284,8 +288,10 @@ must be of the same type:
 --------------------
 int x,y;   // x and y are ints
 int* x,y;  // x and y are pointers to ints
-int x,*y;  // error, multiple types
 int[] x,y; // x and y are arrays of ints
+
+// invalid C-style declarations
+int x,*y;  // error, multiple types
 int x[],y; // error, multiple types
 --------------------
 
