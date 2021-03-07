@@ -341,6 +341,98 @@ $(P The C style syntax for declaring pointers to functions is deprecated:)
 int (*fp)(int);  // fp is pointer to a function
 -------------------
 
+$(H2 $(LNAME2 typeof, $(D typeof)))
+
+$(GRAMMAR
+$(GNAME Typeof):
+    $(D typeof $(LPAREN)) $(GLINK2 expression, Expression) $(D $(RPAREN))
+    $(D typeof $(LPAREN)) $(D return) $(D $(RPAREN))
+)
+
+        $(P
+        $(I Typeof) is a way to specify a type based on the type
+        of an expression. For example:
+        )
+
+        --------------------
+        void func(int i)
+        {
+            typeof(i) j;       // j is of type int
+            typeof(3 + 6.0) x; // x is of type double
+            typeof(1)* p;      // p is of type pointer to int
+            int[typeof(p)] a;  // a is of type int[int*]
+
+            writefln("%d", typeof('c').sizeof); // prints 1
+            double c = cast(typeof(1.0))j; // cast j to double
+        }
+        --------------------
+
+        $(P
+        The $(I Expression) is not evaluated, it is used purely to
+        generate the type:
+        )
+
+        --------------------
+        void func()
+        {
+            int i = 1;
+            typeof(++i) j; // j is declared to be an int, i is not incremented
+            writefln("%d", i);  // prints 1
+        }
+        --------------------
+
+        $(P Special cases: )
+    $(OL
+        $(LI $(D typeof(this)) will generate the type of what $(D this)
+        would be in a non-static member function, even if not in a member
+        function.
+        )
+        $(LI Analogously, $(D typeof(super)) will generate the type of what
+        $(D super) would be in a non-static member function.
+        )
+        $(LI $(D typeof(return)) will, when inside a function scope,
+        give the return type of that function.
+        )
+    )
+
+        --------------------
+        class A { }
+
+        class B : A
+        {
+            typeof(this) x;  // x is declared to be a B
+            typeof(super) y; // y is declared to be an A
+        }
+
+        struct C
+        {
+            static typeof(this) z;  // z is declared to be a C
+
+            typeof(super) q; // error, no super struct for C
+        }
+
+        typeof(this) r;   // error, no enclosing struct or class
+        --------------------
+
+        $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
+        Property Function), $(D typeof) gives its return type.
+        )
+
+        --------------------
+        struct S
+        {
+            @property int foo() { return 1; }
+        }
+        typeof(S.foo) n;  // n is declared to be an int
+        --------------------
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI $(I Typeof) is most useful in writing generic
+        template code.)
+        )
+        )
+
 $(H2 $(LNAME2 mixin_types, $(D Mixin Types)))
 
 $(GRAMMAR
