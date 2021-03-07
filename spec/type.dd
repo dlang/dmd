@@ -8,15 +8,16 @@ $(HEADERNAV_TOC)
     an expression can hold, and determine the semantics of operations on those values.
     )
 
-    $(P Basic data types are leaf types. Derived data types build on leaf types. User defined
-    types are aggregates of basic and derived types.
+    $(P $(RELATIVE_LINK2 basic_data_types, Basic Data Types) are leaf types.
+    $(RELATIVE_LINK2 derived-data_types, Derived Data Types) build on leaf types.
+    $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
     )
 
 $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
     $(TABLE_3COLS Basic Data Types,
     $(THEAD Keyword, Default Initializer ($(D .init)), Description)
-    $(TROW $(D void), $(D -), no type)
+    $(TROW $(D void), no default initializer, `void` has no value)
     $(TROW $(D bool), $(D false), boolean value)
     $(TROW $(D byte), $(D 0), signed 8 bits)
     $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
@@ -30,8 +31,7 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D ucent), $(D 0u), unsigned 128 bits (reserved for future use))
     $(TROW $(D float), $(D float.nan), 32 bit floating point)
     $(TROW $(D double), $(D double.nan), 64 bit floating point)
-    $(TROW $(D real), $(D real.nan), largest FP size implemented in
-    hardware$(FOOTNOTE Implementation Note: 80 bits for x86 CPUs or $(D double) size$(COMMA) whichever is larger))
+    $(TROW $(D real), $(D real.nan), largest floating point size available)
     $(TROW $(D ifloat), $(D float.nan*1.0i), imaginary float)
     $(TROW $(D idouble), $(D double.nan*1.0i), imaginary double)
     $(TROW $(D ireal), $(D real.nan*1.0i), imaginary real)
@@ -43,35 +43,31 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D dchar), $(D 'U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
+    $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
+    of the `double` type. On x86 CPUs it is often implemented as the 80 bit Extended Real
+    type supported by the x86 FPU.
+    )
+
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
-    $(LI pointer)
-    $(LI array)
-    $(LI associative array)
-    $(LI function)
-    $(LI delegate)
+    $(LI $(DDSUBLINK arrays, pointers, Pointer))
+    $(LI $(DDSUBLINK arrays, static-arrays, Static Array))
+    $(LI $(DDSUBLINK arrays, dynamic-arrays, Dynamic Array))
+    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Array))
+    $(LI $(DDLINK spec/function, Functions, Functions))
+    $(LI $(RELATIVE_LINK2 delegates, Delegates))
     )
 
-    $(P $(DDSUBLINK spec/arrays, strings, $(I Strings)) are a special case of arrays.)
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
 
     $(UL
-    $(LI enum)
-    $(LI struct)
-    $(LI union)
-    $(LI class)
-
+    $(LI $(DDLINK spec/enum, Enums, Enums))
+    $(LI $(DDLINK spec/struct, Structs and Unions, Structs and Unions))
+    $(LI $(DDLINK spec/class, Classes, Classes))
+    $(LI $(DDLINK spec/interface, Interfaces, Interfaces))
     )
-
-$(H2 $(LEGACY_LNAME2 Base Types, base-types, Base Types))
-
-    $(P The $(I base type) of an enum is the type it is based on:)
-
----
-enum E : T { ... }  // T is the base type of E
----
 
 $(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
@@ -376,6 +372,10 @@ $(H2 $(LNAME2 size_t, $(D size_t)))
 
 $(H2 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
     $(P $(D ptrdiff_t) is an alias to the signed integral basic type the same size as $(D size_t).)
+
+$(H2 $(LNAME2 string, $(D string)))
+
+    $(P A $(DDSUBLINK spec/arrays, strings, $(I string) is a special case of an arrays.))
 
 $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )
