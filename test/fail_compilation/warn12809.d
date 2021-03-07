@@ -41,6 +41,8 @@ TEST_OUTPUT:
 fail_compilation/warn12809.d(108): Warning: statement is not reachable
 fail_compilation/warn12809.d(115): Warning: statement is not reachable
 fail_compilation/warn12809.d(122): Warning: statement is not reachable
+Error: warnings are treated as errors
+       Use -wi if you wish to treat warnings only as informational.
 ---
 */
 

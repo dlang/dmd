@@ -33,8 +33,10 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3882.d(46): Warning: calling `fail3882.f1` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
-fail_compilation/fail3882.d(47): Warning: calling `fail3882.f2` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
+fail_compilation/fail3882.d(48): Warning: calling `fail3882.f1` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
+fail_compilation/fail3882.d(49): Warning: calling `fail3882.f2` without side effects discards return value of type `int`; prepend a `cast(void)` if intentional
+Error: warnings are treated as errors
+       Use -wi if you wish to treat warnings only as informational.
 ---
 */
 

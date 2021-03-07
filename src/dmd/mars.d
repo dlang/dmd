@@ -288,6 +288,15 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     /*
+    Print a message to make it clear when warnings are treated as errors.
+    */
+    static void errorOnWarning()
+    {
+        error(Loc.initial, "warnings are treated as errors");
+        errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
+    }
+
+    /*
     Generates code to check for all `params` whether any usage page
     has been requested.
     If so, the generated code will print the help page of the flag
@@ -625,6 +634,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
+    if (global.warnings)
+        errorOnWarning();
+
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
@@ -771,6 +783,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Output the makefile dependencies
     if (params.emitMakeDeps)
         emitMakeDeps(params, library);
+
+    if (global.warnings)
+        errorOnWarning();
 
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
