@@ -391,9 +391,9 @@ immutable(S)
 )
 
     $(P This is especially useful when used with inheritance. For example,
-        you might want to implement a final base method which returns a derived
-        class type. Typically you would return a base type, but this won't allow
-        you to call or access derived properties of the type:)
+        consider the implementation of a final base method which returns a derived
+        class type. Typically this would return a base type, but that would prohibit
+        calling or accessing derived properties of the type:)
 
         ---
         interface Addable(T)

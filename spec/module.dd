@@ -133,7 +133,7 @@ lower case package and module names will avoid or minimize problems when moving 
 between dissimilar file systems.)
 
 $(P If the file name of a module is an invalid module name (e.g.
-`foo-bar.d`), you may use a module declaration to set a valid module name:)
+`foo-bar.d`), use a module declaration to set a valid module name:)
 
 ---------
 module foo_bar;

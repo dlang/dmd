@@ -447,7 +447,7 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
 
 $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
 
-    $(P If you select `precise` as the garbage collector via the options above, type
+    $(P Selecting `precise` as the garbage collector via the options above means type
         information will be used to identify actual or possible pointers or
         references within heap allocated data objects. Non-pointer data will not
         be interpreted as a reference to other memory as a "false pointer". The collector
@@ -455,9 +455,9 @@ $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
         an integer value, it will still be scanned (e.g. in a `union`).
     )
 
-    $(P If you use the GC memory functions from `core.memory`, and plan to use it
-        for data with a mixture of pointers and non-pointer data you should pass the
-        TypeInfo of your allocated struct, class or type as the optional parameter.
+    $(P To use the GC memory functions from `core.memory`
+        for data with a mixture of pointers and non-pointer data, pass the
+        TypeInfo of the allocated struct, class, or type as the optional parameter.
         The default `null` is interpreted as memory that might contain pointers everywhere.)
         ---------
         struct S { size_t hash; Data* data; }
@@ -465,9 +465,9 @@ $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
         ---------
 
     $(P $(RED Attention:) Enabling precise scanning needs slightly more caution with
-        type declarations. For example, if you reserve a buffer as part of a struct and later
-        emplace an object instance with references to other allocations into this memory,
-        you must not use basic integer types to reserve the space. Doing so will cause the
+        type declarations. For example, when reserving a buffer as part of a struct and later
+        emplacing an object instance with references to other allocations into this memory,
+        do not use basic integer types to reserve the space. Doing so will cause the
         garbage collector not to detect the references. Instead, use an array type that
         will scan this area conservatively. Using `void*` is usually the best option as it also
         ensures proper alignment for pointers being scanned by the GC.
@@ -494,9 +494,9 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
 
 
     $(P $(RED Attention:) Enabling precise scanning needs slightly more caution typing
-        global memory. For example, if you pre-allocate memory in the DATA/TLS segment and later
+        global memory. For example, to pre-allocate memory in the DATA/TLS segment and later
         emplace an object instance with references to other allocations into this memory,
-        you must not use basic integer types to reserve the space. Doing so will cause the
+        do not use basic integer types to reserve the space. Doing so will cause the
         garbage collector not to detect the references. Instead, use an array type that
         will scan this area conservatively. Using `void*` is usually the best option as it also
         ensures proper alignment for pointers being scanned by the GC.)
@@ -510,8 +510,8 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         }
         Singleton singleton() { return cast(Singleton)singleton_store.ptr; }
         ---------
-        For precise typing of that area, you can also let the compiler generate the class
-        instance into the DATA segment for you:
+        For precise typing of that area, let the compiler generate the class
+        instance into the DATA segment:
         ---------
         class Singleton { void[] mem; }
         shared(Singleton) singleton = new Singleton;
@@ -524,7 +524,7 @@ $(H2 $(LNAME2 gc_parallel, Parallel marking))
     $(P By default the garbage collector uses all available CPU cores to mark the heap.)
 
     $(P This might affect your application if it has threads that are not suspended
-        during the mark phase of the collection. You can configure the number of
+        during the mark phase of the collection. Configure the number of
         additional threads used for marking by GC option `parallel`,
         e.g. by passing `--DRT-gcopt=parallel:2` on the command
         line or embedding the option into the binary via `rt_options`.
@@ -567,8 +567,8 @@ $(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
         extern (C) __gshared string[] rt_options = ["gcopt=gc:mygc"];
         ---
 
-    $(P You can also remove the standard GC implementation from a statically
-        linked binary by redefining the function `extern(C) void* register_default_gcs()`.
+    $(P The standard GC implementation from a statically
+        linked binary can be removed by redefining the function `extern(C) void* register_default_gcs()`.
         If no custom garbage collector has been registered
         all attempts to allocate GC managed memory will terminate
         the application with an appropriate message.)

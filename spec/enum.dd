@@ -281,7 +281,7 @@ template Bar(T)
 
     // ... use of 'size' at compile time ...
 
-    // If you take the address of Foo!T.size, it would also go into exe file.
+    // Taking the address of Foo!T.size also causes it to go into the exe file.
     auto p = &Foo!T.size;
 }
 ---
