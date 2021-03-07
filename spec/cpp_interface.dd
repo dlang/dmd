@@ -220,7 +220,7 @@ $(P File `ns/package.d`:)
 module ns;
 public import a, b;
 ---
-$(P Then you can import the package containing the extern C++ declarations as follows:)
+$(P Then import the package containing the extern C++ declarations as follows:)
 
 ---
 import ns;

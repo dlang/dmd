@@ -370,7 +370,7 @@ struct S
     }
 }
 ---
-    $(P To make the return type $(D_KEYWORD immutable), you need to surround the return type with parentheses:
+    $(P To make the return type $(D_KEYWORD immutable), surround it with parentheses:
     )
 
 ---
@@ -381,7 +381,7 @@ struct S
     }
 }
 ---
-    $(P To make both the return type and the method $(D_KEYWORD immutable), you can write:
+    $(P To make both the return type and the method $(D_KEYWORD immutable), write:
     )
 ---
 struct S

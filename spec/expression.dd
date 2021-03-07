@@ -1991,7 +1991,7 @@ $(GNAME ImportExpression):
     )
 
     $(P Note that by default an import expression will not compile unless
-        you pass one or more paths via the $(B -J) switch. This tells the compiler
+        one or more paths are passed via the $(B -J) switch. This tells the compiler
         where it should look for the files to import. This is a security feature.)
 
         ---
