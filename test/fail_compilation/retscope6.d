@@ -170,3 +170,31 @@ T9 testfred()
     return fred(&i);   // error
 }
 
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(10003): Error: scope variable `values` assigned to non-scope parameter `values` calling retscope6.escape
+---
+*/
+
+#line 10000
+
+void variadicCaller(int[] values...)
+{
+    escape(values);
+}
+
+void escape(int[] values) {}
+
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(11004): Error: address of variable `buffer` assigned to `secret` with longer lifetime
+---
+*/
+
+#line 11000
+
+void hmac(scope ubyte[] secret)
+{
+    ubyte[10] buffer;
+    secret = buffer[];
+}

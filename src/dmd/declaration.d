@@ -1643,7 +1643,12 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool enclosesLifetimeOf(VarDeclaration v) const pure
     {
-        return sequenceNumber < v.sequenceNumber;
+        // FIXME: VarDeclaration's for parameters are created in semantic3, so
+        //        they will have a greater sequence number than local variables.
+        //        Hence reverse the result for mixed comparisons.
+        const exp = this.isParameter() == v.isParameter();
+
+        return (sequenceNumber < v.sequenceNumber) == exp;
     }
 
     /***************************************
