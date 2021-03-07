@@ -2372,7 +2372,6 @@ $(GNAME SpecialKeyword):
     $(D $(RELATIVE_LINK2 specialkeywords, __LINE__))
     $(D $(RELATIVE_LINK2 specialkeywords, __FUNCTION__))
     $(D $(RELATIVE_LINK2 specialkeywords, __PRETTY_FUNCTION__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __MANGLED_FUNCTION__))
 )
 
 
@@ -2393,9 +2392,6 @@ $(GNAME SpecialKeyword):
     but also expands the function return type, its parameter types,
     and its attributes.)
 
-    $(P $(CODE __MANGLED_FUNCTION__) expands to the mangled name of the function
-    at the point of instantiation.)
-
     $(P Example:)
 
     ---
@@ -2405,13 +2401,11 @@ $(GNAME SpecialKeyword):
     void test(string file = __FILE__, size_t line = __LINE__,
             string mod = __MODULE__, string func = __FUNCTION__,
             string pretty = __PRETTY_FUNCTION__,
-            string mangled = __MANGLED_FUNCTION__,
             string fileFullPath = __FILE_FULL_PATH__)
     {
         writefln("file: '%s', line: '%s', module: '%s',\nfunction: '%s', " ~
-            "pretty function: '%s', mangled function: '%s'\n" ~
-            "file full path: '%s'",
-            file, line, mod, func, pretty, mangled, fileFullPath);
+            "pretty function: '%s',\nfile full path: '%s'",
+            file, line, mod, func, pretty, fileFullPath);
     }
 
     int main(string[] args)

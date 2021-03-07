@@ -1039,7 +1039,6 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#specialkeywords, $(D __LINE__))
     $(LINK2 expression.html#specialkeywords, $(D __FUNCTION__))
     $(LINK2 expression.html#specialkeywords, $(D __PRETTY_FUNCTION__))
-    $(LINK2 expression.html#specialkeywords, $(D __MANGLED_FUNCTION__))
 
     $(LINK2 attribute.html#gshared, $(D __gshared))
     $(LINK2 traits.html, $(D __traits))
