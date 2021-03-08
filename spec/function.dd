@@ -698,6 +698,19 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         Casting to or from `inout` is not allowed in `@safe` functions.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        void f(inout int* ptr)
+        {
+            const int* p = ptr;
+            int* q = ptr; // error
+            immutable int* r = ptr; // error
+        }
+        ---
+        )
+
+    $(H3 $(LNAME2 matching-an-inout-parameter, Matching an `inout` Parameter))
+
     $(P A set of arguments to a function with `inout` parameters is considered
         a match if any `inout` argument types match exactly, or:)
 
