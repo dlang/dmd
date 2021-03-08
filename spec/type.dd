@@ -18,7 +18,7 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TABLE_3COLS Basic Data Types,
     $(THEAD Keyword, Default Initializer ($(D .init)), Description)
     $(TROW $(D void), no default initializer, `void` has no value)
-    $(TROW $(D bool), $(D false), boolean value)
+    $(TROW $(RELATIVE_LINK2 bool, $(D bool)), $(D false), boolean value)
     $(TROW $(D byte), $(D 0), signed 8 bits)
     $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
     $(TROW $(D short), $(D 0), signed 16 bits)
@@ -69,7 +69,11 @@ $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types)
     $(LI $(DDLINK spec/interface, Interfaces, Interfaces))
     )
 
-$(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
+$(H2 $(LNAME2 type-conversions, Type Conversions))
+
+    See also: $(GLINK2 expression, CastExpression).
+
+$(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
     $(P Casting pointers to non-pointers and vice versa is allowed.)
 
@@ -77,7 +81,7 @@ $(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversio
     allocated by the garbage collector.
     )
 
-$(H2 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
+$(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
     types as required.
@@ -141,7 +145,7 @@ immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
 -------------------
 )
 
-$(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
+$(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
     $(P Integer Promotions are conversions of the following types:
     )
@@ -187,7 +191,7 @@ $(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
     column.
     )
 
-$(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
+$(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
 
     $(P The usual arithmetic conversions convert operands of binary
     operators to a common type. The operands must already be
@@ -345,10 +349,10 @@ $(H2 $(LNAME2 mixin_types, $(D Mixin Types)))
 
 $(GRAMMAR
 $(GNAME MixinType):
-    $(D mixin $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
+    $(D mixin $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
 )
 
-    $(P Each $(GLINK AssignExpression) in the $(I ArgumentList) is
+    $(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
         evaluated at compile time, and the result must be representable
         as a string.
         The resulting strings are concatenated to form a string.
