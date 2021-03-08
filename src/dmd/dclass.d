@@ -994,8 +994,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     /****************************************
-     * Loops over all implemented interfaces of this class. This  all interfaces
-     * implemented by parent classes, all interfaces by this class, and all
+     * Loops over all implemented interfaces of this class: interfaces
+     * implemented by parent classes, interfaces implemented by this class, and all
      * interfaces which are extended by other interfaces.
      * Params:
      *     callback = A callback which will be executed for each parent interface that is found.
