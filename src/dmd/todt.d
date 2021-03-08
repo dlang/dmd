@@ -33,6 +33,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.glue;
 import dmd.init;
 import dmd.mtype;
 import dmd.target;
