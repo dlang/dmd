@@ -72,7 +72,7 @@ $(GNAME TemplateArgumentList):
     $(GLINK TemplateArgument) , $(I TemplateArgumentList)
 
 $(GNAME TemplateArgument):
-    $(GLINK2 declaration, Type)
+    $(GLINK2 type, Type)
     $(ASSIGNEXPRESSION)
     $(GLINK Symbol)
 
@@ -316,10 +316,10 @@ $(GNAME TemplateTypeParameter):
     $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization) $(GLINK TemplateTypeParameterDefault)
 
 $(GNAME TemplateTypeParameterSpecialization):
-    $(D :) $(GLINK2 declaration, Type)
+    $(D :) $(GLINK2 type, Type)
 
 $(GNAME TemplateTypeParameterDefault):
-    $(D =) $(GLINK2 declaration, Type)
+    $(D =) $(GLINK2 type, Type)
 )
 
 $(H3 $(LNAME2 parameters_specialization, Specialization))
@@ -505,11 +505,11 @@ $(GNAME TemplateAliasParameter):
     $(D alias) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
 
 $(GNAME TemplateAliasParameterSpecialization):
-    $(D :) $(GLINK2 declaration, Type)
+    $(D :) $(GLINK2 type, Type)
     $(D :) $(GLINK2 expression, ConditionalExpression)
 
 $(GNAME TemplateAliasParameterDefault):
-    $(D =) $(GLINK2 declaration, Type)
+    $(D =) $(GLINK2 type, Type)
     $(D =) $(GLINK2 expression, ConditionalExpression)
 )
 
