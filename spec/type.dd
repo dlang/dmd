@@ -364,7 +364,7 @@ $(GNAME MixinType):
         ---
 
 
-$(H2 $(LNAME2 built-in-type-aliases, Built-in Type Aliases))
+$(H2 $(LNAME2 aliased-types, Aliased Types))
 
 $(H3 $(LNAME2 size_t, $(D size_t)))
 
