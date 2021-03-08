@@ -8,6 +8,86 @@ $(HEADERNAV_TOC)
     an expression can hold, and determine the semantics of operations on those values.
     )
 
+$(GRAMMAR
+$(GNAME Type):
+    $(GLINK TypeCtors)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes)$(OPT)
+
+$(GNAME TypeCtors):
+    $(GLINK TypeCtor)
+    $(GLINK TypeCtor) $(I TypeCtors)
+
+$(GNAME TypeCtor):
+    $(D const)
+    $(D immutable)
+    $(D inout)
+    $(D shared)
+
+$(GNAME BasicType):
+    $(GLINK FundamentalType)
+    $(D .) $(GLINK QualifiedIdentifier)
+    $(GLINK QualifiedIdentifier)
+    $(GLINK2 declaration, Typeof)
+    $(GLINK declaration, Typeof) $(D .) $(GLINK QualifiedIdentifier)
+    $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
+    $(GLINK Vector)
+    $(GLINK2 grammar, Traits)
+    $(GLINK2 type, MixinType)
+
+$(GNAME Vector):
+    $(D __vector) $(D $(LPAREN)) $(GLINK VectorBaseType) $(D $(RPAREN))
+
+$(GNAME VectorBaseType):
+    $(GLINK Type)
+
+$(GNAME FundamentalType):
+$(MULTICOLS 5,
+    $(D bool)
+    $(D byte)
+    $(D ubyte)
+    $(D short)
+    $(D ushort)
+    $(D int)
+    $(D uint)
+    $(D long)
+    $(D ulong)
+    $(D cent)
+    $(D ucent)
+    $(D char)
+    $(D wchar)
+    $(D dchar)
+    $(D float)
+    $(D double)
+    $(D real)
+    $(D ifloat)
+    $(D idouble)
+    $(D ireal)
+    $(D cfloat)
+    $(D cdouble)
+    $(D creal)
+    $(D void))
+
+$(GNAME TypeSuffixes):
+    $(GLINK TypeSuffix) $(GLINK TypeSuffixes)$(OPT)
+
+$(GNAME TypeSuffix):
+    $(D *)
+    $(D [ ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) .. $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK Type) $(D ])
+    $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+    $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+
+$(GNAME QualifiedIdentifier):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(I QualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance)
+    $(GLINK2 template, TemplateInstance) $(D .) $(I QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(I QualifiedIdentifier)
+)
+
+
     $(P $(RELATIVE_LINK2 basic_data_types, Basic Data Types) are leaf types.
     $(RELATIVE_LINK2 derived-data_types, Derived Data Types) build on leaf types.
     $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
