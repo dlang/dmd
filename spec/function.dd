@@ -644,8 +644,7 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         auto ref int foo(double x) { return x; }   // error, cannot convert double to int
         ---
 
-$(LNAME2 inout-functions, Inout Functions)
-$(H2 $(LNAME2 inout-type-modifier, Inout Type Modifier))
+$(H2 $(LNAME2 inout-functions, Inout Functions))
 
     $(P Functions that differ only in whether the parameters are mutable, const or immutable
         and have corresponding mutable, const or immutable return types can be combined
