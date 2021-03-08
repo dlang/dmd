@@ -462,7 +462,7 @@ $(GNAME ForeachTypeAttributes)
 
 $(GNAME ForeachTypeAttribute):
     $(D ref)
-    $(GLINK2 declaration, TypeCtor)
+    $(GLINK2 type, TypeCtor)
     $(D enum)
 
 $(GNAME ForeachAggregate):

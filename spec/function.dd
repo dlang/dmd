@@ -51,7 +51,7 @@ $(GNAME ParameterAttributes):
 
 $(GNAME InOut):
     $(D auto)
-    $(GLINK2 declaration, TypeCtor)
+    $(GLINK2 type, TypeCtor)
     $(D final)
     $(D in)
     $(D lazy)
