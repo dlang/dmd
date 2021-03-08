@@ -18,7 +18,7 @@ $(GNAME TemplateMixin):
 $(GNAME MixinTemplateName):
     $(D .) $(GLINK MixinQualifiedIdentifier)
     $(GLINK MixinQualifiedIdentifier)
-    $(GLINK2 declaration, Typeof) $(D .) $(GLINK MixinQualifiedIdentifier)
+    $(GLINK2 type, Typeof) $(D .) $(GLINK MixinQualifiedIdentifier)
 
 $(GNAME MixinQualifiedIdentifier):
     $(GLINK_LEX Identifier)
