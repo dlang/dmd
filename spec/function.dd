@@ -43,9 +43,9 @@ $(GNAME Parameter):
     $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type) $(D ...)
 
 $(GNAME ParameterAttributes):
-    $(I InOut)
+    $(GLINK InOut)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(I ParameterAttributes InOut)
+    $(I ParameterAttributes) $(GLINK InOut)
     $(I ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
     $(I ParameterAttributes)
 
@@ -670,11 +670,15 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         ---
         )
 
-    $(P The $(D_KEYWORD inout) token forms a wildcard that stands in for
-        any of mutable, `const`, `immutable`, `inout`, or `inout const`. When calling
-        the function, the `inout` of the return type is changed to whatever
-        the mutable, `const`, `immutable`, `inout`, or `inout const` status of the
-        argument type to the `inout` parameter was.
+    $(P The $(D_KEYWORD inout) keyword forms a wildcard that stands in for
+        one of these modifiers: mutable, `const`, `immutable`, `inout`, or `inout const`.
+        When calling the function, the `inout` modifier of the return type is changed to
+        match one of the above modifiers in the argument type to the `inout` parameter.
+    )
+
+    $(P `inout` can also be used as a type constructor inside a function that has a
+        parameter declared with `inout`. Again, the `inout` modifier is changed to match
+        one of the listed modifiers in the argument type to the `inout` parameter.
     )
 
     $(P Inout types can be implicitly converted to `const` or `inout const`,
