@@ -450,10 +450,10 @@ $(H2 $(LNAME2 template_value_parameter, Template Value Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateValueParameter):
-    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
-    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterSpecialization)
-    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterDefault)
-    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterSpecialization) $(GLINK TemplateValueParameterDefault)
+    $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
+    $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterSpecialization)
+    $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterDefault)
+    $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterSpecialization) $(GLINK TemplateValueParameterDefault)
 
 $(GNAME TemplateValueParameterSpecialization):
     $(D :) $(GLINK2 expression, ConditionalExpression)
@@ -502,7 +502,7 @@ $(H2 $(LNAME2 aliasparameters, Template Alias Parameters))
 $(GRAMMAR
 $(GNAME TemplateAliasParameter):
     $(D alias) $(GLINK_LEX Identifier) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
-    $(D alias) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
+    $(D alias) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
 
 $(GNAME TemplateAliasParameterSpecialization):
     $(D :) $(GLINK2 declaration, Type)

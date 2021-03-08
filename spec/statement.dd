@@ -242,7 +242,7 @@ $(GNAME IfCondition):
     $(EXPRESSION)
     $(D auto) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
     $(GLINK2 declaration, TypeCtors) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
-    $(GLINK2 declaration, TypeCtors)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
+    $(GLINK2 declaration, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
 
 $(GNAME ThenStatement):
     $(PSSCOPE)
@@ -452,7 +452,7 @@ $(GNAME ForeachTypeList):
     $(GLINK ForeachType) , $(I ForeachTypeList)
 
 $(GNAME ForeachType):
-    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
     $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(GLINK_LEX Identifier)
 
@@ -1582,7 +1582,7 @@ $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
 
 $(GNAME CatchParameter):
-    $(GLINK2 declaration, BasicType) $(GLINK_LEX Identifier)$(OPT)
+    $(GLINK2 type, BasicType) $(GLINK_LEX Identifier)$(OPT)
 
 $(GNAME FinallyStatement):
     $(D finally) $(PS0)

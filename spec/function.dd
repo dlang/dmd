@@ -10,7 +10,7 @@ $(H3 Function declaration)
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
-    $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK FuncDeclarator) $(GLINK FunctionBody)
+    $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK FuncDeclarator) $(GLINK FunctionBody)
     $(GLINK AutoFuncDeclaration)
 
 $(GNAME AutoFuncDeclaration):
@@ -36,9 +36,9 @@ $(GNAME ParameterList):
     $(I VariadicArgumentsAttributes) $(D ...)
 
 $(GNAME Parameter):
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
     $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type)
     $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type) $(D ...)
 
