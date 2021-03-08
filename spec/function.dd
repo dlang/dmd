@@ -681,6 +681,18 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         one of the listed modifiers in the argument type to the `inout` parameter.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        inout(int)[] repeat(inout(int)[] a, size_t n)
+        {
+            inout(int)[] result;
+            foreach (i; 0..n)
+                result ~= a;
+            return result;
+        }
+        ---
+        )
+
     $(P Inout types can be implicitly converted to `const` or `inout const`,
         but to nothing else. Other types cannot be implicitly converted to `inout`.
         Casting to or from `inout` is not allowed in `@safe` functions.
