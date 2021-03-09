@@ -540,18 +540,20 @@ $(GNAME MixinType):
         ---
 
 
-$(H2 $(LNAME2 size_t, $(D size_t)))
+$(H2 $(LNAME2 aliased-types, Aliased Types))
+
+$(H3 $(LNAME2 size_t, $(D size_t)))
 
     $(P $(D size_t) is an alias to one of the unsigned integral basic types,
     and represents a type that is large enough to represent an offset into
     all addressable memory.)
 
-$(H2 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
+$(H3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
     $(P $(D ptrdiff_t) is an alias to the signed integral basic type the same size as $(D size_t).)
 
-$(H2 $(LNAME2 string, $(D string)))
+$(H3 $(LNAME2 string, $(D string)))
 
-    $(P A $(DDSUBLINK spec/arrays, strings, $(I string) is a special case of an arrays.))
+    $(P A $(DDSUBLINK spec/arrays, strings, $(I string) is a special case of an array.))
 
 $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )
