@@ -1684,6 +1684,11 @@ $(P $(EXPRESSION) is evaluated and must be  a `Throwable` reference. The
 throw new Exception("message");
 ---
 
+$(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
+rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
+and abort the program.
+)
+
 $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Statement))
 
 $(GRAMMAR
