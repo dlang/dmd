@@ -1016,7 +1016,7 @@ $(MULTICOLS 4,
     $(LINK2 type.html, $(D true))
     $(LINK2 statement.html#TryStatement, $(D try))
     $(LINK2 expression.html#TypeidExpression, $(D typeid))
-    $(LINK2 declaration.html#Typeof, $(D typeof))
+    $(LINK2 type.html#Typeof, $(D typeof))
 
     $(LINK2 type.html, $(D ubyte))
     $(LINK2 type.html, $(D ucent))
