@@ -2764,8 +2764,6 @@ static uint storelength(uint length,uint i)
     if (length >= 128)  // Microsoft docs say 129, but their linker
                         // won't take >=128, so accommodate it
     {   obj.extdata[i] = 129;
-        debug
-        assert(length <= 0xFFFF);
 
         TOWORD(obj.extdata.ptr + i + 1,length);
         if (length >= 0x10000)
