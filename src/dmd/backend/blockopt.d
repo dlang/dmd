@@ -932,6 +932,22 @@ private void bropt()
                 pn = &((*pn).EV.E2);
 
         elem *n = *pn;
+
+        /* look for conditional that never returns */
+        if (n && tybasic(n.Ety) == TYnoreturn && b.BC != BCexit)
+        {
+            b.BC = BCexit;
+            // Exit block has no successors, so remove them
+            foreach (bp; ListRange(b.Bsucc))
+            {
+                list_subtract(&(list_block(bp).Bpred),b);
+            }
+            list_free(&b.Bsucc, FPNULL);
+            debug if (debugc) printf("CHANGE: noreturn becomes BCexit\n");
+            go.changes++;
+            continue;
+        }
+
         if (b.BC == BCiftrue)
         {
             assert(n);
