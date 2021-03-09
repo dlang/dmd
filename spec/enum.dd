@@ -11,7 +11,7 @@ $(GNAME EnumDeclaration):
     $(GLINK AnonymousEnumDeclaration)
 
 $(GNAME EnumBaseType):
-    $(GLINK2 declaration, Type)
+    $(GLINK2 type, Type)
 
 $(GNAME EnumBody):
     $(D {) $(GLINK EnumMembers) $(D })
@@ -47,7 +47,7 @@ $(GNAME AnonymousEnumMembers):
 
 $(GNAME AnonymousEnumMember):
     $(GLINK EnumMember)
-    $(GLINK2 declaration, Type) $(GLINK_LEX Identifier) $(D =) $(ASSIGNEXPRESSION)
+    $(GLINK2 type, Type) $(GLINK_LEX Identifier) $(D =) $(ASSIGNEXPRESSION)
 )
 
         $(P Enum declarations are used to define a group of constants.

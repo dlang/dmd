@@ -529,7 +529,7 @@ $(GNAME MixinType):
         as a string.
         The resulting strings are concatenated to form a string.
         The text contents of the string must be compilable as a valid
-        $(GLINK2 declaration, Type), and is compiled as such.)
+        $(GLINK2 type, Type), and is compiled as such.)
 
         ---
         void test(mixin("int")* p) // int* p

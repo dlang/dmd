@@ -82,7 +82,7 @@ $(GNAME TraitsArguments):
 
 $(GNAME TraitsArgument):
     $(GLINK2 expression, AssignExpression)
-    $(GLINK2 declaration, Type)
+    $(GLINK2 type, Type)
 )
 
 $(H2 $(GNAME isArithmetic))
