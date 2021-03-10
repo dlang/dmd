@@ -303,7 +303,7 @@ $(GNAME WhileStatement):
 
 $(P A $(I While Statement) implements a simple loop.)
 
-$(P If the $(IfCondition) is an $(EXPRESSION), it is evaluated and must have a type
+$(P If the $(GLINK IfCondition) is an $(EXPRESSION), it is evaluated and must have a type
 that can be converted to a boolean. If it's true the $(PSSCOPE) is executed.
 After the $(PSSCOPE) is executed, the $(EXPRESSION) is evaluated again, and
 if true the $(PSSCOPE) is executed again. This continues until the $(EXPRESSION)
@@ -333,7 +333,7 @@ initialized to the end of the $(PSSCOPE).)
 
 $(P A $(GLINK BreakStatement) will exit the loop.)
 
-$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(IfCondition) again.)
+$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(GLINK IfCondition) again.)
 
 $(H2 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
