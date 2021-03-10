@@ -299,6 +299,7 @@ extern(C):
      */
     pragma(mangle, "gc_minimize") static void minimize() nothrow; /* FIXME pure */
 
+extern(D):
 
     /**
      * Elements for a bit field representing memory block attributes.  These
@@ -436,6 +437,7 @@ extern(C):
         return gc_clrAttr( p, a );
     }
 
+extern(C):
 
     /**
      * Requests an aligned block of managed memory from the garbage collector.
@@ -649,6 +651,7 @@ extern(C):
      */
     pragma(mangle, "gc_free") static void free(void* p) pure nothrow @nogc;
 
+extern(D):
 
     /**
      * Returns the base address of the memory block containing p.  This value
@@ -758,6 +761,8 @@ extern(C):
     {
         return gc_profileStats();
     }
+
+extern(C):
 
     /**
      * Adds an internal root pointing to the GC memory block referenced by p.
