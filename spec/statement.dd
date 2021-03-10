@@ -303,11 +303,10 @@ $(GNAME WhileStatement):
 
 $(P A $(I While Statement) implements a simple loop.)
 
-$(P If the $(IfCondition) is an $(EXPRESSION), it is evaluated and must have a type
-that can be converted to a boolean. If it's true the $(PSSCOPE) is executed.
-After the $(PSSCOPE) is executed, the $(EXPRESSION) is evaluated again, and
-if true the $(PSSCOPE) is executed again. This continues until the $(EXPRESSION)
-evaluates to false.)
+$(P $(EXPRESSION) is evaluated and must have a type that can be converted to a
+boolean. If it's true the $(PSSCOPE) is executed. After the $(PSSCOPE) is
+executed, the $(EXPRESSION) is evaluated again, and if true the $(PSSCOPE) is
+executed again. This continues until the $(EXPRESSION) evaluates to false.)
 
 ---
 int i = 0;
@@ -318,22 +317,15 @@ while (i < 10)
 }
 ---
 
-$(P If an $(D auto) $(I Identifier) is provided, it is declared and
-initialized to the value and type of the $(EXPRESSION). Its scope
-extends from when it is initialized to the end of the $(PSSCOPE).)
+    $(P A $(GLINK BreakStatement) will exit the loop.)
 
-$(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
-to be of the type specified by $(I TypeCtors) and is initialized with
-the value of the $(EXPRESSION). Its scope extends from when it is
-initialized to the end of the $(PSSCOPE).)
-
-$(P If a $(I Declarator) is provided, it is declared and initialized
-to the value of the $(EXPRESSION). Its scope extends from when it is
-initialized to the end of the $(PSSCOPE).)
-
-$(P A $(GLINK BreakStatement) will exit the loop.)
-
-$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(IfCondition) again.)
+    $(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(EXPRESSION) again.)
+    
+    $(P A $(I While Statement) is equivalent to:)
+    
+    ---
+    for (; Expression; ) ScopeStatement
+    ---
 
 $(H2 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
