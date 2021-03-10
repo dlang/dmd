@@ -320,9 +320,9 @@ while (i < 10)
     $(P A $(GLINK BreakStatement) will exit the loop.)
 
     $(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(EXPRESSION) again.)
-    
+
     $(P A $(I While Statement) is equivalent to:)
-    
+
     ---
     for (; Expression; ) ScopeStatement
     ---
