@@ -669,14 +669,15 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         )
 
     $(P The $(D_KEYWORD inout) keyword forms a wildcard that stands in for
-        one of these modifiers: mutable, `const`, `immutable`, `inout`, or `inout const`.
-        When calling the function, the `inout` modifier of the return type is changed to
-        match one of the above modifiers in the argument type to the `inout` parameter.
+        mutable, `const`, `immutable`, `inout`, or `inout const`.
+        When calling the function, the `inout` state of the return type is changed to
+        match that of the argument type passed to the `inout` parameter.
     )
 
     $(P `inout` can also be used as a type constructor inside a function that has a
-        parameter declared with `inout`. Again, the `inout` modifier is changed to match
-        one of the listed modifiers in the argument type to the `inout` parameter.
+        parameter declared with `inout`. The `inout` state of a type declared with
+        `inout` is changed to match that of the argument type passed to the `inout`
+        parameter:
     )
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
