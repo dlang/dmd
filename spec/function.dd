@@ -683,12 +683,12 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        inout(int)[] repeat(inout(int)[] a, size_t n)
+        inout(int)[] asymmetric(inout(int)[] input_data)
         {
-            inout(int)[] result;
-            foreach (i; 0..n)
-                result ~= a;
-            return result;
+            inout(int)[] r = input_data;
+            while (r.length > 1 && r[0] == r[$-1])
+                r = r[1..$-1];
+            return r;
         }
         ---
         )
