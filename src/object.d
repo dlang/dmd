@@ -4192,8 +4192,8 @@ nothrow unittest
 }
 
 /// ditto
-void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj)
-if (!is(T == struct) && !is(T == class) && !is(T == interface))
+void destroy(bool initialize = true, T)(ref T obj)
+if (__traits(isStaticArray, T))
 {
     foreach_reverse (ref e; obj[])
         destroy!initialize(e);
