@@ -697,7 +697,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         Casting to or from `inout` is not allowed in `@safe` functions.
     )
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         void f(inout int* ptr)
         {
