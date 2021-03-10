@@ -156,15 +156,9 @@ else version (Haiku)
 else
 {
     ///
-    @property int errno() { return getErrno(); }
+    extern(C) pragma(mangle, "getErrno") @property int errno();
     ///
-    @property int errno(int n) { return setErrno(n); }
-
-    extern (C)
-    {
-        private int getErrno();      // for internal use
-        private int setErrno(int);   // for internal use
-    }
+    extern(C) pragma(mangle, "setErrno") @property int errno(int n);
 }
 
 extern (C):
