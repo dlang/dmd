@@ -4093,10 +4093,16 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         reg_t preg = s.Spreg;
         foreach (i; 0 .. 2)     // twice, once for each possible parameter register
         {
+            static type* type_arrayBase(type* ta)
+            {
+                while (tybasic(ta.Tty) == TYarray)
+                    ta = ta.Tnext;
+                return ta;
+            }
             shadowregm |= mask(preg);
-            opcode_t op = 0x89;                  // MOV x[EBP],preg
-            if (isXMMreg(preg))
-                op = xmmstore((t.Tty & TYarray) && t.Tnext ? t.Tnext.Tty : t.Tty);
+            const opcode_t op = isXMMreg(preg)
+                ? xmmstore(type_arrayBase(t).Tty)
+                : 0x89;    // MOV x[EBP],preg
             if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
             {
                 if (hasframe && (!enforcealign || s.Sclass == SCshadowreg))
