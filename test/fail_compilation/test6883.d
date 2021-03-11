@@ -1,14 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test6883.d(19): Error: array index 5 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(19): Error: array index 5 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(21): Error: array index 7 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(21): Error: array index 7 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(25): Error: array index 5 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(25): Error: array index 5 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(27): Error: array index 7 is out of bounds `x[0 .. 5]`
-fail_compilation/test6883.d(27): Error: array index 7 is out of bounds `x[0 .. 5]`
+fail_compilation/test6883.d(15): Error: array index 5 is out of bounds `x[0 .. 5]`
+fail_compilation/test6883.d(17): Error: array index 7 is out of bounds `x[0 .. 5]`
+fail_compilation/test6883.d(21): Error: array index 5 is out of bounds `x[0 .. 5]`
+fail_compilation/test6883.d(23): Error: array index 7 is out of bounds `x[0 .. 5]`
 ---
 */
 
