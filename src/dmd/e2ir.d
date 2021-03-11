@@ -3627,13 +3627,38 @@ elem *toElem(Expression e, IRState *irs)
                 eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
 
             tym_t ty = eleft.Ety;
+            if (tybasic(ty) == TYnoreturn)
+                ty = eright.Ety;
             if (ce.e1.type.toBasetype().ty == Tvoid ||
                 ce.e2.type.toBasetype().ty == Tvoid)
                 ty = TYvoid;
 
-            elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
-            if (tybasic(ty) == TYstruct)
-                e.ET = Type_toCtype(ce.e1.type);
+            elem* e;
+            if (tybasic(eleft.Ety) == TYnoreturn &&
+                tybasic(eright.Ety) != TYnoreturn)
+            {
+                /* ec ? eleft : eright => (ec && eleft),eright
+                 */
+                e = el_bin(OPandand, TYvoid, ec, eleft);
+                e = el_combine(e, eright);
+                if (tybasic(ty) == TYstruct)
+                    e.ET = Type_toCtype(ce.e2.type);
+            }
+            else if (tybasic(eright.Ety) == TYnoreturn)
+            {
+                /* ec ? eleft : eright => (ec || eright),eleft
+                 */
+                e = el_bin(OPoror, TYvoid, ec, eright);
+                e = el_combine(e, eleft);
+                if (tybasic(ty) == TYstruct)
+                    e.ET = Type_toCtype(ce.e1.type);
+            }
+            else
+            {
+                e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
+                if (tybasic(ty) == TYstruct)
+                    e.ET = Type_toCtype(ce.e1.type);
+            }
             elem_setLoc(e, ce.loc);
             result = e;
         }

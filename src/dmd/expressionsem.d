@@ -11500,11 +11500,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1 = exp.e1.type;
         Type t2 = exp.e2.type;
+        if (t1.ty == Tnoreturn)
+        {
+            exp.type = t2;
+        }
+        else if (t2.ty == Tnoreturn)
+        {
+            exp.type = t1;
+        }
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
         // value if any
         // https://issues.dlang.org/show_bug.cgi?id=16598
-        if (t1.ty == Tvoid || t2.ty == Tvoid)
+        else if (t1.ty == Tvoid || t2.ty == Tvoid)
         {
             exp.type = Type.tvoid;
             exp.e1 = exp.e1.castTo(sc, exp.type);
