@@ -253,11 +253,11 @@ jobs:
         curl https://cli-assets.heroku.com/apt/release.key | sudo apt-key add -
         # Make sure we have the essentials
         sudo apt-get update
-        sudo apt-get install build-essential software-properties-common -y
+        sudo apt-get install -f build-essential software-properties-common aptitude -y
         # This ppa provides multiple versions of g++
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt-get update
-        sudo apt-get install ${{ matrix.target }} ${{ matrix.target }}-multilib
+        sudo aptitude install -y ${{ matrix.target }} ${{ matrix.target }}-multilib
         echo "CC=${{ matrix.target }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.target }}" >> $GITHUB_ENV
 
