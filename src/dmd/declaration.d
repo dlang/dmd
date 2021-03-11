@@ -1459,16 +1459,14 @@ extern (C++) class VarDeclaration : Declaration
                     // delete'ing C++ classes crashes (and delete is deprecated anyway)
                     if (cd.classKind == ClassKind.cpp)
                     {
-                        // Lower dtor call as `.destroy!(false, typeof(this))(this)`
-                        auto tiargs = new Objects(2);
-                        (*tiargs)[0] = IntegerExp.createBool(false);
-                        (*tiargs)[1] = this.type;
+                        // Don't call non-existant dtor
+                        if (!cd.dtor)
+                            break;
 
-                        auto empty = new IdentifierExp(this.loc, Id.empty);
-                        auto destroy = new DotIdExp(this.loc, empty, Id.object);
-
-                        auto dt = new DotTemplateInstanceExp(loc, destroy, Id.destroy, tiargs);
-                        e = CallExp.create(loc, dt, new VarExp(loc, this));
+                        e = new VarExp(loc, this);
+                        e.type = e.type.mutableOf().unSharedOf(); // Hack for mutable ctor on immutable instances
+                        e = new DotVarExp(loc, e, cd.dtor, false);
+                        e = new CallExp(loc, e);
                         break;
                     }
 
