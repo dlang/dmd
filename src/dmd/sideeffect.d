@@ -332,16 +332,10 @@ bool discardValue(Expression e)
     case TOK.comma:
         {
             CommaExp ce = cast(CommaExp)e;
-            /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
-             * In such cases, only check e for side effect (it's OK for __tmp to have
-             * no side effect).
-             * See https://issues.dlang.org/show_bug.cgi?id=4231 for discussion
-             */
-            auto fc = firstComma(ce);
-            if (fc.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)fc).declaration == (cast(VarExp)ce.e2).var)
-            {
+            // Don't complain about compiler-generated comma expressions
+            if (ce.isGenerated)
                 return false;
-            }
+
             // Don't check e1 until we cast(void) the a,b code generation.
             // This is concretely done in expressionSemantic, if a CommaExp has Tvoid as type
             return discardValue(ce.e2);
