@@ -1,4 +1,0 @@
-DMD's JSON output will now always include the protection level
-
-In previous release, the JSON output the compiler generates did not include
-the protection level if it was `public`. It is now always included.

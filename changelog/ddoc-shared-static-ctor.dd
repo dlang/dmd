@@ -1,9 +1,0 @@
-DMD's JSON output now have distinct types for [shared] module constructor/destructor
-
-Previously, module constructors and destructors (shared or not) would be output as
-functions, and the only way for documentation generators to recognize them was
-to search for the pattern that was used for their naming.
-This means that external tools would need to depend on internal compiler details
-for generating documentation.
-From this release, 4 new values have been introduced for `kind`:
-`shared static constructor`, `shared static destructor`, `static constructor`, `static destructor`.

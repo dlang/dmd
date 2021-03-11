@@ -1,9 +1,0 @@
-Deprecate local templates that receive local symbols by alias
-
-Support for instantiating local and member templates with local
-symbols was implemented in DMD 2.087.0. However, the implementation
-was incompatible with GDC and LDC backends.
-
-In order to maintain feature parity among D implementations, this
-improvement has been deprecated, and may be removed from a future DMD
-release.

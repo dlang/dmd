@@ -1,7 +1,0 @@
-D ABI change on x86_64 Posix targets
-
-The compiler has been updated to return the real part of `creal` numbers in
-ST0, and the imaginary part in ST1, to match the x86_64 System V ABI.
-
-This is an ABI breaking change and requires recompiling libraries that make use
-of the `creal` type.
