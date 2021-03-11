@@ -1012,7 +1012,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (keepLvalue && ex.op == TOK.arrayLiteral)
                 return;
             ret = Index(e.type, ex, e.e2).copy();
-            if (CTFEExp.isCantExp(ret) || (keepLvalue && !ret.isLvalue()))
+            if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
                 ret = e;
         }
 
