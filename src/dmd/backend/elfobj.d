@@ -3366,6 +3366,20 @@ void ElfObj_moduleinfo(Symbol *scc)
 }
 
 /***************************************
+ * Stuff pointer to DEH into its own section (deh).
+ */
+void ElfObj_dehinfo(Symbol *scc)
+{
+    const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
+
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const shf_flags = SHF_ALLOC | SHF_WRITE;
+    const seg = ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+    SegData[seg].SDoffset +=
+        ElfObj_reftoident(seg, SegData[seg].SDoffset, scc, 0, CFflags);
+}
+
+/***************************************
  * Create startup/shutdown code to register an executable/shared
  * library (DSO) with druntime. Create one for each object file and
  * put the sections into a COMDAT group. This will ensure that each
@@ -3378,9 +3392,25 @@ private void obj_rtinit()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
+    static if (TARGET_OPENBSD)
+    {
+        IDXSYM deh_beg, deh_end;
+    }
+
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
+
+    static if (TARGET_OPENBSD)
+    {
+        const namidx3 = ElfObj_addstr(symtab_strings,"__start_deh");
+        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+
+        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+
+        const namidx4 = ElfObj_addstr(symtab_strings,"__stop_deh");
+        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    }
 
     const namidx = ElfObj_addstr(symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
@@ -3532,7 +3562,14 @@ private void obj_rtinit()
             reltype = I64 ? R_X86_64_32 : R_386_32;
         }
 
-        const IDXSYM[3] syms = [dso_rec, minfo_beg, minfo_end];
+        static if (TARGET_OPENBSD)
+        {
+            const IDXSYM[5] syms = [dso_rec, minfo_beg, minfo_end, deh_beg, deh_end];
+        }
+        else
+        {
+            const IDXSYM[3] syms = [dso_rec, minfo_beg, minfo_end];
+        }
 
         for (size_t i = (syms).sizeof / (syms[0]).sizeof; i--; )
         {

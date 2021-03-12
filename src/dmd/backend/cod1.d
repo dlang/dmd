@@ -2836,7 +2836,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         }
         if (pushebx)
         {
-            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64))
+            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64))
             {
                 cdb.gen1(0x50 + CX);                             // PUSH ECX
                 cdb.gen1(0x50 + BX);                             // PUSH EBX
@@ -3304,7 +3304,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
     /* Assume called function access statics
      */
-    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64) &&
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64) &&
         config.flags3 & CFG3pic)
         cgstate.accessedTLS = true;
 

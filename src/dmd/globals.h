@@ -34,8 +34,8 @@ enum
     TargetOS_DragonFlyBSD = 0x40,
 
     // Combination masks
-    all = TargetOS_linux | TargetOS_Windows | TargetOS_OSX | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
-    Posix = TargetOS_linux | TargetOS_OSX | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
+    all = TargetOS_linux | TargetOS_Windows | TargetOS_OSX | TargetOS_OpenBSD | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
+    Posix = TargetOS_linux | TargetOS_OSX | TargetOS_OpenBSD | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
 };
 
 

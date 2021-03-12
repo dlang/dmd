@@ -1999,8 +1999,8 @@ enum class TargetOS : uint8_t
     FreeBSD = 16u,
     Solaris = 32u,
     DragonFlyBSD = 64u,
-    all = 119u,
-    Posix = 117u,
+    all = 127u,
+    Posix = 125u,
 };
 
 extern Module* rootHasMain;
@@ -6736,8 +6736,8 @@ enum class TargetOS : uint8_t
     FreeBSD = 16u,
     Solaris = 32u,
     DragonFlyBSD = 64u,
-    all = 119u,
-    Posix = 117u,
+    all = 127u,
+    Posix = 125u,
 };
 
 enum class TARGET : bool

@@ -1338,7 +1338,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
     }
     else if (params.targetOS == TargetOS.DragonFlyBSD)
     {

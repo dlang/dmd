@@ -743,6 +743,11 @@ public int runLINK()
             // Link against libdl for phobos usage of dlopen
             argv.push("-ldl");
         }
+        else version (OpenBSD)
+        {
+            // Link against -lc++abi for Unwind symbols
+            argv.push("-lc++abi");
+        }
         if (global.params.verbose)
         {
             // Print it

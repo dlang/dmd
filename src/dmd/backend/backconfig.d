@@ -221,7 +221,7 @@ static if (TARGET_OPENBSD)
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
 }
 static if (TARGET_DRAGONFLYBSD)
 {

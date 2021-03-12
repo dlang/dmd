@@ -32,8 +32,8 @@ enum TargetOS : ubyte
     DragonFlyBSD = 0x40,
 
     // Combination masks
-    all = linux | Windows | OSX | FreeBSD | Solaris | DragonFlyBSD,
-    Posix = linux | OSX | FreeBSD | Solaris | DragonFlyBSD,
+    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
 }
 
 template xversion(string s)

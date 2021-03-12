@@ -173,7 +173,7 @@ extern (C++) struct Target
             assert(0);
         if (params.is64bit)
         {
-            if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+            if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
             {
                 realsize = 16;
                 realpad = 6;
@@ -755,7 +755,7 @@ extern (C++) struct Target
     extern (C++) ulong parameterSize(const ref Loc loc, Type t)
     {
         if (!params.is64bit &&
-            (params.targetOS & (TargetOS.FreeBSD | TargetOS.OSX)))
+            (params.targetOS & (TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.OSX)))
         {
             /* These platforms use clang, which regards a struct
              * with size 0 as being of size 0 on the parameter stack,
@@ -962,7 +962,7 @@ struct TargetC
             assert(0);
         if (params.is64bit)
         {
-            if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+            if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
                 longsize = 8;
             else if (params.targetOS == TargetOS.OSX)
                 longsize = 8;
