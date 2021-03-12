@@ -905,6 +905,8 @@ $(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
         Foo!(uint);      // instantiate Foo with T as uint, and U as uint*
         ------
 
+    $(P See also: $(RELATIVE_LINK2 function-default, Function Template Default Arguments).)
+
 $(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
 
     $(P If a template contains members whose name is the same as the
@@ -1034,7 +1036,7 @@ $(H2 $(LNAME2 function-templates, Function Templates))
     $(P A function template to compute the square of type $(I T) is:)
 
         ------
-        T $(CODE_HIGHLIGHT Square)(T)(T t)
+        T $(CODE_HIGHLIGHT square)(T)(T t)
         {
             return t * t;
         }
@@ -1043,9 +1045,9 @@ $(H2 $(LNAME2 function-templates, Function Templates))
     $(P It is lowered to:)
 
         ------
-        template $(CODE_HIGHLIGHT Square)(T)
+        template $(CODE_HIGHLIGHT square)(T)
         {
-            T $(CODE_HIGHLIGHT Square)(T t)
+            T $(CODE_HIGHLIGHT square)(T t)
             {
                 return t * t;
             }
@@ -1056,50 +1058,52 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         !($(I TemplateArgumentList)):)
 
         ----
-        writefln("The square of %s is %s", 3, Square!(int)(3));
+        writefln("The square of %s is %s", 3, square!(int)(3));
         ----
 
-    or implicitly, where the $(I TemplateArgumentList) is deduced
-        from the types of the function arguments:
+$(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
+
+    $(P Function templates can be $(I implicitly) instantiated if the
+        $(I TemplateArgumentList) is deducible from the types of the
+        function arguments:)
 
         ----
-        writefln("The square of %s is %s", 3, Square(3));  // T is deduced to be int
+        T square(T)(T t)
+        {
+            return t * t;
+        }
+
+        writefln("The square of %s is %s", 3, square(3));  // T is deduced to be int
         ----
 
-    $(P If there are fewer arguments supplied in the $(I TemplateArgumentList)
-        than parameters in the $(I TemplateParameterList), the arguments fulfill
-        parameters from left to right, and the rest of the parameters are then deduced
-        from the function arguments.
+    $(P Type parameter deduction is not influenced by the order of function
+        arguments.
     )
 
-    $(P The process of deducing template type parameters from function arguments
-        is called Implicit Function Template Instantiation (IFTI).
+    $(P If there are fewer arguments supplied in the $(I TemplateArgumentList)
+        than parameters in the $(I TemplateParameterList), the arguments fill
+        parameters from left to right, and the rest of the parameters are then deduced
+        from the function arguments.
     )
 
     $(P Function template type parameters that are to be implicitly
         deduced may not have specializations:)
 
         ------
-        void $(CODE_HIGHLIGHT Foo)(T : T*)(T t) { ... }
+        void $(CODE_HIGHLIGHT foo)(T : T*)(T t) { ... }
 
         int x,y;
-        Foo!(int*)(x);   // ok, T is not deduced from function argument
-        Foo(&y);         // error, T has specialization
+        foo!(int*)(x);   // ok, T is not deduced from function argument
+        foo(&y);         // error, T has specialization
         ------
 
-    $(P Template arguments not implicitly deduced can have default values:)
-
-        ------
-        void $(CODE_HIGHLIGHT Foo)(T, U=T*)(T t) { U p; ... }
-
-        int x;
-        Foo(x);    // T is int, U is int*
-        ------
+$(H4 $(LNAME2 ifti-conversions, Type Conversions))
 
     $(P If template type parameters match the literal expressions on function arguments,
         the deduced types may consider narrowing conversions of them.
     )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
         void foo(T)(T v)        { pragma(msg, "in foo, T = ", T); }
         void bar(T)(T v, T[] a) { pragma(msg, "in bar, T = ", T); }
@@ -1119,11 +1123,12 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         // and the integer literal 1 is implicitly convertible to double.
         // then T will be deduced to double.
         ------
-
+    )
 
     $(P The deduced type parameter for dynamic array and pointer arguments
         has an unqualified head:)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
         void foo(T)(T arg) { pragma(msg, T); }
 
@@ -1141,10 +1146,9 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         foo(cptr);  // T == const(int)*
         foo(iptr);  // T == immutable(int)*
         ------
-
-    $(P Type parameter deduction is not influenced by the order of function
-        arguments.
     )
+
+$(H3 $(LNAME2 return-deduction, Return Type Deduction))
 
     $(P Function templates can have their return types deduced based on the
         $(GLINK2 statement, ReturnStatement)s in the function, just as with
@@ -1152,12 +1156,28 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         See $(DDSUBLINK function, auto-functions, Auto Functions).
     )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        auto $(CODE_HIGHLIGHT Square)(T)(T t)
+        auto square(T)(T t)
         {
             return t * t;
         }
+
+        auto i = square(2);
+        static assert(is(typeof(i) == int));
         ---
+    )
+
+$(H3 $(LNAME2 function-default, Default Arguments))
+
+    $(P Template arguments not implicitly deduced can have default values:)
+
+        ------
+        void $(CODE_HIGHLIGHT foo)(T, U=T*)(T t) { U p; ... }
+
+        int x;
+        foo(x);    // T is int, U is int*
+        ------
 
     $(P Variadic Function Templates can have parameters with default values.
         These parameters are always set to their default value in case of IFTI.
@@ -1171,8 +1191,9 @@ $(H2 $(LNAME2 function-templates, Function Templates))
             writeln(file, " ", t);
             return T.length;
         }
+
         assert(fun(1, "foo") == 2);  // uses IFTI
-        assert(fun!int(1, "foo") == 1);  // no IFTI
+        assert(fun!int(1, "filename") == 1);  // no IFTI
         ---
         )
 
