@@ -910,7 +910,6 @@ int os_critsecsize32()
 
 int os_critsecsize64()
 {
-    assert(0);
     return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
 }

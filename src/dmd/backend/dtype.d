@@ -319,7 +319,7 @@ L1:
  */
 bool type_zeroSize(type *t, tym_t tyf)
 {
-    if (tyf != TYjfunc && config.exe & (EX_FREEBSD | EX_OSX))
+    if (tyf != TYjfunc && config.exe & (EX_FREEBSD | EX_OPENBSD | EX_OSX))
     {
         /* Use clang convention for 0 size structs
          */
