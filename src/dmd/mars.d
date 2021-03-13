@@ -2952,9 +2952,9 @@ Modules createModules(ref Strings files, ref Strings libmodules)
     Modules modules;
     modules.reserve(files.dim);
     bool firstmodule = true;
-    for (size_t i = 0; i < files.dim; i++)
+    foreach(file; files)
     {
-        auto m = createModule(files[i], libmodules);
+        auto m = createModule(file, libmodules);
 
         if (m is null)
             continue;
