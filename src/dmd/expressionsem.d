@@ -6087,6 +6087,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 op = op.expressionSemantic(sc);
                 op = resolveProperties(sc, op);
 
+                // Detect assert's using static operator overloads (e.g. `"var" in environment`)
+                if (auto te = op.isTypeExp())
+                {
+                    // Replace the TypeExp with it's textual representation
+                    // Including "..." in the error message isn't quite right but
+                    // proper solutions require more drastic changes, e.g. directly
+                    // using miniFormat and combine instead of calling _d_assert_fail
+                    auto name = new StringExp(te.loc, te.toString());
+                    return name.expressionSemantic(sc);
+                }
+
                 // Create a temporary for expressions with side effects
                 // Defensively assume that function calls may have side effects even
                 // though it's not detected by hasSideEffect (e.g. `debug puts("Hello")` )
@@ -6111,6 +6122,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         // Sanity check that `op` can be converted to boolean
                         op.toBoolean(sc);
+                    }
+
+                    // Tuples with side-effects already receive a temporary during semantic
+                    if (op.type.isTypeTuple())
+                    {
+                        auto te = op.isTupleExp();
+                        assert(te);
+
+                        // Create a new tuple without the associated temporary
+                        auto res = new TupleExp(op.loc, te.exps);
+                        return res.expressionSemantic(sc);
                     }
 
                     const stc = op.isLvalue() ? STC.ref_ : 0;
@@ -9236,13 +9258,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetlengthTImpl, "resizing arrays"))
                 return setError();
 
+            exp.e2 = exp.e2.expressionSemantic(sc);
+            auto lc = lastComma(exp.e2);
+            lc = lc.optimize(WANTvalue);
             // use slice expression when arr.length = 0 to avoid runtime call
-            if(exp.e2.isConst() && exp.e2.toUInteger() == 0)
+            if(lc.op == TOK.int64 && lc.toInteger() == 0)
             {
-                IntervalExp ie = new IntervalExp(ale.loc, exp.e2, exp.e2);
-                Expression se = new SliceExp(ale.loc, ale.e1, ie);
+                Expression se = new SliceExp(ale.loc, ale.e1, lc, lc);
                 Expression as = new AssignExp(ale.loc, ale.e1, se);
-                auto res = as.expressionSemantic(sc);
+                as = as.expressionSemantic(sc);
+                auto res = Expression.combine(as, exp.e2);
+                res.type = ale.type;
                 return setResult(res);
             }
 

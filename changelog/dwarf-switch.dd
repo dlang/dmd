@@ -1,8 +1,0 @@
-Add `-gdwarf=<version>` switch for the DMD compiler.
-
-Emit DWARF symbolic debug info (non-Windows machines only).
-Supported versions are 3, 4, and 5.
-
-Once added, the `-g` switch is implicitly activated.
-
-Note: DWARF Version 5 is experimental.

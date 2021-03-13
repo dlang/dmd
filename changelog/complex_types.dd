@@ -1,5 +1,0 @@
-Added `__c_complex_float`, `__c_complex_double`, and `__c_complex_real` types
-
-This allows code interfacing with C and C++ to maintain ABI compatibility with
-`_Complex` types.  It replaces the built-in types `cfloat`, `cdouble`, and
-`creal` which are due to be deprecated.

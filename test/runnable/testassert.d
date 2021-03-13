@@ -296,6 +296,54 @@ void testTupleFormat()
         const msg = getMessage(assert(a.tupleof == b.tupleof));
         assert(msg == `(1, 2) != (3, 4)`);
     }
+
+    // Also works when creating temporaries for the TupleExp
+    {
+        static struct S
+        {
+            int a, b;
+        }
+
+        static S get()
+        {
+            static int i;
+            return S(i++, i++);
+        }
+
+        auto a = get().tupleof;
+        auto b = get().tupleof;
+
+        string msg = getMessage(assert(a == b));
+        assert(msg == `(0, 1) != (2, 3)`);
+
+        msg = getMessage(assert(get().tupleof == AliasSeq!(2, 3)));
+        assert(msg == `(4, 5) != (2, 3)`);
+
+        msg = getMessage(assert(get().tupleof == get().tupleof));
+        assert(msg == `(6, 7) != (8, 9)`);
+    }
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21682
+void testStaticOperators()
+{
+    static class environment {
+        static bool opCmp(scope const(char)[] name)
+        {
+            return false;
+        }
+
+        static bool opBinaryRight(string op : "in")(scope const(char)[] name)
+        {
+            return false;
+        }
+    }
+
+    string msg = getMessage(assert(environment < "Hello"));
+    assert(msg == `"environment" >= "Hello"`);
+
+    msg = getMessage(assert("Hello" in environment));
+    assert(msg == `"Hello" !in "environment"`);
 }
 
 void main()
@@ -309,4 +357,5 @@ void main()
     testUnaryFormat();
     testAssignments();
     testTupleFormat();
+    testStaticOperators();
 }

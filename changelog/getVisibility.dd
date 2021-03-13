@@ -1,9 +1,0 @@
-Introduced `__traits(getVisibility, Sym)` as an alias to `getProtection`
-
-Since the changes in v2.071.0, attributes such as `private`, `protected`, `public`,
-etc... are visibility attributes, and not protection attributes.
-However, the name of this trait predates such change and was thus inconsistent with
-all the other documentation.
-This change only introduce the new name, and `getProtection` has been left un-deprecated,
-and while using the new name is reccommended for users that only supports the latest
-version of the language, there is no plan to deprecate it.
