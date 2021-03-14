@@ -75,6 +75,7 @@ $(GNAME TraitsKeyword):
     $(GLINK derivedMembers)
     $(GLINK isSame)
     $(GLINK compiles)
+    $(GLINK toType)
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
@@ -1663,6 +1664,27 @@ void main()
         partial specialization allows for.)
         )
 
+$(H2 $(GNAME toType))
+
+        $(P Takes a single argument, which must evaluate to an expression of type `string`.
+        The contents of the string must correspond to the $(DDSUBLINK abi, name_mangling, mangled contents of a type)
+        that has been seen by the implementation.)
+
+        $(P Only D mangling is supported. Other manglings, such as C++ mangling, are not.)
+
+        $(P The value returned is a type.)
+
+        ---
+        template Type(T) { alias Type = T; }
+
+        Type!(__traits(toType, "i")) j = 3; // j is declared as type `int`
+
+        static assert(is(Type!(__traits(toType, (int*).mangleof)) == int*));
+
+        __traits(toType, "i") x = 4; // x is also declared as type `int`
+        ---
+
+        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK property, mangleof, `.mangleof`) property.)
 
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
