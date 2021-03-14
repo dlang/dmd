@@ -154,7 +154,7 @@ private void rdgenkill()
     foreach (b; dfo[])    // for each block
         if (b.Belem)
         {
-            deftop += numdefelems(b.Belem, &num_unambig_def);
+            deftop += numdefelems(b.Belem, num_unambig_def);
         }
 
     /* Allocate array of pointers to all definition elems   */
@@ -189,7 +189,7 @@ private void rdgenkill()
         vec_free(b.Boutrd);
 
         /* calculate and create new vectors */
-        rdelem(&(b.Bgen),&(b.Bkill),b.Belem);
+        rdelem(b.Bgen, b.Bkill, b.Belem);
         if (b.BC == BCasm)
         {
             vec_clear(b.Bkill);        // KILL nothing
@@ -202,9 +202,15 @@ private void rdgenkill()
 
 /**********************
  * Compute and return # of definition elems in e.
+ * Params:
+ *      e = elem tree to search
+ *      num_unambig_def = accumulate the number of unambiguous
+ *              definition elems
+ * Returns:
+ *      number of definition elems
  */
 
-private uint numdefelems(elem *e, uint *pnum_unambig_def)
+private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
 {
     uint n = 0;
     while (1)
@@ -214,11 +220,11 @@ private uint numdefelems(elem *e, uint *pnum_unambig_def)
         {
             ++n;
             if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
-                ++*pnum_unambig_def;
+                ++num_unambig_def;
         }
         if (OTbinary(e.Eoper))
         {
-            n += numdefelems(e.EV.E1, pnum_unambig_def);
+            n += numdefelems(e.EV.E1, num_unambig_def);
             e = e.EV.E2;
         }
         else if (OTunary(e.Eoper))
@@ -253,6 +259,7 @@ private void asgdefelems(block *b,elem *n)
     }
     else if (OTunary(op))
         asgdefelems(b,n.EV.E1);
+
     if (OTdef(op))
     {
         n.Edef = cast(uint)go.defnod.length;
@@ -292,15 +299,19 @@ private void initDNunambigVectors()
 
 /*************************************
  * Allocate and compute rd GEN and KILL.
+ * Params:
+ *      GEN = gen vector to create
+ *      KILL = kill vector to create
+ *      n = elem tree to evaluate for GEN and KILL
  */
 
-private void rdelem(vec_t *pgen,vec_t *pkill,   /* where to put result          */
-        elem *n)                                /* tree to evaluate for GEN and KILL */
+private void rdelem(out vec_t GEN, out vec_t KILL,
+        elem *n)
 {
-    *pgen = vec_calloc(go.defnod.length);
-    *pkill = vec_calloc(go.defnod.length);
+    GEN = vec_calloc(go.defnod.length);
+    KILL = vec_calloc(go.defnod.length);
     if (n)
-        accumrd(*pgen,*pkill,n);
+        accumrd(GEN, KILL, n);
 }
 
 /**************************************
@@ -318,8 +329,8 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
         if (op == OPcolon || op == OPcolon2)
         {
             vec_t Gl,Kl,Gr,Kr;
-            rdelem(&Gl,&Kl,n.EV.E1);
-            rdelem(&Gr,&Kr,n.EV.E2);
+            rdelem(Gl, Kl, n.EV.E1);
+            rdelem(Gr, Kr, n.EV.E2);
 
             switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
             {
@@ -371,9 +382,9 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
         }
         else if (op == OPandand || op == OPoror)
         {
-            vec_t Gr,Kr;
             accumrd(GEN,KILL,n.EV.E1);
-            rdelem(&Gr,&Kr,n.EV.E2);
+            vec_t Gr,Kr;
+            rdelem(Gr, Kr, n.EV.E2);
             if (el_returns(n.EV.E2))
                 vec_orass(GEN,Gr);      // GEN |= Gr
 
