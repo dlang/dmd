@@ -57,7 +57,7 @@ extern (C++):
 /* Since many routines are nearly identical, we can combine them with   */
 /* this flag:                                                           */
 
-enum
+private enum
 {
     AE = 1,
     CP,
@@ -68,8 +68,6 @@ enum
 private __gshared
 {
     int flowxx;              // one of the above values
-
-    vec_t ambigsym = null;
 }
 
 
@@ -1319,9 +1317,7 @@ private void lvgenkill()
 {
     /* Compute ambigsym, a vector of all variables that could be    */
     /* referenced by a *e or a call.                                */
-
-    assert(ambigsym == null);
-    ambigsym = vec_calloc(globsym.length);
+    vec_t ambigsym = vec_calloc(globsym.length);
     foreach (i; 0 .. globsym.length)
         if (!(globsym[i].Sflags & SFLunambig))
             vec_setbit(i,ambigsym);
@@ -1330,7 +1326,7 @@ private void lvgenkill()
     {
         vec_free(b.Bgen);
         vec_free(b.Bkill);
-        lvelem(&(b.Bgen),&(b.Bkill),b.Belem);
+        lvelem(&(b.Bgen),&(b.Bkill), b.Belem, ambigsym);
         if (b.BC == BCasm)
         {
             vec_set(b.Bgen);
@@ -1343,27 +1339,26 @@ private void lvgenkill()
         b.Boutlv = vec_calloc(globsym.length);
     }
 
-    vec_free(ambigsym);             /* dump any existing one        */
-    ambigsym = null;
+    vec_free(ambigsym);
 }
 
 /*****************************
  * Allocate and compute KILL and GEN for live variables.
  */
 
-private void lvelem(vec_t *pgen,vec_t *pkill,elem *n)
+private void lvelem(vec_t *pgen,vec_t *pkill,elem *n, const vec_t ambigsym)
 {
     *pgen = vec_calloc(globsym.length);
     *pkill = vec_calloc(globsym.length);
     if (n && globsym.length)
-        accumlv(*pgen,*pkill,n);
+        accumlv(*pgen, *pkill, n, ambigsym);
 }
 
 /**********************************************
  * Accumulate GEN and KILL sets for LVs for this elem.
  */
 
-private void accumlv(vec_t GEN,vec_t KILL,elem *n)
+private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
 {
     assert(GEN && KILL && n);
 
@@ -1388,8 +1383,8 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPcolon2:
             {
                 vec_t Gl,Kl,Gr,Kr;
-                lvelem(&Gl,&Kl,n.EV.E1);
-                lvelem(&Gr,&Kr,n.EV.E2);
+                lvelem(&Gl,&Kl,n.EV.E1,ambigsym);
+                lvelem(&Gr,&Kr,n.EV.E2,ambigsym);
 
                 /* GEN |= (Gl | Gr) - KILL      */
                 /* KILL |= (Kl & Kr) - GEN      */
@@ -1412,8 +1407,8 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPoror:
             {
                 vec_t Gr,Kr;
-                accumlv(GEN,KILL,n.EV.E1);
-                lvelem(&Gr,&Kr,n.EV.E2);
+                accumlv(GEN,KILL,n.EV.E1,ambigsym);
+                lvelem(&Gr,&Kr,n.EV.E2,ambigsym);
 
                 /* GEN |= Gr - KILL     */
                 /* KILL |= 0            */
@@ -1437,14 +1432,14 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPmemcpy:
             case OPmemset:
                 debug assert(OTrtol(op));
-                accumlv(GEN,KILL,n.EV.E2);
-                accumlv(GEN,KILL,n.EV.E1);
+                accumlv(GEN,KILL,n.EV.E2,ambigsym);
+                accumlv(GEN,KILL,n.EV.E1,ambigsym);
                 goto L1;
 
             case OPstrcat:
                 debug assert(!OTrtol(op));
-                accumlv(GEN,KILL,n.EV.E1);
-                accumlv(GEN,KILL,n.EV.E2);
+                accumlv(GEN,KILL,n.EV.E1,ambigsym);
+                accumlv(GEN,KILL,n.EV.E2,ambigsym);
             L1:
                 vec_orass(GEN,ambigsym);
                 vec_subass(GEN,KILL);
@@ -1454,10 +1449,10 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPstreq:
             {
                 /* Avoid GENing the lvalue of an =      */
-                accumlv(GEN,KILL,n.EV.E2);
+                accumlv(GEN,KILL,n.EV.E2,ambigsym);
                 elem *t = n.EV.E1;
                 if (t.Eoper != OPvar)
-                    accumlv(GEN,KILL,t.EV.E1);
+                    accumlv(GEN,KILL,t.EV.E1,ambigsym);
                 else /* unambiguous assignment */
                 {
                     Symbol* s = t.EV.Vsym;
@@ -1483,8 +1478,8 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             }
 
             case OPbt:                          // much like OPind
-                accumlv(GEN,KILL,n.EV.E1);
-                accumlv(GEN,KILL,n.EV.E2);
+                accumlv(GEN,KILL,n.EV.E1,ambigsym);
+                accumlv(GEN,KILL,n.EV.E2,ambigsym);
                 vec_orass(GEN,ambigsym);
                 vec_subass(GEN,KILL);
                 break;
@@ -1493,7 +1488,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
             case OPucall:
             case OPucallns:
             case OPstrlen:
-                accumlv(GEN,KILL,n.EV.E1);
+                accumlv(GEN,KILL,n.EV.E1,ambigsym);
 
                 /* If it was a *p elem, set bits in GEN for all symbols */
                 /* it could have referenced, but only if bits in KILL   */
@@ -1511,7 +1506,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
                 }
                 else if (OTrtol(op) && ERTOL(n))
                 {
-                    accumlv(GEN,KILL,n.EV.E2);
+                    accumlv(GEN,KILL,n.EV.E2,ambigsym);
 
                     /* Note that lvalues of op=,i++,i-- elems */
                     /* are GENed.                               */
@@ -1520,7 +1515,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
                 }
                 else if (OTbinary(op))
                 {
-                    accumlv(GEN,KILL,n.EV.E1);
+                    accumlv(GEN,KILL,n.EV.E1,ambigsym);
                     n = n.EV.E2;
                     continue;
                 }
