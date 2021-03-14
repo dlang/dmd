@@ -1,4 +1,7 @@
 // REQUIRED_ARGS: -preview=dtorfields
+//
+// https://issues.dlang.org/show_bug.cgi?id=21709
+// PERMUTE_ARGS: -betterC
 
 /******************************************
  * https://issues.dlang.org/show_bug.cgi?id=20934
