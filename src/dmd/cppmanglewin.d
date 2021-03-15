@@ -501,6 +501,23 @@ public:
 
 private:
 extern(D):
+
+    void mangleVisibility(Declaration d, string privProtDef)
+    {
+        switch (d.visibility.kind)
+        {
+            case Visibility.Kind.private_:
+                buf.writeByte(privProtDef[0]);
+                break;
+            case Visibility.Kind.protected_:
+                buf.writeByte(privProtDef[1]);
+                break;
+            default:
+                buf.writeByte(privProtDef[2]);
+                break;
+        }
+    }
+
     void mangleFunction(FuncDeclaration d)
     {
         // <function mangle> ? <qualified name> <flags> <return type> <arg list>
@@ -514,33 +531,11 @@ extern(D):
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
             if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
-                switch (d.visibility.kind)
-                {
-                case Visibility.Kind.private_:
-                    buf.writeByte('E');
-                    break;
-                case Visibility.Kind.protected_:
-                    buf.writeByte('M');
-                    break;
-                default:
-                    buf.writeByte('U');
-                    break;
-                }
+                mangleVisibility(d, "EMU");
             }
             else
             {
-                switch (d.visibility.kind)
-                {
-                case Visibility.Kind.private_:
-                    buf.writeByte('A');
-                    break;
-                case Visibility.Kind.protected_:
-                    buf.writeByte('I');
-                    break;
-                default:
-                    buf.writeByte('Q');
-                    break;
-                }
+                mangleVisibility(d, "AIQ");
             }
             if (global.params.is64bit)
                 buf.writeByte('E');
@@ -556,18 +551,7 @@ extern(D):
         else if (d.isMember2()) // static function
         {
             // <flags> ::= <virtual/protection flag> <calling convention flag>
-            switch (d.visibility.kind)
-            {
-            case Visibility.Kind.private_:
-                buf.writeByte('C');
-                break;
-            case Visibility.Kind.protected_:
-                buf.writeByte('K');
-                break;
-            default:
-                buf.writeByte('S');
-                break;
-            }
+            mangleVisibility(d, "CKS");
         }
         else // top-level function
         {
@@ -602,33 +586,14 @@ extern(D):
         }
         else
         {
-            switch (d.visibility.kind)
-            {
-            case Visibility.Kind.private_:
-                buf.writeByte('0');
-                break;
-            case Visibility.Kind.protected_:
-                buf.writeByte('1');
-                break;
-            default:
-                buf.writeByte('2');
-                break;
-            }
+            mangleVisibility(d, "012");
         }
-        char cv_mod = 0;
         Type t = d.type;
 
         if (checkImmutableShared(t))
             return;
 
-        if (t.isConst())
-        {
-            cv_mod = 'B'; // const
-        }
-        else
-        {
-            cv_mod = 'A'; // mutable
-        }
+        const cv_mod = t.isConst() ? 'B' : 'A';
         if (t.ty != Tpointer)
             t = t.mutableOf();
         t.accept(this);
