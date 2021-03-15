@@ -280,7 +280,7 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         checkShared();
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
-        dd.storage_class |= STC.inference;
+        dd.storage_class |= STC.inference | STC.scope_;
         dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, postblitCalls);
         sd.postblits.shift(dd);
         sd.members.push(dd);
