@@ -1,3 +1,0 @@
-The druntime option `callStructDtorsDuringGC` has been removed
-
-It had been deprecated in 2.088.

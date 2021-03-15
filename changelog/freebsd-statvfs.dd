@@ -1,3 +1,0 @@
-FreeBSD declarations from statvfs that belong in mount have been removed
-
-It had been deprecated in 2.082 in favor of `core.sys.freebsd.sys.mount`.
