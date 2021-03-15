@@ -79,6 +79,33 @@ struct Constant
     alias Repeat(T...) = T;
 }
 
+
+/************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=19387
+
+struct C
+{
+  void* u;
+  this(this) @safe
+  {
+  }
+}
+
+struct S
+{
+  C c;
+}
+
+void foo(scope S s) @safe
+{
+}
+
+void bar(scope S s) @safe
+{
+  foo(s);
+}
+
 /************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=20675
