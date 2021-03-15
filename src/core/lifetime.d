@@ -1,5 +1,7 @@
 module core.lifetime;
 
+import core.internal.attributes : betterC;
+
 // emplace
 /**
 Given a pointer `chunk` to uninitialized memory (but already typed
@@ -17,6 +19,7 @@ T* emplace(T)(T* chunk) @safe pure nothrow
 }
 
 ///
+@betterC
 @system unittest
 {
     static struct S
@@ -63,6 +66,7 @@ T* emplace(T, Args...)(T* chunk, auto ref Args args)
 }
 
 ///
+@betterC
 @system unittest
 {
     int a;
@@ -70,6 +74,7 @@ T* emplace(T, Args...)(T* chunk, auto ref Args args)
     assert(*emplace!int(&a, b) == 42);
 }
 
+@betterC
 @system unittest
 {
     shared int i;
@@ -317,6 +322,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 
 // Bulk of emplace unittests starts here
 
+@betterC
 @system unittest /* unions */
 {
     static union U
@@ -348,6 +354,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     static assert( is(typeof(emplace!Bar(memory))));
 }
 
+@betterC
 @system unittest
 {
     struct S { @disable this(); }
@@ -356,6 +363,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     emplace(&s, S.init);
 }
 
+@betterC
 @system unittest
 {
     struct S1
@@ -506,6 +514,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 }
 
 // Test matching fields branch
+@betterC
 @system unittest
 {
     struct S { uint n; }
@@ -514,6 +523,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     assert(s.n == 2);
 }
 
+@betterC
 @safe unittest
 {
     struct S { int a, b; this(int){} }
@@ -521,6 +531,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     static assert(!__traits(compiles, emplace!S(&s, 2, 3)));
 }
 
+@betterC
 @system unittest
 {
     struct S { int a, b = 7; }
@@ -534,6 +545,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 }
 
 //opAssign
+@betterC
 @system unittest
 {
     static struct S
@@ -552,6 +564,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 }
 
 //postblit precedence
+@betterC
 @system unittest
 {
     //Works, but breaks in "-w -O" because of @@@9332@@@.
@@ -611,6 +624,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 }
 
 //disabled postblit
+@betterC
 @system unittest
 {
     static struct S1
@@ -661,6 +675,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 }
 
 //Imutability
+@betterC
 @system unittest
 {
     //Castable immutability
@@ -688,6 +703,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     }
 }
 
+@betterC
 @system unittest
 {
     static struct S
@@ -731,6 +747,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 }
 
 //Alias this
+@betterC
 @system unittest
 {
     static struct S
@@ -814,6 +831,7 @@ version (CoreUnittest)
 }
 
 //safety & nothrow & CTFE
+@betterC
 @system unittest
 {
     //emplace should be safe for anything with no elaborate opassign
@@ -870,7 +888,7 @@ version (CoreUnittest)
     assert(cc.i == 5);
 }
 
-
+@betterC
 @system unittest
 {
     struct S
@@ -896,6 +914,7 @@ version (CoreUnittest)
 }
 
 //disable opAssign
+@betterC
 @system unittest
 {
     static struct S
@@ -907,6 +926,7 @@ version (CoreUnittest)
 }
 
 //opCall
+@betterC
 @system unittest
 {
     int i;
@@ -1073,6 +1093,7 @@ version (CoreUnittest)
     emplaceRef!(IS[2])(ss, iss[]);
 }
 
+@betterC
 pure nothrow @safe @nogc unittest
 {
     import core.internal.lifetime : emplaceRef;
@@ -1164,6 +1185,7 @@ pure nothrow @safe /* @nogc */ unittest
 }
 
 //constructor arguments forwarding
+@betterC
 @system unittest
 {
     static struct S
@@ -1266,6 +1288,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
 }
 
 ///
+@betterC
 @system pure nothrow @nogc unittest
 {
     int source = 123;
@@ -1275,6 +1298,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
 }
 
 ///
+@betterC
 @system pure nothrow @nogc unittest
 {
     immutable int[1][1] source = [ [123] ];
@@ -1284,6 +1308,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
 }
 
 ///
+@betterC
 @system pure nothrow @nogc unittest
 {
     struct S
@@ -1586,6 +1611,7 @@ template forward(args...)
     assert(baz(S(), makeS(), n, s) == "LLRRRL");
 }
 
+@betterC
 @safe unittest
 {
     ref int foo(return ref int a) { return a; }
@@ -1599,6 +1625,7 @@ template forward(args...)
 }
 
 ///
+@betterC
 @safe unittest
 {
     struct X {
@@ -1666,6 +1693,7 @@ template forward(args...)
 }
 
 // lazy -> lazy
+@betterC
 @safe unittest
 {
     int foo1(lazy int i) { return i; }
@@ -1678,6 +1706,7 @@ template forward(args...)
 }
 
 // lazy -> non-lazy
+@betterC
 @safe unittest
 {
     int foo1(int a, int b) { return a + b; }
@@ -1690,6 +1719,7 @@ template forward(args...)
 }
 
 // non-lazy -> lazy
+@betterC
 @safe unittest
 {
     int foo1(int a, lazy int b) { return a + b; }
@@ -1700,6 +1730,7 @@ template forward(args...)
 }
 
 // out
+@betterC
 @safe unittest
 {
     void foo1(int a, out int b) { b = a; }
@@ -1970,6 +2001,7 @@ private T trustedMoveImpl(T)(ref T source) @trusted
     assert(s53 is s51);
 }
 
+@betterC
 @system unittest
 {
     static struct S { int n = 0; ~this() @system { n = 0; } }
@@ -1991,6 +2023,7 @@ private T trustedMoveImpl(T)(ref T source) @trusted
     x = move(x);
 }
 +/
+@betterC
 @safe unittest// Issue 8055
 {
     static struct S
@@ -2120,6 +2153,7 @@ void moveEmplace(T)(ref T source, ref T target) @system
 }
 
 ///
+@betterC
 pure nothrow @nogc @system unittest
 {
     static struct Foo
