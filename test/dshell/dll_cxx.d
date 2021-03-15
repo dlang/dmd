@@ -48,7 +48,7 @@ int main()
     }
     else
     {
-        dllCmd ~= [`-shared`, `-fPIC`, `-o`, Vars.DLL];
+        dllCmd ~= [ `-m` ~ Vars.MODEL, `-shared`, `-fPIC`, `-o`, Vars.DLL ];
         mainExtra = `-fPIC -L-L$OUTPUT_BASE -L$DLL -L-lstdc++ -L--no-demangle`;
     }
 
