@@ -88,8 +88,8 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         if (stc != sc.stc ||
             linkage != sc.linkage ||
             cppmangle != sc.cppmangle ||
-            !visibility.isSubsetOf(sc.visibility) ||
             explicitVisibility != sc.explicitVisibility ||
+            visibility != sc.visibility ||
             aligndecl !is sc.aligndecl ||
             inlining != sc.inlining)
         {

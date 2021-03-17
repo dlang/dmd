@@ -184,34 +184,6 @@ struct Visibility
         }
         return false;
     }
-
-    extern (C++):
-
-    /**
-     * Checks if parent defines different access restrictions than this one.
-     *
-     * Params:
-     *  parent = visibility attribute for scope that hosts this one
-     *
-     * Returns:
-     *  'true' if parent is already more restrictive than this one and thus
-     *  no differentiation is needed.
-     */
-    bool isSubsetOf(ref const Visibility parent) const
-    {
-        if (this.kind != parent.kind)
-            return false;
-        if (this.kind == Visibility.Kind.package_)
-        {
-            if (!this.pkg)
-                return true;
-            if (!parent.pkg)
-                return false;
-            if (parent.pkg.isAncestorPackageOf(this.pkg))
-                return true;
-        }
-        return true;
-    }
 }
 
 enum PASS : int
