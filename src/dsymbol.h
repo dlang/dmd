@@ -107,7 +107,6 @@ struct Prot
 
     bool isMoreRestrictiveThan(const Prot other) const;
     bool operator==(const Prot& other) const;
-    bool isSubsetOf(const Prot& other) const;
 };
 
 // in hdrgen.c
