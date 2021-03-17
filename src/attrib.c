@@ -80,8 +80,8 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
     if (stc != sc->stc ||
         linkage != sc->linkage ||
         cppmangle != sc->cppmangle ||
-        !protection.isSubsetOf(sc->protection) ||
         explicitProtection != sc->explicitProtection ||
+        !(protection == sc->protection) ||
         aligndecl != sc->aligndecl ||
         inlining != sc->inlining)
     {

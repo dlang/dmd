@@ -1801,31 +1801,3 @@ bool Prot::operator==(const Prot& other) const
     }
     return false;
 }
-
-/**
- * Checks if parent defines different access restrictions than this one.
- *
- * Params:
- *  parent = protection attribute for scope that hosts this one
- *
- * Returns:
- *  'true' if parent is already more restrictive than this one and thus
- *  no differentiation is needed.
- */
-bool Prot::isSubsetOf(const Prot& parent) const
-{
-    if (this->kind != parent.kind)
-        return false;
-
-    if (this->kind == Prot::package_)
-    {
-        if (!this->pkg)
-            return true;
-        if (!parent.pkg)
-            return false;
-        if (parent.pkg->isAncestorPackageOf(this->pkg))
-            return true;
-    }
-
-    return true;
-}
