@@ -214,7 +214,7 @@ $(H2 $(LNAME2 calling_printf, Calling `printf()`))
 ---
 import core.stdc.stdio;
 
-int main
+int main()
 {
     printf("hello world\n");
     return 0;
