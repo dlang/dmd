@@ -968,7 +968,6 @@ struct Visibility
 {
     Kind kind;
     Package* pkg;
-    bool isSubsetOf(const Visibility& parent) const;
     Visibility() :
         pkg()
     {

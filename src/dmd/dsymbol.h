@@ -103,8 +103,6 @@ struct Visibility
     };
     Kind kind;
     Package *pkg;
-
-    bool isSubsetOf(const Visibility& other) const;
 };
 
 /* State of symbol in winding its way through the passes of the compiler

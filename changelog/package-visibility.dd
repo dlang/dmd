@@ -1,0 +1,18 @@
+Explicit package visibility attribute is now always applied to new scopes
+
+If a less restrictive package attribute appeared within the scope of another
+package attribute, the more restrictive parent would override any explicit
+child visibility.
+
+Example:
+---
+module pkg.foo;
+
+package(pkg.foo):           // analogous to "private" or plain "package"
+
+package(pkg) int bar();     // package(pkg) was being ignored
+---
+
+Starting from this version, the package visibility attribute is now always
+applied as long as it is valid.  In the given example, this allows any module
+in the package `pkg` to import and use the symbol `bar`.
