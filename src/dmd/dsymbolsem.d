@@ -1846,7 +1846,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         StringExp verifyMangleString(ref Expression e)
         {
-            auto se = semanticString(sc, (*pd.args)[0], "mangled name");
+            auto se = semanticString(sc, e, "mangled name");
             if (!se)
                 return null;
             e = se;
