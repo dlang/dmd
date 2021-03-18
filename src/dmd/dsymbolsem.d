@@ -2365,7 +2365,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (auto te = ed.memtype.isTypeEnum())
             {
                 EnumDeclaration sym = cast(EnumDeclaration)te.toDsymbol(sc);
-                if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
+                // Special enums like __c_[u]long[long] are fine to forward reference
+                // see https://issues.dlang.org/show_bug.cgi?id=20599
+                if (!sym.isSpecial() && (!sym.memtype ||  !sym.members || !sym.symtab || sym._scope))
                 {
                     // memtype is forward referenced, so try again later
                     deferDsymbolSemantic(ed, scx);
