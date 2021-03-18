@@ -1844,6 +1844,60 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(PragmaDeclaration pd)
     {
+        StringExp verifyMangleString(ref Expression e)
+        {
+            auto se = semanticString(sc, e, "mangled name");
+            if (!se)
+                return null;
+            e = se;
+            if (!se.len)
+            {
+                pd.error("zero-length string not allowed for mangled name");
+                return null;
+            }
+            if (se.sz != 1)
+            {
+                pd.error("mangled name characters can only be of type `char`");
+                return null;
+            }
+            version (all)
+            {
+                /* Note: D language specification should not have any assumption about backend
+                 * implementation. Ideally pragma(mangle) can accept a string of any content.
+                 *
+                 * Therefore, this validation is compiler implementation specific.
+                 */
+                auto slice = se.peekString();
+                for (size_t i = 0; i < se.len;)
+                {
+                    dchar c = slice[i];
+                    if (c < 0x80)
+                    {
+                        if (c.isValidMangling)
+                        {
+                            ++i;
+                            continue;
+                        }
+                        else
+                        {
+                            pd.error("char 0x%02x not allowed in mangled name", c);
+                            break;
+                        }
+                    }
+                    if (const msg = utf_decodeChar(slice, i, c))
+                    {
+                        pd.error("%.*s", cast(int)msg.length, msg.ptr);
+                        break;
+                    }
+                    if (!isUniAlpha(c))
+                    {
+                        pd.error("char `0x%04x` not allowed in mangled name", c);
+                        break;
+                    }
+                }
+            }
+            return se;
+        }
         void declarations()
         {
             if (!pd.decl)
@@ -2004,57 +2058,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 (*pd.args)[0] = ErrorExp.get(); // error recovery
                 return declarations();
             }
-
-            auto se = semanticString(sc, (*pd.args)[0], "mangled name");
-            if (!se)
-                return declarations();
-            (*pd.args)[0] = se; // Will be used later
-
-            if (!se.len)
+            else
             {
-                pd.error("zero-length string not allowed for mangled name");
-                return declarations();
-            }
-            if (se.sz != 1)
-            {
-                pd.error("mangled name characters can only be of type `char`");
-                return declarations();
-            }
-            version (all)
-            {
-                /* Note: D language specification should not have any assumption about backend
-                 * implementation. Ideally pragma(mangle) can accept a string of any content.
-                 *
-                 * Therefore, this validation is compiler implementation specific.
-                 */
-                auto slice = se.peekString();
-                for (size_t i = 0; i < se.len;)
-                {
-                    dchar c = slice[i];
-                    if (c < 0x80)
-                    {
-                        if (c.isValidMangling)
-                        {
-                            ++i;
-                            continue;
-                        }
-                        else
-                        {
-                            pd.error("char 0x%02x not allowed in mangled name", c);
-                            break;
-                        }
-                    }
-                    if (const msg = utf_decodeChar(slice, i, c))
-                    {
-                        pd.error("%.*s", cast(int)msg.length, msg.ptr);
-                        break;
-                    }
-                    if (!isUniAlpha(c))
-                    {
-                        pd.error("char `0x%04x` not allowed in mangled name", c);
-                        break;
-                    }
-                }
+                if (!verifyMangleString((*pd.args)[0]))
+                    return declarations();
             }
         }
         else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
