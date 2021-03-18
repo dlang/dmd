@@ -614,8 +614,10 @@ private final class CppMangleVisitor : Visitor
 
         if (!ti)
         {
+            auto ag = s.isAggregateDeclaration();
+            const ident = (ag && ag.mangleOverride) ? ag.mangleOverride.id : s.ident;
             this.writeNamespace(s.cppnamespace, () {
-                this.writeIdentifier(s.ident);
+                this.writeIdentifier(ident);
                 this.abiTags.writeSymbol(s, this);
                 },
                 haveNE);
@@ -641,12 +643,30 @@ private final class CppMangleVisitor : Visitor
             template_args(ti);
             if (!haveNE && isNested)
                 buf.writeByte('E');
+            return;
         }
         else if (this.writeStdSubstitution(ti, needsTa))
         {
             this.abiTags.writeSymbol(ti, this);
             if (needsTa)
                 template_args(ti);
+            return;
+        }
+
+        auto ag = ti.aliasdecl ? ti.aliasdecl.isAggregateDeclaration() : null;
+        if (ag && ag.mangleOverride)
+        {
+            this.writeNamespace(
+                ti.toAlias().cppnamespace, () {
+                    this.writeIdentifier(ag.mangleOverride.id);
+                    if (ag.mangleOverride.agg && ag.mangleOverride.agg.isInstantiated())
+                    {
+                        auto to = ag.mangleOverride.agg.isInstantiated();
+                        append(to);
+                        this.abiTags.writeSymbol(to.tempdecl, this);
+                        template_args(to);
+                    }
+              }, haveNE);
         }
         else
         {

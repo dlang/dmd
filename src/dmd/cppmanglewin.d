@@ -890,6 +890,14 @@ extern(D):
         auto ti = sym.isTemplateInstance();
         if (!ti)
         {
+            if (auto ag = sym.isAggregateDeclaration())
+            {
+                if (ag.mangleOverride)
+                {
+                    writeName(ag.mangleOverride.id);
+                    return;
+                }
+            }
             writeName(sym.ident);
             return;
         }
@@ -901,6 +909,37 @@ extern(D):
         // test for special symbols
         if (mangleOperator(ti,symName,firstTemplateArg))
             return;
+        TemplateInstance actualti = ti;
+        bool needNamespaces;
+        if (auto ag = ti.aliasdecl ? ti.aliasdecl.isAggregateDeclaration() : null)
+        {
+            if (ag.mangleOverride)
+            {
+                if (ag.mangleOverride.agg)
+                {
+                    if (auto aggti = ag.mangleOverride.agg.isInstantiated())
+                        actualti = aggti;
+                    else
+                    {
+                        writeName(ag.mangleOverride.id);
+                        if (sym.parent && !sym.parent.needThis())
+                            for (auto ns = ag.mangleOverride.agg.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+                                writeName(ns.ident);
+                        return;
+                    }
+                    id = ag.mangleOverride.id;
+                    symName = id.toString();
+                    needNamespaces = true;
+                }
+                else
+                {
+                    writeName(ag.mangleOverride.id);
+                    for (auto ns = ti.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+                        writeName(ns.ident);
+                    return;
+                }
+            }
+        }
 
         scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
         tmp.buf.writeByte('?');
@@ -915,15 +954,15 @@ extern(D):
             is_dmc_template = true;
         }
         bool is_var_arg = false;
-        for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
+        for (size_t i = firstTemplateArg; i < actualti.tiargs.dim; i++)
         {
-            RootObject o = (*ti.tiargs)[i];
+            RootObject o = (*actualti.tiargs)[i];
             TemplateParameter tp = null;
             TemplateValueParameter tv = null;
             TemplateTupleParameter tt = null;
             if (!is_var_arg)
             {
-                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                TemplateDeclaration td = actualti.tempdecl.isTemplateDeclaration();
                 assert(td);
                 tp = (*td.parameters)[i];
                 tv = tp.isTemplateValueParameter();
@@ -936,15 +975,16 @@ extern(D):
             }
             if (tv)
             {
-                tmp.manlgeTemplateValue(o, tv, sym, is_dmc_template);
+                tmp.manlgeTemplateValue(o, tv, actualti, is_dmc_template);
             }
-            else if (!tp || tp.isTemplateTypeParameter())
+            else
+            if (!tp || tp.isTemplateTypeParameter())
             {
                 tmp.mangleTemplateType(o);
             }
             else if (tp.isTemplateAliasParameter())
             {
-                tmp.mangleTemplateAlias(o, sym);
+                tmp.mangleTemplateAlias(o, actualti);
             }
             else
             {
@@ -952,7 +992,13 @@ extern(D):
                 fatal();
             }
         }
+
         writeName(Identifier.idPool(tmp.buf.extractSlice()));
+        if (needNamespaces && actualti != ti)
+        {
+            for (auto ns = ti.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+                writeName(ns.ident);
+        }
     }
 
     // returns true if name already saved
