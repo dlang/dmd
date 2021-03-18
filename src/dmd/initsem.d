@@ -382,6 +382,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             return new ErrorInitializer();
         }
         uint olderrors = global.errors;
+        Expression currExp = i.exp;
         if (needInterpret)
         {
             // If the result will be implicitly cast, move the cast into CTFE
@@ -421,7 +422,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
-            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", i.exp.toChars());
+            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
             return new ErrorInitializer();
         }
         Type tb = t.toBasetype();
