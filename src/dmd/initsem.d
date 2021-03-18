@@ -382,7 +382,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             return new ErrorInitializer();
         }
         uint olderrors = global.errors;
-        Expression currExp = i.exp;     // Save current Expression
+        Expression currExp = i.exp;     // Save current Expression (https://issues.dlang.org/show_bug.cgi?id=21687)
         if (needInterpret)
         {
             // If the result will be implicitly cast, move the cast into CTFE
