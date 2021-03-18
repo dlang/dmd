@@ -382,7 +382,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             return new ErrorInitializer();
         }
         uint olderrors = global.errors;
-        Expression currExp = i.exp;     // Save current Expression (https://issues.dlang.org/show_bug.cgi?id=21687)
+        /* Save the expression before ctfe
+         * Otherwise the error message would contain for example "&[0][0]" instead of "new int"
+         * Regression: https://issues.dlang.org/show_bug.cgi?id=21687
+         */
+        Expression currExp = i.exp;
         if (needInterpret)
         {
             // If the result will be implicitly cast, move the cast into CTFE
