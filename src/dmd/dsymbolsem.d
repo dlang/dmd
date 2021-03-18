@@ -1904,24 +1904,66 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
 
             Scope* sc2 = pd.newScope(sc);
-            for (size_t i = 0; i < pd.decl.dim; i++)
+            scope(exit)
+                if (sc2 != sc)
+                    sc2.pop();
+
+            foreach (s; (*pd.decl)[])
             {
-                Dsymbol s = (*pd.decl)[i];
                 s.dsymbolSemantic(sc2);
-                if (pd.ident == Id.mangle)
+                if (pd.ident != Id.mangle)
+                    continue;
+                assert(pd.args);
+                if (auto ad = s.isAggregateDeclaration())
                 {
-                    assert(pd.args && pd.args.dim == 1);
-                    if (auto se = (*pd.args)[0].toStringExp())
+                    Expression e = (*pd.args)[0];
+                    sc2 = sc2.startCTFE();
+                    e = e.expressionSemantic(sc);
+                    e = resolveProperties(sc2, e);
+                    sc2 = sc2.endCTFE();
+                    AggregateDeclaration agg;
+                    if (auto tc = e.type.isTypeClass())
+                        agg = tc.sym;
+                    else if (auto ts = e.type.isTypeStruct())
+                        agg = ts.sym;
+                    ad.mangleOverride = new MangleOverride;
+                    void setString(ref Expression e)
                     {
-                        const name = (cast(const(char)[])se.peekData()).xarraydup;
-                        uint cnt = setMangleOverride(s, name);
-                        if (cnt > 1)
-                        pd.error("can only apply to a single declaration");
+                        if (auto se = verifyMangleString(e))
+                        {
+                            const name = (cast(const(char)[])se.peekData()).xarraydup;
+                            ad.mangleOverride.id = Identifier.idPool(name);
+                            e = se;
+                        }
+                        else
+                            e.error("must be a string");
                     }
+                    if (agg)
+                    {
+                        ad.mangleOverride.agg = agg;
+                        if (pd.args.dim == 2)
+                        {
+                            setString((*pd.args)[1]);
+                        }
+                        else
+                            ad.mangleOverride.id = agg.ident;
+                    }
+                    else
+                        setString((*pd.args)[0]);
+                }
+                else if (auto td = s.isTemplateDeclaration())
+                {
+                    pd.error("cannot apply to a template declaration");
+                    errorSupplemental(pd.loc, "use `template Class(Args...){ pragma(mangle, \"other_name\") class Class {}`");
+                }
+                else if (auto se = verifyMangleString((*pd.args)[0]))
+                {
+                    const name = (cast(const(char)[])se.peekData()).xarraydup;
+                    uint cnt = setMangleOverride(s, name);
+                    if (cnt > 1)
+                        pd.error("can only apply to a single declaration");
                 }
             }
-            if (sc2 != sc)
-                sc2.pop();
         }
 
         void noDeclarations()
@@ -2051,18 +2093,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (!pd.args)
                 pd.args = new Expressions();
-            if (pd.args.dim != 1)
+            if (pd.args.dim == 0 || pd.args.dim > 2)
             {
-                pd.error("string expected for mangled name");
+                pd.error(pd.args.dim == 0 ? "string expected for mangled name"
+                                          : "expected 1 or 2 arguments");
                 pd.args.setDim(1);
                 (*pd.args)[0] = ErrorExp.get(); // error recovery
-                return declarations();
             }
-            else
-            {
-                if (!verifyMangleString((*pd.args)[0]))
-                    return declarations();
-            }
+            return declarations();
         }
         else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
         {

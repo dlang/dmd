@@ -150,6 +150,7 @@ enum class CPPMANGLE : uint8_t
     asClass = 2u,
 };
 
+struct MangleOverride;
 class AliasThis;
 class Expression;
 class TypeTuple;
@@ -1634,6 +1635,7 @@ public:
     Dsymbol* deferred;
     ClassKind classKind;
     CPPMANGLE cppmangle;
+    MangleOverride* mangleOverride;
     Dsymbol* enclosing;
     VarDeclaration* vthis;
     VarDeclaration* vthis2;
