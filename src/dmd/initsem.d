@@ -382,6 +382,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             return new ErrorInitializer();
         }
         uint olderrors = global.errors;
+        /* Save the expression before ctfe
+         * Otherwise the error message would contain for example "&[0][0]" instead of "new int"
+         * Regression: https://issues.dlang.org/show_bug.cgi?id=21687
+         */
+        Expression currExp = i.exp;
         if (needInterpret)
         {
             // If the result will be implicitly cast, move the cast into CTFE
@@ -421,7 +426,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
-            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", i.exp.toChars());
+            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
             return new ErrorInitializer();
         }
         Type tb = t.toBasetype();
