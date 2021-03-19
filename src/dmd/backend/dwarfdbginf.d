@@ -566,23 +566,11 @@ static if (1)
 
         // .debug_line
         size_t linebuf_filetab_end;
+        size_t linePrologueLengthOffset;
 
-        struct DebugLineHeader
-        {
-          align (1):
-            uint total_length                = 0;
-            ushort version_                  = 2;
-            uint prologue_length             = 0;
-            ubyte minimum_instruction_length = 1;
-            ubyte default_is_stmt            = true;
-            byte line_base                   = -5;
-            ubyte line_range                 = 14;
-            ubyte opcode_base                = 10;
-            ubyte[9] standard_opcode_lengths = [ 0,1,1,1,1,0,0,0,1 ];
-        }
-        static assert(DebugLineHeader.sizeof == 24);
-
-        DebugLineHeader debugline;
+        const byte line_base = -5;
+        const ubyte line_range = 14;
+        const ubyte opcode_base = 10;
 
         public uint[TYMAX] typidx_tab;
     }
@@ -1069,9 +1057,45 @@ static if (1)
 
             debug_line.initialize();
 
-            debugline = DebugLineHeader.init;
+            auto getDebugLineHeader(ushort hversion)()
+            {
+                static assert(hversion == 3);
 
-            debug_line.buf.write(&debugline, debugline.sizeof);
+                struct DebugLineHeader
+                {
+                align (1):
+                    uint length;
+                    ushort version_= hversion;
+                    uint prologue_length;
+                    ubyte minimum_instruction_length = 1;
+                    bool default_is_stmt = true;
+                    byte line_base = .line_base;
+                    ubyte line_range = .line_range;
+                    ubyte opcode_base = .opcode_base;
+                    ubyte[9] sol =
+                    [
+                        0,      // DW_LNS_copy
+                        1,      // DW_LNS_advance_pc
+                        1,      // DW_LNS_advance_line
+                        1,      // DW_LNS_set_file
+                        1,      // DW_LNS_set_column
+                        0,      // DW_LNS_negate_stmt
+                        0,      // DW_LNS_set_basic_block
+                        0,      // DW_LNS_const_add_pc
+                        1,      // DW_LNS_fixed_advance_pc
+                    ];
+                }
+                static assert(DebugLineHeader.sizeof == 24);
+                // 6.2.5.2 Standard Opcodes
+                static assert(DebugLineHeader.sol.length == opcode_base - 1);
+
+                return DebugLineHeader.init;
+            }
+
+            auto lineHeader = getDebugLineHeader!3();
+            debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
+
+            linePrologueLengthOffset = lineHeader.prologue_length.offsetof;
 
             // include_directories
             version (SCPP)
@@ -1089,7 +1113,9 @@ static if (1)
                     debug_line.buf.writeByte(0);
                 }
 
-            debug_line.buf.writeByte(0);              // terminated with 0 byte
+            debug_line.buf.writeByten(0);           // end of include_directories
+
+            // field file_names in dwarf_termfile()
         }
 
         /* *********************************************************************
@@ -1346,7 +1372,7 @@ static if (1)
         assert(debug_line.buf.length() == linebuf_filetab_end);
         debug_line.buf.writeByte(0);              // end of file_names
 
-        debugline.prologue_length = cast(uint)debug_line.buf.length() - 10;
+        rewrite32(debug_line.buf, linePrologueLengthOffset, cast(uint) debug_line.buf.length() - 10);
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
@@ -1397,12 +1423,12 @@ static if (1)
                     address += addinc;
                     if (address >= addressmax)
                         addressmax = address + 1;
-                    if (lininc >= debugline.line_base && lininc < debugline.line_base + debugline.line_range)
+                    if (lininc >= line_base && lininc < line_base + line_range)
                     {
-                        uint opcode = lininc - debugline.line_base +
-                            debugline.line_range * addinc +
-                            debugline.opcode_base;
+                        uint opcode = lininc - line_base +
+                            line_range * addinc + opcode_base;
 
+                        // special opcode
                         if (opcode <= 255)
                         {
                             debug_line.buf.writeByte(opcode);
@@ -1437,12 +1463,11 @@ static if (1)
             }
         }
 
-        debugline.total_length = cast(uint)debug_line.buf.length() - 4;
-        memcpy(debug_line.buf.buf, &debugline, debugline.sizeof);
+        rewrite32(debug_line.buf, 0, cast(uint) debug_line.buf.length() - 4);
 
         // Bugzilla 3502, workaround OSX's ld64-77 bug.
         // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (debugline.prologue_length + 10 == debugline.total_length + 4)
+        if (*cast(uint*) &debug_line.buf.buf[linePrologueLengthOffset] + 10 == debug_line.buf.length())
             debug_line.buf.reset();
 
         /* ================================================= */
