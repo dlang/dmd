@@ -2217,17 +2217,18 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
             {
                 if (s)
                     error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), mt.toChars(), s.toPrettyChars());
+                else if (ident == Id.call && mt.ty == Tclass)
+                    error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
+
+                else if (const n = importHint(ident.toString()))
+                        error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
                 else
                 {
-                    if (ident == Id.call && mt.ty == Tclass)
-                        error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
-                    else
-                    {
-                        if (const n = importHint(ident.toString()))
-                            error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
-                        else
-                            error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
-                    }
+                    error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
+                    if (auto dsym = mt.toDsymbol(scope_))
+                        if (auto sym = dsym.isAggregateDeclaration())
+                            if (auto fd = search_function(sym, Id.opDispatch))
+                                errorSupplemental(loc, "potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message");
                 }
             }
             e = ErrorExp.get();
