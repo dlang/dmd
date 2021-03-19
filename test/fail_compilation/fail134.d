@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail134.d(13): Error: template instance `foo!(f)` does not match template declaration `foo(T)`
-fail_compilation/fail134.d(14): Error: template instance `fail134.bar!(f)` error instantiating
+fail_compilation/fail134.d(14): Error: template instance `foo!(f)` does not match template declaration `foo(T)`
+fail_compilation/fail134.d(14):        `f` is not a type
+fail_compilation/fail134.d(15): Error: template instance `fail134.bar!(f)` error instantiating
 ---
 */
 

@@ -6835,6 +6835,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return false;
     }
 
+    /**********************************
+     * Find the TemplateDeclaration that matches this TemplateInstance best.
+     *
+     * Params:
+     *   sc    = the scope this TemplateInstance resides in
+     *   fargs = function arguments in case of a template function, null otherwise
+     *
+     * Returns:
+     *   `true` if a match was found, `false` otherwise
+     */
     extern (D) final bool findBestMatch(Scope* sc, Expressions* fargs)
     {
         if (havetempdecl)
@@ -7016,7 +7026,37 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         .tip(tip);
                 }
                 else
+                {
                     error("%s `%s`", msg, tmsg);
+
+                    if (tdecl.parameters.dim == tiargs.dim)
+                    {
+                        // https://issues.dlang.org/show_bug.cgi?id=7352
+                        // print additional information, e.g. `foo` is not a type
+                        foreach (i, param; *tdecl.parameters)
+                        {
+                            MATCH match = param.matchArg(loc, sc, tiargs, i, tdecl.parameters, &dedtypes, null);
+                            auto arg = (*tiargs)[i];
+                            auto sym = arg.isDsymbol;
+                            auto exp = arg.isExpression;
+
+                            if (exp)
+                                exp = exp.optimize(WANTvalue);
+
+                            if (match == MATCH.nomatch &&
+                                ((sym && sym.isFuncDeclaration) ||
+                                 (exp && exp.isVarExp)))
+                            {
+                                if (param.isTemplateTypeParameter)
+                                    errorSupplemental(loc, "`%s` is not a type", arg.toChars);
+                                else if (auto tvp = param.isTemplateValueParameter)
+                                    errorSupplemental(loc, "`%s` is not of a value of type `%s`",
+                                                      arg.toChars, tvp.valType.toChars);
+
+                            }
+                        }
+                    }
+                }
             }
             else
                 .error(loc, "%s `%s.%s` does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
