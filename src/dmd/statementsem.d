@@ -2037,6 +2037,8 @@ else
         fs.gotos = new ScopeStatements();
         auto fld = new FuncLiteralDeclaration(fs.loc, fs.endloc, tf, TOK.delegate_, fs);
         fld.fbody = fs._body;
+        if (tfld && tfld.isShared())
+            fld.storage_class |= STC.shared_;
         Expression flde = new FuncExp(fs.loc, fld);
         flde = flde.expressionSemantic(sc);
         fld.tookAddressOf = 0;
