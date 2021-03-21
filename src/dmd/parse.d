@@ -6211,7 +6211,16 @@ LagainStc:
                     auto statements = new AST.Statements();
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
-                        statements.push(parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
+                        auto cur = parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+                        statements.push(cur);
+
+                        // https://issues.dlang.org/show_bug.cgi?id=21739
+                        // Stop at the last break s.t. the following non-case statements are
+                        // not merged into the current case. This can happen for
+                        // case 1: ... break;
+                        // debug { case 2: ... }
+                        if (cur.isBreakStatement())
+                            break;
                     }
                     s = new AST.CompoundStatement(loc, statements);
                 }
