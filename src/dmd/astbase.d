@@ -2022,6 +2022,9 @@ struct ASTBase
         nothrow pure @nogc
         inout(ReturnStatement) isReturnStatement() inout { return stmt == STMT.Return ? cast(typeof(return))this : null; }
 
+        nothrow pure @nogc
+        inout(BreakStatement) isBreakStatement() inout { return stmt == STMT.Break ? cast(typeof(return))this : null; }
+
         override void accept(Visitor v)
         {
             v.visit(this);
