@@ -1193,12 +1193,21 @@ static if (0)
         codelem(cdb,op1,&retregs,false); // eval left leaf
         const reg = findreg(retregs);
 
-        if ((op2.Eoper == OPind && !op2.Ecount) || op2.Eoper == OPvar)
+        /* MOVHLPS and LODLPS have the same opcode. They are distinguished
+         * by MOVHLPS has a second operand of size 128, LODLPS has 64
+         *  https://www.felixcloutier.com/x86/movlps
+         *  https://www.felixcloutier.com/x86/movhlps
+         * MOVHLPS must be an XMM operand, LODLPS must be a memory operand
+         */
+        const isMOVHLPS = op == MOVHLPS && tysize(ty2) == 16;
+
+        if (((op2.Eoper == OPind && !op2.Ecount) || op2.Eoper == OPvar) && !isMOVHLPS)
         {
             getlvalue(cdb,&cs, op2, RMload | retregs);     // get addressing mode
         }
         else
         {
+            // load op2 into XMM register
             regm_t rretregs = XMMREGS & ~retregs;
             scodelem(cdb, op2, &rretregs, retregs, true);
             const rreg = findreg(rretregs) - XMM0;

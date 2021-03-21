@@ -2217,6 +2217,19 @@ void test19788()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19443
+
+void test19443()
+{
+    float4 a = [1.0f, 2.0f, 3.0f, 4.0f];
+    float4 b = [5.0f, 6.0f, 7.0f, 8.0f];
+    float4 r = cast(float4) __simd(XMM.MOVHLPS, a, b);
+    float[4] correct = [7.0f, 8.0f, 3.0f, 4.0f];
+    assert(r.array == correct); // FAIL, produces [5, 6, 3, 4] instead
+}
+
+
+/*****************************************/
 
 int main()
 {
@@ -2266,6 +2279,7 @@ int main()
     test21364();
     test19632();
     test19788();
+    test19443();
 
     return 0;
 }
