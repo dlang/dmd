@@ -480,6 +480,7 @@ SRCS=\
 	src\core\sys\windows\sspi.d \
 	src\core\sys\windows\stacktrace.d \
 	src\core\sys\windows\stat.d \
+	src\core\sys\windows\stdc\malloc.d \
 	src\core\sys\windows\stdc\time.d \
 	src\core\sys\windows\subauth.d \
 	src\core\sys\windows\threadaux.d \

@@ -501,6 +501,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_windows_wtsapi32.html \
 	$(DOCDIR)\core_sys_windows_wtypes.html \
 	\
+	$(DOCDIR)\core_sys_windows_stdc_malloc.html \
 	$(DOCDIR)\core_sys_windows_stdc_time.html \
 	\
 	$(DOCDIR)\core_thread_context.html \
