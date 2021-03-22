@@ -1,4 +1,50 @@
 /**
+ * $(SCRIPT inhibitQuickIndex = 1;)
+ * $(DIVC quickindex,
+ * $(BOOKTABLE,
+ * $(TR $(TH Category) $(TH Symbols))
+ * $(TR $(TD Arrays) $(TD
+ *     $(MYREF assumeSafeAppend)
+ *     $(MYREF capacity)
+ *     $(MYREF idup)
+ *     $(MYREF reserve)
+ * ))
+ * $(TR $(TD Associative arrays) $(TD
+ *     $(MYREF byKey)
+ *     $(MYREF byKeyValue)
+ *     $(MYREF byValue)
+ *     $(MYREF clear)
+ *     $(MYREF get)
+ *     $(MYREF keys)
+ *     $(MYREF rehash)
+ *     $(MYREF require)
+ *     $(MYREF update)
+ *     $(MYREF values)
+ * ))
+ * $(TR $(TD General) $(TD
+ *     $(MYREF destroy)
+ *     $(MYREF dup)
+ *     $(MYREF hashOf)
+ *     $(MYREF opEquals)
+ * ))
+ * $(TR $(TD Types) $(TD
+ *     $(MYREF Error)
+ *     $(MYREF Exception)
+ *     $(MYREF noreturn)
+ *     $(MYREF Object)
+ *     $(MYREF Throwable)
+ * ))
+ * $(TR $(TD Type info) $(TD
+ *     $(MYREF Interface)
+ *     $(MYREF ModuleInfo)
+ *     $(MYREF OffsetTypeInfo)
+ *     $(MYREF RTInfoImpl)
+ *     $(MYREF rtinfoNoPointers)
+ *     $(MYREF TypeInfo)
+ *     $(MYREF TypeInfo_Class)
+ * ))
+ * ))
+ *
  * Forms the symbols available to all D programs. Includes Object, which is
  * the root of the class object hierarchy.  This module is implicitly
  * imported.
