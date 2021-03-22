@@ -72,22 +72,6 @@ template _d_assert_fail(A...)
     }
 }
 
-// Legacy definition
-string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, auto ref const scope B b)
-{
-    /*
-    The program will be terminated after the assertion error message has
-    been printed and its not considered part of the "main" program.
-    Also, catching an AssertError is Undefined Behavior
-    Hence, we can fake purity and @nogc-ness here.
-    */
-
-    string valA = miniFormatFakeAttributes(a);
-    string valB = miniFormatFakeAttributes(b);
-    immutable token = invertCompToken(comp);
-    return combine([valA], token, [valB]);
-}
-
 /// Combines the supplied arguments into one string "valA token valB"
 private string combine(const scope string[] valA, const scope string token,
     const scope string[] valB) pure nothrow @nogc @safe

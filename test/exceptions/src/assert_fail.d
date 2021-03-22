@@ -188,10 +188,6 @@ void testAttributes() @safe pure @nogc nothrow
 
     string s2 = _d_assert_fail!int("", a);
     assert(s2 == `0 != true`);
-
-    // Test instatiation of legacy hooks
-    s2 = _d_assert_fail("==", a, 1);
-    assert(s2 == `0 != 1`);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
