@@ -1746,75 +1746,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                 if (taa)
                 {
-                    // Check types
-                    Parameter p = (*fs.parameters)[0];
-                    bool isRef = (p.storageClass & STC.ref_) != 0;
-                    Type ta = p.type;
-                    if (dim == 2)
-                    {
-                        Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
-                        if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
-                        {
-                            fs.error("`foreach`: index must be type `%s`, not `%s`",
-                                ti.toChars(), ta.toChars());
-                            return retError();
-                        }
-                        p = (*fs.parameters)[1];
-                        isRef = (p.storageClass & STC.ref_) != 0;
-                        ta = p.type;
-                    }
-                    Type taav = taa.nextOf();
-                    if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
-                    {
-                        fs.error("`foreach`: value must be type `%s`, not `%s`",
-                            taav.toChars(), ta.toChars());
+                    ec = applyAssocArray(fs, flde, taa);
+                    if (!ec)
                         return retError();
-                    }
-
-                    /* Call:
-                     *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
-                     *      _aaApply(aggr, keysize, flde)
-                     *
-                     *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
-                     *      _aaApply2(aggr, keysize, flde)
-                     */
-                    __gshared FuncDeclaration* fdapply = [null, null];
-                    __gshared TypeDelegate* fldeTy = [null, null];
-
-                    ubyte i = (dim == 2 ? 1 : 0);
-                    if (!fdapply[i])
-                    {
-                        auto params = new Parameters();
-                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null, null));
-                        params.push(new Parameter(STC.const_, Type.tsize_t, null, null, null));
-                        auto dgparams = new Parameters();
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
-                        if (dim == 2)
-                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
-                        fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-                        params.push(new Parameter(0, fldeTy[i], null, null, null));
-                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
-                    }
-
-                    auto exps = new Expressions();
-                    exps.push(fs.aggr);
-                    auto keysize = taa.index.size();
-                    if (keysize == SIZE_INVALID)
-                        return retError();
-                    assert(keysize < keysize.max - target.ptrsize);
-                    keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
-                    // paint delegate argument to the type runtime expects
-                    Expression fexp = flde;
-                    if (!fldeTy[i].equals(flde.type))
-                    {
-                        fexp = new CastExp(loc, flde, flde.type);
-                        fexp.type = fldeTy[i];
-                    }
-                    exps.push(new IntegerExp(Loc.initial, keysize, Type.tsize_t));
-                    exps.push(fexp);
-                    ec = new VarExp(Loc.initial, fdapply[i], false);
-                    ec = new CallExp(loc, ec, exps);
-                    ec.type = Type.tint32; // don't run semantic() on ec
                 }
                 else if (tab.ty == Tarray || tab.ty == Tsarray)
                 {
@@ -1946,6 +1880,81 @@ else
         result = s;
     }
 
+    private static extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, TypeAArray taa)
+    {
+        Expression ec;
+        const dim = fs.parameters.dim;
+        // Check types
+        Parameter p = (*fs.parameters)[0];
+        bool isRef = (p.storageClass & STC.ref_) != 0;
+        Type ta = p.type;
+        if (dim == 2)
+        {
+            Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
+            if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
+            {
+                fs.error("`foreach`: index must be type `%s`, not `%s`",
+                         ti.toChars(), ta.toChars());
+                return null;
+            }
+            p = (*fs.parameters)[1];
+            isRef = (p.storageClass & STC.ref_) != 0;
+            ta = p.type;
+        }
+        Type taav = taa.nextOf();
+        if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
+        {
+            fs.error("`foreach`: value must be type `%s`, not `%s`",
+                     taav.toChars(), ta.toChars());
+            return null;
+        }
+        
+        /* Call:
+         *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
+         *      _aaApply(aggr, keysize, flde)
+         *
+         *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
+         *      _aaApply2(aggr, keysize, flde)
+         */
+        __gshared FuncDeclaration* fdapply = [null, null];
+        __gshared TypeDelegate* fldeTy = [null, null];
+        
+        ubyte i = (dim == 2 ? 1 : 0);
+        if (!fdapply[i])
+        {
+            auto params = new Parameters();
+            params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null, null));
+            params.push(new Parameter(STC.const_, Type.tsize_t, null, null, null));
+            auto dgparams = new Parameters();
+            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+            if (dim == 2)
+                dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+            fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
+            params.push(new Parameter(0, fldeTy[i], null, null, null));
+            fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
+        }
+        
+        auto exps = new Expressions();
+        exps.push(fs.aggr);
+        auto keysize = taa.index.size();
+        if (keysize == SIZE_INVALID)
+            return null;
+        assert(keysize < keysize.max - target.ptrsize);
+        keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
+        // paint delegate argument to the type runtime expects
+        Expression fexp = flde;
+        if (!fldeTy[i].equals(flde.type))
+        {
+            fexp = new CastExp(fs.loc, flde, flde.type);
+            fexp.type = fldeTy[i];
+        }
+        exps.push(new IntegerExp(Loc.initial, keysize, Type.tsize_t));
+        exps.push(fexp);
+        ec = new VarExp(Loc.initial, fdapply[i], false);
+        ec = new CallExp(fs.loc, ec, exps);
+        ec.type = Type.tint32; // don't run semantic() on ec
+        return ec;
+    }
     private static extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc)
     {
         if (!cases.dim)
