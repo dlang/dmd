@@ -1097,10 +1097,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         const loc = fs.loc;
         const dim = fs.parameters.dim;
-        TypeAArray taa = null;
-
-        Type tn = null;
-        Type tnv = null;
 
         fs.func = sc.func;
         if (fs.func.fes)
@@ -1233,6 +1229,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.error("cannot infer argument types");
             return retError();
         }
+
+        TypeAArray taa = null;
+        Type tn = null;
+        Type tnv = null;
         Statement s;
         switch (tab.ty)
         {
