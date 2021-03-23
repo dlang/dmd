@@ -1578,6 +1578,11 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     s.Sflags &= ~GTregcand;
                 }
             }
+            else if (sz == 2 && tyxmmreg(s.ty()) && config.fpxmmregs)
+            {
+                debug if (debugr) printf("'%s' not XMM reg cand due to short access\n", s.Sident.ptr);
+                s.Sflags &= ~GTregcand;
+            }
             else if (e.EV.Voffset || sz > tysize(s.Stype.Tty))
             {
                 debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
