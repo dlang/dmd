@@ -1228,6 +1228,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             sc2.pop();
             result = new ErrorStatement();
         }
+        void rangeError()
+        {
+            fs.error("cannot infer argument types");
+            return retError();
+        }
         Statement s;
         switch (tab.ty)
         {
@@ -1563,7 +1568,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (auto fd = sfront.isFuncDeclaration())
                 {
                     if (!fd.functionSemantic())
-                        goto Lrangeerr;
+                        return rangeError();
                     tfront = fd.type;
                 }
                 else if (auto td = sfront.isTemplateDeclaration())
@@ -1577,7 +1582,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     tfront = d.type;
                 }
                 if (!tfront || tfront.ty == Terror)
-                    goto Lrangeerr;
+                    return rangeError();
                 if (tfront.toBasetype().ty == Tfunction)
                 {
                     auto ftt = cast(TypeFunction)tfront.toBasetype();
@@ -1653,7 +1658,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (ignoreRef) sc &= ~STC.ref_;
                         p.type = p.type.addStorageClass(sc).typeSemantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
-                            goto Lrangeerr;
+                            return rangeError();
 
                         auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
                         var.storage_class |= STC.ctfe | STC.ref_ | STC.foreach_;
@@ -1675,10 +1680,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     printf("body: %s\n", forbody.toChars());
                 }
                 break;
-
-            Lrangeerr:
-                fs.error("cannot infer argument types");
-                return retError();
             }
         case Tdelegate:
             if (fs.op == TOK.foreach_reverse_)
