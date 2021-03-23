@@ -1745,29 +1745,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
 
                 if (taa)
-                {
                     ec = applyAssocArray(fs, flde, taa);
-                    if (!ec)
-                        return retError();
-                }
                 else if (tab.ty == Tarray || tab.ty == Tsarray)
-                {
                     ec = applyArray(fs, flde, sc2, tn, tnv, tab.ty);
-                    if (!ec)
-                        return retError();
-                }
                 else if (tab.ty == Tdelegate)
-                {
                     ec = applyDelegate(fs, flde, sc2, tab);
-                    if (!ec)
-                        return retError();
-                }
                 else
-                {
                     ec = applyOpApply(fs, tab, sapply, sc2, flde);
-                    if (!ec)
-                        return retError();
-                }
+                if (!ec)
+                    return retError();
                 e = Expression.combine(e, ec);
                 s = loopReturn(e, fs.cases, loc);
                 break;
