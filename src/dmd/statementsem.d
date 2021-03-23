@@ -1223,6 +1223,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
+        void retError()
+        {
+            sc2.pop();
+            result = new ErrorStatement();
+        }
         Statement s;
         switch (tab.ty)
         {
@@ -1230,12 +1235,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         case Tsarray:
             {
                 if (checkForArgTypes(fs))
-                    goto case Terror;
+                    return retError();
 
                 if (dim < 1 || dim > 2)
                 {
                     fs.error("only one or two arguments for array `foreach`");
-                    goto case Terror;
+                    return retError();
                 }
 
                 // Finish semantic on all foreach parameter types.
@@ -1254,7 +1259,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (!tindex.isintegral())
                     {
                         fs.error("foreach: key cannot be of non-integral type `%s`", tindex.toChars());
-                        goto case Terror;
+                        return retError();
                     }
                     /* What cases to deprecate implicit conversions for:
                      *  1. foreach aggregate is a dynamic array
@@ -1283,7 +1288,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (p.storageClass & STC.ref_)
                         {
                             fs.error("`foreach`: value of UTF conversion cannot be `ref`");
-                            goto case Terror;
+                            return retError();
                         }
                         if (dim == 2)
                         {
@@ -1291,7 +1296,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             if (p.storageClass & STC.ref_)
                             {
                                 fs.error("`foreach`: key cannot be `ref`");
-                                goto case Terror;
+                                return retError();
                             }
                         }
                         goto Lapply;
@@ -1314,7 +1319,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("key type mismatch, `%s` to `ref %s`",
                                      var.type.toChars(), p.type.toChars());
-                            goto case Terror;
+                            return retError();
                         }
                     }
                     if (tab.ty == Tsarray)
@@ -1327,7 +1332,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("index type `%s` cannot cover index range 0..%llu",
                                      p.type.toChars(), ta.dim.toInteger());
-                            goto case Terror;
+                            return retError();
                         }
                         fs.key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                     }
@@ -1352,7 +1357,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("argument type mismatch, `%s` to `ref %s`",
                                      t.toChars(), p.type.toChars());
-                            goto case Terror;
+                            return retError();
                         }
                     }
                 }
@@ -1381,7 +1386,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     // converting array literal elements to telem might make it @nogc.
                     fs.aggr = fs.aggr.implicitCastTo(sc, telem.sarrayOf(edim));
                     if (fs.aggr.op == TOK.error)
-                        goto case Terror;
+                        return retError();
 
                     // for (T[edim] tmp = a, ...)
                     tmp = new VarDeclaration(loc, fs.aggr.type, id, ie);
@@ -1475,13 +1480,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (fs.op == TOK.foreach_reverse_)
                 fs.warning("cannot use `foreach_reverse` with an associative array");
             if (checkForArgTypes(fs))
-                goto case Terror;
+                return retError();
 
             taa = cast(TypeAArray)tab;
             if (dim < 1 || dim > 2)
             {
                 fs.error("only one or two arguments for associative array `foreach`");
-                goto case Terror;
+                return retError();
             }
             goto Lapply;
 
@@ -1588,7 +1593,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (tfront.ty == Tvoid)
                 {
                     fs.error("`%s.front` is `void` and has no value", oaggr.toChars());
-                    goto case Terror;
+                    return retError();
                 }
 
                 if (dim == 1)
@@ -1629,7 +1634,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         const(char)* plural = exps.dim > 1 ? "s" : "";
                         fs.error("cannot infer argument types, expected %llu argument%s, not %llu",
                             cast(ulong) exps.dim, plural, cast(ulong) dim);
-                        goto case Terror;
+                        return retError();
                     }
 
                     foreach (i; 0 .. dim)
@@ -1675,7 +1680,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             Lrangeerr:
                 fs.error("cannot infer argument types");
-                goto case Terror;
+                return retError();
             }
         case Tdelegate:
             if (fs.op == TOK.foreach_reverse_)
@@ -1683,7 +1688,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         Lapply:
             {
                 if (checkForArgTypes(fs))
-                    goto case Terror;
+                    return retError();
 
                 TypeFunction tfld = null;
                 if (sapply)
@@ -1716,7 +1721,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                 FuncExp flde = foreachBodyToFunction(sc2, fs, tfld);
                 if (!flde)
-                    goto case Terror;
+                    return retError();
 
                 // Resolve any forward referenced goto's
                 foreach (ScopeStatement ss; *fs.gotos)
@@ -1737,7 +1742,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     e = new DeclarationExp(loc, vinit);
                     e = e.expressionSemantic(sc2);
                     if (e.op == TOK.error)
-                        goto case Terror;
+                        return retError();
                 }
 
                 if (taa)
@@ -1753,7 +1758,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("`foreach`: index must be type `%s`, not `%s`",
                                 ti.toChars(), ta.toChars());
-                            goto case Terror;
+                            return retError();
                         }
                         p = (*fs.parameters)[1];
                         isRef = (p.storageClass & STC.ref_) != 0;
@@ -1764,7 +1769,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         fs.error("`foreach`: value must be type `%s`, not `%s`",
                             taav.toChars(), ta.toChars());
-                        goto case Terror;
+                        return retError();
                     }
 
                     /* Call:
@@ -1796,7 +1801,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     exps.push(fs.aggr);
                     auto keysize = taa.index.size();
                     if (keysize == SIZE_INVALID)
-                        goto case Terror;
+                        return retError();
                     assert(keysize < keysize.max - target.ptrsize);
                     keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
@@ -1886,11 +1891,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     ec = new CallExp(loc, fs.aggr, flde);
                     ec = ec.expressionSemantic(sc2);
                     if (ec.op == TOK.error)
-                        goto case Terror;
+                        return retError();
                     if (ec.type != Type.tint32)
                     {
                         fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
-                        goto case Terror;
+                        return retError();
                     }
                 }
                 else
@@ -1917,11 +1922,11 @@ else
                     ec = new CallExp(loc, ec, flde);
                     ec = ec.expressionSemantic(sc2);
                     if (ec.op == TOK.error)
-                        goto case Terror;
+                        return retError();
                     if (ec.type != Type.tint32)
                     {
                         fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
-                        goto case Terror;
+                        return retError();
                     }
                 }
                 e = Expression.combine(e, ec);
@@ -1959,12 +1964,11 @@ else
             assert(0);
 
         case Terror:
-            s = new ErrorStatement();
-            break;
+            return retError();
 
         default:
             fs.error("`foreach`: `%s` is not an aggregate type", fs.aggr.type.toChars());
-            goto case Terror;
+            return retError();
         }
         sc2.pop();
         result = s;
