@@ -1229,13 +1229,100 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.error("cannot infer argument types");
             return retError();
         }
-
+        void retStmt(Statement s)
+        {
+            if (!s)
+                return retError();
+            s = s.statementSemantic(sc2);
+            sc2.pop();
+            result = s;
+        }
+        
         TypeAArray taa = null;
         Type tn = null;
         Type tnv = null;
-        Statement s;
+        Statement apply()
+        {
+            if (checkForArgTypes(fs))
+                return null;
+            
+            TypeFunction tfld = null;
+            if (sapply)
+            {
+                FuncDeclaration fdapply = sapply.isFuncDeclaration();
+                if (fdapply)
+                {
+                    assert(fdapply.type && fdapply.type.ty == Tfunction);
+                    tfld = cast(TypeFunction)fdapply.type.typeSemantic(loc, sc2);
+                    goto Lget;
+                }
+                else if (tab.ty == Tdelegate)
+                {
+                    tfld = cast(TypeFunction)tab.nextOf();
+                Lget:
+                    //printf("tfld = %s\n", tfld.toChars());
+                    if (tfld.parameterList.parameters.dim == 1)
+                    {
+                        Parameter p = tfld.parameterList[0];
+                        if (p.type && p.type.ty == Tdelegate)
+                        {
+                            auto t = p.type.typeSemantic(loc, sc2);
+                            assert(t.ty == Tdelegate);
+                            tfld = cast(TypeFunction)t.nextOf();
+                        }
+                        //printf("tfld = %s\n", tfld.toChars());
+                    }
+                }
+            }
+            
+            FuncExp flde = foreachBodyToFunction(sc2, fs, tfld);
+            if (!flde)
+                return null;
+            
+            // Resolve any forward referenced goto's
+            foreach (ScopeStatement ss; *fs.gotos)
+            {
+                GotoStatement gs = ss.statement.isGotoStatement();
+                if (!gs.label.statement)
+                {
+                    // 'Promote' it to this scope, and replace with a return
+                    fs.cases.push(gs);
+                    ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
+                }
+            }
+            
+            Expression e = null;
+            Expression ec;
+            if (vinit)
+            {
+                e = new DeclarationExp(loc, vinit);
+                e = e.expressionSemantic(sc2);
+                if (e.op == TOK.error)
+                    return null;
+            }
+            
+            if (taa)
+                ec = applyAssocArray(fs, flde, taa);
+            else if (tab.ty == Tarray || tab.ty == Tsarray)
+                ec = applyArray(fs, flde, sc2, tn, tnv, tab.ty);
+            else if (tab.ty == Tdelegate)
+                ec = applyDelegate(fs, flde, sc2, tab);
+            else
+                ec = applyOpApply(fs, tab, sapply, sc2, flde);
+            if (!ec)
+                return null;
+            e = Expression.combine(e, ec);
+            return loopReturn(e, fs.cases, loc);
+        }
         switch (tab.ty)
         {
+                
+        case Terror:
+            return retError();
+                
+        default:
+            fs.error("`foreach`: `%s` is not an aggregate type", fs.aggr.type.toChars());
+            return retError();
         case Tarray:
         case Tsarray:
             {
@@ -1304,7 +1391,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 return retError();
                             }
                         }
-                        goto Lapply;
+                        return retStmt(apply());
                     }
                 }
 
@@ -1474,11 +1561,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 fs._body = new CompoundStatement(loc, ds, fs._body);
 
-                s = new ForStatement(loc, forinit, cond, increment, fs._body, fs.endloc);
+                Statement s = new ForStatement(loc, forinit, cond, increment, fs._body, fs.endloc);
                 if (auto ls = checkLabeledLoop(sc, fs))   // https://issues.dlang.org/show_bug.cgi?id=15450
                                                           // don't use sc2
                     ls.gotoTarget = s;
-                break;
+                return retStmt(s);
             }
         case Taarray:
             if (fs.op == TOK.foreach_reverse_)
@@ -1492,14 +1579,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 fs.error("only one or two arguments for associative array `foreach`");
                 return retError();
             }
-            goto Lapply;
+            return retStmt(apply());
 
         case Tclass:
         case Tstruct:
             /* Prefer using opApply, if it exists
              */
             if (sapply)
-                goto Lapply;
+                return retStmt(apply());
             {
                 /* Look for range iteration, i.e. the properties
                  * .empty, .popFront, .popBack, .front and .back
@@ -1527,7 +1614,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 auto sfront = ad.search(Loc.initial, idfront);
                 if (!sfront)
-                    goto Lapply;
+                    return retStmt(apply());
 
                 /* Generate a temporary __r and initialize it with the aggregate.
                  */
@@ -1668,7 +1755,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                 forbody = new CompoundStatement(loc, makeargs, fs._body);
 
-                s = new ForStatement(loc, _init, condition, increment, forbody, fs.endloc);
+                Statement s = new ForStatement(loc, _init, condition, increment, forbody, fs.endloc);
                 if (auto ls = checkLabeledLoop(sc, fs))
                     ls.gotoTarget = s;
 
@@ -1679,97 +1766,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
                 }
-                break;
+                return retStmt(s);
             }
         case Tdelegate:
             if (fs.op == TOK.foreach_reverse_)
                 fs.deprecation("cannot use `foreach_reverse` with a delegate");
-        Lapply:
-            {
-                if (checkForArgTypes(fs))
-                    return retError();
-
-                TypeFunction tfld = null;
-                if (sapply)
-                {
-                    FuncDeclaration fdapply = sapply.isFuncDeclaration();
-                    if (fdapply)
-                    {
-                        assert(fdapply.type && fdapply.type.ty == Tfunction);
-                        tfld = cast(TypeFunction)fdapply.type.typeSemantic(loc, sc2);
-                        goto Lget;
-                    }
-                    else if (tab.ty == Tdelegate)
-                    {
-                        tfld = cast(TypeFunction)tab.nextOf();
-                    Lget:
-                        //printf("tfld = %s\n", tfld.toChars());
-                        if (tfld.parameterList.parameters.dim == 1)
-                        {
-                            Parameter p = tfld.parameterList[0];
-                            if (p.type && p.type.ty == Tdelegate)
-                            {
-                                auto t = p.type.typeSemantic(loc, sc2);
-                                assert(t.ty == Tdelegate);
-                                tfld = cast(TypeFunction)t.nextOf();
-                            }
-                            //printf("tfld = %s\n", tfld.toChars());
-                        }
-                    }
-                }
-
-                FuncExp flde = foreachBodyToFunction(sc2, fs, tfld);
-                if (!flde)
-                    return retError();
-
-                // Resolve any forward referenced goto's
-                foreach (ScopeStatement ss; *fs.gotos)
-                {
-                    GotoStatement gs = ss.statement.isGotoStatement();
-                    if (!gs.label.statement)
-                    {
-                        // 'Promote' it to this scope, and replace with a return
-                        fs.cases.push(gs);
-                        ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
-                    }
-                }
-
-                Expression e = null;
-                Expression ec;
-                if (vinit)
-                {
-                    e = new DeclarationExp(loc, vinit);
-                    e = e.expressionSemantic(sc2);
-                    if (e.op == TOK.error)
-                        return retError();
-                }
-
-                if (taa)
-                    ec = applyAssocArray(fs, flde, taa);
-                else if (tab.ty == Tarray || tab.ty == Tsarray)
-                    ec = applyArray(fs, flde, sc2, tn, tnv, tab.ty);
-                else if (tab.ty == Tdelegate)
-                    ec = applyDelegate(fs, flde, sc2, tab);
-                else
-                    ec = applyOpApply(fs, tab, sapply, sc2, flde);
-                if (!ec)
-                    return retError();
-                e = Expression.combine(e, ec);
-                s = loopReturn(e, fs.cases, loc);
-                break;
-            }
-            assert(0);
-
-        case Terror:
-            return retError();
-
-        default:
-            fs.error("`foreach`: `%s` is not an aggregate type", fs.aggr.type.toChars());
-            return retError();
         }
-        s = s.statementSemantic(sc2);
-        sc2.pop();
-        result = s;
+        
     }
 
     private static extern(D) Expression applyOpApply(ForeachStatement fs, Type tab, Dsymbol sapply,
