@@ -1928,34 +1928,7 @@ else
                     }
                 }
                 e = Expression.combine(e, ec);
-
-                if (!fs.cases.dim)
-                {
-                    // Easy case, a clean exit from the loop
-                    e = new CastExp(loc, e, Type.tvoid); // https://issues.dlang.org/show_bug.cgi?id=13899
-                    s = new ExpStatement(loc, e);
-                }
-                else
-                {
-                    // Construct a switch statement around the return value
-                    // of the apply function.
-                    auto a = new Statements();
-
-                    // default: break; takes care of cases 0 and 1
-                    s = new BreakStatement(Loc.initial, null);
-                    s = new DefaultStatement(Loc.initial, s);
-                    a.push(s);
-
-                    // cases 2...
-                    foreach (i, c; *fs.cases)
-                    {
-                        s = new CaseStatement(Loc.initial, new IntegerExp(i + 2), c);
-                        a.push(s);
-                    }
-
-                    s = new CompoundStatement(loc, a);
-                    s = new SwitchStatement(loc, e, s, false);
-                }
+                s = loopReturn(e, fs.cases, loc);
                 break;
             }
             assert(0);
@@ -1972,6 +1945,34 @@ else
         result = s;
     }
 
+    private static extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc)
+    {
+        if (!cases.dim)
+        {
+            // Easy case, a clean exit from the loop
+            e = new CastExp(loc, e, Type.tvoid); // https://issues.dlang.org/show_bug.cgi?id=13899
+            return new ExpStatement(loc, e);
+        }
+        // Construct a switch statement around the return value
+        // of the apply function.
+        Statement s;
+        auto a = new Statements();
+        
+        // default: break; takes care of cases 0 and 1
+        s = new BreakStatement(Loc.initial, null);
+        s = new DefaultStatement(Loc.initial, s);
+        a.push(s);
+        
+        // cases 2...
+        foreach (i, c; *cases)
+        {
+            s = new CaseStatement(Loc.initial, new IntegerExp(i + 2), c);
+            a.push(s);
+        }
+        
+        s = new CompoundStatement(loc, a);
+        return new SwitchStatement(loc, e, s, false);
+    }
     /*************************************
      * Turn foreach body into the function literal:
      *  int delegate(ref T param) { body }
