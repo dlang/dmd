@@ -1764,34 +1764,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else
                 {
-version (none)
-{
-                    if (global.params.vsafe)
-                    {
-                        message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
-                    }
-                    flde.fd.tookAddressOf = 1;
-}
-else
-{
-                    if (global.params.vsafe)
-                        ++flde.fd.tookAddressOf;  // allocate a closure unless the opApply() uses 'scope'
-}
-                    assert(tab.ty == Tstruct || tab.ty == Tclass);
-                    assert(sapply);
-                    /* Call:
-                     *  aggr.apply(flde)
-                     */
-                    ec = new DotIdExp(loc, fs.aggr, sapply.ident);
-                    ec = new CallExp(loc, ec, flde);
-                    ec = ec.expressionSemantic(sc2);
-                    if (ec.op == TOK.error)
+                    ec = applyOpApply(fs, tab, sapply, sc2, flde);
+                    if (!ec)
                         return retError();
-                    if (ec.type != Type.tint32)
-                    {
-                        fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
-                        return retError();
-                    }
                 }
                 e = Expression.combine(e, ec);
                 s = loopReturn(e, fs.cases, loc);
@@ -1811,6 +1786,40 @@ else
         result = s;
     }
 
+    private static extern(D) Expression applyOpApply(ForeachStatement fs, Type tab, Dsymbol sapply,
+                                                     Scope* sc2, Expression flde)
+    {
+        version (none)
+        {
+            if (global.params.vsafe)
+            {
+                message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
+            }
+            (cast(FuncExp)flde).fd.tookAddressOf = 1;
+        }
+        else
+        {
+            if (global.params.vsafe)
+                ++(cast(FuncExp)flde).fd.tookAddressOf;  // allocate a closure unless the opApply() uses 'scope'
+        }
+        assert(tab.ty == Tstruct || tab.ty == Tclass);
+        assert(sapply);
+        /* Call:
+         *  aggr.apply(flde)
+         */
+        Expression ec;
+        ec = new DotIdExp(fs.loc, fs.aggr, sapply.ident);
+        ec = new CallExp(fs.loc, ec, flde);
+        ec = ec.expressionSemantic(sc2);
+        if (ec.op == TOK.error)
+            return null;
+        if (ec.type != Type.tint32)
+        {
+            fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
+            return null;
+        }
+        return ec;
+    }
     private static extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
                                                       Scope* sc2, Type tab)
     {
