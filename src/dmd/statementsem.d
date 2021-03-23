@@ -1752,64 +1752,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else if (tab.ty == Tarray || tab.ty == Tsarray)
                 {
-                    /* Call:
-                     *      _aApply(aggr, flde)
-                     */
-                    __gshared const(char)** fntab =
-                    [
-                        "cc", "cw", "cd",
-                        "wc", "cc", "wd",
-                        "dc", "dw", "dd"
-                    ];
-
-                    const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
-                    char[BUFFER_LEN] fdname;
-                    int flag;
-
-                    switch (tn.ty)
-                    {
-                    case Tchar:     flag = 0;   break;
-                    case Twchar:    flag = 3;   break;
-                    case Tdchar:    flag = 6;   break;
-                    default:
-                        assert(0);
-                    }
-                    switch (tnv.ty)
-                    {
-                    case Tchar:     flag += 0;  break;
-                    case Twchar:    flag += 1;  break;
-                    case Tdchar:    flag += 2;  break;
-                    default:
-                        assert(0);
-                    }
-                    const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
-                    int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
-                    assert(j < BUFFER_LEN);
-
-                    FuncDeclaration fdapply;
-                    TypeDelegate dgty;
-                    auto params = new Parameters();
-                    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null, null));
-                    auto dgparams = new Parameters();
-                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
-                    if (dim == 2)
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
-                    dgty = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-                    params.push(new Parameter(0, dgty, null, null, null));
-                    fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
-
-                    if (tab.ty == Tsarray)
-                        fs.aggr = fs.aggr.castTo(sc2, tn.arrayOf());
-                    // paint delegate argument to the type runtime expects
-                    Expression fexp = flde;
-                    if (!dgty.equals(flde.type))
-                    {
-                        fexp = new CastExp(loc, flde, flde.type);
-                        fexp.type = dgty;
-                    }
-                    ec = new VarExp(Loc.initial, fdapply, false);
-                    ec = new CallExp(loc, ec, fs.aggr, fexp);
-                    ec.type = Type.tint32; // don't run semantic() on ec
+                    ec = applyArray(fs, flde, sc2, tn, tnv, tab.ty);
+                    if (!ec)
+                        return retError();
                 }
                 else if (tab.ty == Tdelegate)
                 {
@@ -1880,6 +1825,72 @@ else
         result = s;
     }
 
+    private static extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
+                                                   Scope* sc2, Type tn, Type tnv, TY tabty)
+    {
+        Expression ec;
+        const dim = fs.parameters.dim;
+        const loc = fs.loc;
+        /* Call:
+         *      _aApply(aggr, flde)
+         */
+        __gshared const(char)** fntab =
+        [
+         "cc", "cw", "cd",
+         "wc", "cc", "wd",
+         "dc", "dw", "dd"
+         ];
+        
+        const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
+        char[BUFFER_LEN] fdname;
+        int flag;
+        
+        switch (tn.ty)
+        {
+            case Tchar:     flag = 0;   break;
+            case Twchar:    flag = 3;   break;
+            case Tdchar:    flag = 6;   break;
+            default:
+                assert(0);
+        }
+        switch (tnv.ty)
+        {
+            case Tchar:     flag += 0;  break;
+            case Twchar:    flag += 1;  break;
+            case Tdchar:    flag += 2;  break;
+            default:
+                assert(0);
+        }
+        const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
+        int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
+        assert(j < BUFFER_LEN);
+        
+        FuncDeclaration fdapply;
+        TypeDelegate dgty;
+        auto params = new Parameters();
+        params.push(new Parameter(STC.in_, tn.arrayOf(), null, null, null));
+        auto dgparams = new Parameters();
+        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+        if (dim == 2)
+            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+        dgty = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
+        params.push(new Parameter(0, dgty, null, null, null));
+        fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
+        
+        if (tabty == Tsarray)
+            fs.aggr = fs.aggr.castTo(sc2, tn.arrayOf());
+        // paint delegate argument to the type runtime expects
+        Expression fexp = flde;
+        if (!dgty.equals(flde.type))
+        {
+            fexp = new CastExp(loc, flde, flde.type);
+            fexp.type = dgty;
+        }
+        ec = new VarExp(Loc.initial, fdapply, false);
+        ec = new CallExp(loc, ec, fs.aggr, fexp);
+        ec.type = Type.tint32; // don't run semantic() on ec
+        return ec;
+    }
     private static extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, TypeAArray taa)
     {
         Expression ec;
