@@ -1473,7 +1473,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (auto ls = checkLabeledLoop(sc, fs))   // https://issues.dlang.org/show_bug.cgi?id=15450
                                                           // don't use sc2
                     ls.gotoTarget = s;
-                s = s.statementSemantic(sc2);
                 break;
             }
         case Taarray:
@@ -1675,7 +1674,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
                 }
-                s = s.statementSemantic(sc2);
                 break;
 
             Lrangeerr:
@@ -1958,7 +1956,6 @@ else
                     s = new CompoundStatement(loc, a);
                     s = new SwitchStatement(loc, e, s, false);
                 }
-                s = s.statementSemantic(sc2);
                 break;
             }
             assert(0);
@@ -1970,6 +1967,7 @@ else
             fs.error("`foreach`: `%s` is not an aggregate type", fs.aggr.type.toChars());
             return retError();
         }
+        s = s.statementSemantic(sc2);
         sc2.pop();
         result = s;
     }
