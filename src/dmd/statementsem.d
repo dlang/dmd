@@ -1758,23 +1758,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else if (tab.ty == Tdelegate)
                 {
-                    /* Call:
-                     *      aggr(flde)
-                     */
-                    if (fs.aggr.op == TOK.delegate_ && (cast(DelegateExp)fs.aggr).func.isNested() && !(cast(DelegateExp)fs.aggr).func.needThis())
-                    {
-                        // https://issues.dlang.org/show_bug.cgi?id=3560
-                        fs.aggr = (cast(DelegateExp)fs.aggr).e1;
-                    }
-                    ec = new CallExp(loc, fs.aggr, flde);
-                    ec = ec.expressionSemantic(sc2);
-                    if (ec.op == TOK.error)
+                    ec = applyDelegate(fs, flde, sc2, tab);
+                    if (!ec)
                         return retError();
-                    if (ec.type != Type.tint32)
-                    {
-                        fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
-                        return retError();
-                    }
                 }
                 else
                 {
@@ -1825,6 +1811,30 @@ else
         result = s;
     }
 
+    private static extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
+                                                      Scope* sc2, Type tab)
+    {
+        Expression ec;
+        /* Call:
+         *      aggr(flde)
+         */
+        if (fs.aggr.op == TOK.delegate_ && (cast(DelegateExp)fs.aggr).func.isNested() &&
+            !(cast(DelegateExp)fs.aggr).func.needThis())
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=3560
+            fs.aggr = (cast(DelegateExp)fs.aggr).e1;
+        }
+        ec = new CallExp(fs.loc, fs.aggr, flde);
+        ec = ec.expressionSemantic(sc2);
+        if (ec.op == TOK.error)
+            return null;
+        if (ec.type != Type.tint32)
+        {
+            fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
+            return null;
+        }
+        return ec;
+    }
     private static extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
                                                    Scope* sc2, Type tn, Type tnv, TY tabty)
     {
