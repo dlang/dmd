@@ -673,6 +673,14 @@ private extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
 
 /*******************************************
  * Take address of an elem.
+ * Accounts for e being an rvalue by assigning the rvalue
+ * to a temp.
+ * Params:
+ *      e = elem to take address of
+ *      t = Type of elem
+ *      alwaysCopy = when true, always copy e to a tmp
+ * Returns:
+ *      the equivalent of &e
  */
 
 elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
@@ -3361,7 +3369,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(tb2.ty == Tdchar &&
                           (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
-                    e1 = el_una(OPaddr, TYnptr, e1);
+                    e1 = addressElem(e1, Type.tvoid.pointerTo(), false);
 
                     elem *ep = el_params(e2, e1, null);
                     int rtl = (tb1.nextOf().ty == Tchar)
@@ -3380,14 +3388,25 @@ elem *toElem(Expression e, IRState *irs)
 
                     assert(tb1n.equals(tb2.nextOf().toBasetype()));
 
-                    e1 = el_una(OPaddr, TYnptr, e1);
-                    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                    /* e1 ~= e2 becomes
+                     * ev = &e1, _d_arrayappendT(e2, ev, typeinfo), *ev
+                     */
+
+                    elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
+                    elem* ev = el_same(&re1);
+
+                    if (global.params.targetOS == TargetOS.Windows && global.params.is64bit)
                         e2 = addressElem(e2, tb2, true);
                     else
                         e2 = useOPstrpar(e2);
-                    elem *ep = el_params(e2, e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
+                    elem *ep = el_params(e2, el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
                     toTraceGC(irs, e, ce.loc);
+
+                    e = el_combine(re1, e);
+
+                    ev = el_una(OPind, e1.Ety, ev);
+                    e = el_combine(e, ev);
                     break;
                 }
 
@@ -3412,7 +3431,7 @@ elem *toElem(Expression e, IRState *irs)
                     }
 
                     // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
-                    e1 = el_una(OPaddr, TYnptr, e1);
+                    e1 = addressElem(e1, Type.tvoid.pointerTo(), false);
                     elem *ep = el_param(e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs));
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
