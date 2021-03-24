@@ -1267,6 +1267,14 @@ public:
         }
     }
 
+    override void visit(FuncExp e)
+    {
+        if (e.td)
+            mangleSymbol(e.td);
+        else
+            mangleSymbol(e.fd);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     override void visit(Parameter p)
