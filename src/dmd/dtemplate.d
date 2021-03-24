@@ -808,7 +808,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
              */
             for (Scope* scx = paramscope.callsc; scx; scx = scx.callsc)
             {
-                if (scx == p.sc)
+                // The first scx might be identical for nested eponymeous templates, e.g.
+                // template foo() { void foo()() {...} }
+                if (scx == p.sc && scx !is paramscope.callsc)
                     return false;
             }
             /* BUG: should also check for ref param differences
