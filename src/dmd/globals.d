@@ -372,6 +372,8 @@ extern (C++) struct Global
         {
             vendor = "GNU D";
         }
+
+        TimeStampInfo.initialize();
     }
 
     /**
@@ -383,6 +385,8 @@ extern (C++) struct Global
     extern (D) void deinitialize()
     {
         this = this.init;
+
+        TimeStampInfo.deinitialize();
     }
 
     /**
@@ -634,6 +638,51 @@ enum PINLINE : ubyte
 }
 
 alias StorageClass = uinteger_t;
+
+/// Support for `__DATE__`, `__TIME__`, and `__TIMESTAMP__`
+struct TimeStampInfo
+{
+    // Note: Those properties need to be guarded by a call to `init`
+    // The API isn't safe, and quite brittle, but it was left this way
+    // over performance concerns.
+    // This is currently only called once, from the lexer.
+    __gshared char[11 + 1] date;
+    __gshared char[8 + 1] time;
+    __gshared char[24 + 1] timestamp;
+
+    private static void initialize() nothrow
+    {
+        import core.stdc.time;
+        import core.stdc.stdio;
+        import core.stdc.stdlib;
+        import dmd.errors;
+        import dmd.utils;
+        import dmd.root.string;
+
+        time_t ct;
+        // https://issues.dlang.org/show_bug.cgi?id=20444
+        if (auto p = getenv("SOURCE_DATE_EPOCH"))
+        {
+            if (!ct.parseDigits(p.toDString()))
+                error(Loc.initial, "Value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+        }
+        else
+            core.stdc.time.time(&ct);
+        const p = ctime(&ct);
+        assert(p);
+        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
+        sprintf(&time[0], "%.8s", p + 11);
+        sprintf(&timestamp[0], "%.24s", p);
+    }
+
+    private static void deinitialize() nothrow
+    {
+        date = date.init;
+        time = time.init;
+        timestamp = timestamp.init;
+    }
+
+}
 
 /// Collection of global state
 extern (C++) __gshared Global global;
