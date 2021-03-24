@@ -432,6 +432,43 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             }
         }
 
+        override void visit(PostExp pe)
+        {
+            AggregateDeclaration ad = isAggregate(pe.e1.type);
+            if (!ad)
+                return visit(cast(BinExp) pe);
+            auto fdr = search_function(ad, Id.opUnaryRight);
+            if (!fdr)
+                return visit(cast(BinExp) pe);
+
+            void errorRet()
+            {
+                result = ErrorExp.get();
+            }
+
+            StorageClass stc;
+            if (TemplateDeclaration d = fdr.isTemplateDeclaration())
+            {
+                if (FuncDeclaration fdr2 = d.onemember.isFuncDeclaration())
+                    stc = fdr2.storage_class;
+                else
+                {
+                    d.onemember.error("isn't a function");
+                    return errorRet();
+                }
+            }
+            else
+            {
+                fdr.error("isn't a template");
+                return errorRet();
+            }
+            if (stc & STC.disable)
+                e.error("cannot be used because it is annotated with `@disable`");
+            else
+                e.error("can only `@disable` opUnaryRight");
+            return errorRet();
+        }
+
         override void visit(ArrayExp ae)
         {
             //printf("ArrayExp::op_overload() (%s)\n", ae.toChars());

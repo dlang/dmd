@@ -7557,6 +7557,7 @@ struct Id
     static Identifier* opDispatch;
     static Identifier* opDollar;
     static Identifier* opUnary;
+    static Identifier* opUnaryRight;
     static Identifier* opIndexUnary;
     static Identifier* opSliceUnary;
     static Identifier* opBinary;

@@ -274,6 +274,7 @@ immutable Msgtable[] msgtable =
     { "opDispatch" },
     { "opDollar" },
     { "opUnary" },
+    { "opUnaryRight" }, // for `@disable`ing postincrement operators
     { "opIndexUnary" },
     { "opSliceUnary" },
     { "opBinary" },
