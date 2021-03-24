@@ -1843,23 +1843,35 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         /* Call:
          *      _aApply(aggr, flde)
          */
+        __gshared const(char)** fntab =
+        [
+         "cc", "cw", "cd",
+         "wc", "cc", "wd",
+         "dc", "dw", "dd"
+         ];
 
         const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
         char[BUFFER_LEN] fdname;
-        static char tyTochar(TY ty)
+        int flag;
+
+        switch (tn.ty)
         {
-            switch (ty)
-            {
-            case Tchar:  return 'c';
-            case Twchar: return 'w';
-            case Tdchar: return 'd';
+            case Tchar:     flag = 0;   break;
+            case Twchar:    flag = 3;   break;
+            case Tdchar:    flag = 6;   break;
             default:
                 assert(0);
-            }
         }
-
+        switch (tnv.ty)
+        {
+            case Tchar:     flag += 0;  break;
+            case Twchar:    flag += 1;  break;
+            case Tdchar:    flag += 2;  break;
+            default:
+                assert(0);
+        }
         const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
-        int j = sprintf(fdname.ptr, "_aApply%s%c%c%llu", r, tyTochar(tn.ty), tyTochar(tnv.ty), cast(ulong)dim);
+        int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
         assert(j < BUFFER_LEN);
 
         FuncDeclaration fdapply;
