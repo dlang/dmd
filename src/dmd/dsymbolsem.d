@@ -3891,7 +3891,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Linterfaces:
             bool foundVtblMatch = false;
 
-            for (ClassDeclaration bcd=cd; foundVtblMatch is false && bcd !is null; bcd=bcd.baseClass)
+            for (ClassDeclaration bcd = cd; !foundVtblMatch && bcd; bcd = bcd.baseClass)
             {
                 foreach (b; bcd.interfaces)
                 {
