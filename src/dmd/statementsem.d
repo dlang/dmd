@@ -1294,7 +1294,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
             Expression e = null;
-            CallExp ec;
+            Expression ec;
             if (vinit)
             {
                 e = new DeclarationExp(loc, vinit);
@@ -1313,7 +1313,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 ec = applyOpApply(fs, tab, sapply, sc2, flde);
             if (!ec)
                 return null;
-            return loopReturn(Expression.combine(e, ec), fs.cases, loc);
+            e = Expression.combine(e, ec);
+            return loopReturn(e, fs.cases, loc);
         }
         switch (tab.ty)
         {
@@ -1774,8 +1775,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
     }
 
-    private static extern(D) CallExp applyOpApply(ForeachStatement fs, Type tab, Dsymbol sapply,
-                                                     Scope* sc2, FuncExp flde)
+    private static extern(D) Expression applyOpApply(ForeachStatement fs, Type tab, Dsymbol sapply,
+                                                     Scope* sc2, Expression flde)
     {
         version (none)
         {
@@ -1806,10 +1807,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
             return null;
         }
-        return cast(CallExp)ec;
+        return ec;
     }
 
-    private static extern(D) CallExp applyDelegate(ForeachStatement fs, FuncExp flde,
+    private static extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
                                                       Scope* sc2, Type tab)
     {
         Expression ec;
@@ -1831,10 +1832,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
             return null;
         }
-        return cast(CallExp)ec;
+        return ec;
     }
 
-    private static extern(D) CallExp applyArray(ForeachStatement fs, FuncExp flde,
+    private static extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
                                                    Scope* sc2, Type tn, Type tnv, TY tabty)
     {
         Expression ec;
@@ -1843,23 +1844,35 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         /* Call:
          *      _aApply(aggr, flde)
          */
+        __gshared const(char)** fntab =
+        [
+         "cc", "cw", "cd",
+         "wc", "cc", "wd",
+         "dc", "dw", "dd"
+         ];
 
         const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
         char[BUFFER_LEN] fdname;
-        static char tyTochar(TY ty)
+        int flag;
+
+        switch (tn.ty)
         {
-            switch (ty)
-            {
-            case Tchar:  return 'c';
-            case Twchar: return 'w';
-            case Tdchar: return 'd';
+            case Tchar:     flag = 0;   break;
+            case Twchar:    flag = 3;   break;
+            case Tdchar:    flag = 6;   break;
             default:
                 assert(0);
-            }
         }
-
+        switch (tnv.ty)
+        {
+            case Tchar:     flag += 0;  break;
+            case Twchar:    flag += 1;  break;
+            case Tdchar:    flag += 2;  break;
+            default:
+                assert(0);
+        }
         const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
-        int j = sprintf(fdname.ptr, "_aApply%s%c%c%llu", r, tyTochar(tn.ty), tyTochar(tnv.ty), cast(ulong)dim);
+        int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
         assert(j < BUFFER_LEN);
 
         FuncDeclaration fdapply;
@@ -1886,10 +1899,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         ec = new VarExp(Loc.initial, fdapply, false);
         ec = new CallExp(loc, ec, fs.aggr, fexp);
         ec.type = Type.tint32; // don't run semantic() on ec
-        return cast(CallExp)ec;
+        return ec;
     }
 
-    private static extern(D) CallExp applyAssocArray(ForeachStatement fs, FuncExp flde, TypeAArray taa)
+    private static extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, TypeAArray taa)
     {
         Expression ec;
         const dim = fs.parameters.dim;
@@ -1961,7 +1974,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         ec = new VarExp(Loc.initial, fdapply[i], false);
         ec = new CallExp(fs.loc, ec, exps);
         ec.type = Type.tint32; // don't run semantic() on ec
-        return cast(CallExp)ec;
+        return ec;
     }
 
     private static extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc)
