@@ -272,7 +272,11 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
 
     $(P Overrides the default mangling for a symbol.)
 
-    $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+    $(P For variables and functions there must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+        For aggregates there may one or two $(ASSIGNEXPRESSION)s, one of which must evaluate at compile time to a string literal,
+        one which must evaluate to a symbol. If that symbol is a TemplateInstance the aggregate is treated as being a template
+        with the signature and arguments of the TemplateInstance. If no string is supplied the identifier of the symbol is used
+        in its place. Both arguments may be used used when an aggregate has name that is a D keyword.
     )
 
     $(P It only applies to function and variable symbols. Other symbols are ignored.)
@@ -291,6 +295,18 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
         ---
         pragma(mangle, "body")
         extern(C) void body_func();
+        pragma(mangle, "function")
+        extern(C++) struct _function {}
+        template ScopeClass(C)
+        {
+            pragma(mangle, C.stringof, C)
+            struct ScopeClass { char[__traits(classInstanceSize, C)] buffer; }
+        }
+        extern(C++)
+        {
+            class MyClassA(T) {}
+            void func(ref ScopeClass!(MyClassA!int)); // mangles as MyClass<int>&
+        }
         ---
     )
 
