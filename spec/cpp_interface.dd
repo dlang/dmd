@@ -770,12 +770,12 @@ $(H2 $(LNAME2 data-type-compatibility, Data Type Compatibility))
 
     $(TROW
     $(ARGS $(B long)),
-    $(ARGS $(B long long))
+    $(ARGS $(B long) if it is 64 bit wide, otherwise $(B long long))
     )
 
     $(TROW
     $(ARGS $(B ulong)),
-    $(ARGS $(B unsigned long long))
+    $(ARGS $(B unsigned long) if it is 64 bit wide, otherwise $(B unsigned long long))
     )
 
     $(TROW
