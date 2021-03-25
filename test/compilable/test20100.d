@@ -40,3 +40,11 @@ void main() {
     assert(!arr.ptr);
     assert(arr.ptr is arr.ptr);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=21765
+ref int func21765(int);
+void test21765()
+{
+    assert((func21765(1) = 2) == 2);
+    assert((1.func21765 = 2) == 2);
+}
