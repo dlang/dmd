@@ -6121,7 +6121,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             return left;
 
                         // Sanity check that `op` can be converted to boolean
-                        op.toBoolean(sc);
+                        // But don't raise errors for assignments enclosed in another expression
+                        if (op is exp.e1)
+                            op.toBoolean(sc);
                     }
 
                     // Tuples with side-effects already receive a temporary during semantic
