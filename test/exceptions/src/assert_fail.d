@@ -234,6 +234,13 @@ void testUnary()
     test(_d_assert_fail!(int[])("!", [1, 2, 3]), "[1, 2, 3] == true");
 }
 
+void testTuple()
+{
+    test(_d_assert_fail("=="), "() != ()");
+    test(_d_assert_fail("!="), "() == ()");
+    test(_d_assert_fail(">="), "() < ()");
+}
+
 void main()
 {
     testIntegers();
@@ -250,5 +257,6 @@ void main()
     testTemporary();
     testEnum();
     testUnary();
+    testTuple();
     fprintf(stderr, "success.\n");
 }

@@ -60,7 +60,7 @@ template _d_assert_fail(A...)
 {
     string _d_assert_fail(B...)(
         const scope string comp, auto ref const scope A a, auto ref const scope B b)
-    if (B.length > 0)
+    if (B.length != 0 || A.length != 1) // Resolve ambiguity with unary overload
     {
         string[A.length + B.length] vals;
         static foreach (idx; 0 .. A.length)
@@ -79,11 +79,16 @@ private string combine(const scope string[] valA, const scope string token,
     // Each separator is 2 chars (", "), plus the two spaces around the token.
     size_t totalLen = (valA.length - 1) * 2 +
         (valB.length - 1) * 2 + 2 + token.length;
+
+    // Empty arrays are printed as ()
+    if (valA.length == 0) totalLen += 2;
+    if (valB.length == 0) totalLen += 2;
+
     foreach (v; valA) totalLen += v.length;
     foreach (v; valB) totalLen += v.length;
 
     // Include braces when printing tuples
-    const printBraces = (valA.length + valB.length) > 2;
+    const printBraces = (valA.length + valB.length) != 2;
     if (printBraces) totalLen += 4; // '(', ')' for both tuples
 
     char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
