@@ -332,7 +332,7 @@ private string miniFormat(V)(const scope ref V v)
     {
         size_t i;
         string msg = "[";
-        foreach (k, ref val; v)
+        foreach (ref k, ref val; v)
         {
             if (i > 0)
                 msg ~= ", ";
