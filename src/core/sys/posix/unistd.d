@@ -2566,7 +2566,6 @@ else version (OpenBSD)
     int        lchown(const scope char*, uid_t, gid_t);
     int        lockf(int, int, off_t) @trusted;
     int        nice(int) @trusted;
-    int        pledge(const scope char*, const scope char*);
     ssize_t    pread(int, void*, size_t, off_t);
     ssize_t    pwrite(int, const scope void*, size_t, off_t);
     int        setpgrp(pid_t, pid_t) @trusted;
@@ -2576,7 +2575,6 @@ else version (OpenBSD)
     void       sync() @trusted;
     int        truncate(const scope char*, off_t);
     useconds_t ualarm(useconds_t, useconds_t) @trusted;
-    int        unveil(const scope char*, const scope char*);
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
