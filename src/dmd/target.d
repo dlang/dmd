@@ -983,13 +983,18 @@ struct TargetCPP
     bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
     bool exceptions;          /// set if catching C++ exceptions is supported
     bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool tls;                 /// set if target has compatible 'thread_local'
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
+        tls = true;
         if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
             twoDtorInVtable = true;
         else if (params.targetOS == TargetOS.OSX)
+        {
             twoDtorInVtable = true;
+            tls = false;
+        }
         else if (params.targetOS == TargetOS.Windows)
             reverseOverloads = true;
         else
@@ -1092,6 +1097,14 @@ struct TargetCPP
     extern (C++) bool fundamentalType(const Type t, ref bool isFundamental)
     {
         return false;
+    }
+
+    /**
+     * Checks whether 'thread_local' is supported by
+     */
+    extern (C++) bool threadLocalSupport()
+    {
+        return tls;
     }
 }
 

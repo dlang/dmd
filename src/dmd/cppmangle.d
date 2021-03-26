@@ -995,8 +995,19 @@ private final class CppMangleVisitor : Visitor
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("Internal Compiler Error: C++ static non-`__gshared` non-`extern` variables not supported");
-            fatal();
+            if (!target.cpp.threadLocalSupport())
+            {
+                // OSX emits TLS wrapper functions, shouldn't be hard to do.
+                // These start with _ZTW
+                d.error("C++ `thread_local` is unsupported for this target");
+                fatal();
+            }
+            else if (global.params.cplusplus == CppStdRevision.cpp98)
+            {
+                d.error("C++ `thread_local` variables are not supported in C++98 compatibiity mode");
+                errorSupplemental(d.loc, "use `-extern-std=c++11` or higher");
+                fatal();
+            }
         }
         Dsymbol p = d.toParent();
         if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"

@@ -1570,22 +1570,26 @@ struct TargetCPP
     bool reverseOverloads;
     bool exceptions;
     bool twoDtorInVtable;
+    bool tls;
     const char* toMangle(Dsymbol* s);
     const char* typeInfoMangle(ClassDeclaration* cd);
     const char* thunkMangle(FuncDeclaration* fd, int32_t offset);
     const char* typeMangle(Type* t);
     Type* parameterType(Parameter* p);
     bool fundamentalType(const Type* const t, bool& isFundamental);
+    bool threadLocalSupport();
     TargetCPP() :
         reverseOverloads(),
         exceptions(),
-        twoDtorInVtable()
+        twoDtorInVtable(),
+        tls()
     {
     }
-    TargetCPP(bool reverseOverloads, bool exceptions = false, bool twoDtorInVtable = false) :
+    TargetCPP(bool reverseOverloads, bool exceptions = false, bool twoDtorInVtable = false, bool tls = false) :
         reverseOverloads(reverseOverloads),
         exceptions(exceptions),
-        twoDtorInVtable(twoDtorInVtable)
+        twoDtorInVtable(twoDtorInVtable),
+        tls(tls)
         {}
 };
 
@@ -6583,7 +6587,7 @@ public:
         RealProperties()
     {
     }
-    Target(uint32_t ptrsize, uint32_t realsize = 0u, uint32_t realpad = 0u, uint32_t realalignsize = 0u, uint32_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u), TargetCPP cpp = TargetCPP(false, false, false), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
+    Target(uint32_t ptrsize, uint32_t realsize = 0u, uint32_t realpad = 0u, uint32_t realalignsize = 0u, uint32_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u), TargetCPP cpp = TargetCPP(false, false, false, false), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
         ptrsize(ptrsize),
         realsize(realsize),
         realpad(realpad),

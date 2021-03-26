@@ -567,9 +567,10 @@ extern(D):
         // <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
         assert(d);
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
-        if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
+        if (global.params.cplusplus == CppStdRevision.cpp98 && !(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("Internal Compiler Error: C++ static non-__gshared non-extern variables not supported");
+            d.error("C++ `thread_local` variables are not supported in C++98 compatibiity mode");
+            errorSupplemental(d.loc, "use `-extern-std=c++11` or higher");
             fatal();
         }
         buf.writeByte('?');

@@ -33,3 +33,31 @@ void test19658_i32(i32_19658) {}
 void test19658_u32(u32_19658) {}
 void test19658_i64(i64_19658) {}
 void test19658_u64(u64_19658) {}
+
+#ifndef __APPLE__
+thread_local int i15523_cpp;
+extern thread_local int i15523_d;
+
+void test15523cpp(int a)
+{
+    assert(a == i15523_cpp);
+    assert(a == i15523_d);
+    i15523_cpp++;
+    i15523_d +=2;
+}
+
+struct S
+{
+    S(int f);
+    int field;
+};
+S::S(int f) : field(f) { }
+
+extern thread_local S tls;
+
+void fromCxx()
+{
+    assert(tls.field == 0xfeebdaed);
+}
+
+#endif

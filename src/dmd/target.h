@@ -36,6 +36,7 @@ struct TargetCPP
     bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
     bool exceptions;          // set if catching C++ exceptions is supported
     bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool tls;                 // set if target has compatible 'thread_local'
 
     const char *toMangle(Dsymbol *s);
     const char *typeInfoMangle(ClassDeclaration *cd);
@@ -112,6 +113,7 @@ public:
     bool preferPassByRef(Type *t);
     Expression *getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
+    bool threadLocalSupport();
 };
 
 extern Target target;
