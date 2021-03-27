@@ -3361,6 +3361,12 @@ elem *toElem(Expression e, IRState *irs)
             elem *e1 = toElem(ce.e1, irs);
             elem *e2 = toElem(ce.e2, irs);
 
+            /* Because e1 is an lvalue, refer to it via a pointer to it in the form
+             * of ev. Put any side effects into re1
+             */
+            elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
+            elem* ev = el_same(&re1);
+
             switch (ce.op)
             {
                 case TOK.concatenateDcharAssign:
@@ -3369,9 +3375,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(tb2.ty == Tdchar &&
                           (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
-                    e1 = addressElem(e1, Type.tvoid.pointerTo(), false);
-
-                    elem *ep = el_params(e2, e1, null);
+                    elem *ep = el_params(e2, el_copytree(ev), null);
                     int rtl = (tb1.nextOf().ty == Tchar)
                             ? RTLSYM_ARRAYAPPENDCD
                             : RTLSYM_ARRAYAPPENDWD;
@@ -3389,11 +3393,8 @@ elem *toElem(Expression e, IRState *irs)
                     assert(tb1n.equals(tb2.nextOf().toBasetype()));
 
                     /* e1 ~= e2 becomes
-                     * ev = &e1, _d_arrayappendT(e2, ev, typeinfo), *ev
+                     * _d_arrayappendT(e2, ev, typeinfo), *ev
                      */
-
-                    elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
-                    elem* ev = el_same(&re1);
 
                     if (global.params.targetOS == TargetOS.Windows && global.params.is64bit)
                         e2 = addressElem(e2, tb2, true);
@@ -3402,11 +3403,6 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_params(e2, el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
                     toTraceGC(irs, e, ce.loc);
-
-                    e = el_combine(re1, e);
-
-                    ev = el_una(OPind, e1.Ety, ev);
-                    e = el_combine(e, ev);
                     break;
                 }
 
@@ -3431,8 +3427,7 @@ elem *toElem(Expression e, IRState *irs)
                     }
 
                     // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
-                    e1 = addressElem(e1, Type.tvoid.pointerTo(), false);
-                    elem *ep = el_param(e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs));
+                    elem *ep = el_param(el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs));
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
                     toTraceGC(irs, e, ce.loc);
@@ -3459,6 +3454,13 @@ elem *toElem(Expression e, IRState *irs)
                 default:
                     assert(0);
             }
+
+            /* Generate: (re1, e, *ev)
+             */
+            e = el_combine(re1, e);
+            ev = el_una(OPind, e1.Ety, ev);
+            e = el_combine(e, ev);
+
             elem_setLoc(e, ce.loc);
             result = e;
         }
