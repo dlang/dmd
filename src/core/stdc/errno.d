@@ -1526,7 +1526,11 @@ else version (OpenBSD)
     enum EIDRM              = 89;       /// Identifier removed
     enum ENOMSG             = 90;       /// No message of desired type
     enum ENOTSUP            = 91;       /// Not supported
-    enum ELAST              = 91;       /// Must be equal largest errno
+    enum EBADMSG            = 92;       /// Bad message
+    enum ENOTRECOVERABLE    = 93;       /// State not recoverable
+    enum EOWNERDEAD         = 94;       /// Previous owner died
+    enum EPROTO             = 95;       /// Protocol error
+    enum ELAST              = 95;       /// Must be equal largest errno
 }
 else version (DragonFlyBSD)
 {
