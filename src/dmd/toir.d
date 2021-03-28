@@ -509,9 +509,8 @@ int intrinsic_op(FuncDeclaration fd)
     // ... except std.math package and core.stdc.stdarg.va_start.
     if (md.packages.length == 2)
     {
-        if (id2 == Id.trig &&
-            md.packages[1] == Id.math &&
-            id1 == Id.std)
+        // Matches any module in std.math.*
+        if (md.packages[1] == Id.math && id1 == Id.std)
         {
             goto Lstdmath;
         }

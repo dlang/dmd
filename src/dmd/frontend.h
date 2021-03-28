@@ -7632,7 +7632,6 @@ struct Id
     static Identifier* etc;
     static Identifier* attribute;
     static Identifier* math;
-    static Identifier* trig;
     static Identifier* sin;
     static Identifier* cos;
     static Identifier* tan;
