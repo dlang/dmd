@@ -570,7 +570,7 @@ static if (1)
 
         const byte line_base = -5;
         const ubyte line_range = 14;
-        const ubyte opcode_base = 10;
+        const ubyte opcode_base = 13;
 
         public uint[TYMAX] typidx_tab;
     }
@@ -1072,10 +1072,8 @@ static if (1)
 
             debug_line.initialize();
 
-            auto getDebugLineHeader(ushort hversion)()
+            void writeDebugLineHeader(ushort hversion)()
             {
-                static assert(hversion == 3);
-
                 struct DebugLineHeader
                 {
                 align (1):
@@ -1087,7 +1085,7 @@ static if (1)
                     byte line_base = .line_base;
                     ubyte line_range = .line_range;
                     ubyte opcode_base = .opcode_base;
-                    ubyte[9] sol =
+                    ubyte[12] standard_opcode_lengths =
                     [
                         0,      // DW_LNS_copy
                         1,      // DW_LNS_advance_pc
@@ -1098,19 +1096,29 @@ static if (1)
                         0,      // DW_LNS_set_basic_block
                         0,      // DW_LNS_const_add_pc
                         1,      // DW_LNS_fixed_advance_pc
+                        0,      // DW_LNS_set_prologue_end
+                        0,      // DW_LNS_set_epilogue_begin
+                        0,      // DW_LNS_set_isa
                     ];
                 }
-                static assert(DebugLineHeader.sizeof == 24);
-                // 6.2.5.2 Standard Opcodes
-                static assert(DebugLineHeader.sol.length == opcode_base - 1);
 
-                return DebugLineHeader.init;
+                static if (hversion == 3)
+                    static assert(DebugLineHeader.sizeof == 27);
+                else
+                    static assert(0);
+
+                auto lineHeader = DebugLineHeader.init;
+
+                // 6.2.5.2 Standard Opcodes
+                static assert(DebugLineHeader.standard_opcode_lengths.length == opcode_base - 1);
+
+                lineHeaderLengthOffset = lineHeader.header_length.offsetof;
+
+                debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
             }
 
-            auto lineHeader = getDebugLineHeader!3();
-            debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
+            writeDebugLineHeader!3();
 
-            lineHeaderLengthOffset = lineHeader.header_length.offsetof;
 
             // include_directories
             version (SCPP)
@@ -1387,7 +1395,8 @@ static if (1)
         assert(debug_line.buf.length() == linebuf_filetab_end);
         debug_line.buf.writeByte(0);              // end of file_names
 
-        rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) debug_line.buf.length() - 10);
+        rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) (debug_line.buf.length() - lineHeaderLengthOffset - 4));
+        // end of debug_line header
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
