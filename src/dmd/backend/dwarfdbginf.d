@@ -566,7 +566,7 @@ static if (1)
 
         // .debug_line
         size_t linebuf_filetab_end;
-        size_t linePrologueLengthOffset;
+        size_t lineHeaderLengthOffset;
 
         const byte line_base = -5;
         const ubyte line_range = 14;
@@ -1065,7 +1065,7 @@ static if (1)
                 align (1):
                     uint length;
                     ushort version_= hversion;
-                    uint prologue_length;
+                    uint header_length;
                     ubyte minimum_instruction_length = 1;
                     bool default_is_stmt = true;
                     byte line_base = .line_base;
@@ -1094,7 +1094,7 @@ static if (1)
             auto lineHeader = getDebugLineHeader!3();
             debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
 
-            linePrologueLengthOffset = lineHeader.prologue_length.offsetof;
+            lineHeaderLengthOffset = lineHeader.header_length.offsetof;
 
             // include_directories
             version (SCPP)
@@ -1371,7 +1371,7 @@ static if (1)
         assert(debug_line.buf.length() == linebuf_filetab_end);
         debug_line.buf.writeByte(0);              // end of file_names
 
-        rewrite32(debug_line.buf, linePrologueLengthOffset, cast(uint) debug_line.buf.length() - 10);
+        rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) debug_line.buf.length() - 10);
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
@@ -1466,7 +1466,7 @@ static if (1)
 
         // Bugzilla 3502, workaround OSX's ld64-77 bug.
         // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (*cast(uint*) &debug_line.buf.buf[linePrologueLengthOffset] + 10 == debug_line.buf.length())
+        if (*cast(uint*) &debug_line.buf.buf[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
             debug_line.buf.reset();
 
         /* ================================================= */
