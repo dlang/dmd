@@ -349,6 +349,10 @@ dmd -cov -unittest myprog.d
             "generate position independent code",
             cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
         ),
+        Option("fPIE",
+            "generate position independent executables",
+            cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
+        ),
         Option("g",
             "add symbolic debug info",
             `$(WINDOWS
