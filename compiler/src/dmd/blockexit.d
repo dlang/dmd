@@ -278,22 +278,10 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         {
             //printf("IfStatement::blockExit(%p)\n", s);
             result = BE.none;
-            result |= canThrow(s.condition, func, mustNotThrow);
-
-            const opt = s.condition.toBool();
-            if (opt.hasValue(true))
-            {
-                result |= blockExit(s.ifbody, func, mustNotThrow);
-            }
-            else if (opt.hasValue(false))
-            {
-                result |= blockExit(s.elsebody, func, mustNotThrow);
-            }
-            else
-            {
-                result |= blockExit(s.ifbody, func, mustNotThrow);
-                result |= blockExit(s.elsebody, func, mustNotThrow);
-            }
+            if (canThrow(s.condition, func, mustNotThrow))
+                result |= BE.throw_;
+            result |= blockExit(s.ifbody, func, mustNotThrow);
+            result |= blockExit(s.elsebody, func, mustNotThrow);
             //printf("IfStatement::blockExit(%p) = x%x\n", s, result);
         }
 
