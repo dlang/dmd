@@ -6045,7 +6045,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
 
-        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context;
+        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context && global.params.useAssert == CHECKENABLE.on;
         Expression temporariesPrefix;
 
         if (generateMsg)
