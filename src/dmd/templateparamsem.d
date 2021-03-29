@@ -142,25 +142,26 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
  */
 RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters)
 {
-    if (o)
+    if (!o)
+        return null;
+
+    Expression ea = isExpression(o);
+    Type ta = isType(o);
+    if (ta && (!parameters || !reliesOnTident(ta, parameters)))
     {
-        Expression ea = isExpression(o);
-        Type ta = isType(o);
-        if (ta && (!parameters || !reliesOnTident(ta, parameters)))
-        {
-            Dsymbol s = ta.toDsymbol(sc);
-            if (s)
-                o = s;
-            else
-                o = ta.typeSemantic(loc, sc);
-        }
-        else if (ea)
-        {
-            sc = sc.startCTFE();
-            ea = ea.expressionSemantic(sc);
-            sc = sc.endCTFE();
-            o = ea.ctfeInterpret();
-        }
+        Dsymbol s = ta.toDsymbol(sc);
+        if (s)
+            o = s;
+        else
+            o = ta.typeSemantic(loc, sc);
     }
+    else if (ea)
+    {
+        sc = sc.startCTFE();
+        ea = ea.expressionSemantic(sc);
+        sc = sc.endCTFE();
+        o = ea.ctfeInterpret();
+    }
+
     return o;
 }
