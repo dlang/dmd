@@ -6567,6 +6567,7 @@ private:
 public:
     Expression* getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
+    bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     Target() :
         ptrsize(),
         realsize(),

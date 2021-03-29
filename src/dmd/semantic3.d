@@ -736,11 +736,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
                 {
-                    /* Disable optimization on Win32 due to
+                    /* Don't generate unwind tables for this function
                      * https://issues.dlang.org/show_bug.cgi?id=17997
                      */
-//                    if (!global.params.targetOS == TargetOS.Windows || global.params.is64bit)
-                        funcdecl.eh_none = true;         // don't generate unwind tables for this function
+                    funcdecl.eh_none = true;
                 }
 
                 if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
@@ -1153,13 +1152,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration();
                     if (cd)
                     {
-                        if (!global.params.is64bit && global.params.targetOS == TargetOS.Windows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
-                        {
-                            /* The back end uses the "jmonitor" hack for syncing;
-                             * no need to do the sync at this level.
-                             */
-                        }
-                        else
+                        if (target.libraryObjectMonitors(funcdecl, sbody))
                         {
                             Expression vsync;
                             if (funcdecl.isStatic())

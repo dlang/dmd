@@ -21,6 +21,7 @@ class Dsymbol;
 class Expression;
 class FuncDeclaration;
 class Parameter;
+class Statement;
 class Type;
 class TypeTuple;
 class TypeFunction;
@@ -112,6 +113,7 @@ public:
     bool preferPassByRef(Type *t);
     Expression *getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
+    bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
 };
 
 extern Target target;
