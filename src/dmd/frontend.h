@@ -1576,6 +1576,7 @@ struct TargetCPP
     const char* typeMangle(Type* t);
     Type* parameterType(Parameter* p);
     bool fundamentalType(const Type* const t, bool& isFundamental);
+    uint32_t derivedClassOffset(ClassDeclaration* baseClass);
     TargetCPP() :
         reverseOverloads(),
         exceptions(),

@@ -574,9 +574,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             assert(baseClass.sizeok == Sizeok.done);
 
             alignsize = baseClass.alignsize;
-            structsize = baseClass.structsize;
-            if (classKind == ClassKind.cpp && global.params.targetOS == TargetOS.Windows)
-                structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+            if (classKind == ClassKind.cpp)
+                structsize = target.cpp.derivedClassOffset(baseClass);
+            else
+                structsize = baseClass.structsize;
         }
         else if (classKind == ClassKind.objc)
             structsize = 0; // no hidden member for an Objective-C class
