@@ -442,7 +442,6 @@ TraitsInitializer::TraitsInitializer()
         "derivedMembers",
         "isSame",
         "compiles",
-        "parameters",
         "getAliasThis",
         "getAttributes",
         "getFunctionAttributes",

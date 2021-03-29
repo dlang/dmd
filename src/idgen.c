@@ -395,7 +395,6 @@ Msgtable msgtable[] =
     { "derivedMembers", NULL },
     { "isSame", NULL },
     { "compiles", NULL },
-    { "parameters", NULL },
     { "getAliasThis", NULL },
     { "getAttributes", NULL },
     { "getFunctionAttributes", NULL },
