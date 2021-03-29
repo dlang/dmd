@@ -1554,14 +1554,17 @@ struct TargetC
 {
     uint32_t longsize;
     uint32_t long_doublesize;
+    Type* twchar_t;
     TargetC() :
         longsize(),
-        long_doublesize()
+        long_doublesize(),
+        twchar_t()
     {
     }
-    TargetC(uint32_t longsize, uint32_t long_doublesize = 0u) :
+    TargetC(uint32_t longsize, uint32_t long_doublesize = 0u, Type* twchar_t = nullptr) :
         longsize(longsize),
-        long_doublesize(long_doublesize)
+        long_doublesize(long_doublesize),
+        twchar_t(twchar_t)
         {}
 };
 
@@ -6584,7 +6587,7 @@ public:
         RealProperties()
     {
     }
-    Target(uint32_t ptrsize, uint32_t realsize = 0u, uint32_t realpad = 0u, uint32_t realalignsize = 0u, uint32_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u), TargetCPP cpp = TargetCPP(false, false, false), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
+    Target(uint32_t ptrsize, uint32_t realsize = 0u, uint32_t realpad = 0u, uint32_t realalignsize = 0u, uint32_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u, nullptr), TargetCPP cpp = TargetCPP(false, false, false), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
         ptrsize(ptrsize),
         realsize(realsize),
         realpad(realpad),

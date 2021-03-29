@@ -29,6 +29,7 @@ struct TargetC
 {
     unsigned longsize;            // size of a C 'long' or 'unsigned long' type
     unsigned long_doublesize;     // size of a C 'long double'
+    Type *twchar_t;               // C 'wchar_t' type
 };
 
 struct TargetCPP

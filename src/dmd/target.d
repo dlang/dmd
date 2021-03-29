@@ -949,6 +949,7 @@ struct TargetC
 {
     uint longsize;            /// size of a C `long` or `unsigned long` type
     uint long_doublesize;     /// size of a C `long double`
+    Type twchar_t;            /// C `wchar_t` type
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
@@ -971,6 +972,10 @@ struct TargetC
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
+        if (params.targetOS == TargetOS.Windows)
+            twchar_t = Type.twchar;
+        else
+            twchar_t = Type.tdchar;
     }
 }
 
