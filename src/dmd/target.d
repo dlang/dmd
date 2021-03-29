@@ -41,6 +41,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.statement;
 import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
@@ -894,6 +895,27 @@ extern (C++) struct Target
         return params.targetOS == TargetOS.Windows ||
                // C++ on non-Windows platforms has the caller destroying the arguments
                tf.linkage != LINK.cpp;
+    }
+
+    /**
+     * Returns true if the implementation for object monitors is always defined
+     * in the D runtime library (rt/monitor_.d).
+     * Params:
+     *      fd = function with `synchronized` storage class.
+     *      fbody = entire function body of `fd`
+     * Returns:
+     *      `false` if the target backend handles synchronizing monitors.
+     */
+    extern (C++) bool libraryObjectMonitors(FuncDeclaration fd, Statement fbody)
+    {
+        if (!params.is64bit && params.targetOS == TargetOS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
+        {
+            /* The back end uses the "jmonitor" hack for syncing;
+             * no need to do the sync in the library.
+             */
+            return false;
+        }
+        return true;
     }
 
     ////////////////////////////////////////////////////////////////////////////
