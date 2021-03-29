@@ -1085,3 +1085,31 @@ void mangleToBuffer(TemplateInstance *ti, OutBuffer *buf)
     Mangler v(buf);
     v.mangleTemplateInstance(ti);
 }
+
+/**********************************************
+ * Convert a string representing a type (the deco) and
+ * return its equivalent Type.
+ * Params:
+ *      deco = string containing the deco
+ * Returns:
+ *      null for failed to convert
+ *      Type for succeeded
+ */
+
+Type *decoToType(const char *deco)
+{
+    if (!deco)
+        return NULL;
+
+    //printf("decoToType(): %s\n", deco)
+    if (StringValue *sv = Type::stringtable.lookup(deco, strlen(deco)))
+    {
+        if (sv->ptrvalue)
+        {
+            Type *t = (Type *)sv->ptrvalue;
+            assert(t->deco);
+            return t;
+        }
+    }
+    return NULL;
+}
