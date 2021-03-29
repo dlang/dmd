@@ -40,6 +40,7 @@ void freeFieldinit(Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Package *resolveIsPackage(Dsymbol *sym);
 Expression *typeToExpression(Type *t);
+Type *decoToType(const char *deco);
 
 
 /************************************************
@@ -1028,6 +1029,34 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         else
             assert(0);
 
+        ex = expressionSemantic(ex, sc);
+        return ex;
+    }
+    else if (e->ident == Id::toType)
+    {
+        if (dim != 1)
+            return dimError(e, 1, dim);
+
+        Expression *ex = isExpression((*e->args)[0]);
+        if (!ex)
+        {
+            e->error("expression expected as second argument of __traits `%s`", e->ident->toChars());
+            return new ErrorExp();
+        }
+        ex = ex->ctfeInterpret();
+
+        StringExp *se = semanticString(sc, ex, "__traits(toType, string)");
+        if (!se)
+        {
+            return new ErrorExp();
+        }
+        Type *t = decoToType(se->toUTF8(sc)->toPtr());
+        if (!t)
+        {
+            e->error("cannot determine `%s`", e->toChars());
+            return new ErrorExp();
+        }
+        ex = new TypeExp(e->loc, t);
         ex = expressionSemantic(ex, sc);
         return ex;
     }

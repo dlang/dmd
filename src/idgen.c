@@ -410,6 +410,7 @@ Msgtable msgtable[] =
     { "getLocation", NULL },
     { "hasPostblit", NULL },
     { "isCopyable", NULL },
+    { "toType", NULL },
 
     // For C++ mangling
     { "allocator", NULL },
