@@ -61,10 +61,49 @@ void test19658()
     test19658_u64(u64_19658.a);
 }
 
-/****************************************/
+version(OSX)
+{
+    void test15523(){}
+}
+else
+{
+    /****************************************/
+    extern(C++)
+    {
+        int i15523_d;
+        extern int i15523_cpp;
+        
+        void test15523d(int a)
+        {
+            assert(i15523_cpp == a + 1);
+            assert(i15523_d   == a + 2);
+        }
 
+        void test15523cpp(int);
+
+        struct S
+        {
+            this(int f);
+            int field;
+        }
+        S tls;
+        void fromCxx();
+    }
+
+    void test15523()
+    {
+        i15523_d = 42;
+        i15523_cpp = 42;
+        test15523cpp(42);
+        test15523d(42);
+        
+        tls = S(0xdeadbeef);
+        fromCxx();
+    }
+}
 void main()
 {
     test17();
+    test15523();
     test19658();
 }
