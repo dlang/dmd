@@ -1637,7 +1637,7 @@ public:
         Scope *sc = m->_scope;                  // see if already got one from importAll()
         if (!sc)
         {
-            Scope::createGlobal(m);      // create root scope
+            sc = Scope::createGlobal(m);      // create root scope
         }
 
         //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
