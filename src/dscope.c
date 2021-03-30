@@ -24,6 +24,7 @@
 #include "aggregate.h"
 #include "module.h"
 #include "id.h"
+#include "target.h"
 #include "template.h"
 
 Scope *Scope::freelist = NULL;
@@ -638,7 +639,7 @@ const char *Scope::search_correct_C(Identifier *ident)
     else if (ident == Id::C_unsigned)
         tok = TOKuns32;
     else if (ident == Id::C_wchar_t)
-        tok = global.params.isWindows ? TOKwchar : TOKdchar;
+        tok = target.c.twchar_t->ty == Twchar ? TOKwchar : TOKdchar;
     else
         return NULL;
     return Token::toChars(tok);
