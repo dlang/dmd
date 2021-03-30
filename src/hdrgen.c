@@ -1104,6 +1104,13 @@ public:
         buf->writestring("typeof(null)");
     }
 
+    void visit(TypeMixin *t)
+    {
+        buf->writestring("mixin(");
+        argsToBuffer(t->exps);
+        buf->writeByte(')');
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     void visit(Dsymbol *s)

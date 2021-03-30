@@ -39,6 +39,7 @@ Expression *extractSideEffect(Scope *sc, const char *name, Expression **e0, Expr
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *typeToExpression(Type *t);
 Expression *typeToExpressionHelper(TypeQualified *t, Expression *e, size_t i = 0);
+Type *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc);
 
 /***************************** Type *****************************/
 
@@ -195,6 +196,7 @@ void Type::_init()
     sizeTy[Tnull] = sizeof(TypeNull);
     sizeTy[Tvector] = sizeof(TypeVector);
     sizeTy[Ttraits] = sizeof(TypeTraits);
+    sizeTy[Tmixin] = sizeof(TypeMixin);
 
     initTypeMangle();
 
@@ -2411,6 +2413,11 @@ TypeNull *Type::isTypeNull()
 TypeTraits *Type::isTypeTraits()
 {
     return ty == Ttraits ? (TypeTraits *)this : NULL;
+}
+
+TypeMixin *Type::isTypeMixin()
+{
+    return ty == Tmixin ? (TypeMixin *)this : NULL;
 }
 
 TypeFunction *Type::toTypeFunction()
@@ -5889,6 +5896,47 @@ void TypeTraits::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 d_uns64 TypeTraits::size(Loc)
 {
     return SIZE_INVALID;
+}
+
+/***************************** TypeMixin *****************************/
+
+/******
+ * Implements mixin types.
+ *
+ * Semantic analysis will convert it to a real type.
+ */
+TypeMixin::TypeMixin(const Loc &loc, Expressions *exps)
+    : Type(Tmixin)
+{
+    this->loc = loc;
+    this->exps = exps;
+}
+
+const char *TypeMixin::kind()
+{
+    return "mixin";
+}
+
+Type *TypeMixin::syntaxCopy()
+{
+    return new TypeMixin(loc, Expression::arraySyntaxCopy(exps));
+}
+
+void TypeMixin::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
+{
+    Type *ta = compileTypeMixin(this, loc, sc);
+    if (ta)
+    {
+        TypeTraits *tt = ta->isTypeTraits();
+        if (tt && tt->exp)
+        {
+            *pe = tt->exp;
+        }
+        else
+            ta->resolve(loc, sc, pe, pt, ps, intypeid);
+    }
+    else
+        *pt = Type::terror;
 }
 
 /***************************** TypeQualified *****************************/

@@ -2922,6 +2922,18 @@ Objects *Parser::parseTemplateArguments()
     return tiargs;
 }
 
+/***************************************
+ * Parse a Type or an Expression
+ * Returns:
+ *  RootObject representing the AST
+ */
+RootObject *Parser::parseTypeOrAssignExp(TOK endtoken)
+{
+    return isDeclaration(&token, 0, endtoken, NULL)
+        ? (RootObject *)parseType()           // argument is a type
+        : (RootObject *)parseAssignExp();     // argument is an expression
+}
+
 /******************************************
  * Parse template argument list.
  * Input:
@@ -2942,20 +2954,10 @@ Objects *Parser::parseTemplateArgumentList()
     // Get TemplateArgumentList
     while (token.value != endtok)
     {
-            // See if it is an Expression or a Type
-            if (isDeclaration(&token, 0, TOKreserved, NULL))
-            {   // Template argument is a type
-                Type *ta = parseType();
-                tiargs->push(ta);
-            }
-            else
-            {   // Template argument is an expression
-                Expression *ea = parseAssignExp();
-                tiargs->push(ea);
-            }
-            if (token.value != TOKcomma)
-                break;
-            nextToken();
+        tiargs->push(parseTypeOrAssignExp());
+        if (token.value != TOKcomma)
+            break;
+        nextToken();
     }
     check(endtok, "template argument list");
     return tiargs;
@@ -3286,6 +3288,15 @@ Type *Parser::parseBasicType(bool dontLookDotIdents)
             {
                 t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id), dontLookDotIdents);
             }
+            break;
+
+        case TOKmixin:
+            // https://dlang.org/spec/expression.html#mixin_types
+            nextToken();
+            loc = token.loc;
+            if (token.value != TOKlparen)
+                error("found `%s` when expecting `%s` following %s", token.toChars(), Token::toChars(TOKlparen), "`mixin`");
+            t = new TypeMixin(loc, parseArguments());
             break;
 
         case TOKdot:
@@ -5378,9 +5389,13 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
         }
 
         case TOKmixin:
-        {   Token *t = peek(&token);
+        {
+            if (isDeclaration(&token, 3, TOKreserved, NULL))
+                goto Ldeclaration;
+            Token *t = peek(&token);
             if (t->value == TOKlparen)
-            {   // mixin(string)
+            {
+                // mixin(string)
                 Expression *e = parseAssignExp();
                 check(TOKsemicolon);
                 if (e->op == TOKmixin)
@@ -6332,6 +6347,7 @@ bool Parser::isBasicType(Token **pt)
 
         case TOKtypeof:
         case TOKvector:
+        case TOKmixin:
             /* typeof(exp).identifier...
              */
             t = peek(t);
@@ -7229,15 +7245,7 @@ Expression *Parser::parsePrimaryExp()
         {
             nextToken();
             check(TOKlparen, "typeid");
-            RootObject *o;
-            if (isDeclaration(&token, 0, TOKreserved, NULL))
-            {   // argument is a type
-                o = parseType();
-            }
-            else
-            {   // argument is an expression
-                o = parseAssignExp();
-            }
+            RootObject *o = parseTypeOrAssignExp();
             check(TOKrparen);
             e = new TypeidExp(loc, o);
             break;

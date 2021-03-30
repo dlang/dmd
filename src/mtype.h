@@ -96,6 +96,7 @@ enum ENUMTY
     Tint128,
     Tuns128,
     Ttraits,
+    Tmixin,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
@@ -367,6 +368,7 @@ public:
     TypeTuple *isTypeTuple();
     TypeSlice *isTypeSlice();
     TypeNull *isTypeNull();
+    TypeMixin *isTypeMixin();
     TypeTraits *isTypeTraits();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -729,6 +731,19 @@ public:
     Dsymbol *toDsymbol(Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     d_uns64 size(Loc loc);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeMixin : public Type
+{
+public:
+    Loc loc;
+    Expressions *exps;
+
+    TypeMixin(const Loc &loc, Expressions *exps);
+    const char *kind();
+    Type *syntaxCopy();
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 

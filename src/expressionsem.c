@@ -66,6 +66,61 @@ Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 bool checkPrintfFormat(const Loc &loc, const char *format, Expressions &args, bool isVa_list);
 bool checkScanfFormat(const Loc &loc, const char *format, Expressions &args, bool isVa_list);
 
+/********************************************************
+ * Perform semantic analysis and CTFE on expressions to produce
+ * a string.
+ * Params:
+ *      buf = append generated string to buffer
+ *      sc = context
+ *      exps = array of Expressions
+ * Returns:
+ *      true on error
+ */
+bool expressionsToString(OutBuffer &buf, Scope *sc, Expressions *exps)
+{
+    if (!exps)
+        return false;
+
+    for (size_t i = 0; i < exps->length; i++)
+    {
+        Expression *ex = (*exps)[i];
+        if (!ex)
+            continue;
+        Scope *sc2 = sc->startCTFE();
+        Expression *e2 = expressionSemantic(ex, sc2);
+        Expression *e3 = resolveProperties(sc2, e2);
+        sc2->endCTFE();
+
+        // allowed to contain types as well as expressions
+        Expression *e4 = ctfeInterpretForPragmaMsg(e3);
+        if (!e4 || e4->op == TOKerror)
+            return true;
+
+        // expand tuple
+        if (TupleExp *te = e4->isTupleExp())
+        {
+            if (expressionsToString(buf, sc, te->exps))
+                return true;
+            continue;
+        }
+        // char literals exp `.toStringExp` return `null` but we cant override it
+        // because in most contexts we don't want the conversion to succeed.
+        IntegerExp *ie = e4->isIntegerExp();
+        const int ty = (ie && ie->type) ? ie->type->ty : Terror;
+        if (ty == Tchar || ty == Twchar || ty == Tdchar)
+        {
+            TypeSArray *tsa = new TypeSArray(ie->type, new IntegerExp(ex->loc, 1, Type::tint32));
+            e4 = new ArrayLiteralExp(ex->loc, tsa, ie);
+        }
+
+        if (StringExp *se = e4->toStringExp())
+            buf.writestring(se->toUTF8(sc)->toPtr());
+        else
+            buf.writestring(e4->toChars());
+    }
+    return false;
+}
+
 /***********************************************************
  * Resolve `exp` as a compile-time known string.
  * Params:
