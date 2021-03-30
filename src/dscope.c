@@ -155,7 +155,8 @@ Scope *Scope::push()
     s->nofree = 0;
     s->fieldinit = saveFieldInit();
     s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint |
-                         SCOPEnoaccesscheck | SCOPEignoresymbolvisibility));
+                         SCOPEnoaccesscheck | SCOPEignoresymbolvisibility |
+                         SCOPEprintf | SCOPEscanf));
     s->lastdc = NULL;
 
     assert(this != s);

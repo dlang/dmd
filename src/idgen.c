@@ -90,6 +90,8 @@ Msgtable msgtable[] =
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
+    { "printf", NULL },
+    { "scanf", NULL },
 
     { "TypeInfo", NULL },
     { "TypeInfo_Class", NULL },

@@ -795,6 +795,18 @@ Scope *PragmaDeclaration::newScope(Scope *sc)
             sc->protection, sc->explicitProtection, sc->aligndecl,
             inlining);
     }
+    if (ident == Id::printf || ident == Id::scanf)
+    {
+        Scope *sc2 = sc->push();
+
+        if (ident == Id::printf)
+            // Override previous setting, never let both be set
+            sc2->flags = (sc2->flags & ~SCOPEscanf) | SCOPEprintf;
+        else
+            sc2->flags = (sc2->flags & ~SCOPEprintf) | SCOPEscanf;
+
+        return sc2;
+    }
     return sc;
 }
 

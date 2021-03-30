@@ -1458,6 +1458,12 @@ public:
                 }
             }
         }
+        else if (pd->ident == Id::printf || pd->ident == Id::scanf)
+        {
+            if (pd->args && pd->args->length != 0)
+                pd->error("takes no argument");
+            goto Ldecl;
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)
@@ -2457,6 +2463,23 @@ public:
         ns->semanticRun = PASSsemanticdone;
     }
 
+
+private:
+    static bool isPointerToChar(Parameter *p)
+    {
+        if (TypePointer *tptr = p->type->isTypePointer())
+        {
+            return tptr->next->ty == Tchar;
+        }
+        return false;
+    }
+
+    static bool isVa_list(Parameter *p, FuncDeclaration *funcdecl, Scope *sc)
+    {
+        return p->type->equals(target.va_listType(funcdecl->loc, sc));
+    }
+
+public:
     void funcDeclarationSemantic(FuncDeclaration *funcdecl)
     {
         TypeFunction *f;
@@ -2770,6 +2793,45 @@ public:
 
         if (funcdecl->isAbstract() && funcdecl->isFinalFunc())
             funcdecl->error("cannot be both final and abstract");
+
+        if (const unsigned pors = sc->flags & (SCOPEprintf | SCOPEscanf))
+        {
+            /* printf/scanf-like functions must be of the form:
+             *    extern (C/C++) T printf([parameters...], const(char)* format, ...);
+             * or:
+             *    extern (C/C++) T vprintf([parameters...], const(char)* format, va_list);
+             */
+            const size_t nparams = f->parameterList.length();
+            if ((f->linkage == LINKc || f->linkage == LINKcpp) &&
+
+                ((f->parameterList.varargs == VARARGvariadic &&
+                  nparams >= 1 &&
+                  isPointerToChar(f->parameterList[nparams - 1])) ||
+                 (f->parameterList.varargs == VARARGnone &&
+                  nparams >= 2 &&
+                  isPointerToChar(f->parameterList[nparams - 2]) &&
+                  isVa_list(f->parameterList[nparams - 1], funcdecl, sc))
+                )
+               )
+            {
+                funcdecl->flags |= (pors == SCOPEprintf) ? FUNCFLAGprintf : FUNCFLAGscanf;
+            }
+            else
+            {
+                const char *p = (pors == SCOPEprintf ? Id::printf : Id::scanf)->toChars();
+                if (f->parameterList.varargs == VARARGvariadic)
+                {
+                    funcdecl->error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)`"
+                                    " not `%s`",
+                        p, f->next->toChars(), funcdecl->toChars(), funcdecl->type->toChars());
+                }
+                else
+                {
+                    funcdecl->error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, va_list)`",
+                        p, f->next->toChars(), funcdecl->toChars());
+                }
+            }
+        }
 
         id = parent->isInterfaceDeclaration();
         if (id)
