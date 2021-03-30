@@ -31,6 +31,7 @@
 
 typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
 int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
+bool isSpecialEnumIdent(const Identifier *ident);
 
 #define VC_SAVED_TYPE_CNT 10
 #define VC_SAVED_IDENT_CNT 10
@@ -321,44 +322,73 @@ public:
     void visit(TypeEnum *type)
     {
         //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkTypeSaved(type))
-            return;
-        mangleModifier(type);
-        buf.writeByte('W');
-
-        switch (type->sym->memtype->ty)
+        const Identifier *id = type->sym->ident;
+        const char *c = NULL;
+        if (id == Id::__c_long_double)
+            c = "O"; // VC++ long double
+        else if (id == Id::__c_long)
+            c = "J"; // VC++ long
+        else if (id == Id::__c_ulong)
+            c = "K"; // VC++ unsigned long
+        else if (id == Id::__c_longlong)
+            c = "_J"; // VC++ long long
+        else if (id == Id::__c_ulonglong)
+            c = "_K"; // VC++ unsigned long long
+        else if (id == Id::__c_wchar_t)
         {
-            case Tchar:
-            case Tint8:
-                buf.writeByte('0');
-                break;
-            case Tuns8:
-                buf.writeByte('1');
-                break;
-            case Tint16:
-                buf.writeByte('2');
-                break;
-            case Tuns16:
-                buf.writeByte('3');
-                break;
-            case Tint32:
-                buf.writeByte('4');
-                break;
-            case Tuns32:
-                buf.writeByte('5');
-                break;
-            case Tint64:
-                buf.writeByte('6');
-                break;
-            case Tuns64:
-                buf.writeByte('7');
-                break;
-            default:
-                visit((Type*)type);
-                break;
+            c = (flags & IS_DMC) ? "_Y" : "_W";
         }
 
-        mangleIdent(type->sym);
+        if (c)
+        {
+            if (type->isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
+            {
+                if (checkTypeSaved(type))
+                    return;
+            }
+            mangleModifier(type);
+            buf.writestring(c);
+        }
+        else
+        {
+            if (checkTypeSaved(type))
+                return;
+            mangleModifier(type);
+            buf.writeByte('W');
+
+            switch (type->sym->memtype->ty)
+            {
+                case Tchar:
+                case Tint8:
+                    buf.writeByte('0');
+                    break;
+                case Tuns8:
+                    buf.writeByte('1');
+                    break;
+                case Tint16:
+                    buf.writeByte('2');
+                    break;
+                case Tuns16:
+                    buf.writeByte('3');
+                    break;
+                case Tint32:
+                    buf.writeByte('4');
+                    break;
+                case Tuns32:
+                    buf.writeByte('5');
+                    break;
+                case Tint64:
+                    buf.writeByte('6');
+                    break;
+                case Tuns64:
+                    buf.writeByte('7');
+                    break;
+                default:
+                    visit((Type*)type);
+                    break;
+            }
+            mangleIdent(type->sym);
+        }
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
     }
@@ -990,9 +1020,7 @@ private:
             else if (rettype->ty == Tenum)
             {
                 Identifier *id = rettype->toDsymbol(NULL)->ident;
-                if (id != Id::__c_long_double &&
-                    id != Id::__c_long &&
-                    id != Id::__c_ulong)
+                if (!isSpecialEnumIdent(id))
                 {
                     tmp.buf.writeByte('?');
                     tmp.buf.writeByte('A');
