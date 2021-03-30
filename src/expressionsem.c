@@ -63,6 +63,9 @@ Expression *callCpCtor(Scope *sc, Expression *e);
 
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 
+bool checkPrintfFormat(const Loc &loc, const char *format, Expressions &args, bool isVa_list);
+bool checkScanfFormat(const Loc &loc, const char *format, Expressions &args, bool isVa_list);
+
 /***********************************************************
  * Resolve `exp` as a compile-time known string.
  * Params:
@@ -1727,6 +1730,32 @@ static bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             arg = arg->optimize(WANTvalue);
         }
         (*arguments)[i] = arg;
+    }
+
+    /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
+     */
+    const bool isVa_list = tf->parameterList.varargs == VARARGnone;
+    if (fd && (fd->flags & FUNCFLAGprintf))
+    {
+        if (StringExp *se = (*arguments)[nparams - 1 - isVa_list]->isStringExp())
+        {
+            Expressions argslice;
+            argslice.reserve(nargs - nparams);
+            for (size_t i = nparams; i < nargs; i++)
+                argslice.push((*arguments)[i]);
+            checkPrintfFormat(se->loc, se->toPtr(), argslice, isVa_list);
+        }
+    }
+    else if (fd && (fd->flags & FUNCFLAGscanf))
+    {
+        if (StringExp *se = (*arguments)[nparams - 1 - isVa_list]->isStringExp())
+        {
+            Expressions argslice;
+            argslice.reserve(nargs - nparams);
+            for (size_t i = nparams; i < nargs; i++)
+                argslice.push((*arguments)[i]);
+            checkPrintfFormat(se->loc, se->toPtr(), argslice, isVa_list);
+        }
     }
 
     /* Remaining problems:

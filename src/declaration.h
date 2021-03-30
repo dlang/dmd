@@ -551,6 +551,8 @@ void builtin_init();
 #define FUNCFLAGreturnInprocess 0x10    // working on inferring 'return' for parameters
 #define FUNCFLAGinlineScanned   0x20    // function has been scanned for inline possibilities
 #define FUNCFLAGinferScope      0x40    // infer 'scope' for parameters
+#define FUNCFLAGprintf          0x200   // is a printf-like function
+#define FUNCFLAGscanf           0x400   // is a scanf-like function
 
 class FuncDeclaration : public Declaration
 {
