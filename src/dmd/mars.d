@@ -380,7 +380,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(params, files.dim);
+    reconcileCommands(params);
 
     // Add in command line versions
     if (params.versionids)
@@ -404,6 +404,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     import dmd.filecache : FileCache;
     FileCache._init();
 
+    reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -2668,7 +2669,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
  *      numSrcFiles = number of source files
  */
 version (NoMain) {} else
-private void reconcileCommands(ref Param params, size_t numSrcFiles)
+private void reconcileCommands(ref Param params)
 {
     static if (TARGET.OSX)
     {
@@ -2753,7 +2754,18 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
         params.useExceptions = false;
     }
 
+}
 
+/***********************************************
+ * Adjust link, run and lib line switches and reconcile them.
+ * Params:
+ *      params = switches gathered from command line,
+ *               and update in place
+ *      numSrcFiles = number of source files
+ */
+version (NoMain) {} else
+private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
+{
     if (!params.obj || params.lib)
         params.link = false;
     if (params.link)
