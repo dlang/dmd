@@ -5093,7 +5093,7 @@ Statement *Parser::parseForeach(Loc loc, bool *isRange, bool isDecl)
         check(TOKrparen);
         Loc endloc;
         Statement *body = (!isDecl) ? parseStatement(0, NULL, &endloc) : NULL;
-        if (isRange) 
+        if (isRange)
             *isRange = false;
         return new ForeachStatement(loc, op, parameters, aggr, body, endloc);
     }
