@@ -1387,6 +1387,7 @@ unsigned totym(Type *tx)
 
         case Tident:
         case Ttypeof:
+        case Tmixin:
 #ifdef DEBUG
             printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
 #endif

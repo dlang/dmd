@@ -82,6 +82,7 @@ void initTypeMangle()
     mangleChar[Treturn] = "@";
     mangleChar[Tvector] = "@";
     mangleChar[Ttraits] = "@";
+    mangleChar[Tmixin] = "@";
 
     mangleChar[Tnull] = "n";    // same as TypeNone
 

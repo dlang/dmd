@@ -156,17 +156,12 @@ Dsymbol *getDsymbol(RootObject *oarg)
     if (ea)
     {
         // Try to convert Expression to symbol
-        if (ea->op == TOKvar)
-            sa = ((VarExp *)ea)->var;
-        else if (ea->op == TOKfunction)
-        {
-            if (((FuncExp *)ea)->td)
-                sa = ((FuncExp *)ea)->td;
-            else
-                sa = ((FuncExp *)ea)->fd;
-        }
-        else if (ea->op == TOKtemplate)
-            sa = ((TemplateExp *)ea)->td;
+        if (VarExp *ve = ea->isVarExp())
+            sa = ve->var;
+        else if (FuncExp *fe = ea->isFuncExp())
+            sa = fe->td ? (Dsymbol *)fe->td : (Dsymbol *)fe->fd;
+        else if (TemplateExp *te = ea->isTemplateExp())
+            sa = te->td;
         else
             sa = NULL;
     }
@@ -6062,6 +6057,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         if (ta)
         {
             //printf("type %s\n", ta->toChars());
+
             // It might really be an Expression or an Alias
             ta->resolve(loc, sc, &ea, &ta, &sa, (flags & 1) != 0);
             if (ea) goto Lexpr;

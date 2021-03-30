@@ -18,6 +18,7 @@
 #include "hdrgen.h"
 #include "id.h"
 #include "init.h"
+#include "parse.h"
 #include "scope.h"
 #include "target.h"
 #include "template.h"
@@ -25,6 +26,7 @@
 
 Expression *typeToExpression(Type *t);
 Expression *typeToExpressionHelper(TypeQualified *t, Expression *e, size_t i = 0);
+bool expressionsToString(OutBuffer &buf, Scope *sc, Expressions *exps);
 char *MODtoChars(MOD mod);
 
 class TypeToExpressionVisitor : public Visitor
@@ -75,6 +77,11 @@ public:
     void visit(TypeInstance *t)
     {
         result = typeToExpressionHelper(t, new ScopeExp(t->loc, t->tempinst));
+    }
+
+    void visit(TypeMixin *t)
+    {
+        result = new TypeExp(t->loc, t);
     }
 };
 
@@ -175,6 +182,44 @@ static Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *ex
 
     sc->pop();
     return exp;
+}
+
+/******************************************
+ * Compile the MixinType, returning the type AST.
+ *
+ * Doesn't run semantic() on the returned type.
+ * Params:
+ *      tm = mixin to compile as a type
+ *      loc = location for error messages
+ *      sc = context
+ * Return:
+ *      null if error, else type AST as parsed
+ */
+Type *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc)
+{
+    OutBuffer buf;
+    if (expressionsToString(buf, sc, tm->exps))
+        return NULL;
+
+    const unsigned errors = global.errors;
+    const size_t len = buf.length();
+    const char *str = buf.extractChars();
+    Parser p(loc, sc->_module, (const utf8_t *)str, len, false);
+    p.nextToken();
+    //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+    Type *t = p.parseType();
+    if (p.errors)
+    {
+        assert(global.errors != errors); // should have caught all these cases
+        return NULL;
+    }
+    if (p.token.value != TOKeof)
+    {
+        ::error(loc, "incomplete mixin type `%s`", str);
+        return NULL;
+    }
+    return t;
 }
 
 /******************************************
@@ -1385,6 +1430,16 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
                 args->push(arg);
             }
             Type *t = new TypeTuple(args);
+            result = typeSemantic(t, loc, sc);
+        }
+
+        void visit(TypeMixin *mtype)
+        {
+            //printf("TypeMixin::semantic() %s\n", mtype->toChars());
+            Type *t = compileTypeMixin(mtype, loc, sc);
+            if (!t)
+                return error();
+
             result = typeSemantic(t, loc, sc);
         }
     };
