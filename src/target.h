@@ -21,6 +21,7 @@ class Dsymbol;
 class Expression;
 class FuncDeclaration;
 class Parameter;
+class Statement;
 class Type;
 class TypeFunction;
 class TypeTuple;
@@ -110,6 +111,7 @@ public:
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     Expression *getTargetInfo(const char* name, const Loc& loc);
+    bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
 };
 
 extern Target target;

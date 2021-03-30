@@ -1162,15 +1162,7 @@ public:
 
                     if (cd)
                     {
-                        if (!global.params.is64bit &&
-                            global.params.isWindows &&
-                            !funcdecl->isStatic() && !sbody->usesEH() && !global.params.trace)
-                        {
-                            /* The back end uses the "jmonitor" hack for syncing;
-                             * no need to do the sync at this level.
-                             */
-                        }
-                        else
+                        if (target.libraryObjectMonitors(funcdecl, sbody))
                         {
                             Expression *vsync;
                             if (funcdecl->isStatic())
