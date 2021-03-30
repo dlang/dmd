@@ -277,15 +277,10 @@ Scope *ClassDeclaration::newScope(Scope *sc)
     Scope *sc2 = AggregateDeclaration::newScope(sc);
     if (isCOMclass())
     {
-        if (global.params.isWindows)
-            sc2->linkage = LINKwindows;
-        else
-        {
-            /* This enables us to use COM objects under Linux and
-             * work with things like XPCOM
-             */
-            sc2->linkage = LINKc;
-        }
+        /* This enables us to use COM objects under Linux and
+         * work with things like XPCOM
+         */
+        sc2->linkage = target.systemLinkage();
     }
     return sc2;
 }
