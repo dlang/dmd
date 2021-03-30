@@ -19,6 +19,8 @@
 
 #include "target.h"
 #include "aggregate.h"
+#include "enum.h"
+#include "id.h"
 #include "mars.h"
 #include "mtype.h"
 #include "root/outbuffer.h"
@@ -448,7 +450,21 @@ bool Target::isReturnOnStack(TypeFunction *tf, bool needsThis)
         return false;                 // returns a pointer
     }
 
-    Type *tn = tf->next->toBasetype();
+    Type *tn = tf->next;
+    if (TypeEnum *te = tn->isTypeEnum())
+    {
+        if (te->sym->isSpecial())
+        {
+            // Special enums with target-specific return style
+            if (te->sym->ident == Id::__c_complex_float)
+                tn = Type::tcomplex32->castMod(tn->mod);
+            else if (te->sym->ident == Id::__c_complex_double)
+                tn = Type::tcomplex64->castMod(tn->mod);
+            else if (te->sym->ident == Id::__c_complex_real)
+                tn = Type::tcomplex80->castMod(tn->mod);
+        }
+    }
+    tn = tn->toBasetype();
     //printf("tn = %s\n", tn->toChars());
     d_uns64 sz = tn->size();
     Type *tns = tn;

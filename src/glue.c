@@ -1365,8 +1365,25 @@ unsigned totym(Type *tx)
             break;
 
         case Tenum:
-            t = totym(tx->toBasetype());
+        {
+            Type *tb = tx->toBasetype();
+            const Identifier *id = tx->toDsymbol(NULL)->ident;
+            if (id == Id::__c_long)
+                t = tb->ty == Tint32 ? TYlong : TYllong;
+            else if (id == Id::__c_ulong)
+                t = tb->ty == Tuns32 ? TYulong : TYullong;
+            else if (id == Id::__c_long_double)
+                t = TYdouble;
+            else if (id == Id::__c_complex_float)
+                t = TYcfloat;
+            else if (id == Id::__c_complex_double)
+                t = TYcdouble;
+            else if (id == Id::__c_complex_real)
+                t = TYcldouble;
+            else
+                t = totym(tb);
             break;
+        }
 
         case Tident:
         case Ttypeof:
