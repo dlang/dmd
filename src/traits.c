@@ -1722,7 +1722,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     p.nextToken();
                     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
-                    o = p.parseTypeOrAssignExp();
+                    o = p.parseTypeOrAssignExp(TOKeof);
                     if (p.errors || p.token.value != TOKeof)
                     {
                         err = true;

@@ -328,11 +328,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     {
                         // mixin(string)
                         nextToken();
-                        check(TOKlparen, "mixin");
-                        Expression *e = parseAssignExp();
-                        check(TOKrparen);
+                        Expressions *exps = parseArguments();
                         check(TOKsemicolon);
-                        s = new CompileDeclaration(loc, e);
+                        s = new CompileDeclaration(loc, exps);
                         break;
                     }
                     case TOKtemplate:
@@ -3292,8 +3290,8 @@ Type *Parser::parseBasicType(bool dontLookDotIdents)
 
         case TOKmixin:
             // https://dlang.org/spec/expression.html#mixin_types
-            nextToken();
             loc = token.loc;
+            nextToken();
             if (token.value != TOKlparen)
                 error("found `%s` when expecting `%s` following %s", token.toChars(), Token::toChars(TOKlparen), "`mixin`");
             t = new TypeMixin(loc, parseArguments());
@@ -5401,7 +5399,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 if (e->op == TOKmixin)
                 {
                     CompileExp *cpe = (CompileExp *)e;
-                    s = new CompileStatement(loc, cpe->e1);
+                    s = new CompileStatement(loc, cpe->exps);
                 }
                 else
                 {
@@ -6608,15 +6606,23 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok, boo
             case TOKin:
             case TOKout:
             case TOKdo:
+            LTOKdo:
                 // The !parens is to disallow unnecessary parentheses
                 if (!parens && (endtok == TOKreserved || endtok == t->value))
-                {   *pt = t;
+                {
+                    *pt = t;
                     return true;
                 }
                 return false;
 
             case TOKif:
                 return haveTpl ? true : false;
+
+            // Used for mixin type parsing
+            case TOKeof:
+                if (endtok == TOKeof)
+                    goto LTOKdo;
+                return false;
 
             default:
             Ldefault:
@@ -7365,11 +7371,11 @@ Expression *Parser::parsePrimaryExp()
 
         case TOKmixin:
         {
+            // https://dlang.org/spec/expression.html#mixin_expressions
             nextToken();
-            check(TOKlparen, "mixin");
-            e = parseAssignExp();
-            check(TOKrparen);
-            e = new CompileExp(loc, e);
+            if (token.value != TOKlparen)
+                error("found `%s` when expecting `%s` following %s", token.toChars(), Token::toChars(TOKlparen), "`mixin`");
+            e = new CompileExp(loc, parseArguments());
             break;
         }
 

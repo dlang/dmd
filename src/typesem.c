@@ -91,6 +91,8 @@ public:
  */
 Expression *typeToExpression(Type *t)
 {
+    if (t->mod)
+        return NULL;
     TypeToExpressionVisitor v = TypeToExpressionVisitor(t);
     t->accept(&v);
     return v.result;
@@ -185,17 +187,17 @@ static Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *ex
 }
 
 /******************************************
- * Compile the MixinType, returning the type AST.
+ * Compile the MixinType, returning the type or expression AST.
  *
- * Doesn't run semantic() on the returned type.
+ * Doesn't run semantic() on the returned object.
  * Params:
- *      tm = mixin to compile as a type
+ *      tm = mixin to compile as a type or expression
  *      loc = location for error messages
  *      sc = context
  * Return:
- *      null if error, else type AST as parsed
+ *      null if error, else RootObject AST as parsed
  */
-Type *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc)
+RootObject *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc)
 {
     OutBuffer buf;
     if (expressionsToString(buf, sc, tm->exps))
@@ -208,8 +210,8 @@ Type *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc)
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
-    Type *t = p.parseType();
-    if (p.errors)
+    RootObject *o = p.parseTypeOrAssignExp(TOKeof);
+    if (errors != global.errors)
     {
         assert(global.errors != errors); // should have caught all these cases
         return NULL;
@@ -219,7 +221,11 @@ Type *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc)
         ::error(loc, "incomplete mixin type `%s`", str);
         return NULL;
     }
-    return t;
+
+    Type *t = isType(o);
+    Expression *e = t ? typeToExpression(t) : isExpression(o);
+
+    return (!e && t) ? (RootObject *)t : (RootObject *)e;
 }
 
 /******************************************
@@ -485,7 +491,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
             // Deal with the case where we thought the index was a type, but
             // in reality it was an expression.
             if (mtype->index->ty == Tident || mtype->index->ty == Tinstance || mtype->index->ty == Tsarray ||
-                mtype->index->ty == Ttypeof || mtype->index->ty == Treturn)
+                mtype->index->ty == Ttypeof || mtype->index->ty == Treturn || mtype->index->ty == Tmixin)
             {
                 Expression *e;
                 Type *t;
@@ -1436,11 +1442,20 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
         void visit(TypeMixin *mtype)
         {
             //printf("TypeMixin::semantic() %s\n", mtype->toChars());
-            Type *t = compileTypeMixin(mtype, loc, sc);
-            if (!t)
-                return error();
 
-            result = typeSemantic(t, loc, sc);
+            Expression *e = NULL;
+            Type *t = NULL;
+            Dsymbol *s = NULL;
+            mtype->resolve(loc, sc, &e, &t, &s);
+
+            if (t && t->ty != Terror)
+            {
+                result = t;
+                return;
+            }
+
+            ::error(mtype->loc, "`mixin(%s)` does not give a valid type", mtype->obj->toChars());
+            return error();
         }
     };
     TypeSemanticVisitor v(loc, sc);

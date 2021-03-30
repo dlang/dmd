@@ -739,6 +739,7 @@ class TypeMixin : public Type
 public:
     Loc loc;
     Expressions *exps;
+    RootObject *obj;
 
     TypeMixin(const Loc &loc, Expressions *exps);
     const char *kind();

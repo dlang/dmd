@@ -5165,16 +5165,6 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
              *  template X(T) {}        // T => sa
              */
         }
-        else if (ta && ta->ty != Tident)
-        {
-            /* Match any type that's not a TypeIdentifier to alias parameters,
-             * but prefer type parameter.
-             * template X(alias a) { }  // a == ta
-             *
-             * TypeIdentifiers are excluded because they might be not yet resolved aliases.
-             */
-            m = MATCHconvert;
-        }
         else
             goto Lnomatch;
     }
@@ -6281,6 +6271,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     }
 
     unsigned errs = global.errors;
+    TemplateDeclaration *td_last = NULL;
 
   struct ParamBest
   {
@@ -6360,8 +6351,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
      */
-    TemplateDeclaration *td_last = NULL;
-
     OverloadSet *tovers = tempdecl->isOverloadSet();
     size_t overs_dim = tovers ? tovers->a.length : 1;
     for (size_t oi = 0; oi < overs_dim; oi++)
@@ -6370,7 +6359,9 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         p.td_best  = NULL;
         p.td_ambig = NULL;
         p.m_best   = MATCHnomatch;
-        overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamBest::fp);
+
+        Dsymbol *dstart = tovers ? tovers->a[oi] : tempdecl;
+        overloadApply(dstart, &p, &ParamBest::fp);
 
         if (p.td_ambig)
         {

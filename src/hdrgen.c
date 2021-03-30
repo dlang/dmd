@@ -122,7 +122,7 @@ public:
     void visit(CompileStatement *s)
     {
         buf->writestring("mixin(");
-        s->exp->accept(this);
+	argsToBuffer(s->exps);
         buf->writestring(");");
         if (!hgs->forStmtInit)
             buf->writenl();
@@ -1425,7 +1425,7 @@ public:
     void visit(CompileDeclaration *d)
     {
         buf->writestring("mixin(");
-        d->exp->accept(this);
+        argsToBuffer(d->exps);
         buf->writestring(");");
         buf->writenl();
     }
@@ -2829,7 +2829,7 @@ public:
     void visit(CompileExp *e)
     {
         buf->writestring("mixin(");
-        expToBuffer(e->e1, PREC_assign);
+        argsToBuffer(e->exps);
         buf->writeByte(')');
     }
 
