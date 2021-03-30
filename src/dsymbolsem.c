@@ -5397,6 +5397,7 @@ void aliasSemantic(AliasDeclaration *ds, Scope *sc)
     ds->userAttribDecl = sc->userAttribDecl;
 
     // TypeTraits needs to know if it's located in an AliasDeclaration
+    const unsigned oldflags = sc->flags;
     sc->flags |= SCOPEalias;
 
     if (ds->aliassym)
@@ -5407,7 +5408,7 @@ void aliasSemantic(AliasDeclaration *ds, Scope *sc)
         {
             if (fd && fd->semanticRun >= PASSsemanticdone)
             {
-                sc->flags &= ~SCOPEalias;
+                sc->flags = oldflags;
                 return;
             }
 
@@ -5423,13 +5424,13 @@ void aliasSemantic(AliasDeclaration *ds, Scope *sc)
                 ds->aliassym = NULL;
                 ds->type = Type::terror;
             }
-            sc->flags &= ~SCOPEalias;
+            sc->flags = oldflags;
             return;
         }
 
         if (ds->aliassym->isTemplateInstance())
             dsymbolSemantic(ds->aliassym, sc);
-        sc->flags &= ~SCOPEalias;
+        sc->flags = oldflags;
         return;
     }
     ds->inuse = 1;
@@ -5534,7 +5535,7 @@ void aliasSemantic(AliasDeclaration *ds, Scope *sc)
         if (!ds->overloadInsert(sx))
             ScopeDsymbol::multiplyDefined(Loc(), sx, ds);
     }
-    sc->flags &= ~SCOPEalias;
+    sc->flags = oldflags;
 }
 
 

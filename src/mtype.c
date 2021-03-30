@@ -5858,6 +5858,20 @@ Type *TypeTraits::syntaxCopy()
     return tt;
 }
 
+Dsymbol *TypeTraits::toDsymbol(Scope *sc)
+{
+    Type *t = NULL;
+    Expression *e = NULL;
+    Dsymbol *s = NULL;
+    resolve(loc, sc, &e, &t, &s);
+    if (t && t->ty != Terror)
+        s = t->toDsymbol(sc);
+    else if (e)
+        s = getDsymbol(e);
+
+    return s;
+}
+
 void TypeTraits::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool)
 {
     *pt = NULL;
