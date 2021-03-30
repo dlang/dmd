@@ -86,6 +86,7 @@ Msgtable msgtable[] =
     { "__c_longlong", NULL },
     { "__c_ulonglong", NULL },
     { "__c_long_double", NULL },
+    { "__c_wchar_t", NULL },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
     { "_unittest", "unittest" },
