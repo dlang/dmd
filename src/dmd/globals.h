@@ -293,16 +293,12 @@ struct Global
 {
     DString inifilename;
     const DString mars_ext;
-    DString obj_ext;
-    DString lib_ext;
-    DString dll_ext;
     const DString doc_ext;      // for Ddoc generated files
     const DString ddoc_ext;     // for Ddoc macro include files
     const DString hdr_ext;      // for D 'header' import files
     const DString cxxhdr_ext;   // for C/C++ 'header' files
     const DString json_ext;     // for JSON files
     const DString map_ext;      // for .map files
-    bool run_noext;             // allow -run sources without extensions.
 
 
     const DString copyright;

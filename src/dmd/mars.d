@@ -380,7 +380,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(params, files.dim);
+    reconcileCommands(params);
 
     // Add in command line versions
     if (params.versionids)
@@ -404,6 +404,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     import dmd.filecache : FileCache;
     FileCache._init();
 
+    reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -2668,7 +2669,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
  *      numSrcFiles = number of source files
  */
 version (NoMain) {} else
-private void reconcileCommands(ref Param params, size_t numSrcFiles)
+private void reconcileCommands(ref Param params)
 {
     static if (TARGET.OSX)
     {
@@ -2753,7 +2754,18 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
         params.useExceptions = false;
     }
 
+}
 
+/***********************************************
+ * Adjust link, run and lib line switches and reconcile them.
+ * Params:
+ *      params = switches gathered from command line,
+ *               and update in place
+ *      numSrcFiles = number of source files
+ */
+version (NoMain) {} else
+private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
+{
     if (!params.obj || params.lib)
         params.link = false;
     if (params.link)
@@ -2765,7 +2777,7 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            params.objname = FileName.forceExt(params.objname, global.obj_ext);
+            params.objname = FileName.forceExt(params.objname, target.obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
@@ -2851,13 +2863,13 @@ Module createModule(const(char)* file, ref Strings libmodules)
 
     /* Deduce what to do with a file based on its extension
         */
-    if (FileName.equals(ext, global.obj_ext))
+    if (FileName.equals(ext, target.obj_ext))
     {
         global.params.objfiles.push(file);
         libmodules.push(file);
         return null;
     }
-    if (FileName.equals(ext, global.lib_ext))
+    if (FileName.equals(ext, target.lib_ext))
     {
         global.params.libfiles.push(file);
         libmodules.push(file);
@@ -2865,7 +2877,7 @@ Module createModule(const(char)* file, ref Strings libmodules)
     }
     static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
     {
-        if (FileName.equals(ext, global.dll_ext))
+        if (FileName.equals(ext, target.dll_ext))
         {
             global.params.dllfiles.push(file);
             libmodules.push(file);

@@ -80,6 +80,11 @@ extern (C++) struct Target
     /// Architecture name
     const(char)[] architectureName;
 
+    // Environmental
+    const(char)[] obj_ext;    /// extension for object files
+    const(char)[] lib_ext;    /// extension for static library files
+    const(char)[] dll_ext;    /// extension for dynamic library files
+    bool run_noext;           /// allow -run sources without extensions
     /**
      * Values representing all properties for floating point types
      */
@@ -190,6 +195,26 @@ extern (C++) struct Target
             architectureName = "X86_64";
         else
             architectureName = "X86";
+
+        if (params.targetOS == TargetOS.Windows)
+        {
+            obj_ext = "obj";
+            lib_ext = "lib";
+            dll_ext = "dll";
+            run_noext = false;
+        }
+        else if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris | TargetOS.OSX))
+        {
+            obj_ext = "o";
+            lib_ext = "a";
+            if (params.targetOS == TargetOS.OSX)
+                dll_ext = "dylib";
+            else
+                dll_ext = "so";
+            run_noext = true;
+        }
+        else
+            assert(0, "unknown environment");
     }
 
     /**

@@ -29,6 +29,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
+import dmd.target;
 import dmd.vsoptions;
 
 version (Posix) extern (C) int pipe(int*);
@@ -541,7 +542,7 @@ public int runLINK()
             if (const e = FileName.ext(n))
             {
                 if (global.params.dll)
-                    ex = FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, target.dll_ext);
                 else
                     ex = FileName.removeExt(n);
             }

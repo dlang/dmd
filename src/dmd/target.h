@@ -73,6 +73,11 @@ struct Target
     TargetObjC objc;
 
     DString architectureName;    // name of the platform architecture (e.g. X86_64)
+    // Environmental
+    DString obj_ext;    /// extension for object files
+    DString lib_ext;    /// extension for static library files
+    DString dll_ext;    /// extension for dynamic library files
+    bool run_noext;     /// allow -run sources without extensions
 
     template <typename T>
     struct FPTypeProperties
