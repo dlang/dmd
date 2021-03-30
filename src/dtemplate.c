@@ -533,6 +533,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->isstatic = true;
     this->previous = NULL;
     this->protection = Prot(Prot::undefined);
+    this->inuse = 0;
     this->instances = NULL;
 
     // Compute in advance for Ddoc's use
@@ -767,7 +768,9 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
         Declaration *sparam;
 
         //printf("\targument [%d]\n", i);
+        inuse++;
         m2 = tp->matchArg(ti->loc, paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
+        inuse--;
         //printf("\tm2 = %d\n", m2);
 
         if (m2 == MATCHnomatch)
@@ -1394,7 +1397,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                         }
                         else
                         {
+                            inuse++;
                             oded = tparam->defaultArg(instLoc, paramscope);
+                            inuse--;
                             if (oded)
                                 (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                         }
@@ -1768,7 +1773,9 @@ Lmatch:
             }
             else
             {
+                inuse++;
                 oded = tparam->defaultArg(instLoc, paramscope);
+                inuse--;
                 if (!oded)
                 {
                     // if tuple parameter and
@@ -2179,8 +2186,12 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         int applyTemplate(TemplateDeclaration *td)
         {
             //printf("applyTemplate()\n");
-            // skip duplicates
-            if (td == td_best)
+            if (td->inuse)
+            {
+                td->error(loc, "recursive template expansion");
+                return 1;
+            }
+            if (td == td_best)  // skip duplicates
                 return 0;
 
             if (!sc)
@@ -5485,12 +5496,15 @@ RootObject *TemplateValueParameter::defaultArg(Loc instLoc, Scope *sc)
     if (e)
     {
         e = e->syntaxCopy();
+        unsigned olderrs = global.errors;
         if ((e = expressionSemantic(e, sc)) == NULL)
             return NULL;
         if ((e = resolveProperties(sc, e)) == NULL)
             return NULL;
         e = e->resolveLoc(instLoc, sc);     // use the instantiated loc
         e = e->optimize(WANTvalue);
+        if (global.errors != olderrs)
+            e = new ErrorExp();
     }
     return e;
 }
@@ -6293,7 +6307,11 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         TemplateDeclaration *td = s->isTemplateDeclaration();
         if (!td)
             return 0;
-
+        if (td->inuse)
+        {
+            td->error(ti->loc, "recursive template expansion");
+            return 1;
+        }
         if (td == td_best)          // skip duplicates
             return 0;
 
@@ -6483,8 +6501,11 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
     {
         TemplateDeclaration *td = s->isTemplateDeclaration();
         if (!td)
-        {
             return 0;
+        if (td->inuse)
+        {
+            td->error(ti->loc, "recursive template expansion");
+            return 1;
         }
 
         /* If any of the overloaded template declarations need inference,
