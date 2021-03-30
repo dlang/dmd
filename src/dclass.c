@@ -491,9 +491,10 @@ void ClassDeclaration::finalizeSize()
         assert(baseClass->sizeok == SIZEOKdone);
 
         alignsize = baseClass->alignsize;
-        structsize = baseClass->structsize;
-        if (isCPPclass() && global.params.isWindows)
-            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+        if (classKind == ClassKind::cpp)
+            structsize = target.cpp.derivedClassOffset(baseClass);
+        else
+            structsize = baseClass->structsize;
     }
     else if (isInterfaceDeclaration())
     {

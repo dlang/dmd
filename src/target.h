@@ -45,6 +45,7 @@ struct TargetCPP
     const char *typeMangle(Type *t);
     Type *parameterType(Parameter *p);
     bool fundamentalType(const Type *t, bool& isFundamental);
+    unsigned derivedClassOffset(ClassDeclaration *baseClass);
 };
 
 struct TargetObjC

@@ -714,3 +714,19 @@ bool TargetCPP::fundamentalType(const Type *, bool &)
     return false;
 }
 
+/**
+ * Get the starting offset position for fields of an `extern(C++)` class
+ * that is derived from the given base class.
+ * Params:
+ *      baseClass = base class with C++ linkage
+ * Returns:
+ *      starting offset to lay out derived class fields
+ */
+unsigned TargetCPP::derivedClassOffset(ClassDeclaration *baseClass)
+{
+    // MSVC adds padding between base and derived fields if required.
+    if (global.params.isWindows)
+        return (baseClass->structsize + baseClass->alignsize - 1) & ~(baseClass->alignsize - 1);
+    else
+        return baseClass->structsize;
+}
