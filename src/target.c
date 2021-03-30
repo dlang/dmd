@@ -202,6 +202,10 @@ void Target::_init(const Param &params)
         c.long_doublesize = 8;
     else
         c.long_doublesize = realsize;
+    if (params.isWindows)
+        c.twchar_t = Type::twchar;
+    else
+        c.twchar_t = Type::tdchar;
 
     if (params.isLinux || params.isFreeBSD
         || params.isOpenBSD || params.isSolaris)

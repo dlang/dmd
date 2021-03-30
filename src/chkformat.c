@@ -736,8 +736,7 @@ bool checkPrintfFormat(const Loc &loc, const char *format, Expressions &args, bo
 
             case Format_ls:     // pointer to wchar_t string
             {
-                const ENUMTY twchar_t = global.params.isWindows ? Twchar : Tdchar;
-                if (!(t->ty == Tpointer && tnext->ty == twchar_t))
+                if (!(t->ty == Tpointer && tnext == target.c.twchar_t))
                     errorPrintfFormat(NULL, slice, e, "wchar_t*", t);
                 break;
             }
@@ -954,8 +953,7 @@ bool checkScanfFormat(const Loc &loc, const char *format, Expressions &args, boo
             case Format_lc:
             case Format_ls:     // pointer to wchar_t string
             {
-                const ENUMTY twchar_t = global.params.isWindows ? Twchar : Tdchar;
-                if (!(t->ty == Tpointer && tnext->ty == twchar_t))
+                if (!(t->ty == Tpointer && tnext == target.c.twchar_t))
                     errorScanfFormat(NULL, slice, e, "wchar_t*", t);
                 break;
             }
