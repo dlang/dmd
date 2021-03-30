@@ -106,7 +106,7 @@ bool expressionsToString(OutBuffer &buf, Scope *sc, Expressions *exps)
         // char literals exp `.toStringExp` return `null` but we cant override it
         // because in most contexts we don't want the conversion to succeed.
         IntegerExp *ie = e4->isIntegerExp();
-        const int ty = (ie && ie->type) ? ie->type->ty : Terror;
+        const TY ty = (ie && ie->type) ? ie->type->ty : (TY)Terror;
         if (ty == Tchar || ty == Twchar || ty == Tdchar)
         {
             TypeSArray *tsa = new TypeSArray(ie->type, new IntegerExp(ex->loc, 1, Type::tint32));
@@ -4316,27 +4316,39 @@ public:
         result = ((BinExp *)e)->reorderSettingAAElem(sc);
     }
 
-    void visit(CompileExp *exp)
+private:
+    Expression *compileIt(CompileExp *exp)
     {
-        StringExp *se = semanticString(sc, exp->e1, "argument to mixin");
-        if (!se)
-            return setError();
-        se = se->toUTF8(sc);
+        OutBuffer buf;
+        if (expressionsToString(buf, sc, exp->exps))
+            return NULL;
+
         unsigned errors = global.errors;
-        Parser p(exp->loc, sc->_module, (utf8_t *)se->string, se->len, 0);
+        const size_t len = buf.length();
+        const char *str = buf.extractChars();
+        Parser p(exp->loc, sc->_module, (const utf8_t *)str, len, false);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
         Expression *e = p.parseExpression();
-        if (p.errors)
-        {
-            assert(global.errors != errors);        // should have caught all these cases
-            return setError();
-        }
+        if (global.errors != errors)
+            return NULL;
+
         if (p.token.value != TOKeof)
         {
-            exp->error("incomplete mixin expression (%s)", se->toChars());
-            return setError();
+            exp->error("incomplete mixin expression (%s)", str);
+            return NULL;
         }
+        return e;
+    }
+
+public:
+    void visit(CompileExp *exp)
+    {
+        //printf("CompileExp::semantic('%s')\n", exp->toChars());
+        Expression *e = compileIt(exp);
+        if (!e)
+            return setError();
         result = expressionSemantic(e, sc);
     }
 

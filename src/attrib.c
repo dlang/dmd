@@ -1176,12 +1176,12 @@ void ForwardingAttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 
 // These are mixin declarations, like mixin("int x");
 
-CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
+CompileDeclaration::CompileDeclaration(Loc loc, Expressions *exps)
     : AttribDeclaration(NULL)
 {
     //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
     this->loc = loc;
-    this->exp = exp;
+    this->exps = exps;
     this->scopesym = NULL;
     this->compiled = false;
 }
@@ -1189,7 +1189,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
 Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *)
 {
     //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-    return new CompileDeclaration(loc, exp->syntaxCopy());
+    return new CompileDeclaration(loc, Expression::arraySyntaxCopy(exps));
 }
 
 void CompileDeclaration::addMember(Scope *, ScopeDsymbol *sds)

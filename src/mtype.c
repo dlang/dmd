@@ -39,7 +39,7 @@ Expression *extractSideEffect(Scope *sc, const char *name, Expression **e0, Expr
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *typeToExpression(Type *t);
 Expression *typeToExpressionHelper(TypeQualified *t, Expression *e, size_t i = 0);
-Type *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc);
+RootObject *compileTypeMixin(TypeMixin *tm, Loc loc, Scope *sc);
 
 /***************************** Type *****************************/
 
@@ -5910,6 +5910,7 @@ TypeMixin::TypeMixin(const Loc &loc, Expressions *exps)
 {
     this->loc = loc;
     this->exps = exps;
+    this->obj = NULL; // cached result of semantic analysis.
 }
 
 const char *TypeMixin::kind()
@@ -5938,19 +5939,47 @@ Dsymbol *TypeMixin::toDsymbol(Scope *sc)
 
 void TypeMixin::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
 {
-    Type *ta = compileTypeMixin(this, loc, sc);
-    if (ta)
+    // if already resolved just set pe/pt/ps and return.
+    if (obj)
     {
-        TypeTraits *tt = ta->isTypeTraits();
-        if (tt && tt->exp)
+        *pe = isExpression(obj);
+        *pt = isType(obj);
+        *ps = isDsymbol(obj);
+        return;
+    }
+
+    RootObject *o = compileTypeMixin(this, loc, sc);
+    if (Type *t = isType(o))
+    {
+        t->resolve(loc, sc, pe, pt, ps, intypeid);
+        if (*pt)
+            (*pt) = (*pt)->addMod(mod);
+    }
+    else if (Expression *e = isExpression(o))
+    {
+        e = expressionSemantic(e, sc);
+        if (TypeExp *et = e->isTypeExp())
         {
-            *pe = tt->exp;
+            *pe = NULL;
+            *pt = et->type->addMod(mod);
+            *ps = NULL;
         }
         else
-            ta->resolve(loc, sc, pe, pt, ps, intypeid);
+        {
+            *pe = e;
+            *pt = NULL;
+            *ps = NULL;
+        }
     }
     else
+    {
+        *pe = NULL;
         *pt = Type::terror;
+        *ps = NULL;
+    }
+
+    // save the result
+    obj = *pe ? (RootObject *)*pe : (*pt ? (RootObject *)*pt : (RootObject *)*ps);
 }
 
 /***************************** TypeQualified *****************************/

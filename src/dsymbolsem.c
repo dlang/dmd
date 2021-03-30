@@ -42,6 +42,7 @@ VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 Initializer *inferType(Initializer *init, Scope *sc);
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 bool reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
+bool expressionsToString(OutBuffer &buf, Scope *sc, Expressions *exps);
 Objc *objc();
 
 static unsigned setMangleOverride(Dsymbol *s, char *sym)
@@ -1553,13 +1554,14 @@ public:
     Dsymbols *compileIt(CompileDeclaration *cd)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", cd->loc.linnum, cd->exp->toChars());
-        StringExp *se = semanticString(sc, cd->exp, "argument to mixin");
-        if (!se)
+        OutBuffer buf;
+        if (expressionsToString(buf, sc, cd->exps))
             return NULL;
-        se = se->toUTF8(sc);
 
         unsigned errors = global.errors;
-        Parser p(cd->loc, sc->_module, (utf8_t *)se->string, se->len, 0);
+        const size_t len = buf.length();
+        const char *str = buf.extractChars();
+        Parser p(cd->loc, sc->_module, (const utf8_t *)str, len, false);
         p.nextToken();
 
         Dsymbols *d = p.parseDeclDefs(0);
@@ -1568,7 +1570,7 @@ public:
 
         if (p.token.value != TOKeof)
         {
-            cd->exp->error("incomplete mixin declaration (%s)", se->toChars());
+            cd->error("incomplete mixin declaration (%s)", str);
             return NULL;
         }
         return d;

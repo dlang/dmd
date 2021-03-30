@@ -4119,9 +4119,36 @@ Expression *BinAssignExp::modifiableLvalue(Scope *sc, Expression *)
 
 /************************************************************/
 
-CompileExp::CompileExp(Loc loc, Expression *e)
-        : UnaExp(loc, TOKmixin, sizeof(CompileExp), e)
+CompileExp::CompileExp(Loc loc, Expressions *exps)
+    : Expression(loc, TOKmixin, sizeof(CompileExp))
 {
+    this->exps = exps;
+}
+
+Expression *CompileExp::syntaxCopy()
+{
+    return new CompileExp(loc, arraySyntaxCopy(exps));
+}
+
+bool CompileExp::equals(RootObject *o)
+{
+    if (this == o)
+        return true;
+    if (o && o->dyncast() == DYNCAST_EXPRESSION && ((Expression *)o)->op == TOKmixin)
+    {
+        CompileExp *ce = (CompileExp *)o;
+        if (exps->length != ce->exps->length)
+            return false;
+        for (size_t i = 0; i < exps->length; i++)
+        {
+            Expression *e1 = (*exps)[i];
+            Expression *e2 = (*ce->exps)[i];
+            if (e1 != e2 && (!e1 || !e2 || !e1->equals(e2)))
+                return false;
+        }
+        return true;
+    }
+    return false;
 }
 
 /************************************************************/
