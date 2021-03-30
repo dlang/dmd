@@ -726,6 +726,7 @@ public:
 
     TypeTraits(const Loc &loc, TraitsExp *exp);
     Type *syntaxCopy();
+    Dsymbol *toDsymbol(Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     d_uns64 size(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
