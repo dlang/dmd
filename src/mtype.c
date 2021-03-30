@@ -5922,6 +5922,20 @@ Type *TypeMixin::syntaxCopy()
     return new TypeMixin(loc, Expression::arraySyntaxCopy(exps));
 }
 
+Dsymbol *TypeMixin::toDsymbol(Scope *sc)
+{
+    Type *t = NULL;
+    Expression *e = NULL;
+    Dsymbol *s = NULL;
+    resolve(loc, sc, &e, &t, &s);
+    if (t)
+        s = t->toDsymbol(sc);
+    else if (e)
+        s = getDsymbol(e);
+
+    return s;
+}
+
 void TypeMixin::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
 {
     Type *ta = compileTypeMixin(this, loc, sc);

@@ -162,6 +162,8 @@ Dsymbol *getDsymbol(RootObject *oarg)
             sa = fe->td ? (Dsymbol *)fe->td : (Dsymbol *)fe->fd;
         else if (TemplateExp *te = ea->isTemplateExp())
             sa = te->td;
+        else if (ScopeExp *se = ea->isScopeExp())
+            sa = se->sds;
         else
             sa = NULL;
     }
