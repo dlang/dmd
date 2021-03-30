@@ -5387,10 +5387,33 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
     return e;
 }
 
+static elem *Lreinterpret(Loc loc, elem *e, Type *type)
+{
+    elem *ep = el_una(OPind, totym(type), el_una(OPaddr, TYnptr, e));
+    el_setLoc(ep, loc);
+    return ep;
+}
+
 elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
     //printf("\tsym = %p fillHoles = %d\n", sym, fillHoles);
+
+    Type *forcetype = NULL;
+    if (sle->type)
+    {
+        if (TypeEnum *te = sle->stype->isTypeEnum())
+        {
+            // Reinterpret the struct literal as a complex type.
+            if (te->sym->isSpecial() &&
+                (te->sym->ident == Id::__c_complex_float ||
+                 te->sym->ident == Id::__c_complex_double ||
+                 te->sym->ident == Id::__c_complex_real))
+            {
+                forcetype = sle->type;
+            }
+        }
+    }
 
     if (sle->useStaticInit)
     {
@@ -5412,6 +5435,8 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
             //e = el_combine(e, ev);
             el_setLoc(e, sle->loc);
         }
+        if (forcetype)
+            return Lreinterpret(sle->loc, e, forcetype);
         return e;
     }
 
@@ -5589,6 +5614,8 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
     ev->ET = Type_toCtype(sle->sd->type);
     e = el_combine(e, ev);
     el_setLoc(e, sle->loc);
+    if (forcetype)
+        return Lreinterpret(sle->loc, e, forcetype);
     return e;
 }
 

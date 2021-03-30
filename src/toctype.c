@@ -211,6 +211,14 @@ public:
                     assert(0);
             }
         }
+        else if (t->sym->ident == Id::__c_long ||
+                 t->sym->ident == Id::__c_complex_float ||
+                 t->sym->ident == Id::__c_complex_double ||
+                 t->sym->ident == Id::__c_complex_real)
+        {
+            t->ctype = type_fake(totym(t));
+            t->ctype->Tcount++;
+        }
         else if (t->sym->memtype->toBasetype()->ty == Tint32)
         {
             t->ctype = type_enum(t->sym->toPrettyChars(true), Type_toCtype(t->sym->memtype));
