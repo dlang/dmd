@@ -743,6 +743,7 @@ public:
     TypeMixin(const Loc &loc, Expressions *exps);
     const char *kind();
     Type *syntaxCopy();
+    Dsymbol *toDsymbol(Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void accept(Visitor *v) { v->visit(this); }
 };
