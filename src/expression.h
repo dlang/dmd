@@ -1124,7 +1124,6 @@ class ArrayLengthExp : public UnaExp
 public:
     ArrayLengthExp(Loc loc, Expression *e1);
 
-    static Expression *rewriteOpAssign(BinExp *exp);
     void accept(Visitor *v) { v->visit(this); }
 };
 
