@@ -23,6 +23,7 @@
 #include "id.h"
 #include "mars.h"
 #include "mtype.h"
+#include "statement.h"
 #include "root/outbuffer.h"
 
 const char *toCppMangleItanium(Dsymbol *);
@@ -635,6 +636,28 @@ Expression *Target::getTargetInfo(const char* name, const Loc& loc)
     }
 
     return NULL;
+}
+
+/**
+ * Returns true if the implementation for object monitors is always defined
+ * in the D runtime library (rt/monitor_.d).
+ * Params:
+ *      fd = function with `synchronized` storage class.
+ *      fbody = entire function body of `fd`
+ * Returns:
+ *      `false` if the target backend handles synchronizing monitors.
+ */
+bool Target::libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody)
+{
+    if (!global.params.is64bit && global.params.isWindows &&
+        !fd->isStatic() && !fbody->usesEH() && !global.params.trace)
+    {
+        /* The back end uses the "jmonitor" hack for syncing;
+         * no need to do the sync in the library.
+         */
+        return false;
+    }
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
