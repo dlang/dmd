@@ -164,7 +164,7 @@ void obj_write_deferred(Library library)
         for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%.*s", fname, count, hash,
-                       cast(int)global.obj_ext.length, global.obj_ext.ptr);
+                       cast(int)target.obj_ext.length, target.obj_ext.ptr);
         FileName.free(cast(char *)fname);
         fname = namebuf.extractChars();
 

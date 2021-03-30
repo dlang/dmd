@@ -17,6 +17,7 @@ import core.stdc.stdarg;
 
 import dmd.globals;
 import dmd.errors;
+import dmd.target;
 import dmd.utils;
 
 import dmd.root.outbuffer;
@@ -88,12 +89,12 @@ class Library
             // Generate lib file name from first obj name
             const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
+            arg = FileName.forceExt(n, target.lib_ext);
         }
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, global.lib_ext).ptr, 0, 0);
+        loc = Loc(FileName.defaultExt(arg, target.lib_ext).ptr, 0, 0);
     }
 
     final const(char)* getFilename() const

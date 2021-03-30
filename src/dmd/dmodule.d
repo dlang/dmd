@@ -44,6 +44,7 @@ import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.semantic2;
 import dmd.semantic3;
+import dmd.target;
 import dmd.utils;
 import dmd.visitor;
 
@@ -531,7 +532,7 @@ extern (C++) final class Module : Package
         //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
         this.arg = filename;
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
-        if (global.run_noext && global.params.run &&
+        if (target.run_noext && global.params.run &&
             !FileName.ext(filename) &&
             FileName.exists(srcfilename) == 0 &&
             FileName.exists(filename) == 1)
@@ -551,7 +552,7 @@ extern (C++) final class Module : Package
         }
 
         srcfile = FileName(srcfilename);
-        objfile = setOutfilename(global.params.objname, global.params.objdir, filename, global.obj_ext);
+        objfile = setOutfilename(global.params.objname, global.params.objdir, filename, target.obj_ext);
         if (doDocComment)
             setDocfile();
         if (doHdrGen)

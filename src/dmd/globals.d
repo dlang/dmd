@@ -326,16 +326,12 @@ extern (C++) struct Global
 {
     const(char)[] inifilename;
     string mars_ext = "d";
-    const(char)[] obj_ext;
-    const(char)[] lib_ext;
-    const(char)[] dll_ext;
     string doc_ext = "html";      // for Ddoc generated files
     string ddoc_ext = "ddoc";     // for Ddoc macro include files
     string hdr_ext = "di";        // for D 'header' import files
     string cxxhdr_ext = "h";      // for C/C++ 'header' files
     string json_ext = "json";     // for JSON files
     string map_ext = "map";       // for .map files
-    bool run_noext;                     // allow -run sources without extensions.
 
     string copyright = "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
@@ -405,59 +401,6 @@ extern (C++) struct Global
             vendor = "Digital Mars D";
             static if (TARGET.Windows)
             {
-                obj_ext = "obj";
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                obj_ext = "o";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                lib_ext = "lib";
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                lib_ext = "a";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                dll_ext = "dll";
-            }
-            else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                dll_ext = "so";
-            }
-            else static if (TARGET.OSX)
-            {
-                dll_ext = "dylib";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                run_noext = false;
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                // Allow 'script' D source files to have no extension.
-                run_noext = true;
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
                 params.mscoff = params.is64bit;
             }
 
@@ -468,10 +411,6 @@ extern (C++) struct Global
         else version (IN_GCC)
         {
             vendor = "GNU D";
-            obj_ext = "o";
-            lib_ext = "a";
-            dll_ext = "so";
-            run_noext = true;
         }
     }
 
