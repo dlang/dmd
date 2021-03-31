@@ -7160,11 +7160,6 @@ void unSpeculative(Scope *sc, RootObject *o)
  */
 bool TemplateInstance::needsCodegen()
 {
-    if (global.params.allInst)
-    {
-        return true;
-    }
-
     if (!minst)
     {
         // If this is a speculative instantiation,
@@ -7181,6 +7176,10 @@ bool TemplateInstance::needsCodegen()
         if (tinst && tinst->needsCodegen())
         {
             minst = tinst->minst;   // cache result
+            if (global.params.allInst && minst)
+            {
+                return true;
+            }
             assert(minst);
             assert(minst->isRoot() || minst->rootImports());
             return true;
@@ -7188,12 +7187,21 @@ bool TemplateInstance::needsCodegen()
         if (tnext && (tnext->needsCodegen() || tnext->minst))
         {
             minst = tnext->minst;   // cache result
+            if (global.params.allInst && minst)
+            {
+                return true;
+            }
             assert(minst);
             return minst->isRoot() || minst->rootImports();
         }
 
         // Elide codegen because this is really speculative.
         return false;
+    }
+
+    if (global.params.allInst)
+    {
+        return true;
     }
 
     /* Even when this is reached to the codegen pass,
@@ -7217,14 +7225,7 @@ bool TemplateInstance::needsCodegen()
         return false;
     }
 
-    /* The issue is that if the importee is compiled with a different -debug
-     * setting than the importer, the importer may believe it exists
-     * in the compiled importee when it does not, when the instantiation
-     * is behind a conditional debug declaration.
-     */
-    // workaround for Bugzilla 11239
-    if (global.params.useUnitTests ||
-        global.params.debuglevel)
+    if (global.params.useUnitTests)
     {
         // Prefer instantiations from root modules, to maximize link-ability.
         if (minst->isRoot())
