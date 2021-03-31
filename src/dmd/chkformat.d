@@ -95,7 +95,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             if (n == args.length)
             {
                 if (args.length < (n + 1) - gnu_m_count)
-                    deprecation(loc, "more format specifiers than %zd arguments", n);
+                    deprecation(loc, "more format specifiers than %d arguments", cast(int)n);
                 else
                     skip = true;
                 return null;
