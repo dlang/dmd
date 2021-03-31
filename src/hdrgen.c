@@ -122,7 +122,7 @@ public:
     void visit(CompileStatement *s)
     {
         buf->writestring("mixin(");
-	argsToBuffer(s->exps);
+        argsToBuffer(s->exps);
         buf->writestring(");");
         if (!hgs->forStmtInit)
             buf->writenl();
@@ -1109,6 +1109,11 @@ public:
         buf->writestring("mixin(");
         argsToBuffer(t->exps);
         buf->writeByte(')');
+    }
+
+    void visit(TypeNoreturn *)
+    {
+        buf->writestring("noreturn");
     }
 
     ////////////////////////////////////////////////////////////////////////////

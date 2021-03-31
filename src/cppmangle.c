@@ -806,6 +806,14 @@ public:
         writeBasicType(t, 'D', 'n');
     }
 
+    void visit(TypeNoreturn *t)
+    {
+        if (t->isImmutable() || t->isShared())
+            return error(t);
+
+        writeBasicType(t, 0, 'v');      // mangle like `void`
+    }
+
     void visit(TypeBasic *t)
     {
         if (t->isImmutable() || t->isShared())

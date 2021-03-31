@@ -83,6 +83,7 @@ void initTypeMangle()
     mangleChar[Tvector] = "@";
     mangleChar[Ttraits] = "@";
     mangleChar[Tmixin] = "@";
+    mangleChar[Tnoreturn] = "@";    // becomes 'Nn'
 
     mangleChar[Tnull] = "n";    // same as TypeNone
 
@@ -413,6 +414,11 @@ public:
     void visit(TypeNull *t)
     {
         visit((Type *)t);
+    }
+
+    void visit(TypeNoreturn *)
+    {
+        buf->writestring("Nn");
     }
 
     ////////////////////////////////////////////////////////////////////////////

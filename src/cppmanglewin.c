@@ -92,6 +92,16 @@ public:
         fatal(); // Fatal, because this error should be handled in frontend
     }
 
+    void visit(TypeNoreturn *type)
+    {
+        if (checkTypeSaved(type))
+            return;
+
+        buf.writeByte('X');         // yes, mangle it like `void`
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
+    }
+
     void visit(TypeBasic *type)
     {
         //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
