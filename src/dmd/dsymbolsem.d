@@ -1285,10 +1285,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Calculate type size + safety checks
         if (sc.func && !sc.intypeof)
         {
-            if (dsym._init && dsym._init.isVoidInitializer() && dsym.type.hasPointers()) // get type size
+            if (dsym._init && dsym._init.isVoidInitializer() &&
+                (dsym.type.hasPointers() || dsym.type.hasInvariant())) // also computes type size
             {
                 if (sc.func.setUnsafe())
-                    dsym.error("`void` initializers for pointers not allowed in safe functions");
+                {
+                    if (dsym.type.hasPointers())
+                        dsym.error("`void` initializers for pointers not allowed in safe functions");
+                    else
+                        dsym.error("`void` initializers for structs with invariants are not allowed in safe functions");
+                }
             }
             else if (!dsym._init &&
                      !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
