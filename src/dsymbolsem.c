@@ -1313,8 +1313,6 @@ public:
                     e = expressionSemantic(e, sc);
                     e = resolveProperties(sc, e);
                     sc = sc->endCTFE();
-
-                    // pragma(msg) is allowed to contain types as well as expressions
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e->op == TOKerror)
                     {
