@@ -941,6 +941,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!ts.sym.members && !(dsym.storage_class & (STC.ref_ | STC.extern_)))
             {
                 dsym.error("no definition of struct `%s`", ts.toChars());
+
+                // Explain why the definition is required when it's part of another type
+                if (!dsym.type.isTypeStruct())
+                {
+                    // Prefer Loc of the dependant type
+                    const s = dsym.type.toDsymbol(sc);
+                    const loc = (s ? s : dsym).loc;
+                    loc.errorSupplemental("required by type `%s`", dsym.type.toChars());
+                }
+
+                // Flag variable as error to avoid invalid error messages due to unknown size
+                dsym.type = Type.terror;
             }
         }
         if ((dsym.storage_class & STC.auto_) && !inferred)

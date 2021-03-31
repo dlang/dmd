@@ -308,7 +308,10 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return memtype.defaultInit(loc);
             }
 
-            error(loc, "forward reference of `%s.init`", toChars());
+            if (semanticRun >= PASS.semanticdone)
+                error(loc, "is opaque and has no default initializer");
+            else
+                error(loc, "forward reference of `%s.init`", toChars());
             return handleErrors();
         }
 
@@ -336,15 +339,10 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 Loc locx = loc.isValid() ? loc : this.loc;
                 memtype = memtype.typeSemantic(locx, _scope);
             }
-            else
-            {
-                if (!isAnonymous() && members)
-                    memtype = Type.tint32;
-            }
         }
         if (!memtype)
         {
-            if (!isAnonymous() && members)
+            if (!isAnonymous() && (members || semanticRun >= PASS.semanticdone))
                 memtype = Type.tint32;
             else
             {
