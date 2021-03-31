@@ -7331,6 +7331,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!exp.to) // Handle cast(const) and cast(immutable), etc.
         {
+
+            // turns `cast(immutable)[<elems...>]` into a static decl, @nogc compatible
+            ArrayLiteralExp ale = exp.e1.isArrayLiteralExp();
+            if (exp.mod == MODFlags.immutable_ && ale && sc.func)
+            {
+                Identifier id       = Identifier.generateId("__arr");
+                ExpInitializer ei   = new ExpInitializer(exp.e1.loc, exp.e1);
+                VarDeclaration vd   = new VarDeclaration(exp.e1.loc, exp.e1.type, id, ei, STC.immutable_ | STC.gshared );
+                VarExp ve           = new VarExp(exp.e1.loc, vd);
+
+                ScopeDsymbol sds    = sc.scopesym.toParentDecl().isScopeDsymbol();
+                assert(sds);
+                if (!sds.symtab)
+                    sds.symtab = new DsymbolTable();
+                vd.addMember(sc, sds);
+
+                DeclarationExp de   = new DeclarationExp(exp.e1.loc, vd);
+                CommaExp ce         = new CommaExp(exp.e1.loc, de, ve);
+
+                result              = expressionSemantic(ce, sc);
+                return;
+            }
+
             exp.to = exp.e1.type.castMod(exp.mod);
             exp.to = exp.to.typeSemantic(exp.loc, sc);
 
