@@ -144,6 +144,8 @@ public:
     // 'this' type
     Type *handleType() { return type; }
 
+    bool hasInvariant();
+
     // Back end
     Symbol *stag;               // tag symbol for debug data
     Symbol *sinit;

@@ -847,6 +847,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return type;
     }
 
+    // Does this class have an invariant function?
+    final bool hasInvariant()
+    {
+        return invs.length != 0;
+    }
+
     // Back end
     Symbol* stag;   /// tag symbol for debug data
     Symbol* sinit;  /// initializer symbol

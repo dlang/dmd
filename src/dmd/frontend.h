@@ -1370,6 +1370,7 @@ public:
     virtual int32_t hasWild() const;
     virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
+    virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
     uint32_t numberOfElems(const Loc& loc);
@@ -1674,6 +1675,7 @@ public:
     Dsymbol* searchCtor();
     Visibility visible();
     Type* handleType();
+    bool hasInvariant();
     Symbol* stag;
     Symbol* sinit;
     AggregateDeclaration* isAggregateDeclaration();
@@ -5049,6 +5051,7 @@ public:
     MATCH implicitConvTo(Type* to);
     Expression* defaultInitLiteral(const Loc& loc);
     bool hasPointers();
+    bool hasInvariant();
     bool needsDestruction();
     bool needsCopyOrPostblit();
     bool needsNested();
@@ -5335,6 +5338,7 @@ public:
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
+    bool hasInvariant();
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
     uint8_t deduceWild(Type* t, bool isRef);
@@ -5370,6 +5374,7 @@ public:
     bool isZeroInit(const Loc& loc);
     bool hasPointers();
     bool hasVoidInitPointers();
+    bool hasInvariant();
     Type* nextOf();
     void accept(Visitor* v);
 };
