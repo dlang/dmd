@@ -2420,8 +2420,15 @@ public:
                     buf->writeByte(')');
                     if (target.ptrsize == 8)
                         goto L4;
-                    else
+                    else if (target.ptrsize == 4 ||
+                             target.ptrsize == 2)
                         goto L3;
+                    else
+                        assert(0);
+
+                case Tvoid:
+                    buf->writestring("cast(void)0");
+                    break;
 
                 default:
                     /* This can happen if errors, such as
