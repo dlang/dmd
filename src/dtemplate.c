@@ -7151,6 +7151,68 @@ void unSpeculative(Scope *sc, RootObject *o)
         unSpeculative(sc, ti);
 }
 
+/**
+    Returns: true if the instances' innards are discardable.
+
+    The idea of this function is to see if the template instantiation
+    can be 100% replaced with its eponymous member. All other members
+    can be discarded, even in the compiler to free memory (for example,
+    the template could be expanded in a region allocator, deemed trivial,
+    the end result copied back out independently and the entire region freed),
+    and can be elided entirely from the binary.
+
+    The current implementation affects code that generally looks like:
+
+    ---
+    template foo(args...) {
+        some_basic_type_or_string helper() { .... }
+        enum foo = helper();
+    }
+    ---
+
+    since it was the easiest starting point of implementation but it can and
+    should be expanded more later.
+*/
+static bool isDiscardable(TemplateInstance *ti)
+{
+    if (ti->aliasdecl == NULL)
+        return false;
+
+    VarDeclaration *v = ti->aliasdecl->isVarDeclaration();
+    if (v == NULL)
+        return false;
+
+    if (!(v->storage_class & STCmanifest))
+        return false;
+
+    // Currently only doing basic types here because it is the easiest proof-of-concept
+    // implementation with minimal risk of side effects, but it could likely be
+    // expanded to any type that already exists outside this particular instance.
+    if (!(v->type->equals(Type::tstring) || (v->type->isTypeBasic() != NULL)))
+        return false;
+
+    // Static ctors and dtors, even in an eponymous enum template, are still run,
+    // so if any of them are in here, we'd better not assume it is trivial lest
+    // we break useful code
+    for (size_t i = 0; i < ti->members->length; i++)
+    {
+        Dsymbol *member = (*ti->members)[i];
+        if (member->hasStaticCtorOrDtor())
+            return false;
+        if (member->isStaticDtorDeclaration())
+            return false;
+        if (member->isStaticCtorDeclaration())
+            return false;
+    }
+
+    // but if it passes through this gauntlet... it should be fine. D code will
+    // see only the eponymous member, outside stuff can never access it, even through
+    // reflection; the outside world ought to be none the wiser. Even dmd should be
+    // able to simply free the memory of everything except the final result.
+
+    return true;
+}
+
 /***********************************************
  * Returns true if this is not instantiated in non-root module, and
  * is a part of non-speculative instantiatiation.
@@ -7202,6 +7264,11 @@ bool TemplateInstance::needsCodegen()
     if (global.params.allInst)
     {
         return true;
+    }
+
+    if (isDiscardable(this))
+    {
+        return false;
     }
 
     /* Even when this is reached to the codegen pass,
