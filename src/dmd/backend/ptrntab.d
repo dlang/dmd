@@ -38,6 +38,7 @@ import dmd.backend.dlist;
 import dmd.backend.ty;
 
 nothrow:
+@safe:
 
 //
 // NOTE: For 0 operand instructions, the opcode is taken from
@@ -5805,6 +5806,7 @@ extern (C++) const(char)* asm_opstr(OP *pop)
 /*******************************
  */
 
+@trusted
 extern (C++) OP *asm_op_lookup(const(char)* s)
 {
     int i;
@@ -5825,6 +5827,7 @@ extern (C++) OP *asm_op_lookup(const(char)* s)
 /*******************************
  */
 
+@trusted
 extern (C++) void init_optab()
 {   int i;
 
@@ -5839,6 +5842,7 @@ extern (C++) void init_optab()
     }
 }
 
+@trusted
 private int binary(const(char)* p, const OP[] table)
 {
     int low = 0;
