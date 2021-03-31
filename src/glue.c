@@ -1359,6 +1359,7 @@ unsigned totym(Type *tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
+        case Tnoreturn: t = TYbool;     break;
 
         case Tstruct:
             t = TYstruct;

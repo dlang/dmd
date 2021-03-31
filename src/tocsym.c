@@ -295,6 +295,10 @@ Symbol *toSymbol(Dsymbol *s)
                 f->Fflags |= Fvirtual;
             else if (fd->isMember2() && fd->isStatic())
                 f->Fflags |= Fstatic;
+
+            if (fd->type->toBasetype()->isTypeFunction()->nextOf()->isTypeNoreturn())
+                s->Sflags |= SFLexit;    // the function never returns
+
             f->Fstartline.Slinnum = fd->loc.linnum;
             f->Fstartline.Scharnum = fd->loc.charnum;
             f->Fstartline.Sfilename = (char *)fd->loc.filename;

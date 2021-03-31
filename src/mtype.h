@@ -97,6 +97,7 @@ enum ENUMTY
     Tuns128,
     Ttraits,
     Tmixin,
+    Tnoreturn,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
@@ -202,6 +203,7 @@ public:
     static Type *tdstring;              // immutable(dchar)[]
     static Type *terror;                // for error recovery
     static Type *tnull;                 // for null type
+    static Type *tnoreturn;             // for bottom type typeof(*null)
 
     static Type *tsize_t;               // matches size_t alias
     static Type *tptrdiff_t;            // matches ptrdiff_t alias
@@ -370,6 +372,7 @@ public:
     TypeNull *isTypeNull();
     TypeMixin *isTypeMixin();
     TypeTraits *isTypeTraits();
+    TypeNoreturn *isTypeNoreturn();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -981,6 +984,21 @@ public:
 
     d_uns64 size(Loc loc) /*const*/;
     Expression *defaultInit(Loc loc) /*const*/;
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeNoreturn : public Type
+{
+public:
+    TypeNoreturn();
+    const char *kind();
+
+    Type *syntaxCopy();
+    MATCH implicitConvTo(Type *to);
+    bool isBoolean() /*const*/;
+
+    d_uns64 size(Loc loc) /*const*/;
+    unsigned alignsize();
     void accept(Visitor *v) { v->visit(this); }
 };
 

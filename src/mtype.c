@@ -94,6 +94,7 @@ Type *Type::tdchar;
 Type *Type::tshiftcnt;
 Type *Type::terror;
 Type *Type::tnull;
+Type *Type::tnoreturn;
 
 Type *Type::tsize_t;
 Type *Type::tptrdiff_t;
@@ -197,6 +198,7 @@ void Type::_init()
     sizeTy[Tvector] = sizeof(TypeVector);
     sizeTy[Ttraits] = sizeof(TypeTraits);
     sizeTy[Tmixin] = sizeof(TypeMixin);
+    sizeTy[Tnoreturn] = sizeof(TypeNoreturn);
 
     initTypeMangle();
 
@@ -217,6 +219,10 @@ void Type::_init()
         basic[basetab[i]] = t;
     }
     basic[Terror] = new TypeError();
+
+    tnoreturn = new TypeNoreturn();
+    tnoreturn->deco = tnoreturn->merge()->deco;
+    basic[Tnoreturn] = tnoreturn;
 
     tvoid = basic[Tvoid];
     tint8 = basic[Tint8];
@@ -248,7 +254,7 @@ void Type::_init()
 
     tshiftcnt = tint32;
     terror = basic[Terror];
-    tnull = basic[Tnull];
+    tnoreturn = basic[Tnoreturn];
     tnull = new TypeNull();
     tnull->deco = tnull->merge()->deco;
 
@@ -2418,6 +2424,11 @@ TypeTraits *Type::isTypeTraits()
 TypeMixin *Type::isTypeMixin()
 {
     return ty == Tmixin ? (TypeMixin *)this : NULL;
+}
+
+TypeNoreturn *Type::isTypeNoreturn()
+{
+    return ty == Tnoreturn ? (TypeNoreturn *)this : NULL;
 }
 
 TypeFunction *Type::toTypeFunction()
@@ -8341,6 +8352,49 @@ d_uns64 TypeNull::size(Loc loc)
 Expression *TypeNull::defaultInit(Loc)
 {
     return new NullExp(Loc(), Type::tnull);
+}
+
+/***************************** TypeNoreturn *****************************/
+
+TypeNoreturn::TypeNoreturn()
+    : Type(Tnoreturn)
+{
+    //printf("TypeNoreturn %p\n", this);
+}
+
+const char *TypeNoreturn::kind()
+{
+    return "noreturn";
+}
+
+Type *TypeNoreturn::syntaxCopy()
+{
+    // No semantic analysis done, no need to copy
+    return this;
+}
+
+MATCH TypeNoreturn::implicitConvTo(Type *to)
+{
+    //printf("TypeNoreturn::implicitConvTo(this=%p, to=%p)\n", this, to);
+    //printf("from: %s\n", toChars());
+    //printf("to  : %s\n", to.toChars());
+    MATCH m = Type::implicitConvTo(to);
+    return (m == MATCHexact) ? MATCHexact : MATCHconvert;
+}
+
+bool TypeNoreturn::isBoolean()
+{
+    return true;  // bottom type can be implicitly converted to any other type
+}
+
+d_uns64 TypeNoreturn::size(Loc)
+{
+    return 0;
+}
+
+unsigned TypeNoreturn::alignsize()
+{
+    return 0;
 }
 
 /***********************************************************

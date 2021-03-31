@@ -3872,7 +3872,7 @@ public:
 
     void visit(HaltExp *e)
     {
-        e->type = Type::tvoid;
+        e->type = Type::tnoreturn;
         result = e;
     }
 
@@ -4454,6 +4454,8 @@ public:
 
         if (exp->e1->isBool(false))
         {
+            /* This is an `assert(0)` which means halt program execution
+             */
             FuncDeclaration *fd = sc->parent->isFuncDeclaration();
             if (fd)
                 fd->hasReturnExp |= 4;
@@ -4471,8 +4473,10 @@ public:
                 result = e;
                 return;
             }
+            exp->type = Type::tnoreturn;
         }
-        exp->type = Type::tvoid;
+        else
+            exp->type = Type::tvoid;
         result = exp;
     }
 
@@ -5902,6 +5906,10 @@ public:
                 exp->error("using * on an array is no longer supported; use *(%s).ptr instead", exp->e1->toChars());
                 exp->type = ((TypeArray *)tb)->next;
                 exp->e1 = exp->e1->castTo(sc, exp->type->pointerTo());
+                break;
+
+            case Tnull:
+                exp->type = Type::tnoreturn;    // typeof(*null) is bottom type
                 break;
 
             default:
@@ -9510,7 +9518,7 @@ public:
             exp->error("%s is not an expression", exp->e2->toChars());
             return setError();
         }
-        if (e1x->op == TOKerror)
+        if (e1x->op == TOKerror || e1x->type->ty == Tnoreturn)
         {
             result = e1x;
             return;
@@ -9963,10 +9971,18 @@ public:
 
         Type *t1 = exp->e1->type;
         Type *t2 = exp->e2->type;
+        if (t1->ty == Tnoreturn)
+        {
+            exp->type = t2;
+        }
+        else if (t2->ty == Tnoreturn)
+        {
+            exp->type = t1;
+        }
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
         // value if any (bugzilla 16598)
-        if (t1->ty == Tvoid || t2->ty == Tvoid)
+        else if (t1->ty == Tvoid || t2->ty == Tvoid)
         {
             exp->type = Type::tvoid;
             exp->e1 = exp->e1->castTo(sc, exp->type);
