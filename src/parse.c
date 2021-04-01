@@ -7293,6 +7293,14 @@ Expression *Parser::parsePrimaryExp()
             if (token.value == TOKlparen)
             {
                 nextToken();
+                if (token.value == TOKidentifier && peekNext() == TOKlparen)
+                {
+                    error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
+                    nextToken();
+                    Token *tempTok = peekPastParen(&token);
+                    memcpy(&token, tempTok, sizeof(Token));
+                    goto Lerr;
+                }
                 targ = parseType(&ident);
                 if (token.value == TOKcolon || token.value == TOKequal)
                 {
