@@ -839,6 +839,27 @@ MATCH implicitConvTo(Expression e, Type t)
             }
         }
 
+        override void visit(CatExp e)
+        {
+            enum LOG = false;
+            static if (LOG)
+            {
+                printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+            }
+
+            visit(cast(Expression)e);
+            if (result != MATCH.nomatch)
+                return;
+
+            if (true)       // TODO: only if any indirections of e are immutable
+            {
+                result = e.type.immutableOf().implicitConvTo(t);
+                if (result > MATCH.constant) // Match level is MATCH.constant at best.
+                    result = MATCH.constant;
+                return;
+            }
+        }
+
         override void visit(CallExp e)
         {
             enum LOG = false;
