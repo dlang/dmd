@@ -1132,24 +1132,11 @@ public:
             {
                 AliasDeclaration *ad = imp->aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), imp->aliases[i]->toChars(), imp->names[i]->toChars(), ad->_scope);
-                Dsymbol *sym = imp->mod->search(imp->loc, imp->names[i] /*, IgnorePrivateImports*/);
+                Dsymbol *sym = imp->mod->search(imp->loc, imp->names[i], IgnorePrivateImports);
                 if (sym)
                 {
-                    // Deprecated in 2018-01.
-                    // Change to error in 2019-01 by deleteting the following 5 lines and uncommenting
-                    // the IgnorePrivateImports parameter from above.
-                    // @@@DEPRECATED_2019-01@@@.
-                    Dsymbol *s = imp->mod->search(imp->loc, imp->names[i], IgnorePrivateImports);
-                    if (!s)
-                        ::deprecation(imp->loc,
-                            "Symbol `%s` is not visible from module `%s` because it is privately imported in module `%s`",
-                            sym->toPrettyChars(), sc->_module->toChars(), imp->mod->toChars());
-
-                    // Deprecated in 2018-01.
-                    // Change to error in 2019-01.
-                    // @@@DEPRECATED_2019-01@@@.
                     if (!symbolIsVisible(sc, sym))
-                        imp->mod->deprecation(imp->loc, "member `%s` is not visible from module `%s`",
+                        imp->mod->error(imp->loc, "member `%s` is not visible from module `%s`",
                             imp->names[i]->toChars(), sc->_module->toChars());
                     dsymbolSemantic(ad, sc);
                     // If the import declaration is in non-root module,
