@@ -43,6 +43,7 @@ Initializer *inferType(Initializer *init, Scope *sc);
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 bool reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 bool expressionsToString(OutBuffer &buf, Scope *sc, Expressions *exps);
+bool symbolIsVisible(Scope *sc, Dsymbol *s);
 Objc *objc();
 
 static unsigned setMangleOverride(Dsymbol *s, char *sym)
@@ -1132,9 +1133,16 @@ public:
                 bool flag = false;
                 AliasDeclaration *ad = imp->aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), imp->aliases[i]->toChars(), imp->names[i]->toChars(), ad->_scope);
-                if (imp->mod->search(imp->loc, imp->names[i] /*, IgnorePrivateImports*/))
+                Dsymbol *importedSymbol = imp->mod->search(imp->loc, imp->names[i] /*, IgnorePrivateImports*/);
+                if (importedSymbol)
                 {
                     flag = true;
+
+                    // Deprecated in 2018-01.
+                    // Change to error in 2019-01.
+                    // @@@DEPRECATED_2019-01@@@.
+                    if (!symbolIsVisible(sc, importedSymbol))
+                         imp->mod->deprecation(imp->loc, "member `%s` is not accessible", imp->names[i]->toChars());
                     dsymbolSemantic(ad, sc);
                     // If the import declaration is in non-root module,
                     // analysis of the aliased symbol is deferred.
