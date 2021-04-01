@@ -552,10 +552,21 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
     if (protection.kind == Prot::package_ && protection.pkg && sc->_module)
     {
         Module *m = sc->_module;
-        Package* pkg = m->parent ? m->parent->isPackage() : NULL;
-        if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
-            error("does not bind to one of ancestor packages of module `%s`",
-               m->toPrettyChars(true));
+
+        // While isAncestorPackageOf does an equality check, the fix for issue 17441 adds a check to see if
+        // each package's .isModule() properites are equal.
+        //
+        // Properties generated from `package(foo)` i.e. protection.pkg have .isModule() == null.
+        // This breaks package declarations of the package in question if they are declared in
+        // the same package.d file, which _do_ have a module associated with them, and hence a non-null
+        // isModule()
+        if (!m->isPackage() || !protection.pkg->ident->equals(m->isPackage()->ident))
+        {
+            Package* pkg = m->parent ? m->parent->isPackage() : NULL;
+            if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
+                error("does not bind to one of ancestor packages of module `%s`",
+                      m->toPrettyChars(true));
+        }
     }
 
     return AttribDeclaration::addMember(sc, sds);
