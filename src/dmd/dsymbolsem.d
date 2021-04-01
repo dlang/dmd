@@ -2219,7 +2219,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const sident = se.toStringz();
             if (!sident.length || !Identifier.isValidIdentifier(sident))
             {
-                ns.exp.error("expected valid identifer for C++ namespace but got `%.*s`",
+                ns.exp.error("expected valid identifier for C++ namespace but got `%.*s`",
                              cast(int)sident.length, sident.ptr);
                 return null;
             }
@@ -3181,7 +3181,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 const(char)[] ident = name.toStringz();
                 if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
                 {
-                    error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                    error(ns.loc, "expected valid identifier for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
                     return;
                 }
                 ns.ident = Identifier.idPool(ident);
@@ -3201,7 +3201,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     const(char)[] ident = name.toStringz();
                     if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
                     {
-                        error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                        error(ns.loc, "expected valid identifier for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
                         return;
                     }
                     if (i == 0)
