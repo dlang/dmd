@@ -3998,7 +3998,10 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                      skipAttributes(peekPastParen(&token), &tk) &&
                      (tk->value == TOKgoesto || tk->value == TOKlcurly)) ||
                     token.value == TOKlcurly ||
-                    (token.value == TOKidentifier && peekNext() == TOKgoesto))
+                    (token.value == TOKidentifier && peekNext() == TOKgoesto) ||
+                    (token.value == TOKref && peekNext() == TOKlparen &&
+                     skipAttributes(peekPastParen(peek(&token)), &tk) &&
+                     (tk->value == TOKgoesto || tk->value == TOKlcurly)))
                 {
                     // function (parameters) { statements... }
                     // delegate (parameters) { statements... }
@@ -4006,6 +4009,8 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     // (parameters) => expression
                     // { statements... }
                     // identifier => expression
+                    // ref (parameters) { statements... }
+                    // ref (parameters) => expression
 
                     s = parseFunctionLiteral();
 
@@ -4394,6 +4399,13 @@ Dsymbol *Parser::parseFunctionLiteral()
         case TOKdelegate:
             save = token.value;
             nextToken();
+            if (token.value == TOKref)
+            {
+                // function ref (parameters) { statements... }
+                // delegate ref (parameters) { statements... }
+                stc = STCref;
+                nextToken();
+            }
             if (token.value != TOKlparen && token.value != TOKlcurly)
             {
                 // function type (parameters) { statements... }
@@ -4413,14 +4425,22 @@ Dsymbol *Parser::parseFunctionLiteral()
                 // delegate { statements... }
                 break;
             }
-            /* fall through */
+            goto LTOKlparen;
+
+        case TOKref:
+            // ref (parameters) => expression
+            // ref (parameters) { statements... }
+            stc = STCref;
+            nextToken();
+            goto LTOKlparen;
 
         case TOKlparen:
+        LTOKlparen:
         {
             // (parameters) => expression
             // (parameters) { statements... }
             parameters = parseParameters(&varargs, &tpl);
-            stc = parsePostfix(STCundefined, NULL);
+            stc = parsePostfix(stc, NULL);
             if (StorageClass modStc = stc & STC_TYPECTOR)
             {
                 if (save == TOKfunction)
@@ -7427,6 +7447,24 @@ Expression *Parser::parsePrimaryExp()
         case TOKnew:
             e = parseNewExp(NULL);
             break;
+
+        case TOKref:
+        {
+            if (peekNext() == TOKlparen)
+            {
+                Token *tk = peekPastParen(peek(&token));
+                if (skipAttributes(tk, &tk) &&
+                    (tk->value == TOKgoesto || tk->value == TOKlcurly))
+                {
+                    // ref (arguments) => expression
+                    // ref (arguments) { statements... }
+                    goto case_delegate;
+                }
+            }
+            nextToken();
+            error("found `%s` when expecting function literal following `ref`", token.toChars());
+            goto Lerr;
+        }
 
         case TOKlparen:
         {
