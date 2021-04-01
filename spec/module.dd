@@ -484,7 +484,7 @@ void main()
 
 $(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
 
-    $(P A leading `.` causes the
+    $(P A leading dot (`.`) causes the
     identifier to be looked up in the module scope.)
 
 ---------
