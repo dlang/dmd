@@ -288,8 +288,13 @@ struct LinOff
 
 extern __gshared Rarray!(seg_data*) SegData;
 
+@trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
+
+@trusted
 ref targ_size_t Doffset() { return Offset(DATA); }
+
+@trusted
 ref targ_size_t CDoffset() { return Offset(CDATA); }
 
 /**************************************************/
