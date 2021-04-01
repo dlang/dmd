@@ -1387,9 +1387,8 @@ $(GNAME PrimaryExpression):
 
 $(H3 $(LNAME2 identifier, .Identifier))
 
-    $(P $(IDENTIFIER) is looked up at module scope, rather than the current
-        lexically nested scope.
-    )
+    $(P See $(DDSUBLINK spec/module, module_scope_operators, Module Scope
+        Operator).)
 
 $(H3 $(LNAME2 this, this))
 
