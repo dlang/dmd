@@ -25,6 +25,7 @@ import dmd.backend.type;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum GENOBJ = 1;       // generating .obj file
 
@@ -167,6 +168,7 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
+@trusted
 uint CPP() { return config.flags3 & CFG3cpp; }
 
 
@@ -362,10 +364,16 @@ struct Pstate
                                 // than STmaxsequence
 }
 
+@trusted
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
+
+@trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
 
+@trusted
 stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
+
+@trusted
 stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
 extern __gshared Pstate pstate;
@@ -607,13 +615,23 @@ nothrow:
         }
     }
 
+    @trusted
     void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
+
+    @trusted
     void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
+
+    @trusted
     int numSucc()                    { return list_nitems(this.Bsucc); }
+
+    @trusted
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
+
+    @trusted
     void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
 }
 
+@trusted
 inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
@@ -887,6 +905,7 @@ struct mptr_t
     mptr_flags_t   MPflags;
 }
 
+@trusted
 inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
 
 
@@ -1148,8 +1167,13 @@ struct struct_t
  * Symbol Table
  */
 
+@trusted
 inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
+
+@trusted
 void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
+
+@trusted
 inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
@@ -1522,6 +1546,7 @@ enum
  * Returns:
  *      exception method for f
  */
+@trusted
 EHmethod ehmethod(Symbol *f)
 {
     return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
