@@ -5168,6 +5168,16 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
              *  template X(T) {}        // T => sa
              */
         }
+        else if (ta && ta->ty != Tident)
+        {
+            /* Match any type that's not a TypeIdentifier to alias parameters,
+             * but prefer type parameter.
+             * template X(alias a) { }  // a == ta
+             *
+             * TypeIdentifiers are excluded because they might be not yet resolved aliases.
+             */
+            m = MATCHconvert;
+        }
         else
             goto Lnomatch;
     }
