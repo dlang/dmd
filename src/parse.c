@@ -3872,6 +3872,21 @@ void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link,
     }
 }
 
+static void parseAttributes(Parser *p, bool &hasParsedAttributes,
+    StorageClass &storage_class, LINK &link, bool &setAlignment,
+    Expression *&ealign, Expressions *&udas)
+{
+    if (hasParsedAttributes) // only parse once
+        return;
+    hasParsedAttributes = true;
+    udas = NULL;
+    storage_class = STCundefined;
+    link = p->linkage;
+    setAlignment = false;
+    ealign = NULL;
+    p->parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+}
+
 /**********************************
  * Parse Declarations.
  * These can be:
@@ -3945,20 +3960,39 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                 bool hasParsedAttributes = false;
                 if (token.value == TOKat)
                 {
-                    if (!hasParsedAttributes)
-                    {
-                        hasParsedAttributes = true;
-                        storage_class = STCundefined;
-                        link = linkage;
-                        setAlignment = false;
-                        ealign = NULL;
-                        udas = NULL;
-                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
-                    }
+                    parseAttributes(this, hasParsedAttributes,
+                        storage_class, link, setAlignment, ealign, udas);
                 }
 
                 Declaration *v;
-                if (token.value == TOKfunction ||
+                Dsymbol *s;
+
+                // try to parse function type:
+                // TypeCtors? BasicType ( Parameters ) MemberFunctionAttributes
+                bool attributesAppended = false;
+                const StorageClass funcStc = parseTypeCtor();
+                Token *tlu = &token;
+                if (token.value != TOKfunction &&
+                    token.value != TOKdelegate &&
+                    isBasicType(&tlu) && tlu &&
+                    tlu->value == TOKlparen)
+                {
+                    VarArg vargs;
+                    Type *tret = parseBasicType();
+                    Parameters *prms = parseParameters(&vargs);
+                    ParameterList pl = ParameterList(prms, vargs);
+
+                    parseAttributes(this, hasParsedAttributes,
+                        storage_class, link, setAlignment, ealign, udas);
+                    if (udas)
+                        error("user-defined attributes not allowed for `alias` declarations");
+
+                    attributesAppended = true;
+                    storage_class = appendStorageClass(storage_class, funcStc);
+                    Type *tf = new TypeFunction(pl, tret, link, storage_class);
+                    v = new AliasDeclaration(loc, ident, tf);
+                }
+                else if (token.value == TOKfunction ||
                     token.value == TOKdelegate ||
                     (token.value == TOKlparen &&
                      skipAttributes(peekPastParen(&token), &tk) &&
@@ -3973,7 +4007,7 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     // { statements... }
                     // identifier => expression
 
-                    Dsymbol *s = parseFunctionLiteral();
+                    s = parseFunctionLiteral();
 
                     if (udas != NULL)
                     {
@@ -3994,26 +4028,19 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                 else
                 {
                     // StorageClasses type
-                    if (!hasParsedAttributes)
-                    {
-                        hasParsedAttributes = true;
-                        storage_class = STCundefined;
-                        link = linkage;
-                        setAlignment = false;
-                        ealign = NULL;
-                        udas = NULL;
-                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
-                    }
-
+                    parseAttributes(this, hasParsedAttributes,
+                        storage_class, link, setAlignment, ealign, udas);
                     if (udas)
                         error("user-defined attributes not allowed for %s declarations", Token::toChars(tok));
 
                     t = parseType();
                     v = new AliasDeclaration(loc, ident, t);
                 }
+                if (!attributesAppended)
+                    storage_class = appendStorageClass(storage_class, funcStc);
                 v->storage_class = storage_class;
 
-                Dsymbol *s = v;
+                s = v;
                 if (tpl)
                 {
                     Dsymbols *a2 = new Dsymbols();
