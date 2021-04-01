@@ -9,6 +9,8 @@ module dmd.backend.dwarf2;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_dwarf2.html
 
+@safe:
+
 enum
 {
         DW_SECT_INFO                    = 1,

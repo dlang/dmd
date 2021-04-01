@@ -7,6 +7,7 @@ module dmd.backend.mscoff;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_mscoff.html
 
+@safe:
 align (1):
 
 /***********************************************/
