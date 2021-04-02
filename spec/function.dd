@@ -3233,6 +3233,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No pointer arithmetic (including pointer indexing).)
         $(LI Cannot access unions that have pointers or references overlapping
         with other types.)
+        $(LI Cannot access unions that have fields with invariants overlapping
+        with other types.)
         $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
         $(LI No catching of exceptions that are not derived from
         $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
@@ -3244,6 +3246,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI Cannot access $(D __gshared) variables.)
         $(LI Cannot use $(D void) initializers for pointers.)
         $(LI Cannot use $(D void) initializers for class or interface references.)
+        $(LI Cannot use $(D void) initializers for types that have invariants.)
         )
 
         $(P When indexing or slicing an array, an out of bounds access
