@@ -851,7 +851,7 @@ MATCH implicitConvTo(Expression e, Type t)
             if (result != MATCH.nomatch)
                 return;
 
-            if (true)       // TODO: only if any indirections of e are immutable
+            if (true) // TODO: if any indirections of element types of `e` operands are immutable
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.
