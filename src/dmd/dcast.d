@@ -857,21 +857,17 @@ MATCH implicitConvTo(Expression e, Type t)
             auto te = da.next;  // type of element
             assert(te);
 
-            printf("da:%s te:%s => t:%s\n", da.toChars(), te.toChars(), t.toChars());
-
             if (te.hasAliasing)
             {
                 /* TODO: move this error message to a common place that special
                  * cases message if (hasAliasing(te)) is non-null */
-                printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
-                return;
+                // printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
             }
             else
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.
                     result = MATCH.constant;
-                return;
             }
         }
 
