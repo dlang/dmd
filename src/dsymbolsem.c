@@ -1100,22 +1100,7 @@ public:
                     scopesym->importScope(imp->mod, imp->protection);
                 }
 
-                // Mark the imported packages as accessible from the current
-                // scope. This access check is necessary when using FQN b/c
-                // we're using a single global package tree. See Bugzilla 313.
-                if (imp->packages)
-                {
-                    // import a.b.c.d;
-                    Package *p = imp->pkg; // a
-                    scopesym->addAccessiblePackage(p, imp->protection);
-                    for (size_t i = 1; i < imp->packages->length; i++) // [b, c]
-                    {
-                        Identifier *id = (*imp->packages)[i];
-                        p = (Package *) p->symtab->lookup(id);
-                        scopesym->addAccessiblePackage(p, imp->protection);
-                    }
-                }
-                scopesym->addAccessiblePackage(imp->mod, imp->protection); // d
+                imp->addPackageAccess(scopesym);
             }
 
             dsymbolSemantic(imp->mod, NULL);
