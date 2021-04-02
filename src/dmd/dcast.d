@@ -841,7 +841,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(CatExp e)
         {
-            enum LOG = true;
+            enum LOG = false;
             static if (LOG)
             {
                 printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
@@ -852,19 +852,21 @@ MATCH implicitConvTo(Expression e, Type t)
                 return;
 
             auto da = e.type.isTypeDArray;
-            static if (LOG) printf("da:%s\n", da.toChars());
             assert(da);              // TODO: must be dynamic array, right?
-            auto da_etype = da.next; // dynamic array element type
-            static if (LOG) printf("da_etype:%s\n", da_etype.toChars());
-            assert(da_etype);
-            // auto sa = e.type.isTypeSArray;
-            // auto sa_etype = sa.next; // static array element type
-            if (Type ti = getIndirection(da_etype))
+
+            auto te = da.next;  // type of element
+            assert(te);
+
+            printf("da:%s te:%s => t:%s\n", da.toChars(), te.toChars(), t.toChars());
+
+            if (te.hasAliasing)
             {
-                static if (LOG) printf("ti:%s\n", ti.toChars());
-                // Type tib = ti.toBasetype;
+                /* TODO: move this error message to a common place that special
+                 * cases message if (hasAliasing(te)) is non-null */
+                printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
+                return;
             }
-            if (true) // TODO: iff _all_ indirections of common element type of `e` operands are immutable
+            else
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.

@@ -7278,3 +7278,37 @@ bool isCopyable(Type t)
     }
     return true;
 }
+
+/** Returns: `true` iff `t` has any non-`immutable` (mutable or const) indirections.
+ *
+ * In other words, if other references to `t` may be able to change it.
+ */
+bool hasAliasing(scope const Type t) pure nothrow @nogc
+{
+    if (t.isTypeEnum())
+        return false;           // an enum is an r-value so cannot alias
+    if (t.isImmutable)          // immutable is transitive
+        return false;           // eager bail out
+    if (const(TypeClass) tc = t.isTypeClass)
+    {
+        const(ClassDeclaration) cd = tc.sym;
+        foreach (const(VarDeclaration) vd; cd.fields)
+            if (hasAliasing(vd.type))
+                return true;
+    }
+    else if (const(TypeStruct) ts = t.isTypeStruct)
+    {
+        const(StructDeclaration) sd = ts.sym;
+        foreach (const(VarDeclaration) vd; sd.fields)
+            if (hasAliasing(vd.type))
+                return true;
+    }
+    else if (const(TypePointer) tp = t.isTypePointer)
+    {
+        if (!tp.next.isImmutable) // tp is pointer to mutable data
+            return true;
+    }
+    else if (const(TypeDArray) ta = t.isTypeDArray)
+        return true;
+    return false;                // no aliasing
+}
