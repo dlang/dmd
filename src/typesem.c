@@ -1327,7 +1327,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
 
         void visit(TypeStruct *mtype)
         {
-            //printf("TypeStruct::semantic('%s')\n", mtype->sym->toChars());
+            //printf("TypeStruct::semantic('%s')\n", mtype->toChars());
             if (mtype->deco)
             {
                 if (sc && sc->cppmangle != CPPMANGLEdefault)
@@ -1356,7 +1356,7 @@ Type *typeSemantic(Type *type, const Loc &loc, Scope *sc)
 
         void visit(TypeClass *mtype)
         {
-            //printf("TypeClass::semantic(%s)\n", mtype->sym->toChars());
+            //printf("TypeClass::semantic(%s)\n", mtype->toChars());
             if (mtype->deco)
             {
                 if (sc && sc->cppmangle != CPPMANGLEdefault)

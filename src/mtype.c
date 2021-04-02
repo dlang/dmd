@@ -2087,7 +2087,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         if (this != Type::terror)
         {
             if (s)
-                error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident->toChars(), toChars(), s->toChars());
+                error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident->toChars(), toChars(), s->toPrettyChars());
             else
                 error(loc, "no property `%s` for type `%s`", ident->toChars(), toChars());
         }
@@ -6180,7 +6180,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
             unsigned errorsave = global.errors;
-            Dsymbol *sm = s->searchX(loc, sc, id);
+            int flags = t == NULL ? SearchLocalsOnly : IgnorePrivateImports;
+            Dsymbol *sm = s->searchX(loc, sc, id, flags);
             if (sm && !(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, sm))
             {
                 ::error(loc, "`%s` is not visible from module `%s`", sm->toPrettyChars(), sc->_module->toChars());
@@ -6229,7 +6230,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     sm = t->toDsymbol(sc);
                     if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
                     {
-                        sm = sm->search(loc, (Identifier *)id);
+                        sm = sm->search(loc, (Identifier *)id, IgnorePrivateImports);
                         if (sm)
                             goto L2;
                     }
