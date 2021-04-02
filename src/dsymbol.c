@@ -515,7 +515,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
  * Returns:
  *      symbol found, NULL if not
  */
-Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
+Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id, int flags)
 {
     //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     Dsymbol *s = toAlias();
@@ -533,7 +533,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
-            sm = s->search(loc, (Identifier *)id);
+            sm = s->search(loc, (Identifier *)id, flags);
             break;
 
         case DYNCAST_DSYMBOL:
