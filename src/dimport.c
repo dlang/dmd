@@ -181,6 +181,8 @@ void Import::importAll(Scope *sc)
     load(sc);
     if (!mod) return; // Failed
 
+    if (sc->stc & STCstatic)
+        isstatic = true;
     mod->importAll(NULL);
     if (mod->md && mod->md->isdeprecated)
     {
