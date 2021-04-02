@@ -1334,7 +1334,7 @@ LINK Parser::parseLinkage(Identifiers **pidents, CPPMANGLE *pcppmangle, bool *pc
                             }
                             else if (!Identifier::isValidIdentifier(name))
                             {
-                                error("expected valid identifer for C++ namespace but got `%s`", name);
+                                error("expected valid identifier for C++ namespace but got `%s`", name);
                                 idents = NULL;
                                 break;
                             }
@@ -3611,7 +3611,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
             if (pident)
                 *pident = token.ident;
             else
-                error("unexpected identifer `%s` in declarator", token.ident->toChars());
+                error("unexpected identifier `%s` in declarator", token.ident->toChars());
             ts = t;
             nextToken();
             break;
