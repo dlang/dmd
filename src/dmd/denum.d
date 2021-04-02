@@ -299,19 +299,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return handleErrors();
-        if (semanticRun == PASS.init || !members)
+        if (!members)
         {
             if (isSpecial())
             {
                 /* Allow these special enums to not need a member list
                  */
-                return memtype.defaultInit(loc);
+                return defaultval = memtype.defaultInit(loc);
             }
 
-            if (semanticRun >= PASS.semanticdone)
-                error(loc, "is opaque and has no default initializer");
-            else
-                error(loc, "forward reference of `%s.init`", toChars());
+            error(loc, "is opaque and has no default initializer");
             return handleErrors();
         }
 
@@ -320,6 +317,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
             {
+                if (em.semanticRun < PASS.semanticdone)
+                {
+                    error(loc, "forward reference of `%s.init`", toChars());
+                    return handleErrors();
+                }
+
                 defaultval = em.value;
                 return defaultval;
             }

@@ -69,3 +69,19 @@ void fooOB()
 {
 	OpaqueBase ob;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/enum_init.d(405): Error: enum `enum_init.forwardRef.Foo` forward reference of `Foo.init`
+---
+*/
+#line 400
+
+void forwardRef()
+{
+    enum Foo
+    {
+        a = Foo.init
+    }
+}
