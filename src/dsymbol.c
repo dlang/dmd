@@ -1275,6 +1275,10 @@ static void bitArrayLength(BitArray *array, size_t len)
 
 void ScopeDsymbol::addAccessiblePackage(Package *p, Prot protection)
 {
+     // https://issues.dlang.org/show_bug.cgi?id=17991
+     // An import of truly empty file/package can happen
+     if (p == NULL)
+         return;
     BitArray *pary = protection.kind == Prot::private_ ? &privateAccessiblePackages : &accessiblePackages;
     if (pary->len <= p->tag)
         bitArrayLength(pary, p->tag + 1);
