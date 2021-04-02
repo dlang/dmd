@@ -2049,6 +2049,8 @@ Package *resolveIsPackage(Dsymbol *sym)
         }
         pkg = imp->pkg;
     }
+    else if (Module *mod = sym->isModule())
+        pkg = mod->isPackageFile ? mod->pkg : sym->isPackage();
     else
         pkg = sym->isPackage();
     if (pkg)

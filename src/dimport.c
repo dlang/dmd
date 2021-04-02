@@ -161,7 +161,16 @@ void Import::load(Scope *sc)
     if (mod && !mod->importedFrom)
         mod->importedFrom = sc ? sc->_module->importedFrom : Module::rootModule;
     if (!pkg)
-        pkg = mod;
+    {
+        if (mod && mod->isPackageFile)
+        {
+            // one level depth package.d file (import pkg; ./pkg/package.d)
+            // it's necessary to use the wrapping Package already created
+            pkg = mod->pkg;
+        }
+        else
+            pkg = mod;
+    }
 
     //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
 }
