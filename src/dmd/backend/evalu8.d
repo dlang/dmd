@@ -46,6 +46,7 @@ import scopeh;
 extern (C++):
 
 nothrow:
+@safe:
 
 version (MARS)
     import dmd.backend.errors;
@@ -240,6 +241,7 @@ version (SCPP)
  * Return true if expression will always evaluate to true.
  */
 
+@trusted
 int iftrue(elem *e)
 {
     while (1)
@@ -271,6 +273,7 @@ int iftrue(elem *e)
  * Return true if expression will always evaluate to false.
  */
 
+@trusted
 int iffalse(elem *e)
 {
     while (1)
@@ -302,6 +305,7 @@ int iffalse(elem *e)
  * Return with the result.
  */
 
+@trusted
 elem * evalu8(elem *e, goal_t goal)
 {
     elem* e1;
