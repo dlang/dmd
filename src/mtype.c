@@ -6182,10 +6182,23 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             unsigned errorsave = global.errors;
             int flags = t == NULL ? SearchLocalsOnly : IgnorePrivateImports;
             Dsymbol *sm = s->searchX(loc, sc, id, flags);
-            if (sm && !(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, sm))
+            if (sm)
             {
-                ::error(loc, "`%s` is not visible from module `%s`", sm->toPrettyChars(), sc->_module->toChars());
-                sm = NULL;
+                if (!(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, sm))
+                {
+                    ::error(loc, "`%s` is not visible from module `%s`", sm->toPrettyChars(), sc->_module->toChars());
+                    sm = NULL;
+                }
+                // Same check as in Expression::semanticY(DotIdExp)
+                else if (sm->isPackage() && checkAccess(sc, (Package *)sm))
+                {
+                    // @@@DEPRECATED_2.096@@@
+                    // Should be an error in 2.106. Just remove the deprecation call
+                    // and uncomment the null assignment
+                    ::deprecation(loc, "%s %s is not accessible here, perhaps add 'static import %s;'",
+                         sm->kind(), sm->toPrettyChars(), sm->toPrettyChars());
+                    //sm = null;
+                }
             }
             if (global.errors != errorsave)
             {
