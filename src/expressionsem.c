@@ -3893,7 +3893,9 @@ public:
         Type *tded = NULL;
         if (e->tok2 == TOKpackage || e->tok2 == TOKmodule) // These is() expressions are special because they can work on modules, not just types.
         {
+            const unsigned oldErrors = global.startGagging();
             Dsymbol *sym = e->targ->toDsymbol(sc);
+            global.endGagging(oldErrors);
             if (sym == NULL)
                 goto Lno;
             Package *p = resolveIsPackage(sym);
