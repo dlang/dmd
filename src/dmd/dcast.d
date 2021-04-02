@@ -857,17 +857,36 @@ MATCH implicitConvTo(Expression e, Type t)
             auto te = da.next;  // type of element
             assert(te);
 
-            if (te.hasAliasing)
-            {
-                /* TODO: move this error message to a common place that special
-                 * cases message if (hasAliasing(te)) is non-null */
-                // printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
-            }
-            else
+            // printf("_e:%p e.type:%s %d e1:%s e2:%s\n", e, e.type.toChars, te.hasAliasing, e.e1.toChars(), e.e2.toChars());
+
+            // static array concatenation:
+            TypeSArray s1;
+            if (CastExp c1 = e.e1.isCastExp)
+                s1 = c1.e1.type.isTypeSArray;
+            TypeSArray s2;
+            if (CastExp c2 = e.e2.isCastExp)
+                s2 = c2.e1.type.isTypeSArray;
+            if (s1 && s2)
+                if (TypeSArray ts = t.isTypeSArray)
+                    if (s1.dim.toInteger() + s2.dim.toInteger() == ts.dim.toInteger())
+                    {
+                        printf("ok\n");
+                        result = MATCH.convert;
+                        return;
+                    }
+
+            if (!te.hasAliasing)
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.
                     result = MATCH.constant;
+                return;
+            }
+            else
+            {
+                /* TODO: move this error message to a common place that special
+                 * cases message if (hasAliasing(te)) is non-null */
+                printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
             }
         }
 
