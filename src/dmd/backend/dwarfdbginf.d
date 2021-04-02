@@ -598,16 +598,20 @@ static if (1)
      */
     void writeDebugFrameHeader(Outbuffer *buf)
     {
-        auto getDebugFrameHeader(ubyte dversion)()
+        void writeDebugFrameHeader(ubyte dversion)()
         {
-            static assert(dversion == 3);
             struct DebugFrameHeader
             {
               align (1):
-                uint length = 16;
+                uint length;
                 uint CIE_id = 0xFFFFFFFF;
-                ubyte version_ = 1;
+                ubyte version_ = dversion;
                 ubyte augmentation;
+                static if (dversion >= 4)
+                {
+                    ubyte address_size = 4;
+                    ubyte segment_selector_size;
+                }
                 ubyte code_alignment_factor = 1;
                 ubyte data_alignment_factor = 0x80;
                 ubyte return_address_register = 8;
@@ -620,24 +624,36 @@ static if (1)
                     DW_CFA_nop, DW_CFA_nop, // 64 padding
                 ];
             }
+            static if (dversion == 3)
+                static assert(DebugFrameHeader.sizeof == 24);
+            else static if (dversion == 4)
+                static assert(DebugFrameHeader.sizeof == 26);
+            else
+                static assert(0);
 
             auto dfh = DebugFrameHeader.init;
             dfh.data_alignment_factor -= OFFSET_FAC;
 
             if (I64)
             {
-                dfh.length += 4;
+                dfh.length = DebugFrameHeader.sizeof - 4;
                 dfh.return_address_register = 16;           // (-8)
                 dfh.opcodes[1] = 7;                         // RSP
                 dfh.opcodes[2] = 8;
                 dfh.opcodes[3] = DW_CFA_offset + 16;        // RIP
             }
+            else
+            {
+                dfh.length = DebugFrameHeader.sizeof - 8;
+            }
 
-            return dfh;
+            buf.writen(&dfh, dfh.length + 4);
         }
 
-        auto dfh = getDebugFrameHeader!3();
-        buf.writen(&dfh, dfh.length + 4);
+        if (config.dwarf == 3)
+            writeDebugFrameHeader!3();
+        else
+            writeDebugFrameHeader!4();
     }
 
     /*****************************************
