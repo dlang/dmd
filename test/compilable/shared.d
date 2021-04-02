@@ -107,3 +107,19 @@ auto ref test_inference_2(return ref shared C3 c)
 }
 
 pragma(msg, typeof(test_inference_2));
+
+// https://issues.dlang.org/show_bug.cgi?id=21793
+
+struct Child
+{
+    this(int) shared {}
+}
+
+struct Parent
+{
+    shared Child ch;
+    this(int i) shared
+    {
+        ch = shared Child(i);
+    }
+}
