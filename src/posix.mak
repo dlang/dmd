@@ -418,6 +418,7 @@ clean:
 		*.cov *.deps *.gcda *.gcno *.a \
 		$(GENSRC)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
+	rm -Rf $(GENERATED)
 
 ######## generate a default dmd.conf
 

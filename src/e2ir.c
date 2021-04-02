@@ -5409,7 +5409,7 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
     //printf("\tsym = %p fillHoles = %d\n", sym, fillHoles);
 
     Type *forcetype = NULL;
-    if (sle->type)
+    if (sle->stype)
     {
         if (TypeEnum *te = sle->stype->isTypeEnum())
         {
@@ -5419,7 +5419,7 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
                  te->sym->ident == Id::__c_complex_double ||
                  te->sym->ident == Id::__c_complex_real))
             {
-                forcetype = sle->type;
+                forcetype = sle->stype;
             }
         }
     }
