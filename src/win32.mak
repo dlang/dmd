@@ -333,6 +333,7 @@ clean:
 	$(DEL) id.h id.c id.d
 	$(DEL) verstr.h
 	$(DEL) $(GENSRC)
+	$(RD) /s /q $(GEN)
 
 install: detab install-copy
 
