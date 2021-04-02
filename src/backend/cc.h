@@ -1184,7 +1184,7 @@ struct Symbol
     unsigned Ssequence;         // sequence number (used for 2 level lookup)
                                 // also used as 'parameter number' for SCTtemparg
 #elif MARS
-    const char *prettyIdent;    // the symbol identifer as the user sees it
+    const char *prettyIdent;    // the symbol identifier as the user sees it
 #endif
 
 #if TARGET_OSX

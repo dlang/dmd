@@ -152,7 +152,7 @@ public:
     *  using upper case letters for all digits but the last digit which uses
     *  a lower case letter.
     * The decoder has to look up the referenced position to determine
-    *  whether the back reference is an identifer (starts with a digit)
+    *  whether the back reference is an identifier (starts with a digit)
     *  or a type (starts with a letter).
     *
     * Params:
