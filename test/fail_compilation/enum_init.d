@@ -85,3 +85,21 @@ void forwardRef()
         a = Foo.init
     }
 }
+
+/*
+https://issues.dlang.org/show_bug.cgi?id=21792
+
+TEST_OUTPUT:
+---
+fail_compilation/enum_init.d(503): Error: circular reference to enum base type `Bar`
+---
+*/
+#line 500
+
+void forwardRef2()
+{
+    enum Bar : Bar
+    {
+        a
+    }
+}

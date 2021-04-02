@@ -2433,6 +2433,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     ed.semanticRun = PASS.init;
                     return;
                 }
+                else
+                    // Ensure that semantic is run to detect. e.g. invalid forward references
+                    sym.dsymbolSemantic(sc);
             }
             if (ed.memtype.ty == Tvoid)
             {
