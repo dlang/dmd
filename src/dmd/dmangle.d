@@ -654,7 +654,7 @@ public:
                     n /= 10;
                     ++ndigits;
                 }
-                buf.printf("%u__S%u", ndigits + 4, localNum);
+                buf.printf("%u__S%u", ndigits + 3, localNum);
             }
         }
     }
