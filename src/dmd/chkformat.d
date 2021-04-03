@@ -461,8 +461,8 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.ju:     // pointer to uintmax_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
-                    errorMsg(null, e, "ulong*", t);
+                if (!(t.ty == Tpointer && tnext.ty == Tuns64))
+                    errorMsg(null, e, "core.stdc.stdint.uintmax_t*", t);
                 break;
 
             case Format.g:      // pointer to float
