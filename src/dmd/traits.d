@@ -691,9 +691,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ErrorExp.get();
             }
             if (t.hasAliasing)
-                return False();
+                return True();
         }
-        return True();
+        return False();
     }
 
     if (e.ident == Id.isNested)
