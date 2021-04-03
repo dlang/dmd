@@ -7304,11 +7304,14 @@ bool hasAliasing(scope const Type t) pure nothrow @nogc
                 return true;
     }
     else if (const(TypePointer) tp = t.isTypePointer)
-    {
-        if (!tp.next.isImmutable) // tp is pointer to mutable data
-            return true;
-    }
+        return tp.next.isImmutable ? true : tp.next.hasAliasing;
     else if (const(TypeDArray) ta = t.isTypeDArray)
-        return true;
-    return false;                // no aliasing
+        return ta.next.isImmutable ? true : ta.next.hasAliasing;
+    else if (const(TypeAArray) ta = t.isTypeAArray)
+        return ta.next.isImmutable ? true : ta.next.hasAliasing;
+    else if (const(TypeSArray) ta = t.isTypeSArray)
+        return ta.next.hasAliasing;
+    // TODO: interface
+    // TODO: delegate
+    return false;               // no aliasing
 }
