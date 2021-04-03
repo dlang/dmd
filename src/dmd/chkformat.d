@@ -144,7 +144,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
         auto t = e.type.toBasetype();
         auto tnext = t.nextOf();
         const c_longsize = target.c.longsize;
-        const is64bit = global.params.is64bit;
+        const isLP64 = global.params.isLP64;
 
         // Types which are promoted to int are allowed.
         // Spec: C99 6.5.2.2.7
@@ -197,12 +197,12 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.zd:     // size_t
-                if (!(t.isintegral() && t.size() == (is64bit ? 8 : 4)))
+                if (!(t.isintegral() && t.size() == (isLP64 ? 8 : 4)))
                     errorMsg(null, e, "size_t", t);
                 break;
 
             case Format.td:     // ptrdiff_t
-                if (!(t.isintegral() && t.size() == (is64bit ? 8 : 4)))
+                if (!(t.isintegral() && t.size() == (isLP64 ? 8 : 4)))
                     errorMsg(null, e, "ptrdiff_t", t);
                 break;
 
@@ -254,12 +254,12 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.zn:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.ty == (isLP64 ? Tuns64 : Tuns32)))
                     errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
+                if (!(t.ty == Tpointer && tnext.ty == (isLP64 ? Tint64 : Tint32)))
                     errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
@@ -383,7 +383,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
         auto t = e.type.toBasetype();
         auto tnext = t.nextOf();
         const c_longsize = target.c.longsize;
-        const is64bit = global.params.is64bit;
+        const isLP64 = global.params.isLP64;
 
         final switch (fmt)
         {
@@ -425,13 +425,13 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.zn:
             case Format.zd:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.ty == (isLP64 ? Tuns64 : Tuns32)))
                     errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:
             case Format.td:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
+                if (!(t.ty == Tpointer && tnext.ty == (isLP64 ? Tint64 : Tint32)))
                     errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
@@ -451,7 +451,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.lu:     // pointer to unsigned long int
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.ty == (isLP64 ? Tuns64 : Tuns32)))
                     errorMsg(null, e, (c_longsize == 4 ? "uint*" : "ulong*"), t);
                 break;
 
