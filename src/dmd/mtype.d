@@ -7283,35 +7283,32 @@ bool isCopyable(Type t)
  *
  * In other words, if other references to `t` may be able to change it.
  */
-bool hasAliasing(scope const Type t) pure nothrow @nogc
+bool hasAliasing(scope const Type t)// pure nothrow @nogc
 {
+    // printf("t:%s\n", t.toChars());
     if (t.isTypeEnum())
         return false;           // an enum is an r-value so cannot alias
-    if (t.isImmutable)          // immutable is transitive
-        return false;           // eager bail out
-    if (const(TypeClass) tc = t.isTypeClass) // TODO: use isAggregate instead but that loses qualifies of `hasAliasing` and `t`
-    {
-        const(ClassDeclaration) cd = tc.sym;
-        foreach (const(VarDeclaration) vd; cd.fields)
-            if (hasAliasing(vd.type))
-                return true;
-    }
-    else if (const(TypeStruct) ts = t.isTypeStruct)
+    if (const(TypeStruct) ts = t.isTypeStruct)
     {
         const(StructDeclaration) sd = ts.sym;
         foreach (const(VarDeclaration) vd; sd.fields)
             if (hasAliasing(vd.type))
                 return true;
+        return false;
     }
+    else if (const(TypeClass) tc = t.isTypeClass)
+        return !tc.isImmutable;
     else if (const(TypePointer) tp = t.isTypePointer)
-        return tp.next.isImmutable ? true : tp.next.hasAliasing;
+        return !tp.next.isImmutable;
     else if (const(TypeDArray) ta = t.isTypeDArray)
-        return ta.next.isImmutable ? true : ta.next.hasAliasing;
+        return !ta.next.isImmutable;
     else if (const(TypeAArray) ta = t.isTypeAArray)
-        return ta.next.isImmutable ? true : ta.next.hasAliasing;
-    else if (const(TypeSArray) ta = t.isTypeSArray)
-        return ta.next.hasAliasing;
-    // TODO: interface
-    // TODO: delegate
-    return false;               // no aliasing
+        return !ta.next.isImmutable;
+    else if (const(TypeSArray) ts = t.isTypeSArray)
+        return hasAliasing(ts.next);
+    else
+    {
+        // printf("assume no aliasing: %s\n", t.toChars());
+        return false;
+    }
 }
