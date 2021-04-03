@@ -38,7 +38,7 @@ import dmd.backend.barray;
 
 extern (C++):
 nothrow:
-
+@safe:
 
 /****************************
  * Table of common subexpressions stored on the stack.
@@ -64,6 +64,7 @@ struct CSE
     /************************
      * Initialize at function entry.
      */
+    @trusted
     static void initialize()
     {
         csextab.setLength(64);  // reserve some space
@@ -73,6 +74,7 @@ struct CSE
      * Start for generating code for this function.
      * After ending generation, call finish().
      */
+    @trusted
     static void start()
     {
         csextab.setLength(0);               // no entries in table yet
@@ -85,6 +87,7 @@ struct CSE
      * Returns:
      *  pointer to created entry
      */
+    @trusted
     static CSE* add()
     {
         foreach (ref cse; csextab)
@@ -110,6 +113,7 @@ struct CSE
      * A bit wasteful of stack space.
      * Params: e = elem with a size and an alignment
      */
+    @trusted
     static void updateSizeAndAlign(elem* e)
     {
         if (I16)
@@ -139,6 +143,7 @@ struct CSE
      * Returns:
      *  input range
      */
+    @trusted
     static auto filter(const elem* e)
     {
         struct Range
@@ -171,6 +176,7 @@ struct CSE
      * Remove instances of `e` from CSE table.
      * Params: e = elem to remove
      */
+    @trusted
     static void remove(const elem* e)
     {
         foreach (ref cse; csextab[])
@@ -186,6 +192,7 @@ struct CSE
      * Returns:
      *  mask
      */
+    @trusted
     static regm_t mask(const elem* e)
     {
         regm_t result = 0;
@@ -205,6 +212,7 @@ struct CSE
      * Get rid of unused cse temporaries by shrinking the array.
      * References: loaded()
      */
+    @trusted
     static void finish()
     {
         while (csextab.length != 0 && (csextab[csextab.length - 1].flags & CSEload) == 0)
@@ -217,6 +225,7 @@ struct CSE
      * Returns:
      *    total size used by CSE's
      */
+    @trusted
     static uint size()
     {
         return cast(uint)csextab.length * CSE.slotSize;
@@ -226,18 +235,21 @@ struct CSE
      * Returns:
      *  alignment needed for CSE region of the stack
      */
+    @trusted
     static uint alignment()
     {
         return alignment_;
     }
 
     /// Returns: offset of slot i from start of CSE region
+    @trusted
     static uint offset(int i)
     {
         return i * slotSize;
     }
 
     /// Returns: true if CSE was ever loaded
+    @trusted
     static bool loaded(int i)
     {
         return i < csextab.length &&   // array could be shrunk for non-CSEload entries
