@@ -1166,7 +1166,7 @@ else version (OpenBSD)
         FP_FAST_FMAL = 1,
     }
 
-    pure int __fpclassifyd(double);
+    pure int __fpclassify(double);
     pure int __fpclassifyf(float);
     pure int __fpclassifyl(real);
     pure int __isfinitef(float);
@@ -1188,7 +1188,7 @@ else version (OpenBSD)
       ///
     extern(C) pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    extern(C) pragma(mangle, "__fpclassifyd") pure int fpclassify(double x);
+    extern(C) pragma(mangle, "__fpclassify") pure int fpclassify(double x);
     ///
     extern(C) pragma(mangle, "__fpclassifyl") pure int fpclassify(real x);
 
