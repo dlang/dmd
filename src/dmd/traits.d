@@ -150,6 +150,7 @@ shared static this()
         "hasPostblit",
         "hasCopyConstructor",
         "isCopyable",
+        "hasAliasing",
     ];
 
     StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
@@ -677,6 +678,22 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         return isCopyable(t) ? True() : False();
+    }
+    if (e.ident == Id.hasAliasing)
+    {
+        foreach (const o; *e.args)
+        {
+            auto t = isType(o);
+            if (!t)
+            {
+                e.error("type expected as non-first argument of __traits `%s` instead of `%s`",
+                        e.ident.toChars(), o.toChars());
+                return ErrorExp.get();
+            }
+            if (t.hasAliasing)
+                return False();
+        }
+        return True();
     }
 
     if (e.ident == Id.isNested)
