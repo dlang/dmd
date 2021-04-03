@@ -56,6 +56,7 @@ version (SCPP_HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 /**************************
  * Make an elem out of a symbol.
@@ -63,6 +64,7 @@ nothrow:
 
 version (MARS)
 {
+@trusted
 elem * el_var(Symbol *s)
 {
     elem *e;
@@ -318,6 +320,7 @@ if (config.exe & EX_windos)
  * Returns: `elem` with address of `s`
  */
 
+@trusted
 elem * el_ptr(Symbol *s)
 {
     //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
@@ -420,6 +423,7 @@ elem * el_ptr(Symbol *s)
  * Allocate localgot symbol.
  */
 
+@trusted
 private Symbol *el_alloc_localgot()
 {
     if (config.exe & EX_windos)
@@ -454,6 +458,7 @@ private Symbol *el_alloc_localgot()
  * Make an elem out of a symbol, PIC style.
  */
 
+@trusted
 private elem *el_picvar(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
@@ -463,6 +468,7 @@ private elem *el_picvar(Symbol *s)
     assert(0);
 }
 
+@trusted
 private elem *el_picvar_OSX(Symbol *s)
 {
     elem *e;
@@ -611,6 +617,7 @@ static if (1)
     return e;
 }
 
+@trusted
 private elem *el_picvar_posix(Symbol *s)
 {
     elem *e;
@@ -823,6 +830,7 @@ private elem *el_picvar_posix(Symbol *s)
  * Params: s = variable's symbol
  * Returns: elem created
  */
+@trusted
 private elem *el_pievar(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
@@ -905,6 +913,7 @@ private elem *el_pievar(Symbol *s)
  * Params: s = variable's symbol
  * Returns: elem created
  */
+@trusted
 private elem *el_pieptr(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
