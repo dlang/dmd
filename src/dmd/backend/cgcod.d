@@ -1830,11 +1830,13 @@ int numbitsset(regm_t regm)
  * of the first register that fits.
  */
 
+@trusted
 reg_t findreg(regm_t regm)
 {
     return findreg(regm, __LINE__, __FILE__);
 }
 
+@trusted
 reg_t findreg(regm_t regm, int line, const(char)* file)
 {
     debug

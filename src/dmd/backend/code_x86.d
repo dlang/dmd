@@ -23,6 +23,7 @@ import dmd.backend.ty : I64;
 import dmd.backend.barray;
 
 nothrow:
+@safe:
 
 alias opcode_t = uint;          // CPU opcode
 enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
@@ -548,6 +549,7 @@ uint VEX3_B2(code.Svex ivex)
         ivex.pp;
 }
 
+@trusted
 bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 
 /************************************

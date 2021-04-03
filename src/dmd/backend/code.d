@@ -27,6 +27,7 @@ import dmd.backend.type;
 extern (C++):
 
 nothrow:
+@safe:
 
 alias segidx_t = int;           // index into SegData[]
 
@@ -90,6 +91,7 @@ code *code_next(code *c) { return c.next; }
 code *code_chunk_alloc();
 extern __gshared code *code_list;
 
+@trusted
 code *code_malloc()
 {
     //printf("code %d\n", sizeof(code));
@@ -113,6 +115,7 @@ struct REGSAVE
     int alignment;              // 8 or 16
 
   nothrow:
+    @trusted
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
     void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
@@ -266,6 +269,7 @@ struct seg_data
     Barray!(linnum_data) SDlinnum_data;     // array of line number / offset data
 
   nothrow:
+    @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
 }
 
@@ -305,8 +309,10 @@ ref targ_size_t CDoffset() { return Offset(CDATA); }
 struct FuncParamRegs
 {
     //this(tym_t tyf);
+    @trusted
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
+    @trusted
     int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
@@ -376,6 +382,7 @@ void codgen(Symbol *);
 debug
 {
     reg_t findreg(regm_t regm , int line, const(char)* file);
+    @trusted
     extern (D) reg_t findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
     { return findreg(regm, line, file.ptr); }
 }
@@ -664,7 +671,7 @@ regm_t iasm_regs(block *bp);
  * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
  *      value.
  */
-
+@trusted
 void regimmed_set(int reg, targ_size_t e)
 {
     regcon.immed.value[reg] = e;
