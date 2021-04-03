@@ -153,37 +153,47 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             case Format.u:      // unsigned int
             case Format.d:      // int
                 if (t.ty != Tint32 && t.ty != Tuns32)
-                    errorMsg(null, e, "int", t);
+                    errorMsg(null, e, fmt == Format.u ? "uint" : "int", t);
                 break;
 
             case Format.hhu:    // unsigned char
             case Format.hhd:    // signed char
                 if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint8 && t.ty != Tuns8)
-                    errorMsg(null, e, "byte", t);
+                    errorMsg(null, e, fmt == Format.hhu ? "ubyte" : "byte", t);
                 break;
 
             case Format.hu:     // unsigned short int
             case Format.hd:     // short int
                 if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint16 && t.ty != Tuns16)
-                    errorMsg(null, e, "short", t);
+                    errorMsg(null, e, fmt == Format.hu ? "ushort" : "short", t);
                 break;
 
             case Format.lu:     // unsigned long int
             case Format.ld:     // long int
                 if (!(t.isintegral() && t.size() == c_longsize))
-                    errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
+                {
+                    if (fmt == Format.lu)
+                        errorMsg(null, e, (c_longsize == 4 ? "uint" : "ulong"), t);
+                    else
+                        errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
+                }
                 break;
 
             case Format.llu:    // unsigned long long int
             case Format.lld:    // long long int
                 if (t.ty != Tint64 && t.ty != Tuns64)
-                    errorMsg(null, e, "long", t);
+                    errorMsg(null, e, fmt == Format.llu ? "ulong" : "long", t);
                 break;
 
             case Format.ju:     // uintmax_t
             case Format.jd:     // intmax_t
                 if (t.ty != Tint64 && t.ty != Tuns64)
-                    errorMsg(null, e, "core.stdc.stdint.intmax_t", t);
+                {
+                    if (fmt == Format.ju)
+                        errorMsg(null, e, "core.stdc.stdint.uintmax_t", t);
+                    else
+                        errorMsg(null, e, "core.stdc.stdint.intmax_t", t);
+                }
                 break;
 
             case Format.zd:     // size_t
