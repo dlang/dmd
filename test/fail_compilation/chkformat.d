@@ -36,7 +36,7 @@ fail_compilation/chkformat.d(214): Deprecation: argument `0` for format specific
 fail_compilation/chkformat.d(215): Deprecation: argument `0` for format specification `"%hhu"` must be `ubyte*`, not `int`
 fail_compilation/chkformat.d(216): Deprecation: argument `0` for format specification `"%hu"` must be `ushort*`, not `int`
 fail_compilation/chkformat.d(218): Deprecation: argument `0` for format specification `"%llu"` must be `ulong*`, not `int`
-fail_compilation/chkformat.d(219): Deprecation: argument `0` for format specification `"%ju"` must be `ulong*`, not `int`
+fail_compilation/chkformat.d(219): Deprecation: argument `0` for format specification `"%ju"` must be `core.stdc.stdint.uintmax_t*`, not `int`
 fail_compilation/chkformat.d(220): Deprecation: argument `0` for format specification `"%zu"` must be `size_t*`, not `int`
 fail_compilation/chkformat.d(221): Deprecation: argument `0` for format specification `"%tu"` must be `ptrdiff_t*`, not `int`
 fail_compilation/chkformat.d(222): Deprecation: argument `8.0L` for format specification `"%g"` must be `float*`, not `real`
