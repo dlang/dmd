@@ -7289,7 +7289,7 @@ bool hasAliasing(scope const Type t) pure nothrow @nogc
         return false;           // an enum is an r-value so cannot alias
     if (t.isImmutable)          // immutable is transitive
         return false;           // eager bail out
-    if (const(TypeClass) tc = t.isTypeClass)
+    if (const(TypeClass) tc = t.isTypeClass) // TODO: use isAggregate instead but that loses qualifies of `hasAliasing` and `t`
     {
         const(ClassDeclaration) cd = tc.sym;
         foreach (const(VarDeclaration) vd; cd.fields)
