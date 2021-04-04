@@ -7296,7 +7296,7 @@ bool hasAliasing(scope const Type t) pure nothrow
     else if (const ts = t.isTypeStruct)
     {
         if (const ti = ts.sym.isInstantiated())
-            if (ti.name.toString == "Rebindable" && // TODO: do we need to check namespace of symbol?
+            if (ti.name.toString == "Rebindable" && // TODO: verify namespace std.typecons?
                 ti.tiargs &&
                 (*ti.tiargs).length == 1)
                 if (const at = (*ti.tiargs)[0].isType)
