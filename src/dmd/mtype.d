@@ -7292,7 +7292,7 @@ bool hasAliasing(scope Type t)
     t = t.toBasetype();
     if (t.isTypeEnum ||
         t.isImmutable)
-        return false;           // an enum is an r-value so cannot alias
+        return false;
     else if (auto ts = t.isTypeStruct)
     {
         if (auto ti = ts.sym.isInstantiated())
