@@ -7294,7 +7294,6 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
         foreach (const(VarDeclaration) vd; ts.sym.fields)
             if (hasAliasing(vd.type))
                 return true;
-        return false;
     }
     else if (const(TypeClass) tc = t.isTypeClass)
         return !tc.isImmutable;
@@ -7315,9 +7314,6 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
         return !td.next.isImmutable;
     else if (const(TypeFunction) tf = t.isTypeFunction) // before pointer
         return false;
-    else
-    {
-        // printf("assume no aliasing: %s\n", t.toChars());
-        return false;
-    }
+    // printf("assume no aliasing: %s\n", t.toChars());
+    return false;
 }
