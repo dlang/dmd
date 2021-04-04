@@ -7283,7 +7283,7 @@ bool isCopyable(Type t)
  * Determine if an instance of `t` has any non-`immutable` (mutable or `const`) indirections.
  * In other words, if other references to `t` may be able to change it.
  * Params:
- *      `t` = type to check
+ *      t = type to check
  * Returns:
  *      true iff `t` contain non-`immutable` indirections.
  */
