@@ -7321,7 +7321,7 @@ bool hasAliasing(scope Type t)
         return !ta.next.isImmutable;
     else if (auto ts = t.isTypeSArray)
         return hasAliasing(ts.next);
-    else if (auto tf = t.isTypeFunction) // before pointer
+    else if (auto tf = t.isTypeFunction)
         return false;
     return false;
 }
