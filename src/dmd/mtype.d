@@ -7283,7 +7283,7 @@ bool isCopyable(Type t)
  *
  * In other words, if other references to `t` may be able to change it.
  */
-bool hasAliasing(scope const Type t)// pure nothrow @nogc
+bool hasAliasing(scope const Type t) // TODO: pure nothrow?
 {
     // printf("t:%s ty:%d\n", t.toChars(), t.ty);
     if (t.isTypeEnum ||
