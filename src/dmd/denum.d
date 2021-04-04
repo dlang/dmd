@@ -144,13 +144,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         }
 
-        if (!isSpecial() && (!members || !symtab || _scope))
-        {
-            error("is forward referenced when looking for `%s`", ident.toChars());
-            //*(char*)0=0;
-            return null;
-        }
-
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         return s;
     }

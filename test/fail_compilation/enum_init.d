@@ -150,10 +150,9 @@ void forwardRef4()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_init.d(803): Error: enum `enum_init.opaqueProperties.Foo` is forward referenced when looking for `sizeof`
-fail_compilation/enum_init.d(803): Error: enum `enum_init.opaqueProperties.Foo` is forward referenced when looking for `init`
-fail_compilation/enum_init.d(803): Error: enum `enum_init.opaqueProperties.Foo` is forward referenced when looking for `min`
-fail_compilation/enum_init.d(803): Error: enum `enum_init.opaqueProperties.Foo` is forward referenced when looking for `max`
+fail_compilation/enum_init.d(809): Error: enum `enum_init.opaqueProperties.Foo` is opaque and has no default initializer
+fail_compilation/enum_init.d(810): Error: enum `enum_init.opaqueProperties.Foo` is opaque and has no `.min`
+fail_compilation/enum_init.d(811): Error: enum `enum_init.opaqueProperties.Foo` is opaque and has no `.max`
 ---
 */
 #line 800
