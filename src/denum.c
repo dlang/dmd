@@ -222,7 +222,10 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
             return memtype->defaultInit(loc);
         }
 
-        error(loc, "forward reference of %s.init", toChars());
+        if (semanticRun >= PASSsemanticdone)
+            error(loc, "is opaque and has no default initializer");
+        else
+            error(loc, "forward reference of %s.init", toChars());
         goto Lerrors;
     }
 
@@ -252,15 +255,10 @@ Type *EnumDeclaration::getMemtype(Loc loc)
          */
         if (memtype)
             memtype = typeSemantic(memtype, loc, _scope);
-        else
-        {
-            if (!isAnonymous() && members)
-                memtype = Type::tint32;
-        }
     }
     if (!memtype)
     {
-        if (!isAnonymous() && members)
+        if (!isAnonymous() && (members || semanticRun >= PASSsemanticdone))
             memtype = Type::tint32;
         else
         {
