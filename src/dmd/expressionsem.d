@@ -6101,6 +6101,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Rewriting CallExp's also avoids some issues with the inliner/debug generation
                 if (op.hasSideEffect(true))
                 {
+                    // Don't create an invalid temporary for void-expressions
+                    // Further semantic will issue an appropriate error
+                    if (op.type.ty == ENUMTY.Tvoid)
+                        return op;
+
                     // https://issues.dlang.org/show_bug.cgi?id=21590
                     // Don't create unnecessary temporaries and detect `assert(a = b)`
                     if (op.isAssignExp() || op.isBinAssignExp())
