@@ -7290,7 +7290,6 @@ bool isCopyable(Type t)
 bool hasAliasing(scope Type t)
 {
     t = t.toBasetype();
-    // printf("t:%s ty:%d\n", t.toChars(), t.ty);
     if (t.isTypeEnum ||
         t.isImmutable)
         return false;           // an enum is an r-value so cannot alias
@@ -7324,6 +7323,5 @@ bool hasAliasing(scope Type t)
         return hasAliasing(ts.next);
     else if (auto tf = t.isTypeFunction) // before pointer
         return false;
-    // printf("assume no aliasing: %s\n", t.toChars());
     return false;
 }
