@@ -7289,30 +7289,35 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
     if (t.isTypeEnum ||
         t.isImmutable)
         return false;           // an enum is an r-value so cannot alias
-    else if (const(TypeStruct) ts = t.isTypeStruct)
+    else if (const ts = t.isTypeStruct)
     {
-        foreach (const(VarDeclaration) vd; ts.sym.fields)
+        if (const ti = ts.sym.isInstantiated())
+            if (ti.name.toString == "Rebindable" &&
+                ti.tiargs &&
+                (*ti.tiargs).length == 1)
+                if (const at = (*ti.tiargs)[0].isType)
+                    return !at.isImmutable;
+        foreach (const vd; ts.sym.fields)
             if (hasAliasing(vd.type))
                 return true;
     }
-    else if (const(TypeClass) tc = t.isTypeClass)
+    else if (const tc = t.isTypeClass)
         return !tc.isImmutable;
-    else if (const(TypePointer) tp = t.isTypePointer)
+    else if (const tp = t.isTypePointer)
     {
-        // printf("t:%s tp.next:%s tp.next.ty:%d\n", t.toChars(), tp.next.toChars(), tp.next.ty);
         if (tp.next.isTypeFunction)
             return false;
         return !tp.next.isImmutable;
     }
-    else if (const(TypeDelegate) td = t.isTypeDelegate)
+    else if (const td = t.isTypeDelegate)
         return !td.next.isImmutable;
-    else if (const(TypeDArray) ta = t.isTypeDArray)
+    else if (const ta = t.isTypeDArray)
         return !ta.next.isImmutable;
-    else if (const(TypeAArray) ta = t.isTypeAArray)
+    else if (const ta = t.isTypeAArray)
         return !ta.next.isImmutable;
-    else if (const(TypeSArray) ts = t.isTypeSArray)
+    else if (const ts = t.isTypeSArray)
         return hasAliasing(ts.next);
-    else if (const(TypeFunction) tf = t.isTypeFunction) // before pointer
+    else if (const tf = t.isTypeFunction) // before pointer
         return false;
     // printf("assume no aliasing: %s\n", t.toChars());
     return false;
