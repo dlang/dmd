@@ -1749,6 +1749,9 @@ public:
                     ed->semanticRun = PASSinit;
                     return;
                 }
+                else
+                    // Ensure that semantic is run to detect. e.g. invalid forward references
+                    dsymbolSemantic(sym, sc);
             }
             if (ed->memtype->ty == Tvoid)
             {
