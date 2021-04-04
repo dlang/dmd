@@ -7285,13 +7285,13 @@ bool isCopyable(Type t)
  */
 bool hasAliasing(scope const Type t)// pure nothrow @nogc
 {
-    // printf("t:%s\n", t.toChars());
-    if (t.isTypeEnum())
+    if (t.isTypeEnum)
         return false;           // an enum is an r-value so cannot alias
+    if (t.isImmutable)
+        return false;
     if (const(TypeStruct) ts = t.isTypeStruct)
     {
-        const(StructDeclaration) sd = ts.sym;
-        foreach (const(VarDeclaration) vd; sd.fields)
+        foreach (const(VarDeclaration) vd; ts.sym.fields)
             if (hasAliasing(vd.type))
                 return true;
         return false;
@@ -7306,6 +7306,8 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
         return !ta.next.isImmutable;
     else if (const(TypeSArray) ts = t.isTypeSArray)
         return hasAliasing(ts.next);
+    else if (const(TypeDelegate) td = t.isTypeDelegate)
+        return !td.next.isImmutable;
     else
     {
         // printf("assume no aliasing: %s\n", t.toChars());
