@@ -1,10 +1,12 @@
 module traits_hasAliasing;
 
+@safe pure nothrow @nogc:
+
 /** Verify behaviour of `__traits(hasAliasing, void*)` being same as `std.traits.hasAliasing`.
  *
  * Copied from Phobos `std.traits`.
  */
-@safe pure nothrow @nogc void test_hasAliasing()
+void test_hasAliasing()
 {
     static assert(__traits(hasAliasing, void*));
     static assert(!__traits(hasAliasing, void function()));
@@ -86,4 +88,15 @@ module traits_hasAliasing;
     class S15 { S15[1] a; }
     static assert( __traits(hasAliasing, S15));
     static assert(!__traits(hasAliasing, immutable(S15)));
+}
+
+void test_hasAliasing_enums()
+{
+    enum Ei : string { a = "a", b = "b" }
+    enum Ec : const(char)[] { a = "a", b = "b" }
+    enum Em : char[] { a = null, b = null }
+
+    static assert(!__traits(hasAliasing, Ei));
+    static assert( __traits(hasAliasing, Ec));
+    static assert( __traits(hasAliasing, Em));
 }
