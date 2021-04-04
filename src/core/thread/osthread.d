@@ -513,7 +513,7 @@ class Thread : ThreadBase
     {
         version (Windows)
         {
-            if ( WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
+            if ( m_addr != m_addr.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
                 throw new ThreadException( "Unable to join thread" );
             // NOTE: m_addr must be cleared before m_hndl is closed to avoid
             //       a race condition with isRunning. The operation is done
