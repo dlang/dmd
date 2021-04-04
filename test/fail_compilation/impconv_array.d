@@ -3,7 +3,56 @@
 /*
   TEST_OUTPUT:
   ---
-  fail_compilation/impconv_array.d(38): Error: undefined identifier `f`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `S2[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `S2[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `S2[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ cast(const(S2)[])y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S2)[])x ~ y` of type `const(S2)[]` to `immutable(S2)[]`
+fail_compilation/impconv_array.d(88): Error: template instance `impconv_array.test!(S2)` error instantiating
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `S3[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `S3[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `S3[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ cast(const(S3)[])y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(75): Error: cannot implicitly convert expression `cast(const(S3)[])x ~ y` of type `const(S3)[]` to `immutable(S3)[]`
+fail_compilation/impconv_array.d(91): Error: template instance `impconv_array.test!(S3)` error instantiating
   ---
 */
 
@@ -11,11 +60,11 @@ alias AliasSeq(TList...) = TList;
 
 @safe pure:
 
-unittest
+void test(T)()
 {
-    alias M = char[];
-    alias C = const(char)[];
-    alias I = immutable(char)[];
+    alias M = T[];
+    alias C = const(T)[];
+    alias I = immutable(T)[];
     static foreach (X; AliasSeq!(M, C, I))
         static foreach (Y; AliasSeq!(M, C, I))
             static foreach (Z; AliasSeq!(M, C, I))
@@ -28,12 +77,16 @@ unittest
             }
 }
 
-void test1654_b()
+void test1654()
 {
-    alias S = char;
-    {
-        S[] a, b;
-        immutable(S)[] c = a ~ b; // ok
-    }
-    f;
+    test!(int);                 // ok, no indirections
+
+    struct S1 { immutable(int)* x; } // immutable indirections
+    test!(S1);                  // ok
+
+    struct S2 { int* x; }       // non-immutable indirections
+    test!(S2);                  // fail
+
+    struct S3 { const(int)* x; } // non-immutable indirections
+    test!(S3);                  // fail
 }
