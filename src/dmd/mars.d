@@ -161,106 +161,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Strings files;
     Strings libmodules;
     global._init();
-    // Check for malformed input
-    if (argc < 1 || !argv)
-    {
-    Largs:
-        error(Loc.initial, "missing or null command line arguments");
-        fatal();
-    }
-    // Convert argc/argv into arguments[] for easier handling
-    Strings arguments = Strings(argc);
-    for (size_t i = 0; i < argc; i++)
-    {
-        if (!argv[i])
-            goto Largs;
-        arguments[i] = argv[i];
-    }
-    if (!responseExpand(arguments)) // expand response files
-        error(Loc.initial, "can't open response file");
-    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
-    files.reserve(arguments.dim - 1);
-    // Set default values
-    params.argv0 = arguments[0].toDString;
 
-    // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
-    static if (TARGET.Windows)
-    {
-        params.is64bit = false;
-        params.mscoff = false;
-    }
-
-    global.inifilename = parse_conf_arg(&arguments);
-    if (global.inifilename)
-    {
-        // can be empty as in -conf=
-        if (global.inifilename.length && !FileName.exists(global.inifilename))
-            error(Loc.initial, "Config file '%.*s' does not exist.",
-                  cast(int)global.inifilename.length, global.inifilename.ptr);
-    }
-    else
-    {
-        version (Windows)
-        {
-            global.inifilename = findConfFile(params.argv0, "sc.ini");
-        }
-        else version (Posix)
-        {
-            global.inifilename = findConfFile(params.argv0, "dmd.conf");
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-    }
-    // Read the configuration file
-    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
-    const inifileBuffer = iniReadResult.buffer.data;
-    /* Need path of configuration file, for use in expanding @P macro
-     */
-    const(char)[] inifilepath = FileName.path(global.inifilename);
-    Strings sections;
-    StringTable!(char*) environment;
-    environment._init(7);
-    /* Read the [Environment] section, so we can later
-     * pick up any DFLAGS settings.
-     */
-    sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
-
-    const(char)[] arch = params.is64bit ? "64" : "32"; // use default
-    arch = parse_arch_arg(&arguments, arch);
-
-    // parse architecture from DFLAGS read from [Environment] section
-    {
-        Strings dflags;
-        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
-        environment.reset(7); // erase cached environment updates
-        arch = parse_arch_arg(&dflags, arch);
-    }
-
-    bool is64bit = arch[0] == '6';
-
-    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-        if (is64bit || arch == "32mscoff")
-            environment.update("LIB", 3).value = null;
-
-    // read from DFLAGS in [Environment{arch}] section
-    char[80] envsection = void;
-    sprintf(envsection.ptr, "Environment%.*s", cast(int) arch.length, arch.ptr);
-    sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
-    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
-    updateRealEnvironment(environment);
-    environment.reset(1); // don't need environment cache any more
-
-    if (parseCommandLine(arguments, argc, params, files))
-    {
-        Loc loc;
-        errorSupplemental(loc, "run `dmd` to print the compiler manual");
-        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
+    if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
-    }
 
     if (params.usage)
     {
@@ -361,9 +264,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     setTarget(params);           // set target operating system
     setTargetCPU(params);
-    if (params.is64bit != is64bit)
-        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
-              envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
     if (global.errors)
     {
@@ -794,6 +694,123 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     return status;
 }
 
+/**
+ * Parses the command line arguments and configuration files
+ *
+ * Params:
+ *   argc = Number of arguments passed via command line
+ *   argv = Array of string arguments passed via command line
+ *   params = parametes from argv
+ *   files = files from argv
+ * Returns: true on faiure
+ */
+version(NoMain) {} else
+bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
+{
+    // Detect malformed input
+    static bool badArgs()
+    {
+        error(Loc.initial, "missing or null command line arguments");
+        return true;
+    }
+
+    if (argc < 1 || !argv)
+        return badArgs();
+    // Convert argc/argv into arguments[] for easier handling
+    Strings arguments = Strings(argc);
+    for (size_t i = 0; i < argc; i++)
+    {
+        if (!argv[i])
+            return badArgs();
+        arguments[i] = argv[i];
+    }
+    if (!responseExpand(arguments)) // expand response files
+        error(Loc.initial, "can't open response file");
+    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
+    files.reserve(arguments.dim - 1);
+    // Set default values
+    params.argv0 = arguments[0].toDString;
+
+    // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
+    static if (TARGET.Windows)
+    {
+        params.is64bit = false;
+        params.mscoff = false;
+    }
+
+    version (Windows)
+        enum iniName = "sc.ini";
+    else version (Posix)
+        enum iniName = "dmd.conf";
+    else
+        static assert(0, "fix this");
+
+    global.inifilename = parse_conf_arg(&arguments);
+    if (global.inifilename)
+    {
+        // can be empty as in -conf=
+        if (global.inifilename.length && !FileName.exists(global.inifilename))
+            error(Loc.initial, "Config file '%.*s' does not exist.",
+                  cast(int)global.inifilename.length, global.inifilename.ptr);
+    }
+    else
+    {
+        global.inifilename = findConfFile(params.argv0, iniName);
+    }
+    // Read the configuration file
+    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
+    const inifileBuffer = iniReadResult.buffer.data;
+    /* Need path of configuration file, for use in expanding @P macro
+     */
+    const(char)[] inifilepath = FileName.path(global.inifilename);
+    Strings sections;
+    StringTable!(char*) environment;
+    environment._init(7);
+    /* Read the [Environment] section, so we can later
+     * pick up any DFLAGS settings.
+     */
+    sections.push("Environment");
+    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+
+    const(char)[] arch = params.is64bit ? "64" : "32"; // use default
+    arch = parse_arch_arg(&arguments, arch);
+
+    // parse architecture from DFLAGS read from [Environment] section
+    {
+        Strings dflags;
+        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
+        environment.reset(7); // erase cached environment updates
+        arch = parse_arch_arg(&dflags, arch);
+    }
+
+    bool is64bit = arch[0] == '6';
+
+    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
+    if (is64bit || arch == "32mscoff")
+        environment.update("LIB", 3).value = null;
+
+    // read from DFLAGS in [Environment{arch}] section
+    char[80] envsection = void;
+    sprintf(envsection.ptr, "Environment%.*s", cast(int) arch.length, arch.ptr);
+    sections.push(envsection.ptr);
+    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
+    updateRealEnvironment(environment);
+    environment.reset(1); // don't need environment cache any more
+
+    if (parseCommandLine(arguments, argc, params, files))
+    {
+        Loc loc;
+        errorSupplemental(loc, "run `dmd` to print the compiler manual");
+        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
+        return true;
+    }
+
+    if (params.is64bit != is64bit)
+        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
+              envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
+    return false;
+}
 /// Emit the makefile dependencies for the -makedeps switch
 version (NoMain) {} else
 {
