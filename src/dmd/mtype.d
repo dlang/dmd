@@ -7285,11 +7285,11 @@ bool isCopyable(Type t)
  */
 bool hasAliasing(scope const Type t)// pure nothrow @nogc
 {
-    if (t.isTypeEnum)
+    // printf("t:%s ty:%d\n", t.toChars(), t.ty);
+    if (t.isTypeEnum ||
+        t.isImmutable)
         return false;           // an enum is an r-value so cannot alias
-    if (t.isImmutable)
-        return false;
-    if (const(TypeStruct) ts = t.isTypeStruct)
+    else if (const(TypeStruct) ts = t.isTypeStruct)
     {
         foreach (const(VarDeclaration) vd; ts.sym.fields)
             if (hasAliasing(vd.type))
@@ -7299,7 +7299,12 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
     else if (const(TypeClass) tc = t.isTypeClass)
         return !tc.isImmutable;
     else if (const(TypePointer) tp = t.isTypePointer)
+    {
+        // printf("t:%s tp.next:%s tp.next.ty:%d\n", t.toChars(), tp.next.toChars(), tp.next.ty);
+        if (tp.next.isTypeFunction)
+            return false;
         return !tp.next.isImmutable;
+    }
     else if (const(TypeDArray) ta = t.isTypeDArray)
         return !ta.next.isImmutable;
     else if (const(TypeAArray) ta = t.isTypeAArray)
@@ -7308,6 +7313,8 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
         return hasAliasing(ts.next);
     else if (const(TypeDelegate) td = t.isTypeDelegate)
         return !td.next.isImmutable;
+    else if (const(TypeFunction) tf = t.isTypeFunction) // before pointer
+        return false;
     else
     {
         // printf("assume no aliasing: %s\n", t.toChars());
