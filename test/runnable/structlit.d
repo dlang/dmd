@@ -326,13 +326,13 @@ int waz14(S)(ref S s) { return 2; }
 
 void test14()
 {
-    // can not bind rvalue-sl with ref
-    static assert( __traits(compiles, foo14(S14a(0))));
-    static assert( __traits(compiles, foo14(S14b(0))));
-    static assert(!__traits(compiles, hoo14(S14a(0))));
-    static assert(!__traits(compiles, hoo14(S14b(0))));
-    static assert(!__traits(compiles, poo14(S14a(0))));
-    static assert(!__traits(compiles, poo14(S14b(0))));
+    // can bind rvalue-sl with ref
+    foo14(S14a(0));
+    foo14(S14b(0));
+    hoo14(S14a(0));
+    hoo14(S14b(0));
+    poo14(S14a(0));
+    poo14(S14b(0));
 
     // still can bind rvalue-sl with non-ref
     bar14(S14a(0));
