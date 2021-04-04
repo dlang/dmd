@@ -213,19 +213,17 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
         dsymbolSemantic(this, _scope);
     if (errors)
         goto Lerrors;
-    if (semanticRun == PASSinit || !members)
+    if (!members)
     {
         if (isSpecial())
         {
             /* Allow these special enums to not need a member list
              */
-            return memtype->defaultInit(loc);
+            defaultval = memtype->defaultInit(loc);
+            return defaultval;
         }
 
-        if (semanticRun >= PASSsemanticdone)
-            error(loc, "is opaque and has no default initializer");
-        else
-            error(loc, "forward reference of %s.init", toChars());
+        error(loc, "is opaque and has no default initializer");
         goto Lerrors;
     }
 
@@ -234,6 +232,12 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
         EnumMember *em = (*members)[i]->isEnumMember();
         if (em)
         {
+            if (em->semanticRun < PASSsemanticdone)
+            {
+                error(loc, "forward reference of `%s.init`", toChars());
+                goto Lerrors;
+            }
+
             defaultval = em->value();
             return defaultval;
         }
