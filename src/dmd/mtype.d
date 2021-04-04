@@ -7287,41 +7287,42 @@ bool isCopyable(Type t)
  * Returns:
  *      true iff `t` contain non-`immutable` indirections.
  */
-bool hasAliasing(scope const Type t) pure nothrow
+bool hasAliasing(scope Type t)
 {
+    t = t.toBasetype();
     // printf("t:%s ty:%d\n", t.toChars(), t.ty);
     if (t.isTypeEnum ||
         t.isImmutable)
         return false;           // an enum is an r-value so cannot alias
-    else if (const ts = t.isTypeStruct)
+    else if (auto ts = t.isTypeStruct)
     {
-        if (const ti = ts.sym.isInstantiated())
+        if (auto ti = ts.sym.isInstantiated())
             if (ti.name.toString == "Rebindable" && // TODO: verify namespace std.typecons?
                 ti.tiargs &&
                 (*ti.tiargs).length == 1)
-                if (const at = (*ti.tiargs)[0].isType)
+                if (auto at = (*ti.tiargs)[0].isType)
                     return !at.isImmutable;
-        foreach (const vd; ts.sym.fields)
+        foreach (vd; ts.sym.fields)
             if (hasAliasing(vd.type))
                 return true;
     }
-    else if (const tc = t.isTypeClass)
+    else if (auto tc = t.isTypeClass)
         return !tc.isImmutable;
-    else if (const tp = t.isTypePointer)
+    else if (auto tp = t.isTypePointer)
     {
         if (tp.next.isTypeFunction)
             return false;
         return !tp.next.isImmutable;
     }
-    else if (const td = t.isTypeDelegate)
+    else if (auto td = t.isTypeDelegate)
         return !td.next.isImmutable;
-    else if (const ta = t.isTypeDArray)
+    else if (auto ta = t.isTypeDArray)
         return !ta.next.isImmutable;
-    else if (const ta = t.isTypeAArray)
+    else if (auto ta = t.isTypeAArray)
         return !ta.next.isImmutable;
-    else if (const ts = t.isTypeSArray)
+    else if (auto ts = t.isTypeSArray)
         return hasAliasing(ts.next);
-    else if (const tf = t.isTypeFunction) // before pointer
+    else if (auto tf = t.isTypeFunction) // before pointer
         return false;
     // printf("assume no aliasing: %s\n", t.toChars());
     return false;

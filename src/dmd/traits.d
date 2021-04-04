@@ -681,7 +681,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.hasAliasing)
     {
-        foreach (const o; *e.args)
+        foreach (o; *e.args)
         {
             auto t = isType(o);
             if (!t)
