@@ -7304,14 +7304,14 @@ bool hasAliasing(scope const Type t)// pure nothrow @nogc
             return false;
         return !tp.next.isImmutable;
     }
+    else if (const(TypeDelegate) td = t.isTypeDelegate)
+        return !td.next.isImmutable;
     else if (const(TypeDArray) ta = t.isTypeDArray)
         return !ta.next.isImmutable;
     else if (const(TypeAArray) ta = t.isTypeAArray)
         return !ta.next.isImmutable;
     else if (const(TypeSArray) ts = t.isTypeSArray)
         return hasAliasing(ts.next);
-    else if (const(TypeDelegate) td = t.isTypeDelegate)
-        return !td.next.isImmutable;
     else if (const(TypeFunction) tf = t.isTypeFunction) // before pointer
         return false;
     // printf("assume no aliasing: %s\n", t.toChars());
