@@ -146,22 +146,45 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
         return null;
 
     Expression ea = isExpression(o);
+    RootObject eaCTFE()
+    {
+        sc = sc.startCTFE();
+        ea = ea.expressionSemantic(sc);
+        sc = sc.endCTFE();
+        return ea.ctfeInterpret();
+    }
     Type ta = isType(o);
     if (ta && (!parameters || !reliesOnTident(ta, parameters)))
     {
         Dsymbol s = ta.toDsymbol(sc);
         if (s)
-            o = s;
+            return s;
+        else if (TypeInstance ti = ta.isTypeInstance())
+        {
+            Type t;
+            const errors = global.errors;
+            ta.resolve(loc, sc, ea, t, s);
+            // if we had an error evaluating the symbol, suppress further errors
+            if (!t && errors != global.errors)
+                return Type.terror;
+            // We might have something that looks like a type
+            // but is actually an expression or a dsymbol
+            // see https://issues.dlang.org/show_bug.cgi?id=16472
+            if (t)
+                return t.typeSemantic(loc, sc);
+            else if (ea)
+            {
+                return eaCTFE();
+            }
+            else if (s)
+                return s;
+            else
+                assert(0);
+        }
         else
-            o = ta.typeSemantic(loc, sc);
+            return ta.typeSemantic(loc, sc);
     }
     else if (ea)
-    {
-        sc = sc.startCTFE();
-        ea = ea.expressionSemantic(sc);
-        sc = sc.endCTFE();
-        o = ea.ctfeInterpret();
-    }
-
+        return eaCTFE();
     return o;
 }
