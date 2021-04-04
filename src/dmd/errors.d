@@ -26,7 +26,7 @@ nothrow:
 /**
  * Color highlighting to classify messages
  */
-enum Classification
+enum Classification : Color
 {
     error = Color.brightRed,          /// for errors
     gagged = Color.brightBlue,        /// for gagged errors
