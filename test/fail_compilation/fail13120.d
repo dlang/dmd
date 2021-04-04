@@ -20,8 +20,13 @@ fail_compilation/fail13120.d(35): Error: `pure` function `fail13120.h2` cannot c
 fail_compilation/fail13120.d(35): Error: `@safe` function `fail13120.h2` cannot call `@system` function `fail13120.g2!().g2`
 fail_compilation/fail13120.d(27):        `fail13120.g2!().g2` is declared here
 fail_compilation/fail13120.d(35): Error: `@nogc` function `fail13120.h2` cannot call non-@nogc function `fail13120.g2!().g2`
+fail_compilation/fail13120.d(27): Error: |
+fail_compilation/fail13120.d(27):          inferred non-`@nogc` for `fail13120.g2!().g2` because:
+fail_compilation/fail13120.d(30):          - calling function `fail13120.f2` may cause a GC allocation
+fail_compilation/fail13120.d(27): Error: |
 ---
 */
+#line 25
 void f2() {}
 
 void g2()(char[] s)

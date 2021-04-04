@@ -286,6 +286,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     int inlineNest;                     /// !=0 if nested inline
     bool eh_none;                       /// true if no exception unwinding is needed
+    ubyte inferenceTraced;              /// Bitflag for inference backtracking
 
     bool semantic3Errors;               /// true if errors in semantic3 this function's frame ptr
     ForeachStatement fes;               /// if foreach body, this is the foreach
@@ -2540,6 +2541,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             tf = new TypeFunction(ParameterList(fparams), treturn, LINK.c, stc);
             fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
+            fd.generated = true;
             fd.visibility = Visibility(Visibility.Kind.public_);
             fd.linkage = LINK.c;
 

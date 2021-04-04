@@ -721,11 +721,11 @@ enum class JsonFieldFlags : uint32_t
     semantics = 8u,
 };
 
+class ExpStatement;
 struct ObNode;
 class StoppableVisitor;
 class PragmaStatement;
 class ScopeGuardStatement;
-class ExpStatement;
 class GotoDefaultStatement;
 class BreakStatement;
 class ContinueStatement;
@@ -4540,6 +4540,7 @@ public:
     PINLINE inlining;
     int32_t inlineNest;
     bool eh_none;
+    uint8_t inferenceTraced;
     bool semantic3Errors;
     ForeachStatement* fes;
     BaseClass* interfaceVirtual;
@@ -5486,6 +5487,9 @@ class NOGCVisitor final : public StoppableVisitor
 public:
     FuncDeclaration* f;
     bool err;
+    bool traceInference;
+    bool ignored;
+    uint8_t depth;
     void doCond(Expression* exp);
     void visit(Expression* e);
     void visit(DeclarationExp* e);
@@ -5498,6 +5502,9 @@ public:
     void visit(AssignExp* e);
     void visit(CatAssignExp* e);
     void visit(CatExp* e);
+    void visit(Statement* cs);
+    void visit(ExpStatement* s);
+    void visit(ReturnStatement* s);
 };
 
 class Nspace final : public ScopeDsymbol
