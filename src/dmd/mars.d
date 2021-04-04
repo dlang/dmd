@@ -263,7 +263,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         global.console = Console.create(core.stdc.stdio.stderr);
 
     setTarget(params);           // set target operating system
-    setTargetCPU(params);
+    target.setCPU();
 
     if (global.errors)
     {
@@ -1380,14 +1380,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
-    if (params.cpu >= CPU.sse2)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        if (params.cpu >= CPU.avx)
-            VersionCondition.addPredefinedGlobalIdent("D_AVX");
-        if (params.cpu >= CPU.avx2)
-            VersionCondition.addPredefinedGlobalIdent("D_AVX2");
-    }
+    target.addPredefinedGlobalIdentifiers();
 
     if (params.is64bit)
     {
@@ -1486,41 +1479,6 @@ extern(C) void printGlobalConfigs(FILE* stream)
         auto res = buf[] ? buf[][0 .. $ - 1] : "(none)";
         stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
-}
-
-/****************************************
- * Determine the instruction set to be used, i.e. set params.cpu
- * by combining the command line setting of
- * params.cpu with the target operating system.
- * Params:
- *      params = parameters set by command line switch
- */
-
-private void setTargetCPU(ref Param params)
-{
-    if (target.isXmmSupported())
-    {
-        switch (params.cpu)
-        {
-            case CPU.baseline:
-                params.cpu = CPU.sse2;
-                break;
-
-            case CPU.native:
-            {
-                import core.cpuid;
-                params.cpu = core.cpuid.avx2 ? CPU.avx2 :
-                             core.cpuid.avx  ? CPU.avx  :
-                                               CPU.sse2;
-                break;
-            }
-
-            default:
-                break;
-        }
-    }
-    else
-        params.cpu = CPU.x87;   // cannot support other instruction sets
 }
 
 /**************************************
@@ -2062,16 +2020,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch (ident.toDString())
                 {
                 case "baseline":
-                    params.cpu = CPU.baseline;
+                    target.cpu = CPU.baseline;
                     break;
                 case "avx":
-                    params.cpu = CPU.avx;
+                    target.cpu = CPU.avx;
                     break;
                 case "avx2":
-                    params.cpu = CPU.avx2;
+                    target.cpu = CPU.avx2;
                     break;
                 case "native":
-                    params.cpu = CPU.native;
+                    target.cpu = CPU.native;
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
