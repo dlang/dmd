@@ -235,18 +235,9 @@ private struct _Complex(T)
     T im;
 }
 
-version (Posix)
-{
-    align(float.alignof)  enum __c_complex_float : _Complex!float;
-    align(double.alignof) enum __c_complex_double : _Complex!double;
-    align(real.alignof)   enum __c_complex_real : _Complex!real;
-}
-else
-{
-    align(float.sizeof * 2)  enum __c_complex_float : _Complex!float;
-    align(double.sizeof * 2) enum __c_complex_double : _Complex!double;
-    align(real.alignof)      enum __c_complex_real : _Complex!real;
-}
+enum __c_complex_float  : _Complex!float;
+enum __c_complex_double : _Complex!double;
+enum __c_complex_real   : _Complex!c_long_double;
 
 alias c_complex_float = __c_complex_float;
 alias c_complex_double = __c_complex_double;
