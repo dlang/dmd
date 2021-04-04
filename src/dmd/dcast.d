@@ -841,7 +841,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(CatExp e)
         {
-            enum LOG = true;
+            enum LOG = false;
             static if (LOG)
             {
                 printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
