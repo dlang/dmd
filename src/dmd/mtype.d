@@ -7290,8 +7290,7 @@ bool isCopyable(Type t)
 bool hasAliasing(scope Type t)
 {
     t = t.toBasetype();
-    if (t.isTypeEnum ||
-        t.isImmutable)
+    if (t.isImmutable)
         return false;
     else if (auto ts = t.isTypeStruct)
     {
