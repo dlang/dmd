@@ -73,25 +73,6 @@ enum
     CHECKACTION_context   // call D assert with the error context on failure
 };
 
-enum class CPU
-{
-    x87,
-    mmx,
-    sse,
-    sse2,
-    sse3,
-    ssse3,
-    sse4_1,
-    sse4_2,
-    avx,                // AVX1 instruction set
-    avx2,               // AVX2 instruction set
-    avx512,             // AVX-512 instruction set
-
-    // Special values that don't survive past the command line processing
-    baseline,           // (default) the minimum capability CPU
-    native              // the machine the compiler is being run on
-};
-
 enum JsonFieldFlags
 {
     none         = 0,
@@ -205,8 +186,6 @@ struct Param
     bool externStdUsage;    // print help on -extern-std switch
     bool hcUsage;           // print help on -HC switch
     bool logo;              // print logo;
-
-    CPU cpu;                // CPU instruction set to target
 
     CHECKENABLE useInvariants;     // generate class invariant checks
     CHECKENABLE useIn;             // generate precondition checks

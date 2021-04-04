@@ -28,6 +28,7 @@ module dmd.target;
 import dmd.argtypes_x86;
 import dmd.argtypes_sysv_x64;
 import core.stdc.string : strlen;
+import dmd.cond;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
@@ -47,6 +48,25 @@ import dmd.tokens : TOK;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.string : toDString;
+
+enum CPU
+{
+    x87,
+    mmx,
+    sse,
+    sse2,
+    sse3,
+    ssse3,
+    sse4_1,
+    sse4_2,
+    avx,                // AVX1 instruction set
+    avx2,               // AVX2 instruction set
+    avx512,             // AVX-512 instruction set
+
+    // Special values that don't survive past the command line processing
+    baseline,           // (default) the minimum capability CPU
+    native              // the machine the compiler is being run on
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -79,6 +99,7 @@ extern (C++) struct Target
 
     /// Architecture name
     const(char)[] architectureName;
+    CPU cpu = CPU.baseline; // CPU instruction set to target
 
     // Environmental
     const(char)[] obj_ext;    /// extension for object files
@@ -217,6 +238,48 @@ extern (C++) struct Target
             assert(0, "unknown environment");
     }
 
+    /**
+     * Determine the instruction set to be used
+     */
+    void setCPU()
+    {
+        if(!isXmmSupported())
+        {
+            cpu = CPU.x87;   // cannot support other instruction sets
+            return;
+        }
+        switch (cpu)
+        {
+            case CPU.baseline:
+                cpu = CPU.sse2;
+                break;
+
+            case CPU.native:
+            {
+                import core.cpuid;
+                cpu = core.cpuid.avx2 ? CPU.avx2 :
+                      core.cpuid.avx  ? CPU.avx  :
+                                        CPU.sse2;
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    /**
+     * Add predefined global identifiers that are determied by the target
+     */
+    void addPredefinedGlobalIdentifiers()
+    {
+        if (cpu >= CPU.sse2)
+        {
+            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+            if (cpu >= CPU.avx)
+                VersionCondition.addPredefinedGlobalIdent("D_AVX");
+            if (cpu >= CPU.avx2)
+                VersionCondition.addPredefinedGlobalIdent("D_AVX2");
+        }
+    }
     /**
      * Deinitializes the global state of the compiler.
      *
@@ -358,7 +421,7 @@ extern (C++) struct Target
             case Tint32:
             case Tuns32:
             case Tfloat32:
-                if (params.cpu < CPU.sse)
+                if (cpu < CPU.sse)
                     return 3; // no SSE vector support
                 break;
 
@@ -370,14 +433,14 @@ extern (C++) struct Target
             case Tint64:
             case Tuns64:
             case Tfloat64:
-                if (params.cpu < CPU.sse2)
+                if (cpu < CPU.sse2)
                     return 3; // no SSE2 vector support
                 break;
             }
         }
         else if (sz == 32)
         {
-            if (params.cpu < CPU.avx)
+            if (cpu < CPU.avx)
                 return 3; // no AVX vector support
         }
         else
@@ -421,22 +484,22 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] negate needs SSE support ({V}SUBPS)
-                if (elemty == Tfloat32 && params.cpu >= CPU.sse)
+                if (elemty == Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] negate needs SSE2 support ({V}SUBPD)
-                else if (elemty == Tfloat64 && params.cpu >= CPU.sse2)
+                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
                 // (u)byte[16]/short[8]/int[4]/long[2] negate needs SSE2 support ({V}PSUB[BWDQ])
-                else if (tvec.isintegral() && params.cpu >= CPU.sse2)
+                else if (tvec.isintegral() && cpu >= CPU.sse2)
                     supported = true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] negate needs AVX support (VSUBP[SD])
-                if (tvec.isfloating() && params.cpu >= CPU.avx)
+                if (tvec.isfloating() && cpu >= CPU.avx)
                     supported = true;
                 // (u)byte[32]/short[16]/int[8]/long[4] negate needs AVX2 support (VPSUB[BWDQ])
-                else if (tvec.isintegral() && params.cpu >= CPU.avx2)
+                else if (tvec.isintegral() && cpu >= CPU.avx2)
                     supported = true;
             }
             break;
@@ -453,22 +516,22 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
-                if (elemty == Tfloat32 && params.cpu >= CPU.sse)
+                if (elemty == Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] add/sub needs SSE2 support ({V}ADDPD, {V}SUBPD)
-                else if (elemty == Tfloat64 && params.cpu >= CPU.sse2)
+                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
                 // (u)byte[16]/short[8]/int[4]/long[2] add/sub needs SSE2 support ({V}PADD[BWDQ], {V}PSUB[BWDQ])
-                else if (tvec.isintegral() && params.cpu >= CPU.sse2)
+                else if (tvec.isintegral() && cpu >= CPU.sse2)
                     supported = true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] add/sub needs AVX support (VADDP[SD], VSUBP[SD])
-                if (tvec.isfloating() && params.cpu >= CPU.avx)
+                if (tvec.isfloating() && cpu >= CPU.avx)
                     supported = true;
                 // (u)byte[32]/short[16]/int[8]/long[4] add/sub needs AVX2 support (VPADD[BWDQ], VPSUB[BWDQ])
-                else if (tvec.isintegral() && params.cpu >= CPU.avx2)
+                else if (tvec.isintegral() && cpu >= CPU.avx2)
                     supported = true;
             }
             break;
@@ -477,28 +540,28 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] multiply needs SSE support ({V}MULPS)
-                if (elemty == Tfloat32 && params.cpu >= CPU.sse)
+                if (elemty == Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] multiply needs SSE2 support ({V}MULPD)
-                else if (elemty == Tfloat64 && params.cpu >= CPU.sse2)
+                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
                 // (u)short[8] multiply needs SSE2 support ({V}PMULLW)
-                else if ((elemty == Tint16 || elemty == Tuns16) && params.cpu >= CPU.sse2)
+                else if ((elemty == Tint16 || elemty == Tuns16) && cpu >= CPU.sse2)
                     supported = true;
                 // (u)int[4] multiply needs SSE4.1 support ({V}PMULLD)
-                else if ((elemty == Tint32 || elemty == Tuns32) && params.cpu >= CPU.sse4_1)
+                else if ((elemty == Tint32 || elemty == Tuns32) && cpu >= CPU.sse4_1)
                     supported = true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] multiply needs AVX support (VMULP[SD])
-                if (tvec.isfloating() && params.cpu >= CPU.avx)
+                if (tvec.isfloating() && cpu >= CPU.avx)
                     supported = true;
                 // (u)short[16] multiply needs AVX2 support (VPMULLW)
-                else if ((elemty == Tint16 || elemty == Tuns16) && params.cpu >= CPU.avx2)
+                else if ((elemty == Tint16 || elemty == Tuns16) && cpu >= CPU.avx2)
                     supported = true;
                 // (u)int[8] multiply needs AVX2 support (VPMULLD)
-                else if ((elemty == Tint32 || elemty == Tuns32) && params.cpu >= CPU.avx2)
+                else if ((elemty == Tint32 || elemty == Tuns32) && cpu >= CPU.avx2)
                     supported = true;
             }
             break;
@@ -507,16 +570,16 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] divide needs SSE support ({V}DIVPS)
-                if (elemty == Tfloat32 && params.cpu >= CPU.sse)
+                if (elemty == Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] divide needs SSE2 support ({V}DIVPD)
-                else if (elemty == Tfloat64 && params.cpu >= CPU.sse2)
+                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] multiply needs AVX support (VDIVP[SD])
-                if (tvec.isfloating() && params.cpu >= CPU.avx)
+                if (tvec.isfloating() && cpu >= CPU.avx)
                     supported = true;
             }
             break;
@@ -527,10 +590,10 @@ extern (C++) struct Target
 
         case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
             // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
-            if (vecsize == 16 && tvec.isintegral() && params.cpu >= CPU.sse2)
+            if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
             // (u)byte[32]/short[16]/int[8]/long[4] bitwise ops needs AVX2 support (VPAND, VPOR, VPXOR)
-            else if (vecsize == 32 && tvec.isintegral() && params.cpu >= CPU.avx2)
+            else if (vecsize == 32 && tvec.isintegral() && cpu >= CPU.avx2)
                 supported = true;
             break;
 
@@ -540,10 +603,10 @@ extern (C++) struct Target
 
         case TOK.tilde:
             // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
-            if (vecsize == 16 && tvec.isintegral() && params.cpu >= CPU.sse2)
+            if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
             // (u)byte[32]/short[16]/int[8]/long[4] logical exclusive needs AVX2 support (VPXOR)
-            else if (vecsize == 32 && tvec.isintegral() && params.cpu >= CPU.avx2)
+            else if (vecsize == 32 && tvec.isintegral() && cpu >= CPU.avx2)
                 supported = true;
             break;
 

@@ -26,6 +26,25 @@ class Type;
 class TypeTuple;
 class TypeFunction;
 
+enum class CPU
+{
+    x87,
+    mmx,
+    sse,
+    sse2,
+    sse3,
+    ssse3,
+    sse4_1,
+    sse4_2,
+    avx,                // AVX1 instruction set
+    avx2,               // AVX2 instruction set
+    avx512,             // AVX-512 instruction set
+
+    // Special values that don't survive past the command line processing
+    baseline,           // (default) the minimum capability CPU
+    native              // the machine the compiler is being run on
+};
+
 struct TargetC
 {
     unsigned longsize;            // size of a C 'long' or 'unsigned long' type
@@ -73,6 +92,8 @@ struct Target
     TargetObjC objc;
 
     DString architectureName;    // name of the platform architecture (e.g. X86_64)
+    CPU cpu;                // CPU instruction set to target
+
     // Environmental
     DString obj_ext;    /// extension for object files
     DString lib_ext;    /// extension for static library files
