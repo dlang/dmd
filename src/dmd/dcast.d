@@ -841,7 +841,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(CatExp e)
         {
-            enum LOG = false;
+            enum LOG = true;
             static if (LOG)
             {
                 printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
@@ -852,29 +852,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 return;
 
             auto da = e.type.isTypeDArray;
-            assert(da);              // TODO: must be dynamic array, right?
+            assert(da);              // TODO: must be dynamic array, right? remove?
 
             auto te = da.next;  // type of element
-            assert(te);
-
-            // printf("_e:%p e.type:%s %d e1:%s e2:%s\n", e, e.type.toChars, te.hasAliasing, e.e1.toChars(), e.e2.toChars());
-
-            // static array concatenation:
-            TypeSArray s1;
-            if (CastExp c1 = e.e1.isCastExp)
-                s1 = c1.e1.type.isTypeSArray;
-            TypeSArray s2;
-            if (CastExp c2 = e.e2.isCastExp)
-                s2 = c2.e1.type.isTypeSArray;
-            if (s1 && s2)
-                if (TypeSArray ts = t.isTypeSArray)
-                    if (s1.dim.toInteger() + s2.dim.toInteger() == ts.dim.toInteger())
-                    {
-                        printf("ok\n");
-                        result = MATCH.convert;
-                        return;
-                    }
-
+            assert(te);         // TODO: always defined right? remove?
             if (!te.hasAliasing)
             {
                 result = e.type.immutableOf().implicitConvTo(t);
