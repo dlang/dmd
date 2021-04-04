@@ -210,7 +210,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return errorReturn();
-        if (semanticRun == PASS.init || !members)
+        if (!members)
         {
             if (isSpecial())
             {
@@ -219,7 +219,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return memtype.getProperty(_scope, loc, id, 0);
             }
 
-            error("is forward referenced looking for `.%s`", id.toChars());
+            error(loc, "is opaque and has no `.%s`", id.toChars());
             return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
@@ -236,6 +236,13 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 continue;
             if (em.errors)
             {
+                errors = true;
+                continue;
+            }
+
+            if (em.semanticRun < PASS.semanticdone)
+            {
+                em.error("is forward referenced looking for `.%s`", id.toChars());
                 errors = true;
                 continue;
             }
