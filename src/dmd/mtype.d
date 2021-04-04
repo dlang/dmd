@@ -7283,7 +7283,7 @@ bool isCopyable(Type t)
  *
  * In other words, if other references to `t` may be able to change it.
  */
-bool hasAliasing(scope const Type t) // TODO: pure nothrow?
+bool hasAliasing(scope const Type t) pure nothrow
 {
     // printf("t:%s ty:%d\n", t.toChars(), t.ty);
     if (t.isTypeEnum ||
@@ -7291,7 +7291,7 @@ bool hasAliasing(scope const Type t) // TODO: pure nothrow?
         return false;           // an enum is an r-value so cannot alias
     else if (const ts = t.isTypeStruct)
     {
-        if (const ti = ts.sym.isInstantiated())
+        if (const ti = ts.sym.isInstantiated()) // TODO: make pure nothrow?
             if (ti.name.toString == "Rebindable" && // TODO: do we need to check namespace of symbol?
                 ti.tiargs &&
                 (*ti.tiargs).length == 1)
