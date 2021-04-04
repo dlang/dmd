@@ -407,7 +407,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.ln:
             case Format.ld:     // pointer to long int
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.size() == c_longsize))
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "int*" : "long*"), t);
                 break;
 
@@ -451,7 +451,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.lu:     // pointer to unsigned long int
-                if (!(t.ty == Tpointer && tnext.ty == (isLP64 ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "uint*" : "ulong*"), t);
                 break;
 
