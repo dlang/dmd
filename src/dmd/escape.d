@@ -1064,10 +1064,10 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        // 'emitError' tells us whether to emit an error or a deprecation,
-        // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, bool emitError = true)
+        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
         {
+            const emitError = featureState == FeatureState.enabled;
+
             if (!gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
@@ -1112,7 +1112,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         {
             //printf("escaping reference to local ref variable %s\n", v.toChars());
             //printf("storage class = x%llx\n", v.storage_class);
-            escapingRef(v, emitError);
+            escapingRef(v, global.params.useDIP25);
             continue;
         }
         // Don't need to be concerned if v's parent does not return a ref
