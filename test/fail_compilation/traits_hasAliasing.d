@@ -3,7 +3,7 @@
 /*
   TEST_OUTPUT:
   ---
-  fail_compilation/traits_hasAliasing.d(12): Error: type expected as non-first argument of __traits `hasAliasing` instead of `""`
+  fail_compilation/traits_hasAliasing.d(10): Error: type expected as non-first argument of __traits `hasAliasing` instead of `""`
   ---
 */
 
