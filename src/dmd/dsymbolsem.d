@@ -908,7 +908,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (dsym.storage_class & STC.gshared && !dsym.isMember())
             {
-                if (sc.func.setUnsafe())
+                if (sc.func.setUnsafe(dsym))
                     dsym.error("__gshared not allowed in safe functions; use shared");
             }
         }
@@ -1300,7 +1300,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (dsym._init && dsym._init.isVoidInitializer() &&
                 (dsym.type.hasPointers() || dsym.type.hasInvariant())) // also computes type size
             {
-                if (sc.func.setUnsafe())
+                if (sc.func.setUnsafe(dsym))
                 {
                     if (dsym.type.hasPointers())
                         dsym.error("`void` initializers for pointers not allowed in safe functions");
@@ -1312,7 +1312,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                      !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
                      dsym.type.hasVoidInitPointers())
             {
-                if (sc.func.setUnsafe())
+                if (sc.func.setUnsafe(dsym))
                     dsym.error("`void` initializers for pointers not allowed in safe functions");
             }
         }

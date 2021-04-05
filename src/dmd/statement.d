@@ -131,6 +131,7 @@ extern (C++) abstract class Statement : ASTNode
 {
     const Loc loc;
     const STMT stmt;
+    Violation violation; /// Violation of attributes reported for this node
 
     override final DYNCAST dyncast() const
     {

@@ -483,7 +483,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             {
                 if ((stype.alignment() < target.ptrsize ||
                      (v.offset & (target.ptrsize - 1))) &&
-                    (sc.func && sc.func.setUnsafe()))
+                    (sc.func && sc.func.setUnsafe(e)))
                 {
                     .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
                         toChars(), v.toChars());

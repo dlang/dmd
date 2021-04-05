@@ -642,6 +642,14 @@ enum OwnedBy : ubyte
 enum WANTvalue  = 0;    // default
 enum WANTexpand = 1;    // expand const/immutable variables if possible
 
+enum Violation : ubyte
+{
+    safe     = 1 << 0,
+    pure_    = 1 << 1,
+    nogc     = 1 << 2,
+    nothrow_ = 1 << 3,
+}
+
 /***********************************************************
  * http://dlang.org/spec/expression.html#expression
  */
@@ -650,6 +658,7 @@ extern (C++) abstract class Expression : ASTNode
     const TOK op;   // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
     ubyte parens;   // if this is a parenthesized expression
+    Violation violation; /// Violation of attributes reported for this node
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
 
@@ -1294,6 +1303,7 @@ extern (C++) abstract class Expression : ASTNode
                 error("`pure` %s `%s` cannot access mutable static data `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), v.toChars());
                 err = true;
+                this.violation |= Violation.pure_;
             }
         }
         else
@@ -1339,6 +1349,7 @@ extern (C++) abstract class Expression : ASTNode
                         error("%s%s `%s` cannot access %sdata `%s`",
                             ffbuf.peekChars(), ff.kind(), ff.toPrettyChars(), vbuf.peekChars(), v.toChars());
                         err = true;
+                        this.violation |= Violation.pure_;
                         break;
                     }
                     continue;
@@ -1351,7 +1362,7 @@ extern (C++) abstract class Expression : ASTNode
          */
         if (v.storage_class & STC.gshared)
         {
-            if (sc.func.setUnsafe())
+            if (sc.func.setUnsafe(this))
             {
                 error("`@safe` %s `%s` cannot access `__gshared` data `%s`",
                     sc.func.kind(), sc.func.toChars(), v.toChars());
@@ -1366,11 +1377,11 @@ extern (C++) abstract class Expression : ASTNode
     Check if sc.func is impure or can be made impure.
     Returns true on error, i.e. if sc.func is pure and cannot be made impure.
     */
-    private static bool checkImpure(Scope* sc)
+    private bool checkImpure(Scope* sc)
     {
         return sc.func && (sc.flags & SCOPE.compile
                 ? sc.func.isPureBypassingInference() >= PURE.weak
-                : sc.func.setImpure());
+                : sc.func.setImpure(this));
     }
 
     /*********************************************
@@ -1392,7 +1403,7 @@ extern (C++) abstract class Expression : ASTNode
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
+            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe(this))
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1430,7 +1441,7 @@ extern (C++) abstract class Expression : ASTNode
 
         if (!f.isNogc())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
+            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC(this))
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -5771,7 +5782,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
-        if (sc.func.setUnsafe())
+        if (sc.func.setUnsafe(this))
         {
             error("cannot modify delegate pointer in `@safe` code `%s`", toChars());
             return ErrorExp.get();
@@ -5807,7 +5818,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
-        if (sc.func.setUnsafe())
+        if (sc.func.setUnsafe(this))
         {
             error("cannot modify delegate function pointer in `@safe` code `%s`", toChars());
             return ErrorExp.get();

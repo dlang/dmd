@@ -164,7 +164,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (!(eb.isMutable || eb2.isMutable))
             return;
 
-        if (!(global.params.vsafe && sc.func.setUnsafe()))
+        if (!(global.params.vsafe && sc.func.setUnsafe((*arguments)[i])))
             return;
 
         if (!gag)
@@ -309,7 +309,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        if (global.params.vsafe && sc.func.setUnsafe())
+        if (global.params.vsafe && sc.func.setUnsafe(arg))
         {
             if (!gag)
             {
@@ -408,7 +408,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     foreach (Expression ee; er.byexp)
     {
-        if (sc.func && sc.func.setUnsafe())
+        if (sc.func && sc.func.setUnsafe(ee))
         {
             if (!gag)
                 error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`",
@@ -673,7 +673,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             }
 
             if (va && va.isScope() && va.storage_class & STC.return_ && !(v.storage_class & STC.return_) &&
-                sc.func.setUnsafe())
+                sc.func.setUnsafe(ae))
             {
                 if (!gag)
                     error(ae.loc, "scope variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
@@ -688,7 +688,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                  ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope()) ||
                  vaIsRef ||
                  va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & (STC.parameter | STC.temp))) &&
-                sc.func.setUnsafe())
+                sc.func.setUnsafe(ae))
             {
                 if (!gag)
                     error(ae.loc, "scope variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
@@ -709,7 +709,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 }
                 continue;
             }
-            if (sc.func.setUnsafe())
+            if (sc.func.setUnsafe(ae))
             {
                 if (!gag)
                     error(ae.loc, "scope variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
@@ -729,7 +729,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                     }
                     continue;
                 }
-                if (sc.func.setUnsafe())
+                if (sc.func.setUnsafe(ae))
                 {
                     if (!gag)
                         error(ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
@@ -762,7 +762,7 @@ ByRef:
                 {
                     va.doNotInferReturn = true;
                 }
-                else if (sc.func.setUnsafe())
+                else if (sc.func.setUnsafe(ae))
                 {
                     if (!gag)
                         error(ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
@@ -778,7 +778,7 @@ ByRef:
         if (va &&
             (va.enclosesLifetimeOf(v) && !(v.isParameter() && v.isRef()) ||
              va.isDataseg()) &&
-            sc.func.setUnsafe())
+            sc.func.setUnsafe(ae))
         {
             if (!gag)
                 error(ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
@@ -794,7 +794,7 @@ ByRef:
                 pv = pv.toParent2();
                 if (pva == pv)  // if v is nested inside pva
                 {
-                    if (sc.func.setUnsafe())
+                    if (sc.func.setUnsafe(ae))
                     {
                         if (!gag)
                             error(ae.loc, "reference `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
@@ -822,7 +822,7 @@ ByRef:
         }
         if (e1.op == TOK.structLiteral)
             continue;
-        if (sc.func.setUnsafe())
+        if (sc.func.setUnsafe(ae))
         {
             if (!gag)
                 error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
@@ -866,7 +866,7 @@ ByRef:
                     //va.storage_class |= STC.scope_ | STC.scopeinferred;
                 continue;
             }
-            if (sc.func.setUnsafe())
+            if (sc.func.setUnsafe(ae))
             {
                 if (!gag)
                     error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
@@ -893,7 +893,7 @@ ByRef:
 
         if (ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
             (!va || !(va.storage_class & STC.temp)) &&
-            sc.func.setUnsafe())
+            sc.func.setUnsafe(ee))
         {
             if (!gag)
                 error(ee.loc, "address of struct temporary returned by `%s` assigned to longer lived variable `%s`",
@@ -904,7 +904,7 @@ ByRef:
 
         if (ee.op == TOK.structLiteral &&
             (!va || !(va.storage_class & STC.temp)) &&
-            sc.func.setUnsafe())
+            sc.func.setUnsafe(ee))
         {
             if (!gag)
                 error(ee.loc, "address of struct literal `%s` assigned to longer lived variable `%s`",
@@ -922,7 +922,7 @@ ByRef:
             continue;
         }
 
-        if (sc.func.setUnsafe())
+        if (sc.func.setUnsafe(ee))
         {
             if (!gag)
                 error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope `%s`",
@@ -1034,7 +1034,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             {
                 // Only look for errors if in module listed on command line
                 if (global.params.vsafe         // https://issues.dlang.org/show_bug.cgi?id=17029
-                    && sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
+                    && sc.func.setUnsafe(e))     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     if (!gag)
                         error(e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());

@@ -15,6 +15,7 @@
 #include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
+#include "expression.h"
 
 class CPPNamespaceDeclaration;
 class Identifier;
@@ -152,6 +153,7 @@ public:
     Scope *_scope;               // !=NULL means context to use for semantic()
     const utf8_t *prettystring;
     bool errors;                // this symbol failed to pass semantic()
+    Violation violation;        // Violation of attributes reported for this node
     PASS semanticRun;
     unsigned short localNum;        // perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
     DeprecatedDeclaration *depdecl; // customized deprecation message

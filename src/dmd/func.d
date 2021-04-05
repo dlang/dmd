@@ -1373,13 +1373,19 @@ extern (C++) class FuncDeclaration : Declaration
      * so mark it as impure.
      * If there's a purity error, return true.
      */
-    extern (D) final bool setImpure()
+    extern (D) final bool setImpure(Expression cause = null)
     {
+        if (cause)
+        {
+            debug (VIOLATIONS) printf("`%s` caused `impure`\n", cause.toChars());
+            cause.violation |= Violation.pure_;
+        }
+
         if (flags & FUNCFLAG.purityInprocess)
         {
             flags &= ~FUNCFLAG.purityInprocess;
             if (fes)
-                fes.func.setImpure();
+                fes.func.setImpure(cause);
         }
         else if (isPure())
             return true;
@@ -1410,14 +1416,20 @@ extern (C++) class FuncDeclaration : Declaration
      * so mark it as unsafe.
      * If there's a safe error, return true.
      */
-    extern (D) final bool setUnsafe()
+    extern (D) final bool setUnsafe(T = Expression)(T cause = null)
     {
+        if (cause)
+        {
+            debug (VIOLATIONS) printf("`%s` caused `@system`\n", cause.toChars());
+            cause.violation |= Violation.safe;
+        }
+
         if (flags & FUNCFLAG.safetyInprocess)
         {
             flags &= ~FUNCFLAG.safetyInprocess;
             type.toTypeFunction().trust = TRUST.system;
             if (fes)
-                fes.func.setUnsafe();
+                fes.func.setUnsafe(cause);
         }
         else if (isSafe())
             return true;
@@ -1443,8 +1455,14 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *      true if function is marked as @nogc, meaning a user error occurred
      */
-    extern (D) final bool setGC()
+    extern (D) final bool setGC(Expression cause = null)
     {
+        if (cause)
+        {
+            debug (VIOLATIONS) printf("`%s` caused `@gc`\n", cause.toChars());
+            cause.violation |= Violation.nogc;
+        }
+
         //printf("setGC() %s\n", toChars());
         if (flags & FUNCFLAG.nogcInprocess && semanticRun < PASS.semantic3 && _scope)
         {
@@ -1457,7 +1475,8 @@ extern (C++) class FuncDeclaration : Declaration
             flags &= ~FUNCFLAG.nogcInprocess;
             type.toTypeFunction().isnogc = false;
             if (fes)
-                fes.func.setGC();
+                fes.func.setGC(cause);
+
         }
         else if (isNogc())
             return true;

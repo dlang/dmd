@@ -73,7 +73,7 @@ public:
         auto fd = stripHookTraceImpl(e.f);
         if (fd.ident == Id._d_arraysetlengthT)
         {
-            if (f.setGC())
+            if (f.setGC(e))
             {
                 e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
                     f.kind(), f.toPrettyChars());
@@ -88,7 +88,7 @@ public:
     {
         if (e.type.ty != Tarray || !e.elements || !e.elements.dim)
             return;
-        if (f.setGC())
+        if (f.setGC(e))
         {
             e.error("array literal in `@nogc` %s `%s` may cause a GC allocation",
                 f.kind(), f.toPrettyChars());
@@ -102,7 +102,7 @@ public:
     {
         if (!e.keys.dim)
             return;
-        if (f.setGC())
+        if (f.setGC(e))
         {
             e.error("associative array literal in `@nogc` %s `%s` may cause a GC allocation",
                 f.kind(), f.toPrettyChars());
@@ -114,7 +114,7 @@ public:
 
     override void visit(NewExp e)
     {
-        if (e.member && !e.member.isNogc() && f.setGC())
+        if (e.member && !e.member.isNogc() && f.setGC(e))
         {
             // @nogc-ness is already checked in NewExp::semantic
             return;
@@ -125,7 +125,7 @@ public:
             return;
         if (global.params.ehnogc && e.thrownew)
             return;                     // separate allocator is called for this, not the GC
-        if (f.setGC())
+        if (f.setGC(e))
         {
             e.error("cannot use `new` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
@@ -162,7 +162,7 @@ public:
             break;
         }
 
-        if (f.setGC())
+        if (f.setGC(e))
         {
             e.error("cannot use `delete` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
@@ -177,7 +177,7 @@ public:
         Type t1b = e.e1.type.toBasetype();
         if (t1b.ty == Taarray)
         {
-            if (f.setGC())
+            if (f.setGC(e))
             {
                 e.error("indexing an associative array in `@nogc` %s `%s` may cause a GC allocation",
                     f.kind(), f.toPrettyChars());
@@ -192,7 +192,7 @@ public:
     {
         if (e.e1.op == TOK.arrayLength)
         {
-            if (f.setGC())
+            if (f.setGC(e))
             {
                 e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
                     f.kind(), f.toPrettyChars());
@@ -205,7 +205,7 @@ public:
 
     override void visit(CatAssignExp e)
     {
-        if (f.setGC())
+        if (f.setGC(e))
         {
             e.error("cannot use operator `~=` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
@@ -217,7 +217,7 @@ public:
 
     override void visit(CatExp e)
     {
-        if (f.setGC())
+        if (f.setGC(e))
         {
             e.error("cannot use operator `~` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());

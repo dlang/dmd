@@ -60,6 +60,14 @@ struct Symbol;
 struct Loc;
 struct Global;
 struct Scope;
+enum class Violation : uint8_t
+{
+    safe = 1u,
+    pure_ = 2u,
+    nogc = 4u,
+    nothrow_ = 8u,
+};
+
 enum class PASS
 {
     init = 0,
@@ -803,6 +811,7 @@ public:
     Scope* _scope;
     const char* prettystring;
     bool errors;
+    Violation violation;
     PASS semanticRun;
     uint16_t localNum;
     DeprecatedDeclaration* depdecl;
@@ -983,6 +992,7 @@ public:
     const TOK op;
     uint8_t size;
     uint8_t parens;
+    Violation violation;
     Type* type;
     Loc loc;
     static void _init();
@@ -5967,6 +5977,7 @@ class Statement : public ASTNode
 public:
     const Loc loc;
     const STMT stmt;
+    Violation violation;
     DYNCAST dyncast() const;
     virtual Statement* syntaxCopy();
     static Array<Statement* >* arraySyntaxCopy(Array<Statement* >* a);

@@ -107,6 +107,9 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     e1 = pe.e1;
                 ce.error("`%s` is not `nothrow`", e1.toChars());
             }
+            else
+                ce.violation |= Violation.nothrow_;
+
             stop = true;
         }
 

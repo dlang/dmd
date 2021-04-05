@@ -48,7 +48,7 @@ bool checkAccess(AggregateDeclaration ad, Expression e, Scope* sc, Dsymbol smemb
         return false; // for backward compatibility
     }
 
-    if (!symbolIsVisible(sc, smember) && (!(sc.flags & SCOPE.onlysafeaccess) || sc.func.setUnsafe()))
+    if (!symbolIsVisible(sc, smember) && (!(sc.flags & SCOPE.onlysafeaccess) || sc.func.setUnsafe(e)))
     {
         ad.error(e.loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
