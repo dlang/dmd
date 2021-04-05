@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -de
+REQUIRED_ARGS: -de -revert=dip25
 */
 
 // This test can be removed once the deprecation period is over

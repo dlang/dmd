@@ -999,6 +999,9 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
+    import dmd.globals: FeatureState;
+    import dmd.errors: previewErrorFunc;
+
     //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
     enum log = false;
     if (log) printf("[%s] checkNewEscape, e: `%s`\n", e.loc.toChars(), e.toChars());
@@ -1066,18 +1069,13 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 
         void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
         {
-            const emitError = featureState == FeatureState.enabled;
-
             if (!gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
                 const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
-                if (emitError)
-                    error(e.loc, msg, e.toChars(), kind, v.toChars());
-                else if (!sc.isDeprecated())
-                    deprecation(e.loc, msg, e.toChars(), kind, v.toChars());
+                previewErrorFunc(featureState)(e.loc, msg, e.toChars(), kind, v.toChars());
             }
-            result |= emitError;
+            result |= (featureState == FeatureState.enabled);
         }
 
         if (v.isDataseg())
@@ -1103,9 +1101,6 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         if (!sc._module || !sc._module.isRoot())
             continue;
 
-        // If -preview=dip25 is used, the user wants an error
-        // Otherwise, issue a deprecation
-        const emitError = global.params.useDIP25 == FeatureState.enabled;
         // https://dlang.org/spec/function.html#return-ref-parameters
         // Only look for errors if in module listed on command line
         if (p == sc.func)
@@ -1125,11 +1120,14 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 continue;
 
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
-            if (!gag && emitError)
-                error(e.loc, msg, v.toChars());
-            else if (!gag)
-                deprecation(e.loc, msg, v.toChars());
-            result |= emitError;
+            if (!gag)
+            {
+                previewErrorFunc(global.params.useDIP25)(e.loc, msg, v.toChars());
+            }
+
+            // If -preview=dip25 is used, the user wants an error
+            // Otherwise, issue a deprecation
+            result |= (global.params.useDIP25 == FeatureState.enabled);
         }
     }
 

@@ -35,6 +35,26 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
+
+enum AlwaysError
+{
+    no,
+    yes,
+}
+
+
+pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+
+auto previewErrorFunc(FeatureState featureState) @safe @nogc pure nothrow
+{
+    if (featureState == FeatureState.enabled)
+        return &error;
+    else if (featureState == FeatureState.disabled)
+        return &noop;
+    else
+        return &deprecation;
+}
+
 /**
  * Print an error message, increasing the global error count.
  * Params:
