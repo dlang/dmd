@@ -44,13 +44,16 @@ import dmd.backend.dvec;
 extern (C++):
 
 nothrow:
+@safe:
 
+@trusted
 void ferr(const(char)* p) { printf("%s", p); }
 
 /*******************************
  * Write out storage class.
  */
 
+@trusted
 const(char)* str_class(SC c)
 {
     __gshared const char[10][SCMAX] sc =
@@ -109,6 +112,7 @@ const(char)* str_class(SC c)
   return buffer.ptr;
 }
 
+@trusted
 void WRclass(SC c)
 {
     printf("%11s ",str_class(c));
@@ -118,6 +122,7 @@ void WRclass(SC c)
  * Write out oper numbers.
  */
 
+@trusted
 void WROP(uint oper)
 {
   if (oper >= OPMAX)
@@ -132,6 +137,7 @@ void WROP(uint oper)
  * Write TYxxxx
  */
 
+@trusted
 void WRTYxx(tym_t t)
 {
     if (t & mTYnear)
@@ -158,6 +164,7 @@ void WRTYxx(tym_t t)
     printf("TY%s ",tystring[tybasic(t)]);
 }
 
+@trusted
 void WRBC(uint bc)
 {
     __gshared const char[7][BCMAX] bcs =
@@ -176,6 +183,7 @@ void WRBC(uint bc)
  * Write arglst
  */
 
+@trusted
 void WRarglst(list_t a)
 { int n = 1;
 
@@ -192,6 +200,7 @@ void WRarglst(list_t a)
  * Write out equation elem.
  */
 
+@trusted
 void WReqn(elem *e)
 { __gshared int nest;
 
@@ -286,6 +295,7 @@ void WReqn(elem *e)
   }
 }
 
+@trusted
 void WRblocklist(list_t bl)
 {
     foreach (bl2; ListRange(bl))
@@ -300,6 +310,7 @@ void WRblocklist(list_t bl)
     ferr("\n");
 }
 
+@trusted
 void WRdefnod()
 { int i;
 
@@ -310,6 +321,7 @@ void WRdefnod()
   }
 }
 
+@trusted
 void WRFL(FL fl)
 {
     __gshared const(char)[7][FLMAX] fls =
@@ -339,6 +351,7 @@ void WRFL(FL fl)
  * Write out block.
  */
 
+@trusted
 void WRblock(block *b)
 {
     if (OPTIMIZER)
@@ -476,6 +489,7 @@ void numberBlocks(block *startblock)
         b.Bnumber = ++number;
 }
 
+@trusted
 void WRfunc()
 {
         printf("func: '%s'\n",funcsym_p.Sident.ptr);
