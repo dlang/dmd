@@ -851,23 +851,27 @@ MATCH implicitConvTo(Expression e, Type t)
             if (result != MATCH.nomatch)
                 return;
 
-            auto da = e.type.isTypeDArray;
-            assert(da);              // TODO: must be dynamic array, right? remove?
-
-            auto te = da.next;  // type of element
-            assert(te);         // TODO: always defined right? remove?
-            if (!te.hasAliasing)
+            if (TypeDArray da = e.type.isTypeDArray)
             {
-                result = e.type.immutableOf().implicitConvTo(t);
-                if (result > MATCH.constant) // Match level is MATCH.constant at best.
-                    result = MATCH.constant;
-                return;
-            }
-            else
-            {
-                /* TODO: move this error message to a common place that special
-                 * cases message if (hasAliasing(te)) is non-null */
-                // printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
+                auto te = da.next;  // type of element
+                assert(te);         // TODO: always defined right? remove?
+                if (!te.hasAliasing)
+                {
+                    result = da.immutableOf().implicitConvTo(t.constOf()); // t.constOf() to work when `da` is `string`
+                    if (result > MATCH.constant)
+                    {
+                        result = MATCH.constant;
+                        return;
+                    }
+                    // printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s) result:%d\n",
+                    //        e.toChars(), e.type.toChars(), t.toChars(), result);
+                }
+                else
+                {
+                    /* TODO: move this error message to a common place that special
+                     * cases message if (hasAliasing(te)) is non-null */
+                    // printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
+                }
             }
         }
 
