@@ -3681,7 +3681,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 checkFunctionAttributes(exp, sc, f);
-                checkAccess(cd, exp.loc, sc, f);
+                checkAccess(cd, exp, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
                 Type rettype;
@@ -3707,7 +3707,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 checkFunctionAttributes(exp, sc, f);
-                checkAccess(cd, exp.loc, sc, f);
+                checkAccess(cd, exp, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
                 if (!exp.arguments)
@@ -3771,7 +3771,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 checkFunctionAttributes(exp, sc, f);
-                checkAccess(sd, exp.loc, sc, f);
+                checkAccess(sd, exp, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
                 Type rettype;
@@ -3797,7 +3797,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 checkFunctionAttributes(exp, sc, f);
-                checkAccess(sd, exp.loc, sc, f);
+                checkAccess(sd, exp, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
                 if (!exp.arguments)

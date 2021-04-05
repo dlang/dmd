@@ -35,7 +35,7 @@ private enum LOG = false;
  * type of the 'this' pointer used to access smember.
  * Returns true if the member is not accessible.
  */
-bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
+bool checkAccess(AggregateDeclaration ad, Expression e, Scope* sc, Dsymbol smember)
 {
     static if (LOG)
     {
@@ -50,7 +50,7 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 
     if (!symbolIsVisible(sc, smember) && (!(sc.flags & SCOPE.onlysafeaccess) || sc.func.setUnsafe()))
     {
-        ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
+        ad.error(e.loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;
@@ -197,13 +197,13 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
             if (ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration())
                 cd = cd2;
         }
-        return checkAccess(cd, loc, sc, d);
+        return checkAccess(cd, e, sc, d);
     }
     else if (e.type.ty == Tstruct)
     {
         // Do access check
         StructDeclaration cd = (cast(TypeStruct)e.type).sym;
-        return checkAccess(cd, loc, sc, d);
+        return checkAccess(cd, e, sc, d);
     }
     return false;
 }
