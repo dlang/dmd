@@ -54,8 +54,7 @@ public extern (C++) void comsubs()
 
     debug if (debugx) printf("comsubs(%p)\n",startblock);
 
-    // No longer do we just compute Bcount. We now eliminate unreachable
-    // blocks.
+    // No longer just compute Bcount - eliminate unreachable blocks too
     block_compbcount();                   // eliminate unreachable blocks
 
     version (SCPP)
@@ -64,10 +63,8 @@ public extern (C++) void comsubs()
             return;
     }
 
-    if (!cgcsdata.csvec)
-    {
-        cgcsdata.csvec = vec_calloc(CGCS.CSVECDIM);
-    }
+    auto cgcs = &cgcsdata;               // cache global value
+    cgcs.start();
 
     block* bln;
     for (block* bl = startblock; bl; bl = bln)
@@ -91,11 +88,9 @@ public extern (C++) void comsubs()
             blc = bln;
             bln = blc.Bnext;
         }
-        vec_clear(cgcsdata.csvec);
-        cgcsdata.hcstab.setLength(0);
-        cgcsdata.hcsarray.touchstari = 0;
-        cgcsdata.hcsarray.touchfunci[0] = 0;
-        cgcsdata.hcsarray.touchfunci[1] = 0;
+
+        cgcs.reset();
+
         bln = bl;
         while (n--)                     // while more blocks in EBB
         {
@@ -118,10 +113,8 @@ public extern (C++) void comsubs()
 @trusted
 public extern (C++) void cgcs_term()
 {
-    vec_free(cgcsdata.csvec);
-    cgcsdata.csvec = null;
-    debug debugw && printf("freeing cgcsdata.hcstab\n");
-    //cgcsdata.hcstab.dtor();  // cache allocation for next iteration
+    cgcsdata.term();
+    debug debugw && printf("cgcs_term()\n");
 }
 
 
@@ -145,11 +138,13 @@ struct HCS
 
 struct HCSArray
 {
-    uint touchstari;
-    uint[2] touchfunci;
+    size_t touchstari;
+    size_t[2] touchfunci;
 }
 
-/// All the global data for this module
+/**************************************
+ * All the global data for this module
+ */
 struct CGCS
 {
     Barray!HCS hcstab;           // array of hcs's
@@ -161,6 +156,39 @@ struct CGCS
     enum CSVECDIM = 16_001; //8009 //3001     // dimension of csvec (should be prime)
 
   nothrow:
+
+    /*********************************
+     * Initialize for this iteration.
+     */
+    void start()
+    {
+        if (!csvec)
+        {
+            csvec = vec_calloc(CGCS.CSVECDIM);
+        }
+    }
+
+    /*******************************
+     * Reset for next time.
+     * hcstab[]'s storage is kept instead of reallocated.
+     */
+    @trusted
+    void reset()
+    {
+        vec_clear(csvec);       // don't free it, recycle storage
+        hcstab.reset();
+        hcsarray = HCSArray.init;
+    }
+
+    /*********************************
+     * All done for this compiler instance.
+     */
+    void term()
+    {
+        vec_free(csvec);
+        csvec = null;
+        //hcstab.dtor();  // cache allocation for next iteration
+    }
 
     /****************************
      * Add an elem to the common subexpression table.
@@ -181,9 +209,10 @@ struct CGCS
         {
             hcs.Helem = null;
         }
-        hcsarray.touchstari    = cast(uint)hcstab.length;
-        hcsarray.touchfunci[0] = cast(uint)hcstab.length;
-        hcsarray.touchfunci[1] = cast(uint)hcstab.length;
+        const len = hcstab.length;
+        hcsarray.touchstari    = len;
+        hcsarray.touchfunci[0] = len;
+        hcsarray.touchfunci[1] = len;
     }
 }
 
@@ -669,7 +698,7 @@ void touchfunc(int flag)
                 break;
         }
     }
-    cgcsdata.hcsarray.touchfunci[flag] = cast(uint)cgcsdata.hcstab.length;
+    cgcsdata.hcsarray.touchfunci[flag] = cgcsdata.hcstab.length;
 }
 
 
@@ -689,7 +718,7 @@ void touchstar()
                 e.Eoper == OPbt) )
             hcs.Helem = null;
     }
-    cgcsdata.hcsarray.touchstari = cast(uint)cgcsdata.hcstab.length;
+    cgcsdata.hcsarray.touchstari = cgcsdata.hcstab.length;
 }
 
 /*****************************************
