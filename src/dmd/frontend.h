@@ -4584,6 +4584,7 @@ public:
     PINLINE inlining;
     int32_t inlineNest;
     bool eh_none;
+    Violation inferenceTraced;
     bool semantic3Errors;
     ForeachStatement* fes;
     BaseClass* interfaceVirtual;

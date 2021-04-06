@@ -489,7 +489,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             }
             if (mustNotThrow)
                 s.error("`%s` is thrown but not caught", s.exp.type.toChars());
-
+            s.violation |= Violation.nothrow_;
             result = BE.throw_;
         }
 

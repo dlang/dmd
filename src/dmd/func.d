@@ -286,7 +286,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     int inlineNest;                     /// !=0 if nested inline
     bool eh_none;                       /// true if no exception unwinding is needed
-
+    Violation inferenceTraced;          /// Visitied this function from ViolationsVistior (see attribute_diagnostic.d)
     bool semantic3Errors;               /// true if errors in semantic3 this function's frame ptr
     ForeachStatement fes;               /// if foreach body, this is the foreach
     BaseClass* interfaceVirtual;        /// if virtual, but only appears in base interface vtbl[]

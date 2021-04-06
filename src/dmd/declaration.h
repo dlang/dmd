@@ -529,6 +529,8 @@ public:
     int inlineNest;                     // !=0 if nested inline
     bool eh_none;                       /// true if no exception unwinding is needed
 
+    Violation inferenceTraced;          /// Visitied this function from ViolationsVistior (see attribute_diagnostic.d)
+
     // true if errors in semantic3 this function's frame ptr
     bool semantic3Errors;
     ForeachStatement *fes;              // if foreach body, this is the foreach

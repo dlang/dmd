@@ -59,8 +59,17 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     e.error("%s `%s` is not `nothrow`",
                         f.kind(), f.toPrettyChars());
 
-                    e.checkOverridenDtor(null, f, dd => dd.type.toTypeFunction().isnothrow, "not nothrow");
+                    if (f.isDtorDeclaration())
+                        e.checkOverridenDtor(null, f, dd => dd.type.toTypeFunction().isnothrow, "not nothrow");
+                    else
+                    {
+                        import dmd.attribute_diagnostic;
+                        reportViolations(f, Violation.nothrow_);
+                    }
                 }
+                else
+                    e.violation |= Violation.nothrow_;
+
                 stop = true;  // if any function throws, then the whole expression throws
             }
         }

@@ -67,6 +67,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
+import dmd.attribute_diagnostic : reportViolations;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -1166,7 +1167,11 @@ extern (C++) abstract class Expression : ASTNode
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 f.toPrettyChars());
 
-            checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
+            if (f.isDtorDeclaration())
+                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
+            else
+                reportViolations(f, Violation.pure_);
+
             return true;
         }
         return false;
@@ -1414,7 +1419,10 @@ extern (C++) abstract class Expression : ASTNode
                     prettyChars);
                 .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
 
-                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
+                if (f.isDtorDeclaration())
+                    checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
+                else
+                    reportViolations(f, Violation.safe);
 
                 return true;
             }
@@ -1452,7 +1460,10 @@ extern (C++) abstract class Expression : ASTNode
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
-                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+                if (f.isDtorDeclaration())
+                    checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+                else
+                    reportViolations(f, Violation.nogc);
 
                 return true;
             }
