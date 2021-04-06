@@ -35,6 +35,7 @@ import dmd.backend.type;
 import dmd.backend.barray;
 
 nothrow:
+@safe:
 
 extern __gshared
 {
