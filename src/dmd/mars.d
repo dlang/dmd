@@ -262,7 +262,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
-    setTarget(params);           // set target operating system
+    target.os = defaultTargetOS();           // set target operating system
     target.setCPU();
 
     if (global.errors)
@@ -289,8 +289,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.debugids)
         foreach (charz; *params.debugids)
             DebugCondition.addGlobalIdent(charz.toDString());
-
-    setTarget(params);
 
     setDefaultLibrary();
 
@@ -1264,32 +1262,6 @@ private void setDefaultLibrary()
         global.params.debuglibname = global.params.defaultlibname;
 }
 
-/*************************************
- * Set the `is` target fields of `params` according
- * to the TARGET value.
- * Params:
- *      params = where the `is` fields are
- */
-void setTarget(ref Param params)
-{
-    static if (TARGET.Windows)
-        params.targetOS = TargetOS.Windows;
-    else static if (TARGET.Linux)
-        params.targetOS = TargetOS.linux;
-    else static if (TARGET.OSX)
-        params.targetOS = TargetOS.OSX;
-    else static if (TARGET.FreeBSD)
-        params.targetOS = TargetOS.FreeBSD;
-    else static if (TARGET.OpenBSD)
-        params.targetOS = TargetOS.OpenBSD;
-    else static if (TARGET.Solaris)
-        params.targetOS = TargetOS.Solaris;
-    else static if (TARGET.DragonFlyBSD)
-        params.targetOS = TargetOS.DragonFlyBSD;
-    else
-        static assert(0, "unknown TARGET");
-}
-
 /**
  * Add default `version` identifier for dmd, and set the
  * target platform in `params`.
@@ -1305,7 +1277,7 @@ void setTarget(ref Param params)
 void addDefaultVersionIdentifiers(const ref Param params)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    if (params.targetOS == TargetOS.Windows)
+    if (target.os == Target.OS.Windows)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
         if (global.params.mscoff)
@@ -1319,7 +1291,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
             VersionCondition.addPredefinedGlobalIdent("CppRuntime_DigitalMars");
         }
     }
-    else if (params.targetOS == TargetOS.linux)
+    else if (target.os == Target.OS.linux)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
@@ -1335,7 +1307,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
             VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
-    else if (params.targetOS == TargetOS.OSX)
+    else if (target.os == Target.OS.OSX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
@@ -1343,7 +1315,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
-    else if (params.targetOS == TargetOS.FreeBSD)
+    else if (target.os == Target.OS.FreeBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
@@ -1351,21 +1323,21 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
     }
-    else if (params.targetOS == TargetOS.OpenBSD)
+    else if (target.os == Target.OS.OpenBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
     }
-    else if (params.targetOS == TargetOS.DragonFlyBSD)
+    else if (target.os == Target.OS.DragonFlyBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
-    else if (params.targetOS == TargetOS.Solaris)
+    else if (target.os == Target.OS.Solaris)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("Solaris");
@@ -1386,7 +1358,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
-        if (params.targetOS & TargetOS.Windows)
+        if (target.os & Target.OS.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
         }
@@ -1396,7 +1368,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        if (params.targetOS == TargetOS.Windows)
+        if (target.os == Target.OS.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }

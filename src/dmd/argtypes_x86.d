@@ -17,6 +17,7 @@ import core.checkedint;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;
+import dmd.target;
 import dmd.visitor;
 
 /****************************************************
@@ -349,7 +350,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
             default:
                 return memory();
             }
-            if (global.params.targetOS == TargetOS.FreeBSD && nfields == 1 &&
+            if (target.os == Target.OS.FreeBSD && nfields == 1 &&
                 (sz == 4 || sz == 8))
             {
                 /* FreeBSD changed their 32 bit ABI at some point before 10.3 for the following:

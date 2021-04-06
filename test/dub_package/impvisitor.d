@@ -82,6 +82,7 @@ void main()
     import dmd.id;
     import dmd.globals;
     import dmd.identifier;
+    import dmd.target;
 
     import core.memory;
 
@@ -97,7 +98,7 @@ void main()
 
         Id.initialize();
         global._init();
-        global.params.targetOS = TargetOS.linux;
+        target.os = Target.OS.linux;
         global.params.is64bit = (size_t.sizeof == 8);
         global.params.useUnitTests = true;
         ASTBase.Type._init();

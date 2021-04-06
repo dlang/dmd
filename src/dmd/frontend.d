@@ -120,10 +120,10 @@ void initDMD(
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
-    import dmd.mars : setTarget, addDefaultVersionIdentifiers;
+    import dmd.mars : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : target;
+    import dmd.target : target, defaultTargetOS;
 
     diagnosticHandler = handler;
 
@@ -140,13 +140,13 @@ void initDMD(
     }
 
     versionIdentifiers.each!(VersionCondition.addGlobalIdent);
-    setTarget(global.params);
     addDefaultVersionIdentifiers(global.params);
 
     Type._init();
     Id.initialize();
     Module._init();
     target._init(global.params);
+    target.os = defaultTargetOS();
     Expression._init();
     Objc._init();
     FileCache._init();
