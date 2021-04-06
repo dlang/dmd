@@ -133,7 +133,6 @@ struct Param
     bool is64bit;       // generate 64 bit code
     bool isLP64;        // generate code for LP64
     TargetOS targetOS;      // operating system to generate code for
-    bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
     Diagnostic useDeprecated;
     bool stackstomp;    // add stack stomping code
