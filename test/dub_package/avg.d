@@ -12,6 +12,7 @@ module examples.avg;
 import dmd.astbase;
 import dmd.errors;
 import dmd.parse;
+import dmd.target;
 import dmd.transitivevisitor;
 
 import dmd.globals;
@@ -50,7 +51,7 @@ void main()
 
     Id.initialize();
     global._init();
-    global.params.targetOS = TargetOS.linux;
+    target.os = Target.OS.linux;
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.useUnitTests = true;
     ASTBase.Type._init();

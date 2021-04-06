@@ -68,6 +68,25 @@ enum CPU
     native              // the machine the compiler is being run on
 }
 
+Target.OS defaultTargetOS()
+{
+    static if (TARGET.Windows)
+        return Target.OS.Windows;
+    else static if (TARGET.Linux)
+        return Target.OS.linux;
+    else static if (TARGET.OSX)
+        return Target.OS.OSX;
+    else static if (TARGET.FreeBSD)
+        return Target.OS.FreeBSD;
+    else static if (TARGET.OpenBSD)
+        return Target.OS.OpenBSD;
+    else static if (TARGET.Solaris)
+        return Target.OS.Solaris;
+    else static if (TARGET.DragonFlyBSD)
+        return Target.OS.DragonFlyBSD;
+    else
+        static assert(0, "unknown TARGET");
+}
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Describes a back-end target. At present it is incomplete, but in the future
@@ -80,6 +99,28 @@ enum CPU
  */
 extern (C++) struct Target
 {
+    /// Bit decoding of the Target.OS
+    enum OS : ubyte
+    {
+        /* These are mutually exclusive; one and only one is set.
+         * Match spelling and casing of corresponding version identifiers
+         */
+        Freestanding = 0,
+        linux        = 1,
+        Windows      = 2,
+        OSX          = 4,
+        OpenBSD      = 8,
+        FreeBSD      = 0x10,
+        Solaris      = 0x20,
+        DragonFlyBSD = 0x40,
+
+        // Combination masks
+        all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+        Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+    }
+
+    OS os = defaultTargetOS();
+
     // D ABI
     uint ptrsize;             /// size of a pointer in bytes
     uint realsize;            /// size a real consumes in memory
@@ -171,19 +212,19 @@ extern (C++) struct Target
             ptrsize = 8;
             classinfosize = 0x98; // 152
         }
-        if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+        if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
         {
             realsize = 12;
             realpad = 2;
             realalignsize = 4;
         }
-        else if (params.targetOS == TargetOS.OSX)
+        else if (os == Target.OS.OSX)
         {
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
         }
-        else if (params.targetOS == TargetOS.Windows)
+        else if (os == Target.OS.Windows)
         {
             realsize = 10;
             realpad = 0;
@@ -200,7 +241,7 @@ extern (C++) struct Target
             assert(0);
         if (params.is64bit)
         {
-            if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+            if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             {
                 realsize = 16;
                 realpad = 6;
@@ -217,18 +258,18 @@ extern (C++) struct Target
         else
             architectureName = "X86";
 
-        if (params.targetOS == TargetOS.Windows)
+        if (os == Target.OS.Windows)
         {
             obj_ext = "obj";
             lib_ext = "lib";
             dll_ext = "dll";
             run_noext = false;
         }
-        else if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris | TargetOS.OSX))
+        else if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris | Target.OS.OSX))
         {
             obj_ext = "o";
             lib_ext = "a";
-            if (params.targetOS == TargetOS.OSX)
+            if (os == Target.OS.OSX)
                 dll_ext = "dylib";
             else
                 dll_ext = "so";
@@ -308,7 +349,7 @@ extern (C++) struct Target
         case Tcomplex80:
             return target.realalignsize;
         case Tcomplex32:
-            if (params.targetOS & TargetOS.Posix)
+            if (os & Target.OS.Posix)
                 return 4;
             break;
         case Tint64:
@@ -316,7 +357,7 @@ extern (C++) struct Target
         case Tfloat64:
         case Timaginary64:
         case Tcomplex64:
-            if (params.targetOS & TargetOS.Posix)
+            if (os & Target.OS.Posix)
                 return params.is64bit ? 8 : 4;
             break;
         default:
@@ -336,7 +377,7 @@ extern (C++) struct Target
     {
         const size = type.alignsize();
 
-        if ((params.is64bit || params.targetOS == TargetOS.OSX) && (size == 16 || size == 32))
+        if ((params.is64bit || os == Target.OS.OSX) && (size == 16 || size == 32))
             return size;
 
         return (8 < size) ? 8 : size;
@@ -355,11 +396,11 @@ extern (C++) struct Target
         if (tvalist)
             return tvalist;
 
-        if (params.targetOS == TargetOS.Windows)
+        if (os == Target.OS.Windows)
         {
             tvalist = Type.tchar.pointerTo();
         }
-        else if (params.targetOS & TargetOS.Posix)
+        else if (os & Target.OS.Posix)
         {
             if (params.is64bit)
             {
@@ -629,7 +670,7 @@ extern (C++) struct Target
      */
     extern (C++) LINK systemLinkage()
     {
-        return params.targetOS == TargetOS.Windows ? LINK.windows : LINK.c;
+        return os == Target.OS.Windows ? LINK.windows : LINK.c;
     }
 
     /**
@@ -687,7 +728,7 @@ extern (C++) struct Target
         d_uns64 sz = tn.size();
         Type tns = tn;
 
-        if (params.targetOS == TargetOS.Windows && params.is64bit)
+        if (os == Target.OS.Windows && params.is64bit)
         {
             // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
             if (tns.ty == Tcomplex32)
@@ -710,7 +751,7 @@ extern (C++) struct Target
                 return false;
             return true;
         }
-        else if (params.targetOS == TargetOS.Windows && params.mscoff)
+        else if (os == Target.OS.Windows && params.mscoff)
         {
             Type tb = tns.baseElemOf();
             if (tb.ty == Tstruct)
@@ -735,7 +776,7 @@ extern (C++) struct Target
             if (tns.ty != Tstruct)
             {
     L2:
-                if (params.targetOS == TargetOS.linux && tf.linkage != LINK.d && !params.is64bit)
+                if (os == Target.OS.linux && tf.linkage != LINK.d && !params.is64bit)
                 {
                                                     // 32 bit C/C++ structs always on stack
                 }
@@ -762,12 +803,12 @@ extern (C++) struct Target
         if (tns.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tns).sym;
-            if (params.targetOS == TargetOS.linux && tf.linkage != LINK.d && !params.is64bit)
+            if (os == Target.OS.linux && tf.linkage != LINK.d && !params.is64bit)
             {
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
-            if (params.targetOS == TargetOS.Windows && tf.linkage == LINK.cpp && !params.is64bit &&
+            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && !params.is64bit &&
                      sd.isPOD() && sd.ctor)
             {
                 // win32 returns otherwise POD structs with ctors via memory
@@ -794,7 +835,7 @@ extern (C++) struct Target
                         return false;     // return small structs in regs
                                             // (not 3 byte structs!)
                     case 16:
-                        if (params.targetOS & TargetOS.Posix && params.is64bit)
+                        if (os & Target.OS.Posix && params.is64bit)
                            return false;
                         break;
 
@@ -805,7 +846,7 @@ extern (C++) struct Target
             //printf("  3 true\n");
             return true;
         }
-        else if (params.targetOS & TargetOS.Posix &&
+        else if (os & Target.OS.Posix &&
                  (tf.linkage == LINK.c || tf.linkage == LINK.cpp) &&
                  tns.iscomplex())
         {
@@ -814,7 +855,7 @@ extern (C++) struct Target
             else
                 return true;
         }
-        else if (params.targetOS == TargetOS.Windows &&
+        else if (os == Target.OS.Windows &&
                  !params.is64bit &&
                  tf.linkage == LINK.cpp &&
                  tf.isfloating())
@@ -844,7 +885,7 @@ extern (C++) struct Target
     extern (C++) ulong parameterSize(const ref Loc loc, Type t)
     {
         if (!params.is64bit &&
-            (params.targetOS & (TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.OSX)))
+            (os & (Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.OSX)))
         {
             /* These platforms use clang, which regards a struct
              * with size 0 as being of size 0 on the parameter stack,
@@ -875,7 +916,7 @@ extern (C++) struct Target
         const size = t.size();
         if (global.params.is64bit)
         {
-            if (global.params.targetOS == TargetOS.Windows)
+            if (os == Target.OS.Windows)
             {
                 // Win64 special case: by-value for slices and delegates due to
                 // high number of usages in druntime/Phobos (compiled without
@@ -947,16 +988,16 @@ extern (C++) struct Target
         switch (name.toDString) with (TargetInfoKeys)
         {
             case objectFormat.stringof:
-                if (params.targetOS == TargetOS.Windows)
+                if (os == Target.OS.Windows)
                     return stringExp(params.mscoff ? "coff" : "omf");
-                else if (params.targetOS == TargetOS.OSX)
+                else if (os == Target.OS.OSX)
                     return stringExp("macho");
                 else
                     return stringExp("elf");
             case floatAbi.stringof:
                 return stringExp("hard");
             case cppRuntimeLibrary.stringof:
-                if (params.targetOS == TargetOS.Windows)
+                if (os == Target.OS.Windows)
                 {
                     if (params.mscoff)
                         return stringExp(params.mscrtlib);
@@ -980,7 +1021,7 @@ extern (C++) struct Target
     {
         // On windows, the callee destroys arguments always regardless of function linkage,
         // and regardless of whether the caller or callee cleans the stack.
-        return params.targetOS == TargetOS.Windows ||
+        return os == Target.OS.Windows ||
                // C++ on non-Windows platforms has the caller destroying the arguments
                tf.linkage != LINK.cpp;
     }
@@ -996,7 +1037,7 @@ extern (C++) struct Target
      */
     extern (C++) bool libraryObjectMonitors(FuncDeclaration fd, Statement fbody)
     {
-        if (!params.is64bit && params.targetOS == TargetOS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
+        if (!params.is64bit && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
         {
             /* The back end uses the "jmonitor" hack for syncing;
              * no need to do the sync in the library.
@@ -1017,7 +1058,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported()
     {
-        return global.params.is64bit || global.params.targetOS == TargetOS.OSX;
+        return global.params.is64bit || os == Target.OS.OSX;
     }
 
     /**
@@ -1025,10 +1066,10 @@ extern (C++) struct Target
      *  true if generating code for POSIX
      */
     extern (D) @property bool isPOSIX() scope const nothrow @nogc
-    out(result) { assert(result || params.targetOS == TargetOS.Windows); }
+    out(result) { assert(result || os == Target.OS.Windows); }
     do
     {
-        return (params.targetOS & TargetOS.Posix) != 0;
+        return (os & Target.OS.Posix) != 0;
     }
 
     /**
@@ -1036,7 +1077,7 @@ extern (C++) struct Target
      *  FreeBSD major version string being targeted.
      */
     extern (D) @property string FreeBSDMajor() scope const nothrow @nogc
-    in { assert(params.targetOS == TargetOS.FreeBSD); }
+    in { assert(os == Target.OS.FreeBSD); }
     do
     {
         // FIXME: Need better a way to statically set the major FreeBSD version?
@@ -1063,26 +1104,27 @@ struct TargetC
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
-        if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+        const os = target.os;
+        if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             longsize = 4;
-        else if (params.targetOS == TargetOS.OSX)
+        else if (os == Target.OS.OSX)
             longsize = 4;
-        else if (params.targetOS == TargetOS.Windows)
+        else if (os == Target.OS.Windows)
             longsize = 4;
         else
             assert(0);
         if (params.is64bit)
         {
-            if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+            if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
                 longsize = 8;
-            else if (params.targetOS == TargetOS.OSX)
+            else if (os == Target.OS.OSX)
                 longsize = 8;
         }
-        if (params.is64bit && params.targetOS == TargetOS.Windows)
+        if (params.is64bit && os == Target.OS.Windows)
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
-        if (params.targetOS == TargetOS.Windows)
+        if (os == Target.OS.Windows)
             twchar_t = Type.twchar;
         else
             twchar_t = Type.tdchar;
@@ -1101,15 +1143,16 @@ struct TargetCPP
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
-        if (params.targetOS & (TargetOS.linux | TargetOS.FreeBSD | TargetOS.OpenBSD | TargetOS.DragonFlyBSD | TargetOS.Solaris))
+        const os = target.os;
+        if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             twoDtorInVtable = true;
-        else if (params.targetOS == TargetOS.OSX)
+        else if (os == Target.OS.OSX)
             twoDtorInVtable = true;
-        else if (params.targetOS == TargetOS.Windows)
+        else if (os == Target.OS.Windows)
             reverseOverloads = true;
         else
             assert(0);
-        exceptions = (params.targetOS & TargetOS.Posix) != 0;
+        exceptions = (os & Target.OS.Posix) != 0;
     }
 
     /**
@@ -1220,7 +1263,7 @@ struct TargetCPP
     extern (C++) uint derivedClassOffset(ClassDeclaration baseClass)
     {
         // MSVC adds padding between base and derived fields if required.
-        if (target.params.targetOS == TargetOS.Windows)
+        if (target.os == Target.OS.Windows)
             return (baseClass.structsize + baseClass.alignsize - 1) & ~(baseClass.alignsize - 1);
         else
             return baseClass.structsize;
@@ -1237,7 +1280,7 @@ struct TargetObjC
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
-        if (params.targetOS == TargetOS.OSX && params.is64bit)
+        if (target.os == Target.OS.OSX && params.is64bit)
             supported = true;
     }
 }

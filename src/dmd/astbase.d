@@ -6809,28 +6809,5 @@ struct ASTBase
     struct Target
     {
         extern (C++) __gshared int ptrsize;
-
-        extern (C++) static Type va_listType(const ref Loc loc, Scope* sc)
-        {
-            if (global.params.targetOS == TargetOS.Windows)
-            {
-                return Type.tchar.pointerTo();
-            }
-            else if (global.params.targetOS & TargetOS.Posix)
-            {
-                if (global.params.is64bit)
-                {
-                    return (new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag"))).pointerTo();
-                }
-                else
-                {
-                    return Type.tchar.pointerTo();
-                }
-            }
-            else
-            {
-                assert(0);
-            }
-        }
     }
 }

@@ -67,7 +67,7 @@ static void frontend_init()
     gc_disable();
 
     global._init();
-    global.params.targetOS = TargetOS_linux;
+    target.os = Target::OS_linux;
     global.vendor = "Front-End Tester";
     global.params.objname = NULL;
     target.cpu = CPU::native;

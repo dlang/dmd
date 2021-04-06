@@ -74,6 +74,27 @@ struct TargetObjC
 
 struct Target
 {
+    typedef unsigned char OS;
+    enum
+    {
+        /* These are mutually exclusive; one and only one is set.
+         * Match spelling and casing of corresponding version identifiers
+         */
+        OS_Freestanding = 0,
+        OS_linux        = 1,
+        OS_Windows      = 2,
+        OS_OSX          = 4,
+        OS_OpenBSD      = 8,
+        OS_FreeBSD      = 0x10,
+        OS_Solaris      = 0x20,
+        OS_DragonFlyBSD = 0x40,
+
+        // Combination masks
+        all = OS_linux | OS_Windows | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD,
+        Posix = OS_linux | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD,
+    };
+
+    OS os;
     // D ABI
     unsigned ptrsize;
     unsigned realsize;           // size a real consumes in memory

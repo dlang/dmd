@@ -17,25 +17,6 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.identifier;
 
-/// Bit decoding of the TargetOS
-enum TargetOS : ubyte
-{
-    /* These are mutually exclusive; one and only one is set.
-     * Match spelling and casing of corresponding version identifiers
-     */
-    linux        = 1,
-    Windows      = 2,
-    OSX          = 4,
-    OpenBSD      = 8,
-    FreeBSD      = 0x10,
-    Solaris      = 0x20,
-    DragonFlyBSD = 0x40,
-
-    // Combination masks
-    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
-    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
-}
-
 template xversion(string s)
 {
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
@@ -152,7 +133,6 @@ extern (C++) struct Param
     bool optimize;          // run optimizer
     bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
     bool isLP64;            // generate code for LP64
-    TargetOS targetOS;      // operating system to generate code for
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
