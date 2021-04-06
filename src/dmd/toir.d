@@ -80,10 +80,11 @@ struct IRState
     Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
     const Param* params;            // command line parameters
+    const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
-        const Param* params)
+        const Param* params, const Target* target)
     {
         this.m = m;
         this.symbol = fd;
@@ -91,6 +92,7 @@ struct IRState
         this.deferToObj = deferToObj;
         this.labels = labels;
         this.params = params;
+        this.target = target;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.eh_none);
