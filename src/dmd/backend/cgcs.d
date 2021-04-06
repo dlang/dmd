@@ -130,15 +130,13 @@ void comsubs2(block* startblock, ref CGCS cgcs)
 
 
 /*********************************
- * Struct for each elem:
- *      Helem   pointer to elem
- *      Hhash   hash value for the elem
+ * Struct for each potential CSE
  */
 
 struct HCS
 {
-    elem* Helem;
-    hash_t Hhash;
+    elem* Helem;        /// pointer to elem
+    hash_t Hhash;       /// hash value for the elem
 }
 
 struct HCSArray
@@ -569,15 +567,15 @@ hash_t cs_comphash(const elem *e)
     hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
     if (!OTleaf(op))
     {
-        hash += cast(size_t) e.EV.E1;
+        hash += cast(hash_t) e.EV.E1;
         if (OTbinary(op))
-            hash += cast(size_t) e.EV.E2;
+            hash += cast(hash_t) e.EV.E2;
     }
     else
     {
         hash += e.EV.Vint;
         if (op == OPvar || op == OPrelconst)
-            hash += cast(size_t) e.EV.Vsym;
+            hash += cast(hash_t) e.EV.Vsym;
     }
     return hash;
 }
@@ -590,7 +588,7 @@ hash_t cs_comphash(const elem *e)
  */
 
 @trusted
-void touchlvalue(ref CGCS cgcs, elem* e)
+void touchlvalue(ref CGCS cgcs, const elem* e)
 {
     if (e.Eoper == OPind)                /* if indirect store            */
     {
@@ -611,8 +609,10 @@ void touchlvalue(ref CGCS cgcs, elem* e)
     }
 
     if (!(e.Eoper == OPvar || e.Eoper == OPrelconst))
+    {
         elem_print(e);
-    assert(e.Eoper == OPvar || e.Eoper == OPrelconst);
+        assert(0);
+    }
     switch (e.EV.Vsym.Sclass)
     {
         case SCregpar:
@@ -663,12 +663,12 @@ void touchfunc(ref CGCS cgcs, int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
-    HCS *petop = cgcs.hcstab.ptr + cgcs.hcstab.length;
     //pe = &cgcs.hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
     assert(cgcs.hcsarray.touchfunci[flag] <= cgcs.hcstab.length);
-    for (HCS *pe = cgcs.hcstab.ptr + cgcs.hcsarray.touchfunci[flag]; pe < petop; pe++)
+
+    foreach (ref pe; cgcs.hcstab[cgcs.hcsarray.touchfunci[flag] .. cgcs.hcstab.length])
     {
-        elem *he = pe.Helem;
+        const he = pe.Helem;
         if (!he)
             continue;
         switch (he.Eoper)
