@@ -45,6 +45,7 @@ version (HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 __gshared:
 

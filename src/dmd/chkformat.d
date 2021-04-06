@@ -144,7 +144,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
         auto t = e.type.toBasetype();
         auto tnext = t.nextOf();
         const c_longsize = target.c.longsize;
-        const is64bit = global.params.is64bit;
+        const ptrsize = target.ptrsize;
 
         // Types which are promoted to int are allowed.
         // Spec: C99 6.5.2.2.7
@@ -153,46 +153,56 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             case Format.u:      // unsigned int
             case Format.d:      // int
                 if (t.ty != Tint32 && t.ty != Tuns32)
-                    errorMsg(null, e, "int", t);
+                    errorMsg(null, e, fmt == Format.u ? "uint" : "int", t);
                 break;
 
             case Format.hhu:    // unsigned char
             case Format.hhd:    // signed char
                 if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint8 && t.ty != Tuns8)
-                    errorMsg(null, e, "byte", t);
+                    errorMsg(null, e, fmt == Format.hhu ? "ubyte" : "byte", t);
                 break;
 
             case Format.hu:     // unsigned short int
             case Format.hd:     // short int
                 if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint16 && t.ty != Tuns16)
-                    errorMsg(null, e, "short", t);
+                    errorMsg(null, e, fmt == Format.hu ? "ushort" : "short", t);
                 break;
 
             case Format.lu:     // unsigned long int
             case Format.ld:     // long int
                 if (!(t.isintegral() && t.size() == c_longsize))
-                    errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
+                {
+                    if (fmt == Format.lu)
+                        errorMsg(null, e, (c_longsize == 4 ? "uint" : "ulong"), t);
+                    else
+                        errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
+                }
                 break;
 
             case Format.llu:    // unsigned long long int
             case Format.lld:    // long long int
                 if (t.ty != Tint64 && t.ty != Tuns64)
-                    errorMsg(null, e, "long", t);
+                    errorMsg(null, e, fmt == Format.llu ? "ulong" : "long", t);
                 break;
 
             case Format.ju:     // uintmax_t
             case Format.jd:     // intmax_t
                 if (t.ty != Tint64 && t.ty != Tuns64)
-                    errorMsg(null, e, "core.stdc.stdint.intmax_t", t);
+                {
+                    if (fmt == Format.ju)
+                        errorMsg(null, e, "core.stdc.stdint.uintmax_t", t);
+                    else
+                        errorMsg(null, e, "core.stdc.stdint.intmax_t", t);
+                }
                 break;
 
             case Format.zd:     // size_t
-                if (!(t.isintegral() && t.size() == (is64bit ? 8 : 4)))
+                if (!(t.isintegral() && t.size() == ptrsize))
                     errorMsg(null, e, "size_t", t);
                 break;
 
             case Format.td:     // ptrdiff_t
-                if (!(t.isintegral() && t.size() == (is64bit ? 8 : 4)))
+                if (!(t.isintegral() && t.size() == ptrsize))
                     errorMsg(null, e, "ptrdiff_t", t);
                 break;
 
@@ -244,12 +254,12 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.zn:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
@@ -373,7 +383,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
         auto t = e.type.toBasetype();
         auto tnext = t.nextOf();
         const c_longsize = target.c.longsize;
-        const is64bit = global.params.is64bit;
+        const ptrsize = target.ptrsize;
 
         final switch (fmt)
         {
@@ -397,7 +407,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.ln:
             case Format.ld:     // pointer to long int
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.size() == c_longsize))
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "int*" : "long*"), t);
                 break;
 
@@ -415,13 +425,13 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.zn:
             case Format.zd:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:
             case Format.td:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
@@ -441,7 +451,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.lu:     // pointer to unsigned long int
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "uint*" : "ulong*"), t);
                 break;
 
@@ -451,8 +461,8 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.ju:     // pointer to uintmax_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
-                    errorMsg(null, e, "ulong*", t);
+                if (!(t.ty == Tpointer && tnext.ty == Tuns64))
+                    errorMsg(null, e, "core.stdc.stdint.uintmax_t*", t);
                 break;
 
             case Format.g:      // pointer to float

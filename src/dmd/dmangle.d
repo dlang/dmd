@@ -1269,6 +1269,7 @@ public:
 
     override void visit(FuncExp e)
     {
+        buf.writeByte('f');
         if (e.td)
             mangleSymbol(e.td);
         else

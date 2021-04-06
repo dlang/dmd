@@ -3894,23 +3894,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
         if (mt.sym.semanticRun < PASS.semanticdone)
             mt.sym.dsymbolSemantic(null);
-        if (!mt.sym.members)
-        {
-            if (mt.sym.isSpecial())
-            {
-                /* Special enums forward to the base type
-                 */
-                e = mt.sym.memtype.dotExp(sc, e, ident, flag);
-            }
-            else if (!(flag & 1))
-            {
-                mt.sym.error("is forward referenced when looking for `%s`", ident.toChars());
-                e = ErrorExp.get();
-            }
-            else
-                e = null;
-            return e;
-        }
 
         Dsymbol s = mt.sym.search(e.loc, ident);
         if (!s)

@@ -280,7 +280,8 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
     .command([env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
-        "-vtls"]
+        "-vtls",
+        "-J" ~ env["RES"]]
         .chain(flags["DFLAGS"],
             extraFlags,
             // source files need to have relative paths in order for the code coverage

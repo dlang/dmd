@@ -40,15 +40,23 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 nothrow:
+@safe:
 
 void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbit(b, vc); }
 
+@trusted
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
+@trusted
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
+@trusted
 void util_free(void* p) { if (p) free(p); }
+
+@trusted
 void *util_calloc(uint n, uint size) { void* p = calloc(n, size); assert(!(n * size) || p); return p; }
+
+@trusted
 void *util_realloc(void* p, size_t n, size_t size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
 
 extern (C++):
@@ -84,6 +92,7 @@ private __gshared
  * Bgenrd = set of defs in B that reach the end of B.
  */
 
+@trusted
 void flowrd()
 {
     rdgenkill();            /* Compute Bgen and Bkill for RDs       */
@@ -144,6 +153,7 @@ void flowrd()
  * Compute Bgen and Bkill for RDs.
  */
 
+@trusted
 private void rdgenkill()
 {
     /* Compute number of definition elems. */
@@ -207,7 +217,7 @@ private void rdgenkill()
  * Returns:
  *      number of definition elems
  */
-
+@trusted
 private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
 {
     uint n = 0;
@@ -241,6 +251,7 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
  * necessary.
  */
 
+@trusted
 private void asgdefelems(block *b,elem *n)
 {
     assert(b && n);
@@ -271,6 +282,7 @@ private void asgdefelems(block *b,elem *n)
  * Allocate and initialize DNumambig vectors in go.defnod[]
  */
 
+@trusted
 private void initDNunambigVectors()
 {
     //printf("initDNunambigVectors()\n");
@@ -303,6 +315,7 @@ private void initDNunambigVectors()
  *      n = elem tree to evaluate for GEN and KILL
  */
 
+@trusted
 private void rdelem(out vec_t GEN, out vec_t KILL,
         elem *n)
 {
@@ -316,6 +329,7 @@ private void rdelem(out vec_t GEN, out vec_t KILL,
  * Accumulate GEN and KILL vectors for this elem.
  */
 
+@trusted
 private void accumrd(vec_t GEN,vec_t KILL,elem *n)
 {
     assert(GEN && KILL && n);
@@ -414,6 +428,7 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
  * Bout = the set of AEs reaching the end of B.
  */
 
+@trusted
 void flowae()
 {
     flowxx = AE;
@@ -431,6 +446,7 @@ void flowae()
  * Bout = the set of CPs reaching the end of B.
  */
 
+@trusted
 void flowcp()
 {
     flowxx = CP;
@@ -444,6 +460,7 @@ void flowcp()
  *      flowxx
  */
 
+@trusted
 private void flowaecp(int flowxx)
 {
     aecpgenkill(go, flowxx);   // Compute Bgen and Bkill for AEs or CPs
@@ -573,6 +590,7 @@ private void flowaecp(int flowxx)
  * Compute Bgen and Bkill for AEs, CPs, and VBEs.
  */
 
+@trusted
 private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
 {
     block* this_block;
@@ -820,6 +838,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
  *      vptrkill:       set of expressions killed by an access to a vptr.
  */
 
+@trusted
 private void defstarkill()
 {
     const exptop = go.exptop;
@@ -922,6 +941,7 @@ private void defstarkill()
  * go.expnod[] is assumed to be set up correctly.
  */
 
+@trusted
 void genkillae()
 {
     flowxx = AE;
@@ -945,6 +965,7 @@ void genkillae()
  * Allocate and compute KILL and GEN vectors for a elem.
  */
 
+@trusted
 private void aecpelem(vec_t *pgen,vec_t *pkill, elem *n)
 {
     *pgen = vec_calloc(go.exptop);
@@ -968,6 +989,7 @@ private __gshared
     vec_t KILL;
 }
 
+@trusted
 private void accumaecp(vec_t g,vec_t k,elem *n)
 {   vec_t GENsave,KILLsave;
 
@@ -981,6 +1003,7 @@ private void accumaecp(vec_t g,vec_t k,elem *n)
     KILL = KILLsave;
 }
 
+@trusted
 private void accumaecpx(elem *n)
 {
     elem *t;
@@ -1225,6 +1248,7 @@ private void accumaecpx(elem *n)
  * Note that Bgen & Bkill = 0.
  */
 
+@trusted
 void flowlv()
 {
     lvgenkill();            /* compute Bgen and Bkill for LVs.      */
@@ -1313,6 +1337,7 @@ void flowlv()
  * Allocate Binlv and Boutlv vectors.
  */
 
+@trusted
 private void lvgenkill()
 {
     /* Compute ambigsym, a vector of all variables that could be    */
@@ -1346,6 +1371,7 @@ private void lvgenkill()
  * Allocate and compute KILL and GEN for live variables.
  */
 
+@trusted
 private void lvelem(vec_t *pgen,vec_t *pkill,elem *n, const vec_t ambigsym)
 {
     *pgen = vec_calloc(globsym.length);
@@ -1358,6 +1384,7 @@ private void lvelem(vec_t *pgen,vec_t *pkill,elem *n, const vec_t ambigsym)
  * Accumulate GEN and KILL sets for LVs for this elem.
  */
 
+@trusted
 private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
 {
     assert(GEN && KILL && n);
@@ -1540,6 +1567,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
  * Note that gen and kill are mutually exclusive.
  */
 
+@trusted
 void flowvbe()
 {
     flowxx = VBE;
@@ -1616,6 +1644,7 @@ void flowvbe()
  * Accumulate GEN and KILL sets for VBEs for this elem.
  */
 
+@trusted
 private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
 {
     elem *t;

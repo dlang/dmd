@@ -22,6 +22,7 @@ import dmd.backend.type;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 alias symlist_t = LIST*;
 
@@ -78,16 +79,19 @@ idx_t cv4_arglist(type* t, uint* pnparam);
 ubyte cv4_callconv(type* t);
 idx_t cv_numdebtypes();
 
+@trusted
 void TOWORD(ubyte* a, uint b)
 {
     *cast(ushort*)a = cast(ushort)b;
 }
 
+@trusted
 void TOLONG(ubyte* a, uint b)
 {
     *cast(uint*)a = b;
 }
 
+@trusted
 void TOIDX(ubyte* a, uint b)
 {
     if (cgcv.sz_idx == 4)

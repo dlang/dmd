@@ -13,6 +13,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 nothrow:
+@safe:
 
 /****************************************
  * Find longest match of pattern[0..plen] in dict[0..dlen].
@@ -20,6 +21,7 @@ nothrow:
  *      true if match found
  */
 
+@trusted
 private bool longest_match(char *dict, int dlen, char *pattern, int plen,
         int *pmatchoff, int *pmatchlen)
 {
@@ -69,7 +71,7 @@ private bool longest_match(char *dict, int dlen, char *pattern, int plen,
  * Returns:
  *      malloc'd compressed 0-terminated identifier
  */
-
+@trusted
 extern(C) char *id_compress(char *id, int idlen, size_t *plen)
 {
     int count = 0;

@@ -81,25 +81,6 @@ enum CHECKACTION : ubyte
     context,      // call D assert with the error context on failure
 }
 
-enum CPU
-{
-    x87,
-    mmx,
-    sse,
-    sse2,
-    sse3,
-    ssse3,
-    sse4_1,
-    sse4_2,
-    avx,                // AVX1 instruction set
-    avx2,               // AVX2 instruction set
-    avx512,             // AVX-512 instruction set
-
-    // Special values that don't survive past the command line processing
-    baseline,           // (default) the minimum capability CPU
-    native              // the machine the compiler is being run on
-}
-
 enum PIC : ubyte
 {
     fixed,              /// located at a specific address
@@ -172,14 +153,13 @@ extern (C++) struct Param
     bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
     bool isLP64;            // generate code for LP64
     TargetOS targetOS;      // operating system to generate code for
-    bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25
-    bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
+    bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
@@ -237,8 +217,6 @@ extern (C++) struct Param
     bool externStdUsage;    // print help on -extern-std switch
     bool hcUsage;           // print help on -HC switch
     bool logo;              // print compiler logo
-
-    CPU cpu = CPU.baseline; // CPU instruction set to target
 
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks

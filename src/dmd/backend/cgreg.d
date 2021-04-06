@@ -42,6 +42,7 @@ import dmd.backend.dvec;
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 
@@ -54,11 +55,13 @@ private __gshared
     Barray!int weights;
 }
 
+@trusted
 ref int WEIGHTS(int bi, int si) { return weights[bi * globsym.length + si]; }
 
 /******************************************
  */
 
+@trusted
 void cgreg_init()
 {
     if (!(config.flags4 & CFG4optimized))
@@ -87,7 +90,7 @@ void cgreg_init()
     {   uint sz;
         Symbol *s = globsym[i];
 
-        //printf("considering candidate '%s' for register\n",s.Sident);
+        //printf("considering candidate '%s' for register\n", s.Sident.ptr);
 
         if (s.Srange)
             s.Srange = vec_realloc(s.Srange,dfo.length);
@@ -150,6 +153,7 @@ void cgreg_init()
 /******************************************
  */
 
+@trusted
 void cgreg_term()
 {
     if (config.flags4 & CFG4optimized)
@@ -178,6 +182,7 @@ void cgreg_term()
 /*********************************
  */
 
+@trusted
 void cgreg_reset()
 {
     for (size_t j = 0; j < regrange.length; j++)
@@ -191,6 +196,7 @@ void cgreg_reset()
  * Registers used in block bi.
  */
 
+@trusted
 void cgreg_used(uint bi,regm_t used)
 {
     for (size_t j = 0; used; j++)
@@ -204,6 +210,7 @@ void cgreg_used(uint bi,regm_t used)
  * Run through a tree calculating symbol weights.
  */
 
+@trusted
 private void el_weights(int bi,elem *e,uint weight)
 {
     while (1)
@@ -263,6 +270,7 @@ private void el_weights(int bi,elem *e,uint weight)
  * A negative value means that s cannot or should not be assigned to reg.
  */
 
+@trusted
 private int cgreg_benefit(Symbol *s, reg_t reg, Symbol *retsym)
 {
     int benefit;
@@ -531,6 +539,7 @@ Lcant:
  *      cdbload = append load code to this
  */
 
+@trusted
 void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
 {
     const int bi = b.Bdfoidx;
@@ -606,6 +615,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
  *      cdbload = append load code to this
  */
 
+@trusted
 void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
     const bi = b.Bdfoidx;
@@ -649,6 +659,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref Code
  * Map symbol s into registers [NOREG,reglsw] or [regmsw, reglsw].
  */
 
+@trusted
 private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
 {
     //assert(I64 || reglsw < 8);
@@ -742,6 +753,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
  * "Unregister" them.
  */
 
+@trusted
 void cgreg_unregister(regm_t conflict)
 {
     if (pass == PASSfinal)
@@ -770,6 +782,7 @@ struct Reg              // data for trial register assignment
     reg_t regmsw;
 }
 
+@trusted
 int cgreg_assign(Symbol *retsym)
 {
     int flag = false;                   // assume no changes

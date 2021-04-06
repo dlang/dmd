@@ -36,6 +36,7 @@ import dmd.backend.barray;
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 code *gen1(code *c, uint op);
@@ -52,6 +53,7 @@ private uint mask(uint m) { return 1 << m; }
 private bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
 
 // If we use Pentium Pro scheduler
+@trusted
 private bool PRO() { return config.target_cpu >= TARGET_PentiumPro; }
 
 private enum FP : ubyte
@@ -96,6 +98,7 @@ struct Cinfo
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
 
+    @trusted
     nothrow void print()        // pretty-printer
     {
         Cinfo *ci = &this;
@@ -138,6 +141,7 @@ struct Cinfo
  *      scratch         scratch registers we can use
  */
 
+@trusted
 private void cgsched_pentium(code **pc,regm_t scratch)
 {
     //printf("scratch = x%02x\n",scratch);
@@ -158,6 +162,7 @@ private void cgsched_pentium(code **pc,regm_t scratch)
 /************************************
  * Entry point
  */
+@trusted
 public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
@@ -1277,6 +1282,7 @@ private int pair_class(code *c)
  * Determine operand size if EA (larger is ok).
  */
 
+@trusted
 private void getinfo(Cinfo *ci,code *c)
 {
     memset(ci,0,Cinfo.sizeof);
@@ -1932,6 +1938,7 @@ private code * cnext(code *c)
 //                      then return 0
 //                      if 2, then adjust ci1 as well as ci2
 
+@trusted
 private int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
 {
     code *c1;
@@ -2247,6 +2254,7 @@ nothrow:
 
     int fpustackused;           // number of slots in FPU stack that are used
 
+    @trusted
     void initialize(int fpustackinit)          // initialize scheduler
     {
         //printf("Schedule::initialize(fpustackinit = %d)\n", fpustackinit);
@@ -2254,11 +2262,13 @@ nothrow:
         fpustackused = fpustackinit;
     }
 
+    @trusted
     void dtor()
     {
         stagelist.dtor();
     }
 
+@trusted
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
     code *c;
@@ -2687,6 +2697,7 @@ Linsert:
  *      false if could not be scheduled; have to start a new one
  */
 
+@trusted
 bool stage(code *c)
 {
     //printf("stage: "); c.print();
@@ -2810,6 +2821,7 @@ private code * csnip(code *c)
  * based on Steve Russell's algorithm.
  */
 
+@trusted
 private code *schedule(code *c,regm_t scratch)
 {
     code *cresult = null;
@@ -3198,6 +3210,7 @@ Lnop:
  * to scheduling.
  */
 
+@trusted
 code *simpleops(code *c,regm_t scratch)
 {   code *cstart;
     uint reg;

@@ -23,6 +23,7 @@ import dmd.backend.mem;
 extern (C++):
 
 nothrow:
+@safe:
 
 alias SYMIDX = size_t;    // symbol table index
 
@@ -50,6 +51,7 @@ struct symtab_t
      */
     void setLength(size_t length)
     {
+        @trusted
         static void enlarge(ref symtab_t barray, size_t length)
         {
             pragma(inline, false);
@@ -83,23 +85,27 @@ struct symtab_t
             enlarge(this, length);              // the slow path
     }
 
+    @trusted
     ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
     {
         assert(i < length);
         return tab[i];
     }
 
+    @trusted
     extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
     {
         return tab[0 .. length];
     }
 
+    @trusted
     extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
     {
         assert(a <= b && b <= length);
         return tab[a .. b];
     }
 
+    @trusted
     void dtor()
     {
         if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))

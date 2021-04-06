@@ -38,6 +38,7 @@ module dmd.backend.md5;
 extern (C++):
 nothrow:
 @nogc:
+@safe:
 private:
 
 /* typedef a 32 bit type */
@@ -107,6 +108,7 @@ public void MD5Init (MD5_CTX *mdContext)
   mdContext.buf[3] = cast(UINT4)0x10325476;
 }
 
+@trusted
 public void MD5Update (MD5_CTX *mdContext, ubyte *inBuf, uint inLen)
 {
   UINT4[16] in_;
@@ -139,6 +141,7 @@ public void MD5Update (MD5_CTX *mdContext, ubyte *inBuf, uint inLen)
   }
 }
 
+@trusted
 public void MD5Final (MD5_CTX *mdContext)
 {
   UINT4[16] in_;
@@ -179,6 +182,7 @@ public void MD5Final (MD5_CTX *mdContext)
 
 /* Basic MD5 step. Transform buf based on in.
  */
+@trusted
 void Transform (UINT4 *buf, UINT4 *in_)
 {
   UINT4 a = buf[0], b = buf[1], c = buf[2], d = buf[3];

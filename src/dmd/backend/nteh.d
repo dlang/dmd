@@ -52,6 +52,7 @@ static if (NTEXCEPTIONS)
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 Symbol* except_gensym();
@@ -85,6 +86,7 @@ int nteh_offset_info()          { return 4; }
 /***********************************
  */
 
+@trusted
 ubyte *nteh_context_string()
 {
     if (config.exe == EX_WIN32)
@@ -99,6 +101,7 @@ ubyte *nteh_context_string()
  *      symbol of table
  */
 
+@trusted
 private Symbol *nteh_scopetable()
 {
     Symbol *s;
@@ -118,6 +121,7 @@ private Symbol *nteh_scopetable()
 /*************************************
  */
 
+@trusted
 void nteh_filltables()
 {
 version (MARS)
@@ -133,6 +137,7 @@ version (MARS)
  * Not called for NTEH C++ exceptions
  */
 
+@trusted
 void nteh_gentables(Symbol *sfunc)
 {
     Symbol *s = s_table;
@@ -198,6 +203,7 @@ version (MARS)
  * Declare frame variables.
  */
 
+@trusted
 void nteh_declarvars(Blockx *bx)
 {
     Symbol *s;
@@ -260,6 +266,7 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
  * Return pointer to context symbol.
  */
 
+@trusted
 Symbol *nteh_contextsym()
 {
     for (SYMIDX si = 0; 1; si++)
@@ -274,7 +281,7 @@ Symbol *nteh_contextsym()
 /**********************************
  * Return size of context symbol on stack.
  */
-
+@trusted
 uint nteh_contextsym_size()
 {
     int sz;
@@ -313,6 +320,7 @@ else
  * Return pointer to ecode symbol.
  */
 
+@trusted
 Symbol *nteh_ecodesym()
 {
     SYMIDX si;
@@ -353,6 +361,7 @@ else
  * Generate NT exception handling function prolog.
  */
 
+@trusted
 void nteh_prolog(ref CodeBuilder cdb)
 {
     code cs;
@@ -465,6 +474,7 @@ void nteh_prolog(ref CodeBuilder cdb)
  * Generate NT exception handling function epilog.
  */
 
+@trusted
 void nteh_epilog(ref CodeBuilder cdb)
 {
     if (config.exe != EX_WIN32)
@@ -506,6 +516,7 @@ else
  * Set/Reset ESP from context.
  */
 
+@trusted
 void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
 {
     code cs;
@@ -523,6 +534,7 @@ void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
  * Put out prolog for BC_filter block.
  */
 
+@trusted
 void nteh_filter(ref CodeBuilder cdb, block *b)
 {
     code cs;
@@ -600,6 +612,7 @@ code *nteh_patchindex(code* c, int sindex)
     return c;
 }
 
+@trusted
 void nteh_gensindex(ref CodeBuilder cdb, int sindex)
 {
     if (!(config.ehmethod == EHmethod.EH_WIN32 || config.ehmethod == EHmethod.EH_SEH) || funcsym_p.Sfunc.Fflags3 & Feh_none)
@@ -617,6 +630,7 @@ void nteh_gensindex(ref CodeBuilder cdb, int sindex)
  * Generate code for setjmp().
  */
 
+@trusted
 void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
 {
     code cs;
@@ -750,6 +764,7 @@ L2:
  *      stop_index = index to stop at
  */
 
+@trusted
 void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
 {
     // Shouldn't this always be CX?
@@ -817,6 +832,7 @@ version (MARS)
 
 version (MARS)
 {
+@trusted
 void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
 {
     /*
@@ -885,6 +901,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
 version (MARS)
 {
 
+@trusted
 void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
 {
     /*

@@ -22,6 +22,7 @@ import dmd.backend.dlist;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
@@ -118,6 +119,7 @@ else
     enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
+@trusted
 bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
 

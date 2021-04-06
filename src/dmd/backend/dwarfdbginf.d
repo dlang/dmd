@@ -566,11 +566,11 @@ static if (1)
 
         // .debug_line
         size_t linebuf_filetab_end;
-        size_t linePrologueLengthOffset;
+        size_t lineHeaderLengthOffset;
 
         const byte line_base = -5;
         const ubyte line_range = 14;
-        const ubyte opcode_base = 10;
+        const ubyte opcode_base = 13;
 
         public uint[TYMAX] typidx_tab;
     }
@@ -598,16 +598,20 @@ static if (1)
      */
     void writeDebugFrameHeader(Outbuffer *buf)
     {
-        auto getDebugFrameHeader(ubyte dversion)()
+        void writeDebugFrameHeader(ubyte dversion)()
         {
-            static assert(dversion == 3);
             struct DebugFrameHeader
             {
               align (1):
-                uint length = 16;
+                uint length;
                 uint CIE_id = 0xFFFFFFFF;
-                ubyte version_ = 1;
+                ubyte version_ = dversion;
                 ubyte augmentation;
+                static if (dversion >= 4)
+                {
+                    ubyte address_size = 4;
+                    ubyte segment_selector_size;
+                }
                 ubyte code_alignment_factor = 1;
                 ubyte data_alignment_factor = 0x80;
                 ubyte return_address_register = 8;
@@ -620,24 +624,36 @@ static if (1)
                     DW_CFA_nop, DW_CFA_nop, // 64 padding
                 ];
             }
+            static if (dversion == 3)
+                static assert(DebugFrameHeader.sizeof == 24);
+            else static if (dversion == 4)
+                static assert(DebugFrameHeader.sizeof == 26);
+            else
+                static assert(0);
 
             auto dfh = DebugFrameHeader.init;
             dfh.data_alignment_factor -= OFFSET_FAC;
 
             if (I64)
             {
-                dfh.length += 4;
+                dfh.length = DebugFrameHeader.sizeof - 4;
                 dfh.return_address_register = 16;           // (-8)
                 dfh.opcodes[1] = 7;                         // RSP
                 dfh.opcodes[2] = 8;
                 dfh.opcodes[3] = DW_CFA_offset + 16;        // RIP
             }
+            else
+            {
+                dfh.length = DebugFrameHeader.sizeof - 8;
+            }
 
-            return dfh;
+            buf.writen(&dfh, dfh.length + 4);
         }
 
-        auto dfh = getDebugFrameHeader!3();
-        buf.writen(&dfh, dfh.length + 4);
+        if (config.dwarf == 3)
+            writeDebugFrameHeader!3();
+        else
+            writeDebugFrameHeader!4();
     }
 
     /*****************************************
@@ -1056,22 +1072,20 @@ static if (1)
 
             debug_line.initialize();
 
-            auto getDebugLineHeader(ushort hversion)()
+            void writeDebugLineHeader(ushort hversion)()
             {
-                static assert(hversion == 3);
-
                 struct DebugLineHeader
                 {
                 align (1):
                     uint length;
                     ushort version_= hversion;
-                    uint prologue_length;
+                    uint header_length;
                     ubyte minimum_instruction_length = 1;
                     bool default_is_stmt = true;
                     byte line_base = .line_base;
                     ubyte line_range = .line_range;
                     ubyte opcode_base = .opcode_base;
-                    ubyte[9] sol =
+                    ubyte[12] standard_opcode_lengths =
                     [
                         0,      // DW_LNS_copy
                         1,      // DW_LNS_advance_pc
@@ -1082,19 +1096,29 @@ static if (1)
                         0,      // DW_LNS_set_basic_block
                         0,      // DW_LNS_const_add_pc
                         1,      // DW_LNS_fixed_advance_pc
+                        0,      // DW_LNS_set_prologue_end
+                        0,      // DW_LNS_set_epilogue_begin
+                        0,      // DW_LNS_set_isa
                     ];
                 }
-                static assert(DebugLineHeader.sizeof == 24);
-                // 6.2.5.2 Standard Opcodes
-                static assert(DebugLineHeader.sol.length == opcode_base - 1);
 
-                return DebugLineHeader.init;
+                static if (hversion == 3)
+                    static assert(DebugLineHeader.sizeof == 27);
+                else
+                    static assert(0);
+
+                auto lineHeader = DebugLineHeader.init;
+
+                // 6.2.5.2 Standard Opcodes
+                static assert(DebugLineHeader.standard_opcode_lengths.length == opcode_base - 1);
+
+                lineHeaderLengthOffset = lineHeader.header_length.offsetof;
+
+                debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
             }
 
-            auto lineHeader = getDebugLineHeader!3();
-            debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
+            writeDebugLineHeader!3();
 
-            linePrologueLengthOffset = lineHeader.prologue_length.offsetof;
 
             // include_directories
             version (SCPP)
@@ -1371,7 +1395,8 @@ static if (1)
         assert(debug_line.buf.length() == linebuf_filetab_end);
         debug_line.buf.writeByte(0);              // end of file_names
 
-        rewrite32(debug_line.buf, linePrologueLengthOffset, cast(uint) debug_line.buf.length() - 10);
+        rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) (debug_line.buf.length() - lineHeaderLengthOffset - 4));
+        // end of debug_line header
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
@@ -1466,7 +1491,7 @@ static if (1)
 
         // Bugzilla 3502, workaround OSX's ld64-77 bug.
         // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (*cast(uint*) &debug_line.buf.buf[linePrologueLengthOffset] + 10 == debug_line.buf.length())
+        if (*cast(uint*) &debug_line.buf.buf[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
             debug_line.buf.reset();
 
         /* ================================================= */

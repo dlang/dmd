@@ -586,16 +586,19 @@ version (SCPP)
  * pseg/offset to start of seg.
  */
 
+@trusted
 int32_t *patchAddr(int seg, targ_size_t offset)
 {
     return cast(int32_t *)(fobjbuf.buf + SecHdrTab[SegData[seg].SDshtidx].offset + offset);
 }
 
+@trusted
 int32_t *patchAddr64(int seg, targ_size_t offset)
 {
     return cast(int32_t *)(fobjbuf.buf + SecHdrTab64[SegData[seg].SDshtidx].offset + offset);
 }
 
+@trusted
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (uint)offset, seg, value);

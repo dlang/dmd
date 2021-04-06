@@ -32,6 +32,7 @@ import dmd.backend.dvec;
 
 extern (C++):
 nothrow:
+@safe:
 
 /***************************************
  * Bit masks for various optimizations.

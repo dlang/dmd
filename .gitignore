@@ -44,3 +44,7 @@ src/optabgen.dSYM/
 # GCov
 *.gcno
 *.gcda
+
+# IntelliJ IDEA / CLion
+.idea/
+dmd.iml

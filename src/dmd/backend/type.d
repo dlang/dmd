@@ -23,6 +23,7 @@ import dmd.backend.ty;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 // type.h
 

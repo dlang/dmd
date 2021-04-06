@@ -8725,9 +8725,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
-        if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
-            exp.e1.checkSharedAccess(sc);
-
         /* Inside constructor, if this is the first assignment of object field,
          * rewrite this to initializing the field.
          */
@@ -8765,6 +8762,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             exp.memset = MemorySet.referenceInit;
         }
+
+        if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
+            exp.e1.checkSharedAccess(sc);
 
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
@@ -12395,7 +12395,10 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 
         override void visit(DotVarExp e)
         {
-            if (!this.allowRef && e.type.isShared())
+            auto fd = e.var.isFuncDeclaration();
+            const sharedFunc = fd && fd.type.isShared;
+
+            if (!this.allowRef && e.type.isShared() && !sharedFunc)
                 return this.sharedError(e);
 
             // Allow to use `DotVarExp` within value types

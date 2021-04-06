@@ -35,15 +35,15 @@ import dmd.backend.ty;
 extern(C++):
 
 nothrow:
+@safe:
 
-private void pe_add(block *b);
-private int need_prolog(block *b);
 
 /********************************************************
  * Determine which blocks get the function prolog and epilog
  * attached to them.
  */
 
+@trusted
 void cod5_prol_epi()
 {
 static if(1)
@@ -158,6 +158,7 @@ else
  * No prolog/epilog optimization.
  */
 
+@trusted
 void cod5_noprol()
 {
     block *b;
@@ -198,6 +199,7 @@ private void pe_add(block *b)
  * Determine if block needs the function prolog to be set up.
  */
 
+@trusted
 private int need_prolog(block *b)
 {
     if (b.Bregcon.used & fregsaved)

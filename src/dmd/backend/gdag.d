@@ -39,11 +39,13 @@ import dmd.backend.dvec;
 extern (C++):
 
 nothrow:
+@safe:
 
 enum Aetype { cse, arraybounds }
 
 private __gshared Aetype aetype;
 
+@trusted
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
 /*************************************
@@ -52,6 +54,7 @@ bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
  *      true if should be cse'd
  */
 
+@trusted
 private bool cse_float(elem *e)
 {
     // Don't CSE floating stuff if generating
@@ -74,7 +77,7 @@ private bool cse_float(elem *e)
  *              unstick unprofitable common subexpressions
  *              (this is generally target-dependent)
  */
-
+@trusted
 void builddags()
 {
     vec_t aevec;
@@ -176,7 +179,7 @@ void builddags()
  *      pn = pointer to expression tree to convert to DAG
  *      ae = vector of available expressions
  */
-
+@trusted
 private void aewalk(elem **pn,vec_t ae)
 {
     elem* n = *pn;
@@ -388,6 +391,7 @@ private void aewalk(elem **pn,vec_t ae)
  * Returns:
  *      *pe
  */
+@trusted
 private elem * delcse(elem **pe)
 {
     elem *e;
@@ -449,6 +453,7 @@ private elem * delcse(elem **pe)
  * things like addressing modes, and are usually target-dependent.
  */
 
+@trusted
 private void removecses(elem **pe)
 {
 L1:
@@ -593,6 +598,7 @@ L1:
  * 0 or !=0, even though we don't know anything else.
  */
 
+@trusted
 void boolopt()
 {
     vec_t aevec;
@@ -665,6 +671,7 @@ void boolopt()
  *      n = elem tree to look at
  */
 
+@trusted
 private void abewalk(elem *n,vec_t ae,vec_t aeval)
 {
     elem *t;
@@ -860,6 +867,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
  * See if we already know its value.
  */
 
+@trusted
 private void abeboolres(elem *n,vec_t ae,vec_t aeval)
 {
     //printf("abeboolres()[%d %p] ", n.Eexp, go.expnod[n.Eexp]); WReqn(n); printf("\n");
@@ -898,6 +906,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
  * Remove e from available expressions, and its children.
  */
 
+@trusted
 private void abefree(elem *e,vec_t ae)
 {
     //printf("abefree [%d %p]: ", e.Eexp, e); WReqn(e); printf("\n");
@@ -923,6 +932,7 @@ private void abefree(elem *e,vec_t ae)
  * Set its result according to flag.
  */
 
+@trusted
 private void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
 {
     while (1)

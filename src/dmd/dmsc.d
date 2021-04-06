@@ -22,6 +22,7 @@ import dmd.dclass;
 import dmd.dmodule;
 import dmd.mars;
 import dmd.mtype;
+import dmd.target;
 
 import dmd.root.filename;
 
@@ -97,7 +98,7 @@ void backend_init()
         params.symdebug,
         dmdParams.alwaysframe,
         params.stackstomp,
-        params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
+        target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
         params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
