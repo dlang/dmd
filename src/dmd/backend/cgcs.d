@@ -41,21 +41,13 @@ nothrow:
 @safe:
 
 /*******************************
- * Eliminate common subexpressions across extended basic blocks.
- * String together as many blocks as we can.
+ * Do common subexpression elimination for non-optimized builds.
  */
 
 @trusted
 public extern (C++) void comsubs()
 {
-    //static int xx;
-    //printf("comsubs() %d\n", ++xx);
-    //debugx = (xx == 37);
-
     debug if (debugx) printf("comsubs(%p)\n",startblock);
-
-    // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount();                   // eliminate unreachable blocks
 
     version (SCPP)
     {
@@ -63,7 +55,39 @@ public extern (C++) void comsubs()
             return;
     }
 
-    auto cgcs = &cgcsdata;               // cache global value
+    comsubs2(startblock, cgcsdata);
+
+    debug if (debugx)
+        printf("done with comsubs()\n");
+}
+
+/*******************************
+ */
+
+@trusted
+public extern (C++) void cgcs_term()
+{
+    cgcsdata.term();
+    debug debugw && printf("cgcs_term()\n");
+}
+
+
+/***********************************************************************/
+
+private:
+
+alias hash_t = uint;    // for hash values
+
+/*******************************
+ * Eliminate common subexpressions across extended basic blocks.
+ * String together as many blocks as we can.
+ */
+@trusted
+void comsubs2(block* startblock, ref CGCS cgcs)
+{
+    // No longer just compute Bcount - eliminate unreachable blocks too
+    block_compbcount();                   // eliminate unreachable blocks
+
     cgcs.start();
 
     block* bln;
@@ -98,31 +122,12 @@ public extern (C++) void comsubs()
                 printf("cses for block %p\n",bln);
 
             if (bln.Belem)
-                ecom(&bln.Belem);  // do the tree
+                ecom(cgcs, bln.Belem);  // do the tree
             bln = bln.Bnext;
         }
     }
-
-    debug if (debugx)
-        printf("done with comsubs()\n");
 }
 
-/*******************************
- */
-
-@trusted
-public extern (C++) void cgcs_term()
-{
-    cgcsdata.term();
-    debug debugw && printf("cgcs_term()\n");
-}
-
-
-/***********************************************************************/
-
-private:
-
-alias hash_t = uint;    // for hash values
 
 /*********************************
  * Struct for each elem:
@@ -172,7 +177,6 @@ struct CGCS
      * Reset for next time.
      * hcstab[]'s storage is kept instead of reallocated.
      */
-    @trusted
     void reset()
     {
         vec_clear(csvec);       // don't free it, recycle storage
@@ -193,7 +197,7 @@ struct CGCS
     /****************************
      * Add an elem to the common subexpression table.
      */
-    @trusted
+
     void push(elem *e, hash_t hash)
     {
         hcstab.push(HCS(e, hash));
@@ -220,11 +224,14 @@ __gshared CGCS cgcsdata;
 
 /*************************
  * Eliminate common subexpressions for an element.
+ * Params:
+ *      cgcs = cgcsdata
+ *      pe = elem that is changed to previous elem if it's a CSE
  */
 @trusted
-void ecom(elem **pe)
+void ecom(ref CGCS cgcs, ref elem* pe)
 {
-    auto e = *pe;
+    auto e = pe;
     assert(e);
     elem_debug(e);
     debug assert(e.Ecount == 0);
@@ -264,30 +271,30 @@ void ecom(elem **pe)
             if (op != OPeq && tym == TYdouble && !config.inline8087)
             {
                 if (!OTleaf(e.EV.E1.Eoper))
-                    ecom(&e.EV.E1.EV.E1);
-                ecom(&e.EV.E2);
+                    ecom(cgcs, e.EV.E1.EV.E1);
+                ecom(cgcs, e.EV.E2);
             }
             else
             {
                 /* Don't mark the increment of an i++ or i-- as a CSE, if it */
                 /* can be done with an INC or DEC instruction.               */
                 if (!(OTpost(op) && elemisone(e.EV.E2)))
-                    ecom(&e.EV.E2);           /* evaluate 2nd operand first   */
+                    ecom(cgcs, e.EV.E2);           /* evaluate 2nd operand first   */
         case OPnegass:
                 if (!OTleaf(e.EV.E1.Eoper))             /* if lvalue is an operator     */
                 {
                     if (e.EV.E1.Eoper != OPind)
                         elem_print(e);
                     assert(e.EV.E1.Eoper == OPind);
-                    ecom(&(e.EV.E1.EV.E1));
+                    ecom(cgcs, e.EV.E1.EV.E1);
                 }
             }
-            touchlvalue(e.EV.E1);
+            touchlvalue(cgcs, e.EV.E1);
             if (!OTpost(op))                /* lvalue of i++ or i-- is not a cse*/
             {
                 const hash = cs_comphash(e.EV.E1);
-                vec_setbit(hash % CGCS.CSVECDIM,cgcsdata.csvec);
-                cgcsdata.push(e.EV.E1,hash);              // add lvalue to cgcsdata.hcstab[]
+                vec_setbit(hash % CGCS.CSVECDIM,cgcs.csvec);
+                cgcs.push(e.EV.E1,hash);              // add lvalue to cgcs.hcstab[]
             }
             return;
 
@@ -295,52 +302,52 @@ void ecom(elem **pe)
         case OPbts:
         case OPbtr:
         case OPcmpxchg:
-            ecom(&e.EV.E1);
-            ecom(&e.EV.E2);
-            touchfunc(0);                   // indirect assignment
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
+            touchfunc(cgcs, 0);                   // indirect assignment
             return;
 
         case OPandand:
         case OPoror:
         {
-            ecom(&e.EV.E1);
-            const lengthSave = cgcsdata.hcstab.length;
-            auto hcsarraySave = cgcsdata.hcsarray;
-            ecom(&e.EV.E2);
-            cgcsdata.hcsarray = hcsarraySave;        // no common subs by E2
-            cgcsdata.hcstab.setLength(lengthSave);
+            ecom(cgcs, e.EV.E1);
+            const lengthSave = cgcs.hcstab.length;
+            auto hcsarraySave = cgcs.hcsarray;
+            ecom(cgcs, e.EV.E2);
+            cgcs.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcs.hcstab.setLength(lengthSave);
             return;                         /* if comsub then logexp() will */
         }
 
         case OPcond:
         {
-            ecom(&e.EV.E1);
-            const lengthSave = cgcsdata.hcstab.length;
-            auto hcsarraySave = cgcsdata.hcsarray;
-            ecom(&e.EV.E2.EV.E1);               // left condition
-            cgcsdata.hcsarray = hcsarraySave;        // no common subs by E2
-            cgcsdata.hcstab.setLength(lengthSave);
-            ecom(&e.EV.E2.EV.E2);               // right condition
-            cgcsdata.hcsarray = hcsarraySave;        // no common subs by E2
-            cgcsdata.hcstab.setLength(lengthSave);
+            ecom(cgcs, e.EV.E1);
+            const lengthSave = cgcs.hcstab.length;
+            auto hcsarraySave = cgcs.hcsarray;
+            ecom(cgcs, e.EV.E2.EV.E1);               // left condition
+            cgcs.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcs.hcstab.setLength(lengthSave);
+            ecom(cgcs, e.EV.E2.EV.E2);               // right condition
+            cgcs.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcs.hcstab.setLength(lengthSave);
             return;                         // can't be a common sub
         }
 
         case OPcall:
         case OPcallns:
-            ecom(&e.EV.E2);                   /* eval right first             */
+            ecom(cgcs, e.EV.E2);                   /* eval right first             */
             goto case OPucall;
 
         case OPucall:
         case OPucallns:
-            ecom(&e.EV.E1);
-            touchfunc(1);
+            ecom(cgcs, e.EV.E1);
+            touchfunc(cgcs, 1);
             return;
 
         case OPstrpar:                      /* so we don't break logexp()   */
         case OPinp:                 /* never CSE the I/O instruction itself */
         case OPprefetch:            // don't CSE E2 or the instruction
-            ecom(&e.EV.E1);
+            ecom(cgcs, e.EV.E1);
             goto case OPasm;
 
         case OPasm:
@@ -354,38 +361,38 @@ void ecom(elem **pe)
             return;
 
         case OPddtor:
-            cgcsdata.touchall();
-            ecom(&e.EV.E1);
-            cgcsdata.touchall();
+            cgcs.touchall();
+            ecom(cgcs, e.EV.E1);
+            cgcs.touchall();
             return;
 
         case OPparam:
         case OPoutp:
-            ecom(&e.EV.E1);
+            ecom(cgcs, e.EV.E1);
             goto case OPinfo;
 
         case OPinfo:
-            ecom(&e.EV.E2);
+            ecom(cgcs, e.EV.E2);
             return;
 
         case OPcomma:
-            ecom(&e.EV.E1);
-            ecom(&e.EV.E2);
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
             return;
 
         case OPremquo:
-            ecom(&e.EV.E1);
-            ecom(&e.EV.E2);
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
             break;
 
         case OPvp_fp:
         case OPcvp_fp:
-            ecom(&e.EV.E1);
-            touchaccess(cgcsdata.hcstab, e);
+            ecom(cgcs, e.EV.E1);
+            touchaccess(cgcs.hcstab, e);
             break;
 
         case OPind:
-            ecom(&e.EV.E1);
+            ecom(cgcs, e.EV.E1);
             /* Generally, CSEing a *(double *) results in worse code        */
             if (tyfloating(tym))
                 return;
@@ -397,12 +404,12 @@ void ecom(elem **pe)
         case OPstrcat:
         case OPmemcpy:
         case OPmemset:
-            ecom(&e.EV.E2);
+            ecom(cgcs, e.EV.E2);
             goto case OPsetjmp;
 
         case OPsetjmp:
-            ecom(&e.EV.E1);
-            touchfunc(0);
+            ecom(cgcs, e.EV.E1);
+            touchfunc(cgcs, 0);
             return;
 
         default:                            /* other operators */
@@ -423,8 +430,8 @@ void ecom(elem **pe)
         case OPscale:
         case OPyl2x:
         case OPyl2xp1:
-            ecom(&e.EV.E1);
-            ecom(&e.EV.E2);
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
             break;
 
         case OPstring:
@@ -433,7 +440,6 @@ void ecom(elem **pe)
             WROP(e.Eoper);
             elem_print(e);
             assert(0);              /* optelem() should have removed these  */
-            /* NOTREACHED */
 
         // Explicitly list all the unary ops for speed
         case OPnot: case OPcom: case OPneg: case OPuadd:
@@ -456,7 +462,7 @@ void ecom(elem **pe)
         case OPsqrt: case OPsin: case OPcos:
         case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
         case OPvecfill: case OPtoprec:
-            ecom(&e.EV.E1);
+            ecom(cgcs, e.EV.E1);
             break;
 
         case OPd_ld:
@@ -469,9 +475,9 @@ void ecom(elem **pe)
                 (op1 == OPs32_d ||
                  I64 && (op1 == OPs64_d || op1 == OPu32_d))
                )
-                ecom(&e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt())
+                ecom(cgcs, e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt())
             else
-                ecom(&e.EV.E1);
+                ecom(cgcs, e.EV.E1);
             break;
         }
 
@@ -479,9 +485,9 @@ void ecom(elem **pe)
         case OPd_u32:
         case OPd_s64:
             if (e.EV.E1.Eoper == OPf_d && config.fpxmmregs)
-                ecom(&e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt());
+                ecom(cgcs, e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt());
             else
-                ecom(&e.EV.E1);
+                ecom(cgcs, e.EV.E1);
             break;
 
         case OPhalt:
@@ -510,9 +516,9 @@ void ecom(elem **pe)
 
     debug if (debugx) printf("elem: %p hash: %6d\n",e,hash);
     int csveci = hash % CGCS.CSVECDIM;
-    if (vec_testbit(csveci,cgcsdata.csvec))
+    if (vec_testbit(csveci,cgcs.csvec))
     {
-        foreach_reverse (i, ref hcs; cgcsdata.hcstab[])
+        foreach_reverse (i, ref hcs; cgcs.hcstab[])
         {
             debug if (debugx)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
@@ -535,10 +541,10 @@ void ecom(elem **pe)
                             continue;
                     }
                     ehash.Ecount++;
-                    *pe = ehash;
+                    pe = ehash;
 
                     debug if (debugx)
-                        printf("**MATCH** %p with %p\n",e,*pe);
+                        printf("**MATCH** %p with %p\n",e,pe);
 
                     el_free(e);
                     return;
@@ -547,8 +553,8 @@ void ecom(elem **pe)
         }
     }
     else
-        vec_setbit(csveci,cgcsdata.csvec);
-    cgcsdata.push(e,hash);                    // add this elem to hcstab[]
+        vec_setbit(csveci,cgcs.csvec);
+    cgcs.push(e,hash);                    // add this elem to hcstab[]
 }
 
 /**************************
@@ -584,7 +590,7 @@ hash_t cs_comphash(const elem *e)
  */
 
 @trusted
-void touchlvalue(elem *e)
+void touchlvalue(ref CGCS cgcs, elem* e)
 {
     if (e.Eoper == OPind)                /* if indirect store            */
     {
@@ -593,11 +599,11 @@ void touchlvalue(elem *e)
          * array instead of a pointer.)
          */
 
-        touchfunc(0);
+        touchfunc(cgcs, 0);
         return;
     }
 
-    foreach_reverse (ref hcs; cgcsdata.hcstab[])
+    foreach_reverse (ref hcs; cgcs.hcstab[])
     {
         if (hcs.Helem &&
             hcs.Helem.EV.Vsym == e.EV.Vsym)
@@ -632,7 +638,7 @@ void touchlvalue(elem *e)
         case SCsinline:
         case SCeinline:
         case SCcomdef:
-            touchstar();
+            touchstar(cgcs);
             break;
 
         default:
@@ -653,14 +659,14 @@ void touchlvalue(elem *e)
  */
 
 @trusted
-void touchfunc(int flag)
+void touchfunc(ref CGCS cgcs, int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
-    HCS *petop = cgcsdata.hcstab.ptr + cgcsdata.hcstab.length;
-    //pe = &cgcsdata.hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
-    assert(cgcsdata.hcsarray.touchfunci[flag] <= cgcsdata.hcstab.length);
-    for (HCS *pe = cgcsdata.hcstab.ptr + cgcsdata.hcsarray.touchfunci[flag]; pe < petop; pe++)
+    HCS *petop = cgcs.hcstab.ptr + cgcs.hcstab.length;
+    //pe = &cgcs.hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
+    assert(cgcs.hcsarray.touchfunci[flag] <= cgcs.hcstab.length);
+    for (HCS *pe = cgcs.hcstab.ptr + cgcs.hcsarray.touchfunci[flag]; pe < petop; pe++)
     {
         elem *he = pe.Helem;
         if (!he)
@@ -698,7 +704,7 @@ void touchfunc(int flag)
                 break;
         }
     }
-    cgcsdata.hcsarray.touchfunci[flag] = cgcsdata.hcstab.length;
+    cgcs.hcsarray.touchfunci[flag] = cgcs.hcstab.length;
 }
 
 
@@ -708,9 +714,9 @@ void touchfunc(int flag)
  */
 
 @trusted
-void touchstar()
+void touchstar(ref CGCS cgcs)
 {
-    foreach (ref hcs; cgcsdata.hcstab[cgcsdata.hcsarray.touchstari .. $])
+    foreach (ref hcs; cgcs.hcstab[cgcs.hcsarray.touchstari .. $])
     {
         const e = hcs.Helem;
         if (e &&
@@ -718,7 +724,7 @@ void touchstar()
                 e.Eoper == OPbt) )
             hcs.Helem = null;
     }
-    cgcsdata.hcsarray.touchstari = cgcsdata.hcstab.length;
+    cgcs.hcsarray.touchstari = cgcs.hcstab.length;
 }
 
 /*****************************************
