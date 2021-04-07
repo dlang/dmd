@@ -1311,6 +1311,40 @@ static if (1)
         return *pidx;
     }
 
+    /**
+     * Extracts the file name from `path`.
+     *
+     * Params:
+     *      path = Full path containing the filename and the directory
+     * Returns:
+     *      The file name
+     */
+    extern(D) const(char)[] retrieveFilename(const(char)[] path)
+    {
+        assert(path);
+        immutable SEP = '/';
+        // Retrieve filename from path
+        char* lastSep = strrchr(cast(char*) path.ptr, SEP);
+        return lastSep ? path[lastSep - path.ptr + 1 .. $] : path;
+    }
+
+    /**
+     * Extracts the directory from `path`.
+     *
+     * Params:
+     *      path = Full path containing the filename and the directory
+     * Returns:
+     *      The directory name
+     */
+    extern(D) const(char)[] retrieveDirectory(const(char)[] path)
+    {
+        assert(path);
+        immutable SEP = '/';
+        // Retrieve directory from path
+        char* lastSep = strrchr(cast(char*) path.ptr, SEP);
+        return lastSep ? path[0 .. lastSep - path.ptr] : ".";
+    }
+
     void dwarf_initmodule(const(char)* filename, const(char)* modname)
     {
         dwarf_initmodule(filename ? filename[0 .. strlen(filename)] : null,
