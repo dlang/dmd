@@ -855,8 +855,8 @@ MATCH implicitConvTo(Expression e, Type t)
              * convert to immutable
              */
             if (e.f && e.f.isReturnIsolated() &&
-                (!global.params.vsafe ||        // lots of legacy code breaks with the following purity check
-                 e.f.isPure() >= PURE.strong ||
+                (
+                 e.f.isPure() >= PURE.const_ ||
                  // Special case exemption for Object.dup() which we assume is implemented correctly
                  e.f.ident == Id.dup &&
                  e.f.toParent2() == ClassDeclaration.object.toParent())

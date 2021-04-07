@@ -137,7 +137,7 @@ const struct Diagnostic
         buffer.printf("%s: %.*s", location.toChars(true),
             cast(int) message.length, message.ptr);
 
-        return buffer.extractSlice;
+        return cast(immutable) buffer.extractSlice;
     }
 }
 
@@ -184,7 +184,7 @@ struct DiagnosticCollector
 
         buffer.vprintf(messageFormat, args);
 
-        const string message = buffer
+        const string message = cast(immutable) buffer
             .extractSlice
             .replace("`", "")
             .strip;
