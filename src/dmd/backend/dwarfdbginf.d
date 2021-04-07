@@ -1387,41 +1387,52 @@ static if (1)
     {
         //printf("dwarf_termfile()\n");
 
-        /* ======================================== */
-
-        // Put out line number info
-
-        // file_names
-        uint last_filenumber = 0;
-        const(char)* last_filename = null;
-        for (uint seg = 1; seg < SegData.length; seg++)
+        /* *********************************************************************
+         *      6.2.4 The Line Number Program Header - Remaining fields
+         ******************************************************************** */
         {
-            for (uint i = 0; i < SegData[seg].SDlinnum_data.length; i++)
+
+            // Put out line number info
+
+            // file_names
+            uint last_filenumber = 0;
+            const(char)* last_filename = null;
+            for (uint seg = 1; seg < SegData.length; seg++)
             {
-                linnum_data *ld = &SegData[seg].SDlinnum_data[i];
-                const(char)* filename;
-
-                version (MARS)
-                    filename = ld.filename;
-                else
+                for (uint i = 0; i < SegData[seg].SDlinnum_data.length; i++)
                 {
-                    Sfile *sf = ld.filptr;
-                    if (sf)
-                        filename = sf.SFname;
+                    linnum_data *ld = &SegData[seg].SDlinnum_data[i];
+                    const(char)* filename;
+
+                    version (MARS)
+                        filename = ld.filename;
                     else
-                        filename = .filename;
-                }
+                    {
+                        Sfile *sf = ld.filptr;
+                        if (sf)
+                            filename = sf.SFname;
+                        else
+                            filename = .filename;
+                    }
 
-                if (last_filename == filename)
-                {
-                    ld.filenumber = last_filenumber;
-                }
-                else
-                {
-                    ld.filenumber = dwarf_line_addfile(filename);
+                    if (last_filename == filename)
+                    {
+                        ld.filenumber = last_filenumber;
+                    }
+                    else
+                    {
+                        ld.filenumber = dwarf_line_addfile(filename);
 
-                    last_filenumber = ld.filenumber;
-                    last_filename = filename;
+                        last_filenumber = ld.filenumber;
+                        last_filename = filename;
+                    }
+                }
+            }
+
+                {
+                }
+                {
+
                 }
             }
         }
