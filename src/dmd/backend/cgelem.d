@@ -6099,11 +6099,19 @@ void postoptelem(elem *e)
             {
                 version (MARS)
                 if (e.EV.E1.Eoper == OPconst &&
-                    tybasic(e.EV.E1.Ety) == TYnptr &&   // Allow TYfgptr to reference GS:[0000] etc.
-                    el_tolong(e.EV.E1) >= 0 && el_tolong(e.EV.E1) < 4096)
+                    /* Allow TYfgptr to reference GS:[0000] etc.
+                     */
+                    tybasic(e.EV.E1.Ety) == TYnptr)
                 {
-                    error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);
-                    e.EV.E1.EV.Vlong = 4096;     // suppress redundant messages
+                    /* Disallow anything in the range [0..4096]
+                     * Let volatile pointers dereference null
+                     */
+                    const targ_ullong v = el_tolong(e.EV.E1);
+                    if (v < 4096 && !(e.Ety & mTYvolatile))
+                    {
+                        error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);
+                        e.EV.E1.EV.Vlong = 4096;     // suppress redundant messages
+                    }
                 }
             }
             e = e.EV.E1;
