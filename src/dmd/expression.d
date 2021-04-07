@@ -4769,8 +4769,6 @@ extern (C++) final class DotVarExp : UnaExp
     override Modifiable checkModifiable(Scope* sc, int flag)
     {
         //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
-        if (checkUnsafeAccess(sc, this, false, !flag))
-            return Modifiable.initialization;
 
         if (e1.op == TOK.this_)
             return var.checkModify(loc, sc, e1, flag);

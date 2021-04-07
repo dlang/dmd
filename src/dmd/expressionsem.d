@@ -8764,7 +8764,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
+        {
             exp.e1.checkSharedAccess(sc);
+            checkUnsafeAccess(sc, exp.e1, false, true);
+        }
+
+        checkUnsafeAccess(sc, exp.e2, true, true); // Initializer must always be checked
 
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
