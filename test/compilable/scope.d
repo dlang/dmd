@@ -95,6 +95,19 @@ void test(scope ref D d) @safe
     da ~= D(d.pos, null);
 }
 
+/************************************/
+
+void withEscapes()
+{
+    static D get() @safe;
+
+    with (get())
+    {
+    }
+}
+
+/************************************/
+
 // https://issues.dlang.org/show_bug.cgi?id=20682
 
 int f1_20682(return scope ref D d) @safe
