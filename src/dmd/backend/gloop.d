@@ -47,7 +47,7 @@ nothrow:
 @safe:
 
 @trusted
-char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
