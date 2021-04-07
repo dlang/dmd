@@ -567,6 +567,7 @@ static if (1)
         // .debug_line
         size_t linebuf_filetab_end;
         size_t lineHeaderLengthOffset;
+        AAchars* lineDirectories;
 
         const byte line_base = -5;
         const ubyte line_range = 14;
@@ -1069,6 +1070,11 @@ static if (1)
                 AAchars.destroy(infoFileName_table);
                 infoFileName_table = null;
             }
+            if (lineDirectories)
+            {
+                AAchars.destroy(lineDirectories);
+                lineDirectories = null;
+            }
 
             debug_line.initialize();
 
@@ -1079,8 +1085,17 @@ static if (1)
                 align (1):
                     uint length;
                     ushort version_= hversion;
+                    static if (hversion >= 5)
+                    {
+                        ubyte address_size = 4;
+                        ubyte segment_selector_size;
+                    }
                     uint header_length;
                     ubyte minimum_instruction_length = 1;
+                    static if (hversion >= 4)
+                    {
+                        ubyte maximum_operations_per_instruction = 1;
+                    }
                     bool default_is_stmt = true;
                     byte line_base = .line_base;
                     ubyte line_range = .line_range;
@@ -1100,10 +1115,22 @@ static if (1)
                         0,      // DW_LNS_set_epilogue_begin
                         0,      // DW_LNS_set_isa
                     ];
+                    static if (hversion >= 5)
+                    {
+                        ubyte directory_entry_format_count = directory_entry_format.sizeof / 2;
+                        ubyte[2] directory_entry_format =
+                        [
+                            DW_LNCT_path,   DW_FORM_string,
+                        ];
+                    }
                 }
 
                 static if (hversion == 3)
                     static assert(DebugLineHeader.sizeof == 27);
+                else static if (hversion == 4)
+                    static assert(DebugLineHeader.sizeof == 28);
+                else static if (hversion == 5)
+                    static assert(DebugLineHeader.sizeof == 33);
                 else
                     static assert(0);
 
@@ -1112,33 +1139,38 @@ static if (1)
                 // 6.2.5.2 Standard Opcodes
                 static assert(DebugLineHeader.standard_opcode_lengths.length == opcode_base - 1);
 
+                static if (hversion >= 5)
+                {
+                    if (I64)
+                    {
+                        lineHeader.address_size = 8;
+                    }
+                }
                 lineHeaderLengthOffset = lineHeader.header_length.offsetof;
 
                 debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
             }
 
-            writeDebugLineHeader!3();
+            if (config.dwarf == 3)
+                writeDebugLineHeader!3();
+            else if (config.dwarf == 4)
+                writeDebugLineHeader!4();
+            else
+                writeDebugLineHeader!5();
 
 
-            // include_directories
-            version (SCPP)
-                for (size_t i = 0; i < pathlist.length(); ++i)
-                {
-                    debug_line.buf.writeString(pathlist[i]);
-                    debug_line.buf.writeByte(0);
-                }
+            if (config.dwarf >= 5)
+            {
+                /*
+                 * In DWARF Version 5, the current compilation file name is
+                 * explicitly present and has index 0.
+                 */
+                dwarf_line_addfile(filename);
+                dwarf_line_add_directory(filename);
+            }
 
-            version (MARS)
-            version (none)
-                for (int i = 0; i < global.params.imppath.dim; i++)
-                {
-                    debug_line.buf.writeString((*global.params.imppath)[i]);
-                    debug_line.buf.writeByte(0);
-                }
-
-            debug_line.buf.writeByten(0);           // end of include_directories
-
-            // field file_names in dwarf_termfile()
+            linebuf_filetab_end = debug_line.buf.length();
+            // remaining fields in dwarf_termfile()
         }
 
         /* *********************************************************************
@@ -1277,37 +1309,55 @@ static if (1)
         }
     }
 
-
     /*************************************
-     * Add a file to the .debug_line header
+     * Add a directory to `lineDirectories`
      */
-    int dwarf_line_addfile(const(char)* filename)
+    uint dwarf_line_add_directory(const(char)* path)
     {
-        return dwarf_line_addfile(filename ? filename[0 .. strlen(filename)] : null);
+        assert(path);
+        return dwarf_line_add_directory(path[0 .. strlen(path)]);
     }
 
     /// Ditto
-    extern(D) int dwarf_line_addfile(const(char)[] filename)
+    extern(D) uint dwarf_line_add_directory(const(char)[] path)
     {
-        if (!infoFileName_table)
+        return addToAAchars(lineDirectories, retrieveDirectory(path));
+    }
+
+    /*************************************
+     * Add a file to `infoFileName_table`
+     */
+    uint dwarf_line_addfile(const(char)* path)
+    {
+        assert(path);
+        return dwarf_line_addfile(path[0 .. strlen(path)]);
+    }
+
+    /// Ditto
+    extern(D) uint dwarf_line_addfile(const(char)[] path)
+    {
+        return addToAAchars(infoFileName_table, path);
+    }
+
+    /*************************************
+     * Adds `str` to `aachars`, and assigns a new index if none
+     *
+     * Params:
+     *      aachars = AAchars where to add `str`
+     *      str = string to add to `aachars`
+     */
+    extern(D) uint addToAAchars(ref AAchars* aachars, const(char)[] str)
+    {
+        if (!aachars)
         {
-            infoFileName_table = AAchars.create();
-            linebuf_filetab_end = debug_line.buf.length();
+            aachars = AAchars.create();
         }
 
-        uint *pidx = infoFileName_table.get(filename);
+        uint *pidx = aachars.get(str);
         if (!*pidx)                 // if no idx assigned yet
         {
-            *pidx = infoFileName_table.length(); // assign newly computed idx
-
-            size_t before = debug_line.buf.length();
-            debug_line.buf.writeString(filename);
-            debug_line.buf.writeByte(0);      // directory table index
-            debug_line.buf.writeByte(0);      // mtime
-            debug_line.buf.writeByte(0);      // length
-            linebuf_filetab_end += debug_line.buf.length() - before;
+            *pidx = aachars.length(); // assign newly computed idx
         }
-
         return *pidx;
     }
 
@@ -1370,8 +1420,6 @@ static if (1)
         }
         else
             hasModname = 0;
-
-        dwarf_line_addfile(filename);
     }
 
     void dwarf_termmodule()
@@ -1391,6 +1439,8 @@ static if (1)
          *      6.2.4 The Line Number Program Header - Remaining fields
          ******************************************************************** */
         {
+            // assert we haven't emitted anything
+            assert(debug_line.buf.length() == linebuf_filetab_end);
 
             // Put out line number info
 
@@ -1422,6 +1472,7 @@ static if (1)
                     else
                     {
                         ld.filenumber = dwarf_line_addfile(filename);
+                        dwarf_line_add_directory(filename);
 
                         last_filenumber = ld.filenumber;
                         last_filename = filename;
@@ -1429,19 +1480,96 @@ static if (1)
                 }
             }
 
-                {
-                }
-                {
+            if (config.dwarf >= 5)
+            {
+                debug_line.buf.writeuLEB128(lineDirectories ? lineDirectories.length() : 0);   // directories_count
+            }
 
+            if (lineDirectories)
+            {
+                // include_directories
+                auto dirkeys = lineDirectories.aa.keys();
+                if (dirkeys)
+                {
+                    foreach (id; 1 .. lineDirectories.length() + 1)
+                    {
+                        foreach (const(char)[] dir; dirkeys)
+                        {
+                            // Directories must be written in the correct order, to match file_name indexes
+                            if (dwarf_line_add_directory(dir) == id)
+                            {
+                                //printf("%d: %s\n", dwarf_line_add_directory(dir), dir);
+                                debug_line.buf.writeString(dir);
+                                break;
+                            }
+                        }
+                    }
+                    free(dirkeys.ptr);
+                    dirkeys = null;
                 }
             }
-        }
-        // assert we haven't emitted anything but file table entries
-        assert(debug_line.buf.length() == linebuf_filetab_end);
-        debug_line.buf.writeByte(0);              // end of file_names
 
-        rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) (debug_line.buf.length() - lineHeaderLengthOffset - 4));
-        // end of debug_line header
+            if (config.dwarf < 5)
+            {
+                debug_line.buf.writeByte(0);   // end of include_directories
+            }
+            else
+            {
+                struct FileNameEntryFormat
+                {
+                    ubyte count = format.sizeof / 2;
+                    ubyte[4] format =
+                    [
+                        DW_LNCT_path,               DW_FORM_string,
+                        DW_LNCT_directory_index,    DW_FORM_data1,
+                    ];
+                }
+                auto file_name_entry_format = FileNameEntryFormat.init;
+                debug_line.buf.write(&file_name_entry_format, file_name_entry_format.sizeof);
+
+                debug_line.buf.writeuLEB128(infoFileName_table ? infoFileName_table.length() : 0);  // file_names_count
+            }
+
+            if (infoFileName_table)
+            {
+                // file_names
+                auto filekeys = infoFileName_table.aa.keys();
+                if (filekeys)
+                {
+                    foreach (id; 1 .. infoFileName_table.length() + 1)
+                    {
+                        foreach (const(char)[] filename; filekeys)
+                        {
+                            // Filenames must be written in the correct order, to match the AAchars' idx order
+                            if (id == dwarf_line_addfile(filename))
+                            {
+                                debug_line.buf.writeString(retrieveFilename(filename));
+
+                                auto index = dwarf_line_add_directory(filename);
+                                assert(index != 0);
+                                if (config.dwarf >= 5)
+                                    --index; // Minus 1 because it must be an index, not a element number
+                                // directory table index.
+                                debug_line.buf.writeByte(index);
+                                if (config.dwarf < 5)
+                                {
+                                    debug_line.buf.writeByte(0);      // mtime
+                                    debug_line.buf.writeByte(0);      // length
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    free(filekeys.ptr);
+                    filekeys = null;
+                }
+            }
+
+            if (config.dwarf < 5)
+                debug_line.buf.writeByte(0);              // end of file_names
+
+            rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) (debug_line.buf.length() - lineHeaderLengthOffset - 4));
+        }
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
