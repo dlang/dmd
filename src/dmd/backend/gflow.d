@@ -963,19 +963,23 @@ void genkillae()
 
 /************************************
  * Allocate and compute KILL and GEN vectors for a elem.
+ * Params:
+ *      gen = GEN vector to create and compute
+ *      kill = KILL vector to create and compute
+ *      e = elem used to conpute GEN and KILL
  */
 
 @trusted
-private void aecpelem(vec_t *pgen,vec_t *pkill, elem *n)
+private void aecpelem(out vec_t gen, out vec_t kill, elem *n)
 {
-    *pgen = vec_calloc(go.exptop);
-    *pkill = vec_calloc(go.exptop);
+    gen = vec_calloc(go.exptop);
+    kill = vec_calloc(go.exptop);
     if (n)
     {
         if (flowxx == VBE)
-            accumvbe(*pgen,*pkill,n);
+            accumvbe(gen,kill,n);
         else
-            accumaecp(*pgen,*pkill,n);
+            accumaecp(gen,kill,n);
     }
 }
 
@@ -1029,8 +1033,8 @@ private void accumaecpx(elem *n)
         case OPcolon2:
         {   vec_t Gl,Kl,Gr,Kr;
 
-            aecpelem(&Gl,&Kl,n.EV.E1);
-            aecpelem(&Gr,&Kr,n.EV.E2);
+            aecpelem(Gl,Kl, n.EV.E1);
+            aecpelem(Gr,Kr, n.EV.E2);
 
             /* KILL |= Kl | Kr           */
             /* GEN =((GEN - Kl) | Gl) &  */
@@ -1057,7 +1061,7 @@ private void accumaecpx(elem *n)
         {   vec_t Gr,Kr;
 
             accumaecpx(n.EV.E1);
-            aecpelem(&Gr,&Kr,n.EV.E2);
+            aecpelem(Gr,Kr, n.EV.E2);
 
             if (el_returns(n.EV.E2))
             {
@@ -1659,8 +1663,8 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         {
             vec_t Gl,Gr,Kl,Kr;
 
-            aecpelem(&Gl,&Kl,n.EV.E1);
-            aecpelem(&Gr,&Kr,n.EV.E2);
+            aecpelem(Gl,Kl, n.EV.E1);
+            aecpelem(Gr,Kr, n.EV.E2);
 
             /* GEN |=((Gr - Kl) | (Gl - Kr)) - KILL */
             vec_subass(Gr,Kl);
