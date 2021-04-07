@@ -588,6 +588,17 @@ extern (C++) abstract class Type : ASTNode
             //    printf("ty = %d\n", next.ty);
             printf("mod = %x, %x\n", mod, t.mod);
         }
+        int distinct()
+        {
+            //printf("\tcovariant: 0\n");
+            return 0;
+        }
+
+        int notCovariant()
+        {
+            //printf("\tcovariant: 2\n");
+            return 2;
+        }
         if (pstc)
             *pstc = 0;
         StorageClass stc = 0;
@@ -601,69 +612,73 @@ extern (C++) abstract class Type : ASTNode
         TypeFunction t2 = t.isTypeFunction();
 
         if (!t1 || !t2)
-            goto Ldistinct;
+            return distinct();
 
         if (t1.parameterList.varargs != t2.parameterList.varargs)
-            goto Ldistinct;
+            return distinct();
 
         if (t1.parameterList.parameters && t2.parameterList.parameters)
         {
             if (t1.parameterList.length != t2.parameterList.length)
-                goto Ldistinct;
+                return distinct();
 
             foreach (i, fparam1; t1.parameterList)
             {
                 Parameter fparam2 = t2.parameterList[i];
-
-                if (!fparam1.type.equals(fparam2.type))
+                void checkParametersCovariant() { notcovariant |= !fparam1.isCovariant(t1.isref, fparam2); }
+                if (fparam1.type.equals(fparam2.type))
                 {
-                    Type tp1 = fparam1.type;
-                    Type tp2 = fparam2.type;
-                    if (tp1.ty == tp2.ty)
-                    {
-                        if (auto tc1 = tp1.isTypeClass())
-                        {
-                            if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
-                                goto Lcov;
-                        }
-                        else if (auto ts1 = tp1.isTypeStruct())
-                        {
-                            if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
-                                goto Lcov;
-                        }
-                        else if (tp1.ty == Tpointer)
-                        {
-                            if (tp2.implicitConvTo(tp1))
-                                goto Lcov;
-                        }
-                        else if (tp1.ty == Tarray)
-                        {
-                            if (tp2.implicitConvTo(tp1))
-                                goto Lcov;
-                        }
-                        else if (tp1.ty == Tdelegate)
-                        {
-                            if (tp1.implicitConvTo(tp2))
-                                goto Lcov;
-                        }
-                    }
-                    goto Ldistinct;
+                    checkParametersCovariant();
+                    continue;
                 }
-            Lcov:
-                notcovariant |= !fparam1.isCovariant(t1.isref, fparam2);
+                Type tp1 = fparam1.type;
+                Type tp2 = fparam2.type;
+                if (tp1.ty != tp2.ty)
+                    return distinct();
+
+                if (auto tc1 = tp1.isTypeClass())
+                {
+                    if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                        checkParametersCovariant();
+                    else return distinct();
+                }
+                else if (auto ts1 = tp1.isTypeStruct())
+                {
+                    if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                        checkParametersCovariant();
+                    else return distinct();
+                }
+                else if (tp1.ty == Tpointer)
+                {
+                    if (tp2.implicitConvTo(tp1))
+                        checkParametersCovariant();
+                    else return distinct();
+                }
+                else if (tp1.ty == Tarray)
+                {
+                    if (tp2.implicitConvTo(tp1))
+                        checkParametersCovariant();
+                    else return distinct();
+                }
+                else if (tp1.ty == Tdelegate)
+                {
+                    if (tp1.implicitConvTo(tp2))
+                       checkParametersCovariant();
+                    else return distinct();
+                }
             }
         }
         else if (t1.parameterList.parameters != t2.parameterList.parameters)
         {
             if (t1.parameterList.length || t2.parameterList.length)
-                goto Ldistinct;
+                return distinct();
         }
 
         // The argument lists match
         if (notcovariant)
-            goto Lnotcovariant;
+            return notCovariant();
         if (t1.linkage != t2.linkage)
-            goto Lnotcovariant;
+            return notCovariant();
 
         {
             // Return types
@@ -671,7 +686,7 @@ extern (C++) abstract class Type : ASTNode
             Type t2n = t2.next;
 
             if (!t1n || !t2n) // happens with return type inference
-                goto Lnotcovariant;
+                return notCovariant();
 
             if (t1n.equals(t2n))
                 goto Lcovariant;
@@ -711,11 +726,11 @@ extern (C++) abstract class Type : ASTNode
                     goto Lcovariant;
             }
         }
-        goto Lnotcovariant;
+        return notCovariant();
 
     Lcovariant:
         if (t1.isref != t2.isref)
-            goto Lnotcovariant;
+            return notCovariant();
 
         if (!t1.isref && (t1.isScopeQual || t2.isScopeQual))
         {
@@ -734,12 +749,12 @@ extern (C++) abstract class Type : ASTNode
                     stc2 |= STC.ref_;
             }
             if (!Parameter.isCovariantScope(t1.isref, stc1, stc2))
-                goto Lnotcovariant;
+                return notCovariant();
         }
 
         // We can subtract 'return ref' from 'this', but cannot add it
         else if (t1.isreturn && !t2.isreturn)
-            goto Lnotcovariant;
+            return notCovariant();
 
         /* Can convert mutable to const
          */
@@ -752,11 +767,11 @@ extern (C++) abstract class Type : ASTNode
                 if (MODimplicitConv(t2.mod, MODmerge(t1.mod, MODFlags.const_)))
                     stc |= STC.const_;
                 else
-                    goto Lnotcovariant;
+                    return notCovariant();
             }
             else
             {
-                goto Ldistinct;
+                return distinct();
             }
         }
 
@@ -783,19 +798,11 @@ extern (C++) abstract class Type : ASTNode
         {
             if (pstc)
                 *pstc = stc;
-            goto Lnotcovariant;
+            return notCovariant();
         }
 
         //printf("\tcovaraint: 1\n");
         return 1;
-
-    Ldistinct:
-        //printf("\tcovaraint: 0\n");
-        return 0;
-
-    Lnotcovariant:
-        //printf("\tcovaraint: 2\n");
-        return 2;
     }
 
     /********************************
