@@ -7,7 +7,7 @@ compilable/diag20916.d(42):        instantiated from here: `jump1!(Foo)`
 compilable/diag20916.d(32): Deprecation: function `diag20916.FooBar.toString` is deprecated
 compilable/diag20916.d(37):        instantiated from here: `jump2!(Foo)`
 compilable/diag20916.d(42):        instantiated from here: `jump1!(Foo)`
-compilable/diag20916.d(32): Deprecation: function `diag20916.Bar.toString!().toString` is deprecated
+compilable/diag20916.d(32): Deprecation: template `diag20916.Bar.toString()()` is deprecated
 compilable/diag20916.d(37):        instantiated from here: `jump2!(Bar)`
 compilable/diag20916.d(43):        instantiated from here: `jump1!(Bar)`
 compilable/diag20916.d(21): Deprecation: variable `diag20916.Something.something` is deprecated
