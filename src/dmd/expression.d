@@ -4786,9 +4786,31 @@ extern (C++) final class DotVarExp : UnaExp
         if (sc.func && sc.func.isCtorDeclaration())
         {
             // if inside a constructor scope and e1 of this DotVarExp
-            // is a DotVarExp, then check if e1.e1 is a `this` identifier
+            // is another DotVarExp, then check if the leftmost expression is a `this` identifier
             if (auto dve = e1.isDotVarExp())
             {
+                // Iterate the chain of DotVarExp to find `this`
+                // Keep track whether access to fields was limited to union members
+                // s.t. one can initialize an entire struct inside nested unions
+                // (but not its members)
+                bool onlyUnion = true;
+                while (true)
+                {
+                    auto v = dve.var.isVarDeclaration();
+                    assert(v);
+
+                    // Accessing union member?
+                    auto t = v.type.isTypeStruct();
+                    if (!t || !t.sym.isUnionDeclaration())
+                        onlyUnion = false;
+
+                    // Another DotVarExp left?
+                    if (!dve.e1 || dve.e1.op != TOK.dotVariable)
+                        break;
+
+                    dve = cast(DotVarExp) dve.e1;
+                }
+
                 if (dve.e1.op == TOK.this_)
                 {
                     scope v = dve.var.isVarDeclaration();
@@ -4806,7 +4828,9 @@ extern (C++) final class DotVarExp : UnaExp
                                  */
                                 scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
                                 // reflect that assigning a field of v is not initialization of v
-                                v.ctorinit = false;
+                                // unless v is a (potentially nested) union
+                                if (!onlyUnion)
+                                    v.ctorinit = false;
                                 if (modifyLevel == Modifiable.initialization)
                                     return Modifiable.yes;
                                 return modifyLevel;
