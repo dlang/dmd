@@ -27,6 +27,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab : SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -644,7 +645,8 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 
         L3:
             slength = toSymbol(lengthVar);
-            //symbol_add(slength);
+            if (slength.Sclass == SCauto && slength.Ssymnum == SYMIDX.max)
+                symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
         }
