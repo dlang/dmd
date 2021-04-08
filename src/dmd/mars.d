@@ -729,13 +729,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     // Set default values
     params.argv0 = arguments[0].toDString;
 
-    // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
-    static if (TARGET.Windows)
-    {
-        params.is64bit = false;
-        params.mscoff = false;
-    }
-
     version (Windows)
         enum iniName = "sc.ini";
     else version (Posix)
@@ -1233,7 +1226,7 @@ private void setDefaultLibrary()
 {
     if (global.params.defaultlibname is null)
     {
-        static if (TARGET.Windows)
+        if (target.os == Target.OS.Windows)
         {
             if (global.params.is64bit)
                 global.params.defaultlibname = "phobos64";
@@ -1242,17 +1235,17 @@ private void setDefaultLibrary()
             else
                 global.params.defaultlibname = "phobos";
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
             global.params.defaultlibname = "libphobos2.a";
         }
-        else static if (TARGET.OSX)
+        else if (target.os == Target.OS.OSX)
         {
             global.params.defaultlibname = "phobos2";
         }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "fix this");
         }
     }
     else if (!global.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
@@ -1622,7 +1615,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         const(char)[] arg = p.toDString();
         if (*p != '-')
         {
-            static if (TARGET.Windows)
+            if (target.os == Target.OS.Windows)
             {
                 const ext = FileName.ext(arg);
                 if (ext.length && FileName.equals(ext, "exe"))
@@ -1780,25 +1773,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.dll = true;
         else if (arg == "-fPIC")
         {
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                params.pic = PIC.pic;
-            }
-            else
-            {
-                goto Lerror;
-            }
+            params.pic = PIC.pic;
         }
         else if (arg == "-fPIE")
         {
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                params.pic = PIC.pie;
-            }
-            else
-            {
-                goto Lerror;
-            }
+            params.pic = PIC.pie;
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             dmdParams.map = true;
@@ -1815,27 +1794,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebug = 1;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
-            static if (TARGET.Windows)
+            if (dmdParams.dwarf)
             {
-                goto Lerror;
+                error("`-gdwarf=<version>` can only be provided once");
+                break;
             }
-            else
-            {
-                if (dmdParams.dwarf)
-                {
-                    error("`-gdwarf=<version>` can only be provided once");
-                    break;
-                }
-                params.symdebug = 1;
+            params.symdebug = 1;
 
-                enum len = "-gdwarf=".length;
-                // Parse:
-                //      -gdwarf=version
-                if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
-                {
-                    error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
-                    return false;
-                }
+            enum len = "-gdwarf=".length;
+            // Parse:
+            //      -gdwarf=version
+            if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
+            {
+                error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
+                return false;
             }
         }
         else if (arg == "-gf")
@@ -1858,43 +1830,21 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-            static if (TARGET.DragonFlyBSD) {
-                error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
-            } else {
                 params.is64bit = false;
                 params.mscoff = false;
-            }
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             params.is64bit = true;
-            static if (TARGET.Windows)
-            {
-                params.mscoff = true;
-            }
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
-            static if (TARGET.Windows)
-            {
-                params.is64bit = 0;
-                params.mscoff = true;
-            }
-            else
-            {
-                error("-m32mscoff can only be used on windows");
-            }
+            params.is64bit = 0;
+            params.mscoff = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
-            static if (TARGET.Windows)
-            {
-                params.mscrtlib = arg[10 .. $];
-            }
-            else
-            {
-                error("-mscrtlib");
-            }
+            params.mscrtlib = arg[10 .. $];
         }
         else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
         {
@@ -2279,16 +2229,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "Xcc="))
         {
-            // Linking code is guarded by version (Posix):
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                params.linkswitches.push(p + 5);
-                params.linkswitchIsForCC.push(true);
-            }
-            else
-            {
-                goto Lerror;
-            }
+            params.linkswitches.push(p + 5);
+            params.linkswitchIsForCC.push(true);
         }
         else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
         {
@@ -2618,23 +2560,60 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 version (NoMain) {} else
 private void reconcileCommands(ref Param params)
 {
-    static if (TARGET.OSX)
+    if (target.os == Target.OS.OSX)
     {
         params.pic = PIC.pic;
     }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+    else if (target.os == Target.OS.Windows)
+    {
+        if (params.pic)
+            error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
+        if (dmdParams.dwarf)
+            error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
+        if (params.is64bit)
+            params.mscoff = true;
+    }
+    else if (target.os == Target.OS.DragonFlyBSD)
+    {
+        if (!params.is64bit)
+            error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
+    }
+
+    if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
         if (params.lib && params.dll)
-            error(Loc.initial, "cannot mix -lib and -shared");
+            error(Loc.initial, "cannot mix `-lib` and `-shared`");
     }
-    static if (TARGET.Windows)
+    if (target.os == Target.OS.Windows)
     {
+        foreach(b; params.linkswitchIsForCC[])
+        {
+            if (b)
+            {
+                // Linking code is guarded by version (Posix):
+                error(Loc.initial, "`Xcc=` link switches not available for this operating system");
+                break;
+            }
+        }
+
         if (params.mscoff && !params.mscrtlib)
         {
-            VSOptions vsopt;
-            vsopt.initialize();
-            params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
+            version (Windows)
+            {
+                VSOptions vsopt;
+                vsopt.initialize();
+                params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
+            }
+            else
+                error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
         }
+    }
+    else
+    {
+        if (!params.is64bit && params.mscoff)
+            error(Loc.initial, "`-m32mscoff` can only be used when targetting windows");
+        if (params.mscrtlib)
+            error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
 
     // Target uses 64bit pointers.
@@ -2822,7 +2801,7 @@ Module createModule(const(char)* file, ref Strings libmodules)
         libmodules.push(file);
         return null;
     }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+    if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
         if (FileName.equals(ext, target.dll_ext))
         {
@@ -2847,7 +2826,7 @@ Module createModule(const(char)* file, ref Strings libmodules)
         global.params.mapfile = file.toDString;
         return null;
     }
-    static if (TARGET.Windows)
+    if (target.os == Target.OS.Windows)
     {
         if (FileName.equals(ext, "res"))
         {
