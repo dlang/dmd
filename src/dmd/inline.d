@@ -910,10 +910,7 @@ public:
 
         override void visit(ArrayExp e)
         {
-            auto ce = e.copy().isArrayExp();
-            ce.e1 = doInlineAs!Expression(e.e1, ids);
-            ce.arguments = arrayExpressionDoInline(e.arguments);
-            result = ce;
+            assert(0); // this should have been lowered to something else
         }
 
         override void visit(CondExp e)
