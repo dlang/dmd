@@ -531,8 +531,6 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->literal = literal;
     this->ismixin = ismixin;
     this->isstatic = true;
-    this->isTrivialAliasSeq = false;
-    this->isTrivialAlias = false;
     this->previous = NULL;
     this->protection = Prot(Prot::undefined);
     this->inuse = 0;
@@ -540,46 +538,13 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
 
     // Compute in advance for Ddoc's use
     // Bugzilla 11153: ident could be NULL if parsing fails.
-    if (!members || !ident)
-        return;
-
-    Dsymbol *s;
-    if (!Dsymbol::oneMembers(members, &s, ident) || !s)
-        return;
-
-    onemember = s;
-    s->parent = this;
-
-    /* Set isTrivialAliasSeq if this fits the pattern:
-     *   template AliasSeq(T...) { alias AliasSeq = T; }
-     * or set isTrivialAlias if this fits the pattern:
-     *   template Alias(T) { alias Alias = qualifiers(T); }
-     */
-    if (!(parameters && parameters->length == 1))
-        return;
-
-    AliasDeclaration *ad = s->isAliasDeclaration();
-    if (!ad || !ad->type)
-        return;
-
-    TypeIdentifier *ti = ad->type->isTypeIdentifier();
-    if (!ti || ti->idents.length != 0)
-        return;
-
-    if (TemplateTupleParameter *ttp = (*parameters)[0]->isTemplateTupleParameter())
+    if (members && ident)
     {
-        if (ti->ident == ttp->ident && ti->mod == 0)
+        Dsymbol *s;
+        if (Dsymbol::oneMembers(members, &s, ident) && s)
         {
-            //printf("found isAliasSeq %s %s\n", s->toChars(), ad->type->toChars());
-            isTrivialAliasSeq = true;
-        }
-    }
-    else if (TemplateTypeParameter *ttp = (*parameters)[0]->isTemplateTypeParameter())
-    {
-        if (ti->ident == ttp->ident)
-        {
-            //printf("found isAlias %s %s\n", s->toChars(), ad->type->toChars());
-            isTrivialAlias = true;
+            onemember = s;
+            s->parent = this;
         }
     }
 }
