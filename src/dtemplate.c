@@ -6770,7 +6770,8 @@ Dsymbols *TemplateInstance::appendToModuleMember()
 {
     Module *mi = minst;     // instantiated -> inserted module
 
-    if (global.params.useUnitTests)
+    if (global.params.useUnitTests ||
+        global.params.debuglevel)
     {
         // Turn all non-root instances to speculative
         if (mi && !mi->isRoot())
