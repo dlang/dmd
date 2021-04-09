@@ -7373,7 +7373,9 @@ bool TypeStruct::hasPointers()
     // Probably should cache this information in sym rather than recompute
     StructDeclaration *s = sym;
 
-    sym->size(Loc());               // give error for forward references
+    if (sym->members && !sym->determineFields() && sym->type != Type::terror)
+        error(sym->loc, "no size because of forward references");
+
     for (size_t i = 0; i < s->fields.length; i++)
     {
         Declaration *d = s->fields[i];
