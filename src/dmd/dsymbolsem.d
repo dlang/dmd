@@ -3960,61 +3960,64 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Linterfaces:
             bool foundVtblMatch = false;
 
-            foreach (b; cd.interfaces)
+            for (ClassDeclaration bcd = cd; !foundVtblMatch && bcd; bcd = bcd.baseClass)
             {
-                vi = funcdecl.findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
-                switch (vi)
+                foreach (b; bcd.interfaces)
                 {
-                case -1:
-                    break;
-
-                case -2:
-                    // can't determine because of forward references
-                    funcdecl.errors = true;
-                    return;
-
-                default:
+                    vi = funcdecl.findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+                    switch (vi)
                     {
-                        auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
-                        Type ti = null;
+                    case -1:
+                        break;
 
-                        foundVtblMatch = true;
+                    case -2:
+                        // can't determine because of forward references
+                        funcdecl.errors = true;
+                        return;
 
-                        /* Remember which functions this overrides
-                         */
-                        funcdecl.foverrides.push(fdv);
-
-                        /* Should we really require 'override' when implementing
-                         * an interface function?
-                         */
-                        //if (!isOverride())
-                        //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv.toPrettyChars());
-
-                        if (fdv.tintro)
-                            ti = fdv.tintro;
-                        else if (!funcdecl.type.equals(fdv.type))
+                    default:
                         {
-                            /* Only need to have a tintro if the vptr
-                             * offsets differ
+                            auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
+                            Type ti = null;
+
+                            foundVtblMatch = true;
+
+                            /* Remember which functions this overrides
                              */
-                            int offset;
-                            if (fdv.type.nextOf().isBaseOf(funcdecl.type.nextOf(), &offset))
+                            funcdecl.foverrides.push(fdv);
+
+                            /* Should we really require 'override' when implementing
+                             * an interface function?
+                             */
+                            //if (!isOverride())
+                            //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv.toPrettyChars());
+
+                            if (fdv.tintro)
+                                ti = fdv.tintro;
+                            else if (!funcdecl.type.equals(fdv.type))
                             {
-                                ti = fdv.type;
-                            }
-                        }
-                        if (ti)
-                        {
-                            if (funcdecl.tintro)
-                            {
-                                if (!funcdecl.tintro.nextOf().equals(ti.nextOf()) && !funcdecl.tintro.nextOf().isBaseOf(ti.nextOf(), null) && !ti.nextOf().isBaseOf(funcdecl.tintro.nextOf(), null))
+                                /* Only need to have a tintro if the vptr
+                                 * offsets differ
+                                 */
+                                int offset;
+                                if (fdv.type.nextOf().isBaseOf(funcdecl.type.nextOf(), &offset))
                                 {
-                                    funcdecl.error("incompatible covariant types `%s` and `%s`", funcdecl.tintro.toChars(), ti.toChars());
+                                    ti = fdv.type;
                                 }
                             }
-                            else
+                            if (ti)
                             {
-                                funcdecl.tintro = ti;
+                                if (funcdecl.tintro)
+                                {
+                                    if (!funcdecl.tintro.nextOf().equals(ti.nextOf()) && !funcdecl.tintro.nextOf().isBaseOf(ti.nextOf(), null) && !ti.nextOf().isBaseOf(funcdecl.tintro.nextOf(), null))
+                                    {
+                                        funcdecl.error("incompatible covariant types `%s` and `%s`", funcdecl.tintro.toChars(), ti.toChars());
+                                    }
+                                }
+                                else
+                                {
+                                    funcdecl.tintro = ti;
+                                }
                             }
                         }
                     }

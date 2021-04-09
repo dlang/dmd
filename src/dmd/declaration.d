@@ -1454,14 +1454,22 @@ extern (C++) class VarDeclaration : Declaration
                 //if (cd.isInterfaceDeclaration())
                 //    error("interface `%s` cannot be scope", cd.toChars());
 
-                // Destroying C++ scope classes crashes currently. Since C++ class dtors are not currently supported, simply do not run dtors for them.
-                // See https://issues.dlang.org/show_bug.cgi?id=13182
-                if (cd.classKind == ClassKind.cpp)
-                {
-                    break;
-                }
                 if (mynew || onstack) // if any destructors
                 {
+                    // delete'ing C++ classes crashes (and delete is deprecated anyway)
+                    if (cd.classKind == ClassKind.cpp)
+                    {
+                        // Don't call non-existant dtor
+                        if (!cd.dtor)
+                            break;
+
+                        e = new VarExp(loc, this);
+                        e.type = e.type.mutableOf().unSharedOf(); // Hack for mutable ctor on immutable instances
+                        e = new DotVarExp(loc, e, cd.dtor, false);
+                        e = new CallExp(loc, e);
+                        break;
+                    }
+
                     // delete this;
                     Expression ec;
                     ec = new VarExp(loc, this);
