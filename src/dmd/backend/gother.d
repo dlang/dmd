@@ -1290,7 +1290,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
         {
             Symbol *v = n.EV.Vsym;
 
-            //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
+            //printf("Checking copyprop for '%s', ty=x%x\n", v.Sident.ptr,n.Ety);
             symbol_debug(v);
             const ty = n.Ety;
             uint sz = tysize(n.Ety);
@@ -1309,7 +1309,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                     csz = cast(uint)type_size(c.ET);
                 assert(cast(int)csz >= 0);
 
-                //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
+                //printf("  looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
                 /* Not only must symbol numbers match, but      */
                 /* offsets too (in case of arrays) and sizes    */
                 /* (in case of unions).                         */
@@ -1333,7 +1333,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
             {
                 debug if (debugc)
                 {
-                    printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
+                    printf("Copyprop, '%s'(%d) replaced with '%s'(%d)\n",
                         (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
                         (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
                 }

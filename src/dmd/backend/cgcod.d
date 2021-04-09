@@ -257,6 +257,8 @@ tryagain:
     mfuncreg = fregsaved;               // so we can see which are used
                                         // (bit is cleared each time
                                         //  we use one)
+    assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
+
     for (block* b = startblock; b; b = b.Bnext)
     {
         memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
@@ -1016,7 +1018,6 @@ else
         // we need BP to reset the stack before return
         // otherwise the return address is lost
         needframe = 1;
-
     }
     else if (config.flags & CFGalwaysframe)
         needframe = 1;
@@ -1034,7 +1035,9 @@ else
                 anyiasm ||
                 Alloca.size
                )
+            {
                 needframe = 1;
+            }
         }
         if (refparam && (anyiasm || I16))
             needframe = 1;
