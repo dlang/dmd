@@ -892,7 +892,7 @@ ByRef:
         }
 
         if (ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
-            (!va || (!(va.storage_class & STC.temp) && va.ident != Id.withSym)) &&
+            (!va || !(va.storage_class & STC.temp)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
@@ -903,7 +903,7 @@ ByRef:
         }
 
         if (ee.op == TOK.structLiteral &&
-            (!va || (!(va.storage_class & STC.temp) && va.ident != Id.withSym)) &&
+            (!va || !(va.storage_class & STC.temp)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
