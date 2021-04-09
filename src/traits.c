@@ -1587,6 +1587,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     }
                 }
 
+                // https://issues.dlang.org/show_bug.cgi?id=20915
+                // skip version and debug identifiers
+                if (sm->isVersionSymbol() || sm->isDebugSymbol())
+                    return 0;
+
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
