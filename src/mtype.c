@@ -7039,7 +7039,10 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
          */
         e = expressionSemantic(e, sc);  // do this before turning on noaccesscheck
 
-        sym->size(e->loc);      // do semantic of type
+        if (!sym->determineFields())
+        {
+            error(e->loc, "unable to determine fields of `%s` because of forward references", toChars());
+        }
 
         Expression *e0 = NULL;
         Expression *ev = e->op == TOKtype ? NULL : e;
