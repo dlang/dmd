@@ -262,9 +262,17 @@ bool Symbol_isAffected(const ref Symbol s)
     if (s.Sflags & SFLunambig)
         return false;
 
-    /* If it's immutable, it can't be affected
+    /* If it's immutable, it can't be affected.
+     *
+     * Disable this check because:
+     * 1. Symbol_isAffected is not used by copyprop() and should be.
+     * 2. Non-@safe functions can temporarilly cast away immutable.
+     * 3. Need to add an @safe flag to funcsym_p to enable this.
+     * 4. Const can be mutated by a separate view.
+     * Address this in a separate PR.
      */
-    if (s.ty() & (mTYconst | mTYimmutable))
+    if (0 &&
+        s.ty() & (mTYconst | mTYimmutable))
     {
         return false;
     }

@@ -660,13 +660,19 @@ void blockopt(int iter)
             blexit();
             if (iter >= 2)
                 brmin();                // minimize branching
+            version (MARS)
+                // Switched to one block per Statement, do not undo it
+                enum merge = false;
+            else
+                enum merge = true;
+
             do
             {
                 compdfo();              /* compute depth first order (DFO) */
                 elimblks();             /* remove blocks not in DFO      */
                 assert(count < iterationLimit);
                 count++;
-            } while (mergeblks());      /* merge together blocks         */
+            } while (merge && mergeblks());      // merge together blocks
         } while (go.changes);
 
         debug if (debugw)

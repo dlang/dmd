@@ -764,6 +764,11 @@ private extern (C++) class S2irVisitor : Visitor
                 incUsage(irs, s.loc);
 
             block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+
+            // goto the next block
+            block* b = blx.curblock;
+            block_next(blx, BCgoto, null);
+            b.appendSucc(blx.curblock);
         }
     }
 
