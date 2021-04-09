@@ -222,7 +222,8 @@ bool definitelyValueParameter(Expression *e)
         e->op == TOKtype || e->op == TOKdottype ||
         e->op == TOKtemplate ||  e->op == TOKdottd ||
         e->op == TOKfunction || e->op == TOKerror ||
-        e->op == TOKthis || e->op == TOKsuper)
+        e->op == TOKthis || e->op == TOKsuper ||
+        e->op == TOKdot)
         return false;
 
     if (e->op != TOKdotvar)
@@ -6257,6 +6258,14 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 // translate expression to dsymbol.
                 sa = ((DotTemplateExp *)ea)->td;
                 goto Ldsym;
+            }
+            if (ea->op == TOKdot)
+            {
+                if (ScopeExp *se = ((DotExp *)ea)->e2->isScopeExp())
+                {
+                    sa = se->sds;
+                    goto Ldsym;
+                }
             }
         }
         else if (sa)
