@@ -1088,7 +1088,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                     ti = dsym._init ? dsym._init.syntaxCopy() : null;
 
-                StorageClass storage_class = STC.temp | dsym.storage_class;
+                StorageClass storage_class = STC.temp | STC.local | dsym.storage_class;
                 if ((dsym.storage_class & STC.parameter) && (arg.storageClass & STC.parameter))
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(dsym.loc, arg.type, id, ti, storage_class);
