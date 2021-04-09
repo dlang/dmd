@@ -8,6 +8,9 @@ void f2(T)(const      ref T arg = T.init) {}
 void f3(T)(const auto ref T arg = 0) {}
 void f4(T)(const      ref T arg = 0) {}
 
+struct S { int _; }
+class C { int _; }
+
 void main ()
 {
     int i;
@@ -19,4 +22,8 @@ void main ()
     f2!int();
     f3!int();
     f4!int();
+    f1!S();
+    f2!S();
+    f1!C();
+    f2!C();
 }
