@@ -570,7 +570,7 @@ public:
                     ti = dsym->_init ? dsym->_init->syntaxCopy() : NULL;
 
                 VarDeclaration *v = new VarDeclaration(dsym->loc, arg->type, id, ti);
-                v->storage_class |= STCtemp | dsym->storage_class;
+                v->storage_class |= STCtemp | STClocal | dsym->storage_class;
                 if (arg->storageClass & STCparameter)
                     v->storage_class |= arg->storageClass;
                 //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
