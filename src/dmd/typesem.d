@@ -1299,7 +1299,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
             // default arg must be an lvalue
             if (isRefOrOut && !isAuto &&
-                !(global.params.previewIn && (fparam.storageClass & STC.in_)))
+                !(global.params.previewIn && (fparam.storageClass & STC.in_)) &&
+                !(global.params.rvalueRefParam))
                 e = e.toLvalue(sc, e);
 
             fparam.defaultArg = e;
