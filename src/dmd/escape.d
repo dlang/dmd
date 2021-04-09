@@ -881,34 +881,34 @@ ByRef:
 
         /* Do not allow slicing of a static array returned by a function
          */
-        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Tsarray && va.type.toBasetype().ty == Tarray &&
-            !(va.storage_class & STC.temp))
+        if (ee.op == TOK.call && ee.type.toBasetype().ty == Tsarray && e1.type.toBasetype().ty == Tarray &&
+            !(va && va.storage_class & STC.temp))
         {
             if (!gag)
                 deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), va.toChars());
+                    ee.toChars(), e1.toChars());
             //result = true;
             continue;
         }
 
-        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
-            !(va.storage_class & STC.temp) && va.ident != Id.withSym &&
+        if (ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
+            (!va || (!(va.storage_class & STC.temp) && va.ident != Id.withSym)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
                 error(ee.loc, "address of struct temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), va.toChars());
+                    ee.toChars(), e1.toChars());
             result = true;
             continue;
         }
 
-        if (va && ee.op == TOK.structLiteral &&
-            !(va.storage_class & STC.temp) && va.ident != Id.withSym &&
+        if (ee.op == TOK.structLiteral &&
+            (!va || (!(va.storage_class & STC.temp) && va.ident != Id.withSym)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
                 error(ee.loc, "address of struct literal `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), va.toChars());
+                    ee.toChars(), e1.toChars());
             result = true;
             continue;
         }

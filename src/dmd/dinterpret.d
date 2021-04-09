@@ -5722,12 +5722,26 @@ public:
             auto cre = cast(ClassReferenceExp)result;
             auto cd = cre.originalClass();
 
-            if (cd.dtor)
+            // Find dtor(s) in inheritance chain
+            do
             {
-                result = interpretFunction(pue, cd.dtor, istate, null, cre);
-                if (exceptionOrCant(result))
-                    return;
-            }
+                if (cd.dtor)
+                {
+                    result = interpretFunction(pue, cd.dtor, istate, null, cre);
+                    if (exceptionOrCant(result))
+                        return;
+
+                    // Dtors of Non-extern(D) classes use implicit chaining (like structs)
+                    import dmd.aggregate : ClassKind;
+                    if (cd.classKind != ClassKind.d)
+                        break;
+                }
+
+                // Emulate manual chaining as done in rt_finalize2
+                cd = cd.baseClass;
+
+            } while (cd); // Stop after Object
+
             break;
 
         case Tpointer:
