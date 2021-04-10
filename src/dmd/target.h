@@ -47,41 +47,39 @@ enum class CPU
 
 struct TargetC
 {
-    typedef unsigned char CRuntime;
-    enum
+    enum class Runtime : unsigned char
     {
-        CRuntime_Unspecified,
-        CRuntime_Bionic,
-        CRuntime_DigitalMars,
-        CRuntime_Glibc,
-        CRuntime_Microsoft,
-        CRuntime_Musl,
-        CRuntime_Newlib,
-        CRuntime_UClibc,
-        CRuntime_WASI,
+        Unspecified,
+        Bionic,
+        DigitalMars,
+        Glibc,
+        Microsoft,
+        Musl,
+        Newlib,
+        UClibc,
+        WASI,
     };
     unsigned longsize;            // size of a C 'long' or 'unsigned long' type
     unsigned long_doublesize;     // size of a C 'long double'
     Type *twchar_t;               // C 'wchar_t' type
-    CRuntime runtime;
+    Runtime runtime;
 };
 
 struct TargetCPP
 {
-    typedef unsigned char CppRuntime;
-    enum
+    enum class Runtime : unsigned char
     {
-        CppRuntime_Unspecified,
-        CppRuntime_Clang,
-        CppRuntime_DigitalMars,
-        CppRuntime_Gcc,
-        CppRuntime_Microsoft,
-        CppRuntime_Sun
+        Unspecified,
+        Clang,
+        DigitalMars,
+        Gcc,
+        Microsoft,
+        Sun
     };
     bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
     bool exceptions;          // set if catching C++ exceptions is supported
     bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
-    CppRuntime runtime;
+    Runtime runtime;
 
     const char *toMangle(Dsymbol *s);
     const char *typeInfoMangle(ClassDeclaration *cd);
