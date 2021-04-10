@@ -2203,6 +2203,10 @@ public:
         result = getVarExp(e.loc, istate, e.var, goal);
         if (exceptionOrCant(result))
             return;
+
+        if (auto ie = result.isIntegerExp())
+            ie.setSource(e);
+
         if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct)
         {
             /* Ultimately, STC.ref_|STC.out_ check should be enough to see the

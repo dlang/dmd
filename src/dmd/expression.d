@@ -1801,9 +1801,12 @@ extern (C++) abstract class Expression : ASTNode
  */
 extern (C++) final class IntegerExp : Expression
 {
+    /// The original expression if this resulted from constant folding / CTFE
+    Expression original;
+
     private dinteger_t value;
 
-    extern (D) this(const ref Loc loc, dinteger_t value, Type type)
+    extern (D) this(const ref Loc loc, dinteger_t value, Type type, Expression original = null)
     {
         super(loc, TOK.int64, __traits(classInstanceSize, IntegerExp));
         //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
@@ -1817,6 +1820,7 @@ extern (C++) final class IntegerExp : Expression
         }
         this.type = type;
         this.value = normalize(type.toBasetype().ty, value);
+        this.original = original;
     }
 
     extern (D) this(dinteger_t value)
@@ -1973,6 +1977,14 @@ extern (C++) final class IntegerExp : Expression
     override IntegerExp syntaxCopy()
     {
         return this;
+    }
+
+    /// Store `e` as the original expression that was replaced by this (const-folding / CTFE)
+    void setSource(Expression e)
+    {
+        // Cached instances don't have a unique Loc, see literal / createBool
+        if (!this.original && this.loc != Loc.initial)
+            this.original = e;
     }
 
     /**

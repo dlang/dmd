@@ -196,6 +196,10 @@ private Expression fromConstInitializer(int result, Expression e1)
                 e = e.copy();
                 e.type = e1.type;
             }
+
+            if (auto ie = e.isIntegerExp())
+                ie.setSource(ve);
+
             e.loc = e1.loc;
         }
         else
@@ -908,7 +912,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             {
                 // This only applies to floating point, or positive integral powers.
                 if (e.e1.type.isfloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
-                    e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
+                    e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64, e.e2);
             }
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {
@@ -1085,7 +1089,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 {
                     bool n1 = e.e1.isBool(true);
                     bool n2 = e.e2.isBool(true);
-                    ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
+                    ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type, e);
                 }
                 else if (e.e1.isBool(!oror))
                 {

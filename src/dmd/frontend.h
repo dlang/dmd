@@ -3445,7 +3445,7 @@ private:
     union __AnonStruct__u
     {
         char exp[40LLU];
-        char integerexp[48LLU];
+        char integerexp[56LLU];
         char errorexp[40LLU];
         char realexp[64LLU];
         char complexexp[80LLU];
@@ -3480,6 +3480,9 @@ enum class OwnedBy : uint8_t
 
 class IntegerExp final : public Expression
 {
+public:
+    Expression* original;
+private:
     dinteger_t value;
 public:
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
@@ -3495,6 +3498,7 @@ public:
     dinteger_t getInteger();
     void setInteger(dinteger_t value);
     IntegerExp* syntaxCopy();
+    void setSource(Expression* e);
     static IntegerExp* createBool(bool b);
 };
 

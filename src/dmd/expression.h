@@ -226,6 +226,7 @@ public:
 class IntegerExp : public Expression
 {
 public:
+    Expression* original;
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
@@ -240,6 +241,8 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
+    IntegerExp* syntaxCopy();
+    void setSource(Expression* e);
     template<int v>
     static IntegerExp literal();
 };

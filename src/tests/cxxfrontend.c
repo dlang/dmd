@@ -328,6 +328,10 @@ void test_expression()
 {
     Loc loc;
     IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
+
+    IntegerExp *scr = ie->syntaxCopy();
+    assert(ie == scr); // returns the instance
+
     Expression *e = ie->ctfeInterpret();
 
     assert(e);
