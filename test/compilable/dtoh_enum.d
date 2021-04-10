@@ -39,28 +39,16 @@ struct _d_dynamicArray
 };
 #endif
 
-struct Foo;
-struct FooCpp;
-
-enum : int32_t { Anon = 10 };
-
-enum : bool { Anon2 = true };
-
-static const char* const Anon3 = "wow";
-
 enum class Enum
 {
     One = 0,
     Two = 1,
 };
 
-extern const Enum constEnum;
+struct Foo;
+struct FooCpp;
 
-enum class EnumDefaultType
-{
-    One = 1,
-    Two = 2,
-};
+extern const Enum constEnum;
 
 enum class EnumWithType : int8_t
 {
@@ -72,6 +60,22 @@ enum
 {
     AnonOne = 1,
     AnonTwo = 2,
+};
+
+extern void forward(Enum e1 = Enum::One, Enum e2 = constEnum);
+
+extern void forwardConstant(int8_t b = static_cast<int8_t>(EnumWithType::One), int32_t l = AnonOne);
+
+enum : int32_t { Anon = 10 };
+
+enum : bool { Anon2 = true };
+
+static const char* const Anon3 = "wow";
+
+enum class EnumDefaultType
+{
+    One = 1,
+    Two = 2,
 };
 
 enum : int64_t
@@ -151,8 +155,27 @@ static /* MyEnum */ Foo const testCpp = Foo(42);
 
 enum class opaque;
 enum class typedOpaque : int64_t;
+struct S
+{
+    enum class Nested
+    {
+        Member = 1,
+    };
+
+    S()
+    {
+    }
+};
+
+static Nested const OfNested = S::Nested::Member;
+
+enum : bool { is64bit = true };
 ---
 +/
+
+extern(C++) void forward(Enum e1 = Enum.One, Enum e2 = constEnum) {}
+
+extern(C++) void forwardConstant(byte b = EnumWithType.One, int l = AnonOne) {}
 
 extern(C++) enum Anon = 10;
 extern(C++) enum Anon2 = true;
@@ -256,3 +279,17 @@ enum typedOpaque : long;
 enum arrayOpaque : int[4]; // Cannot be exported to C++
 
 extern(D) enum hidden_d = 42; // Linkage prevents being exported to C++
+
+extern(C++):
+
+struct S
+{
+    enum Nested
+    {
+        Member = 1
+    }
+}
+
+enum OfNested = S.Nested.Member;
+
+enum is64bit = size_t.sizeof <= 20;

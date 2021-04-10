@@ -1510,7 +1510,9 @@ public:
 
     override void visit(AST.EnumMember em)
     {
-        assert(false, "This node type should be handled in the EnumDeclaration");
+        // Already emitted in visit(AST.EnumDeclaration)
+        // Resolve potential forward references
+        includeSymbol(em.ed);
     }
 
     /**
@@ -2095,6 +2097,13 @@ public:
             return false;
         }
 
+        // Use the original expression if const-folding occurred
+        if (auto ie = exp.isIntegerExp())
+        {
+            if (ie.original)
+                exp = ie.original;
+        }
+
         // Slices are emitted as a special struct, hence we need to fix up
         // any expression initialising a slice variable/member
         if (auto ta = target.isTypeDArray())
@@ -2182,7 +2191,7 @@ public:
         /// Partially prints the FQN including parent aggregates
         void printPrefix(AST.Dsymbol var)
         {
-            if (!var || !var.isAggregateDeclaration())
+            if (!var || !(var.isAggregateDeclaration() || var.isEnumDeclaration()))
                 return;
             printPrefix(var.parent);
             includeSymbol(var);
@@ -2191,9 +2200,13 @@ public:
             buf.writestring("::");
         }
 
+        import dmd.id;
+        if (e.var.ident == Id.ctfe)
+            return buf.writestring("false");
+
         // Static members are not represented as DotVarExp, hence
         // manually print the full name here
-        if (e.var.storage_class & AST.STC.static_)
+        if (!e.var.isField())
             printPrefix(e.var.parent);
 
         includeSymbol(e.var);

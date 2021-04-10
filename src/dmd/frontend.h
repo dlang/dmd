@@ -788,6 +788,18 @@ struct Loc
     }
 };
 
+enum
+{
+    IgnoreNone = 0,
+    IgnorePrivateImports = 1,
+    IgnoreErrors = 2,
+    IgnoreAmbiguous = 4,
+    SearchLocalsOnly = 8,
+    SearchImportsOnly = 16,
+    SearchUnqualifiedModule = 32,
+    IgnoreSymbolVisibility = 128,
+};
+
 class Dsymbol : public ASTNode
 {
 public:
@@ -839,7 +851,7 @@ public:
     virtual void addMember(Scope* sc, ScopeDsymbol* sds);
     virtual void setScope(Scope* sc);
     virtual void importAll(Scope* sc);
-    virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
+    virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = IgnoreNone);
     virtual bool overloadInsert(Dsymbol* s);
     virtual d_uns64 size(const Loc& loc);
     virtual bool isforwardRef();
@@ -950,7 +962,7 @@ private:
     BitArray privateAccessiblePackages;
 public:
     ScopeDsymbol* syntaxCopy(Dsymbol* s);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     virtual void importScope(Dsymbol* s, Visibility visibility);
     virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
     bool isforwardRef();
@@ -1534,13 +1546,13 @@ struct ParameterList
     Array<Parameter* >* parameters;
     StorageClass stc;
     VarArg varargs;
-    ParameterList(Array<Parameter* >* parameters, VarArg varargs = (VarArg)0u, StorageClass stc = 0);
+    ParameterList(Array<Parameter* >* parameters, VarArg varargs = VarArg::none, StorageClass stc = 0);
     size_t length();
     Parameter* opIndex(size_t i);
     ParameterList() :
         parameters(),
         stc(),
-        varargs((VarArg)0u)
+        varargs(VarArg::none)
     {
     }
 };
@@ -1576,7 +1588,7 @@ struct TargetC
         twchar_t()
     {
     }
-    TargetC(uint32_t longsize, uint32_t long_doublesize = 0u, Type* twchar_t = nullptr, Runtime runtime = (Runtime)0u) :
+    TargetC(uint32_t longsize, uint32_t long_doublesize = 0u, Type* twchar_t = nullptr, Runtime runtime = TargetC::Runtime::Unspecified) :
         longsize(longsize),
         long_doublesize(long_doublesize),
         twchar_t(twchar_t),
@@ -1613,7 +1625,7 @@ struct TargetCPP
         twoDtorInVtable()
     {
     }
-    TargetCPP(bool reverseOverloads, bool exceptions = false, bool twoDtorInVtable = false, Runtime runtime = (Runtime)0u) :
+    TargetCPP(bool reverseOverloads, bool exceptions = false, bool twoDtorInVtable = false, Runtime runtime = TargetCPP::Runtime::Unspecified) :
         reverseOverloads(reverseOverloads),
         exceptions(exceptions),
         twoDtorInVtable(twoDtorInVtable),
@@ -2277,7 +2289,7 @@ public:
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     ClassDeclaration* searchBase(Identifier* ident);
     void finalizeSize();
     bool hasMonitor();
@@ -2396,7 +2408,7 @@ public:
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const;
     d_uns64 size(const Loc& loc);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     bool isStatic() const;
     virtual bool isDelete();
     virtual bool isDataseg();
@@ -2703,7 +2715,7 @@ public:
     bool oneMember(Dsymbol** ps, Identifier* ident);
     Type* getType();
     const char* kind() const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     bool isDeprecated() const;
     Visibility visible();
     Expression* getMaxMinValue(const Loc& loc, Identifier* id);
@@ -2752,7 +2764,7 @@ public:
     Dsymbol* toAlias();
     void addMember(Scope* sc, ScopeDsymbol* sd);
     void setScope(Scope* sc);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     bool overloadInsert(Dsymbol* s);
     Import* isImport();
     void accept(Visitor* v);
@@ -2800,7 +2812,7 @@ public:
     bool equals(const RootObject* const o) const;
     Package* isPackage();
     bool isAncestorPackageOf(const Package* const pkg) const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     void accept(Visitor* v);
     Module* isPackageMod();
     void resolvePKGunknown();
@@ -2866,7 +2878,7 @@ public:
     void importAll(Scope* prevsc);
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
     Dsymbol* symtabInsert(Dsymbol* s);
     void deleteObjFile();
@@ -2975,7 +2987,7 @@ public:
     static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s);
     void semanticTypeInfoMembers();
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     const char* kind() const;
     void finalizeSize();
     bool fit(const Loc& loc, Scope* sc, Array<Expression* >* elements, Type* stype);
@@ -2998,23 +3010,11 @@ public:
     ~UnionDeclaration();
 };
 
-enum
-{
-    IgnoreNone = 0,
-    IgnorePrivateImports = 1,
-    IgnoreErrors = 2,
-    IgnoreAmbiguous = 4,
-    SearchLocalsOnly = 8,
-    SearchImportsOnly = 16,
-    SearchUnqualifiedModule = 32,
-    IgnoreSymbolVisibility = 128,
-};
-
 class WithScopeSymbol final : public ScopeDsymbol
 {
 public:
     WithStatement* withstate;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     WithScopeSymbol* isWithScopeSymbol();
     void accept(Visitor* v);
     ~WithScopeSymbol();
@@ -3025,7 +3025,7 @@ class ArrayScopeSymbol final : public ScopeDsymbol
     RootObject* arrayContent;
 public:
     Scope* sc;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = IgnoreNone);
     ArrayScopeSymbol* isArrayScopeSymbol();
     void accept(Visitor* v);
     ~ArrayScopeSymbol();
@@ -5543,7 +5543,7 @@ public:
     Nspace* syntaxCopy(Dsymbol* s);
     void addMember(Scope* sc, ScopeDsymbol* sds);
     void setScope(Scope* sc);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = SearchLocalsOnly);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
     const char* kind() const;
@@ -6648,7 +6648,7 @@ public:
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     Target() :
-        os((OS)1u),
+        os(Target::OS::linux),
         ptrsize(),
         realsize(),
         realpad(),
@@ -6659,7 +6659,7 @@ public:
         cpp(),
         objc(),
         architectureName(),
-        cpu((CPU)11),
+        cpu(CPU::baseline),
         obj_ext(),
         lib_ext(),
         dll_ext(),
@@ -6669,7 +6669,7 @@ public:
         RealProperties()
     {
     }
-    Target(OS os, uint32_t ptrsize = 0u, uint32_t realsize = 0u, uint32_t realpad = 0u, uint32_t realalignsize = 0u, uint32_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u, nullptr, (Runtime)0u), TargetCPP cpp = TargetCPP(false, false, false, (Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
+    Target(OS os, uint32_t ptrsize = 0u, uint32_t realsize = 0u, uint32_t realpad = 0u, uint32_t realalignsize = 0u, uint32_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u, nullptr, TargetC::Runtime::Unspecified), TargetCPP cpp = TargetCPP(false, false, false, TargetCPP::Runtime::Unspecified), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = CPU::baseline, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
         os(os),
         ptrsize(ptrsize),
         realsize(realsize),
@@ -6763,11 +6763,11 @@ enum class Color
 
 namespace Classification
 {
-    static Color const error = (Color)9;
-    static Color const gagged = (Color)12;
-    static Color const warning = (Color)11;
-    static Color const deprecation = (Color)14;
-    static Color const tip = (Color)10;
+    static Color const error = Color::brightRed;
+    static Color const gagged = Color::brightBlue;
+    static Color const warning = Color::brightYellow;
+    static Color const deprecation = Color::brightCyan;
+    static Color const tip = Color::brightGreen;
 };
 
 extern void error(const Loc& loc, const char* format, ...);
@@ -7044,18 +7044,18 @@ struct Param
         symdebug(),
         symdebugref(),
         optimize(),
-        is64bit(true),
+        is64bit(false),
         isLP64(),
         mscoff(false),
-        useDeprecated((DiagnosticReporting)1u),
+        useDeprecated(DiagnosticReporting::inform),
         stackstomp(),
         useUnitTests(),
         useInline(false),
         useDIP1021(),
         release(),
         preservePaths(),
-        warnings((DiagnosticReporting)2u),
-        pic((PIC)0u),
+        warnings(DiagnosticReporting::off),
+        pic(PIC::fixed),
         color(),
         cov(),
         covPercent(),
@@ -7078,7 +7078,7 @@ struct Param
         ehnogc(),
         fieldwise(),
         rvalueRefParam(),
-        cplusplus((CppStdRevision)201103u),
+        cplusplus(CppStdRevision::cpp11),
         markdown(true),
         vmarkdown(),
         showGaggedErrors(),
@@ -7094,14 +7094,14 @@ struct Param
         externStdUsage(),
         hcUsage(),
         logo(),
-        useInvariants((CHECKENABLE)0u),
-        useIn((CHECKENABLE)0u),
-        useOut((CHECKENABLE)0u),
-        useArrayBounds((CHECKENABLE)0u),
-        useAssert((CHECKENABLE)0u),
-        useSwitchError((CHECKENABLE)0u),
-        boundscheck((CHECKENABLE)0u),
-        checkAction((CHECKACTION)0u),
+        useInvariants(CHECKENABLE::_default),
+        useIn(CHECKENABLE::_default),
+        useOut(CHECKENABLE::_default),
+        useArrayBounds(CHECKENABLE::_default),
+        useAssert(CHECKENABLE::_default),
+        useSwitchError(CHECKENABLE::_default),
+        boundscheck(CHECKENABLE::_default),
+        checkAction(CHECKACTION::D),
         errorLimit(20u),
         argv0(),
         modFileAliasStrings(),
@@ -7137,7 +7137,7 @@ struct Param
         emitMakeDeps(),
         makeDepsFile(),
         makeDeps(),
-        messageStyle((MessageStyle)0u),
+        messageStyle(MessageStyle::digitalmars),
         run(),
         runargs(),
         objfiles(),
@@ -7151,7 +7151,7 @@ struct Param
         mapfile()
     {
     }
-    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = false, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, bool is64bit = true, bool isLP64 = false, bool mscoff = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool stackstomp = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, PIC pic = (PIC)0u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = false, bool fixAliasThis = false, bool inclusiveInContracts = false, bool vsafe = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool rvalueRefParam = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(0LLU, {}, arrayliteral), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, bool emitMakeDeps = false, _d_dynamicArray< const char > makeDepsFile = {}, Array<const char* > makeDeps = Array<const char* >(0LLU, {}, arrayliteral), MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > objfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > linkswitches = Array<const char* >(0LLU, {}, arrayliteral), Array<bool > linkswitchIsForCC = Array<bool >(0LLU, {}, arrayliteral), Array<const char* > libfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > dllfiles = Array<const char* >(0LLU, {}, arrayliteral), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = false, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, bool is64bit = false, bool isLP64 = false, bool mscoff = false, DiagnosticReporting useDeprecated = DiagnosticReporting::inform, bool stackstomp = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = FeatureState::default_, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = DiagnosticReporting::off, PIC pic = PIC::fixed, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = false, bool fixAliasThis = false, bool inclusiveInContracts = false, bool vsafe = false, bool ehnogc = false, FeatureState dtorFields = FeatureState::default_, bool fieldwise = false, bool rvalueRefParam = false, CppStdRevision cplusplus = CppStdRevision::cpp11, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = CHECKENABLE::_default, CHECKENABLE useIn = CHECKENABLE::_default, CHECKENABLE useOut = CHECKENABLE::_default, CHECKENABLE useArrayBounds = CHECKENABLE::_default, CHECKENABLE useAssert = CHECKENABLE::_default, CHECKENABLE useSwitchError = CHECKENABLE::_default, CHECKENABLE boundscheck = CHECKENABLE::_default, CHECKACTION checkAction = CHECKACTION::D, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(0LLU, {}, arrayliteral), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, bool emitMakeDeps = false, _d_dynamicArray< const char > makeDepsFile = {}, Array<const char* > makeDeps = Array<const char* >(0LLU, {}, arrayliteral), MessageStyle messageStyle = MessageStyle::digitalmars, bool run = false, Array<const char* > runargs = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > objfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > linkswitches = Array<const char* >(0LLU, {}, arrayliteral), Array<bool > linkswitchIsForCC = Array<bool >(0LLU, {}, arrayliteral), Array<const char* > libfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > dllfiles = Array<const char* >(0LLU, {}, arrayliteral), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         link(link),
         dll(dll),
@@ -7344,7 +7344,7 @@ struct Global
         debugids()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > mars_ext = { 1, "d" }, _d_dynamicArray< const char > doc_ext = { 4, "html" }, _d_dynamicArray< const char > ddoc_ext = { 4, "ddoc" }, _d_dynamicArray< const char > hdr_ext = { 2, "di" }, _d_dynamicArray< const char > cxxhdr_ext = { 1, "h" }, _d_dynamicArray< const char > json_ext = { 4, "json" }, _d_dynamicArray< const char > map_ext = { 3, "map" }, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, 0u, false, false, true, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > mars_ext = { 1, "d" }, _d_dynamicArray< const char > doc_ext = { 4, "html" }, _d_dynamicArray< const char > ddoc_ext = { 4, "ddoc" }, _d_dynamicArray< const char > hdr_ext = { 2, "di" }, _d_dynamicArray< const char > cxxhdr_ext = { 1, "h" }, _d_dynamicArray< const char > json_ext = { 4, "json" }, _d_dynamicArray< const char > map_ext = { 3, "map" }, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, 0u, false, false, false, false, false, DiagnosticReporting::inform, false, false, false, FeatureState::default_, false, false, false, DiagnosticReporting::off, PIC::fixed, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, FeatureState::default_, false, false, CppStdRevision::cpp11, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, CHECKENABLE::_default, CHECKENABLE::_default, CHECKENABLE::_default, CHECKENABLE::_default, CHECKENABLE::_default, CHECKENABLE::_default, CHECKENABLE::_default, CHECKACTION::D, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), MessageStyle::digitalmars, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr) :
         inifilename(inifilename),
         mars_ext(mars_ext),
         doc_ext(doc_ext),
@@ -7852,7 +7852,7 @@ struct Token
         lineComment()
     {
     }
-    Token(Token* next, Loc loc = Loc(nullptr, 0u, 0u), const char* ptr = nullptr, TOK value = (TOK)0u, _d_dynamicArray< const char > blockComment = {}, _d_dynamicArray< const char > lineComment = {}) :
+    Token(Token* next, Loc loc = Loc(nullptr, 0u, 0u), const char* ptr = nullptr, TOK value = TOK::reserved, _d_dynamicArray< const char > blockComment = {}, _d_dynamicArray< const char > lineComment = {}) :
         next(next),
         loc(loc),
         ptr(ptr),
