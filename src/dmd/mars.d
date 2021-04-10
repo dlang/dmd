@@ -312,7 +312,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     CTFloat.initialize();
 
     // Predefined version identifiers
-    addDefaultVersionIdentifiers(params);
+    addDefaultVersionIdentifiers(params, target);
 
     if (params.verbose)
     {
@@ -763,7 +763,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     sections.push("Environment");
     parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
 
-    const(char)[] arch = params.is64bit ? "64" : "32"; // use default
+    const(char)[] arch = target.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
@@ -797,7 +797,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         return true;
     }
 
-    if (params.is64bit != is64bit)
+    if (target.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
     return false;
@@ -1228,9 +1228,9 @@ private void setDefaultLibrary()
     {
         if (target.os == Target.OS.Windows)
         {
-            if (global.params.is64bit)
+            if (target.is64bit)
                 global.params.defaultlibname = "phobos64";
-            else if (global.params.mscoff)
+            else if (target.mscoff)
                 global.params.defaultlibname = "phobos32mscoff";
             else
                 global.params.defaultlibname = "phobos";
@@ -1266,38 +1266,17 @@ private void setDefaultLibrary()
  *
  * Params:
  *      params = which target to compile for (set by `setTarget()`)
+ *      tgt    = target
  */
-void addDefaultVersionIdentifiers(const ref Param params)
+void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
-    target.addPredefinedGlobalIdentifiers();
+    tgt.addPredefinedGlobalIdentifiers();
 
-    if (params.is64bit)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-        VersionCondition.addPredefinedGlobalIdent("X86_64");
-        if (target.os & Target.OS.Windows)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win64");
-        }
-    }
-    else
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-        VersionCondition.addPredefinedGlobalIdent("X86");
-        if (target.os == Target.OS.Windows)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win32");
-        }
-    }
-
-    if (params.isLP64)
-        VersionCondition.addPredefinedGlobalIdent("D_LP64");
     if (params.doDocComments)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
     if (params.cov)
@@ -1759,17 +1738,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-                params.is64bit = false;
-                params.mscoff = false;
+                target.is64bit = false;
+                target.mscoff = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
-            params.is64bit = true;
+            target.is64bit = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
-            params.is64bit = 0;
-            params.mscoff = true;
+            target.is64bit = false;
+            target.mscoff = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -2499,12 +2478,12 @@ private void reconcileCommands(ref Param params)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
         if (dmdParams.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
-        if (params.is64bit)
-            params.mscoff = true;
+        if (target.is64bit)
+            target.mscoff = true;
     }
     else if (target.os == Target.OS.DragonFlyBSD)
     {
-        if (!params.is64bit)
+        if (!target.is64bit)
             error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
     }
 
@@ -2525,13 +2504,13 @@ private void reconcileCommands(ref Param params)
             }
         }
 
-        if (params.mscoff && !params.mscrtlib)
+        if (target.mscoff && !params.mscrtlib)
         {
             version (Windows)
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
+                params.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
             }
             else
                 error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
@@ -2539,14 +2518,15 @@ private void reconcileCommands(ref Param params)
     }
     else
     {
-        if (!params.is64bit && params.mscoff)
+        if (!target.is64bit && target.mscoff)
             error(Loc.initial, "`-m32mscoff` can only be used when targetting windows");
         if (params.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
 
     // Target uses 64bit pointers.
-    params.isLP64 = params.is64bit;
+    // FIXME: X32 is 64bit but uses 32 bit pointers
+    target.isLP64 = target.is64bit;
 
     if (params.boundscheck != CHECKENABLE._default)
     {

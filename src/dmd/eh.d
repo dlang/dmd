@@ -19,6 +19,7 @@ import core.stdc.string;
 
 import dmd.globals;
 import dmd.errors;
+import dmd.target;
 
 import dmd.root.rmem;
 
@@ -113,7 +114,7 @@ void except_fillInEHTable(Symbol *s)
  */
     uint GUARD_SIZE;
     if (config.ehmethod == EHmethod.EH_DM)
-        GUARD_SIZE = (global.params.is64bit ? 3*8 : 5*4);
+        GUARD_SIZE = (target.is64bit ? 3*8 : 5*4);
     else if (config.ehmethod == EHmethod.EH_WIN32)
         GUARD_SIZE = 3*4;
     else

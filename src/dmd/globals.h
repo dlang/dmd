@@ -110,9 +110,6 @@ struct Param
     unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
     bool optimize;      // run optimizer
-    bool is64bit;       // generate 64 bit code
-    bool isLP64;        // generate code for LP64
-    bool mscoff;        // for Win32: write COFF object files instead of OMF
     Diagnostic useDeprecated;
     bool stackstomp;    // add stack stomping code
     bool useUnitTests;  // generate unittest code

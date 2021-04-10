@@ -141,12 +141,15 @@ extern (C++) struct Target
     /// Architecture name
     const(char)[] architectureName;
     CPU cpu = CPU.baseline; // CPU instruction set to target
+    bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    bool isLP64;            // pointers are 64 bits
 
     // Environmental
     const(char)[] obj_ext;    /// extension for object files
     const(char)[] lib_ext;    /// extension for static library files
     const(char)[] dll_ext;    /// extension for dynamic library files
     bool run_noext;           /// allow -run sources without extensions
+    bool mscoff = false;      // for Win32: write MsCoff object files instead of OMF
     /**
      * Values representing all properties for floating point types
      */
@@ -207,7 +210,7 @@ extern (C++) struct Target
          */
         maxStaticDataSize = int.max;
 
-        if (params.isLP64)
+        if (isLP64)
         {
             ptrsize = 8;
             classinfosize = 0x98; // 152
@@ -239,7 +242,7 @@ extern (C++) struct Target
         }
         else
             assert(0);
-        if (params.is64bit)
+        if (is64bit)
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             {
@@ -247,13 +250,17 @@ extern (C++) struct Target
                 realpad = 6;
                 realalignsize = 16;
             }
+            else if (os == OS.Windows)
+            {
+                mscoff = true;
+            }
         }
 
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
 
-        if (global.params.is64bit)
+        if (is64bit)
             architectureName = "X86_64";
         else
             architectureName = "X86";
@@ -310,7 +317,7 @@ extern (C++) struct Target
     /**
      * Add predefined global identifiers that are determied by the target
      */
-    void addPredefinedGlobalIdentifiers()
+    void addPredefinedGlobalIdentifiers() const
     {
         alias predef = VersionCondition.addPredefinedGlobalIdent;
         if (cpu >= CPU.sse2)
@@ -350,6 +357,27 @@ extern (C++) struct Target
         }
         c.addRuntimePredefinedGlobalIdent();
         cpp.addRuntimePredefinedGlobalIdent();
+        if (is64bit)
+        {
+            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+            VersionCondition.addPredefinedGlobalIdent("X86_64");
+            if (os & OS.Windows)
+            {
+                VersionCondition.addPredefinedGlobalIdent("Win64");
+            }
+        }
+        else
+        {
+            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
+            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
+            VersionCondition.addPredefinedGlobalIdent("X86");
+            if (os == OS.Windows)
+            {
+                VersionCondition.addPredefinedGlobalIdent("Win32");
+            }
+        }
+        if (isLP64)
+            VersionCondition.addPredefinedGlobalIdent("D_LP64");
     }
     /**
      * Deinitializes the global state of the compiler.
@@ -388,7 +416,7 @@ extern (C++) struct Target
         case Timaginary64:
         case Tcomplex64:
             if (os & Target.OS.Posix)
-                return params.is64bit ? 8 : 4;
+                return is64bit ? 8 : 4;
             break;
         default:
             break;
@@ -407,7 +435,7 @@ extern (C++) struct Target
     {
         const size = type.alignsize();
 
-        if ((params.is64bit || os == Target.OS.OSX) && (size == 16 || size == 32))
+        if ((is64bit || os == Target.OS.OSX) && (size == 16 || size == 32))
             return size;
 
         return (8 < size) ? 8 : size;
@@ -432,7 +460,7 @@ extern (C++) struct Target
         }
         else if (os & Target.OS.Posix)
         {
-            if (params.is64bit)
+            if (is64bit)
             {
                 tvalist = new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag")).pointerTo();
                 tvalist = typeSemantic(tvalist, loc, sc);
@@ -714,7 +742,7 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
-        if (params.is64bit)
+        if (is64bit)
         {
             // no argTypes for Win64 yet
             return isPOSIX ? toArgTypes_sysv_x64(t) : null;
@@ -758,7 +786,7 @@ extern (C++) struct Target
         d_uns64 sz = tn.size();
         Type tns = tn;
 
-        if (os == Target.OS.Windows && params.is64bit)
+        if (os == Target.OS.Windows && is64bit)
         {
             // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
             if (tns.ty == Tcomplex32)
@@ -781,7 +809,7 @@ extern (C++) struct Target
                 return false;
             return true;
         }
-        else if (os == Target.OS.Windows && params.mscoff)
+        else if (os == Target.OS.Windows && mscoff)
         {
             Type tb = tns.baseElemOf();
             if (tb.ty == Tstruct)
@@ -790,7 +818,7 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if (params.is64bit && isPOSIX)
+        else if (is64bit && isPOSIX)
         {
             TypeTuple tt = .toArgTypes_sysv_x64(tn);
             if (!tt)
@@ -806,7 +834,7 @@ extern (C++) struct Target
             if (tns.ty != Tstruct)
             {
     L2:
-                if (os == Target.OS.linux && tf.linkage != LINK.d && !params.is64bit)
+                if (os == Target.OS.linux && tf.linkage != LINK.d && !is64bit)
                 {
                                                     // 32 bit C/C++ structs always on stack
                 }
@@ -833,12 +861,12 @@ extern (C++) struct Target
         if (tns.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tns).sym;
-            if (os == Target.OS.linux && tf.linkage != LINK.d && !params.is64bit)
+            if (os == Target.OS.linux && tf.linkage != LINK.d && !is64bit)
             {
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
-            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && !params.is64bit &&
+            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && !is64bit &&
                      sd.isPOD() && sd.ctor)
             {
                 // win32 returns otherwise POD structs with ctors via memory
@@ -851,7 +879,7 @@ extern (C++) struct Target
                     goto L2;
                 goto Lagain;
             }
-            else if (params.is64bit && sd.numArgTypes() == 0)
+            else if (is64bit && sd.numArgTypes() == 0)
                 return true;
             else if (sd.isPOD())
             {
@@ -865,7 +893,7 @@ extern (C++) struct Target
                         return false;     // return small structs in regs
                                             // (not 3 byte structs!)
                     case 16:
-                        if (os & Target.OS.Posix && params.is64bit)
+                        if (os & Target.OS.Posix && is64bit)
                            return false;
                         break;
 
@@ -886,7 +914,7 @@ extern (C++) struct Target
                 return true;
         }
         else if (os == Target.OS.Windows &&
-                 !params.is64bit &&
+                 !is64bit &&
                  tf.linkage == LINK.cpp &&
                  tf.isfloating())
         {
@@ -914,7 +942,7 @@ extern (C++) struct Target
      */
     extern (C++) ulong parameterSize(const ref Loc loc, Type t)
     {
-        if (!params.is64bit &&
+        if (!is64bit &&
             (os & (Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.OSX)))
         {
             /* These platforms use clang, which regards a struct
@@ -930,7 +958,7 @@ extern (C++) struct Target
             }
         }
         const sz = t.size(loc);
-        return params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
+        return is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
     }
 
     /**
@@ -944,7 +972,7 @@ extern (C++) struct Target
     extern (C++) bool preferPassByRef(Type t)
     {
         const size = t.size();
-        if (global.params.is64bit)
+        if (is64bit)
         {
             if (os == Target.OS.Windows)
             {
@@ -1019,7 +1047,7 @@ extern (C++) struct Target
         {
             case objectFormat.stringof:
                 if (os == Target.OS.Windows)
-                    return stringExp(params.mscoff ? "coff" : "omf");
+                    return stringExp(mscoff ? "coff" : "omf");
                 else if (os == Target.OS.OSX)
                     return stringExp("macho");
                 else
@@ -1029,7 +1057,7 @@ extern (C++) struct Target
             case cppRuntimeLibrary.stringof:
                 if (os == Target.OS.Windows)
                 {
-                    if (params.mscoff)
+                    if (mscoff)
                         return stringExp(params.mscrtlib);
                     return stringExp("snn");
                 }
@@ -1067,7 +1095,7 @@ extern (C++) struct Target
      */
     extern (C++) bool libraryObjectMonitors(FuncDeclaration fd, Statement fbody)
     {
-        if (!params.is64bit && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
+        if (!is64bit && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
         {
             /* The back end uses the "jmonitor" hack for syncing;
              * no need to do the sync in the library.
@@ -1088,7 +1116,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported()
     {
-        return global.params.is64bit || os == Target.OS.OSX;
+        return is64bit || os == Target.OS.OSX;
     }
 
     /**
@@ -1157,14 +1185,14 @@ struct TargetC
             longsize = 4;
         else
             assert(0);
-        if (params.is64bit)
+        if (target.is64bit)
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
                 longsize = 8;
             else if (os == Target.OS.OSX)
                 longsize = 8;
         }
-        if (params.is64bit && os == Target.OS.Windows)
+        if (target.is64bit && os == Target.OS.Windows)
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
@@ -1174,7 +1202,7 @@ struct TargetC
             twchar_t = Type.tdchar;
 
         if (os == Target.OS.Windows)
-            runtime = global.params.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+            runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
         else if (os == Target.OS.linux)
         {
             // Note: This should be done with a target triplet, to support cross compilation.
@@ -1189,7 +1217,7 @@ struct TargetC
         }
     }
 
-    void addRuntimePredefinedGlobalIdent()
+    void addRuntimePredefinedGlobalIdent() const
     {
         alias predef = VersionCondition.addPredefinedGlobalIdent;
         with (Runtime) switch (runtime)
@@ -1241,7 +1269,7 @@ struct TargetCPP
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
         if (os == Target.OS.Windows)
-            runtime = global.params.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+            runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
         else if (os & (Target.OS.linux | Target.OS.DragonFlyBSD))
             runtime = Runtime.Gcc;
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
@@ -1366,7 +1394,7 @@ struct TargetCPP
             return baseClass.structsize;
     }
 
-    void addRuntimePredefinedGlobalIdent()
+    void addRuntimePredefinedGlobalIdent() const
     {
         alias predef = VersionCondition.addPredefinedGlobalIdent;
         with (Runtime) switch (runtime)
@@ -1392,7 +1420,7 @@ struct TargetObjC
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
-        if (target.os == Target.OS.OSX && params.is64bit)
+        if (target.os == Target.OS.OSX && target.is64bit)
             supported = true;
     }
 }

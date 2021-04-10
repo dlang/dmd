@@ -18,6 +18,7 @@ import dmd.transitivevisitor;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.target;
 
 import std.stdio;
 import std.file;
@@ -52,7 +53,7 @@ void main()
     Id.initialize();
     global._init();
     target.os = Target.OS.linux;
-    global.params.is64bit = (size_t.sizeof == 8);
+    target.is64bit = (size_t.sizeof == 8);
     global.params.useUnitTests = true;
     ASTBase.Type._init();
 

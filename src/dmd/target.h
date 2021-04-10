@@ -137,12 +137,15 @@ struct Target
 
     DString architectureName;    // name of the platform architecture (e.g. X86_64)
     CPU cpu;                // CPU instruction set to target
+    bool is64bit;           // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    bool isLP64;            // pointers are 64 bits
 
     // Environmental
     DString obj_ext;    /// extension for object files
     DString lib_ext;    /// extension for static library files
     DString dll_ext;    /// extension for dynamic library files
     bool run_noext;     /// allow -run sources without extensions
+    bool mscoff;        /// for Win32: write COFF object files instead of OMF
 
     template <typename T>
     struct FPTypeProperties
@@ -186,6 +189,7 @@ public:
     Expression *getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
+    void addPredefinedGlobalIdentifiers() const;
 };
 
 extern Target target;

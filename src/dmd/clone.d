@@ -1111,7 +1111,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
         return null;
 
     // ABI incompatible on all (?) x86 32-bit platforms
-    if (ad.classKind != ClassKind.cpp || global.params.is64bit)
+    if (ad.classKind != ClassKind.cpp || target.is64bit)
         return dtor;
 
     // generate member function that adjusts calling convention

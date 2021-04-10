@@ -140,7 +140,7 @@ void initDMD(
     }
 
     versionIdentifiers.each!(VersionCondition.addGlobalIdent);
-    addDefaultVersionIdentifiers(global.params);
+    addDefaultVersionIdentifiers(global.params, target);
 
     Type._init();
     Id.initialize();
@@ -150,6 +150,8 @@ void initDMD(
     Expression._init();
     Objc._init();
     FileCache._init();
+
+    addDefaultVersionIdentifiers(global.params,target);
 
     version (CRuntime_Microsoft)
         initFPU();

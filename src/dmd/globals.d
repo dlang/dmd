@@ -131,9 +131,6 @@ extern (C++) struct Param
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
     bool optimize;          // run optimizer
-    bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
-    bool isLP64;            // generate code for LP64
-    bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
@@ -357,10 +354,6 @@ extern (C++) struct Global
         version (MARS)
         {
             vendor = "Digital Mars D";
-            static if (TARGET.Windows)
-            {
-                params.mscoff = params.is64bit;
-            }
 
             // -color=auto is the default value
             import dmd.console : Console;

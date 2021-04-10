@@ -2941,7 +2941,7 @@ struct ASTBase
             twstring = twchar.immutableOf().arrayOf();
             tdstring = tdchar.immutableOf().arrayOf();
 
-            const isLP64 = global.params.isLP64;
+            const isLP64 = Target.isLP64;
 
             tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
             tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
@@ -6809,5 +6809,6 @@ struct ASTBase
     struct Target
     {
         extern (C++) __gshared int ptrsize;
+        extern (C++) __gshared bool isLP64;
     }
 }

@@ -257,8 +257,8 @@ void obj_start(const(char)* srcfile)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
         assert(objbuf.length() == 0);
-        objmod = global.params.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
-                                      :    OmfObj_init(&objbuf, srcfile, null);
+        objmod = target.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
+                               :    OmfObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -459,14 +459,14 @@ void genObjFile(Module m, bool multiobj)
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
-        if (target.os == Target.OS.Windows && global.params.is64bit)
+        if (target.os == Target.OS.Windows && target.is64bit)
         {
             ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
             ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
         elem *efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && global.params.is64bit)
+        if (target.os == Target.OS.Windows && target.is64bit)
             efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_params(
@@ -875,7 +875,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp.Sclass = (target.os == Target.OS.Windows && global.params.is64bit) ? SCshadowreg : SCfastpar;
+                sp.Sclass = (target.os == Target.OS.Windows && target.is64bit) ? SCshadowreg : SCfastpar;
                 sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
             }
         }
@@ -904,7 +904,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.v_argptr)
     {
         // Declare va_argsave
-        if (global.params.is64bit &&
+        if (target.is64bit &&
             target.os & Target.OS.Posix)
         {
             type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
@@ -1125,11 +1125,11 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.external_def("_main");
         }
-        else if (global.params.mscoff)
+        else if (target.mscoff)
         {
             objmod.external_def("main");
         }
-        else if (target.os == Target.OS.Windows && !global.params.is64bit)
+        else if (target.os == Target.OS.Windows && !target.is64bit)
         {
             objmod.external_def("_main");
             objmod.external_def("__acrtused_con");
@@ -1140,20 +1140,20 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
     else if (fd.isRtInit())
     {
-        if (target.isPOSIX || global.params.mscoff)
+        if (target.isPOSIX || target.mscoff)
         {
             objmod.ehsections();   // initialize exception handling sections
         }
     }
     else if (fd.isCMain())
     {
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
-        else if (target.os == Target.OS.Windows && !global.params.is64bit)
+        else if (target.os == Target.OS.Windows && !target.is64bit)
         {
             objmod.external_def("__acrtused_con");        // bring in C startup code
             objmod.includelib("snn.lib");          // bring in C runtime library
@@ -1162,7 +1162,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
     else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
@@ -1181,7 +1181,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     // Pull in RTL startup code
     else if (target.os == Target.OS.Windows && fd.isDllMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
@@ -1332,7 +1332,7 @@ tym_t totym(Type tx)
             final switch (tf.linkage)
             {
                 case LINK.windows:
-                    if (global.params.is64bit)
+                    if (target.is64bit)
                         goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
@@ -1344,7 +1344,7 @@ tym_t totym(Type tx)
                     if (target.os == Target.OS.Windows)
                     {
                     }
-                    else if (!global.params.is64bit && retStyle(tf, false) == RET.stack)
+                    else if (!target.is64bit && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 

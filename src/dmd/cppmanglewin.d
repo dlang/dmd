@@ -41,7 +41,7 @@ extern (C++):
 
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
-    scope VisualCPPMangler v = new VisualCPPMangler(!global.params.mscoff);
+    scope VisualCPPMangler v = new VisualCPPMangler(!target.mscoff);
     return v.mangleOf(s);
 }
 
@@ -329,7 +329,7 @@ public:
                 buf.writeByte('Q'); // const
             else
                 buf.writeByte('P'); // mutable
-            if (global.params.is64bit)
+            if (target.is64bit)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             mangleArray(cast(TypeSArray)type.next);
@@ -348,7 +348,7 @@ public:
             {
                 buf.writeByte('P'); // mutable
             }
-            if (global.params.is64bit)
+            if (target.is64bit)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             type.next.accept(this);
@@ -365,7 +365,7 @@ public:
             return;
 
         buf.writeByte('A'); // mutable
-        if (global.params.is64bit)
+        if (target.is64bit)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         assert(type.next);
@@ -469,7 +469,7 @@ public:
             buf.writeByte('Q');
         else
             buf.writeByte('P');
-        if (global.params.is64bit)
+        if (target.is64bit)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         mangleModifier(type);
@@ -537,7 +537,7 @@ extern(D):
             {
                 mangleVisibility(d, "AIQ");
             }
-            if (global.params.is64bit)
+            if (target.is64bit)
                 buf.writeByte('E');
             if (d.type.isConst())
             {
@@ -597,7 +597,7 @@ extern(D):
         if (t.ty != Tpointer)
             t = t.mutableOf();
         t.accept(this);
-        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && global.params.is64bit)
+        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && target.is64bit)
         {
             buf.writeByte('E');
         }
@@ -1173,7 +1173,7 @@ extern(D):
     {
         scope VisualCPPMangler tmp = new VisualCPPMangler(this);
         // Calling convention
-        if (global.params.is64bit) // always Microsoft x64 calling convention
+        if (target.is64bit) // always Microsoft x64 calling convention
         {
             tmp.buf.writeByte('A');
         }
