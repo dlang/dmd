@@ -2395,6 +2395,19 @@ void test21256()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21816
+
+bool test21816a(float t)
+{
+    return cast(bool)t;
+}
+
+void test21816()
+{
+    assert(test21816a(float.nan));
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2490,6 +2503,7 @@ int main()
     test11435b();
     test21513();
     test21256();
+    test21816();
 
     printf("Success\n");
     return 0;

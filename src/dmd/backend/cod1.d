@@ -476,7 +476,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 @trusted
 void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 {
-    //printf("logexp(e = %p, jcond = %d)\n", e, jcond);
+    //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
     {
         con_t regconsave = regcon;
@@ -1764,14 +1764,14 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
         opcode_t op = 0;
         if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
             op = 0x660000;
-        cdb.gen2(op | 0x0F57, modregrm(3, xreg-XMM0, xreg-XMM0));      // XORPS xreg,xreg
-        cdb.gen2(op | 0x0F2E, modregrm(3, xreg-XMM0, reg-XMM0));    // UCOMISS xreg,reg
+        cdb.gen2(op | XORPS, modregrm(3, xreg-XMM0, xreg-XMM0));      // XORPS xreg,xreg
+        cdb.gen2(op | UCOMISS, modregrm(3, xreg-XMM0, reg-XMM0));     // UCOMISS xreg,reg
         if (tym == TYcfloat || tym == TYcdouble)
         {   code *cnop = gennop(null);
             genjmp(cdb, JNE, FLcode, cast(block *) cnop); // JNE     L1
             genjmp(cdb,  JP, FLcode, cast(block *) cnop); // JP      L1
             reg = findreg(regm & ~mask(reg));
-            cdb.gen2(op | 0x0F2E, modregrm(3, xreg-XMM0, reg-XMM0));        // UCOMISS xreg,reg
+            cdb.gen2(op | UCOMISS, modregrm(3, xreg-XMM0, reg-XMM0)); // UCOMISS xreg,reg
             cdb.append(cnop);
         }
         return;
@@ -5275,6 +5275,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             s.Sregm & XMMREGS &&
             (tym == TYfloat || tym == TYifloat || tym == TYdouble || tym ==TYidouble))
         {
+            /* Evaluate using XMM register and XMM instruction.
+             * This affects jmpopcode()
+             */
             tstresult(cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)
