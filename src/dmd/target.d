@@ -312,14 +312,44 @@ extern (C++) struct Target
      */
     void addPredefinedGlobalIdentifiers()
     {
+        alias predef = VersionCondition.addPredefinedGlobalIdent;
         if (cpu >= CPU.sse2)
         {
-            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+            predef("D_SIMD");
             if (cpu >= CPU.avx)
-                VersionCondition.addPredefinedGlobalIdent("D_AVX");
+                predef("D_AVX");
             if (cpu >= CPU.avx2)
-                VersionCondition.addPredefinedGlobalIdent("D_AVX2");
+                predef("D_AVX2");
         }
+        if (os & OS.Posix)
+            predef("Posix");
+        if (os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
+            predef("ELFv1");
+        switch (os)
+        {
+            case OS.Freestanding: { predef("FreeStanding"); break; }
+            case OS.linux:        { predef("linux");        break; }
+            case OS.Windows:      { predef("Windows");      break; }
+            case OS.OpenBSD:      { predef("OpenBSD");      break; }
+            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
+            case OS.Solaris:      { predef("Solaris");      break; }
+            case OS.OSX:
+            {
+                predef("OSX");
+                // For legacy compatibility
+                predef("darwin");
+                break;
+            }
+            case OS.FreeBSD:
+            {
+                predef("FreeBSD");
+                predef("FreeBSD_" ~ target.FreeBSDMajor);
+                break;
+            }
+            default: assert(0);
+        }
+        c.addRuntimePredefinedGlobalIdent();
+        cpp.addRuntimePredefinedGlobalIdent();
     }
     /**
      * Deinitializes the global state of the compiler.
@@ -1098,9 +1128,23 @@ extern (C++) struct Target
  */
 struct TargetC
 {
+    enum Runtime : ubyte
+    {
+        Unspecified,
+        Bionic,
+        DigitalMars,
+        Glibc,
+        Microsoft,
+        Musl,
+        Newlib,
+        UClibc,
+        WASI,
+    }
+
     uint longsize;            /// size of a C `long` or `unsigned long` type
     uint long_doublesize;     /// size of a C `long double`
     Type twchar_t;            /// C `wchar_t` type
+    Runtime runtime;          /// vendor of the C runtime to link against
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
@@ -1128,6 +1172,39 @@ struct TargetC
             twchar_t = Type.twchar;
         else
             twchar_t = Type.tdchar;
+
+        if (os == Target.OS.Windows)
+            runtime = global.params.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+        else if (os == Target.OS.linux)
+        {
+            // Note: This should be done with a target triplet, to support cross compilation.
+            // However DMD currently does not support it, so this is a simple
+            // fix to make DMD compile on Musl-based systems such as Alpine.
+            // See https://github.com/dlang/dmd/pull/8020
+            // And https://wiki.osdev.org/Target_Triplet
+            version (CRuntime_Musl)
+                runtime = Runtime.Musl;
+            else
+                runtime = Runtime.Glibc;
+        }
+    }
+
+    void addRuntimePredefinedGlobalIdent()
+    {
+        alias predef = VersionCondition.addPredefinedGlobalIdent;
+        with (Runtime) switch (runtime)
+        {
+        default:
+        case Unspecified: return;
+        case Bionic:      return predef("CRuntime_Bionic");
+        case DigitalMars: return predef("CRuntime_DigitalMars");
+        case Glibc:       return predef("CRuntime_Glibc");
+        case Microsoft:   return predef("CRuntime_Microsoft");
+        case Musl:        return predef("CRuntime_Musl");
+        case Newlib:      return predef("CRuntime_Newlib");
+        case UClibc:      return predef("CRuntime_UClibc");
+        case WASI:        return predef("CRuntime_WASI");
+        }
     }
 }
 
@@ -1137,9 +1214,19 @@ struct TargetC
  */
 struct TargetCPP
 {
+    enum Runtime : ubyte
+    {
+        Unspecified,
+        Clang,
+        DigitalMars,
+        Gcc,
+        Microsoft,
+        Sun
+    }
     bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
     bool exceptions;          /// set if catching C++ exceptions is supported
     bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    Runtime runtime;          /// vendor of the C++ runtime to link against
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
@@ -1153,6 +1240,16 @@ struct TargetCPP
         else
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
+        if (os == Target.OS.Windows)
+            runtime = global.params.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+        else if (os & (Target.OS.linux | Target.OS.DragonFlyBSD))
+            runtime = Runtime.Gcc;
+        else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
+            runtime = Runtime.Clang;
+        else if (os == Target.OS.Solaris)
+            runtime = Runtime.Sun;
+        else
+            assert(0);
     }
 
     /**
@@ -1267,6 +1364,21 @@ struct TargetCPP
             return (baseClass.structsize + baseClass.alignsize - 1) & ~(baseClass.alignsize - 1);
         else
             return baseClass.structsize;
+    }
+
+    void addRuntimePredefinedGlobalIdent()
+    {
+        alias predef = VersionCondition.addPredefinedGlobalIdent;
+        with (Runtime) switch (runtime)
+        {
+        default:
+        case Unspecified: return;
+        case Clang:       return predef("CppRuntime_Clang");
+        case DigitalMars: return predef("CppRuntime_DigitalMars");
+        case Gcc:         return predef("CppRuntime_Gcc");
+        case Microsoft:   return predef("CppRuntime_Microsoft");
+        case Sun:         return predef("CppRuntime_Sun");
+        }
     }
 }
 
