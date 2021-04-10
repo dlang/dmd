@@ -73,7 +73,7 @@ if (isComplex!T)
 }
 
 template Array(T)
-if (is(T ==  float) || is(T ==  double) || is(T ==  real))
+if (is(T == float) || is(T == double) || is(T == real))
 {
   pure nothrow @safe:
 
