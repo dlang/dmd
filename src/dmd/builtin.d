@@ -86,13 +86,13 @@ BUILTIN determine_builtin(FuncDeclaration func)
     if (!m || !m.md)
         return BUILTIN.unimp;
     const md = m.md;
-    const id2 = md.id;
 
-    // Look for core.math, core.bitop and std.math
+    // Look for core.math, core.bitop, std.math, and std.math.<package>
+    const id2 = (md.packages.length == 2) ? md.packages[1] : md.id;
     if (id2 != Id.math && id2 != Id.bitop)
         return BUILTIN.unimp;
 
-    if (md.packages.length != 1)
+    if (md.packages.length != 1 && !(md.packages.length == 2 && id2 == Id.math))
         return BUILTIN.unimp;
 
     const id1 = md.packages[0];
