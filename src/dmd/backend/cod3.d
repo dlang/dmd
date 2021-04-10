@@ -2254,6 +2254,7 @@ void outswitab(block *b)
 @trusted
 int jmpopcode(elem *e)
 {
+    //printf("jmpopcode()\n"); elem_print(e);
     tym_t tym;
     int zero,i,jp,op;
     static immutable ubyte[6][2][2] jops =
@@ -2298,6 +2299,19 @@ int jmpopcode(elem *e)
          (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
          op == OPind ||
          (OTcall(op) && (regmask(tymx, tybasic(e.EV.E1.Eoper)) & (mST0 | XMMREGS))));
+
+    if (!needsNanCheck)
+    {
+        /* If e is in an XMM register, need to use XP.
+         * Match same test in loaddata()
+         */
+        Symbol* s;
+        needsNanCheck = e.Eoper == OPvar &&
+            (s = e.EV.Vsym).Sfl == FLreg &&
+             s.Sregm & XMMREGS &&
+             (tymx == TYfloat || tymx == TYifloat || tymx == TYdouble || tymx ==TYidouble);
+    }
+
     if (e.Ecount != e.Ecomsub)          // comsubs just get Z bit set
     {
         if (needsNanCheck) // except for floating point values that need a NaN check
