@@ -175,7 +175,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.storage_class & STC.lazy_)
             {
-                if (target.os == Target.OS.Windows && global.params.is64bit && vd.isParameter())
+                if (target.os == Target.OS.Windows && target.is64bit && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
                     t = type_fake(TYdelegate);          // Tdelegate as C type
@@ -286,7 +286,7 @@ Symbol *toSymbol(Dsymbol s)
             final switch (vd.linkage)
             {
                 case LINK.windows:
-                    m = global.params.is64bit ? mTYman_c : mTYman_std;
+                    m = target.is64bit ? mTYman_c : mTYman_std;
                     break;
 
                 case LINK.objc:
@@ -379,7 +379,7 @@ Symbol *toSymbol(Dsymbol s)
                 final switch (fd.linkage)
                 {
                     case LINK.windows:
-                        t.Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
+                        t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;
                         break;
 
                     case LINK.c:
@@ -392,7 +392,7 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.cpp:
                         s.Sflags |= SFLpublic;
-                        if (fd.isThis() && !global.params.is64bit && target.os == Target.OS.Windows)
+                        if (fd.isThis() && !target.is64bit && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -493,14 +493,14 @@ Symbol *toImport(Symbol *sym)
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
-        if (target.os == Target.OS.Windows && global.params.is64bit)
+        if (target.os == Target.OS.Windows && target.is64bit)
             idlen = sprintf(id,"__imp_%s",n);
         else
             idlen = sprintf(id,"_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
     else
     {
-        idlen = sprintf(id,(target.os == Target.OS.Windows && global.params.is64bit) ? "__imp_%s" : "_imp__%s",n);
+        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
@@ -616,7 +616,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
-            !(config.objfmt == OBJ_MSCOFF && !global.params.is64bit)) // -m32mscoff relocations are wrong
+            !(config.objfmt == OBJ_MSCOFF && !target.is64bit)) // -m32mscoff relocations are wrong
         {
             auto bzsave = bzeroSymbol;
             ad.sinit = getBzeroSymbol();

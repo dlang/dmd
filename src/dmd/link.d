@@ -226,7 +226,7 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -301,21 +301,21 @@ public int runLINK()
                 global.params.mscrtlib[0..6] != "msvcrt" || !isdigit(global.params.mscrtlib[6]))
                 vsopt.initialize();
 
-            const(char)* lflags = vsopt.linkOptions(global.params.is64bit);
+            const(char)* lflags = vsopt.linkOptions(target.is64bit);
             if (lflags)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
             }
 
-            const(char)* linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
+            const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
                 linkcmd = getenv("LINKCMD"); // backward compatible
             if (!linkcmd)
-                linkcmd = vsopt.linkerPath(global.params.is64bit);
+                linkcmd = vsopt.linkerPath(target.is64bit);
 
             // object files not SAFESEH compliant, but LLD is more picky than MS link
-            if (!global.params.is64bit)
+            if (!target.is64bit)
                 if (FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
                     cmdbuf.writestring(" /SAFESEH:NO");
 
@@ -555,7 +555,7 @@ public int runLINK()
         ensurePathToNameExists(Loc.initial, global.params.exefile);
         if (global.params.symdebug)
             argv.push("-g");
-        if (global.params.is64bit)
+        if (target.is64bit)
             argv.push("-m64");
         else
             argv.push("-m32");
@@ -833,7 +833,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!global.params.mscoff)
+        if (!target.mscoff)
         {
             if ((len = strlen(args)) > 255)
             {

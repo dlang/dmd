@@ -586,7 +586,7 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!global.params.is64bit)
+    if (!target.is64bit)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
@@ -595,7 +595,7 @@ int intrinsic_op(FuncDeclaration fd)
     return op;
 
 Lva_start:
-    if (global.params.is64bit &&
+    if (target.is64bit &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&
@@ -641,7 +641,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         {
             elength = *pe;
             *pe = el_same(&elength);
-            elength = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+            elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
             slength = toSymbol(lengthVar);
@@ -937,7 +937,7 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!global.params.symdebug)
         return;
-    if (!global.params.mscoff)  // toDebugClosure only implemented for CodeView,
+    if (!target.mscoff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.dim && !fd.needsClosure)

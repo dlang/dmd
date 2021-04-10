@@ -51,7 +51,7 @@ class Library
     {
         static if (TARGET.Windows)
         {
-            return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
+            return (target.mscoff || target.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
         }
         else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
