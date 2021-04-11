@@ -1169,7 +1169,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                                 td.overroot = null;
                                 td.overnext = null;
                             }
-                            exps.push(new DsymbolExp(Loc.initial, td, false));
+
+                            auto e = ex ? new DotTemplateExp(Loc.initial, ex, td)
+                                        : new DsymbolExp(Loc.initial, td);
+                            exps.push(e);
                         }
                     }
                     return 0;
