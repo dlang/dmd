@@ -70,19 +70,19 @@ enum CPU
 
 Target.OS defaultTargetOS()
 {
-    static if (TARGET.Windows)
+    version (Windows)
         return Target.OS.Windows;
-    else static if (TARGET.Linux)
+    else version (linux)
         return Target.OS.linux;
-    else static if (TARGET.OSX)
+    else version (OSX)
         return Target.OS.OSX;
-    else static if (TARGET.FreeBSD)
+    else version (FreeBSD)
         return Target.OS.FreeBSD;
-    else static if (TARGET.OpenBSD)
+    else version (OpenBSD)
         return Target.OS.OpenBSD;
-    else static if (TARGET.Solaris)
+    else version (Solaris)
         return Target.OS.Solaris;
-    else static if (TARGET.DragonFlyBSD)
+    else version (DragonFlyBSD)
         return Target.OS.DragonFlyBSD;
     else
         static assert(0, "unknown TARGET");
@@ -1289,12 +1289,12 @@ struct TargetCPP
      */
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.DragonFlyBSD || TARGET.Solaris)
+        if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
-        else static if (TARGET.Windows)
+        if (target.os == Target.OS.Windows)
             return toCppMangleMSVC(s);
         else
-            static assert(0, "fix this");
+            assert(0, "fix this");
     }
 
     /**
@@ -1306,12 +1306,12 @@ struct TargetCPP
      */
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);
-        else static if (TARGET.Windows)
+        if (target.os == Target.OS.Windows)
             return cppTypeInfoMangleMSVC(cd);
         else
-            static assert(0, "fix this");
+            assert(0, "fix this");
     }
 
     /**
