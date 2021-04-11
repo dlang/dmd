@@ -11,16 +11,19 @@
 
 module dmd.libelf;
 
-version(Windows) {}
-else version(OSX) {}
-else:
-
 import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.stdio;
-import core.sys.posix.sys.stat;
-import core.sys.posix.unistd;
+version (Posix)
+{
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd;
+}
+version (Windows)
+{
+    import core.sys.windows.stat;
+}
 
 import dmd.globals;
 import dmd.lib;
@@ -259,8 +262,11 @@ final class LibElf : Library
         om.scan = 1;
         if (fromfile)
         {
-            stat_t statbuf;
-            int i = module_name.toCStringThen!(slice => stat(slice.ptr, &statbuf));
+            version (Posix)
+                stat_t statbuf;
+            version (Windows)
+                struct_stat statbuf;
+            int i = module_name.toCStringThen!(name => stat(name.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;
@@ -273,19 +279,29 @@ final class LibElf : Library
             /* Mock things up for the object module file that never was
              * actually written out.
              */
-            __gshared uid_t uid;
-            __gshared gid_t gid;
-            __gshared int _init;
-            if (!_init)
+            version (Posix)
             {
-                _init = 1;
-                uid = getuid();
-                gid = getgid();
+                __gshared uid_t uid;
+                __gshared gid_t gid;
+                __gshared int _init;
+                if (!_init)
+                {
+                    _init = 1;
+                    uid = getuid();
+                    gid = getgid();
+                }
+                om.user_id = uid;
+                om.group_id = gid;
             }
-            time(&om.file_time);
-            om.user_id = uid;
-            om.group_id = gid;
-            om.file_mode = (1 << 15) | (6 << 6) | (4 << 3); // 0100640
+            version (Windows)
+            {
+                om.user_id = 0;  // meaningless on Windows
+                om.group_id = 0; // meaningless on Windows
+            }
+            time_t file_time = 0;
+            time(&file_time);
+            om.file_time = cast(long)file_time;
+            om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         }
         objmodules.push(om);
     }
