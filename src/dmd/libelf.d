@@ -11,10 +11,6 @@
 
 module dmd.libelf;
 
-version(Windows) {}
-else version(OSX) {}
-else:
-
 import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;
