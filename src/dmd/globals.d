@@ -17,22 +17,6 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.identifier;
 
-template xversion(string s)
-{
-    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-}
-
-enum TARGET : bool
-{
-    Linux        = xversion!`linux`,
-    OSX          = xversion!`OSX`,
-    FreeBSD      = xversion!`FreeBSD`,
-    OpenBSD      = xversion!`OpenBSD`,
-    Solaris      = xversion!`Solaris`,
-    Windows      = xversion!`Windows`,
-    DragonFlyBSD = xversion!`DragonFlyBSD`,
-}
-
 enum DiagnosticReporting : ubyte
 {
     error,        // generate an error

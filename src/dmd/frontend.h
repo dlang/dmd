@@ -6826,17 +6826,6 @@ enum class HIGHLIGHT : uint8_t
     Other = 6u,
 };
 
-enum class TARGET : bool
-{
-    Linux = true,
-    OSX = false,
-    FreeBSD = false,
-    OpenBSD = false,
-    Solaris = false,
-    Windows = false,
-    DragonFlyBSD = false,
-};
-
 enum class DiagnosticReporting : uint8_t
 {
     error = 0u,
