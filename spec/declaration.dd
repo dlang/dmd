@@ -467,14 +467,27 @@ $(GNAME VoidInitializer):
         used before it is set, undefined program behavior will result.
         )
 
-        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
-        used before it is set, the behavior is undefined.
+        $(IMPLEMENTATION_DEFINED If a void initialized variable's value is
+        used before it is set, its value is implementation defined.
 
         ---
-        void foo()
+        void bad()
         {
             int x = void;
-            writeln(x);  // will print garbage
+            writeln(x);  // print implementation defined value
+        }
+        ---
+        )
+
+        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
+        used before it is set, and the value is a reference, pointer or an instance
+        of a struct with an invariant, the behavior is undefined.
+
+        ---
+        void muchWorse()
+        {
+            char[] p = void;
+            writeln(p);  // may result in apocalypse
         }
         ---
         )
