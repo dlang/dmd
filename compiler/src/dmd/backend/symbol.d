@@ -279,10 +279,17 @@ bool Symbol_isAffected(const ref Symbol s)
      * 4. Const can be mutated by a separate view.
      * Address this in a separate PR.
      */
-    if (0 &&
-        s.ty() & (mTYconst | mTYimmutable))
+    static if (0)
+    if (s.ty() & (mTYconst | mTYimmutable))
     {
-        return false;
+        /* Disabled for the moment because even @safe functions
+         * may have inlined unsafe code from other functions
+         */
+        if (funcsym_p.Sfunc.Fflags3 & F3safe &&
+            s.ty() & mTYimmutable)
+        {
+            return false;
+        }
     }
     return true;
 }
