@@ -1324,13 +1324,13 @@ void flowlv()
         printf("Live variables\n");
         foreach (i, b; dfo[])
         {
-            printf("B%d IN\t", cast(int)i);
+            printf("B%d  IN\t", cast(int)i);
             vec_println(b.Binlv);
-            printf("B%d GEN\t", cast(int)i);
+            printf("   GEN\t");
             vec_println(b.Bgen);
             printf("  KILL\t");
             vec_println(b.Bkill);
-            printf("  OUT\t");
+            printf("   OUT\t");
             vec_println(b.Boutlv);
         }
     }
@@ -1350,6 +1350,16 @@ private void lvgenkill()
     foreach (i; 0 .. globsym.length)
         if (!(globsym[i].Sflags & SFLunambig))
             vec_setbit(i,ambigsym);
+
+    static if (0)
+    {
+        printf("ambigsym\n");
+        foreach (i; 0 .. globsym.length)
+        {
+            if (vec_testbit(i, ambigsym))
+                printf(" [%d] %s\n", i, globsym[i].Sident.ptr);
+        }
+    }
 
     foreach (b; dfo[])
     {
@@ -1513,6 +1523,8 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
                 break;
             }
 
+            case OPmemcmp:
+            case OPstrcmp:
             case OPbt:                          // much like OPind
                 accumlv(GEN,KILL,n.EV.E1,ambigsym);
                 accumlv(GEN,KILL,n.EV.E2,ambigsym);
