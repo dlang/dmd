@@ -1255,7 +1255,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 v = go.expnod[i].EV.E1.EV.Vsym;
                 if (ambig)
                 {
-                    if (!(v.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*v))
                         goto clr;
                 }
                 else
@@ -1263,10 +1263,11 @@ private bool copyPropWalk(elem *n,vec_t IN)
                     if (v == t.EV.Vsym)
                         goto clr;
                 }
+
                 v = go.expnod[i].EV.E2.EV.Vsym;
                 if (ambig)
                 {
-                    if (!(v.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*v))
                         goto clr;
                 }
                 else
