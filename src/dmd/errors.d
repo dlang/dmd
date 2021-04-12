@@ -43,7 +43,11 @@ enum AlwaysError
 }
 
 
-pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+static if (__VERSION__ < 2092)
+    private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+else
+    pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+
 
 auto previewErrorFunc(FeatureState featureState) @safe @nogc pure nothrow
 {
