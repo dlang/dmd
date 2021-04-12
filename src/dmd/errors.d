@@ -55,6 +55,17 @@ auto previewErrorFunc(FeatureState featureState) @safe @nogc pure nothrow
         return &deprecation;
 }
 
+auto previewSupplementalFunc(FeatureState featureState) @safe @nogc pure nothrow
+{
+    if (featureState == FeatureState.enabled)
+        return &errorSupplemental;
+    else if (featureState == FeatureState.disabled)
+        return &noop;
+    else
+        return &deprecationSupplemental;
+}
+
+
 /**
  * Print an error message, increasing the global error count.
  * Params:
