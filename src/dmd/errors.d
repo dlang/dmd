@@ -42,7 +42,7 @@ else
     pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
 
 
-auto previewErrorFunc(FeatureState featureState) @safe @nogc pure nothrow
+package auto previewErrorFunc(FeatureState featureState) @safe @nogc pure nothrow
 {
     if (featureState == FeatureState.enabled)
         return &error;
@@ -52,7 +52,7 @@ auto previewErrorFunc(FeatureState featureState) @safe @nogc pure nothrow
         return &deprecation;
 }
 
-auto previewSupplementalFunc(FeatureState featureState) @safe @nogc pure nothrow
+package auto previewSupplementalFunc(FeatureState featureState) @safe @nogc pure nothrow
 {
     if (featureState == FeatureState.enabled)
         return &errorSupplemental;
