@@ -6780,6 +6780,12 @@ namespace Classification
     static Color const tip = (Color)10;
 };
 
+enum class AlwaysError
+{
+    no = 0,
+    yes = 1,
+};
+
 extern void error(const Loc& loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
