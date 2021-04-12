@@ -1290,16 +1290,10 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             e = e.implicitCastTo(sc, fparam.type);
 
             // default arg must be an lvalue
-            if (isRefOrOut && !isAuto)
-            {
-                if (!(global.params.previewIn && (fparam.storageClass & STC.in_)) &&
-                    !(global.params.rvalueRefParam))
-                {
-                    e = e.toLvalue(sc, e);
-                    if (e.op == TOK.error)
-                        errorSupplemental(e.loc, "use `-preview=in` or `preview=rvaluerefparam`");
-                }
-            }
+            if (isRefOrOut && !isAuto &&
+                !(global.params.previewIn && (fparam.storageClass & STC.in_)) &&
+                !(global.params.rvalueRefParam))
+                e = e.toLvalue(sc, e);
 
             fparam.defaultArg = e;
             return (e.op != TOK.error);
