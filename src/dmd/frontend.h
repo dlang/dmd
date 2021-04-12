@@ -6780,7 +6780,6 @@ namespace Classification
     static Color const tip = (Color)10;
 };
 
-
 extern void error(const Loc& loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
@@ -7964,3 +7963,4 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
+
