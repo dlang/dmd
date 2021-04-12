@@ -1,17 +1,13 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/issue20704.d(21): Error: cannot modify constant `0`
-       use `-preview=in` or `preview=rvaluerefparam`
-fail_compilation/issue20704.d(32): Error: template instance `issue20704.f2!int` error instantiating
-fail_compilation/issue20704.d(23): Error: cannot modify constant `0`
-       use `-preview=in` or `preview=rvaluerefparam`
-fail_compilation/issue20704.d(34): Error: template instance `issue20704.f4!int` error instantiating
-fail_compilation/issue20704.d(21): Error: `S(0)` is not an lvalue and cannot be modified
-       use `-preview=in` or `preview=rvaluerefparam`
-fail_compilation/issue20704.d(40): Error: template instance `issue20704.f2!(S)` error instantiating
-fail_compilation/issue20704.d(21): Error: `null` is not an lvalue and cannot be modified
-       use `-preview=in` or `preview=rvaluerefparam`
-fail_compilation/issue20704.d(42): Error: template instance `issue20704.f2!(C)` error instantiating
+fail_compilation/issue20704.d(17): Error: cannot modify constant `0`
+fail_compilation/issue20704.d(28): Error: template instance `issue20704.f2!int` error instantiating
+fail_compilation/issue20704.d(19): Error: cannot modify constant `0`
+fail_compilation/issue20704.d(30): Error: template instance `issue20704.f4!int` error instantiating
+fail_compilation/issue20704.d(17): Error: `S(0)` is not an lvalue and cannot be modified
+fail_compilation/issue20704.d(36): Error: template instance `issue20704.f2!(S)` error instantiating
+fail_compilation/issue20704.d(17): Error: `null` is not an lvalue and cannot be modified
+fail_compilation/issue20704.d(38): Error: template instance `issue20704.f2!(C)` error instantiating
 ---
 */
 
