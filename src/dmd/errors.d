@@ -36,13 +36,6 @@ enum Classification : Color
 }
 
 
-enum AlwaysError
-{
-    no,
-    yes,
-}
-
-
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
 else

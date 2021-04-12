@@ -6780,11 +6780,6 @@ namespace Classification
     static Color const tip = (Color)10;
 };
 
-enum class AlwaysError
-{
-    no = 0,
-    yes = 1,
-};
 
 extern void error(const Loc& loc, const char* format, ...);
 
@@ -7969,4 +7964,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-
