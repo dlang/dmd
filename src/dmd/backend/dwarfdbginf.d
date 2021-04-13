@@ -66,6 +66,7 @@ static if (1)
     import dmd.backend.mem;
     import dmd.backend.dlist;
     import dmd.backend.el;
+    import dmd.backend.filespec;
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
@@ -1362,23 +1363,6 @@ static if (1)
     }
 
     /**
-     * Extracts the file name from `path`.
-     *
-     * Params:
-     *      path = Full path containing the filename and the directory
-     * Returns:
-     *      The file name
-     */
-    extern(D) const(char)[] retrieveFilename(const(char)[] path)
-    {
-        assert(path);
-        immutable SEP = '/';
-        // Retrieve filename from path
-        char* lastSep = strrchr(cast(char*) path.ptr, SEP);
-        return lastSep ? path[lastSep - path.ptr + 1 .. $] : path;
-    }
-
-    /**
      * Extracts the directory from `path`.
      *
      * Params:
@@ -1543,7 +1527,7 @@ static if (1)
                             // Filenames must be written in the correct order, to match the AAchars' idx order
                             if (id == dwarf_line_addfile(filename))
                             {
-                                debug_line.buf.writeString(retrieveFilename(filename));
+                                debug_line.buf.writeString(filename.ptr.filespecname);
 
                                 auto index = dwarf_line_add_directory(filename);
                                 assert(index != 0);
