@@ -10,7 +10,7 @@ fail_compilation/b20011.d(37):        cannot pass rvalue argument `S1(cast(ubyte
 fail_compilation/b20011.d(38): Error: function `b20011.main.assignableByOut(out ubyte p)` is not callable using argument types `(ubyte)`
 fail_compilation/b20011.d(38):        cannot pass rvalue argument `S1(cast(ubyte)0u).member` of type `ubyte` to parameter `out ubyte p`
 fail_compilation/b20011.d(39): Error: function `b20011.main.assignableByConstRef(ref const(ubyte) p)` is not callable using argument types `(ubyte)`
-fail_compilation/b20011.d(39):        cannot pass rvalue argument `S1(cast(ubyte)0u).member` of type `ubyte` to parameter `ref const(ubyte) p`
+fail_compilation/b20011.d(39):        cannot pass rvalue argument `S1(cast(ubyte)0u).member` of type `ubyte` to parameter `ref const(ubyte) p`, use `-preview=rvaluerefparam` to allow this conversion
 ---
 */
 module b20011;
