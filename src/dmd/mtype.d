@@ -4662,6 +4662,8 @@ extern (C++) final class TypeFunction : TypeNext
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
             rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
             parameterToChars(par, this, qual));
+        if (rv)
+            buf.printf(", use `-preview=rvaluerefparam` to allow this conversion");
         return buf.extractChars();
     }
 
