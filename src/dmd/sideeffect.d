@@ -186,6 +186,9 @@ private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
             if (assumeImpureCalls)
                 return true;
 
+            if (e.type && e.type.ty == Tnoreturn)
+                return true;
+
             CallExp ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.
