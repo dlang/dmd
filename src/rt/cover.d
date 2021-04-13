@@ -250,9 +250,10 @@ shared static ~this()
         foreach (i; 0 .. minLineLength)
             lines[i] = expandTabs(lines[i]);
 
-        if (config.merge && readFile(flst, buf))
+        auto buf2 = new char[NUMCHARS];
+        if (config.merge && readFile(flst, buf2))
         {
-            splitLines(buf, lstLines);
+            splitLines(buf2, lstLines);
 
             // check if source is the same before merge
             if (lstEquals(lines, lstLines))
