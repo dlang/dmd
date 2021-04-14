@@ -8,6 +8,7 @@ COPY=\
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\attribute.d \
 	$(IMPDIR)\core\bitop.d \
+	$(IMPDIR)\core\builtins.d \
 	$(IMPDIR)\core\checkedint.d \
 	$(IMPDIR)\core\cpuid.d \
 	$(IMPDIR)\core\demangle.d \
