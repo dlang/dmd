@@ -1075,7 +1075,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
                 const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
-                previewErrorFunc(featureState)(e.loc, msg, e.toChars(), kind, v.toChars());
+                previewErrorFunc(sc, featureState)(e.loc, msg, e.toChars(), kind, v.toChars());
             }
             result |= (featureState == FeatureState.enabled);
         }
@@ -1124,7 +1124,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
             if (!gag)
             {
-                previewErrorFunc(global.params.useDIP25)(e.loc, msg, v.toChars());
+                previewErrorFunc(sc, global.params.useDIP25)(e.loc, msg, v.toChars());
             }
 
             // If -preview=dip25 is used, the user wants an error
@@ -1306,9 +1306,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                         supplemental = "perhaps annotate the function with `return`";
                 }
 
-                previewErrorFunc(featureState)(e.loc, msg, e.toChars(), v.toChars());
+                previewErrorFunc(sc, featureState)(e.loc, msg, e.toChars(), v.toChars());
                 if (supplemental)
-                    previewSupplementalFunc(featureState)(e.loc, supplemental);
+                    previewSupplementalFunc(sc, featureState)(e.loc, supplemental);
             }
             result = true;
         }
@@ -1377,7 +1377,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     {
                         const(char)* msg = "escaping reference to outer local variable `%s`";
                         if (!gag)
-                            previewErrorFunc(global.params.useDIP25)(e.loc, msg, v.toChars());
+                            previewErrorFunc(sc, global.params.useDIP25)(e.loc, msg, v.toChars());
                         result = true;
                         continue;
                     }

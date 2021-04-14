@@ -962,7 +962,7 @@ extern (C++) class Dsymbol : ASTNode
     }
 
     // is Dsymbol deprecated?
-    bool isDeprecated() const
+    bool isDeprecated() @safe @nogc pure nothrow const
     {
         return false;
     }
