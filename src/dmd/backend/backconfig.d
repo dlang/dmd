@@ -111,6 +111,8 @@ static if (TARGET_WINDOS)
         config.exe = EX_WIN32;
         config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
+        if (mscoff)
+            config.flags |= CFGnoebp;    // test suite fails without this
     }
 
     if (exe)
