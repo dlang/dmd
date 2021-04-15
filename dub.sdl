@@ -47,7 +47,9 @@ subPackage {
 
   preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
 
-  stringImportPaths "generated/dub"
+  stringImportPaths \
+    "src/dmd/res" \
+    "generated/dub"
 
   dependency "dmd:root" version="*"
 }
