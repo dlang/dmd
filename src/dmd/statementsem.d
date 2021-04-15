@@ -3926,7 +3926,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         scope sc2 = sc.push();
         sc2.tryBody = tcs;
-        tcs._body = tcs._body.semanticScope(sc, null, null);
+        tcs._body = tcs._body.semanticScope(sc2, null, null);
         assert(tcs._body);
         sc2.pop();
 
@@ -4012,8 +4012,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         tfs.tryBody = sc.tryBody;
 
         auto sc2 = sc.push();
-        sc.tryBody = tfs;
-        tfs._body = tfs._body.statementSemantic(sc);
+        sc2.tryBody = tfs;
+        tfs._body = tfs._body.statementSemantic(sc2);
         sc2.pop();
 
         sc = sc.push();
