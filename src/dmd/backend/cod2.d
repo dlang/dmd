@@ -533,7 +533,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
     }
 
-    regm_t posregs = (isbyte) ? BYTEREGS : (mES | ALLREGS | mBP);
+    regm_t posregs = (isbyte) ? BYTEREGS : (mES | allregs);
     regm_t retregs = *pretregs & posregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
