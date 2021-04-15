@@ -1213,26 +1213,49 @@ static if (1)
         {
             debug_info.initialize();
 
-
-            // Compilation Unit Header
+            void writeCompilationUnitHeader(ubyte hversion)()
             {
-                debug_info.buf.write32(0);                      // unit length
-                debug_info.buf.write16(config.dwarf);           // version
-                if (config.dwarf >= 5)
+                struct CompilationUnitHeader
                 {
-                    debug_info.buf.writeByte(DW_UT_compile);    // Unit Type
-                    debug_info.buf.writeByte(I64 ? 8 : 4);      // Address size
-                    debug_info.buf.write32(0);                  // debug abbrev offset
+                align(1):
+                    uint length;
+                    ushort version_ = hversion;
+                    static if (hversion >= 5)
+                    {
+                        ubyte unit_type = DW_UT_compile;
+                        ubyte address_size = 4;
+                    }
+                    uint debug_abbrev_offset;
+                    static if (hversion < 5)
+                    {
+                        ubyte address_size = 4;
+                    }
                 }
+
+                static if (hversion == 3 || hversion == 4)
+                    static assert(CompilationUnitHeader.sizeof == 11);
+                else static if (hversion == 5)
+                    static assert(CompilationUnitHeader.sizeof == 12);
                 else
-                {
-                    debug_info.buf.write32(0);                  // debug abbrev offset
-                    debug_info.buf.writeByte(I64 ? 8 : 4);      // Address size
-                }
+                    static assert(0);
+
+                auto cuh = CompilationUnitHeader.init;
+
+                if (I64)
+                    cuh.address_size = 8;
+
+                debug_info.buf.writen(&cuh, cuh.sizeof);
+
+                static if (ELFOBJ)
+                    dwarf_addrel(debug_info.seg, CompilationUnitHeader.debug_abbrev_offset.offsetof, debug_abbrev.seg);
             }
 
-            static if (ELFOBJ)
-                dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
+            if (config.dwarf == 3)
+                writeCompilationUnitHeader!3();
+            else if (config.dwarf == 4)
+                writeCompilationUnitHeader!4();
+            else
+                writeCompilationUnitHeader!5();
 
             debug_info.buf.writeuLEB128(1);                   // abbreviation code
 
