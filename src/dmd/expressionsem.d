@@ -841,7 +841,9 @@ Lagain:
     }
     else
     {
-        if (!s.isFuncDeclaration()) // functions are checked after overloading
+        // functions are checked after overloading
+        // templates are checked after matching constraints
+        if (!s.isFuncDeclaration() && !s.isTemplateDeclaration())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -853,7 +855,7 @@ Lagain:
         s = s.toAlias();
 
         //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
-        if (s != olds && !s.isFuncDeclaration())
+        if (s != olds && !s.isFuncDeclaration() && !s.isTemplateDeclaration())
         {
             s.checkDeprecated(loc, sc);
             if (d)
