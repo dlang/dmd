@@ -15,6 +15,12 @@
  */
 module core.attribute;
 
+version (GNU)
+    public import gcc.attributes;
+
+version (LDC)
+    public import ldc.attributes;
+
 version (D_ObjectiveC)
 {
     version = UdaOptional;
