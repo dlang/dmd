@@ -4506,4 +4506,5 @@ template _arrayOp(Args...)
     alias _arrayOp = arrayOp!Args;
 }
 
-void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
+/// Legacy import
+public import core.builtins : __ctfeWrite;
