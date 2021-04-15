@@ -827,6 +827,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         scx.parent = ti;
         scx.tinst = null;
         scx.minst = null;
+        // Set SCOPE.constraint before declaring function parameters for the static condition
+        // (previously, this was immediately before calling evalStaticCondition), so the
+        // semantic pass knows not to issue deprecation warnings for these throw-away decls.
+        // https://issues.dlang.org/show_bug.cgi?id=21831
+        scx.flags |= SCOPE.constraint;
 
         assert(!ti.symtab);
         if (fd)
@@ -882,7 +887,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
-        scx.flags |= SCOPE.constraint;
         bool errors;
         const bool result = evalStaticCondition(scx, constraint, lastConstraint, errors, &lastConstraintNegs);
         if (result || errors)
