@@ -67,7 +67,10 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
     public:
         FuncDeclaration func;
         bool mustNotThrow;
+        bool skippedTry;
         int result;
+        TryCatchStatement enclosingTry;
+        BlockExit parent; // enclosing visitor for recursive blockExit calls
 
         extern (D) this(FuncDeclaration func, bool mustNotThrow)
         {
@@ -383,41 +386,22 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         override void visit(TryCatchStatement s)
         {
             assert(s._body);
-            result = blockExit(s._body, func, false);
+            assert(!this.enclosingTry);
+            this.enclosingTry = s;
+            result = blockExit(s._body, func, mustNotThrow);
+            this.enclosingTry = null;
 
-            int catchresult = 0;
+            // Possible exceptions were caught by this or enclosing TryCatchStatements
+            if (!skippedTry)
+                result &= ~BE.throw_;
+
             foreach (c; *s.catches)
             {
                 if (c.type == Type.terror)
                     continue;
 
-                int cresult = blockExit(c.handler, func, mustNotThrow);
-
-                /* If we're catching Object, then there is no throwing
-                 */
-                Identifier id = c.type.toBasetype().isClassHandle().ident;
-                if (c.internalCatch && (cresult & BE.fallthru))
-                {
-                    // https://issues.dlang.org/show_bug.cgi?id=11542
-                    // leave blockExit flags of the body
-                    cresult &= ~BE.fallthru;
-                }
-                else if (id == Id.Object || id == Id.Throwable)
-                {
-                    result &= ~(BE.throw_ | BE.errthrow);
-                }
-                else if (id == Id.Exception)
-                {
-                    result &= ~BE.throw_;
-                }
-                catchresult |= cresult;
+                result |= blockExit(c.handler, func, mustNotThrow);
             }
-            if (mustNotThrow && (result & BE.throw_))
-            {
-                // now explain why this is nothrow
-                blockExit(s._body, func, mustNotThrow);
-            }
-            result |= catchresult;
         }
 
         override void visit(TryFinallyStatement s)
@@ -474,7 +458,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=8675
                 // Allow throwing 'Throwable' object even if mustNotThrow.
-                result = BE.fallthru;
+                result = BE.errthrow;
                 return;
             }
 
@@ -487,8 +471,11 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 result = BE.errthrow;
                 return;
             }
-            if (mustNotThrow)
+            const caught = isCaught(s.exp.type);
+            if (mustNotThrow && !caught)
+            {
                 s.error("`%s` is thrown but not caught", s.exp.type.toChars());
+            }
 
             result = BE.throw_;
         }
@@ -524,6 +511,92 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         {
             result = BE.fallthru;
         }
+
+        /**
+         * Checks whether a thrown exception escapes the current function.
+         *
+         * Params:
+         *   - ex = type of the thrown exception
+         *
+         * Returns: true if there is an enclosing TryCatchStatement handling `ex`
+         */
+        extern (D) private bool isCaught(Type ex)
+        {
+            /// Returns: true if `tc` contains a `catch` matching `ex`
+            bool hasHandler(TryCatchStatement tc)
+            {
+                foreach (catch_; *tc.catches)
+                {
+                    // Matches exception type?
+                    if (!ex.immutableOf().implicitConvTo(catch_.type.immutableOf()))
+                        continue;
+
+                    // Only consider user-defined catch-clauses
+                    // (internal catches will rethrow the exception in some way)
+                    if (catch_.internalCatch && (.blockExit(catch_.handler, func, false) & (BE.throw_ | BE.errthrow)))
+                        continue;
+
+                    return true;
+                }
+                return false;
+            }
+
+            TryCatchStatement tc;
+            for (BlockExit cur = this; cur; cur = cur.parent)
+            {
+                if (!cur.enclosingTry)
+                    continue;
+
+                tc = cur.enclosingTry.isTryCatchStatement();
+                assert(tc);
+                if (hasHandler(tc))
+                    return true;
+
+                cur.skippedTry = true;
+            }
+
+            // Went past the blockExit entrypoint, check if other enclosing
+            // TryCatchStatements exists and handle `ex`
+            for (auto cur = tc ? tc.tryBody : null; cur; )
+            {
+                if (auto etc = cur.isTryCatchStatement())
+                {
+                    if (hasHandler(etc))
+                        return true;
+
+                    cur = etc.tryBody;
+                }
+                else
+                {
+                    auto tf = cur.isTryFinallyStatement();
+                    assert(tf);
+                    cur = tf.tryBody;
+                }
+            }
+            return false;
+        }
+
+        /// `blockExit` wrapper that forwards `skippedTry` from the nested visitor
+        extern (D) private int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
+        {
+            if (!s)
+                return BE.fallthru;
+            scope BlockExit be = new BlockExit(func, mustNotThrow);
+            be.parent = this;
+            s.accept(be);
+            return be.result;
+        }
+
+        /// `canThrow` wrapper that updates `mustNotThrow` if a possible exception
+        /// cannot escape from the current scope
+        extern (D) private bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow)
+        {
+            // Future work could update .isCaught to check the concrete type
+            if (mustNotThrow)
+                mustNotThrow = !isCaught(ClassDeclaration.exception.type);
+
+            return .canThrow(e, func, mustNotThrow);
+        }
     }
 
     if (!s)
@@ -532,4 +605,3 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
     s.accept(be);
     return be.result;
 }
-
