@@ -5558,7 +5558,7 @@ private elem * optelem(elem *e, goal_t goal)
 beg:
     //__gshared uint count;
     //printf("count: %u\n", ++count);
-    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); print(" goal x%x\n", goal); }
+    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); printf(" goal x%x\n", goal); }
     assert(e);
     elem_debug(e);
     assert(e.Ecount == 0);             // no CSEs
@@ -6069,7 +6069,7 @@ elem *doptelem(elem *e, goal_t goal)
     if (goal & GOALstruct && e && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         e = elstruct(e, goal);
 
-    if (topair)
+    if (topair && e)
         e = elToPair(e);
 
     return e;
