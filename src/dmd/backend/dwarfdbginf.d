@@ -66,6 +66,7 @@ static if (1)
     import dmd.backend.mem;
     import dmd.backend.dlist;
     import dmd.backend.el;
+    import dmd.backend.filespec;
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
@@ -1165,8 +1166,8 @@ static if (1)
                  * In DWARF Version 5, the current compilation file name is
                  * explicitly present and has index 0.
                  */
-                dwarf_line_addfile(filename);
-                dwarf_line_add_directory(filename);
+                dwarf_line_addfile(filename.ptr);
+                dwarf_line_add_directory(filename.ptr);
             }
 
             linebuf_filetab_end = debug_line.buf.length();
@@ -1315,12 +1316,6 @@ static if (1)
     uint dwarf_line_add_directory(const(char)* path)
     {
         assert(path);
-        return dwarf_line_add_directory(path[0 .. strlen(path)]);
-    }
-
-    /// Ditto
-    extern(D) uint dwarf_line_add_directory(const(char)[] path)
-    {
         return addToAAchars(lineDirectories, retrieveDirectory(path));
     }
 
@@ -1330,13 +1325,7 @@ static if (1)
     uint dwarf_line_addfile(const(char)* path)
     {
         assert(path);
-        return dwarf_line_addfile(path[0 .. strlen(path)]);
-    }
-
-    /// Ditto
-    extern(D) uint dwarf_line_addfile(const(char)[] path)
-    {
-        return addToAAchars(infoFileName_table, path);
+        return addToAAchars(infoFileName_table, path[0 .. strlen(path)]);
     }
 
     /*************************************
@@ -1362,23 +1351,6 @@ static if (1)
     }
 
     /**
-     * Extracts the file name from `path`.
-     *
-     * Params:
-     *      path = Full path containing the filename and the directory
-     * Returns:
-     *      The file name
-     */
-    extern(D) const(char)[] retrieveFilename(const(char)[] path)
-    {
-        assert(path);
-        immutable SEP = '/';
-        // Retrieve filename from path
-        char* lastSep = strrchr(cast(char*) path.ptr, SEP);
-        return lastSep ? path[lastSep - path.ptr + 1 .. $] : path;
-    }
-
-    /**
      * Extracts the directory from `path`.
      *
      * Params:
@@ -1386,13 +1358,12 @@ static if (1)
      * Returns:
      *      The directory name
      */
-    extern(D) const(char)[] retrieveDirectory(const(char)[] path)
+    extern(D) const(char)[] retrieveDirectory(const(char)* path)
     {
         assert(path);
-        immutable SEP = '/';
         // Retrieve directory from path
-        char* lastSep = strrchr(cast(char*) path.ptr, SEP);
-        return lastSep ? path[0 .. lastSep - path.ptr] : ".";
+        char* lastSep = strrchr(cast(char*) path, DIRCHAR);
+        return lastSep ? path[0 .. lastSep - path] : ".";
     }
 
     void dwarf_initmodule(const(char)* filename, const(char)* modname)
@@ -1496,7 +1467,7 @@ static if (1)
                         foreach (const(char)[] dir; dirkeys)
                         {
                             // Directories must be written in the correct order, to match file_name indexes
-                            if (dwarf_line_add_directory(dir) == id)
+                            if (dwarf_line_add_directory(dir.ptr) == id)
                             {
                                 //printf("%d: %s\n", dwarf_line_add_directory(dir), dir);
                                 debug_line.buf.writeString(dir);
@@ -1541,11 +1512,11 @@ static if (1)
                         foreach (const(char)[] filename; filekeys)
                         {
                             // Filenames must be written in the correct order, to match the AAchars' idx order
-                            if (id == dwarf_line_addfile(filename))
+                            if (id == dwarf_line_addfile(filename.ptr))
                             {
-                                debug_line.buf.writeString(retrieveFilename(filename));
+                                debug_line.buf.writeString(filename.ptr.filespecname);
 
-                                auto index = dwarf_line_add_directory(filename);
+                                auto index = dwarf_line_add_directory(filename.ptr);
                                 assert(index != 0);
                                 if (config.dwarf >= 5)
                                     --index; // Minus 1 because it must be an index, not a element number

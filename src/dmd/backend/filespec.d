@@ -2,6 +2,7 @@
 /* Copyright (C) 1986-1987 by Northwest Software        */
 /* All Rights Reserved                                  */
 /* Written by Walter Bright                             */
+module dmd.backend.filespec;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
