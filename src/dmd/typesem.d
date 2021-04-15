@@ -363,6 +363,9 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         s = sm.toAlias();
     }
 
+    if (auto ed = s.isEnumDeclaration())
+        s.dsymbolSemantic(sc);
+
     if (auto em = s.isEnumMember())
     {
         // It's not a type, it's an expression
