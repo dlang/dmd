@@ -2640,6 +2640,10 @@ extern (C++) abstract class Type : ASTNode
     {
         if (sc.isDeprecated())
             return false;
+        // Don't complain if we're inside a template constraint
+        // https://issues.dlang.org/show_bug.cgi?id=21831
+        if (sc.flags & SCOPE.constraint)
+            return false;
 
         Type t = baseElemOf();
         while (t.ty == Tpointer || t.ty == Tarray)

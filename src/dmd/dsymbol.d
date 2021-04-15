@@ -398,6 +398,10 @@ extern (C++) class Dsymbol : ASTNode
         // Don't complain if we're inside a deprecated symbol's scope
         if (sc.isDeprecated())
             return false;
+        // Don't complain if we're inside a template constraint
+        // https://issues.dlang.org/show_bug.cgi?id=21831
+        if (sc.flags & SCOPE.constraint)
+            return false;
 
         const(char)* message = null;
         for (Dsymbol p = this; p; p = p.parent)
