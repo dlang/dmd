@@ -342,6 +342,11 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 Loc locx = loc.isValid() ? loc : this.loc;
                 memtype = memtype.typeSemantic(locx, _scope);
             }
+            else
+            {
+                // Run semantic to get the type from a possible first member value
+                dsymbolSemantic(this, _scope);
+            }
         }
         if (!memtype)
         {
