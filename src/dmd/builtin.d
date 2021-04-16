@@ -450,6 +450,7 @@ Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     import core.stdc.stdio : fprintf, stderr;
+    import dmd.ctfeexpr : CTFEExp;
 
     assert(arguments.length == 1);
 
@@ -464,7 +465,7 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
     else
         arg0.error("cannot write `%s` during CTFE", arg0.toChars());
 
-    return arg0;
+    return CTFEExp.voidexp;
 }
 
 // These built-ins are reserved for GDC and LDC.
