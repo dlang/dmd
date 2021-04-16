@@ -130,8 +130,6 @@ import core.simd : float4;
 enum E : float { a, b }
 
 static assert(__traits(isFloating, float));
-static assert(__traits(isFloating, idouble));
-static assert(__traits(isFloating, creal));
 static assert(__traits(isFloating, E));
 static assert(__traits(isFloating, float4));
 
