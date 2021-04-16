@@ -1,56 +1,47 @@
 /*
 TEST_OUTPUT:
 ---
-0^^2 == 0
-1^^2 == 1
-2^^2 == 4
-3^^2 == 9
-result == 14
+Hello
+World
+from
+CTFE
+Hello[1 .. 3] = el
+abcdefghij[2 .. 6] = cdef
 ---
 */
-int sum_of_sq(int x) pure nothrow @safe
+
+int greeting(scope const char[][] values) pure nothrow @safe @nogc
 {
     const string newline = "\n";
 
-    int result = 0;
-    foreach (i; 0 .. x)
+    foreach (const val; values)
     {
-        __ctfeWrite(toString(i));
-        __ctfeWrite("^^2 == ");
-        int power = i ^^ 2;
-        __ctfeWrite(toString(power));
+        __ctfeWrite(val);
         __ctfeWrite(newline);
-        result += power;
     }
-    __ctfeWrite("result == ");
-    __ctfeWrite(toString(result));
+
+    // Test slices
+    const val = values[0];
+    __ctfeWrite(val[]);
+    __ctfeWrite("[1 .. 3] = ");
+    __ctfeWrite(val[1 .. 3]);
     __ctfeWrite(newline);
 
-    return result;
+    // Test mutable slices
+    char[10] buffer;
+    fill(buffer); // Avoid potential shortcuts for literals
+    __ctfeWrite(buffer[0 .. $]);
+    __ctfeWrite("[2 .. 6] = ");
+    __ctfeWrite(buffer[2 .. 6]);
+    __ctfeWrite(newline);
+
+    return 0;
 }
 
-static assert(sum_of_sq(4) == 14);
-
-// Naive toString to avoid phobos
-string toString(int number) pure nothrow @safe
+void fill(ref char[10] buffer) pure nothrow @safe @nogc
 {
-    if (number == 0)
-        return "0";
-
-    string res;
-    const isNeg = number < 0;
-    if (isNeg)
-        number = -number;
-
-    while (number)
-    {
-        const dig = number % 10;
-        number /= 10;
-        res = "0123456789"[dig] ~ res;
-    }
-
-    if (isNeg)
-        res = "-" ~ res;
-
-    return res;
+    foreach (const idx, ref ch; buffer)
+        ch = cast(char)('a' + idx);
 }
+
+enum forceCTFE = greeting(["Hello", "World", "from", "CTFE"]);

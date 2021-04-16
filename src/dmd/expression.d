@@ -5547,11 +5547,40 @@ extern (C++) final class SliceExp : UnaExp
 
     override StringExp toStringExp()
     {
-        if (e1.op == TOK.string_)
+        // Reject non-strings
+        if (!isSomeChar(this.type.nextOf().toBasetype().ty))
+            return null;
+
+        auto base = e1.toStringExp();
+        assert(base);
+
+        // Shortcut for <exp>[]
+        if (!lwr && !upr)
+            return base;
+
+        /// Returns: the underlying value if e is an IntegerExp or `def`
+        static size_t getOrDefault(Expression e, size_t def)
         {
-            return e1.toStringExp();
+            if (!e)
+                return def;
+
+            auto ie = e.isIntegerExp();
+            assert(ie);
+            return cast(size_t) ie.toInteger();
         }
-        return null;
+
+        // Calculate the limits
+        const min = getOrDefault(lwr, 0);
+        const max = getOrDefault(upr, base.len);
+
+        // Shortcut for <exp>[0 .. $]
+        if (min == 0 && max == base.len)
+            return base;
+
+        // Create the new StringExp by slicing the underlying bytes
+        // (might be string, dstring, wstring)
+        auto str = base.peekData()[base.sz * min .. base.sz * max];
+        return new StringExp(base.loc, str, max - min, base.sz);
     }
 
     override void accept(Visitor v)

@@ -454,12 +454,15 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
     assert(arguments.length == 1);
 
     Expression arg0 = (*arguments)[0];
+    assert(arg0);
 
     if (StringExp se = arg0.toStringExp())
     {
         auto str = se.peekString();
         fprintf(stderr, "%.*s".ptr, cast(int) str.length, str.ptr);
     }
+    else
+        arg0.error("cannot write `%s` during CTFE", arg0.toChars());
 
     return arg0;
 }
