@@ -4506,5 +4506,4 @@ template _arrayOp(Args...)
     alias _arrayOp = arrayOp!Args;
 }
 
-/// Legacy import
 public import core.builtins : __ctfeWrite;
