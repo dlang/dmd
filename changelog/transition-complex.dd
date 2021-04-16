@@ -1,0 +1,28 @@
+Complex and imaginary types are now deprecated
+
+D previously supported complex and imaginary versions of all floating point
+types as part of the language.
+---
+float a = 2;
+ifloat b = 4i;
+cfloat c = a + b;
+assert(c == 2 + 4i);
+---
+
+However these types are too specialized to be a part of the core language, and
+the same functionalities can be implemented as part of a library type.  As
+such, older versions of DMD provided the `-transition=complex` switch to warn
+when those builtin types were used.  This transition phase has finished, and
+those deprecations are now turned on by default.
+
+Users should use $(LINK2 https://dlang.org/phobos/std_complex.html#Complex, `std.complex.Complex`) instead.
+---
+import std.complex;
+float a = 2;
+float b = 4;
+auto c = complex(a, b);
+assert(c == complex(2, 4));
+---
+
+The `-transition=complex` switch that previously turn on deprecation warnings
+no longer has an effect and has also been deprecated.

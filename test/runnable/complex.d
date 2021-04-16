@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS:
+REQUIRED_ARGS: -d
 TEST_OUTPUT:
 ---
 ---

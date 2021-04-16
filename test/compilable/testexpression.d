@@ -54,8 +54,6 @@ void TestOpAndAssign(Tx, Ux, ops)()
 struct boolean   { alias TT!(bool) x; }
 struct integral  { alias TT!(byte, ubyte, short, ushort, int, uint, long, ulong) x; }
 struct floating  { alias TT!(float, double, real) x; }
-struct imaginary { alias TT!(ifloat, idouble, ireal) x; }
-struct complex   { alias TT!(cfloat, cdouble, creal) x; }
 
 struct all       { alias TT!("+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", ">>>=") x; }
 struct arith     { alias TT!("+=", "-=", "*=", "/=", "%=") x; }
@@ -76,17 +74,6 @@ void OpAssignCases(alias X)()
     X!(floating, boolean, arith)();
     X!(floating, integral, arith)();
     X!(floating, floating, arith)();
-
-    X!(imaginary, boolean, muldivmod)();
-    X!(imaginary, integral, muldivmod)();
-    X!(imaginary, floating, muldivmod)();
-    X!(imaginary, imaginary, addsub)();
-
-    X!(complex, boolean, arith)();
-    X!(complex, integral, arith)();
-    X!(complex, floating, arith)();
-    X!(complex, imaginary, arith)();
-    X!(complex, complex, nomod)();
 }
 
 void OpReAssignCases(alias X)()
@@ -99,17 +86,6 @@ void OpReAssignCases(alias X)()
     X!(floating, boolean, arith)();
     X!(floating, integral, arith)();
     X!(floating, floating, arith)();
-
-    X!(imaginary, boolean, muldivmod)();
-    X!(imaginary, integral, muldivmod)();
-    X!(imaginary, floating, muldivmod)();
-    X!(imaginary, imaginary, addsub)();
-
-    X!(complex, boolean, arith)();
-    X!(complex, integral, arith)();
-    X!(complex, floating, arith)();
-    X!(complex, imaginary, arith)();
-    X!(complex, complex, nomod)();
 }
 
 void main()
