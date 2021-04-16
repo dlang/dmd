@@ -1320,16 +1320,35 @@ static if (1)
         {
             debug_aranges.initialize();
 
-            debug_aranges.buf.write32(0);              // unit_length
-            debug_aranges.buf.write16(2);            // version_
+            void writeAddressRangeHeader(ushort hversion)()
+            {
+                struct AddressRangeHeader
+                {
+                align(1):
+                    uint length;
+                    ushort version_ = hversion;
+                    uint debug_info_offset;
+                    ubyte address_size = 4;
+                    ubyte segment_size;
+                    uint padding;
+                }
+                static if (hversion == 2)
+                    static assert(AddressRangeHeader.sizeof == 16);
+                else
+                    static assert(0);
 
-            static if (ELFOBJ)
-                dwarf_addrel(debug_aranges.seg,debug_aranges.buf.length(),debug_info.seg);
+                auto arh = AddressRangeHeader.init;
 
-            debug_aranges.buf.write32(0);              // debug_info_offset
-            debug_aranges.buf.writeByte(I64 ? 8 : 4);  // address_size
-            debug_aranges.buf.writeByte(0);            // segment_size
-            debug_aranges.buf.write32(0);              // pad to 16
+                if (I64)
+                    arh.address_size = 8;
+
+                debug_aranges.buf.writen(&arh, arh.sizeof);
+
+                static if (ELFOBJ)
+                    dwarf_addrel(debug_aranges.seg, AddressRangeHeader.debug_info_offset.offsetof, debug_info.seg);
+            }
+
+            writeAddressRangeHeader!2();
         }
     }
 
