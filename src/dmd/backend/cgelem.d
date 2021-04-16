@@ -5907,8 +5907,12 @@ beg:
           if (!OTrtol(op) && op != OPparam && op != OPcolon && op != OPcolon2 &&
               e1.Eoper == OPcomma)
           {     // Convert ((a,b) op c) to (a,(b op c))
+                e1.EV.E2.Ety = e1.Ety;
+                e1.EV.E2.ET = e1.ET;
+
                 e1.Ety = e.Ety;
                 e1.ET = e.ET;
+
                 e.EV.E1 = e1.EV.E2;
                 e1.EV.E2 = e;
                 e = e1;
