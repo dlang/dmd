@@ -1400,7 +1400,13 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 typeb = toStaticArrayType(e);
                 if (typeb)
+                {
+                    // Try: T[] -> T[dim]
+                    // (Slice with compile-time known boundaries to static array)
                     result = typeb.implicitConvTo(t);
+                    if (result > MATCH.convert)
+                        result = MATCH.convert; // match with implicit conversion at most
+                }
                 return;
             }
 

@@ -4870,6 +4870,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (Type tsa = toStaticArrayType(e))
                 {
                     tsa.accept(this);
+                    if (result > MATCH.convert)
+                        result = MATCH.convert; // match with implicit conversion at most
                     return;
                 }
             }
