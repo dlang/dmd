@@ -1603,6 +1603,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     return 0;
                 }
+                // skip 'this' context pointers
+                else if (decl.isThisDeclaration())
+                    return 0;
             }
 
             // https://issues.dlang.org/show_bug.cgi?id=20915
