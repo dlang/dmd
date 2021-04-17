@@ -4390,6 +4390,30 @@ private elem * elcmp(elem *e, goal_t goal)
             }
         }
 
+        if (e1.Eoper == OPf_d && tysize(e1.Ety) == 8 && cast(targ_float)e2.EV.Vdouble == e2.EV.Vdouble)
+        {
+            /* Remove unnecessary OPf_d operator
+             */
+            e.EV.E1 = e1.EV.E1;
+            e1.EV.E1 = null;
+            el_free(e1);
+            e2.Ety = e.EV.E1.Ety;
+            e2.EV.Vfloat = cast(targ_float)e2.EV.Vdouble;
+            return optelem(e,GOALvalue);
+        }
+
+        if (e1.Eoper == OPd_ld && tysize(e1.Ety) == tysize(TYldouble) && cast(targ_double)e2.EV.Vldouble == e2.EV.Vldouble)
+        {
+            /* Remove unnecessary OPd_ld operator
+             */
+            e.EV.E1 = e1.EV.E1;
+            e1.EV.E1 = null;
+            el_free(e1);
+            e2.Ety = e.EV.E1.Ety;
+            e2.EV.Vdouble = cast(targ_double)e2.EV.Vldouble;
+            return optelem(e,GOALvalue);
+        }
+
         /* Convert (ulong > uint.max) to (msw(ulong) != 0)
          */
         if (OPTIMIZER && I32 && e.Eoper == OPgt && sz == LLONGSIZE && e2.EV.Vullong == 0xFFFFFFFF)
