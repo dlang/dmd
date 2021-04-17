@@ -2408,6 +2408,40 @@ void test21816()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21835
+
+struct Point21835
+{
+    float  f = 3.0;
+    double d = 4.0;
+    real   r = 5.0;
+}
+
+void test21835y()
+{
+    Point21835[1] arr;
+    if (arr[0].f != 3.0) assert(0);
+    if (arr[0].d != 4.0) assert(0);
+    if (arr[0].r != 5.0) assert(0);
+}
+
+struct Point21835x
+{
+    float  f = 0.0;
+    double d = 0.0;
+    real   r = 0.0;
+}
+
+void test21835()
+{
+    test21835y();
+    Point21835x[1] arr;
+    if (arr[0].f != 0.0) assert(0);
+    if (arr[0].d != 0.0) assert(0);
+    if (arr[0].r != 0.0) assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2504,6 +2538,7 @@ int main()
     test21513();
     test21256();
     test21816();
+    test21835();
 
     printf("Success\n");
     return 0;
