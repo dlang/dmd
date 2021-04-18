@@ -7,18 +7,18 @@ struct MyStruct
     MyStruct *c;
 };
 
-MyStruct cpp_alloc()
+MyStruct cpp_alloc(int sz)
 {
     MyStruct r;
-    r.a = std::allocator<int>().allocate(42);
-    r.b = std::allocator<double>().allocate(42);
-    r.c = std::allocator<MyStruct>().allocate(42);
+    r.a = std::allocator<int>().allocate(sz);
+    r.b = std::allocator<double>().allocate(sz);
+    r.c = std::allocator<MyStruct>().allocate(sz);
     return r;
 }
 
-void cpp_free(MyStruct& s)
+void cpp_free(MyStruct& s, int sz)
 {
-    std::allocator<int>().deallocate(s.a, 43);
-    std::allocator<double>().deallocate(s.b, 43);
-    std::allocator<MyStruct>().deallocate(s.c, 43);
+    std::allocator<int>().deallocate(s.a, sz);
+    std::allocator<double>().deallocate(s.b, sz);
+    std::allocator<MyStruct>().deallocate(s.c, sz);
 }
