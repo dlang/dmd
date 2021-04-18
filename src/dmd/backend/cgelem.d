@@ -2043,18 +2043,6 @@ private elem * elnot(elem *e, goal_t goal)
             e1.Eoper = e.Eoper;
             e = optelem(el_selecte1(e), goal);
             break;
-
-        case OPcomma:
-            /* !(a,b) => (a,!b) */
-            e.Eoper = OPcomma;
-            e.EV.E1 = e1.EV.E1;             // a
-            e.EV.E2 = e1;                 // !
-            e1.Eoper = OPnot;
-            e1.Ety = e.Ety;
-            e1.EV.E1 = e1.EV.E2;            // b
-            e1.EV.E2 = null;
-            e = optelem(e, goal);
-            break;
     }
     return e;
 }
@@ -6045,24 +6033,41 @@ beg:
   }
   else /* unary operator */
   {
+        elem* e1 = e.EV.E1;
+
+        /* op(a,b) => a,(op b)
+         */
+        if (e1.Eoper == OPcomma && op != OPstrpar && op != OPddtor)
+        {
+            e.Eoper = e1.Eoper;
+            e.EV.E1 = e1.EV.E1;
+            e.EV.E2 = e1;
+            e1.Eoper = op;
+            e1.Ety = e.Ety;
+            e1.ET = e.ET;
+            e1.EV.E1 = e1.EV.E2;
+            e1.EV.E2 = null;
+            return optelem(e, goal);
+        }
+
         assert(!e.EV.E2 || op == OPinfo || op == OPddtor);
         if (!goal && !OTsideff(op) && !(e.Ety & (mTYvolatile | mTYshared)))
         {
-            tym_t tym = e.EV.E1.Ety;
+            tym_t tym = e1.Ety;
 
             e = el_selecte1(e);
             e.Ety = tym;
             return optelem(e,GOALnone);
         }
 
-        if ((op == OPd_f || op == OPd_ld) && e.EV.E1.Eoper == OPu64_d)
+        if ((op == OPd_f || op == OPd_ld) && e1.Eoper == OPu64_d)
         {
             return elu64_d(e, goal);
         }
 
-        elem *e1 = e.EV.E1 = optelem(e.EV.E1, (op == OPddtor)
-                                                 ? GOALnone
-                                                 : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
+        e1 = e.EV.E1 = optelem(e1, (op == OPddtor)
+                                     ? GOALnone
+                                     : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
         if (!e1)
             goto retnull;
         if (e1.Eoper == OPconst)
