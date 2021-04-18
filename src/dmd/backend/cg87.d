@@ -1653,6 +1653,7 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
     OPER opr = oprev[op + 1];
     tym_t ty = tybasic(e.Ety);
     uint mf = (ty == TYfloat || ty == TYifloat || ty == TYcfloat) ? MFfloat : MFdouble;
+    bool noted = false;
     if ((ty == TYldouble || ty == TYildouble) &&
         op != -1 && e.Eoper != OPd_ld)
         goto Ldefault;
@@ -1660,6 +1661,11 @@ L5:
     switch (e.Eoper)
     {
         case OPcomma:
+            if (op != -1)
+            {
+                note87(eleft,eoffset,0);
+                noted = true;
+            }
             docommas(cdb,&e);
             goto L5;
 
@@ -1719,7 +1725,7 @@ L5:
         case OPd_ld:
             mf1 = (tybasic(e.EV.E1.Ety) == TYfloat || tybasic(e.EV.E1.Ety) == TYifloat)
                     ? MFfloat : MFdouble;
-            if (op != -1 && global87.stackused)
+            if (op != -1 && global87.stackused && !noted)
                 note87(eleft,eoffset,0);    // don't trash this value
             if (e.EV.E1.Eoper == OPvar || e.EV.E1.Eoper == OPind)
             {
@@ -1830,7 +1836,7 @@ L5:
             /* (probably shouldn't be for 16 bit code too)  */
             assert(!I32);
 
-            if (op != -1)
+            if (op != -1 && !noted)
                 note87(eleft,eoffset,0);    // don't trash this value
             retregs = ALLREGS & mLSW;
             codelem(cdb,e.EV.E1,&retregs,false);
@@ -1845,7 +1851,7 @@ L5:
         L6:
             if (e.Ecount)
                 goto Ldefault;
-            if (op != -1)
+            if (op != -1 && !noted)
                 note87(eleft,eoffset,0);    // don't trash this value
             if (e.EV.E1.Eoper == OPvar ||
                 (e.EV.E1.Eoper == OPind && e.EV.E1.Ecount == 0))
