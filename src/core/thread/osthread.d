@@ -371,6 +371,17 @@ class Thread : ThreadBase
         {
             uint[16]        m_reg; // r0-r15
         }
+        else version (PPC)
+        {
+            // Make the assumption that we only care about non-fp and non-vr regs.
+            // ??? : it seems plausible that a valid address can be copied into a VR.
+            uint[32]        m_reg; // r0-31
+        }
+        else version (PPC64)
+        {
+            // As above.
+            ulong[32]       m_reg; // r0-31
+        }
         else
         {
             static assert(false, "Architecture not supported." );
@@ -1711,6 +1722,28 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             t.m_reg[13] = state.sp;
             t.m_reg[14] = state.lr;
             t.m_reg[15] = state.pc;
+        }
+        else version (PPC)
+        {
+            ppc_thread_state_t state = void;
+            mach_msg_type_number_t count = PPC_THREAD_STATE_COUNT;
+
+            if (thread_get_state(t.m_tmach, PPC_THREAD_STATE, &state, &count) != KERN_SUCCESS)
+                onThreadError("Unable to load thread state");
+            if (!t.m_lock)
+                t.m_curr.tstack = cast(void*) state.r[1];
+            t.m_reg[] = state.r[];
+        }
+        else version (PPC64)
+        {
+            ppc_thread_state64_t state = void;
+            mach_msg_type_number_t count = PPC_THREAD_STATE64_COUNT;
+
+            if (thread_get_state(t.m_tmach, PPC_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
+                onThreadError("Unable to load thread state");
+            if (!t.m_lock)
+                t.m_curr.tstack = cast(void*) state.r[1];
+            t.m_reg[] = state.r[];
         }
         else
         {
