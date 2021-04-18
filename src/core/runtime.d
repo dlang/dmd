@@ -598,10 +598,6 @@ extern (C) UnitTestResult runModuleUnitTests()
         }
         catch ( Throwable e )
         {
-            import core.stdc.stdio;
-            printf("%.*s(%llu): [unittest] %.*s\n",
-                cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
-                cast(int) e.message.length, e.message.ptr);
             if ( typeid(e) == typeid(AssertError) )
             {
                 // Crude heuristic to figure whether the assertion originates in
@@ -610,6 +606,11 @@ extern (C) UnitTestResult runModuleUnitTests()
                 if (moduleName.length && e.file.length > moduleName.length
                     && e.file[0 .. moduleName.length] == moduleName)
                 {
+                    import core.stdc.stdio;
+                    printf("%.*s(%llu): [unittest] %.*s\n",
+                        cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
+                        cast(int) e.message.length, e.message.ptr);
+
                     // Exception originates in the same module, don't print
                     // the stack trace.
                     // TODO: omit stack trace only if assert was thrown
