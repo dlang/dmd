@@ -128,6 +128,9 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     type supported by the x86 FPU.
     )
 
+    $(P NOTE: Complex and imaginary types `ifloat`, `idouble`, `ireal`, `cfloat`, `cdouble`,
+    and `creal` have been deprecated in favor of `std.complex.Complex`.)
+
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
