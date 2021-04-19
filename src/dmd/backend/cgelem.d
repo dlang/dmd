@@ -2030,6 +2030,7 @@ private elem * elnot(elem *e, goal_t goal)
         case OPu16_d:
         case OPu32_d:
         case OPf_d:
+        case OPd_ld:
         case OPs16_32:
         case OPu16_32:
         case OPu8_16:
@@ -4557,18 +4558,45 @@ ret:
 private elem * elbool(elem *e, goal_t goal)
 {
     //printf("elbool()\n");
-    if (OTlogical(e.EV.E1.Eoper) ||
+    elem* e1 = e.EV.E1;
+    const op = e1.Eoper;
+
+    if (OTlogical(op) ||
         // bool bool => bool
-        (tybasic(e.EV.E1.Ety) == TYbool && tysize(e.Ety) == 1)
+        (tybasic(e1.Ety) == TYbool && tysize(e.Ety) == 1)
        )
         return el_selecte1(e);
+
+    switch (op)
+    {
+        case OPs32_d:
+        case OPs16_d:
+        case OPu16_d:
+        case OPu32_d:
+        case OPf_d:
+        case OPd_ld:
+        case OPs16_32:
+        case OPu16_32:
+        case OPu8_16:
+        case OPs8_16:
+        case OPu32_64:
+        case OPs32_64:
+        case OPvp_fp:
+        case OPcvp_fp:
+        case OPnp_fp:
+            e1.Eoper = e.Eoper;
+            return optelem(el_selecte1(e), goal);
+
+        default:
+            break;
+    }
 
     if (OPTIMIZER)
     {
         int shift;
 
         // Replace bool(x,1) with (x,1),1
-        elem *e1 = elscancommas(e.EV.E1);
+        e1 = elscancommas(e1);
         if (cnst(e1) || e1.Eoper == OPrelconst)
         {
             int i = boolres(e1) != 0;
