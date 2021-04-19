@@ -8,7 +8,7 @@ void main()
     }
     {
         int x;
-        static assert(x.mangleof == "_D9test148314mainFZ5__S11xi");
+        static assert(x.mangleof == "_D9test148314mainFZ4__S11xi");
     }
 
     {
@@ -17,7 +17,7 @@ void main()
     }
     {
         static int y = 0;
-        static assert(y.mangleof == "_D9test148314mainFZ5__S11yi");
+        static assert(y.mangleof == "_D9test148314mainFZ4__S11yi");
     }
 
     {
@@ -26,7 +26,7 @@ void main()
     }
     {
         void f() {}
-        static assert(f.mangleof == "_D9test148314mainFZ5__S11fMFNaNbNiNfZv");
+        static assert(f.mangleof == "_D9test148314mainFZ4__S11fMFNaNbNiNfZv");
     }
 
     {
@@ -35,7 +35,7 @@ void main()
     }
     {
         struct S {}
-        static assert(S.mangleof == "S9test148314mainFZ5__S11S");
+        static assert(S.mangleof == "S9test148314mainFZ4__S11S");
     }
 
     {
@@ -44,7 +44,7 @@ void main()
     }
     {
         class C {}
-        static assert(C.mangleof == "C9test148314mainFZ5__S11C");
+        static assert(C.mangleof == "C9test148314mainFZ4__S11C");
     }
 
     {
@@ -54,7 +54,7 @@ void main()
     }
     {
         enum E { a }
-        static assert(E.mangleof == "E9test148314mainFZ5__S11E");
-        static assert(E.a.mangleof == "_D9test148314mainFZ5__S11E1aEQBbQuFZ5__S1Qr");
+        static assert(E.mangleof == "E9test148314mainFZ4__S11E");
+        static assert(E.a.mangleof == "_D9test148314mainFZ4__S11E1aEQBbQuFZ4__S1Qr");
     }
 }
