@@ -180,11 +180,12 @@ private void rdgenkill()
     go.dnunambig.setLength(sz);
     go.dnunambig[] = 0;
 
-    go.defnod.setLength(0);
-    foreach (b; dfo[])    // for each block
+    go.defnod.setLength(deftop);
+    size_t i = deftop;
+    foreach_reverse (b; dfo[])    // for each block
         if (b.Belem)
-            asgdefelems(b, b.Belem);    // fill in go.defnod[]
-    assert(go.defnod.length == deftop);
+            asgdefelems(b, b.Belem, go.defnod[], i);    // fill in go.defnod[]
+    assert(i == 0);
 
     initDNunambigVectors(go.defnod[]);
 
@@ -246,36 +247,48 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
 }
 
 /**************************
- * Load go.defnod[] array.
+ * Load defnod[] array.
  * Loaded in order of execution of the elems. Not sure if this is
  * necessary.
  */
 
 @trusted
-private void asgdefelems(block *b,elem *n)
+extern (D)
+private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
 {
     assert(b && n);
-    const op = n.Eoper;
-    if (ERTOL(n))
+    while (1)
     {
-        asgdefelems(b,n.EV.E2);
-        asgdefelems(b,n.EV.E1);
-    }
-    else if (OTbinary(op))
-    {
-        asgdefelems(b,n.EV.E1);
-        asgdefelems(b,n.EV.E2);
-    }
-    else if (OTunary(op))
-        asgdefelems(b,n.EV.E1);
+        const op = n.Eoper;
 
-    if (OTdef(op))
-    {
-        n.Edef = cast(uint)go.defnod.length;
-        go.defnod.push(DefNode(n, b, null));
+        if (OTdef(op))
+        {
+            --i;
+            defnod[i] = DefNode(n, b, null);
+            n.Edef = cast(uint)i;
+        }
+        else
+            n.Edef = ~0;       // just to ensure it is not in the array
+
+        if (ERTOL(n))
+        {
+            asgdefelems(b,n.EV.E1,defnod,i);
+            n = n.EV.E2;
+            continue;
+        }
+        else if (OTbinary(op))
+        {
+            asgdefelems(b,n.EV.E2,defnod,i);
+            n = n.EV.E1;
+            continue;
+        }
+        else if (OTunary(op))
+        {
+            n = n.EV.E1;
+            continue;
+        }
+        break;
     }
-    else
-        n.Edef = ~0;       // just to ensure it is not in the array
 }
 
 /*************************************
