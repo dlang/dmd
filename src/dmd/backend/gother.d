@@ -1570,6 +1570,7 @@ private uint numasg(elem *e)
 @trusted
 private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {
+  LtailRecurse:
     assert(n && DEAD && POSS);
     const op = n.Eoper;
     switch (op)
@@ -1767,15 +1768,20 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             else if (OTrtol(op))
             {
                 accumda(n.EV.E2,DEAD,POSS);
-                accumda(n.EV.E1,DEAD,POSS);
+                n = n.EV.E1;
+                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
             }
             else if (OTbinary(op))
             {
                 accumda(n.EV.E1,DEAD,POSS);
-                accumda(n.EV.E2,DEAD,POSS);
+                n = n.EV.E2;
+                goto LtailRecurse;              //  accumda(n.EV.E2,DEAD,POSS);
             }
             else if (OTunary(op))
-                accumda(n.EV.E1,DEAD,POSS);
+            {
+                n = n.EV.E1;
+                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
+            }
             break;
     }
 }
