@@ -44,6 +44,11 @@ enum BE : int
     break_    = 0x20,
     continue_ = 0x40,
     errthrow  = 0x80,
+
+    /// Found `throw t` inside of a generated `catch(Throwable t)`,
+    /// to be resolved to any of `throw_` or `errthrow`
+    rethrow   = 0x100,
+
     any       = (fallthru | throw_ | return_ | goto_ | halt),
 }
 
@@ -388,11 +393,11 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             assert(s._body);
             assert(!this.enclosingTry);
             this.enclosingTry = s;
-            result = blockExit(s._body, func, mustNotThrow);
+            const tryRes = result = blockExit(s._body, func, mustNotThrow);
             this.enclosingTry = null;
 
             // Possible exceptions were caught by this or enclosing TryCatchStatements
-            if (!skippedTry)
+            if (!skippedTry && !(result & BE.rethrow))
                 result &= ~BE.throw_;
 
             foreach (c; *s.catches)
@@ -401,6 +406,14 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                     continue;
 
                 result |= blockExit(c.handler, func, mustNotThrow);
+            }
+
+            // Propagate exceptions that were rethrown from an internal handler,
+            // `catch(Throwable t) { { <user code> } throw t; }`
+            if (result & BE.rethrow)
+            {
+                result &= ~BE.rethrow;
+                result |= tryRes & (BE.throw_ | BE.errthrow);
             }
         }
 
@@ -458,7 +471,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=8675
                 // Allow throwing 'Throwable' object even if mustNotThrow.
-                result = BE.errthrow;
+                result = BE.rethrow;
                 return;
             }
 
@@ -533,7 +546,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
                     // Only consider user-defined catch-clauses
                     // (internal catches will rethrow the exception in some way)
-                    if (catch_.internalCatch && (.blockExit(catch_.handler, func, false) & (BE.throw_ | BE.errthrow)))
+                    if (catch_.internalCatch && (.blockExit(catch_.handler, func, false) & (BE.throw_ | BE.errthrow | BE.rethrow)))
                         continue;
 
                     return true;
