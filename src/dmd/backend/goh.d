@@ -118,7 +118,6 @@ void localize();
 int blockinit();
 void compdom();
 void loopopt();
-extern (C) void fillInDNunambig(vec_t v, elem *e);
 extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
 
 /* gother.c */
