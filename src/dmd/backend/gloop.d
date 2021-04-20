@@ -1317,60 +1317,6 @@ private void markinvar(elem *n,vec_t rd)
     }
 }
 
-/**************************************
- * Fill in the DefNode.DNumambig vector.
- * Set bits defnod[] indices for entries
- * which are completely destroyed when e is
- * unambiguously assigned to.
- * Params:
- *      v = vector to fill in
- *      e = defnod[] entry that is an assignment to a variable
- */
-
-extern (C)
-{
-@trusted
-void fillInDNunambig(vec_t v, elem *e)
-{
-    assert(OTassign(e.Eoper));
-    elem *t = e.EV.E1;
-    assert(t.Eoper == OPvar);
-    Symbol *d = t.EV.Vsym;
-
-    targ_size_t toff = t.EV.Voffset;
-    targ_size_t tsize = (e.Eoper == OPstreq) ? type_size(e.ET) : tysize(t.Ety);
-    targ_size_t ttop = toff + tsize;
-
-    //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
-
-
-    // for all unambig defs in go.defnod[]
-    foreach (const i; 0 .. go.defnod.length)
-    {
-        elem *tn = go.defnod[i].DNelem;
-        elem *tn1;
-        targ_size_t tn1size;
-
-        if (!OTassign(tn.Eoper))
-            continue;
-
-        // If def of same variable, kill that def
-        tn1 = tn.EV.E1;
-        if (tn1.Eoper != OPvar || d != tn1.EV.Vsym)
-            continue;
-
-        // If t completely overlaps tn1
-        tn1size = (tn.Eoper == OPstreq)
-            ? type_size(tn.ET) : tysize(tn1.Ety);
-        if (toff <= tn1.EV.Voffset &&
-            tn1.EV.Voffset + tn1size <= ttop)
-        {
-            vec_setbit(cast(uint)i, v);
-        }
-    }
-}
-}
-
 /********************
  * Update rd vector.
  * Input:
