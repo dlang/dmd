@@ -3,7 +3,7 @@
 string exp()
 {
     string s = "a = b + c * d + a;";
-    foreach (i; 0 .. 12)
+    foreach (i; 0 .. 10)
 	s = s ~ s;
     return s;
 }
@@ -21,6 +21,6 @@ int main()
 {
     int a = test();
     printf("a = %d\n", a);
-    assert(test() == 57345);
+    assert(test() == 14337);
     return 0;
 }
