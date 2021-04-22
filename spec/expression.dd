@@ -226,7 +226,7 @@ $(GNAME Expression):
 
 $(GNAME CommaExpression):
     $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ,) $(I CommaExpression)
+    $(I CommaExpression) $(D ,) $(GLINK AssignExpression)
 )
 
     $(P The left operand of the $(D ,) is evaluated, then the right operand
