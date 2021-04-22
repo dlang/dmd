@@ -303,6 +303,9 @@ private void initDNunambigVectors(DefNode[] defnod)
     const size_t numbits = defnod.length;
     const size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
 
+    /* Initialize vector for DNunambig for each defnod[] entry that
+     * is an assignment to a variable
+     */
     size_t j = 0;
     foreach (const i; 0 .. defnod.length)
     {
@@ -314,11 +317,20 @@ private void initDNunambigVectors(DefNode[] defnod)
             vec_dim(v) = dim;
             vec_numbits(v) = numbits;
             j += dim + 2;
-            fillInDNunambig(v, e, defnod[]);
             defnod[i].DNunambig = v;
         }
     }
     assert(j <= go.dnunambig.length);
+
+    foreach (const i; 0 .. defnod.length)
+    {
+        if (vec_t v = defnod[i].DNunambig)
+        {
+            elem *e = defnod[i].DNelem;
+            vec_setbit(cast(uint) i, v);        // of course it modifies itself
+            fillInDNunambig(v, e, i, defnod[]);
+        }
+    }
 }
 
 /**************************************
@@ -326,14 +338,18 @@ private void initDNunambigVectors(DefNode[] defnod)
  * Set bits defnod[] indices for entries
  * which are completely destroyed when e is
  * unambiguously assigned to.
+ * Note that results for indices less than `start`
+ * are already computed, so skip them.
  * Params:
  *      v = vector to fill in
  *      e = defnod[] entry that is an assignment to a variable
+ *      start = starting index in defnod[]
+ *      defnod = array of definition nodes
  */
 
 @trusted
 extern (D)
-private void fillInDNunambig(vec_t v, elem *e, DefNode[] defnod)
+private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
 {
     assert(OTassign(e.Eoper));
     elem *t = e.EV.E1;
@@ -345,31 +361,35 @@ private void fillInDNunambig(vec_t v, elem *e, DefNode[] defnod)
     targ_size_t ttop = toff + tsize;
 
     // for all unambig defs in defnod[]
-    foreach (const i; 0 .. defnod.length)
+    foreach (const i; start + 1 .. defnod.length)
     {
+        vec_t v2 = defnod[i].DNunambig;
+        if (!v2)
+            continue;
+
         elem *tn = defnod[i].DNelem;
         elem *tn1;
         targ_size_t tn1size;
 
-        if (!OTassign(tn.Eoper))
-            continue;
-
-        // If def of same variable, kill that def
+        // If not same variable then no overlap
         tn1 = tn.EV.E1;
-        if (tn1.Eoper != OPvar || d != tn1.EV.Vsym)
+        if (d != tn1.EV.Vsym)
             continue;
 
-        // If t completely overlaps tn1
         tn1size = (tn.Eoper == OPstreq)
             ? type_size(tn.ET) : tysize(tn1.Ety);
-        if (toff <= tn1.EV.Voffset &&
-            tn1.EV.Voffset + tn1size <= ttop)
+        // If t completely overlaps tn1
+        if (toff <= tn1.EV.Voffset && tn1.EV.Voffset + tn1size <= ttop)
         {
             vec_setbit(cast(uint)i, v);
         }
+        // if tn1 completely overlaps t
+        if (tn1.EV.Voffset <= toff && ttop <= tn1.EV.Voffset + tn1size)
+        {
+            vec_setbit(cast(uint)start, v2);
+        }
     }
 }
-
 
 /*************************************
  * Allocate and compute rd GEN and KILL.
