@@ -1110,8 +1110,8 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     if (!dtor)
         return null;
 
-    // ABI incompatible on all (?) x86 32-bit platforms
-    if (ad.classKind != ClassKind.cpp || target.is64bit)
+    // Generate shim only when ABI incompatible on target platform
+    if (ad.classKind != ClassKind.cpp || !target.cpp.wrapDtorInExternD)
         return dtor;
 
     // generate member function that adjusts calling convention
