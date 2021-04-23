@@ -6621,7 +6621,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // pass to distinguish.
     // If it is a type, then `.type` is set and getType() will return that
     // type. If it is a symbol, then `.aliassym` is set and type is `null` -
-    // toAlias() will return `.aliasssym`
+    // toAlias() will return `.aliassym`
 
     const errors = global.errors;
     Type oldtype = ds.type;
