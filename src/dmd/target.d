@@ -1254,6 +1254,7 @@ struct TargetCPP
     bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
     bool exceptions;          /// set if catching C++ exceptions is supported
     bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool wrapDtorInExternD;   /// set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;          /// vendor of the C++ runtime to link against
 
     extern (D) void initialize(ref const Param params, ref const Target target)
@@ -1278,6 +1279,8 @@ struct TargetCPP
             runtime = Runtime.Sun;
         else
             assert(0);
+        // C++ and D ABI incompatible on all (?) x86 32-bit platforms
+        wrapDtorInExternD = !target.is64bit;
     }
 
     /**

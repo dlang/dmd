@@ -79,6 +79,7 @@ struct TargetCPP
     bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
     bool exceptions;          // set if catching C++ exceptions is supported
     bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool wrapDtorInExternD;   // set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;
 
     const char *toMangle(Dsymbol *s);
