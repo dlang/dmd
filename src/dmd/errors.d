@@ -368,9 +368,18 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             if (loc.charnum < line.length)
             {
                 fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
-                foreach (_; 1 .. loc.charnum)
+                // The number of column bytes and the number of display columns
+                // occupied by a character are not the same for non-ASCII charaters.
+                // https://issues.dlang.org/show_bug.cgi?id=21849
+                size_t c = 0;
+                while (c < loc.charnum - 1)
+                {
+                    import dmd.utf : utf_decodeChar;
+                    dchar u;
+                    const msg = utf_decodeChar(line, c, u);
+                    assert(msg is null, msg);
                     fputc(' ', stderr);
-
+                }
                 fputc('^', stderr);
                 fputc('\n', stderr);
             }
