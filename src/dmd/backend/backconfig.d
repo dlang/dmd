@@ -56,7 +56,8 @@ extern (C) void out_config_init(
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
         ubyte dwarf,            // DWARF version used
-        string _version         // Compiler version
+        string _version,         // Compiler version
+        exefmt_t exefmt            // Executable file format
         )
 {
 version (MARS)
@@ -73,6 +74,7 @@ version (MARS)
     config.inline8087 = 1;
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
+    config.exe = exefmt;
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
     model &= 32 | 64;
@@ -93,10 +95,10 @@ version (MARS)
         config.dwarf = dwarf;
     }
 
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     if (model == 64)
-    {   config.exe = EX_WIN64;
+    {
         config.fpxmmregs = true;
         config.avx = avx;
         config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
@@ -108,7 +110,6 @@ static if (TARGET_WINDOS)
     }
     else
     {
-        config.exe = EX_WIN32;
         config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
         if (mscoff)
             config.flags |= CFGnoebp;       // test suite fails without this
@@ -301,7 +302,7 @@ static if (SYMDEB_DWARF)
         configv.addlinenumbers = 1;
         config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
 }
-static if (SYMDEB_CODEVIEW)
+if (SYMDEB_CODEVIEW)
 {
         if (config.objfmt == OBJ_MSCOFF)
         {
@@ -432,16 +433,13 @@ else static if (TARGET_OSX)
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
 }
-else static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     _tysize[TYldouble] = 10;
     _tysize[TYildouble] = 10;
     _tysize[TYcldouble] = 20;
 }
-else
-{
-    assert(0);
-}
+
     _tysize[TYsptr] = LONGSIZE;
     _tysize[TYcptr] = LONGSIZE;
     _tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
@@ -466,16 +464,13 @@ else static if (TARGET_OSX)
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
 }
-else static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     _tyalignsize[TYldouble] = 2;
     _tyalignsize[TYildouble] = 2;
     _tyalignsize[TYcldouble] = 2;
 }
-else
-{
-    assert(0);
-}
+
     _tyalignsize[TYsptr] = LONGSIZE;
     _tyalignsize[TYcptr] = LONGSIZE;
     _tyalignsize[TYfptr] = LONGSIZE;     // NOTE: There are codgen test that check
@@ -518,16 +513,12 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
 }
-else static if (TARGET_WINDOS)
-{
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
-}
-else
-{
-    assert(0);
-}
+    if (config.exe & EX_windos)
+    {
+        _tysize[TYldouble] = 10;
+        _tysize[TYildouble] = 10;
+        _tysize[TYcldouble] = 20;
+    }
     _tysize[TYsptr] = 8;
     _tysize[TYcptr] = 8;
     _tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
@@ -552,16 +543,12 @@ else static if (TARGET_OSX)
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
 }
-else static if (TARGET_WINDOS)
-{
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
-}
-else
-{
-    assert(0);
-}
+    if (config.exe & EX_windos)
+    {
+        _tyalignsize[TYldouble] = 2;
+        _tyalignsize[TYildouble] = 2;
+        _tyalignsize[TYcldouble] = 2;
+    }
     _tyalignsize[TYsptr] = 8;
     _tyalignsize[TYcptr] = 8;
     _tyalignsize[TYfptr] = 8;
