@@ -388,7 +388,7 @@ static if (TARGET_OSX)
 }
 
         size_t numbytes;
-static if (TARGET_SEGMENTED)
+if (TARGET_SEGMENTED)
 {
         switch (flags & (CFoff | CFseg))
         {
@@ -404,7 +404,7 @@ else
         if (I64 && !(flags & CFoffset64))
             numbytes = 4;
 
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
         /* This can happen when generating CV8 data
          */
