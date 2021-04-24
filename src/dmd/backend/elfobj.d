@@ -3392,10 +3392,7 @@ private void obj_rtinit()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
-    static if (TARGET_OPENBSD)
-    {
-        IDXSYM deh_beg, deh_end;
-    }
+    IDXSYM deh_beg, deh_end;
 
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
@@ -3562,19 +3559,8 @@ private void obj_rtinit()
             reltype = I64 ? R_X86_64_32 : R_386_32;
         }
 
-        static if (TARGET_OPENBSD)
+        void writeSym(IDXSYM sym)
         {
-            const IDXSYM[5] syms = [dso_rec, minfo_beg, minfo_end, deh_beg, deh_end];
-        }
-        else
-        {
-            const IDXSYM[3] syms = [dso_rec, minfo_beg, minfo_end];
-        }
-
-        for (size_t i = (syms).sizeof / (syms[0]).sizeof; i--; )
-        {
-            const IDXSYM sym = syms[i];
-
             if (config.flags3 & CFG3pic)
             {
                 if (I64)
@@ -3584,7 +3570,7 @@ private void obj_rtinit()
                     buf.writeByte(op);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
-                    off += ElfObj_writerel(codseg, off, reltype, syms[i], -4);
+                    off += ElfObj_writerel(codseg, off, reltype, sym, -4);
                 }
                 else
                 {
@@ -3592,7 +3578,7 @@ private void obj_rtinit()
                     buf.writeByte(op);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
-                    off += ElfObj_writerel(codseg, off, reltype, syms[i], 0);
+                    off += ElfObj_writerel(codseg, off, reltype, sym, 0);
                 }
             }
             else
@@ -3600,12 +3586,22 @@ private void obj_rtinit()
                 // mov EAX, sym
                 buf.writeByte(0xB8 + AX);
                 off += 1;
-                off += ElfObj_writerel(codseg, off, reltype, syms[i], 0);
+                off += ElfObj_writerel(codseg, off, reltype, sym, 0);
             }
             // push RAX
             buf.writeByte(0x50 + AX);
             off += 1;
         }
+
+        if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+        {
+            writeSym(deh_end);
+            writeSym(deh_beg);
+        }
+        writeSym(minfo_end);
+        writeSym(minfo_beg);
+        writeSym(dso_rec);
+
         buf.writeByte(0x6A);            // PUSH 1
         buf.writeByte(1);               // version flag to simplify future extensions
         off += 2;
