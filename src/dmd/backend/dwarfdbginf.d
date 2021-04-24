@@ -244,8 +244,18 @@ static if (1)
     {
         if (I64)
         {
-            dwarf_addrel64(seg, buf.length(), targseg, val);
-            buf.write64(0);
+            static if (ELFOBJ)
+            {
+                dwarf_addrel64(seg, buf.length(), targseg, val);
+                buf.write64(0);
+            }
+            else static if (MACHOBJ)
+            {
+                dwarf_addrel64(seg, buf.length(), targseg, 0);
+                buf.write64(val);
+            }
+            else
+                assert(0);
         }
         else
         {
