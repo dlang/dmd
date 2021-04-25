@@ -2146,7 +2146,7 @@ extern (C++) final class AliasAssign : Dsymbol
     Dsymbol aliassym; /// replace previous RHS of AliasDeclaration with `aliassym`
                       /// only one of type and aliassym can be != null
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliasssym)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym)
     {
         super(loc, null);
         this.ident = ident;

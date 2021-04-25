@@ -1472,10 +1472,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (stc & STC.out_)
             push("out");
-        else if (stc & STC.ref_)
-            push("ref");
         else if (stc & STC.in_)
             push("in");
+        else if (stc & STC.ref_)
+            push("ref");
         else if (stc & STC.lazy_)
             push("lazy");
         else if (stc & STC.alias_)
