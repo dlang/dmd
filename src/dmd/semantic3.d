@@ -211,7 +211,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
          */
         bool addReturn0()
         {
-            TypeFunction f = cast(TypeFunction)funcdecl.type;
+            //printf("addReturn0()\n");
+            auto f = funcdecl.type.isTypeFunction();
+
+            // C11 5.1.2.2.3
+            if (sc.flags & SCOPE.Cfile && funcdecl.isCMain() && f.next.ty == Tint32)
+                return true;
 
             return f.next.ty == Tvoid &&
                 (funcdecl.isMain() || global.params.betterC && funcdecl.isCMain());
@@ -784,7 +789,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 else
                 {
                     const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
-                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm)
+                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm && !(sc.flags & SCOPE.Cfile))
                     {
                         if (!funcdecl.hasReturnExp)
                             funcdecl.error("has no `return` statement, but is expected to return a value of type `%s`", f.next.toChars());

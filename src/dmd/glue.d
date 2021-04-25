@@ -525,8 +525,9 @@ void genObjFile(Module m, bool multiobj)
      /* Generate module info for templates and -cov.
      *  Don't generate ModuleInfo if `object.ModuleInfo` is not declared or
      *  explicitly disabled through compiler switches such as `-betterC`.
+     *  Don't generate ModuleInfo for C files.
      */
-    if (global.params.useModuleInfo && Module.moduleinfo /*|| needModuleInfo()*/)
+    if (global.params.useModuleInfo && Module.moduleinfo && !m.isCFile /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     objmod.termfile();

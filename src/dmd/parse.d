@@ -198,7 +198,7 @@ enum ParseStatementFlags : int
     semiOk        = 0x10,     // empty ';' are really ok
 }
 
-private struct PrefixAttributes(AST)
+struct PrefixAttributes(AST)
 {
     StorageClass storageClass;
     AST.Expression depmsg;
@@ -275,12 +275,12 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
 /***********************************************************
  */
-final class Parser(AST) : Lexer
+class Parser(AST) : Lexer
 {
     AST.ModuleDeclaration* md;
     alias STC = AST.STC;
 
-    private
+    protected
     {
         AST.Module mod;
         LINK linkage;
@@ -441,6 +441,8 @@ final class Parser(AST) : Lexer
         nextToken();
         return new AST.Dsymbols();
     }
+
+  final:
 
     /**
      * Parses a `deprecated` declaration
@@ -6928,19 +6930,39 @@ LagainStc:
         return s;
     }
 
-    private void check(Loc loc, TOK value)
+    /**********************************
+     * Issue error if the current token is not `value`,
+     * advance to next token.
+     * Params:
+     *  loc = location for error message
+     *  value = token value to compare with
+     */
+    void check(Loc loc, TOK value)
     {
         if (token.value != value)
             error(loc, "found `%s` when expecting `%s`", token.toChars(), Token.toChars(value));
         nextToken();
     }
 
+    /**********************************
+     * Issue error if the current token is not `value`,
+     * advance to next token.
+     * Params:
+     *  value = token value to compare with
+     */
     void check(TOK value)
     {
         check(token.loc, value);
     }
 
-    private void check(TOK value, const(char)* string)
+    /**********************************
+     * Issue error if the current token is not `value`,
+     * advance to next token.
+     * Params:
+     *  value = token value to compare with
+     *  string = for error message
+     */
+    void check(TOK value, const(char)* string)
     {
         if (token.value != value)
             error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(value), string);
@@ -6954,7 +6976,7 @@ LagainStc:
     }
 
     ///
-    private enum NeedDeclaratorId
+    enum NeedDeclaratorId
     {
         no,             // Declarator part must have no identifier
         opt,            // Declarator part identifier is optional
@@ -7633,16 +7655,15 @@ LagainStc:
     }
 
     /*******************************************
-     * Skip parens, brackets.
-     * Input:
-     *      t is on opening $(LPAREN)
-     * Output:
-     *      *pt is set to closing token, which is '$(RPAREN)' on success
+     * Skip parentheses.
+     * Params:
+     *      t = on opening $(LPAREN)
+     *      pt = *pt is set to token past '$(RPAREN)' on true
      * Returns:
      *      true    successful
      *      false   some parsing error
      */
-    private bool skipParens(Token* t, Token** pt)
+    bool skipParens(Token* t, Token** pt)
     {
         if (t.value != TOK.leftParenthesis)
             return false;

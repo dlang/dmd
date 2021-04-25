@@ -242,7 +242,7 @@ class ForeachStatement;
 class ForeachRangeStatement;
 class DVCondition;
 class StaticIfCondition;
-enum class TOK : uint8_t
+enum class TOK : uint16_t
 {
     reserved = 0u,
     leftParenthesis = 1u,
@@ -481,6 +481,29 @@ enum class TOK : uint8_t
     vectorArray = 234u,
     arrow = 235u,
     colonColon = 236u,
+    wchar_tLiteral = 237u,
+    inline_ = 238u,
+    register_ = 239u,
+    restrict = 240u,
+    signed_ = 241u,
+    sizeof_ = 242u,
+    typedef_ = 243u,
+    unsigned_ = 244u,
+    volatile_ = 245u,
+    _Alignas = 246u,
+    _Alignof = 247u,
+    _Atomic = 248u,
+    _Bool = 249u,
+    _Complex = 250u,
+    _Generic = 251u,
+    _Imaginary = 252u,
+    _Noreturn = 253u,
+    _Static_assert = 254u,
+    _Thread_local = 255u,
+    __cdecl = 256u,
+    __restrict = 257u,
+    __declspec = 258u,
+    __attribute__ = 259u,
 };
 
 class StringExp;
@@ -1538,13 +1561,15 @@ struct ParameterList
     Array<Parameter* >* parameters;
     StorageClass stc;
     VarArg varargs;
+    bool hasIdentifierList;
     ParameterList(Array<Parameter* >* parameters, VarArg varargs = (VarArg)0u, StorageClass stc = 0);
     size_t length();
     Parameter* opIndex(size_t i);
     ParameterList() :
         parameters(),
         stc(),
-        varargs((VarArg)0u)
+        varargs((VarArg)0u),
+        hasIdentifierList()
     {
     }
 };
@@ -2379,6 +2404,7 @@ enum class STC : uint64_t
     local = 2251799813685248LLU,
     returninferred = 4503599627370496LLU,
     live = 9007199254740992LLU,
+    register_ = 18014398509481984LLU,
     safeGroup = 60129542144LLU,
     IOR = 2103296LLU,
     TYPECTOR = 2685403140LLU,
@@ -2836,6 +2862,7 @@ public:
     uint32_t errors;
     uint32_t numlines;
     bool isHdrFile;
+    bool isCFile;
     bool isDocFile;
     bool hasAlwaysInlines;
     bool isPackageFile;
@@ -2934,6 +2961,7 @@ enum class SCOPE
     compile = 256,
     ignoresymbolvisibility = 512,
     onlysafeaccess = 1024,
+    Cfile = 2048,
     free = 32768,
     fullinst = 65536,
     alias_ = 131072,
@@ -6638,7 +6666,7 @@ public:
     uint32_t fieldalign(Type* type);
     Type* va_listType(const Loc& loc, Scope* sc);
     int32_t isVectorTypeSupported(int32_t sz, Type* type);
-    bool isVectorOpSupported(Type* type, uint8_t op, Type* t2 = nullptr);
+    bool isVectorOpSupported(Type* type, uint32_t op, Type* t2 = nullptr);
     LINK systemLinkage();
     TypeTuple* toArgTypes(Type* t);
     bool isReturnOnStack(TypeFunction* tf, bool needsThis);
@@ -7891,6 +7919,10 @@ struct Id
     static Identifier* FALSE;
     static Identifier* unsigned;
     static Identifier* wchar_t;
+    static Identifier* __tag;
+    static Identifier* dllimport;
+    static Identifier* dllexport;
+    static Identifier* vector_size;
     static void initialize();
     Id()
     {
@@ -7940,7 +7972,7 @@ struct Token
     void setString(const OutBuffer& buf);
     void setString();
     const char* toChars() const;
-    static const char* toChars(uint8_t value);
+    static const char* toChars(uint32_t value);
     Token() :
         next(),
         loc(),

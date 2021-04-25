@@ -3371,6 +3371,7 @@ void ElfObj_dehinfo(Symbol *scc)
  * library (DSO) with druntime. Create one for each object file and
  * put the sections into a COMDAT group. This will ensure that each
  * DSO gets registered only once.
+ * TODO: this should not be emitted for .c files
  */
 
 private void obj_rtinit()

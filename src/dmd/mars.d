@@ -2420,7 +2420,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 const(char)[] runarg = arguments[i + 1].toDString();
                 const(char)[] ext = FileName.ext(runarg);
-                if (ext && FileName.equals(ext, mars_ext) == 0 && FileName.equals(ext, hdr_ext) == 0)
+                if (ext &&
+                    FileName.equals(ext, mars_ext) == 0 &&
+                    FileName.equals(ext, hdr_ext) == 0 &&
+                    FileName.equals(ext, c_ext) == 0)
                 {
                     error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
                     break;
@@ -2752,9 +2755,12 @@ Module createModule(const(char)* file, ref Strings libmodules)
         }
     }
     /* Examine extension to see if it is a valid
-        * D source file extension
-        */
-    if (FileName.equals(ext, mars_ext) || FileName.equals(ext, hdr_ext) || FileName.equals(ext, dd_ext))
+     * D, Ddoc or C source file extension
+     */
+    if (FileName.equals(ext, mars_ext) ||
+        FileName.equals(ext, hdr_ext ) ||
+        FileName.equals(ext, dd_ext  ) ||
+        FileName.equals(ext, c_ext   ))
     {
         name = FileName.removeExt(p);
         if (!name.length || name == ".." || name == ".")

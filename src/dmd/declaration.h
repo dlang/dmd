@@ -87,6 +87,8 @@ struct IntRange;
 #define STCfuture        0x4000000000000ULL // introducing new base class function
 #define STClocal         0x8000000000000ULL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 #define STCreturninferred 0x10000000000000ULL   // 'return' has been inferred and should not be part of mangling
+#define STClive          0x20000000000000ULL   // function @live attribute
+#define STCregister      0x40000000000000ULL   // `register` storage class
 
 void ObjectNotFound(Identifier *id);
 

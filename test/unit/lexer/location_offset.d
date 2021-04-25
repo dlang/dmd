@@ -513,6 +513,32 @@ enum ignoreTokens
     showCtfeContext,
     objcClassReference,
     vectorArray,
+
+    wchar_tLiteral,
+    inline,
+    register,
+    restrict,
+    signed,
+    sizeof_,
+    typedef_,
+    unsigned,
+    volatile,
+    _Alignas,
+    _Alignof,
+    _Atomic,
+    _Bool,
+    _Complex,
+    _Generic,
+    _Imaginary,
+    _Noreturn,
+    _Static_assert,
+    _Thread_local,
+
+    __cdecl,
+    __restrict,
+    __declspec,
+    __attribute__,
+
     max_,
 };
 

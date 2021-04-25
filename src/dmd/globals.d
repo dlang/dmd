@@ -267,13 +267,14 @@ alias structalign_t = uint;
 // other values are all powers of 2
 enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
-enum mars_ext = "d";
+enum mars_ext = "d";        // for D source files
 enum doc_ext  = "html";     // for Ddoc generated files
 enum ddoc_ext = "ddoc";     // for Ddoc macro include files
 enum dd_ext   = "dd";       // for Ddoc source files
 enum hdr_ext  = "di";       // for D 'header' import files
 enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
+enum c_ext    = "c";        // for C source files
 
 /**
  * Collection of global compiler settings and global state used by the frontend

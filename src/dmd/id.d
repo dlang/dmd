@@ -492,6 +492,12 @@ immutable Msgtable[] msgtable =
     { "FALSE" },
     { "unsigned" },
     { "wchar_t" },
+
+    // for C compiler
+    { "__tag" },
+    { "dllimport" },
+    { "dllexport" },
+    { "vector_size" },
 ];
 
 

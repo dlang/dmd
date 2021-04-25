@@ -34,6 +34,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.parse;
+import dmd.cparse;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
@@ -72,16 +73,24 @@ enum package_di = "package." ~ hdr_ext;
  */
 private const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
 {
+    //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
     /* Search along path[] for .di file, then .d file.
      */
     const sdi = FileName.forceExt(filename, hdr_ext);
     if (FileName.exists(sdi) == 1)
         return sdi;
     scope(exit) FileName.free(sdi.ptr);
+
     const sd = FileName.forceExt(filename, mars_ext);
     if (FileName.exists(sd) == 1)
         return sd;
     scope(exit) FileName.free(sd.ptr);
+
+    const sc = FileName.forceExt(filename, c_ext);
+    if (FileName.exists(sc) == 1)
+        return sc;
+    scope(exit) FileName.free(sc.ptr);
+
     if (FileName.exists(filename) == 2)
     {
         /* The filename exists and it's a directory.
@@ -92,6 +101,7 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
         if (FileName.exists(ni) == 1)
             return ni;
         FileName.free(ni.ptr);
+
         const n = FileName.combine(filename, package_d);
         if (FileName.exists(n) == 1)
             return n;
@@ -104,16 +114,25 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
     foreach (entry; path)
     {
         const p = entry.toDString();
+
         const(char)[] n = FileName.combine(p, sdi);
         if (FileName.exists(n) == 1) {
             return n;
         }
         FileName.free(n.ptr);
+
         n = FileName.combine(p, sd);
         if (FileName.exists(n) == 1) {
             return n;
         }
         FileName.free(n.ptr);
+
+        n = FileName.combine(p, sc);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
         const b = FileName.removeExt(filename);
         n = FileName.combine(p, b);
         FileName.free(b.ptr);
@@ -445,6 +464,7 @@ extern (C++) final class Module : Package
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     bool isHdrFile;             // if it is a header (.di) file
+    bool isCFile;               // if it is a C (.c) file
     bool isDocFile;             // if it is a documentation input file, not D source
     bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
@@ -534,7 +554,7 @@ extern (C++) final class Module : Package
     {
         super(loc, ident);
         const(char)[] srcfilename;
-        //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
+        //printf("Module::Module(filename = '%.*s', ident = '%s')\n", cast(int)filename.length, filename.ptr, ident.toChars());
         this.arg = filename;
         srcfilename = FileName.defaultExt(filename, mars_ext);
         if (target.run_noext && global.params.run &&
@@ -547,6 +567,7 @@ extern (C++) final class Module : Package
         }
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
+                 !FileName.equalsExt(srcfilename, c_ext) &&
                  !FileName.equalsExt(srcfilename, dd_ext))
         {
 
@@ -777,8 +798,6 @@ extern (C++) final class Module : Package
     /// ditto
     extern (D) Module parseModule(AST)()
     {
-
-
         enum Endian { little, big}
         enum SourceEncoding { utf16, utf32}
 
@@ -1035,6 +1054,21 @@ extern (C++) final class Module : Package
         {
             isHdrFile = true;
         }
+
+        /* If it has the extension ".c", it is a "C" file.
+         */
+        if (FileName.equalsExt(arg, c_ext))
+        {
+            isCFile = true;
+
+            scope p = new CParser!AST(this, buf, cast(bool) docfile,
+                cast(ubyte) target.c.longsize, cast(ubyte) target.c.long_doublesize, cast(ubyte) target.c.twchar_t.size());
+            p.nextToken();
+            members = p.parseModule();
+            md = p.md;
+            numlines = p.scanloc.linnum;
+        }
+        else
         {
             scope p = new Parser!AST(this, buf, cast(bool) docfile);
             p.nextToken();
