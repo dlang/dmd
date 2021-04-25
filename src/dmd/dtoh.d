@@ -425,7 +425,7 @@ public:
                 return;
             }
 
-            static bool warned = false;
+            __gshared bool warned = false;
             warning(loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
 
             if (!warned)

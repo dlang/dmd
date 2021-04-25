@@ -59,6 +59,7 @@ enum SCOPE
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
     onlysafeaccess = 0x0400,  /// unsafe access is not allowed for @safe code
+    Cfile         = 0x0800,   /// C semantics apply
     free          = 0x8000,   /// is on free list
 
     fullinst      = 0x10000,  /// fully instantiate templates
@@ -73,7 +74,7 @@ enum SCOPE
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
     SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
-    SCOPE.printf | SCOPE.scanf;
+    SCOPE.printf | SCOPE.scanf | SCOPE.Cfile;
 
 struct Scope
 {
@@ -173,6 +174,8 @@ struct Scope
             m = m.parent;
         m.addMember(null, sc.scopesym);
         m.parent = null; // got changed by addMember()
+        if (_module.isCFile)
+            sc.flags |= SCOPE.Cfile;
         // Create the module scope underneath the global scope
         sc = sc.push(_module);
         sc.parent = _module;

@@ -75,6 +75,7 @@ public:
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     bool isHdrFile;     // if it is a header (.di) file
+    bool isCFile;       // if it is a C (.c) file
     bool isDocFile;     // if it is a documentation input file, not D source
     bool hasAlwaysInlines; // contains references to functions that must be inlined
     bool isPackageFile; // if it is a package.d

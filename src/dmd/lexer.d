@@ -220,6 +220,7 @@ class Lexer
     const(char)* p;         // current character
 
     Token token;
+    bool Ccompile;          // be a C lexer
 
     private
     {
@@ -422,8 +423,32 @@ class Lexer
                     p += 3;
                 }
                 else
+                {
                     t.value = charConstant(t);
+                    if (Ccompile)
+                        t.value = TOK.charLiteral;
+                }
                 return;
+
+            case 'L':
+                if (!Ccompile)
+                    goto case_ident;
+                if (p[1] == '\'')       // C wide character constant
+                {
+                    ++p;
+                    charConstant(t);
+                    t.value = TOK.wchar_tLiteral;
+                    return;
+                }
+                else if (p[1] == '\"')  // C wide string literal
+                {
+                    ++p;
+                    escapeStringConstant(t);
+                    t.postfix = 't';
+                    return;
+                }
+                goto case_ident;
+
             case 'r':
                 if (p[1] != '"')
                     goto case_ident;
@@ -496,7 +521,7 @@ class Lexer
             case 'I':
             case 'J':
             case 'K':
-            case 'L':
+            //case 'L':
             case 'M':
             case 'N':
             case 'O':
@@ -533,8 +558,22 @@ class Lexer
                     Identifier id = Identifier.idPool(cast(char*)t.ptr, cast(uint)(p - t.ptr));
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
+
                     anyToken = 1;
-                    if (*t.ptr == '_') // if special identifier token
+
+                    /* Different keywords for C and D
+                     */
+                    if (Ccompile)
+                    {
+                        if (t.value != TOK.identifier)
+                        {
+                            t.value = Ckeywords[t.value];  // filter out D keywords
+                        }
+                    }
+                    else if (t.value >= FirstCKeyword)
+                        t.value = TOK.identifier;       // filter out C keywords
+
+                    else if (*t.ptr == '_') // if special identifier token
                     {
                         // Lazy initialization
                         TimeStampInfo.initialize(t.loc);
@@ -885,6 +924,16 @@ class Lexer
                     else
                         t.value = TOK.leftShift; // <<
                 }
+                else if (*p == ':' && Ccompile)
+                {
+                    ++p;
+                    t.value = TOK.leftBracket;  // <:
+                }
+                else if (*p == '%' && Ccompile)
+                {
+                    ++p;
+                    t.value = TOK.leftCurly;    // <%
+                }
                 else
                     t.value = TOK.lessThan; // <
                 return;
@@ -1019,6 +1068,11 @@ class Lexer
                     ++p;
                     t.value = TOK.colonColon;
                 }
+                else if (*p == '>' && Ccompile)
+                {
+                    ++p;
+                    t.value = TOK.rightBracket;
+                }
                 else
                     t.value = TOK.colon;
                 return;
@@ -1046,6 +1100,15 @@ class Lexer
                 {
                     p++;
                     t.value = TOK.modAssign;
+                }
+                else if (*p == '>' && Ccompile)
+                {
+                    ++p;
+                    t.value = TOK.rightCurly;
+                }
+                else if (*p == ':' && Ccompile)
+                {
+                    goto case '#';      // %: means #
                 }
                 else
                     t.value = TOK.mod;
@@ -1706,7 +1769,8 @@ class Lexer
                 break;
             case '"':
                 t.setString(stringbuffer);
-                stringPostfix(t);
+                if (!Ccompile)
+                    stringPostfix(t);
                 return;
             case 0:
             case 0x1A:

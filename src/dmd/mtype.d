@@ -6768,6 +6768,7 @@ extern (C++) struct ParameterList
     Parameters* parameters;
     StorageClass stc;                   // storage class of ...
     VarArg varargs = VarArg.none;
+    bool hasIdentifierList;             // true if C identifier-list style
 
     this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0)
     {

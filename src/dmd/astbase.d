@@ -136,6 +136,7 @@ struct ASTBase
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
         live                = (1L << 53),   // function @live attribute
+        register            = (1L << 54),   // `register` storage class
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         IOR  = STC.in_ | STC.ref_ | STC.out_,
