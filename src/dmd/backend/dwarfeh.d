@@ -221,7 +221,7 @@ static if (1)
         {
                 void WRITE(uint v)
                 {
-                    if (ELFOBJ)
+                    if (config.objfmt == OBJ_ELF)
                         cstbuf.writeuLEB128(v);
                     else
                         cstbuf.write32(v);
@@ -270,22 +270,25 @@ else
                 }
                 if (start < dend)
                 {
-static if (ELFOBJ)
-                    auto WRITE = &cstbuf.writeLEB128;
-else static if (MACHOBJ)
-                    auto WRITE = &cstbuf.write32;
-else
-                    assert(0);
+                    void writeCallSite(void delegate(uint) WRITE)
+                    {
+                        uint CallSiteStart = start - startblock.Boffset;
+                        WRITE(CallSiteStart);
+                        uint CallSiteRange = dend - start;
+                        WRITE(CallSiteRange);
+                        uint LandingPad = d.lpad - startblock.Boffset;
+                        cstbuf.WRITE(LandingPad);
+                        uint ActionTable = d.action;
+                        WRITE(ActionTable);
+                        //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
+                    }
 
-                    uint CallSiteStart = start - startblock.Boffset;
-                    WRITE(CallSiteStart);
-                    uint CallSiteRange = dend - start;
-                    WRITE(CallSiteRange);
-                    uint LandingPad = d.lpad - startblock.Boffset;
-                    cstbuf.WRITE(LandingPad);
-                    uint ActionTable = d.action;
-                    WRITE(ActionTable);
-                    //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
+                    if (config.objfmt == OBJ_ELF)
+                        writeCallSite((uint a) => cstbuf.writeLEB128(a));
+                    else if (config.objfmt == OBJ_MACH)
+                        writeCallSite((uint a) => cstbuf.write32(a));
+                    else
+                        assert(0);
                 }
 
                 end = dend;
@@ -336,12 +339,11 @@ else
         et.writeuLEB128(TTbase);
     uint TToffset = cast(uint)(TTbase + et.length() - startsize);
 
-static if (ELFOBJ)
-    const ubyte CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_uleb128;
-else static if (MACHOBJ)
-    const ubyte CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_udata4;
-else
-    const ubyte CallSiteFormat = 0;
+    ubyte CallSiteFormat = 0;
+    if (config.objfmt == OBJ_ELF)
+        CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_uleb128;
+    else if (config.objfmt == OBJ_MACH)
+        CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_udata4;
 
     et.writeByte(CallSiteFormat);
     et.writeuLEB128(CallSiteTableSize);
@@ -366,13 +368,11 @@ else
          *         32: [0] address x004c pcrel 0 length 2 value x224 type 4 RELOC_LOCAL_SECTDIFF
          *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
          */
-        static if (ELFOBJ || MACHOBJ)
-        {
-            if (config.objfmt == OBJ_ELF)
-                elf_dwarf_reftoident(seg, et.length(), s, 0);
-            else
-                mach_dwarf_reftoident(seg, et.length(), s, 0);
-        }
+
+        if (config.objfmt == OBJ_ELF)
+            elf_dwarf_reftoident(seg, et.length(), s, 0);
+        else if (config.objfmt == OBJ_MACH)
+            mach_dwarf_reftoident(seg, et.length(), s, 0);
     }
     assert(TToffset == et.length() - startsize);
 }
