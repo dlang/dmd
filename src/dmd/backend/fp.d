@@ -42,7 +42,16 @@ version (SPP) {} else
 
     longdouble _modulo(longdouble x, longdouble y)
     {
-        static if (TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD)
+        version(FreeBSD)
+            enum HOST_IS_BSD = true;
+        else version(DragonFlyBSD)
+            enum HOST_IS_BSD = true;
+        else version(OpenBSD)
+            enum HOST_IS_BSD = true;
+        else
+            enum HOST_IS_BSD = false;
+
+        static if (HOST_IS_BSD)
         {
             return fmod(x, y);
         }
