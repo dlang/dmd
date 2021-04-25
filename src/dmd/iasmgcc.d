@@ -429,9 +429,24 @@ unittest
         {
             if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
                 break;
-            *ptoklist = p.allocateToken();
-            memcpy(*ptoklist, &p.token, Token.sizeof);
-            ptoklist = &(*ptoklist).next;
+            if (p.token.value == TOK.colonColon)
+            {
+                *ptoklist = p.allocateToken();
+                memcpy(*ptoklist, &p.token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+
+                *ptoklist = p.allocateToken();
+                memcpy(*ptoklist, &p.token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+            }
+            else
+            {
+                *ptoklist = p.allocateToken();
+                memcpy(*ptoklist, &p.token, Token.sizeof);
+                ptoklist = &(*ptoklist).next;
+            }
             *ptoklist = null;
             p.nextToken();
         }
@@ -483,6 +498,12 @@ unittest
         // Likewise mixins, permissible so long as the result is a string.
         q{ asm { mixin(`"repne"`, `~ "scasb"`);
         } },
+
+        // :: token tests
+        q{ asm { "" : : : "memory"; } },
+        q{ asm { "" :: : "memory"; } },
+        q{ asm { "" : :: "memory"; } },
+        q{ asm { "" ::: "memory"; } },
     ];
 
     immutable string[] failAsmTests = [

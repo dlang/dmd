@@ -287,6 +287,9 @@ enum TOK : ubyte
     objcClassReference,
     vectorArray,
 
+    arrow,      // ->
+    colonColon, // ::
+
     max_,
 }
 
@@ -651,6 +654,8 @@ extern (C++) struct Token
         TOK.powAssign: "^^=",
         TOK.goesTo: "=>",
         TOK.pound: "#",
+        TOK.arrow: "->",
+        TOK.colonColon: "::",
 
         // For debugging
         TOK.error: "error",

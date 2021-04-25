@@ -844,6 +844,11 @@ class Lexer
                     p++;
                     t.value = TOK.minusMinus;
                 }
+                else if (*p == '>')
+                {
+                    ++p;
+                    t.value = TOK.arrow;
+                }
                 else
                     t.value = TOK.min;
                 return;
@@ -1009,7 +1014,13 @@ class Lexer
                 return;
             case ':':
                 p++;
-                t.value = TOK.colon;
+                if (*p == ':')
+                {
+                    ++p;
+                    t.value = TOK.colonColon;
+                }
+                else
+                    t.value = TOK.colon;
                 return;
             case '$':
                 p++;
