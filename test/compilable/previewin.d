@@ -7,6 +7,14 @@ void fun(in int* inParam) @safe;
 static assert([__traits(getParameterStorageClasses, fun, 0)] == ["in"]);
 static assert (is(typeof(fun) P == __parameters) && is(P[0] == const int*));
 
+struct Foo
+{
+    int a;
+    double[100] b;
+}
+void fun2(in Foo inParam) @safe;
+static assert([__traits(getParameterStorageClasses, fun2, 0)] == ["in"]);
+static assert (is(typeof(fun2) P == __parameters) && is(P[0] == const Foo));
 
 void test()
 {
