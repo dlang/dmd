@@ -5645,17 +5645,17 @@ LagainStc:
                 /* A leading identifier can be a declaration, label, or expression.
                  * The easiest case to check first is label:
                  */
+                if (peekNext() == TOK.colonColon)
+                {
+                    // skip ident::
+                    nextToken();
+                    nextToken();
+                    error("use `.` for member lookup, not `::`");
+                    break;
+                }
+
                 if (peekNext() == TOK.colon)
                 {
-                    if (peekNext2() == TOK.colon)
-                    {
-                        // skip ident::
-                        nextToken();
-                        nextToken();
-                        nextToken();
-                        error("use `.` for member lookup, not `::`");
-                        break;
-                    }
                     // It's a label
                     Identifier ident = token.ident;
                     nextToken();
@@ -6531,6 +6531,21 @@ LagainStc:
                         /* { */
                         error("matching `}` expected, not end of file");
                         goto Lerror;
+
+                    case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
+                        *ptoklist = allocateToken();
+                        memcpy(*ptoklist, &token, Token.sizeof);
+                        (*ptoklist).value = TOK.colon;
+                        ptoklist = &(*ptoklist).next;
+
+                        *ptoklist = allocateToken();
+                        memcpy(*ptoklist, &token, Token.sizeof);
+                        (*ptoklist).value = TOK.colon;
+                        ptoklist = &(*ptoklist).next;
+
+                        *ptoklist = null;
+                        nextToken();
+                        continue;
 
                     default:
                         *ptoklist = allocateToken();
@@ -7824,10 +7839,9 @@ LagainStc:
         {
         case TOK.identifier:
             {
-                if (peekNext() == TOK.min && peekNext2() == TOK.greaterThan)
+                if (peekNext() == TOK.arrow)
                 {
-                    // skip ident.
-                    nextToken();
+                    // skip `identifier ->`
                     nextToken();
                     nextToken();
                     error("use `.` for member lookup, not `->`");

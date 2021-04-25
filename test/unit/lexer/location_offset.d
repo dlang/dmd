@@ -450,6 +450,9 @@ enum Test[string] tests = [
     "goesTo" : Test("fat arrow", "=>"),
     "vector" : Test("__vector"),
     "pound" : Test("pound", "#"),
+
+    "arrow" : Test("arrow", "->"),
+    "colonColon" : Test("colonColon", "::"),
 ];
 
 // Ignore tokens not produced by the lexer or tested above

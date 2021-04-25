@@ -479,7 +479,9 @@ enum class TOK : uint8_t
     showCtfeContext = 232u,
     objcClassReference = 233u,
     vectorArray = 234u,
-    max_ = 235u,
+    arrow = 235u,
+    colonColon = 236u,
+    max_ = 237u,
 };
 
 class StringExp;
