@@ -63,15 +63,16 @@ enum package_di = "package." ~ hdr_ext;
  * Look for the source file if it's different from filename.
  * Look for .di, .d, directory, and along global.path.
  * Does not open the file.
- * Input:
- *      filename        as supplied by the user
- *      global.path
+ * Params:
+ *      filename = as supplied by the user
+ *      path = path to look for filename
  * Returns:
- *      NULL if it's not different from filename.
+ *      the found file name or
+ *      `null` if it is not different from filename.
  */
-private const(char)[] lookForSourceFile(const(char)[] filename)
+private const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
 {
-    /* Search along global.path for .di file, then .d file.
+    /* Search along path[] for .di file, then .d file.
      */
     const sdi = FileName.forceExt(filename, hdr_ext);
     if (FileName.exists(sdi) == 1)
@@ -98,11 +99,11 @@ private const(char)[] lookForSourceFile(const(char)[] filename)
     }
     if (FileName.absolute(filename))
         return null;
-    if (!global.path)
+    if (!path.length)
         return null;
-    for (size_t i = 0; i < global.path.dim; i++)
+    foreach (entry; path)
     {
-        const p = (*global.path)[i].toDString();
+        const p = entry.toDString();
         const(char)[] n = FileName.combine(p, sdi);
         if (FileName.exists(n) == 1) {
             return n;
@@ -397,7 +398,7 @@ extern (C++) class Package : ScopeDsymbol
             packages ~= s.ident;
         reverse(packages);
 
-        if (lookForSourceFile(getFilename(packages, ident)))
+        if (lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
             Module.load(Loc(), packages, this.ident);
         else
             isPkgMod = PKG.package_;
@@ -593,7 +594,7 @@ extern (C++) final class Module : Package
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
         // Look for the source file
-        if (const result = lookForSourceFile(filename))
+        if (const result = lookForSourceFile(filename, global.path ? (*global.path)[] : null))
             filename = result; // leaks
 
         auto m = new Module(loc, filename, ident, 0, 0);
