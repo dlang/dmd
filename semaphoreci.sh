@@ -17,6 +17,7 @@ export DMD=${DMD:-dmd}         # can be {dmd,ldc,gdc}
 export N=4
 export OS_NAME=linux
 export FULL_BUILD="${PULL_REQUEST_NUMBER+false}"
+export DUB_EXE="${DUB_EXE:-dub}"
 
 export HOST_DC=$DMD
 if [ "$HOST_DC" == "gdc" ]; then export HOST_DC=gdmd-$GDC_VERSION; fi
