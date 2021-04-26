@@ -919,7 +919,7 @@ extern (C++) void generateJson(Modules* modules)
         const(char)[] jsonfilename;
         if (name)
         {
-            jsonfilename = FileName.defaultExt(name, global.json_ext);
+            jsonfilename = FileName.defaultExt(name, json_ext);
         }
         else
         {
@@ -933,7 +933,7 @@ extern (C++) void generateJson(Modules* modules)
             n = FileName.name(n);
             //if (!FileName::absolute(name))
             //    name = FileName::combine(dir, name);
-            jsonfilename = FileName.forceExt(n, global.json_ext);
+            jsonfilename = FileName.forceExt(n, json_ext);
         }
         writeFile(Loc.initial, jsonfilename, buf[]);
     }
@@ -2420,7 +2420,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 const(char)[] runarg = arguments[i + 1].toDString();
                 const(char)[] ext = FileName.ext(runarg);
-                if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
+                if (ext && FileName.equals(ext, mars_ext) == 0 && FileName.equals(ext, hdr_ext) == 0)
                 {
                     error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
                     break;
@@ -2718,18 +2718,18 @@ Module createModule(const(char)* file, ref Strings libmodules)
             return null;
         }
     }
-    if (ext == global.ddoc_ext)
+    if (ext == ddoc_ext)
     {
         global.params.ddocfiles.push(file);
         return null;
     }
-    if (FileName.equals(ext, global.json_ext))
+    if (FileName.equals(ext, json_ext))
     {
         global.params.doJsonGeneration = true;
         global.params.jsonfilename = file.toDString;
         return null;
     }
-    if (FileName.equals(ext, global.map_ext))
+    if (FileName.equals(ext, map_ext))
     {
         global.params.mapfile = file.toDString;
         return null;
@@ -2754,7 +2754,7 @@ Module createModule(const(char)* file, ref Strings libmodules)
     /* Examine extension to see if it is a valid
         * D source file extension
         */
-    if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
+    if (FileName.equals(ext, mars_ext) || FileName.equals(ext, hdr_ext) || FileName.equals(ext, dd_ext))
     {
         name = FileName.removeExt(p);
         if (!name.length || name == ".." || name == ".")
