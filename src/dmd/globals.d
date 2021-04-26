@@ -261,16 +261,17 @@ alias structalign_t = uint;
 // other values are all powers of 2
 enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
+enum mars_ext = "d";
+enum doc_ext  = "html";     // for Ddoc generated files
+enum ddoc_ext = "ddoc";     // for Ddoc macro include files
+enum dd_ext   = "dd";       // for Ddoc source files
+enum hdr_ext  = "di";       // for D 'header' import files
+enum json_ext = "json";     // for JSON files
+enum map_ext  = "map";      // for .map files
+
 extern (C++) struct Global
 {
     const(char)[] inifilename;
-    string mars_ext = "d";
-    string doc_ext = "html";      // for Ddoc generated files
-    string ddoc_ext = "ddoc";     // for Ddoc macro include files
-    string hdr_ext = "di";        // for D 'header' import files
-    string cxxhdr_ext = "h";      // for C/C++ 'header' files
-    string json_ext = "json";     // for JSON files
-    string map_ext = "map";       // for .map files
 
     string copyright = "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";

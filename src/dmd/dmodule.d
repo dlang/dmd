@@ -55,6 +55,10 @@ version(Windows) {
 }
 
 /* ===========================  ===================== */
+
+enum package_d  = "package." ~ mars_ext;
+enum package_di = "package." ~ hdr_ext;
+
 /********************************************
  * Look for the source file if it's different from filename.
  * Look for .di, .d, directory, and along global.path.
@@ -69,11 +73,11 @@ private const(char)[] lookForSourceFile(const(char)[] filename)
 {
     /* Search along global.path for .di file, then .d file.
      */
-    const sdi = FileName.forceExt(filename, global.hdr_ext);
+    const sdi = FileName.forceExt(filename, hdr_ext);
     if (FileName.exists(sdi) == 1)
         return sdi;
     scope(exit) FileName.free(sdi.ptr);
-    const sd = FileName.forceExt(filename, global.mars_ext);
+    const sd = FileName.forceExt(filename, mars_ext);
     if (FileName.exists(sd) == 1)
         return sd;
     scope(exit) FileName.free(sd.ptr);
@@ -83,11 +87,11 @@ private const(char)[] lookForSourceFile(const(char)[] filename)
          * Therefore, the result should be: filename/package.d
          * iff filename/package.d is a file
          */
-        const ni = FileName.combine(filename, "package.di");
+        const ni = FileName.combine(filename, package_di);
         if (FileName.exists(ni) == 1)
             return ni;
         FileName.free(ni.ptr);
-        const n = FileName.combine(filename, "package.d");
+        const n = FileName.combine(filename, package_d);
         if (FileName.exists(n) == 1)
             return n;
         FileName.free(n.ptr);
@@ -114,11 +118,11 @@ private const(char)[] lookForSourceFile(const(char)[] filename)
         FileName.free(b.ptr);
         if (FileName.exists(n) == 2)
         {
-            const n2i = FileName.combine(n, "package.di");
+            const n2i = FileName.combine(n, package_di);
             if (FileName.exists(n2i) == 1)
                 return n2i;
             FileName.free(n2i.ptr);
-            const n2 = FileName.combine(n, "package.d");
+            const n2 = FileName.combine(n, package_d);
             if (FileName.exists(n2) == 1) {
                 return n2;
             }
@@ -531,7 +535,7 @@ extern (C++) final class Module : Package
         const(char)[] srcfilename;
         //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
         this.arg = filename;
-        srcfilename = FileName.defaultExt(filename, global.mars_ext);
+        srcfilename = FileName.defaultExt(filename, mars_ext);
         if (target.run_noext && global.params.run &&
             !FileName.ext(filename) &&
             FileName.exists(srcfilename) == 0 &&
@@ -540,14 +544,14 @@ extern (C++) final class Module : Package
             FileName.free(srcfilename.ptr);
             srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
         }
-        else if (!FileName.equalsExt(srcfilename, global.mars_ext) &&
-                 !FileName.equalsExt(srcfilename, global.hdr_ext) &&
-                 !FileName.equalsExt(srcfilename, "dd"))
+        else if (!FileName.equalsExt(srcfilename, mars_ext) &&
+                 !FileName.equalsExt(srcfilename, hdr_ext) &&
+                 !FileName.equalsExt(srcfilename, dd_ext))
         {
 
             error("source file name '%.*s' must have .%.*s extension",
                   cast(int)srcfilename.length, srcfilename.ptr,
-                  cast(int)global.mars_ext.length, global.mars_ext.ptr);
+                  cast(int)mars_ext.length, mars_ext.ptr);
             fatal();
         }
 
@@ -556,7 +560,7 @@ extern (C++) final class Module : Package
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
-            hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
+            hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, hdr_ext);
         escapetable = new Escape();
     }
 
@@ -678,7 +682,7 @@ extern (C++) final class Module : Package
 
     extern (D) void setDocfile()
     {
-        docfile = setOutfilename(global.params.docname, global.params.docdir, arg, global.doc_ext);
+        docfile = setOutfilename(global.params.docname, global.params.docdir, arg, doc_ext);
     }
 
     /**
@@ -710,7 +714,7 @@ extern (C++) final class Module : Package
         else
         {
             // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
-            bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name(), "package.d") == 0 || (strcmp(srcfile.name(), "package.di") == 0));
+            bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name(), package_d) == 0 || (strcmp(srcfile.name(), package_di) == 0));
             if (isPackageMod)
                 .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
             else
@@ -894,8 +898,8 @@ extern (C++) final class Module : Package
 
         const(char)* srcname = srcfile.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
-        isPackageFile = (strcmp(srcfile.name(), "package.d") == 0 ||
-                         strcmp(srcfile.name(), "package.di") == 0);
+        isPackageFile = (strcmp(srcfile.name(), package_d) == 0 ||
+                         strcmp(srcfile.name(), package_di) == 0);
         const(char)[] buf = cast(const(char)[]) srcBuffer.data;
 
         bool needsReencoding = true;
@@ -1016,7 +1020,7 @@ extern (C++) final class Module : Package
          * but do not have to if they have the .dd extension.
          * https://issues.dlang.org/show_bug.cgi?id=15465
          */
-        if (FileName.equalsExt(arg, "dd"))
+        if (FileName.equalsExt(arg, dd_ext))
         {
             comment = buf.ptr; // the optional Ddoc, if present, is handled above.
             isDocFile = true;
@@ -1026,7 +1030,7 @@ extern (C++) final class Module : Package
         }
         /* If it has the extension ".di", it is a "header" file.
          */
-        if (FileName.equalsExt(arg, "di"))
+        if (FileName.equalsExt(arg, hdr_ext))
         {
             isHdrFile = true;
         }
@@ -1068,8 +1072,8 @@ extern (C++) final class Module : Package
             }
             assert(dst);
             Module m = ppack ? ppack.isModule() : null;
-            if (m && (strcmp(m.srcfile.name(), "package.d") != 0 &&
-                      strcmp(m.srcfile.name(), "package.di") != 0))
+            if (m && (strcmp(m.srcfile.name(), package_d) != 0 &&
+                      strcmp(m.srcfile.name(), package_di) != 0))
             {
                 .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
             }

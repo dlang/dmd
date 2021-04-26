@@ -216,7 +216,7 @@ public int runLINK()
 
     const(char)[] getMapFilename()
     {
-        const(char)[] fn = FileName.forceExt(global.params.exefile, "map");
+        const(char)[] fn = FileName.forceExt(global.params.exefile, map_ext);
         const(char)[] path = FileName.path(global.params.exefile);
         return path.length ? fn : FileName.combine(global.params.objdir, fn);
     }
@@ -593,7 +593,7 @@ public int runLINK()
             }
             if (!global.params.mapfile.length)
             {
-                const(char)[] fn = FileName.forceExt(global.params.exefile, "map");
+                const(char)[] fn = FileName.forceExt(global.params.exefile, map_ext);
                 const(char)[] path = FileName.path(global.params.exefile);
                 global.params.mapfile = path.length ? fn : FileName.combine(global.params.objdir, fn);
             }

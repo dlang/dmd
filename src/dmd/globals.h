@@ -243,17 +243,17 @@ typedef unsigned structalign_t;
 // other values are all powers of 2
 #define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
 
+const DString mars_ext = "d";
+const DString doc_ext  = "html";     // for Ddoc generated files
+const DString ddoc_ext = "ddoc";     // for Ddoc macro include files
+const DString dd_ext   = "dd";       // for Ddoc source files
+const DString hdr_ext  = "di";       // for D 'header' import files
+const DString json_ext = "json";     // for JSON files
+const DString map_ext  = "map";      // for .map files
+
 struct Global
 {
     DString inifilename;
-    const DString mars_ext;
-    const DString doc_ext;      // for Ddoc generated files
-    const DString ddoc_ext;     // for Ddoc macro include files
-    const DString hdr_ext;      // for D 'header' import files
-    const DString cxxhdr_ext;   // for C/C++ 'header' files
-    const DString json_ext;     // for JSON files
-    const DString map_ext;      // for .map files
-
 
     const DString copyright;
     const DString written;
