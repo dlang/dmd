@@ -35,6 +35,34 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
+
+static if (__VERSION__ < 2092)
+    private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+else
+    pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+
+
+package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+{
+    if (featureState == FeatureState.enabled)
+        return &error;
+    else if (featureState == FeatureState.disabled || isDeprecated)
+        return &noop;
+    else
+        return &deprecation;
+}
+
+package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+{
+    if (featureState == FeatureState.enabled)
+        return &errorSupplemental;
+    else if (featureState == FeatureState.disabled || isDeprecated)
+        return &noop;
+    else
+        return &deprecationSupplemental;
+}
+
+
 /**
  * Print an error message, increasing the global error count.
  * Params:

@@ -697,7 +697,7 @@ struct Scope
     *
     * Returns: `true` if this or any parent scope is deprecated, `false` otherwise`
     */
-    extern(C++) bool isDeprecated() const
+    extern(C++) bool isDeprecated() @safe @nogc pure nothrow const
     {
         for (const(Dsymbol)* sp = &(this.parent); *sp; sp = &(sp.parent))
         {
