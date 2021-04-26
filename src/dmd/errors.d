@@ -20,7 +20,6 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
-import dmd.dscope: Scope;
 
 nothrow:
 
@@ -43,21 +42,21 @@ else
     pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
 
 
-package auto previewErrorFunc(Scope* sc, FeatureState featureState) @safe @nogc pure nothrow
+package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
     if (featureState == FeatureState.enabled)
         return &error;
-    else if (featureState == FeatureState.disabled || sc.isDeprecated())
+    else if (featureState == FeatureState.disabled || isDeprecated)
         return &noop;
     else
         return &deprecation;
 }
 
-package auto previewSupplementalFunc(Scope* sc, FeatureState featureState) @safe @nogc pure nothrow
+package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
     if (featureState == FeatureState.enabled)
         return &errorSupplemental;
-    else if (featureState == FeatureState.disabled || sc.isDeprecated())
+    else if (featureState == FeatureState.disabled || isDeprecated)
         return &noop;
     else
         return &deprecationSupplemental;
