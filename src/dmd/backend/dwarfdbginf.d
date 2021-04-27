@@ -95,19 +95,13 @@ static if (1)
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
-        static if (ELFOBJ)
-        {
-            IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
-                    uint typ, uint bind, IDXSEC sec,
-                    ubyte visibility = STV_DEFAULT);
-            void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
-        }
+        IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
+                uint typ, uint bind, IDXSEC sec,
+                ubyte visibility = STV_DEFAULT);
+        void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
-        static if (MACHOBJ)
-        {
-            int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
-                int align_, int flags);
-        }
+        int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
+            int align_, int flags);
 
         Symbol* getRtlsymPersonality();
 
@@ -137,36 +131,30 @@ static if (1)
                (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
     }
 
-    static if (ELFOBJ)
         SYMIDX MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
-    else
-        SYMIDX MAP_SEG2SYMIDX(int seg) { assert(0); }
 
 
     int OFFSET_FAC() { return REGSIZE(); }
 
     int dwarf_getsegment(const(char)* name, int align_, int flags)
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             return Obj.getsegment(name, null, flags, 0, align_ * 4);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
             return Obj.getsegment(name, "__DWARF", align_ * 2, flags);
         else
             assert(0);
     }
 
-    static if (ELFOBJ)
+    int dwarf_getsegment_alloc(const(char)* name, const(char)* suffix, int align_)
     {
-        int dwarf_getsegment_alloc(const(char)* name, const(char)* suffix, int align_)
-        {
-            return Obj.getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align_ * 4);
-        }
+        return Obj.getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align_ * 4);
     }
 
     int dwarf_except_table_alloc(Symbol *s)
     {
         //printf("dwarf_except_table_alloc('%s')\n", s.Sident.ptr);
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
         {
             /* If `s` is in a COMDAT, then this table needs to go into
              * a unique section, which then gets added to the COMDAT group
@@ -183,7 +171,7 @@ static if (1)
             else
                 return dwarf_getsegment_alloc(".gcc_except_table", null, 1);
         }
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
         {
             return getsegment2(except_table_seg, "__gcc_except_tab", "__TEXT", 2, S_REGULAR);
         }
@@ -193,9 +181,9 @@ static if (1)
 
     int dwarf_eh_frame_alloc()
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
         {
             int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2,
                 S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
@@ -222,9 +210,9 @@ static if (1)
 
     void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             Obj.addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, cast(int)MAP_SEG2SYMIDX(targseg), val);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
             Obj.addrel(seg, offset, cast(Symbol*) null, targseg, RELaddr, cast(int)val);
         else
             assert(0);
@@ -232,9 +220,9 @@ static if (1)
 
     void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             Obj.addrel(seg, offset, R_X86_64_64, cast(int)MAP_SEG2SYMIDX(targseg), val);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
             Obj.addrel(seg, offset, null, targseg, RELaddr, cast(uint)val);
         else
             assert(0);
@@ -244,12 +232,12 @@ static if (1)
     {
         if (I64)
         {
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
             {
                 dwarf_addrel64(seg, buf.length(), targseg, val);
                 buf.write64(0);
             }
-            else static if (MACHOBJ)
+            else if (config.objfmt == OBJ_MACH)
             {
                 dwarf_addrel64(seg, buf.length(), targseg, 0);
                 buf.write64(val);
@@ -311,7 +299,7 @@ static if (1)
         assert(reg < NUMGENREGS);
         if (I32)
         {
-            static if (MACHOBJ)
+            if (config.objfmt == OBJ_MACH)
             {
                     if (reg == BP || reg == SP)
                         reg ^= BP ^ SP;     // swap EBP and ESP register values for OSX (!)
@@ -553,13 +541,15 @@ static if (1)
             Section debug_str;
             Section debug_line;
         }
+        const(char*) debug_frame_name()
+        {
+            if (config.objfmt == OBJ_MACH)
+                return "__debug_frame";
+            else if (config.objfmt == OBJ_ELF)
+                return ".debug_frame";
+            else return null;
+        }
 
-        static if (MACHOBJ)
-            const char* debug_frame_name = "__debug_frame";
-        else static if (ELFOBJ)
-            const char* debug_frame_name = ".debug_frame";
-        else
-            const char* debug_frame_name = null;
 
         /* DWARF 7.5.3: "Each declaration begins with an unsigned LEB128 number
          * representing the abbreviation code itself."
@@ -725,31 +715,28 @@ static if (1)
         buf.writeByten(I64 ? 16 : 8);      // return address register
         if (ehunwind)
         {
-            static if (ELFOBJ)
+            ubyte personality_pointer_encoding = 0;
+            ubyte LSDA_pointer_encoding = 0;
+            ubyte address_pointer_encoding = 0;
+            if (config.objfmt == OBJ_ELF)
             {
-                    const ubyte personality_pointer_encoding = config.flags3 & CFG3pic
+                personality_pointer_encoding = config.flags3 & CFG3pic
                             ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
                             : DW_EH_PE_absptr | DW_EH_PE_udata4;
-                    const ubyte LSDA_pointer_encoding = config.flags3 & CFG3pic
+                LSDA_pointer_encoding = config.flags3 & CFG3pic
                             ? DW_EH_PE_pcrel | DW_EH_PE_sdata4
                             : DW_EH_PE_absptr | DW_EH_PE_udata4;
-                    const ubyte address_pointer_encoding =
+                address_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_sdata4;
             }
-            else static if (MACHOBJ)
+            else if (config.objfmt == OBJ_MACH)
             {
-                    const ubyte personality_pointer_encoding =
+                personality_pointer_encoding =
                             DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
-                    const ubyte LSDA_pointer_encoding =
+                LSDA_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_ptr;
-                    const ubyte address_pointer_encoding =
+                address_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_ptr;
-            }
-            else
-            {
-                    const ubyte personality_pointer_encoding = 0;
-                    const ubyte LSDA_pointer_encoding = 0;
-                    const ubyte address_pointer_encoding = 0;
             }
             buf.writeByten(7);                                  // Augmentation Length
             buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
@@ -768,9 +755,9 @@ static if (1)
         {
             buf.writeByten(1);                                  // Augmentation Length
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                     buf.writeByten(DW_EH_PE_pcrel | DW_EH_PE_sdata4);   // R: encoding of addresses in FDE
-            static if (MACHOBJ)
+            else if (config.objfmt == OBJ_MACH)
                     buf.writeByten(DW_EH_PE_pcrel | DW_EH_PE_ptr);      // R: encoding of addresses in FDE
         }
 
@@ -844,7 +831,7 @@ static if (1)
             debug_frame_buf.writen(&debugFrameFDE64,debugFrameFDE64.sizeof);
             debug_frame_buf.write(cfa_buf[]);
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 // Absolute address for debug_frame, relative offset for eh_frame
                 dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg,0);
 
@@ -885,7 +872,7 @@ static if (1)
             debug_frame_buf.writen(&debugFrameFDE32,debugFrameFDE32.sizeof);
             debug_frame_buf.write(cfa_buf[]);
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 // Absolute address for debug_frame, relative offset for eh_frame
                 dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg,0);
 
@@ -906,23 +893,21 @@ static if (1)
         Outbuffer *buf = SegData[dfseg].SDbuf;
         const uint startsize = cast(uint)buf.length();
 
-        static if (MACHOBJ)
+        Symbol *fdesym;
+        if (config.objfmt == OBJ_MACH)
         {
             /* Create symbol named "funcname.eh" for the start of the FDE
              */
-            Symbol *fdesym;
-            {
-                const size_t len = strlen(getSymName(sfunc));
-                char *name = cast(char *)malloc(len + 3 + 1);
-                if (!name)
-                    err_nomem();
-                memcpy(name, getSymName(sfunc), len);
-                memcpy(name + len, ".eh".ptr, 3 + 1);
-                fdesym = symbol_name(name, SCglobal, tspvoid);
-                Obj.pubdef(dfseg, fdesym, startsize);
-                symbol_keep(fdesym);
-                free(name);
-            }
+            const size_t len = strlen(getSymName(sfunc));
+            char *name = cast(char *)malloc(len + 3 + 1);
+            if (!name)
+                err_nomem();
+            memcpy(name, getSymName(sfunc), len);
+            memcpy(name + len, ".eh".ptr, 3 + 1);
+            fdesym = symbol_name(name, SCglobal, tspvoid);
+            Obj.pubdef(dfseg, fdesym, startsize);
+            symbol_keep(fdesym);
+            free(name);
         }
 
         if (sfunc.ty() & mTYnaked)
@@ -940,32 +925,36 @@ static if (1)
         }
 
         // Length of FDE, not including padding
-        static if (ELFOBJ)
-            const uint fdelen = 4 + 4
+        uint fdelen = 0;
+        if (config.objfmt == OBJ_ELF)
+        {
+            fdelen = 4 + 4
                 + 4 + 4
                 + (ehunwind ? 5 : 1) + cast(uint)cfa_buf.length();
-        else static if (MACHOBJ)
-            const uint fdelen = 4 + 4
+        }
+        else if (config.objfmt == OBJ_MACH)
+        {
+            fdelen = 4 + 4
                 + (I64 ? 8 + 8 : 4 + 4)                         // PC_Begin + PC_Range
                 + (ehunwind ? (I64 ? 9 : 5) : 1) + cast(uint)cfa_buf.length();
-        else
-            const uint fdelen = 0;
+        }
+        const uint pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
+        const uint length = fdelen + pad - 4;
 
-            const uint pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
-            const uint length = fdelen + pad - 4;
+        buf.reserve(length + 4);
+        buf.write32(length);                               // Length (no Extended Length)
+        buf.write32((startsize + 4) - CIE_offset);         // CIE Pointer
 
-            buf.reserve(length + 4);
-            buf.write32(length);                               // Length (no Extended Length)
-            buf.write32((startsize + 4) - CIE_offset);         // CIE Pointer
-        static if (ELFOBJ)
+        int fixup = 0;
+        if (config.objfmt == OBJ_ELF)
         {
-            int fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
+            fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
             buf.write32(cast(uint)(I64 ? 0 : sfunc.Soffset));             // address of function
             Obj.addrel(dfseg, startsize + 8, fixup, cast(int)MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
             //Obj.reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
             buf.write32(cast(uint)sfunc.Ssize);                         // PC Range
         }
-        else static if (MACHOBJ)
+        if (config.objfmt == OBJ_MACH)
         {
             dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym);
 
@@ -978,7 +967,7 @@ static if (1)
         if (ehunwind)
         {
             int etseg = dwarf_except_table_alloc(sfunc);
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
             {
                 buf.writeByten(4);                             // Augmentation Data Length
                 buf.write32(I64 ? 0 : sfunc.Sfunc.LSDAoffset); // address of LSDA (".gcc_except_table")
@@ -989,7 +978,7 @@ static if (1)
                 else
                     dwarf_addrel(dfseg, buf.length() - 4, etseg, sfunc.Sfunc.LSDAoffset);      // and the fixup
             }
-            else static if (MACHOBJ)
+            if (config.objfmt == OBJ_MACH)
             {
                 buf.writeByten(I64 ? 8 : 4);                   // Augmentation Data Length
                 dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc.Sfunc.LSDAsym, 0, fdesym);
@@ -1015,7 +1004,7 @@ static if (1)
     {
         if (config.ehmethod == EHmethod.EH_DWARF)
         {
-            static if (MACHOBJ)
+            if (config.objfmt == OBJ_MACH)
             {
                 except_table_seg = UNKNOWN;
                 except_table_num = 0;
@@ -1031,12 +1020,11 @@ static if (1)
             return;
         if (config.ehmethod == EHmethod.EH_DM)
         {
-            static if (MACHOBJ)
-                int flags = S_ATTR_DEBUG;
-            else static if (ELFOBJ)
-                int flags = SHT_PROGBITS;
-            else
-                int flags = 0;
+            int flags = 0;
+            if (config.objfmt == OBJ_MACH)
+                flags = S_ATTR_DEBUG;
+            if (config.objfmt == OBJ_ELF)
+                flags = SHT_PROGBITS;
 
             int seg = dwarf_getsegment(debug_frame_name, 1, flags);
             Outbuffer *buf = SegData[seg].SDbuf;
@@ -1256,7 +1244,7 @@ static if (1)
 
                 debug_info.buf.writen(&cuh, cuh.sizeof);
 
-                static if (ELFOBJ)
+                if (config.objfmt == OBJ_ELF)
                     dwarf_addrel(debug_info.seg, CompilationUnitHeader.debug_abbrev_offset.offsetof, debug_abbrev.seg);
             }
 
@@ -1294,12 +1282,12 @@ static if (1)
             append_addr(debug_info.buf, 0);               // DW_AT_low_pc
             append_addr(debug_info.buf, 0);               // DW_AT_entry_pc
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_ranges.seg);
 
             debug_info.buf.write32(0);                        // DW_AT_ranges
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_line.seg);
 
             debug_info.buf.write32(0);                        // DW_AT_stmt_list
@@ -1317,7 +1305,7 @@ static if (1)
             debug_pubnames.buf.write32(0);             // unit_length
             debug_pubnames.buf.write16(2);           // version_
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 dwarf_addrel(seg,debug_pubnames.buf.length(),debug_info.seg);
 
             debug_pubnames.buf.write32(0);             // debug_info_offset
@@ -1354,7 +1342,7 @@ static if (1)
 
                 debug_aranges.buf.writen(&arh, arh.sizeof);
 
-                static if (ELFOBJ)
+                if (config.objfmt == OBJ_ELF)
                     dwarf_addrel(debug_aranges.seg, AddressRangeHeader.debug_info_offset.offsetof, debug_info.seg);
             }
 
@@ -1603,7 +1591,7 @@ static if (1)
             if (!sd.SDlinnum_data.length)
                 continue;
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 if (!sd.SDsym) // gdb ignores line number data without a DW_AT_name
                     continue;
 
@@ -1799,12 +1787,11 @@ static if (1)
 
         if (ehmethod(sfunc) == EHmethod.EH_DM)
         {
-            static if (MACHOBJ)
-                int flags = S_ATTR_DEBUG;
-            else static if (ELFOBJ)
-                int flags = SHT_PROGBITS;
-            else
-                int flags = 0;
+            int flags = 0;
+            if (config.objfmt == OBJ_MACH)
+                flags = S_ATTR_DEBUG;
+            else if (config.objfmt == OBJ_ELF)
+                flags = SHT_PROGBITS;
 
             IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1, flags);
             writeDebugFrameFDE(dfseg, sfunc);
@@ -1945,7 +1932,7 @@ static if (1)
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset + sfunc.Ssize);
 
         // DW_AT_frame_base
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             dwarf_apprel32(debug_info.seg, debug_info.buf, debug_loc.seg, debug_loc.buf.length());
         else
             // 64-bit DWARF relocations don't work for OSX64 codegen
@@ -2159,7 +2146,7 @@ static if (1)
                 soffset = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeByte(2);                      // DW_FORM_block1
 
-                static if (ELFOBJ)
+                if (config.objfmt == OBJ_ELF)
                 {
                     // debug info for TLS variables
                     assert(s.Sxtrnnum);
@@ -3160,10 +3147,10 @@ static if (1)
         Outbuffer *buf = SegData[seg].SDbuf;
         buf.reserve(100);
 
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             sfunc.Sfunc.LSDAoffset = cast(uint)buf.length();
 
-        static if (MACHOBJ)
+        if (config.objfmt == OBJ_MACH)
         {
             char[16 + (except_table_num).sizeof * 3 + 1] name = void;
             sprintf(name.ptr, "GCC_except_table%d", ++except_table_num);
