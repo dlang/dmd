@@ -84,14 +84,17 @@ static if (1)
     enum DMDV2 = true;
 else
     enum DMDV2 = false;
-enum REQUIRE_DSO_REGISTRY = (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_DRAGONFLYBSD));
+bool REQUIRE_DSO_REGISTRY()
+{
+    return DMDV2 && (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64));
+}
 
 /**
  * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
  * OpenBSD added the support in Aug 2016. Other supported platforms has
  * supported .init_array for years.
  */
-enum USE_INIT_ARRAY = !TARGET_OPENBSD;
+bool USE_INIT_ARRAY() { return !(config.exe & (EX_OPENBSD | EX_OPENBSD64)); }
 
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
@@ -101,7 +104,7 @@ enum USE_INIT_ARRAY = !TARGET_OPENBSD;
  * For the time being, just stick with Linux.
  */
 
-enum ELF_COMDAT = TARGET_LINUX;
+bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64)) != 0; }
 
 /***************************************************
  * Correspondence of relocation types
@@ -1565,7 +1568,7 @@ void ElfObj_staticdtor(Symbol *s)
 void ElfObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
     IDXSEC seg;
-    static if (USE_INIT_ARRAY)
+    if (USE_INIT_ARRAY())
         seg = isCtor ? ElfObj_getsegment(".init_array", null, SHT_INIT_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr])
                      : ElfObj_getsegment(".fini_array", null, SHT_FINI_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
     else
@@ -1646,7 +1649,7 @@ private void setup_comdat(Symbol *s)
     symbol_debug(s);
     if (tyfunc(s.ty()))
     {
-static if (!ELF_COMDAT)
+if (!ELF_COMDAT())
 {
         prefix = ".text.";              // undocumented, but works
         type = SHT_PROGBITS;
@@ -2271,7 +2274,7 @@ void ElfObj_func_start(Symbol *sfunc)
     cseg = sfunc.Sseg;
     jmpseg = 0;                         // only 1 jmp seg per function
     assert(cseg == CODE || cseg > COMD);
-static if (ELF_COMDAT)
+if (ELF_COMDAT())
 {
     if (!symbol_iscomdat2(sfunc))
     {
@@ -3619,7 +3622,7 @@ private void obj_rtinit()
             off += 1;
         }
 
-static if (REQUIRE_DSO_REGISTRY)
+if (REQUIRE_DSO_REGISTRY())
 {
 
         const IDXSYM symidx = ElfObj_external_def("_d_dso_registry");
@@ -3715,8 +3718,8 @@ else
         // needs to be writeable for PIC code, see Bugzilla 13117
         const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
         {
-            enum fini_name = USE_INIT_ARRAY ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
-            enum fini_type = USE_INIT_ARRAY ? SHT_FINI_ARRAY : SHT_PROGBITS;
+            const fini_name = USE_INIT_ARRAY() ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
+            const fini_type = USE_INIT_ARRAY() ? SHT_FINI_ARRAY : SHT_PROGBITS;
             const cdseg = ElfObj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.length());
             // add to section group
@@ -3726,8 +3729,8 @@ else
             SegData[cdseg].SDoffset += ElfObj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
         }
         {
-            enum init_name = USE_INIT_ARRAY ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
-            enum init_type = USE_INIT_ARRAY ? SHT_INIT_ARRAY : SHT_PROGBITS;
+            const init_name = USE_INIT_ARRAY() ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
+            const init_type = USE_INIT_ARRAY() ? SHT_INIT_ARRAY : SHT_PROGBITS;
             const cdseg = ElfObj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.length());
             // add to section group
