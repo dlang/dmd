@@ -484,12 +484,16 @@ static if (1)
         IDXSEC secidx = 0;
         Outbuffer *buf = null;
         const(char)* name;
+        int flags = 0;
 
-        static if (MACHOBJ)
-            immutable flags = S_ATTR_DEBUG;
-        else
-            immutable flags = SHT_PROGBITS;
-
+        nothrow this (const(char)* n)
+        {
+            name = n;
+            if (config.objfmt == OBJ_MACH)
+                flags = S_ATTR_DEBUG;
+            else
+                flags = SHT_PROGBITS;
+        }
         /* Allocate and initialize Section
          */
         nothrow void initialize()
@@ -506,41 +510,15 @@ static if (1)
     private __gshared
     {
 
-        static if (MACHOBJ)
-        {
-            Section debug_pubnames = { name: "__debug_pubnames" };
-            Section debug_aranges  = { name: "__debug_aranges" };
-            Section debug_ranges   = { name: "__debug_ranges" };
-            Section debug_loc      = { name: "__debug_loc" };
-            Section debug_abbrev   = { name: "__debug_abbrev" };
-            Section debug_info     = { name: "__debug_info" };
-            Section debug_str      = { name: "__debug_str" };
-        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
-        // for filenames and line numbers in backtraces.
-            Section debug_line     = { name: "__debug_line", flags: S_REGULAR };
-        }
-        else static if (ELFOBJ)
-        {
-            Section debug_pubnames = { name: ".debug_pubnames" };
-            Section debug_aranges  = { name: ".debug_aranges" };
-            Section debug_ranges   = { name: ".debug_ranges" };
-            Section debug_loc      = { name: ".debug_loc" };
-            Section debug_abbrev   = { name: ".debug_abbrev" };
-            Section debug_info     = { name: ".debug_info" };
-            Section debug_str      = { name: ".debug_str" };
-            Section debug_line     = { name: ".debug_line" };
-        }
-        else
-        {
-            Section debug_pubnames;
-            Section debug_aranges;
-            Section debug_ranges;
-            Section debug_loc;
-            Section debug_abbrev;
-            Section debug_info;
-            Section debug_str;
-            Section debug_line;
-        }
+        Section debug_pubnames;
+        Section debug_aranges;
+        Section debug_ranges;
+        Section debug_loc;
+        Section debug_abbrev;
+        Section debug_info;
+        Section debug_str;
+        Section debug_line;
+
         const(char*) debug_frame_name()
         {
             if (config.objfmt == OBJ_MACH)
@@ -575,6 +553,32 @@ static if (1)
         const ubyte opcode_base = 13;
 
         public uint[TYMAX] typidx_tab;
+    }
+
+    void machDebugSectionsInit()
+    {
+        debug_pubnames = Section("__debug_pubnames");
+        debug_aranges  = Section("__debug_aranges");
+        debug_ranges   = Section("__debug_ranges");
+        debug_loc      = Section("__debug_loc");
+        debug_abbrev   = Section("__debug_abbrev");
+        debug_info     = Section("__debug_info");
+        debug_str      = Section("__debug_str");
+        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
+        // for filenames and line numbers in backtraces.
+        debug_line     = Section("__debug_line");
+        debug_line.flags = S_REGULAR;
+    }
+    void elfDebugSectionsInit()
+    {
+        debug_pubnames = Section(".debug_pubnames");
+        debug_aranges  = Section(".debug_aranges");
+        debug_ranges   = Section(".debug_ranges");
+        debug_loc      = Section(".debug_loc");
+        debug_abbrev   = Section(".debug_abbrev");
+        debug_info     = Section(".debug_info");
+        debug_str      = Section(".debug_str");
+        debug_line     = Section(".debug_line");
     }
 
     /*****************************************

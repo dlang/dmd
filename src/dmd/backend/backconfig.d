@@ -21,6 +21,7 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.dwarfdbginf;
 extern (C++):
 
 nothrow:
@@ -353,6 +354,10 @@ if (SYMDEB_CODEVIEW)
         cod3_set32();
     }
 
+    if (config.objfmt == OBJ_MACH)
+        machDebugSectionsInit();
+    else if (config.objfmt == OBJ_ELF)
+        elfDebugSectionsInit();
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
 }
 }
