@@ -6,7 +6,6 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 fp_intermediate_values, Floating-Point Intermediate Values))
 
-
         $(P For floating-point operations and expression intermediate values,
         a greater precision can be used than the type of the
         expression.
@@ -20,20 +19,7 @@ $(H2 $(LNAME2 fp_intermediate_values, Floating-Point Intermediate Values))
 
         $(P It's possible that, due to greater use of temporaries and
         common subexpressions, optimized code may produce a more
-        accurate answer than unoptimized code.
-        )
-
-        $(P Algorithms should be written to work based on the minimum
-        precision of the calculation. They should not degrade or
-        fail if the actual precision is greater. Float or double types,
-        as opposed to the real (extended) type, should only be used for:
-        )
-
-        $(UL
-            $(LI reducing memory consumption for large arrays)
-            $(LI when speed is more important than accuracy)
-            $(LI data and function argument compatibility with C)
-        )
+        accurate answer than unoptimized code.)
 
 $(H2 $(LNAME2 fp_const_folding, Floating-Point Constant Folding))
 
