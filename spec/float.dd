@@ -25,7 +25,7 @@ $(H2 $(LNAME2 fp_const_folding, Floating-Point Constant Folding))
 
         $(P Regardless of the type of the operands, floating-point
         constant folding is done in $(D real) or greater precision.
-        It is always done following IEEE 754 rules and round-to-nearest
+        It is always done following $(LINK2 https://standards.ieee.org/standard/754-2019.html, IEEE-754) rules and round-to-nearest
         is used.)
 
         $(P Floating-point constants are internally represented in
