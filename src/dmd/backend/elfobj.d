@@ -3401,7 +3401,7 @@ private void obj_rtinit()
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
 
-    static if (TARGET_OPENBSD)
+    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
     {
         const namidx3 = ElfObj_addstr(symtab_strings,"__start_deh");
         deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
