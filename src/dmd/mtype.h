@@ -335,6 +335,7 @@ public:
     TypeNull *isTypeNull();
     TypeMixin *isTypeMixin();
     TypeTraits *isTypeTraits();
+    TypeNoreturn *isTypeNoreturn();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -884,6 +885,19 @@ public:
     bool isBoolean() /*const*/;
 
     d_uns64 size(const Loc &loc) /*const*/;
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeNoreturn final : public Type
+{
+public:
+    const char *kind();
+    TypeNoreturn *syntaxCopy();
+    MATCH implicitConvTo(Type* to);
+    bool isBoolean() /* const */;
+    d_uns64 size(const Loc& loc) /* const */;
+    unsigned alignsize();
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
