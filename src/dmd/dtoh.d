@@ -2351,7 +2351,7 @@ public:
         }
         else if (CTFloat.isInfinity(e.value))
         {
-            if (e.value < 0)
+            if (e.value < CTFloat.zero)
                 buf.writeByte('-');
             buf.writestring("INFINITY");
         }
