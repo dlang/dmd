@@ -222,7 +222,7 @@ if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
 if (config.exe == EX_DRAGONFLYBSD64)
 {
     if (model == 64)
-    {   config.exe = EX_DRAGONFLYBSD64;
+    {
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         config.fpxmmregs = true;
         config.avx = avx;
