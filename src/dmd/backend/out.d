@@ -1165,11 +1165,11 @@ version (SCPP)
             scvtbl = cast(SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
             n2_genvbtbl(stag,scvtbl,1);
-static if (SYMDEB_CODEVIEW)
-{
-            if (config.fulltypes == CV4)
-                cv4_struct(stag,2);
-}
+            if (config.exe & EX_windos)
+            {
+                if (config.fulltypes == CV4)
+                    cv4_struct(stag,2);
+            }
         }
     }
     }
