@@ -75,6 +75,7 @@ private Expression semanticLength(Scope* sc, Type t, Expression exp)
         sc = sc.push(sym);
         sc = sc.startCTFE();
         exp = exp.expressionSemantic(sc);
+        exp = resolveProperties(sc, exp);
         sc = sc.endCTFE();
         sc.pop();
     }
@@ -82,6 +83,7 @@ private Expression semanticLength(Scope* sc, Type t, Expression exp)
     {
         sc = sc.startCTFE();
         exp = exp.expressionSemantic(sc);
+        exp = resolveProperties(sc, exp);
         sc = sc.endCTFE();
     }
     return exp;
@@ -95,6 +97,7 @@ private Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression ex
     sc = sc.push(sym);
     sc = sc.startCTFE();
     exp = exp.expressionSemantic(sc);
+    exp = resolveProperties(sc, exp);
     sc = sc.endCTFE();
     sc.pop();
 
@@ -745,17 +748,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         Type tbn = tn.toBasetype();
         if (mtype.dim)
         {
-            //https://issues.dlang.org/show_bug.cgi?id=15478
-            if (mtype.dim.isDotVarExp())
-            {
-                if (Declaration vd = mtype.dim.isDotVarExp().var)
-                {
-                    FuncDeclaration fd = vd.toAlias().isFuncDeclaration();
-                    if (fd)
-                        mtype.dim = new CallExp(loc, fd, null);
-                }
-            }
-
             auto errors = global.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
             if (errors != global.errors)
@@ -908,12 +900,9 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             Dsymbol s;
             mtype.index.resolve(loc, sc, e, t, s);
 
-            //https://issues.dlang.org/show_bug.cgi?id=15478
+            // https://issues.dlang.org/show_bug.cgi?id=15478
             if (s)
-            {
-                if (FuncDeclaration fd = s.toAlias().isFuncDeclaration())
-                    e = new CallExp(loc, fd, null);
-            }
+                e = symbolToExp(s, loc, sc, false);
 
             if (e)
             {
