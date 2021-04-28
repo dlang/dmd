@@ -6,14 +6,6 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 fp_intermediate_values, Floating-Point Intermediate Values))
 
-        $(P On many computers, greater
-        precision operations do not take any longer than lesser
-        precision operations, so it makes numerical sense to use
-        the greatest precision available for internal temporaries.
-        The philosophy is not to dumb down the language to the lowest
-        common hardware denominator, but to enable the exploitation
-        of the best capabilities of target hardware.
-        )
 
         $(P For floating-point operations and expression intermediate values,
         a greater precision can be used than the type of the
