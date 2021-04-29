@@ -851,12 +851,8 @@ class TypeInfo_Pointer : TypeInfo
 
     override int compare(in void* p1, in void* p2) const
     {
-        if (*cast(void**)p1 < *cast(void**)p2)
-            return -1;
-        else if (*cast(void**)p1 > *cast(void**)p2)
-            return 1;
-        else
-            return 0;
+        const v1 = *cast(void**) p1, v2 = *cast(void**) p2;
+        return (v1 > v2) - (v1 < v2);
     }
 
     override @property size_t tsize() nothrow pure const

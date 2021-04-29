@@ -79,7 +79,7 @@ int __cmp(T)(scope const T[] lhs, scope const T[] rhs) @trusted
             else if (lhs.ptr[u] != rhs.ptr[u])
                 return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
         }
-        return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
+        return (lhs.length > rhs.length) - (lhs.length < rhs.length);
     }
 }
 
@@ -131,7 +131,7 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
                 return c;
         }
     }
-    return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    return (s1.length > s2.length) - (s1.length < s2.length);
 }
 
 // integral types

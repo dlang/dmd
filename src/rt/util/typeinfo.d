@@ -100,11 +100,7 @@ if (is(T == float) || is(T == double) || is(T == real))
             if (int c = Floating!T.compare(s1[u], s2[u]))
                 return c;
         }
-        if (s1.length < s2.length)
-            return -1;
-        else if (s1.length > s2.length)
-            return 1;
-        return 0;
+        return (s1.length > s2.length) - (s1.length < s2.length);
     }
 
     public alias hashOf = core.internal.hash.hashOf;
@@ -139,11 +135,7 @@ if (isComplex!T)
             if (int c = Floating!T.compare(s1[u], s2[u]))
                 return c;
         }
-        if (s1.length < s2.length)
-            return -1;
-        else if (s1.length > s2.length)
-            return 1;
-        return 0;
+        return (s1.length > s2.length) - (s1.length < s2.length);
     }
 
     size_t hashOf(scope const T[] val)

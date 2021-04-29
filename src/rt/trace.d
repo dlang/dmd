@@ -196,12 +196,7 @@ extern(C) int sympair_cmp(scope const void* e1, scope const void* e2) nothrow @n
 {
     auto count1 = (*cast(SymPair**)e1).count;
     auto count2 = (*cast(SymPair**)e2).count;
-
-    if (count1 < count2)
-        return -1;
-    else if (count1 > count2)
-        return 1;
-    return 0;
+    return (count1 > count2) - (count1 < count2);
 }
 
 //////////////////////////////////////

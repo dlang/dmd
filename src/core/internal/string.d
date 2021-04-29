@@ -255,5 +255,5 @@ int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
         if ( ret )
             return ret;
     }
-    return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    return (s1.length > s2.length) - (s1.length < s2.length);
 }
