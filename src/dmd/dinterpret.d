@@ -2090,6 +2090,7 @@ public:
                     e = v._init.initializerToExpression();
                 }
                 else
+                    // Zero-length arrays don't have an initializer
                     e = v.type.defaultInitLiteral(e.loc);
 
                 e = interpret(e, istate);
@@ -2102,17 +2103,23 @@ public:
             else
             {
                 e = hasValue(v) ? getValue(v) : null;
-                if (!e && !v.isCTFE() && v.isDataseg())
-                {
-                    error(loc, "static variable `%s` cannot be read at compile time", v.toChars());
-                    return CTFEExp.cantexp;
-                }
                 if (!e)
                 {
-                    assert(!(v._init && v._init.isVoidInitializer()));
-                    // CTFE initiated from inside a function
-                    error(loc, "variable `%s` cannot be read at compile time", v.toChars());
-                    return CTFEExp.cantexp;
+                    // Zero-length arrays don't have an initializer
+                    if (v.type.size() == 0)
+                        e = v.type.defaultInitLiteral(loc);
+                    else if (!v.isCTFE() && v.isDataseg())
+                    {
+                        error(loc, "static variable `%s` cannot be read at compile time", v.toChars());
+                        return CTFEExp.cantexp;
+                    }
+                    else
+                    {
+                        assert(!(v._init && v._init.isVoidInitializer()));
+                        // CTFE initiated from inside a function
+                        error(loc, "variable `%s` cannot be read at compile time", v.toChars());
+                        return CTFEExp.cantexp;
+                    }
                 }
                 if (auto vie = e.isVoidInitExp())
                 {
