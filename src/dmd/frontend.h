@@ -481,7 +481,6 @@ enum class TOK : uint8_t
     vectorArray = 234u,
     arrow = 235u,
     colonColon = 236u,
-    max_ = 237u,
 };
 
 class StringExp;
