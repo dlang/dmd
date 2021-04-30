@@ -8374,7 +8374,7 @@ void printTemplateStats()
             ss.ts.allInstances)
         {
             message(ss.td.loc,
-                    "vtemplate: %u (%u unique) instantiation(s) of template `%s` found, they are:",
+                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found, they are:",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
                     ss.td.toCharsNoConstraints());
@@ -8389,7 +8389,7 @@ void printTemplateStats()
         else
         {
             message(ss.td.loc,
-                    "vtemplate: %u (%u unique) instantiation(s) of template `%s` found",
+                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
                     ss.td.toCharsNoConstraints());

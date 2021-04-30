@@ -1,9 +1,9 @@
 /* REQUIRED_ARGS: -vtemplates
 TEST_OUTPUT:
 ---
-compilable/vtemplates.d(10): vtemplate: 4 (3 unique) instantiation(s) of template `foo(int I)()` found
-compilable/vtemplates.d(11): vtemplate: 5 (2 unique) instantiation(s) of template `goo1(int I)()` found
-compilable/vtemplates.d(12): vtemplate: 3 (2 unique) instantiation(s) of template `goo2(int I)()` found
+compilable/vtemplates.d(10): vtemplate: 4 (3 distinct) instantiation(s) of template `foo(int I)()` found
+compilable/vtemplates.d(11): vtemplate: 5 (2 distinct) instantiation(s) of template `goo1(int I)()` found
+compilable/vtemplates.d(12): vtemplate: 3 (2 distinct) instantiation(s) of template `goo2(int I)()` found
 ---
 */
 
