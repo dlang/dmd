@@ -49,7 +49,7 @@ private enum CARRAYDECL = 1;
  *
  * Used by hdrgen
  */
-immutable PREC[TOK.max_] precedence =
+immutable PREC[TOK.max + 1] precedence =
 [
     TOK.type : PREC.expr,
     TOK.error : PREC.expr,

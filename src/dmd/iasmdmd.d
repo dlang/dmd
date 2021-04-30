@@ -284,7 +284,7 @@ enum ADDFWAIT = false;
 alias ASMTK = int;
 enum
 {
-    ASMTKlocalsize = TOK.max_ + 1,
+    ASMTKlocalsize = TOK.max + 1,
     ASMTKdword,
     ASMTKeven,
     ASMTKfar,
@@ -294,7 +294,7 @@ enum
     ASMTKqword,
     ASMTKseg,
     ASMTKword,
-    ASMTKmax = ASMTKword-(TOK.max_+1)+1
+    ASMTKmax = ASMTKword - ASMTKlocalsize + 1
 }
 
 immutable char*[ASMTKmax] apszAsmtk =
@@ -3446,7 +3446,7 @@ void asm_token_trans(Token *tok)
             {
                 ASMTK asmtk = cast(ASMTK) binary(id.ptr, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
                 if (cast(int)asmtk >= 0)
-                    asmstate.tokValue = cast(TOK) (asmtk + TOK.max_ + 1);
+                    asmstate.tokValue = cast(TOK) (asmtk + ASMTKlocalsize);
             }
         }
     }

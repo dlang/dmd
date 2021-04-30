@@ -289,8 +289,6 @@ enum TOK : ubyte
 
     arrow,      // ->
     colonColon, // ::
-
-    max_,
 }
 
 // Assert that all token enum members have consecutive values and
@@ -464,7 +462,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private static immutable string[TOK.max_] tochars =
+    extern (D) private static immutable string[TOK.max + 1] tochars =
     [
         // Keywords
         TOK.this_: "this",
