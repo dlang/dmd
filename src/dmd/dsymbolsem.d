@@ -5167,7 +5167,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Treat the remaining entries in baseclasses as interfaces
             // Check for errors, handle forward references
-            bool multiClassError = false;
+            int multiClassError = cldec.baseClass is null ? 0 : 1;
 
             BCLoop:
             for (size_t i = (cldec.baseClass ? 1 : 0); i < cldec.baseclasses.dim;)
@@ -5180,19 +5180,26 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // It's a class
                     if (tc)
                     {
-                        if (!multiClassError)
+                        if (multiClassError == 0)
                         {
-                            error(cldec.loc,"`%s`: multiple class inheritance is not supported." ~
-                                  " Use multiple interface inheritance and/or composition.", cldec.toPrettyChars());
-                            multiClassError = true;
+                            error(cldec.loc,"`%s`: base class must be specified first, " ~
+                                  "before any interfaces.", cldec.toPrettyChars());
+                            multiClassError += 1;
                         }
+                        else if (multiClassError >= 1)
+                        {
+                                if(multiClassError == 1)
+                                    error(cldec.loc,"`%s`: multiple class inheritance is not supported." ~
+                                          " Use multiple interface inheritance and/or composition.", cldec.toPrettyChars());
+                                multiClassError += 1;
 
-                        if (tc.sym.fields.dim)
-                            errorSupplemental(cldec.loc,"`%s` has fields, consider making it a member of `%s`",
-                                              b.type.toChars(), cldec.type.toChars());
-                        else
-                            errorSupplemental(cldec.loc,"`%s` has no fields, consider making it an `interface`",
-                                              b.type.toChars());
+                                if (tc.sym.fields.dim)
+                                    errorSupplemental(cldec.loc,"`%s` has fields, consider making it a member of `%s`",
+                                                      b.type.toChars(), cldec.type.toChars());
+                                else
+                                    errorSupplemental(cldec.loc,"`%s` has no fields, consider making it an `interface`",
+                                                      b.type.toChars());
+                        }
                     }
                     // It's something else: e.g. `int` in `class Foo : Bar, int { ... }`
                     else if (b.type != Type.terror)
