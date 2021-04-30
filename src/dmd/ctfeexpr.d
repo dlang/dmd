@@ -453,7 +453,7 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         return ue;
     }
     // If it is a cast to inout, retain the original type of the referenced part.
-    if (type.hasWild() && type.hasPointers())
+    if (type.hasWild())
     {
         emplaceExp!(UnionExp)(&ue, lit);
         ue.exp().type = type;
