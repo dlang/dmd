@@ -87,7 +87,7 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
                 // @@@DEPRECATED@@@
                 // Old parser allowed omitting parentheses around the expression.
                 // Deprecated in 2.091. Can be made permanent error after 2.100
-                if (p.token.value != TOK.leftParentheses)
+                if (p.token.value != TOK.leftParenthesis)
                 {
                     arg = p.parseAssignExp();
                     deprecation(arg.loc, "`%s` must be surrounded by parentheses", arg.toChars());
@@ -95,11 +95,11 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
                 else
                 {
                     // Look for the opening `(`
-                    p.check(TOK.leftParentheses);
+                    p.check(TOK.leftParenthesis);
                     // Parse the assign expression
                     arg = p.parseAssignExp();
                     // Look for the closing `)`
-                    p.check(TOK.rightParentheses);
+                    p.check(TOK.rightParenthesis);
                 }
 
                 if (!s.args)

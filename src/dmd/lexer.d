@@ -978,11 +978,11 @@ class Lexer
                 return;
             case '(':
                 p++;
-                t.value = TOK.leftParentheses;
+                t.value = TOK.leftParenthesis;
                 return;
             case ')':
                 p++;
-                t.value = TOK.rightParentheses;
+                t.value = TOK.rightParenthesis;
                 return;
             case '[':
                 p++;
@@ -1131,10 +1131,10 @@ class Lexer
             //tk.print();
             switch (tk.value)
             {
-            case TOK.leftParentheses:
+            case TOK.leftParenthesis:
                 parens++;
                 continue;
-            case TOK.rightParentheses:
+            case TOK.rightParenthesis:
                 --parens;
                 if (parens)
                     continue;
