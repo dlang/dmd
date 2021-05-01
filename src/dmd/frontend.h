@@ -245,8 +245,8 @@ class StaticIfCondition;
 enum class TOK : uint8_t
 {
     reserved = 0u,
-    leftParentheses = 1u,
-    rightParentheses = 2u,
+    leftParenthesis = 1u,
+    rightParenthesis = 2u,
     leftBracket = 3u,
     rightBracket = 4u,
     leftCurly = 5u,

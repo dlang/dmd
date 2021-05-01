@@ -748,8 +748,8 @@ public:
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
                 t.value != TOK.leftBracket && t.next.value != TOK.leftBracket &&
                                           t.next.value != TOK.rightBracket &&
-                t.value != TOK.leftParentheses   && t.next.value != TOK.leftParentheses   &&
-                                          t.next.value != TOK.rightParentheses   &&
+                t.value != TOK.leftParenthesis   && t.next.value != TOK.leftParenthesis   &&
+                                          t.next.value != TOK.rightParenthesis   &&
                 t.value != TOK.dot      && t.next.value != TOK.dot)
             {
                 buf.writeByte(' ');

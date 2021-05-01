@@ -4231,7 +4231,7 @@ void asm_una_exp(ref OPND o1)
 
 version (none)
 {
-        case TOK.leftParentheses:
+        case TOK.leftParenthesis:
             // stoken() is called directly here because we really
             // want the INT token to be an INT.
             stoken();
@@ -4243,7 +4243,7 @@ version (none)
                 fixdeclar(ptype);/* fix declarator               */
                 type_free(ptypeSpec);/* the declar() function
                                     allocates the typespec again */
-                chktok(TOK.rightParentheses,"`)` expected instead of `%s`");
+                chktok(TOK.rightParenthesis,"`)` expected instead of `%s`");
                 ptype.Tcount--;
                 goto CAST_REF;
             }
@@ -4251,7 +4251,7 @@ version (none)
             {
                 type_free(ptypeSpec);
                 asm_cond_exp(o1);
-                chktok(TOK.rightParentheses, "`)` expected instead of `%s`");
+                chktok(TOK.rightParenthesis, "`)` expected instead of `%s`");
             }
             break;
 }
@@ -4394,7 +4394,7 @@ void asm_primary_exp(out OPND o1)
                      asm_is_fpreg(asmstate.tok.ident.toString()))
             {
                 asm_token();
-                if (asmstate.tokValue == TOK.leftParentheses)
+                if (asmstate.tokValue == TOK.leftParenthesis)
                 {
                     asm_token();
                     if (asmstate.tokValue == TOK.int32Literal)
@@ -4406,7 +4406,7 @@ void asm_primary_exp(out OPND o1)
                             o1.base = &(aregFp[n]);
                     }
                     asm_chktok(TOK.int32Literal, "integer expected");
-                    asm_chktok(TOK.rightParentheses, "`)` expected instead of `%s`");
+                    asm_chktok(TOK.rightParenthesis, "`)` expected instead of `%s`");
                 }
                 else
                     o1.base = &regFp;

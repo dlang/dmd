@@ -28,8 +28,8 @@ enum TOK : ubyte
     reserved,
 
     // Other
-    leftParentheses,
-    rightParentheses,
+    leftParenthesis,
+    rightParenthesis,
     leftBracket,
     rightBracket,
     leftCurly,
@@ -580,8 +580,8 @@ extern (C++) struct Token
         TOK.endOfFile: "End of File",
         TOK.leftCurly: "{",
         TOK.rightCurly: "}",
-        TOK.leftParentheses: "(",
-        TOK.rightParentheses: ")",
+        TOK.leftParenthesis: "(",
+        TOK.rightParenthesis: ")",
         TOK.leftBracket: "[",
         TOK.rightBracket: "]",
         TOK.semicolon: ";",

@@ -256,8 +256,8 @@ immutable struct Test
 }
 
 enum Test[string] tests = [
-    "leftParentheses" : Test("left parentheses", "("),
-    "rightParentheses" : Test("right parentheses", ")"),
+    "leftParenthesis" : Test("left parenthesis", "("),
+    "rightParenthesis" : Test("right parenthesis", ")"),
     "leftBracket" : Test("left square bracket", "["),
     "rightBracket" : Test("right square bracket", "]"),
     "leftCurly" : Test("left curly brace", "{"),
