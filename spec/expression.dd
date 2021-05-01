@@ -901,9 +901,6 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 $(GRAMMAR
 $(GNAME NewExpression):
     $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type)
-    $(GLINK NewExpressionWithArgs)
-
-$(GNAME NewExpressionWithArgs):
     $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
     $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
@@ -1372,7 +1369,7 @@ $(GNAME PrimaryExpression):
     $(GLINK AssertExpression)
     $(GLINK MixinExpression)
     $(GLINK ImportExpression)
-    $(GLINK NewExpressionWithArgs)
+    $(GLINK NewExpression)
     $(GLINK2 declaration, FundamentalType) $(D .) $(IDENTIFIER)
     $(GLINK2 declaration, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
