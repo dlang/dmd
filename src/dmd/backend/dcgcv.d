@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -12,13 +12,10 @@
 
 module dmd.backend.dcgcv;
 
-version (Windows)
-{
 version (SCPP)
     version = COMPILE;
 version (MARS)
     version = COMPILE;
-}
 
 version (COMPILE)
 {
@@ -40,6 +37,7 @@ import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -59,9 +57,11 @@ version (MARS)
 extern (C++):
 
 nothrow:
+@safe:
 
 enum SYMDEB_TDB = false;
 
+@trusted
 extern (C) void TOOFFSET(void* p, targ_size_t value)
 {
     switch (_tysize[TYnptr])
@@ -76,7 +76,7 @@ extern (C) void TOOFFSET(void* p, targ_size_t value)
 
 extern __gshared char* ftdbname;
 
-// Convert from SFL protections to CV4 protections
+// Convert from SFL visibilities to CV4 protections
 uint SFLtoATTR(uint sfl) { return 4 - ((sfl & SFLpmask) >> 5); }
 
 __gshared
@@ -86,13 +86,14 @@ __gshared
 private Barray!(debtyp_t*) debtyp;
 
 private vec_t debtypvec;     // vector of used entries
-enum DEBTYPVECDIM = 16001;   //8009 //3001     // dimension of debtypvec (should be prime)
+enum DEBTYPVECDIM = 16_001;   //8009 //3001     // dimension of debtypvec (should be prime)
 
 enum DEBTYPHASHDIM = 1009;
 private uint[DEBTYPHASHDIM] debtyphash;
 
 private Outbuffer *reset_symbuf; // Keep pointers to reset symbols
 
+@trusted
 idx_t DEB_NULL() { return cgcv.deb_offset; }        // index of null debug type record
 
 /* This limitation is because of 4K page sizes
@@ -126,6 +127,7 @@ else
  * Return number of bytes consumed in OBJ file by a name.
  */
 
+@trusted
 int cv_stringbytes(const(char)* name)
 {
     int len = cast(int)strlen(name);
@@ -142,6 +144,7 @@ int cv_stringbytes(const(char)* name)
  *      number of bytes consumed
  */
 
+@trusted
 int cv_namestring(ubyte *p, const(char)* name, int length = -1)
 {
     size_t len = (length >= 0) ? length : strlen(name);
@@ -184,6 +187,7 @@ int cv_namestring(ubyte *p, const(char)* name, int length = -1)
  *      16..23  dword registers
  */
 
+@trusted
 private int cv_regnum(Symbol *s)
 {
     uint reg = s.Sreglsw;
@@ -231,7 +235,7 @@ static if (0)
 /***********************************
  * Allocate a debtyp_t.
  */
-
+@trusted
 debtyp_t * debtyp_alloc(uint length)
 {
     debtyp_t *d;
@@ -270,6 +274,7 @@ else
  * Free a debtyp_t.
  */
 
+@trusted
 private void debtyp_free(debtyp_t *d)
 {
     //printf("debtyp_free(length = %d, %p)\n", d.length, d);
@@ -314,6 +319,7 @@ void debtyp_check(debtyp_t* d) { }
  *      index in debtyp[]
  */
 
+@trusted
 idx_t cv_debtyp(debtyp_t *d)
 {
     ushort length;
@@ -415,6 +421,7 @@ static if (0)
     return cast(uint)debtyp.length - 1 + cgcv.deb_offset;
 }
 
+@trusted
 idx_t cv_numdebtypes()
 {
     return cast(idx_t)debtyp.length;
@@ -424,6 +431,7 @@ idx_t cv_numdebtypes()
  * Store a null record at DEB_NULL.
  */
 
+@trusted
 void cv_init()
 {   debtyp_t *d;
 
@@ -639,6 +647,7 @@ uint cv4_numericbytes(uint value)
  * Must use exact same number of bytes as cv4_numericbytes().
  */
 
+@trusted
 void cv4_storenumeric(ubyte *p, uint value)
 {
     if (value < 0x8000)
@@ -680,6 +689,7 @@ uint cv4_signednumericbytes(int value)
  *   p = address where to store value
  *   value = value to store
  */
+@trusted
 void cv4_storesignednumeric(ubyte *p, int value)
 {
     if (value >= 0 && value < 0x8000)
@@ -700,6 +710,7 @@ void cv4_storesignednumeric(ubyte *p, int value)
  * Generate a type index for a parameter list.
  */
 
+@trusted
 idx_t cv4_arglist(type *t,uint *pnparam)
 {   uint u;
     uint nparam;
@@ -890,6 +901,7 @@ private const(char)* cv4_prettyident(Symbol *s)
  *          3   no longer have a key function for class s
  */
 
+@trusted
 idx_t cv4_struct(Classsym *s,int flags)
 {   targ_size_t size;
     debtyp_t* d,dt;
@@ -1610,7 +1622,7 @@ version (SCPP)
 
 version (SCPP)
 {
-
+@trusted
 private uint cv4_enum(Symbol *s)
 {
     debtyp_t* d,dt;
@@ -1740,6 +1752,7 @@ static if (SYMDEB_TDB)
 }
 else
 {
+@trusted
 private uint cv4_fwdenum(type* t)
 {
     Symbol* s = t.Ttag;
@@ -1821,6 +1834,7 @@ private uint cv4_symtypidx(Symbol *s)
 version (SCPP)
 {
 
+@trusted
 private uint cv4_symtypidx(Symbol *s)
 {   type *t;
     debtyp_t *d;
@@ -1895,6 +1909,7 @@ private uint cv4_symtypidx(Symbol *s)
  * Return CV4 type index for a type.
  */
 
+@trusted
 uint cv4_typidx(type *t)
 {   uint typidx;
     uint u;
@@ -1938,6 +1953,7 @@ L1:
             break;
 
         case TYvoid:
+        case TYnoreturn:
         case TYchar:
         case TYschar:
         case TYuchar:
@@ -2431,6 +2447,7 @@ version (MARS)
  * Write out symbol s.
  */
 
+@trusted
 private void cv4_outsym(Symbol *s)
 {
     uint len;
@@ -2762,6 +2779,7 @@ Lret:
  * Write out any deferred symbols.
  */
 
+@trusted
 private void cv_outlist()
 {
     while (cgcv.list)
@@ -2772,9 +2790,9 @@ private void cv_outlist()
  * Write out symbol table for current function.
  */
 
-private void cv4_func(Funcsym *s)
+@trusted
+private void cv4_func(Funcsym *s, ref symtab_t symtab)
 {
-    SYMIDX si;
     int endarg;
 
     cv4_outsym(s);              // put out function symbol
@@ -2830,17 +2848,14 @@ version (MARS)
         }
     }
 
-    varStats_writeSymbolTable(&globsym, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
+    varStats_writeSymbolTable(symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
 }
 else
 {
-    symtab_t* symtab = &globsym;
-
     // Put out local symbols
     endarg = 0;
-    for (si = 0; si < symtab.top; si++)
-    {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
-        Symbol *sa = symtab.tab[si];
+    foreach (sa; symtab[])
+    {   //printf("symtab[%d] = %p\n",si,symtab[si]);
         cv4_outsym(sa);
     }
 }
@@ -3027,6 +3042,7 @@ else
  * Write out data to .OBJ file.
  */
 
+@trusted
 void cv_term()
 {
     //printf("cv_term(): debtyp.length = %d\n",debtyp.length);
@@ -3113,8 +3129,7 @@ else
  * Write out symbol table for current function.
  */
 
-static if (TARGET_WINDOS)
-{
+@trusted
 void cv_func(Funcsym *s)
 {
 version (SCPP)
@@ -3139,21 +3154,19 @@ else
         case CV4:
         case CVSYM:
         case CVTDB:
-            cv4_func(s);
+            cv4_func(s, globsym);
             break;
 
         default:
             assert(0);
     }
 }
-}
 
 /******************************************
  * Write out symbol table for current function.
  */
 
-static if (TARGET_WINDOS)
-{
+@trusted
 void cv_outsym(Symbol *s)
 {
     //printf("cv_outsym('%s')\n",s.Sident.ptr);
@@ -3182,12 +3195,12 @@ version (MARS)
             assert(0);
     }
 }
-}
 
 /******************************************
  * Return cv type index for a type.
  */
 
+@trusted
 uint cv_typidx(type *t)
 {   uint ti;
 

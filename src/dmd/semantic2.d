@@ -1,7 +1,7 @@
 /**
  * Performs the semantic2 stage, which deals with initializer expressions.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic2.d, _semantic2.d)
@@ -350,27 +350,34 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(FuncDeclaration fd)
     {
-        import dmd.dmangle : mangleToFuncSignature;
-
         if (fd.semanticRun >= PASS.semantic2done)
             return;
+
+        if (fd.semanticRun < PASS.semanticdone && !fd.errors)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=21614
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            fd.dsymbolSemantic(sc);
+        }
         assert(fd.semanticRun <= PASS.semantic2);
         fd.semanticRun = PASS.semantic2;
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
 
-        // https://issues.dlang.org/show_bug.cgi?id=18385
-        // Disable for 2.079, s.t. a deprecation cycle can be started with 2.080
-        if (0)
-        if (fd.overnext && !fd.errors)
+        // Only check valid functions which have a body to avoid errors
+        // for multiple declarations, e.g.
+        // void foo();
+        // void foo();
+        if (fd.fbody && fd.overnext && !fd.errors)
         {
-            OutBuffer buf1;
-            OutBuffer buf2;
-
             // Always starts the lookup from 'this', because the conflicts with
             // previous overloads are already reported.
-            auto f1 = fd;
-            mangleToFuncSignature(buf1, f1);
+            alias f1 = fd;
+            auto tf1 = cast(TypeFunction) f1.type;
+            auto parent1 = f1.toParent2();
 
             overloadApply(f1, (Dsymbol s)
             {
@@ -379,7 +386,21 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
 
                 // Don't have to check conflict between declaration and definition.
-                if ((f1.fbody !is null) != (f2.fbody !is null))
+                if (f2.fbody is null)
+                    return 0;
+
+                // Functions with different manglings can never conflict
+                if (f1.linkage != f2.linkage)
+                    return 0;
+
+                // Functions with different names never conflict
+                // (they can form overloads sets introduced by an alias)
+                if (f1.ident != f2.ident)
+                    return 0;
+
+                // Functions with different parents never conflict
+                // (E.g. when aliasing a free function into a struct)
+                if (parent1 != f2.toParent2())
                     return 0;
 
                 /* Check for overload merging with base class member functions.
@@ -393,56 +414,44 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (f1.overrides(f2))
                     return 0;
 
-                // extern (C) functions always conflict each other.
-                if (f1.ident == f2.ident &&
-                    f1.toParent2() == f2.toParent2() &&
-                    (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
-                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp))
-                {
-                    /* Allow the hack that is actually used in druntime,
-                     * to ignore function attributes for extern (C) functions.
-                     * TODO: Must be reconsidered in the future.
-                     *  BUG: https://issues.dlang.org/show_bug.cgi?id=18206
-                     *
-                     *  extern(C):
-                     *  alias sigfn_t  = void function(int);
-                     *  alias sigfn_t2 = void function(int) nothrow @nogc;
-                     *  sigfn_t  bsd_signal(int sig, sigfn_t  func);
-                     *  sigfn_t2 bsd_signal(int sig, sigfn_t2 func) nothrow @nogc;  // no error
-                     */
-                    if (f1.fbody is null || f2.fbody is null)
-                        return 0;
+                auto tf2 = cast(TypeFunction) f2.type;
 
-                    auto tf2 = cast(TypeFunction)f2.type;
-                    error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
-                            f2.kind(),
-                            f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList),
-                            (f1.linkage == f2.linkage ? "another " : "").ptr,
-                            linkageToChars(f1.linkage), f1.loc.toChars());
-                    f2.type = Type.terror;
-                    f2.errors = true;
+                // Overloading based on storage classes
+                if (tf1.mod != tf2.mod || ((f1.storage_class ^ f2.storage_class) & STC.static_))
+                    return 0;
+
+                const sameAttr = tf1.attributesEqual(tf2);
+                const sameParams = tf1.parameterList == tf2.parameterList;
+
+                // Allow the hack to declare overloads with different parameters/STC's
+                // @@@DEPRECATED_2.094@@@
+                // Deprecated in 2020-08, make this an error in 2.104
+                if (parent1.isModule() &&
+                    f1.linkage != LINK.d && f1.linkage != LINK.cpp &&
+                    (!sameAttr || !sameParams)
+                )
+                {
+                    f2.deprecation("cannot overload `extern(%s)` function at %s",
+                            linkageToChars(f1.linkage),
+                            f1.loc.toChars());
                     return 0;
                 }
 
-                buf2.reset();
-                mangleToFuncSignature(buf2, f2);
+                // Different parameters don't conflict in extern(C++/D)
+                if (!sameParams)
+                    return 0;
 
-                auto s1 = buf1.peekChars();
-                auto s2 = buf2.peekChars();
+                // Different attributes don't conflict in extern(D)
+                if (!sameAttr && f1.linkage == LINK.d)
+                    return 0;
 
-                //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
-                if (strcmp(s1, s2) == 0)
-                {
-                    auto tf2 = cast(TypeFunction)f2.type;
-                    error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
-                            f2.kind(),
-                            f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList),
-                            f1.loc.toChars());
-                    f2.type = Type.terror;
-                    f2.errors = true;
-                }
+                error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
+                        f2.kind(),
+                        f2.toPrettyChars(),
+                        parametersTypeToChars(tf2.parameterList),
+                        f1.loc.toChars());
+                f2.type = Type.terror;
+                f2.errors = true;
                 return 0;
             });
         }
@@ -609,6 +618,66 @@ private extern(C++) final class Semantic2Visitor : Visitor
         }
 
         sc2.pop();
+    }
+
+    override void visit(ClassDeclaration cd)
+    {
+        /// Checks that the given class implements all methods of its interfaces.
+        static void checkInterfaceImplementations(ClassDeclaration cd)
+        {
+            foreach (base; cd.interfaces)
+            {
+                // first entry is ClassInfo reference
+                auto methods = base.sym.vtbl[base.sym.vtblOffset .. $];
+
+                foreach (m; methods)
+                {
+                    auto ifd = m.isFuncDeclaration;
+                    assert(ifd);
+
+                    if (ifd.objc.isOptional)
+                        continue;
+
+                    auto type = ifd.type.toTypeFunction();
+                    auto fd = cd.findFunc(ifd.ident, type);
+
+                    if (fd && !fd.isAbstract)
+                    {
+                        //printf("            found\n");
+                        // Check that calling conventions match
+                        if (fd.linkage != ifd.linkage)
+                            fd.error("linkage doesn't match interface function");
+
+                        // Check that it is current
+                        //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
+                            //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
+                        if (fd.toParent() != cd && ifd.toParent() == base.sym)
+                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                    }
+
+                    else
+                    {
+                        //printf("            not found %p\n", fd);
+                        // BUG: should mark this class as abstract?
+                        if (!cd.isAbstract())
+                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                    }
+                }
+            }
+        }
+
+        if (cd.semanticRun >= PASS.semantic2done)
+            return;
+        assert(cd.semanticRun <= PASS.semantic2);
+        cd.semanticRun = PASS.semantic2;
+
+        checkInterfaceImplementations(cd);
+        visit(cast(AggregateDeclaration) cd);
+    }
+
+    override void visit(InterfaceDeclaration cd)
+    {
+        visit(cast(AggregateDeclaration) cd);
     }
 }
 

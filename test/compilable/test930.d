@@ -1,10 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=930
-
-/*
-TEST_OUTPUT:
----
----
-*/
 template ATemplate(T)
 {
    template ATemplate()

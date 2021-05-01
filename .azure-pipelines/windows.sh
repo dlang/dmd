@@ -4,9 +4,7 @@ set -eux -o pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-. "$DIR"/lib.sh
-
-GNU_MAKE="$(which make)"
+. "$DIR/lib.sh"
 
 ################################################################################
 # Setup required tools
@@ -22,21 +20,21 @@ if [ "$HOST_DMD_VERSION" == "LATEST" ]; then
 fi
 echo "D_VERSION: $HOST_DMD_VERSION"
 echo "VSINSTALLDIR: $VSINSTALLDIR"
-echo "GNU_MAKE: $("${GNU_MAKE}" --version)"
 echo "GREP_VERSION: $(grep --version)"
 
 ################################################################################
-# Prepare C compiler
+# Prepare DigitalMars make and C compiler
 ################################################################################
 
+install_host_dmc
+DM_MAKE="$PWD/dm/bin/make.exe"
+
 if [ "$MODEL" == "32" ] ; then
-    install_host_dmc
-    export CC="$PWD/dm/bin/dmc.exe"
-    export AR="$PWD/dm/bin/lib.exe"
+    CC="$PWD/dm/bin/dmc.exe"
+    AR="$PWD/dm/bin/lib.exe"
 else
-    export CC="$(where cl.exe)"
-    export AR="$(where lib.exe)" # must be done before installing dmd
-    export MSVC_AR="$AR"         # for msvc-lib
+    CC="$(where cl.exe)"
+    AR="$(where lib.exe)" # must be done before installing dmd
 fi
 
 ################################################################################
@@ -73,66 +71,107 @@ else
 fi
 
 ################################################################################
-# Build DMD
+# Build DMD (incl. building and running the unittests)
 ################################################################################
 
-DMD_BIN_PATH="$DMD_DIR/generated/windows/release/${MODEL}/dmd"
+DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
 
-cd "${DMD_DIR}/src"
-"${DM_MAKE}" -f "${MAKE_FILE}" reldmd DMD="$DMD_BIN_PATH"
-
-################################################################################
-# WORKAROUND: Build zlib separately with DigitalMars make
-# REASON: whitespace path variables in DigitalMars make from indirect invocation from Phobos
-################################################################################
-
-if [ "$MODEL" != "32" ] ; then
-    cd "${DMD_DIR}/../phobos/etc/c/zlib"
-    ${DM_MAKE} -f win64.mak MODEL=${MODEL} "zlib${MODEL}.lib" "CC=$CC" "LIB=$AR" VCDIR=.
-fi
+cd "$DMD_DIR/src"
+"$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest
+DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" reldmd-asserts
 
 ################################################################################
 # Build Druntime and Phobos
 ################################################################################
 
-for proj in druntime phobos; do
-    cd "${DMD_DIR}/../${proj}"
-    "${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=.
-done
+LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
 
-################################################################################
-# Run druntime tests
-################################################################################
-cd "${DMD_DIR}/../druntime"
-"${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=. unittest test_all
+for proj in druntime phobos; do
+    cd "$DMD_DIR/../$proj"
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
+done
 
 ################################################################################
 # Run DMD testsuite
 ################################################################################
-cd "${DMD_DIR}/test"
+
+cd "$DMD_DIR/test"
+
+# build run.d testrunner and its tools while host compiler is untampered
+cd ../test
+"$HOST_DC" -m$MODEL -g -i run.d
+./run tools
+
+# Rebuild dmd with ENABLE_COVERAGE for coverage tests
+if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
+
+    # Recompile debug dmd + unittests
+    rm -rf "$DMD_DIR/generated/windows"
+    DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
+    DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
+fi
 
 if [ "$MODEL" == "32" ] ; then
     # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
     # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and
-    # `-conf=` for DMD apparently doesn't prevent that).
-    # There's apparently no sane way to specify a libdir for Optlink in the DMD
-    # cmdline, so remove the sc.ini file and set the DFLAGS and LIB env variables
-    # manually for the host compiler. These 2 variables are adapted for the
-    # actual tests with the tested compiler (by run.d).
-    HOST_DMD_DIR="$(cygpath -w "$DMD_DIR/tools/dmd2")"
-    rm "$HOST_DMD_DIR/windows/bin/sc.ini"
-    export DFLAGS="-I$HOST_DMD_DIR/src/phobos -I$HOST_DMD_DIR/src/druntime/import"
-    export LIB="$HOST_DMD_DIR/windows/lib"
+    # `-conf=` for DMD apparently doesn't prevent that, and there's apparently
+    # no sane way to specify a libdir for Optlink in the DMD cmdline).
+    rm "$DMD_DIR/tools/dmd2/windows/bin/sc.ini"
 fi
 
-"$HOST_DC" -m$MODEL -g -i run.d
-./run --environment --jobs=$N all ARGS="-O -inline -g" MODEL="$MODEL"
+targets=("all")
+args=('ARGS=-O -inline -g') # no -release for faster builds
+if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
+    # skip runnable_cxx and unit_tests with older bootstrap compilers
+    targets=("runnable" "compilable" "fail_compilation" "dshell")
+    args=() # use default set of args
+fi
+CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
+
+###############################################################################
+# Upload coverage reports and exit if ENABLE_COVERAGE is specified
+################################################################################
+
+if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
+    cd $DMD_DIR
+    # CodeCov gets confused by lst files which it can't match
+    rm -rf test/runnable/extra-files test/*.lst
+    download "https://codecov.io/bash" "codecov.sh"
+    bash ./codecov.sh -p . -Z
+    rm codecov.sh
+
+    # Skip druntime & phobos tests
+    exit 0
+fi
+
+################################################################################
+# Build and run druntime tests
+################################################################################
+
+cd "$DMD_DIR/../druntime"
+"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
+
+################################################################################
+# Build and run Phobos unittests
+################################################################################
+
+if [ "$MODEL" = "32" ] ; then
+    echo "FIXME: cannot compile 32-bit OMF Phobos unittests ('more than 32767 symbols in object file')"
+else
+    cd "$DMD_DIR/../phobos"
+    if [ "$MODEL" = "64" ] ; then
+        cp "$DMD_DIR/tools/dmd2/windows/bin64/libcurl.dll" .
+    else
+        cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
+    fi
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest
+fi
 
 ################################################################################
 # Prepare artifacts
 ################################################################################
 
-mkdir -p "${DMD_DIR}/artifacts"
-cd "${DMD_DIR}/artifacts"
-cp "${DMD_DIR}/../phobos/$LIBNAME" .
-cp "${DMD_BIN_PATH}" .
+mkdir -p "$DMD_DIR/artifacts"
+cd "$DMD_DIR/artifacts"
+cp "$DMD_DIR/../phobos/$LIBNAME" .
+cp "$DMD_BIN_PATH" .

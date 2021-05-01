@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -68,18 +68,19 @@ public:
     bool isstatic;              // this is static template declaration
     bool isTrivialAliasSeq;     // matches `template AliasSeq(T...) { alias AliasSeq = T; }
     bool isTrivialAlias;        // matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
-    Prot protection;
+    bool deprecated_;           // this template declaration is deprecated
+    Visibility visibility;
     int inuse;                  // for recursive expansion detection
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    TemplateDeclaration *syntaxCopy(Dsymbol *);
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind() const;
     const char *toChars() const;
 
-    Prot prot();
+    Visibility visible();
 
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
@@ -87,6 +88,7 @@ public:
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
+    bool isDeprecated() const;
     bool isOverloadable() const;
 
     void accept(Visitor *v) { v->visit(this); }
@@ -148,7 +150,7 @@ public:
     Type *defaultType;
 
     TemplateTypeParameter *isTemplateTypeParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateTypeParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -165,7 +167,7 @@ class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
     TemplateThisParameter *isTemplateThisParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateThisParameter *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -180,7 +182,7 @@ public:
     Expression *defaultValue;
 
     TemplateValueParameter *isTemplateValueParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateValueParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -201,7 +203,7 @@ public:
     RootObject *defaultAlias;
 
     TemplateAliasParameter *isTemplateAliasParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateAliasParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -218,7 +220,7 @@ class TemplateTupleParameter : public TemplateParameter
 {
 public:
     TemplateTupleParameter *isTemplateTupleParameter();
-    TemplateParameter *syntaxCopy();
+    TemplateTupleParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -273,13 +275,12 @@ private:
 public:
     unsigned char inuse;                 // for recursive expansion detection
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    TemplateInstance *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     const char *toChars() const;
     const char* toPrettyCharsHelper();
-    void printInstantiationTrace();
     Identifier *getIdent();
     hash_t toHash();
 
@@ -294,7 +295,7 @@ class TemplateMixin : public TemplateInstance
 public:
     TypeQualified *tqual;
 
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    TemplateMixin *syntaxCopy(Dsymbol *s);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     bool hasPointers();

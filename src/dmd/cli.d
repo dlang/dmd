@@ -5,7 +5,7 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
@@ -14,16 +14,27 @@
  */
 module dmd.cli;
 
+/* The enum TargetOS is an exact copy of the one in dmd.globals.
+ * Duplicated here because this file is stand-alone.
+ */
+
 /// Bit decoding of the TargetOS
-enum TargetOS
+enum TargetOS : ubyte
 {
-    all = int.max,
-    linux = 1,
-    windows = 2,
-    macOS = 4,
-    freeBSD = 8,
-    solaris = 16,
-    dragonFlyBSD = 32,
+    /* These are mutually exclusive; one and only one is set.
+     * Match spelling and casing of corresponding version identifiers
+     */
+    linux        = 1,
+    Windows      = 2,
+    OSX          = 4,
+    OpenBSD      = 8,
+    FreeBSD      = 0x10,
+    Solaris      = 0x20,
+    DragonFlyBSD = 0x40,
+
+    // Combination masks
+    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
 }
 
 // Detect the current TargetOS
@@ -33,23 +44,27 @@ version (linux)
 }
 else version(Windows)
 {
-    private enum targetOS = TargetOS.windows;
+    private enum targetOS = TargetOS.Windows;
 }
 else version(OSX)
 {
-    private enum targetOS = TargetOS.macOS;
+    private enum targetOS = TargetOS.OSX;
+}
+else version(OpenBSD)
+{
+    private enum targetOS = TargetOS.OpenBSD;
 }
 else version(FreeBSD)
 {
-    private enum targetOS = TargetOS.freeBSD;
+    private enum targetOS = TargetOS.FreeBSD;
 }
 else version(DragonFlyBSD)
 {
-    private enum targetOS = TargetOS.dragonFlyBSD;
+    private enum targetOS = TargetOS.DragonFlyBSD;
 }
 else version(Solaris)
 {
-    private enum targetOS = TargetOS.solaris;
+    private enum targetOS = TargetOS.Solaris;
 }
 else
 {
@@ -241,6 +256,7 @@ struct Usage
         Option("cov",
             "do code coverage analysis"
         ),
+        Option("cov=ctfe", "Include code executed during CTFE in coverage report"),
         Option("cov=<nnn>",
             "require at least nnn% code coverage",
             `Perform $(LINK2 $(ROOT_DIR)code_coverage.html, code coverage analysis) and generate
@@ -314,14 +330,16 @@ dmd -cov -unittest myprog.d
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
             $(UL
-                $(LI $(I c++98) (default): Use C++98 name mangling,
+                $(LI $(I c++98): Use C++98 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
-                $(LI $(I c++11): Use C++11 name mangling,
+                $(LI $(I c++11) (default): Use C++11 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`)
                 $(LI $(I c++14): Use C++14 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`)
                 $(LI $(I c++17): Use C++17 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
+                $(LI $(I c++20): Use C++20 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`)
             )",
         ),
         Option("extern-std=[h|help|?]",
@@ -329,7 +347,11 @@ dmd -cov -unittest myprog.d
         ),
         Option("fPIC",
             "generate position independent code",
-            TargetOS.all & ~(TargetOS.windows | TargetOS.macOS)
+            cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
+        ),
+        Option("fPIE",
+            "generate position independent executables",
+            cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
         ),
         Option("g",
             "add symbolic debug info",
@@ -338,10 +360,15 @@ dmd -cov -unittest myprog.d
                 $(LINK2 http://dlang.org/windbg.html, Debugging on Windows).
             )
             $(UNIX
-                Add symbolic debug info in Dwarf format
+                Add symbolic debug info in DWARF format
                 for debuggers such as
                 $(D gdb)
             )`,
+        ),
+        Option("gdwarf=<version>",
+            "add DWARF symbolic debug info",
+            "The value of version may be 3, 4 or 5, defaulting to 3.",
+            cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
         Option("gf",
             "emit debug info for all referenced types",
@@ -368,8 +395,16 @@ dmd -cov -unittest myprog.d
         Option("Hf=<filename>",
             "write 'header' file to filename"
         ),
-        Option("HC",
-            "generate C++ 'header' file"
+        Option("HC[=[silent|verbose]]",
+            "generate C++ 'header' file",
+            `Generate C++ 'header' files using the given configuration:",
+            $(DL
+            $(DT silent)$(DD only list extern(C[++]) declarations (default))
+            $(DT verbose)$(DD also add comments for ignored declarations (e.g. extern(D)))
+            )`,
+        ),
+        Option("HC=[?|h|help]",
+            "list available modes for C++ 'header' file generation"
         ),
         Option("HCd=<directory>",
             "write C++ 'header' file to directory"
@@ -457,11 +492,11 @@ dmd -cov -unittest myprog.d
             $(WINDOWS Compile a 32 bit executable. This is the default.
             The generated object code is in OMF and is meant to be used with the
             $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
-            (TargetOS.all & ~TargetOS.dragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
+            cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
             "generate 32 bit code and write MS-COFF object files",
-            TargetOS.windows
+            TargetOS.Windows
         ),
         Option("m64",
             "generate 64 bit code",
@@ -475,6 +510,15 @@ dmd -cov -unittest myprog.d
             `Add a default $(D main()) function when compiling. This is useful when
             unittesting a library, as it enables running the unittests
             in a library without having to manually define an entry-point function.`,
+        ),
+        Option("makedeps[=<filename>]",
+            "print dependencies in Makefile compatible format to filename or stdout.",
+            `Print dependencies in Makefile compatible format.
+            If filename is omitted, it prints to stdout.
+            The emitted targets are the compiled artifacts (executable, object files, libraries).
+            The emitted dependencies are imported modules and imported string files (via $(B -J) switch).
+            Special characters in a dependency or target filename are escaped in the GNU Make manner.
+            `,
         ),
         Option("man",
             "open web browser on manual page",
@@ -536,7 +580,7 @@ dmd -cov -unittest myprog.d
             The detection can be skipped explicitly if $(TT msvcrt120) is specified as
             $(I libname).
             If $(I libname) is empty, no C runtime library is automatically linked in.",
-            TargetOS.windows,
+            TargetOS.Windows,
         ),
         Option("mv=<package.module>=<filespec>",
             "use <filespec> as source file for <package.module>",
@@ -582,8 +626,8 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
-        Option("preview=<id>",
-            "enable an upcoming language change identified by 'id'",
+        Option("preview=<name>",
+            "enable an upcoming language change identified by 'name'",
             `Preview an upcoming language change identified by $(I id)`,
         ),
         Option("preview=[h|help|?]",
@@ -608,8 +652,8 @@ dmd -cov -unittest myprog.d
             done for system and trusted functions, and assertion failures
             are undefined behaviour.`
         ),
-        Option("revert=<id>",
-            "revert language change identified by 'id'",
+        Option("revert=<name>",
+            "revert language change identified by 'name'",
             `Revert language change identified by $(I id)`,
         ),
         Option("revert=[h|help|?]",
@@ -627,8 +671,8 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("transition=<id>",
-            "help with language change identified by 'id'",
+        Option("transition=<name>",
+            "help with language change identified by 'name'",
             `Show additional info about language change identified by $(I id)`,
         ),
         Option("transition=[h|help|?]",
@@ -681,8 +725,13 @@ dmd -cov -unittest myprog.d
         Option("vtls",
             "list all variables going into thread local storage"
         ),
-        Option("vtemplates",
-            "list statistics on template instantiations"
+        Option("vtemplates=[list-instances]",
+            "list statistics on template instantiations",
+            `An optional argument determines extra diagnostics,
+            where:
+            $(DL
+            $(DT list-instances)$(DD Also shows all instantiation contexts for each template.)
+            )`,
         ),
         Option("w",
             "warnings as errors (compilation will halt)",
@@ -702,7 +751,7 @@ dmd -cov -unittest myprog.d
         Option("Xcc=<driverflag>",
             "pass driverflag to linker driver (cc)",
             "Pass $(I driverflag) to the linker driver (`$CC` or `cc`)",
-            TargetOS.all & ~TargetOS.windows
+            cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
     ];
 
@@ -721,7 +770,7 @@ dmd -cov -unittest myprog.d
         Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
         Feature("complex", "vcomplex",
-            "give deprecation messages about all usages of complex or imaginary types"),
+            "give deprecation messages about all usages of complex or imaginary types", false, true),
         Feature("tls", "vtls",
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
@@ -730,7 +779,9 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available reverts
     static immutable reverts = [
-        Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
+        Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
         Feature("aliasaggquals", "noAliasAggQuals", "drop qualifiers when passing an aggregate type as a template alias parameter"),
     ];
 
@@ -745,19 +796,25 @@ dmd -cov -unittest myprog.d
         Feature("dip1021", "useDIP1021",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md (Mutable function arguments)"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
-        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc"),
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes"),
         Feature("intpromote", "fix16997",
             "fix integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields",
-            "destruct fields of partially constructed objects"),
+            "destruct fields of partially constructed objects", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
-        Feature("in", "inMeansScopeConst",
-            "in means scope const"),
+        Feature("in", "previewIn",
+            "`in` on parameters means `scope const [ref]` and accepts rvalues"),
+        Feature("inclusiveincontracts", "inclusiveInContracts",
+            "'in' contracts of overridden methods must be a superset of parent contract"),
+        Feature("shortenedMethods", "shortenedMethods",
+            "allow use of => for methods and top-level functions in addition to lambdas"),
+        // DEPRECATED previews
+        // trigger deprecation message once D repositories don't use this flag anymore
+        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc", false, false),
     ];
 }
 
@@ -819,7 +876,7 @@ struct CLIUsage
         auto buf = description.capitalize ~ " listed by -"~flagName~"=name:
 ";
         auto allTransitions = [Usage.Feature("all", null,
-            "list information on all " ~ description)] ~ features;
+            "Enables all available " ~ description)] ~ features;
         foreach (t; allTransitions)
         {
             if (t.deprecated_)
@@ -828,7 +885,8 @@ struct CLIUsage
                 continue;
             buf ~= "  =";
             buf ~= t.name;
-            auto lineLength = 3 + t.name.length;
+            buf ~= " "; // at least one separating space
+            auto lineLength = "  =".length + t.name.length + " ".length;
             foreach (i; lineLength .. maxFlagLength)
                 buf ~= " ";
             buf ~= t.helpText;
@@ -876,5 +934,22 @@ struct CLIUsage
   =c++11                Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`
   =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
   =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
+  =c++20                Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`
 ";
+
+    /// Options supported by -HC
+    enum hcUsage = "Available header generation modes:
+  =[h|help|?]           List information on all available choices
+  =silent               Silently ignore non-exern(C[++]) declarations
+  =verbose              Add a comment for ignored non-exern(C[++]) declarations
+";
+
+    /// Options supported by -gdwarf
+    enum gdwarfUsage = "Available DWARF versions:
+  =[h|help|?]           List information on choices
+  =3                    Emit DWARF version 3 debug information
+  =4                    Emit DWARF version 4 debug information
+  =5                    Emit DWARF version 5 debug information
+";
+
 }

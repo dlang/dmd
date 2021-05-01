@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nothrow-functions, Nothrow Functions)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/canthrow.d, _canthrow.d)
@@ -18,9 +18,7 @@ import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.declaration;
-import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -60,6 +58,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     e.error("%s `%s` is not `nothrow`",
                         f.kind(), f.toPrettyChars());
+
+                    e.checkOverridenDtor(null, f, dd => dd.type.toTypeFunction().isnothrow, "not nothrow");
                 }
                 stop = true;  // if any function throws, then the whole expression throws
             }

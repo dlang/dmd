@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -30,7 +30,7 @@ public:
      */
     Type *type;                 // the TypeEnum
     Type *memtype;              // type of the members
-    Prot protection;
+    Visibility visibility;
 
     Expression *maxval;
     Expression *minval;
@@ -40,7 +40,7 @@ public:
     bool added;
     int inuse;
 
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    EnumDeclaration *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -48,7 +48,7 @@ public:
     const char *kind() const;
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isDeprecated() const;                // is Dsymbol deprecated?
-    Prot prot();
+    Visibility visible();
     Expression *getMaxMinValue(const Loc &loc, Identifier *id);
     bool isSpecial() const;
     Expression *getDefaultValue(const Loc &loc);
@@ -79,7 +79,7 @@ public:
 
     EnumDeclaration *ed;
 
-    Dsymbol *syntaxCopy(Dsymbol *s);
+    EnumMember *syntaxCopy(Dsymbol *s);
     const char *kind() const;
     Expression *getVarExp(const Loc &loc, Scope *sc);
 

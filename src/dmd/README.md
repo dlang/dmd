@@ -174,7 +174,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 | File                                                                        | Purpose                                                                            |
 |-----------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [chkformat.d](https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d) | Validate arguments wiht format specifiers for `printf` / `scanf` etc.              |
+| [chkformat.d](https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d) | Validate arguments with format specifiers for `printf` / `scanf` etc.              |
 | [imphint.d](https://github.com/dlang/dmd/blob/master/src/dmd/imphint.d)     | Give a suggestion to e.g. `import std.stdio` when `writeln` could not be resolved. |
 
 ### Library files
@@ -203,7 +203,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [stmtstate.d](https://github.com/dlang/dmd/blob/master/src/dmd/stmtstate.d)                 | Used to help transform statement AST into flow graph                                |
 | [toctype.d](https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d)                     | Convert a D type to a type the back-end understands                                 |
 | [tocsym.d](https://github.com/dlang/dmd/blob/master/src/dmd/tocsym.d)                       | Convert a D symbol to a symbol the linker understands (with mangled name)           |
-| [argtypes.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes.d)                   | Convert a D type into simple (register) types for calling conventions               |
+| [argtypes_x86.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_x86.d)           | Convert a D type into simple (register) types for the 32-bit x86 ABI                |
 | [argtypes_sysv_x64.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_sysv_x64.d) | 'argtypes' for the x86_64 System V ABI                                              |
 | [argtypes_aarch64.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_aarch64.d)   | 'argtypes' for the AArch64 ABI                                                      |
 | [glue.d](https://github.com/dlang/dmd/blob/master/src/dmd/glue.d)                           | Generate the object file for function declarations                                  |

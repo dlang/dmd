@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -preview=dip1021
+
 /* Should compile successfully
  */
 
@@ -145,5 +147,3 @@ struct S { int i; int* p; }
     S* s = cast(S*)malloc();
     free(s.p);    // consumes s
 }
-
-

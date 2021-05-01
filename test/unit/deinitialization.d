@@ -1,3 +1,5 @@
+// See ../README.md for information about DMD unit tests.
+
 module deinitialization;
 
 @("global.deinitialize")
@@ -31,14 +33,13 @@ unittest
 @("Type.deinitialize")
 unittest
 {
-    import dmd.mars : addDefaultVersionIdentifiers, setTarget;
+    import dmd.mars : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.globals : global;
 
     assert(Type.stringtable == Type.stringtable.init);
 
     global._init();
-    setTarget(global.params);
 
     Type._init();
     Type.deinitialize();
@@ -87,7 +88,6 @@ unittest
 unittest
 {
     import dmd.globals : Param;
-    import dmd.mars : setTarget;
     import dmd.target : target, Target;
 
     static bool isFPTypeProperties(T)()
@@ -114,8 +114,6 @@ unittest
     assertStructsEqual(target, init);
 
     Param params;
-    setTarget(params);
-
     target._init(params);
     target.deinitialize();
 

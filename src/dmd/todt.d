@@ -2,7 +2,7 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
@@ -33,6 +33,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.glue;
 import dmd.init;
 import dmd.mtype;
 import dmd.target;
@@ -390,7 +391,10 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                     dtb.xoff(s, 0);
                 }
                 else
-                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
+                {
+                    ubyte pow2 = e.sz == 4 ? 2 : 1;
+                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz, pow2);
+                }
                 break;
 
             case Tsarray:
@@ -1194,7 +1198,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoStructDeclaration d)
     {
         //printf("TypeInfoStructDeclaration.toDt() '%s'\n", d.toChars());
-        if (global.params.is64bit)
+        if (target.is64bit)
             verifyStructSize(Type.typeinfostruct, 17 * target.ptrsize);
         else
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
@@ -1326,7 +1330,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // uint m_align;
         dtb.size(tc.alignsize());
 
-        if (global.params.is64bit)
+        if (target.is64bit)
         {
             foreach (i; 0 .. 2)
             {

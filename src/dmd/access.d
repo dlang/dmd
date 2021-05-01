@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/attribute.html#visibility_attributes, Visibility Attributes)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/access.d, _access.d)
@@ -51,8 +51,8 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
     if (!symbolIsVisible(sc, smember) && (!(sc.flags & SCOPE.onlysafeaccess) || sc.func.setUnsafe()))
     {
         ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
-        //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
-        //        smember.kind(), smember.toPrettyChars(), smember.prot(), smember.semanticRun);
+        //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
+        //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;
     }
     return false;
@@ -70,14 +70,14 @@ private bool hasPackageAccess(Module mod, Dsymbol s)
 {
     static if (LOG)
     {
-        printf("hasPackageAccess(s = '%s', mod = '%s', s.protection.pkg = '%s')\n", s.toChars(), mod.toChars(), s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
+        printf("hasPackageAccess(s = '%s', mod = '%s', s.visibility.pkg = '%s')\n", s.toChars(), mod.toChars(), s.visible().pkg ? s.visible().pkg.toChars() : "NULL");
     }
     Package pkg = null;
-    if (s.prot().pkg)
-        pkg = s.prot().pkg;
+    if (s.visible().pkg)
+        pkg = s.visible().pkg;
     else
     {
-        // no explicit package for protection, inferring most qualified one
+        // no explicit package for visibility, inferring most qualified one
         for (; s; s = s.parent)
         {
             if (auto m = s.isModule())
@@ -163,7 +163,7 @@ private bool hasProtectedAccess(Scope *sc, Dsymbol s)
  * Check access to d for expression e.d
  * Returns true if the declaration is not accessible.
  */
-bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
+bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
 {
     if (sc.flags & SCOPE.noaccesscheck)
         return false;
@@ -227,7 +227,7 @@ bool checkAccess(Scope* sc, Package p)
         return false;
     for (; sc; sc = sc.enclosing)
     {
-        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(Prot.Kind.private_)))
+        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Visibility(Visibility.Kind.private_)))
             return false;
     }
 
@@ -244,16 +244,16 @@ bool checkAccess(Scope* sc, Package p)
  */
 bool symbolIsVisible(Module mod, Dsymbol s)
 {
-    // should sort overloads by ascending protection instead of iterating here
+    // should sort overloads by ascending visibility instead of iterating here
     s = mostVisibleOverload(s);
-    final switch (s.prot().kind)
+    final switch (s.visible().kind)
     {
-    case Prot.Kind.undefined: return true;
-    case Prot.Kind.none: return false; // no access
-    case Prot.Kind.private_: return s.getAccessModule() == mod;
-    case Prot.Kind.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
-    case Prot.Kind.protected_: return s.getAccessModule() == mod;
-    case Prot.Kind.public_, Prot.Kind.export_: return true;
+    case Visibility.Kind.undefined: return true;
+    case Visibility.Kind.none: return false; // no access
+    case Visibility.Kind.private_: return s.getAccessModule() == mod;
+    case Visibility.Kind.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
+    case Visibility.Kind.protected_: return s.getAccessModule() == mod;
+    case Visibility.Kind.public_, Visibility.Kind.export_: return true;
     }
 }
 
@@ -291,21 +291,21 @@ bool symbolIsVisible(Scope *sc, Dsymbol s)
  */
 bool checkSymbolAccess(Scope *sc, Dsymbol s)
 {
-    final switch (s.prot().kind)
+    final switch (s.visible().kind)
     {
-    case Prot.Kind.undefined: return true;
-    case Prot.Kind.none: return false; // no access
-    case Prot.Kind.private_: return sc._module == s.getAccessModule();
-    case Prot.Kind.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
-    case Prot.Kind.protected_: return hasProtectedAccess(sc, s);
-    case Prot.Kind.public_, Prot.Kind.export_: return true;
+    case Visibility.Kind.undefined: return true;
+    case Visibility.Kind.none: return false; // no access
+    case Visibility.Kind.private_: return sc._module == s.getAccessModule();
+    case Visibility.Kind.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
+    case Visibility.Kind.protected_: return hasProtectedAccess(sc, s);
+    case Visibility.Kind.public_, Visibility.Kind.export_: return true;
     }
 }
 
 /**
  * Use the most visible overload to check visibility. Later perform an access
  * check on the resolved overload.  This function is similar to overloadApply,
- * but doesn't recurse nor resolve aliases because protection/visibility is an
+ * but doesn't recurse nor resolve aliases because visibility is an
  * attribute of the alias not the aliasee.
  */
 public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
@@ -355,7 +355,7 @@ public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
                  * Usually aliases should not be resolved for visibility checking
                  * b/c public aliases to private symbols are public. But for the
                  * overloadable alias situation, the Alias (_ad_) has been moved
-                 * into it's own Aliasee, leaving a shell that we peel away here.
+                 * into its own Aliasee, leaving a shell that we peel away here.
                  */
                 auto aliasee = ad.toAlias();
                 if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
@@ -378,23 +378,23 @@ public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
             break;
 
         /**
-        * Return the "effective" protection attribute of a symbol when accessed in a module.
-        * The effective protection attribute is the same as the regular protection attribute,
+        * Return the "effective" visibility attribute of a symbol when accessed in a module.
+        * The effective visibility attribute is the same as the regular visibility attribute,
         * except package() is "private" if the module is outside the package;
         * otherwise, "public".
         */
-        static Prot protectionSeenFromModule(Dsymbol d, Module mod = null)
+        static Visibility visibilitySeenFromModule(Dsymbol d, Module mod = null)
         {
-            Prot prot = d.prot();
-            if (mod && prot.kind == Prot.Kind.package_)
+            Visibility vis = d.visible();
+            if (mod && vis.kind == Visibility.Kind.package_)
             {
-                return hasPackageAccess(mod, d) ? Prot(Prot.Kind.public_) : Prot(Prot.Kind.private_);
+                return hasPackageAccess(mod, d) ? Visibility(Visibility.Kind.public_) : Visibility(Visibility.Kind.private_);
             }
-            return prot;
+            return vis;
         }
 
         if (next &&
-            protectionSeenFromModule(mostVisible, mod).isMoreRestrictiveThan(protectionSeenFromModule(next, mod)))
+            visibilitySeenFromModule(mostVisible, mod) < visibilitySeenFromModule(next, mod))
             mostVisible = next;
     }
     return mostVisible;

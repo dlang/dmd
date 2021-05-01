@@ -5,7 +5,7 @@
  * The serialization is a string which contains the type of the parameters and the string
  * represantation of the lambda expression.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lamdbacomp.d, _lambdacomp.d)
@@ -466,7 +466,7 @@ public:
 
     override void visit(ArrayLiteralExp) { buf.setsize(0); }
     override void visit(AssocArrayLiteralExp) { buf.setsize(0); }
-    override void visit(CompileExp) { buf.setsize(0); }
+    override void visit(MixinExp) { buf.setsize(0); }
     override void visit(ComplexExp) { buf.setsize(0); }
     override void visit(DeclarationExp) { buf.setsize(0); }
     override void visit(DefaultInitExp) { buf.setsize(0); }

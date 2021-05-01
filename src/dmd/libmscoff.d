@@ -1,7 +1,7 @@
 /**
  * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
@@ -11,15 +11,21 @@
 
 module dmd.libmscoff;
 
-version(Windows):
-
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import core.sys.windows.stat;
+version (Posix)
+{
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd;
+}
+version (Windows)
+{
+    import core.sys.windows.stat;
+}
 
 import dmd.globals;
 import dmd.lib;
@@ -45,8 +51,6 @@ public extern (C++) Library LibMSCoff_factory()
 private: // for the remainder of this module
 
 enum LOG = false;
-
-alias stat_t = struct_stat;
 
 struct MSCoffObjSymbol
 {
@@ -147,7 +151,7 @@ final class LibMSCoff : Library
                 MSCoffLibHeader* header = cast(MSCoffLibHeader*)(cast(ubyte*)buf + offset);
                 offset += MSCoffLibHeader.sizeof;
                 char* endptr = null;
-                uint size = strtoul(cast(char*)header.file_size, &endptr, 10);
+                uint size = cast(uint)strtoul(cast(char*)header.file_size, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
                     return corrupt(__LINE__);
                 if (offset + size > buflen)
@@ -222,7 +226,7 @@ final class LibMSCoff : Library
                     {
                         /* Pick long name out of longnames[]
                          */
-                        uint foff = strtoul(cast(char*)header.object_name + 1, &endptr, 10);
+                        uint foff = cast(uint)strtoul(cast(char*)header.object_name + 1, &endptr, 10);
                         uint i;
                         for (i = 0; 1; i++)
                         {
@@ -259,9 +263,9 @@ final class LibMSCoff : Library
                         om.name = oname[0 .. i];
                     }
                     om.file_time = strtoul(cast(char*)header.file_time, &endptr, 10);
-                    om.user_id = strtoul(cast(char*)header.user_id, &endptr, 10);
-                    om.group_id = strtoul(cast(char*)header.group_id, &endptr, 10);
-                    om.file_mode = strtoul(cast(char*)header.file_mode, &endptr, 8);
+                    om.user_id = cast(uint)strtoul(cast(char*)header.user_id, &endptr, 10);
+                    om.group_id = cast(uint)strtoul(cast(char*)header.group_id, &endptr, 10);
+                    om.file_mode = cast(uint)strtoul(cast(char*)header.file_mode, &endptr, 8);
                     om.scan = 0; // don't scan object module for symbols
                     objmodules.push(om);
                 }
@@ -314,7 +318,10 @@ final class LibMSCoff : Library
         om.scan = 1;
         if (fromfile)
         {
-            stat_t statbuf;
+            version (Posix)
+                stat_t statbuf;
+            version (Windows)
+                struct_stat statbuf;
             int i = module_name.toCStringThen!(name => stat(name.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
@@ -328,11 +335,28 @@ final class LibMSCoff : Library
             /* Mock things up for the object module file that never was
              * actually written out.
              */
+            version (Posix)
+            {
+                __gshared uid_t uid;
+                __gshared gid_t gid;
+                __gshared int _init;
+                if (!_init)
+                {
+                    _init = 1;
+                    uid = getuid();
+                    gid = getgid();
+                }
+                om.user_id = uid;
+                om.group_id = gid;
+            }
+            version (Windows)
+            {
+                om.user_id = 0; // meaningless on Windows
+                om.group_id = 0;        // meaningless on Windows
+            }
             time_t file_time = 0;
             time(&file_time);
             om.file_time = cast(long)file_time;
-            om.user_id = 0; // meaningless on Windows
-            om.group_id = 0; // meaningless on Windows
             om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         }
         objmodules.push(om);

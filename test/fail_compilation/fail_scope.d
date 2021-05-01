@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -preview=dip25
+REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
 fail_compilation/fail_scope.d(44): Error: returning `cast(char[])string` escapes a reference to local variable `string`
@@ -11,7 +11,7 @@ fail_compilation/fail_scope.d(68):     `fail_scope.foo8(return ref int x)`
 fail_compilation/fail_scope.d(81): Error: returning `& string` escapes a reference to local variable `string`
 fail_compilation/fail_scope.d(91): Error: returning `cast(int[])a` escapes a reference to local variable `a`
 fail_compilation/fail_scope.d(99): Error: returning `cast(int[])a` escapes a reference to local variable `a`
-fail_compilation/fail_scope.d(107): Error: escaping reference to outer local variable `x`
+fail_compilation/fail_scope.d(107): Deprecation: escaping reference to outer local variable `x`
 fail_compilation/fail_scope.d(126): Error: returning `s.bar()` escapes a reference to local variable `s`
 fail_compilation/fail_scope.d(136): Error: returning `foo16226(i)` escapes a reference to local variable `i`
 ---

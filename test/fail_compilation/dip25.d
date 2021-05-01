@@ -2,7 +2,11 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/dip25.d(13): Deprecation: returning `this.buffer[]` escapes a reference to parameter `this`, perhaps annotate with `return`
+fail_compilation/dip25.d(17): Deprecation: returning `this.buffer[]` escapes a reference to parameter `this`
+fail_compilation/dip25.d(17):        perhaps annotate the parameter with `return`
+fail_compilation/dip25.d(22): Error: returning `identity(x)` escapes a reference to local variable `x`
+fail_compilation/dip25.d(23): Deprecation: returning `identity(x)` escapes a reference to parameter `x`
+fail_compilation/dip25.d(23):        perhaps annotate the parameter with `return`
 ---
 */
 struct Data
@@ -13,6 +17,10 @@ struct Data
         return buffer[];
     }
 }
+
+ref int identity(return ref int x) { return x; }
+ref int fun(return int x) { return identity(x); }
+ref int fun2(ref int x) { return identity(x); }
 
 void main()
 {

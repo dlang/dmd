@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/objc_interface.html, Interfacing to Objective-C)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc.d, _objc.d)
@@ -19,6 +19,7 @@ import dmd.attrib;
 import dmd.cond;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.denum;
 import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
@@ -31,12 +32,15 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.gluelayer;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
 import dmd.target;
+import dmd.tokens;
 
 struct ObjcSelector
 {
@@ -159,12 +163,11 @@ extern (C++) struct ObjcClassDeclaration
     ClassDeclaration metaclass;
 
     /// List of non-inherited methods.
-    Dsymbols* methodList;
+    FuncDeclaration[] methodList;
 
     extern (D) this(ClassDeclaration classDeclaration)
     {
         this.classDeclaration = classDeclaration;
-        methodList = new Dsymbols;
     }
 
     bool isRootClass() const
@@ -173,6 +176,22 @@ extern (C++) struct ObjcClassDeclaration
             !metaclass &&
             !classDeclaration.baseClass;
     }
+}
+
+/**
+ * Contains all data for a function declaration that is needed for the
+ * Objective-C integration.
+ */
+extern (C++) struct ObjcFuncDeclaration
+{
+    /// The method selector (member functions only).
+    ObjcSelector* selector;
+
+    /// The implicit selector parameter.
+    VarDeclaration selectorParameter;
+
+    /// `true` if this function declaration is declared optional.
+    bool isOptional;
 }
 
 // Should be an interface
@@ -201,19 +220,15 @@ extern(C++) abstract class Objc
     abstract void setObjc(InterfaceDeclaration);
 
     /**
-     * Deprecate the given Objective-C interface.
-     *
-     * Representing an Objective-C class as a D interface has been deprecated.
-     * Classes have now been properly implemented and the `class` keyword should
-     * be used instead.
-     *
-     * In the future, `extern(Objective-C)` interfaces will be used to represent
-     * Objective-C protocols.
+     * Returns a pretty textual representation of the given class declaration.
      *
      * Params:
-     *  interfaceDeclaration = the interface declaration to deprecate
+     *  classDeclaration = the class declaration to return the textual representation for
+     *  qualifyTypes = `true` if types should be qualified in the result
+     *
+     * Returns: the textual representation
      */
-    abstract void deprecate(InterfaceDeclaration interfaceDeclaration) const;
+    abstract const(char)* toPrettyChars(ClassDeclaration classDeclaration, bool qualifyTypes) const;
 
     abstract void setSelector(FuncDeclaration, Scope* sc);
     abstract void validateSelector(FuncDeclaration fd);
@@ -231,6 +246,28 @@ extern(C++) abstract class Objc
      * Returns: `true` if the given function declaration is virtual
      */
     abstract bool isVirtual(const FuncDeclaration fd) const;
+
+    /**
+     * Marks the given function declaration as optional.
+     *
+     * A function declaration is considered optional if it's annotated with the
+     * UDA: `@(core.attribute.optional)`. Only function declarations inside
+     * interface declarations and with Objective-C linkage can be declared as
+     * optional.
+     *
+     * Params:
+     *  functionDeclaration = the function declaration to be set as optional
+     *  sc = the scope from the semantic phase
+     */
+    abstract void setAsOptional(FuncDeclaration functionDeclaration, Scope* sc) const;
+
+    /**
+     * Validates function declarations declared optional.
+     *
+     * Params:
+     *  functionDeclaration = the function declaration to validate
+     */
+    abstract void validateOptional(FuncDeclaration functionDeclaration) const;
 
     /**
      * Gets the parent of the given function declaration.
@@ -379,9 +416,9 @@ extern(C++) private final class Unsupported : Objc
         id.error("Objective-C interfaces not supported");
     }
 
-    override void deprecate(InterfaceDeclaration) const
+    override const(char)* toPrettyChars(ClassDeclaration, bool qualifyTypes) const
     {
-        // noop
+        assert(0, "Should never be called when Objective-C is not supported");
     }
 
     override void setSelector(FuncDeclaration, Scope*)
@@ -402,6 +439,16 @@ extern(C++) private final class Unsupported : Objc
     override bool isVirtual(const FuncDeclaration) const
     {
         assert(0, "Should never be called when Objective-C is not supported");
+    }
+
+    override void setAsOptional(FuncDeclaration, Scope*) const
+    {
+        // noop
+    }
+
+    override void validateOptional(FuncDeclaration) const
+    {
+        // noop
     }
 
     override ClassDeclaration getParent(FuncDeclaration, ClassDeclaration cd) const
@@ -484,68 +531,45 @@ extern(C++) private final class Supported : Objc
         id.objc.isExtern = true;
     }
 
-    override void deprecate(InterfaceDeclaration id) const
-    in
+    override const(char)* toPrettyChars(ClassDeclaration cd, bool qualifyTypes) const
     {
-        assert(id.classKind == ClassKind.objc);
-    }
-    do
-    {
-        // don't report deprecations for the metaclass to avoid duplicated
-        // messages.
-        if (id.objc.isMeta)
-            return;
-
-        id.deprecation("Objective-C interfaces have been deprecated");
-        deprecationSupplemental(id.loc, "Representing an Objective-C class " ~
-            "as a D interface has been deprecated. Please use "~
-            "`extern (Objective-C) extern class` instead");
+        return cd.parent.toPrettyChars(qualifyTypes);
     }
 
     override void setSelector(FuncDeclaration fd, Scope* sc)
     {
-        import dmd.tokens;
+        foreachUda(fd, sc, (e) {
+            if (e.op != TOK.structLiteral)
+                return 0;
 
-        if (!fd.userAttribDecl)
-            return;
-        Expressions* udas = fd.userAttribDecl.getAttributes();
-        arrayExpressionSemantic(udas, sc, true);
-        for (size_t i = 0; i < udas.dim; i++)
-        {
-            Expression uda = (*udas)[i];
-            assert(uda);
-            if (uda.op != TOK.tuple)
-                continue;
-            Expressions* exps = (cast(TupleExp)uda).exps;
-            for (size_t j = 0; j < exps.dim; j++)
+            auto literal = cast(StructLiteralExp) e;
+            assert(literal.sd);
+
+            if (!isCoreUda(literal.sd, Id.udaSelector))
+                return 0;
+
+            if (fd.objc.selector)
             {
-                Expression e = (*exps)[j];
-                assert(e);
-                if (e.op != TOK.structLiteral)
-                    continue;
-                StructLiteralExp literal = cast(StructLiteralExp)e;
-                assert(literal.sd);
-                if (!isUdaSelector(literal.sd))
-                    continue;
-                if (fd.selector)
-                {
-                    fd.error("can only have one Objective-C selector per method");
-                    return;
-                }
-                assert(literal.elements.dim == 1);
-                StringExp se = (*literal.elements)[0].toStringExp();
-                assert(se);
-                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).peekString().ptr);
+                fd.error("can only have one Objective-C selector per method");
+                return 1;
             }
-        }
+
+            assert(literal.elements.dim == 1);
+            auto se = (*literal.elements)[0].toStringExp();
+            assert(se);
+
+            fd.objc.selector = ObjcSelector.lookup(se.toUTF8(sc).peekString().ptr);
+
+            return 0;
+        });
     }
 
     override void validateSelector(FuncDeclaration fd)
     {
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return;
         TypeFunction tf = cast(TypeFunction)fd.type;
-        if (fd.selector.paramCount != tf.parameterList.parameters.dim)
+        if (fd.objc.selector.paramCount != tf.parameterList.parameters.dim)
             fd.error("number of colons in Objective-C selector must match number of parameters");
         if (fd.parent && fd.parent.isTemplateInstance())
             fd.error("template cannot have an Objective-C selector attached");
@@ -553,7 +577,7 @@ extern(C++) private final class Supported : Objc
 
     override void checkLinkage(FuncDeclaration fd)
     {
-        if (fd.linkage != LINK.objc && fd.selector)
+        if (fd.linkage != LINK.objc && fd.objc.selector)
             fd.error("must have Objective-C linkage to attach a selector");
     }
 
@@ -565,12 +589,80 @@ extern(C++) private final class Supported : Objc
     }
     do
     {
+        if (fd.toParent.isInterfaceDeclaration && fd.isFinal)
+            return false;
+
         // * final member functions are kept virtual with Objective-C linkage
         //   because the Objective-C runtime always use dynamic dispatch.
         // * static member functions are kept virtual too, as they represent
         //   methods of the metaclass.
-        with (fd.protection)
-            return !(kind == Prot.Kind.private_ || kind == Prot.Kind.package_);
+        with (fd.visibility)
+            return !(kind == Visibility.Kind.private_ || kind == Visibility.Kind.package_);
+    }
+
+    override void setAsOptional(FuncDeclaration fd, Scope* sc) const
+    {
+        const count = declaredAsOptionalCount(fd, sc);
+        fd.objc.isOptional = count > 0;
+
+        if (count > 1)
+            fd.error("can only declare a function as optional once");
+    }
+
+    /// Returns: the number of times `fd` has been declared as optional.
+    private int declaredAsOptionalCount(FuncDeclaration fd , Scope* sc) const
+    {
+        int count;
+
+        foreachUda(fd, sc, (e) {
+            if (e.op != TOK.type)
+                return 0;
+
+            auto typeExp = cast(TypeExp) e;
+
+            if (typeExp.type.ty != Tenum)
+                return 0;
+
+            auto typeEnum = cast(TypeEnum) typeExp.type;
+
+            if (isCoreUda(typeEnum.sym, Id.udaOptional))
+                count++;
+
+            return 0;
+        });
+
+        return count;
+    }
+
+    override void validateOptional(FuncDeclaration fd) const
+    {
+        if (!fd.objc.isOptional)
+            return;
+
+        if (fd.linkage != LINK.objc)
+        {
+            fd.error("only functions with Objective-C linkage can be declared as optional");
+
+            const linkage = linkageToString(fd.linkage);
+
+            errorSupplemental(fd.loc, "function is declared with %.*s linkage",
+                cast(uint) linkage.length, linkage.ptr);
+        }
+
+        auto parent = fd.parent;
+
+        if (parent && parent.isTemplateInstance())
+        {
+            fd.error("template cannot be optional");
+            parent = parent.parent;
+            assert(parent);
+        }
+
+        if (parent && !parent.isInterfaceDeclaration())
+        {
+            fd.error("only functions declared inside interfaces can be optional");
+            errorSupplemental(fd.loc, "function is declared inside %s", fd.parent.kind);
+        }
     }
 
     override ClassDeclaration getParent(FuncDeclaration fd, ClassDeclaration cd) const
@@ -596,19 +688,19 @@ extern(C++) private final class Supported : Objc
         if (cd.classKind != ClassKind.objc)
             return;
 
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return;
 
         assert(fd.isStatic ? cd.objc.isMeta : !cd.objc.isMeta);
 
-        cd.objc.methodList.push(fd);
+        cd.objc.methodList ~= fd;
     }
 
     override inout(AggregateDeclaration) isThis(inout FuncDeclaration funcDeclaration) const
     {
         with(funcDeclaration)
         {
-            if (!selector)
+            if (!objc.selector)
                 return null;
 
             // Use Objective-C class object as 'this'
@@ -631,10 +723,11 @@ extern(C++) private final class Supported : Objc
     }
     do
     {
-        if (!fd.selector)
+        if (!fd.objc.selector)
             return null;
 
-        auto var = new VarDeclaration(fd.loc, Type.tvoidptr, Identifier.anonymous, null);
+        auto ident = Identifier.generateAnonymousId("_cmd");
+        auto var = new VarDeclaration(fd.loc, Type.tvoidptr, ident, null);
         var.storage_class |= STC.parameter;
         var.dsymbolSemantic(sc);
         if (!sc.insert(var))
@@ -646,9 +739,10 @@ extern(C++) private final class Supported : Objc
 
     override void setMetaclass(InterfaceDeclaration interfaceDeclaration, Scope* sc) const
     {
-        static auto newMetaclass(Loc loc, BaseClasses* metaBases)
+        auto newMetaclass(Loc loc, BaseClasses* metaBases)
         {
-            return new InterfaceDeclaration(loc, null, metaBases);
+            auto ident = createMetaclassIdentifier(interfaceDeclaration);
+            return new InterfaceDeclaration(loc, ident, metaBases);
         }
 
         .setMetaclass!newMetaclass(interfaceDeclaration, sc);
@@ -658,7 +752,8 @@ extern(C++) private final class Supported : Objc
     {
         auto newMetaclass(Loc loc, BaseClasses* metaBases)
         {
-            return new ClassDeclaration(loc, null, metaBases, new Dsymbols(), 0);
+            auto ident = createMetaclassIdentifier(classDeclaration);
+            return new ClassDeclaration(loc, ident, metaBases, new Dsymbols(), 0);
         }
 
         .setMetaclass!newMetaclass(classDeclaration, sc);
@@ -723,12 +818,62 @@ extern(C++) private final class Supported : Objc
             "of Objective-C classes. Please use the Objective-C runtime instead");
     }
 
-    extern(D) private bool isUdaSelector(StructDeclaration sd)
+extern(D) private:
+
+    /**
+     * Returns `true` if the given symbol is a symbol declared in
+     * `core.attribute` and has the given identifier.
+     *
+     * This is used to determine if a symbol is a UDA declared in
+     * `core.attribute`.
+     *
+     * Params:
+     *  sd = the symbol to check
+     *  ident = the name of the expected UDA
+     */
+    bool isCoreUda(ScopeDsymbol sd, Identifier ident) const
     {
-        if (sd.ident != Id.udaSelector || !sd.parent)
+        if (sd.ident != ident || !sd.parent)
             return false;
-        Module _module = sd.parent.isModule();
+
+        auto _module = sd.parent.isModule();
         return _module && _module.isCoreModule(Id.attribute);
+    }
+
+    /**
+     * Iterates the UDAs attached to the given function declaration.
+     *
+     * If `dg` returns `!= 0`, it will stop the iteration and return that
+     * value, otherwise it will return 0.
+     *
+     * Params:
+     *  fd = the function declaration to get the UDAs from
+     *  dg = called once for each UDA. If `dg` returns `!= 0`, it will stop the
+     *      iteration and return that value, otherwise it will return `0`.
+     */
+    int foreachUda(FuncDeclaration fd, Scope* sc, int delegate(Expression) dg) const
+    {
+        if (!fd.userAttribDecl)
+            return 0;
+
+        auto udas = fd.userAttribDecl.getAttributes();
+        arrayExpressionSemantic(udas, sc, true);
+
+        return udas.each!((uda) {
+            if (uda.op != TOK.tuple)
+                return 0;
+
+            auto exps = (cast(TupleExp) uda).exps;
+
+            return exps.each!((e) {
+                assert(e);
+
+                if (auto result = dg(e))
+                    return result;
+
+                return 0;
+            });
+        });
     }
 }
 
@@ -795,6 +940,13 @@ if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
         members.push(objc.metaclass);
         objc.metaclass.addMember(sc, classDeclaration);
 
+        objc.metaclass.members = new Dsymbols();
         objc.metaclass.dsymbolSemantic(sc);
     }
+}
+
+private Identifier createMetaclassIdentifier(ClassDeclaration classDeclaration)
+{
+    const name = "class_" ~ classDeclaration.ident.toString ~ "_Meta";
+    return Identifier.generateAnonymousId(name);
 }

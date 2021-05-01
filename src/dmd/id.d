@@ -1,7 +1,7 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -125,6 +125,9 @@ immutable Msgtable[] msgtable =
     { "__c_ulonglong" },
     { "__c_long_double" },
     { "__c_wchar_t" },
+    { "__c_complex_float" },
+    { "__c_complex_double" },
+    { "__c_complex_real" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
     { "_unittest", "unittest" },
@@ -186,7 +189,6 @@ immutable Msgtable[] msgtable =
     { "C" },
     { "D" },
     { "Windows" },
-    { "Pascal" },
     { "System" },
     { "Objective" },
 
@@ -304,7 +306,7 @@ immutable Msgtable[] msgtable =
     { "aaRehash", "_aaRehash" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
-    { "criticalenter", "_d_criticalenter" },
+    { "criticalenter", "_d_criticalenter2" },
     { "criticalexit", "_d_criticalexit" },
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
@@ -357,7 +359,6 @@ immutable Msgtable[] msgtable =
     { "etc" },
     { "attribute" },
     { "math" },
-    { "trig" },
     { "sin" },
     { "cos" },
     { "tan" },
@@ -441,7 +442,9 @@ immutable Msgtable[] msgtable =
     { "hasMember" },
     { "identifier" },
     { "getProtection" },
+    { "getVisibility" },
     { "parent" },
+    { "child" },
     { "getMember" },
     { "getOverloads" },
     { "getVirtualFunctions" },
@@ -451,7 +454,6 @@ immutable Msgtable[] msgtable =
     { "derivedMembers" },
     { "isSame" },
     { "compiles" },
-    { "parameters" },
     { "getAliasThis" },
     { "getAttributes" },
     { "getFunctionAttributes" },
@@ -461,6 +463,7 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "getCppNamespaces" },
     { "isReturnOnStack" },
     { "isZeroInit" },
     { "getTargetInfo" },
@@ -468,6 +471,7 @@ immutable Msgtable[] msgtable =
     { "hasPostblit" },
     { "hasCopyConstructor" },
     { "isCopyable" },
+    { "toType" },
 
     // For C++ mangling
     { "allocator" },
@@ -480,6 +484,7 @@ immutable Msgtable[] msgtable =
     // Compiler recognized UDA's
     { "udaGNUAbiTag", "gnuAbiTag" },
     { "udaSelector", "selector" },
+    { "udaOptional", "optional"},
 
     // C names, for undefined identifier error messages
     { "NULL" },

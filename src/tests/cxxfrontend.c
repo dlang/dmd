@@ -67,10 +67,10 @@ static void frontend_init()
     gc_disable();
 
     global._init();
-    global.params.isLinux = true;
+    target.os = Target::OS_linux;
     global.vendor = "Front-End Tester";
     global.params.objname = NULL;
-    global.params.cpu = CPU::native;
+    target.cpu = CPU::native;
 
     Type::_init();
     Id::initialize();
@@ -101,8 +101,19 @@ void test_tokens()
     assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
 
     // Last valid TOK value
-    assert(TOKvectorarray == TOKMAX - 1);
+    assert(TOKcolonColon == TOKMAX - 1);
     assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
+}
+
+void test_compiler_globals()
+{
+    // only check constant prefix of version
+    assert(strncmp(global.versionChars(), "v2.", 3) == 0);
+    unsigned versionNumber = global.versionNumber();
+    assert(versionNumber >= 2060 && versionNumber <= 3000);
+
+    assert(strcmp(target.architectureName.ptr, "X86_64") == 0 ||
+           strcmp(target.architectureName.ptr, "X86") == 0);
 }
 
 /**********************************/
@@ -209,9 +220,9 @@ void test_visitors()
     tp->accept(&tv);
     assert(tv.type == true);
 
-    LinkDeclaration *ld = LinkDeclaration::create(LINKd, NULL);
+    LinkDeclaration *ld = LinkDeclaration::create(loc, LINK::d, NULL);
     assert(ld->isAttribDeclaration() == static_cast<AttribDeclaration *>(ld));
-    assert(ld->linkage == LINKd);
+    assert(ld->linkage == LINK::d);
     ld->accept(&tv);
     assert(tv.attrib == true);
 
@@ -236,7 +247,7 @@ void test_visitors()
     assert(tv.typeinfo == true);
 
     Parameters *args = new Parameters;
-    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
     FuncDeclaration *fd = FuncDeclaration::create(Loc (), Loc (), Identifier::idPool("test"),
                                                   STCextern, tf);
     assert(fd->isFuncDeclaration() == fd);
@@ -274,13 +285,39 @@ void test_semantic()
     Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
-    assert(ad && ad->ctor && ad->sizeok == SIZEOKdone);
+    assert(ad && ad->ctor && ad->sizeok == Sizeok::done);
     CtorDeclaration *ctor = ad->ctor->isCtorDeclaration();
     assert(ctor->isMember() && !ctor->isNested());
     assert(0 == strcmp(ctor->type->toChars(), "Error(string)"));
 
     ClassDeclaration *cd = ad->isClassDeclaration();
     assert(cd && cd->hasMonitor());
+
+    assert(!global.endGagging(errors));
+}
+
+/**********************************/
+
+void test_skip_importall()
+{
+    /* Similar to test_semantic(), but importAll step is skipped.  */
+    const char *buf =
+        "module rootobject;\n"
+        "class RootObject : Object { }";
+
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+
+    Module *m = Module::create("rootobject.d", Identifier::idPool("rootobject"), 0, 0);
+
+    unsigned errors = global.startGagging();
+
+    m->srcBuffer = srcBuffer;
+    m->parse();
+    m->importedFrom = m;
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
 
     assert(!global.endGagging(errors));
 }
@@ -335,7 +372,7 @@ void test_parameters()
     args->push(Parameter::create(STCundefined, Type::tint32, NULL, NULL, NULL));
     args->push(Parameter::create(STCundefined, Type::tint64, NULL, NULL, NULL));
 
-    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
 
     assert(tf->parameterList.length() == 2);
     assert(tf->parameterList[0]->type == Type::tint32);
@@ -349,19 +386,21 @@ void test_types()
 {
     Parameters *args = new Parameters;
     StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
-    TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKd, stc);
+    TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::d, stc);
 
-    assert(tfunction->isnothrow);
-    assert(!tfunction->isnogc);
-    assert(tfunction->isproperty);
-    assert(!tfunction->isref);
-    assert(tfunction->isreturn);
-    assert(!tfunction->isscope);
-    assert(tfunction->isreturninferred);
-    assert(!tfunction->isscopeinferred);
-    assert(tfunction->linkage == LINKd);
-    assert(tfunction->trust == TRUSTtrusted);
-    assert(tfunction->purity == PUREimpure);
+    assert(tfunction->isnothrow());
+    assert(!tfunction->isnogc());
+    assert(tfunction->isproperty());
+    assert(!tfunction->isref());
+    tfunction->isref(true);
+    assert(tfunction->isref());
+    assert(tfunction->isreturn());
+    assert(!tfunction->isScopeQual());
+    assert(tfunction->isreturninferred());
+    assert(!tfunction->isscopeinferred());
+    assert(tfunction->linkage == LINK::d);
+    assert(tfunction->trust == TRUST::trusted);
+    assert(tfunction->purity == PURE::impure);
 }
 
 /**********************************/
@@ -448,6 +487,54 @@ void test_outbuffer()
     assert(strcmp(data, "hello hello \n") == 0);
 }
 
+void test_cppmangle()
+{
+    // Based off runnable_cxx/cppa.d.
+    const char *buf =
+        "module cppa;\n"
+        "extern (C++):\n"
+        "class Base { void based() { } }\n"
+        "interface Interface { int MethodCPP(); int MethodD(); }\n"
+        "class Derived : Base, Interface { int MethodCPP(); int MethodD() { return 3; } }";
+
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+
+    Module *m = Module::create("cppa.d", Identifier::idPool("cppa"), 0, 0);
+
+    unsigned errors = global.startGagging();
+    FuncDeclaration *fd;
+    const char *mangle;
+
+    m->srcBuffer = srcBuffer;
+    m->parse();
+    m->importedFrom = m;
+    m->importAll(NULL);
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
+
+    Dsymbol *s = m->search(Loc(), Identifier::idPool("Derived"));
+    assert(s);
+    ClassDeclaration *cd = s->isClassDeclaration();
+    assert(cd && cd->sizeok == Sizeok::done);
+    assert(cd->members && cd->members->length == 2);
+    assert(cd->vtblInterfaces && cd->vtblInterfaces->length == 1);
+    BaseClass *b = (*cd->vtblInterfaces)[0];
+
+    fd = (*cd->members)[0]->isFuncDeclaration();
+    assert(fd);
+    mangle = cppThunkMangleItanium(fd, b->offset);
+    assert(strcmp(mangle, "_ZThn4_N7Derived9MethodCPPEv") == 0);
+
+    fd = (*cd->members)[1]->isFuncDeclaration();
+    assert(fd);
+    mangle = cppThunkMangleItanium(fd, b->offset);
+    assert(strcmp(mangle, "_ZThn4_N7Derived7MethodDEv") == 0);
+
+    assert(!global.endGagging(errors));
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -455,8 +542,10 @@ int main(int argc, char **argv)
     frontend_init();
 
     test_tokens();
+    test_compiler_globals();
     test_visitors();
     test_semantic();
+    test_skip_importall();
     test_expression();
     test_target();
     test_emplace();
@@ -465,6 +554,7 @@ int main(int argc, char **argv)
     test_location();
     test_array();
     test_outbuffer();
+    test_cppmangle();
 
     frontend_term();
 

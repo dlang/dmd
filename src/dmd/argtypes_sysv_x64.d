@@ -1,7 +1,7 @@
 /**
  * Break down a D type into basic (register) types for the x86_64 System V ABI.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     Martin Kinkelin
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_sysv_x64.d, _argtypes_sysv_x64.d)
@@ -14,6 +14,7 @@ module dmd.argtypes_sysv_x64;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;
+import dmd.target;
 import dmd.visitor;
 
 /****************************************************
@@ -263,14 +264,14 @@ extern (C++) final class ToClassesVisitor : Visitor
 
     override void visit(TypeDArray)
     {
-        if (!global.params.isLP64)
+        if (!target.isLP64)
             return one(Class.integer);
         return two(Class.integer, Class.integer);
     }
 
     override void visit(TypeDelegate)
     {
-        if (!global.params.isLP64)
+        if (!target.isLP64)
             return one(Class.integer);
         return two(Class.integer, Class.integer);
     }
@@ -359,7 +360,8 @@ extern (C++) final class ToClassesVisitor : Visitor
                 else
                 {
                     assert(foffset % 8 == 0 ||
-                        fEightbyteEnd - fEightbyteStart <= 1,
+                        fEightbyteEnd - fEightbyteStart <= 1 ||
+                        !target.isLP64,
                         "Field not aligned at eightbyte boundary but contributing to multiple eightbytes?"
                     );
                     foreach (i, fclass; classify(ftype, fsize).slice())

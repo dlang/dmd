@@ -1,6 +1,6 @@
 # Contributing to DMD, the D programming language reference compiler
 
-First off, thanks for your interest in contributing !
+First off, thanks for your interest in contributing!
 
 ## Reporting bugs
 
@@ -8,18 +8,18 @@ We exclusively use [bugzilla](https://issues.dlang.org/) for issue tracking, whi
 If you found a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
 If it isn't, you can [create a new issue](https://issues.dlang.org/enter_bug.cgi).
 
-If you have question about a specific behavior, the [D.Learn](http://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
+If you have a question about a specific behavior, the [D.Learn](http://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
 
 ### Content
 
 When creating a new issue, make sure to include:
 - which version of DMD you are using (which can be found by running `dmd` with no argument).
 - A test case:
-  - Make it a [short, self contained and compilable example](http://sscce.org/).
-  - Avoid dependencies to foreign code (e.g. dub packages).
+  - Make it a [short, self-contained, and compilable example](http://sscce.org/).
+  - Avoid dependencies on foreign code (e.g. dub packages).
   - Avoid any imports from phobos / druntime if possible.
 You can try minimizing your test case using the [DustMite tool](https://github.com/CyberShadow/DustMite/wiki).
-DustMite  is also available from our [tools](https://github.com/dlang/tools) repository and is distributed with DMD.
+DustMite is also available from our [tools](https://github.com/dlang/tools) repository and is distributed with DMD.
 
 ### Regressions
 
@@ -32,9 +32,13 @@ Digger will automatically bisect the history for you.
 
 ### Changelog
 
-We use bugzilla to list fixed issues on a new release.  This list is then included in the changelog.
+We use Bugzilla to list fixed issues on a new release.  This list is then included in the changelog.
 For this list to be accurate then invalid or duplicated bugs must be closed with the appropriate resolution ('RESOLVED INVALID' and 'RESOLVED DUPLICATE', respectively - as opposed to e.g. 'RESOLVED FIXED').
 
+Changes that don't come with a bugzilla entry, such as new features, or enhancement on existing features, should come with their own changelog entry. Changelog entries should be written for everyday users, not compiler contributors.
+Additionally, for larger changes, you may want to add a specialized, detailed entry even if a bugzilla entry exists.
+See [changelog/README.md](changelog/README.md) for details on how to add a changelog entry.
+Note that after a version has entered the release window (there is a beta / the change is in stable), changes should be made directly [in the dlang.org repository](https://github.com/dlang/dlang.org/tree/master/changelog).
 
 ## Solving bugs / Submitting pull requests
 
@@ -42,16 +46,16 @@ Before submitting a PR there are some things you can check which will hopefully 
 
 - Make sure to target the right branch.  Regressions go to stable, and everything else to master, as outlined in [our release process](http://wiki.dlang.org/DIP75).
 
-- When fixing a bugzilla issue, use the title : 'Fix issue XXXXX - Issue title'.  This is recognized by both bugzilla and our github bot (dlang-bot),
+- When fixing a Bugzilla issue, use the title: 'Fix issue XXXXX - Issue title'.  This is recognized by both Bugzilla and our GitHub bot (dlang-bot),
   and will automatically link the issue and the pull request together (by providing a link to the issue in Github, and automatically closing bugs when pull requests are merged).
 
 - Document the 'why' (the change is necessary and was done this way) rather than the 'how'.
 
 - Ensure newly introduced symbols are documented and that updates to existing symbols are reflected in the documentation.
 
-- Add a link to the PR to the bugzilla entry.
+- Add a link to the PR to the Bugzilla entry.
 
-- If your pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature or adding a new one),
+- If your pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
   a pull request to [the website](https://github.com/dlang/dlang.org) should be submitted in parallel.
 
 - Follow the usual git good practice:
@@ -62,13 +66,13 @@ Before submitting a PR there are some things you can check which will hopefully 
 
 ### Find bugs to work on
 
-For first-time contributers, we suggest to look for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D). You may continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
+For first-time contributors, we suggest looking for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D). You may continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
 
 If you want a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
 
 ## DMD Best Practices
 
-Here is a short list of stylistic issues the core team will expect in
+Here is a shortlist of stylistic issues the core team will expect in
 pull requests. Much of the source code does not follow these, but
 we expect new code to, and PRs retrofitting the existing code to
 follow it is welcome.
@@ -115,14 +119,14 @@ around their uses.
 
 10. Similar to (8), use distinct variable names for non-overlapping uses.
 
-11. Avoid use of mutable globals as much as practical. Consider passing them
+11. Avoid the use of mutable globals as much as practical. Consider passing them
 in as parameters.
 
-12. Avoid use of default parameters. Spell them out.
+12. Avoid the use of default parameters. Spell them out.
 
-13. Minimize use of overloading.
+13. Minimize the use of overloading.
 
-14. Avoid clever code. Anybody can write clever code. It takes genius to write
+14. Avoid clever code. Anybody can write clever code. It takes a genius to write
 simple code.
 
 15. Try to reduce cyclomatic complexity, i.e. think about how to make the code work
@@ -163,8 +167,8 @@ significant improvement.
 3. Reformatting into your personal style. Please stick with the existing style.
 Use the [D Style](https://dlang.org/dstyle.html#phobos_documentation) for new code.
 
-As always, treating the above as sacred writ is a huge mistake. Use
-your best judgement on a case-by-case basis. Blindly doing things just
+As always, treating the above as a sacred writ is a huge mistake. Use
+your best judgment on a case-by-case basis. Blindly doing things just
 adds more technical debt.
 
 

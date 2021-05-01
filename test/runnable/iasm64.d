@@ -6,6 +6,7 @@
 // http://www.digitalmars.com
 
 import core.stdc.stdio;
+import core.stdc.config;
 
 version (D_PIC)
 {
@@ -182,6 +183,13 @@ void test6()
         0x66, 0xA9, 0x04, 0x00,         // test AX,4
         0xA9, 0x05, 0x00, 0x00, 0x00,   // test EAX,5
         0x85, 0x3C, 0xF9,               // test [RDI*8][RCX],EDI
+
+        0x49, 0x8B, 0x45, 0x00,         // mov RAX,0[R13]
+        0x4A, 0x8B, 0x04, 0x1D, 0x00, 0x00, 0x00, 0x00, // mov RAX,[00h][R11]
+        0x49, 0x8B, 0x03,               // mov RAX,[R11]
+
+        0x8B, 0x05, 0x00, 0x00, 0x00, 0x00,  // mov EAX,[RIP]
+        0x8B, 0x05, 0x05, 0x00, 0x00, 0x00,  // mov EAX,5[RIP]
     ];
     int i;
 
@@ -210,6 +218,14 @@ void test6()
         test    AX,4                    ;
         test    EAX,5                   ;
         test    [RCX][RDI*8],EDI        ;
+
+        mov     RAX,[R13]               ;
+        mov     RAX,[0+1*R11]           ;
+        mov     RAX,[R11]               ;
+
+        mov     EAX,[RIP]               ;
+        mov     EAX,5[RIP]              ;
+
 L1:
         pop     RBX                     ;
         mov     p[RBP],RBX              ;
@@ -794,7 +810,7 @@ void test13()
         0x0F,0x2C,0xDC,                 // cvttps2pi    MM3,XMM4
         0x0F,0x2C,0x7D,0xD8,            // cvttps2pi    MM7,-028h[RBP]
         0xF2,0x0F,0x2C,0xC4,            // cvttsd2si    EAX,XMM4
-        0xF2,0x0F,0x2C,0x4D,0xE0,       // cvttsd2si    ECX,-020h[RBP]
+        0xF2,0x0F,0x2C,0x4D,0xD8,       // cvttsd2si    ECX,-028h[RBP]
         0xF3,0x0F,0x2C,0xC4,            // cvttss2si    EAX,XMM4
         0xF3,0x0F,0x2C,0x4D,0xD0,       // cvttss2si    ECX,-030h[RBP]
 0x66,   0x0F,0x5E,0xE8,                 // divpd        XMM5,XMM0
@@ -997,7 +1013,7 @@ void test13()
         cvttps2pi MM7,m64[RBP]          ;
 
         cvttsd2si EAX,XMM4              ;
-        cvttsd2si ECX,m128[RBP]         ;
+        cvttsd2si ECX,m64[RBP]          ;
 
         cvttss2si EAX,XMM4              ;
         cvttss2si ECX,m32[RBP]          ;
@@ -2583,7 +2599,7 @@ void test28()
 {
 //    version (Windows)
 //    {
-        cfloat[4] z = void;
+        c_complex_float[4] z = void;
         static const ubyte[8] A = [3, 4, 9, 0, 1, 3, 7, 2];
         ubyte[8] b;
 
@@ -3702,6 +3718,8 @@ void test50()
         0x9B,           // wait
         0x91,           // xchg EAX,ECX
         0xD7,           // xlat
+        0x48, 0x8D, 0x1D, 0x02, 0x00, 0x00, 0x00, // lea RBX,L1;
+        0x89, 0xC0,     // mov EAX,EAX
     ];
     int i;
 
@@ -3826,6 +3844,8 @@ L10:    nop; nop;         // put instructions above this or L10 changes
         wait    ;
         xchg    EAX,ECX ;
         xlat    ;
+        lea     RBX,L1 ;
+        mov     EAX,EAX ;
 
 L1:                                     ;
         pop     RBX                     ;
@@ -3893,8 +3913,8 @@ void test52()
 //      neg     i       ;
 //      neg     l       ;
         neg     x       ;
-        neg     [EBX]   ;
-        neg     [RBX]   ;
+        neg     byte ptr [EBX]   ;
+        neg     byte ptr [RBX]   ;
         neg     R8      ;
 
 L1:     pop     RAX     ;
@@ -4927,6 +4947,7 @@ void test61()
 
         0xC5, 0xF9, 0xE0, 0xC0,                   // vpavgb XMM0, XMM0, XMM0;
         0xC5, 0xF9, 0xE3, 0xC0,                   // vpavgw XMM0, XMM0, XMM0;
+        0x66, 0x0F, 0x3A, 0x44, 0x44, 0x88, 0x40, 0x00, // pclmulqdq XMM0, 64[RAX + 4 * RCX], 0;
         0xC4, 0xE3, 0x79, 0x44, 0x44, 0x88, 0x40, 0x00, // vpclmulqdq XMM0, XMM0, 64[RAX + 4 * RCX], 0;
         0xC4, 0xE2, 0x79, 0x01, 0xC0,             // vphaddw XMM0, XMM0, XMM0;
         0xC4, 0xE2, 0x79, 0x02, 0xC0,             // vphaddd XMM0, XMM0, XMM0;
@@ -5259,6 +5280,7 @@ void test61()
         0xC4, 0xE3, 0xF9, 0x16, 0xC0, 0x00,       // vpextrq RAX, XMM0, 0x0;
         0xC4, 0x43, 0xF9, 0x16, 0xCA, 0x0F,       // vpextrq R10, XMM9, 0xF;
         0xC4, 0x43, 0xF9, 0x16, 0x0A, 0x0F,       // vpextrq [R10], XMM9, 0xF;
+        0xC5, 0xF9, 0xC5, 0xCA, 0x03,             // vpextrw ECX, XMM2, 0x3;
         0xC5, 0xF9, 0xC5, 0xC0, 0x00,             // vpextrw EAX, XMM0, 0x0;
         0xC4, 0x41, 0x79, 0xC5, 0xD1, 0x0F,       // vpextrw R10, XMM9, 0xF;
         0xC4, 0x43, 0x79, 0x15, 0x0A, 0x0F,       // vpextrw [R10], XMM9, 0xF;
@@ -5488,10 +5510,10 @@ void test61()
         0xc4, 0xe2, 0x7d, 0x13, 0xc0,             // vcvtph2ps YMM0, XMM0;
         0xc4, 0x42, 0x7d, 0x13, 0x00,             // vcvtph2ps YMM8, [R8];
 
-        0xc4, 0xe3, 0x79, 0x13, 0xc0, 0x00,       // vcvtps2ph XMM0,  XMM0, 0x0;
-        0xc4, 0xe3, 0x79, 0x13, 0x00, 0x00,       // vcvtps2ph [RAX], XMM0, 0x0;
-        0xc4, 0xe3, 0x7d, 0x13, 0xc0, 0x00,       // vcvtps2ph XMM0,  YMM0, 0x0;
-        0xc4, 0x43, 0x7d, 0x13, 0x00, 0x00,       // vcvtps2ph [R8],  YMM8, 0x0;
+        0xc4, 0xe3, 0x79, 0x1d, 0xc0, 0x00,       // vcvtps2ph XMM0,  XMM0, 0x0;
+        0xc4, 0xe3, 0x79, 0x1d, 0x00, 0x00,       // vcvtps2ph [RAX], XMM0, 0x0;
+        0xc4, 0xe3, 0x7d, 0x1d, 0xc0, 0x00,       // vcvtps2ph XMM0,  YMM0, 0x0;
+        0xc4, 0x43, 0x7d, 0x1d, 0x00, 0x00,       // vcvtps2ph [R8],  YMM8, 0x0;
 
         /* FMA */
         0xc4, 0xe2, 0xf9, 0x98, 0xc0,             // vfmadd132pd XMM0, XMM0, XMM0;
@@ -5726,6 +5748,7 @@ void test61()
         vpavgb XMM0, XMM0, XMM0;
         vpavgw XMM0, XMM0, XMM0;
 
+        pclmulqdq XMM0, 64[RAX + 4 * RCX], 0;
         vpclmulqdq XMM0, XMM0, 64[RAX + 4 * RCX], 0;
 
         vphaddw XMM0, XMM0, XMM0;
@@ -6059,6 +6082,7 @@ void test61()
         vpextrq RAX, XMM0, 0x0;
         vpextrq R10, XMM9, 0xF;
         vpextrq [R10], XMM9, 0xF;
+        vpextrw ECX, XMM2, 0x3;
         vpextrw EAX, XMM0, 0x0;
         vpextrw R10, XMM9, 0xF;
         vpextrw [R10], XMM9, 0xF;
@@ -6851,6 +6875,64 @@ void test20126()
 
 /****************************************************/
 
+void test63()
+{
+    asm
+    {
+      L1:
+        mov EAX,0;
+        jmp L2;
+
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+        db 0,0,0,0,0,0,0,0 ;
+    }
+    asm
+    {
+        jmp L1;  // more than 128 bytes away
+    }
+  L2:
+    {
+    }
+}
+
+/****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=6166
+
+struct NRV { int[8] a; }
+
+NRV rvo()
+{
+    NRV v;
+    v.a[1] = 3;
+    asm @nogc pure
+    {
+        mov int ptr v+4,7;
+    }
+    return v;
+}
+
+void test6166()
+{
+    auto n = rvo();
+    assert(n.a[1] == 7);
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
@@ -6927,6 +7009,8 @@ int main()
     test17027();
     test18553();
     test20126();
+    test63();
+    test6166();
 
     printf("Success\n");
     return 0;

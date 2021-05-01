@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -16,22 +16,6 @@ import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.identifier;
-
-template xversion(string s)
-{
-    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-}
-
-enum TARGET : bool
-{
-    Linux        = xversion!`linux`,
-    OSX          = xversion!`OSX`,
-    FreeBSD      = xversion!`FreeBSD`,
-    OpenBSD      = xversion!`OpenBSD`,
-    Solaris      = xversion!`Solaris`,
-    Windows      = xversion!`Windows`,
-    DragonFlyBSD = xversion!`DragonFlyBSD`,
-}
 
 enum DiagnosticReporting : ubyte
 {
@@ -62,25 +46,6 @@ enum CHECKACTION : ubyte
     context,      // call D assert with the error context on failure
 }
 
-enum CPU
-{
-    x87,
-    mmx,
-    sse,
-    sse2,
-    sse3,
-    ssse3,
-    sse4_1,
-    sse4_2,
-    avx,                // AVX1 instruction set
-    avx2,               // AVX2 instruction set
-    avx512,             // AVX-512 instruction set
-
-    // Special values that don't survive past the command line processing
-    baseline,           // (default) the minimum capability CPU
-    native              // the machine the compiler is being run on
-}
-
 enum PIC : ubyte
 {
     fixed,              /// located at a specific address
@@ -104,10 +69,27 @@ enum JsonFieldFlags : uint
 
 enum CppStdRevision : uint
 {
-    cpp98 = 199711,
-    cpp11 = 201103,
-    cpp14 = 201402,
-    cpp17 = 201703
+    cpp98 = 1997_11,
+    cpp11 = 2011_03,
+    cpp14 = 2014_02,
+    cpp17 = 2017_03,
+    cpp20 = 2020_02,
+}
+
+/// Configuration for the C++ header generator
+enum CxxHeaderMode : uint
+{
+    none,   /// Don't generate headers
+    silent, /// Generate headers
+    verbose /// Generate headers and add comments for hidden declarations
+}
+
+/// Trivalent boolean to represent the state of a `revert`able change
+enum FeatureState : byte
+{
+    default_ = -1, /// Not specified by the user
+    disabled = 0,  /// Specified as `-revert=`
+    enabled = 1    /// Specified as `-preview=`
 }
 
 // Put command line switches in here
@@ -126,32 +108,19 @@ extern (C++) struct Param
     bool showColumns;       // print character (column) numbers in diagnostics
     bool vtls;              // identify thread local variables
     bool vtemplates;        // collect and list statistics on template instantiations
+    bool vtemplatesListInstances; // collect and list statistics on template instantiations origins. TODO: make this an enum when we want to list other kinds of instances
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
-    bool vcomplex;          // identify complex/imaginary type usage
+    bool vcomplex = true;   // identify complex/imaginary type usage
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
-    bool alwaysframe;       // always emit standard stack frame
     bool optimize;          // run optimizer
-    bool map;               // generate linker .map file
-    bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
-    bool isLP64;            // generate code for LP64
-    bool isLinux;           // generate code for linux
-    bool isOSX;             // generate code for Mac OSX
-    bool isWindows;         // generate code for Windows
-    bool isFreeBSD;         // generate code for FreeBSD
-    bool isOpenBSD;         // generate code for OpenBSD
-    bool isDragonFlyBSD;    // generate code for DragonFlyBSD
-    bool isSolaris;         // generate code for Solaris
-    bool hasObjectiveC;     // target supports Objective-C
-    bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
-    bool useDIP25;          // implement http://wiki.dlang.org/DIP25
-    bool noDIP25;           // revert to pre-DIP25 behavior
-    bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
+    FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25
+    bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool noAliasAggQuals;   // drop qualifiers when passing an aggregate type as a template alias parameter
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
@@ -160,19 +129,22 @@ extern (C++) struct Param
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
+    bool ctfe_cov = false;  // generate coverage data for ctfe
     bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
     bool useExceptions = true;   // support exception handling
     bool noSharedAccess;         // read/write access to shared memory objects
-    bool inMeansScopeConst; // `in` means `scope const`
+    bool previewIn;         // `in` means `[ref] scope const`, accepts rvalues
+    bool shortenedMethods; // allow => in normal function declarations
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
+    bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
@@ -180,7 +152,7 @@ extern (C++) struct Param
      */
     bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
-    bool dtorFields;        // destruct fields of partially constructed objects
+    FeatureState dtorFields; // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
@@ -189,9 +161,9 @@ extern (C++) struct Param
                             // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                             // Implementation: https://github.com/dlang/dmd/pull/9817
 
-    CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
+    CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
-    bool markdown;          // enable Markdown replacements in Ddoc
+    bool markdown = true;   // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
@@ -205,9 +177,8 @@ extern (C++) struct Param
     bool revertUsage;       // print help on -revert switch
     bool previewUsage;      // print help on -preview switch
     bool externStdUsage;    // print help on -extern-std switch
+    bool hcUsage;           // print help on -HC switch
     bool logo;              // print compiler logo
-
-    CPU cpu = CPU.baseline; // CPU instruction set to target
 
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
@@ -239,7 +210,7 @@ extern (C++) struct Param
     const(char)[] hdrname;               // write 'header' file to docname
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
 
-    bool doCxxHdrGeneration;            // write 'Cxx header' file
+    CxxHeaderMode doCxxHdrGeneration;      /// Generate 'Cxx header' file
     const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
     const(char)[] cxxhdrname;           // write 'header' file to docname
 
@@ -263,15 +234,12 @@ extern (C++) struct Param
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
-    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
-    // Hidden debug switches
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
+    bool emitMakeDeps;                   // whether to emit makedeps
+    const(char)[] makeDepsFile;          // filename for makedeps output
+    Array!(const(char)*) makeDeps;      // dependencies for makedeps
+
+    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
@@ -294,28 +262,27 @@ alias structalign_t = uint;
 // other values are all powers of 2
 enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
+enum mars_ext = "d";
+enum doc_ext  = "html";     // for Ddoc generated files
+enum ddoc_ext = "ddoc";     // for Ddoc macro include files
+enum dd_ext   = "dd";       // for Ddoc source files
+enum hdr_ext  = "di";       // for D 'header' import files
+enum json_ext = "json";     // for JSON files
+enum map_ext  = "map";      // for .map files
+
 extern (C++) struct Global
 {
     const(char)[] inifilename;
-    string mars_ext = "d";
-    const(char)[] obj_ext;
-    const(char)[] lib_ext;
-    const(char)[] dll_ext;
-    string doc_ext = "html";      // for Ddoc generated files
-    string ddoc_ext = "ddoc";     // for Ddoc macro include files
-    string hdr_ext = "di";        // for D 'header' import files
-    string cxxhdr_ext = "h";      // for C/C++ 'header' files
-    string json_ext = "json";     // for JSON files
-    string map_ext = "map";       // for .map files
-    bool run_noext;                     // allow -run sources without extensions.
 
-    string copyright = "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
-    string _version;
+    private enum string _version = import("VERSION");
+    private enum uint _versionNumber = parseVersionNumber(_version);
+
     const(char)[] vendor;    // Compiler backend name
 
     Param params;
@@ -370,68 +337,9 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
-        _version = import("VERSION") ~ '\0';
-
         version (MARS)
         {
             vendor = "Digital Mars D";
-            static if (TARGET.Windows)
-            {
-                obj_ext = "obj";
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                obj_ext = "o";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                lib_ext = "lib";
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                lib_ext = "a";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                dll_ext = "dll";
-            }
-            else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                dll_ext = "so";
-            }
-            else static if (TARGET.OSX)
-            {
-                dll_ext = "dylib";
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                run_noext = false;
-            }
-            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                // Allow 'script' D source files to have no extension.
-                run_noext = true;
-            }
-            else
-            {
-                static assert(0, "fix this");
-            }
-            static if (TARGET.Windows)
-            {
-                params.mscoff = params.is64bit;
-            }
 
             // -color=auto is the default value
             import dmd.console : Console;
@@ -440,10 +348,6 @@ extern (C++) struct Global
         else version (IN_GCC)
         {
             vendor = "GNU D";
-            obj_ext = "o";
-            lib_ext = "a";
-            dll_ext = "so";
-            run_noext = true;
         }
     }
 
@@ -459,41 +363,59 @@ extern (C++) struct Global
     }
 
     /**
+     * Computes the version number __VERSION__ from the compiler version string.
+     */
+    extern (D) private static uint parseVersionNumber(string version_)
+    {
+        //
+        // parse _version
+        //
+        uint major = 0;
+        uint minor = 0;
+        bool point = false;
+        // skip initial 'v'
+        foreach (const c; version_[1..$])
+        {
+            if ('0' <= c && c <= '9') // isdigit
+            {
+                minor = minor * 10 + c - '0';
+            }
+            else if (c == '.')
+            {
+                if (point)
+                    break; // ignore everything after second '.'
+                point = true;
+                major = minor;
+                minor = 0;
+            }
+            else
+                break;
+        }
+        return major * 1000 + minor;
+    }
+
+    /**
     Returns: the version as the number that would be returned for __VERSION__
     */
     extern(C++) uint versionNumber()
     {
-        import core.stdc.ctype;
-        __gshared uint cached = 0;
-        if (cached == 0)
-        {
-            //
-            // parse _version
-            //
-            uint major = 0;
-            uint minor = 0;
-            bool point = false;
-            for (const(char)* p = _version.ptr + 1;; p++)
-            {
-                const c = *p;
-                if (isdigit(cast(char)c))
-                {
-                    minor = minor * 10 + c - '0';
-                }
-                else if (c == '.')
-                {
-                    if (point)
-                        break; // ignore everything after second '.'
-                    point = true;
-                    major = minor;
-                    minor = 0;
-                }
-                else
-                    break;
-            }
-            cached = major * 1000 + minor;
-        }
-        return cached;
+        return _versionNumber;
+    }
+
+    /**
+    Returns: compiler version string.
+    */
+    extern(D) string versionString()
+    {
+        return _version;
+    }
+
+    /**
+    Returns: compiler version as char string.
+    */
+    extern(C++) const(char*) versionChars()
+    {
+        return _version.ptr;
     }
 
     /**
@@ -527,12 +449,19 @@ alias d_uns32 = uint32_t;
 alias d_int64 = int64_t;
 alias d_uns64 = uint64_t;
 
+version (DMDLIB)
+{
+    version = LocOffset;
+}
+
 // file location
 struct Loc
 {
     const(char)* filename; // either absolute or relative to cwd
     uint linnum;
     uint charnum;
+    version (LocOffset)
+        uint fileOffset;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
@@ -630,19 +559,18 @@ nothrow:
     }
 }
 
-enum LINK : int
+enum LINK : ubyte
 {
     default_,
     d,
     c,
     cpp,
     windows,
-    pascal,
     objc,
     system,
 }
 
-enum CPPMANGLE : int
+enum CPPMANGLE : ubyte
 {
     def,
     asStruct,
@@ -657,7 +585,7 @@ enum MATCH : int
     exact,     // exact match
 }
 
-enum PINLINE : int
+enum PINLINE : ubyte
 {
     default_,     // as specified on the command line
     never,   // never inline

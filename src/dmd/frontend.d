@@ -1,7 +1,7 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -120,10 +120,10 @@ void initDMD(
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
-    import dmd.mars : setTarget, addDefaultVersionIdentifiers;
+    import dmd.mars : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : target;
+    import dmd.target : target, defaultTargetOS;
 
     diagnosticHandler = handler;
 
@@ -140,16 +140,18 @@ void initDMD(
     }
 
     versionIdentifiers.each!(VersionCondition.addGlobalIdent);
-    setTarget(global.params);
-    addDefaultVersionIdentifiers(global.params);
+    addDefaultVersionIdentifiers(global.params, target);
 
     Type._init();
     Id.initialize();
     Module._init();
     target._init(global.params);
+    target.os = defaultTargetOS();
     Expression._init();
     Objc._init();
     FileCache._init();
+
+    addDefaultVersionIdentifiers(global.params,target);
 
     version (CRuntime_Microsoft)
         initFPU();

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -165,7 +165,7 @@ public:
 class ErrorStatement : public Statement
 {
 public:
-    Statement *syntaxCopy();
+    ErrorStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -184,7 +184,7 @@ public:
     Expression *exp;
 
     static ExpStatement *create(Loc loc, Expression *exp);
-    Statement *syntaxCopy();
+    ExpStatement *syntaxCopy();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statements *flatten(Scope *sc);
 
@@ -199,7 +199,7 @@ public:
 
     VarDeclaration *var;
 
-    Statement *syntaxCopy();
+    DtorExpStatement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -208,7 +208,7 @@ class CompileStatement : public Statement
 public:
     Expressions *exps;
 
-    Statement *syntaxCopy();
+    CompileStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -219,7 +219,7 @@ public:
     Statements *statements;
 
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
-    Statement *syntaxCopy();
+    CompoundStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
     ReturnStatement *endsWithReturnStatement();
     Statement *last();
@@ -230,7 +230,7 @@ public:
 class CompoundDeclarationStatement : public CompoundStatement
 {
 public:
-    Statement *syntaxCopy();
+    CompoundDeclarationStatement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -242,7 +242,7 @@ class UnrolledLoopStatement : public Statement
 public:
     Statements *statements;
 
-    Statement *syntaxCopy();
+    UnrolledLoopStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -255,7 +255,7 @@ public:
     Statement *statement;
     Loc endloc;                 // location of closing curly bracket
 
-    Statement *syntaxCopy();
+    ScopeStatement *syntaxCopy();
     ReturnStatement *endsWithReturnStatement();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -269,7 +269,7 @@ public:
     ForwardingScopeDsymbol *sym;
     Statement *statement;
 
-    Statement *syntaxCopy();
+    ForwardingStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -277,11 +277,12 @@ public:
 class WhileStatement : public Statement
 {
 public:
+    Parameter *param;
     Expression *condition;
     Statement *_body;
     Loc endloc;                 // location of closing curly bracket
 
-    Statement *syntaxCopy();
+    WhileStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -295,7 +296,7 @@ public:
     Expression *condition;
     Loc endloc;                 // location of ';' after while
 
-    Statement *syntaxCopy();
+    DoStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -316,7 +317,7 @@ public:
     // treat that label as referring to this loop.
     Statement *relatedLabeled;
 
-    Statement *syntaxCopy();
+    ForStatement *syntaxCopy();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
     bool hasBreak() const;
@@ -342,7 +343,7 @@ public:
     Statements *cases;          // put breaks, continues, gotos and returns here
     ScopeStatements *gotos;     // forward referenced goto's go here
 
-    Statement *syntaxCopy();
+    ForeachStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -361,7 +362,7 @@ public:
 
     VarDeclaration *key;
 
-    Statement *syntaxCopy();
+    ForeachRangeStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -378,7 +379,7 @@ public:
     VarDeclaration *match;      // for MatchExpression results
     Loc endloc;                 // location of closing curly bracket
 
-    Statement *syntaxCopy();
+    IfStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -390,7 +391,7 @@ public:
     Statement *ifbody;
     Statement *elsebody;
 
-    Statement *syntaxCopy();
+    ConditionalStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -401,7 +402,7 @@ class StaticForeachStatement : public Statement
 public:
     StaticForeach *sfe;
 
-    Statement *syntaxCopy();
+    StaticForeachStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -414,7 +415,7 @@ public:
     Expressions *args;          // array of Expression's
     Statement *_body;
 
-    Statement *syntaxCopy();
+    PragmaStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -424,7 +425,7 @@ class StaticAssertStatement : public Statement
 public:
     StaticAssert *sa;
 
-    Statement *syntaxCopy();
+    StaticAssertStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -445,7 +446,7 @@ public:
     int hasVars;                // !=0 if has variable case values
     VarDeclaration *lastVar;
 
-    Statement *syntaxCopy();
+    SwitchStatement *syntaxCopy();
     bool hasBreak() const;
 
     void accept(Visitor *v) { v->visit(this); }
@@ -461,7 +462,7 @@ public:
     VarDeclaration *lastVar;
     void* extra;            // for use by Statement_toIR()
 
-    Statement *syntaxCopy();
+    CaseStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -474,7 +475,7 @@ public:
     Expression *last;
     Statement *statement;
 
-    Statement *syntaxCopy();
+    CaseRangeStatement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -485,7 +486,7 @@ public:
     Statement *statement;
     VarDeclaration *lastVar;
 
-    Statement *syntaxCopy();
+    DefaultStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -495,7 +496,7 @@ class GotoDefaultStatement : public Statement
 public:
     SwitchStatement *sw;
 
-    Statement *syntaxCopy();
+    GotoDefaultStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -506,7 +507,7 @@ public:
     Expression *exp;            // NULL, or which case to goto
     CaseStatement *cs;          // case statement it resolves to
 
-    Statement *syntaxCopy();
+    GotoCaseStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -525,7 +526,7 @@ public:
     Expression *exp;
     size_t caseDim;
 
-    Statement *syntaxCopy();
+    ReturnStatement *syntaxCopy();
 
     ReturnStatement *endsWithReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -536,7 +537,7 @@ class BreakStatement : public Statement
 public:
     Identifier *ident;
 
-    Statement *syntaxCopy();
+    BreakStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -546,7 +547,7 @@ class ContinueStatement : public Statement
 public:
     Identifier *ident;
 
-    Statement *syntaxCopy();
+    ContinueStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -557,7 +558,7 @@ public:
     Expression *exp;
     Statement *_body;
 
-    Statement *syntaxCopy();
+    SynchronizedStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -572,7 +573,7 @@ public:
     VarDeclaration *wthis;
     Loc endloc;
 
-    Statement *syntaxCopy();
+    WithStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -585,7 +586,7 @@ public:
 
     Statement *tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
 
-    Statement *syntaxCopy();
+    TryCatchStatement *syntaxCopy();
     bool hasBreak() const;
 
     void accept(Visitor *v) { v->visit(this); }
@@ -620,7 +621,7 @@ public:
     bool bodyFallsThru;   // true if _body falls through to finally
 
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
-    Statement *syntaxCopy();
+    TryFinallyStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -633,7 +634,7 @@ public:
     TOK tok;
     Statement *statement;
 
-    Statement *syntaxCopy();
+    ScopeGuardStatement *syntaxCopy();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -647,7 +648,7 @@ public:
     // wasn't present in source code
     bool internalThrow;
 
-    Statement *syntaxCopy();
+    ThrowStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -657,7 +658,7 @@ class DebugStatement : public Statement
 public:
     Statement *statement;
 
-    Statement *syntaxCopy();
+    DebugStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -672,7 +673,7 @@ public:
     ScopeGuardStatement *os;
     VarDeclaration *lastVar;
 
-    Statement *syntaxCopy();
+    GotoStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -690,7 +691,7 @@ public:
     void* extra;                // used by Statement_toIR()
     bool breaks;                // someone did a 'break ident'
 
-    Statement *syntaxCopy();
+    LabelStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
@@ -717,7 +718,7 @@ class AsmStatement : public Statement
 public:
     Token *tokens;
 
-    Statement *syntaxCopy();
+    AsmStatement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -730,7 +731,7 @@ public:
     bool refparam;              // true if function parameter is referenced
     bool naked;                 // true if function is to be naked
 
-    Statement *syntaxCopy();
+    InlineAsmStatement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -748,7 +749,7 @@ public:
     Identifiers *labels;        // list of goto labels
     GotoStatements *gotos;      // of the goto labels, the equivalent statements they represent
 
-    Statement *syntaxCopy();
+    GccAsmStatement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -769,7 +770,7 @@ class ImportStatement : public Statement
 public:
     Dsymbols *imports;          // Array of Import's
 
-    Statement *syntaxCopy();
+    ImportStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };

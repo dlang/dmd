@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/lex.html#tokens, Tokens)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/tokens.d, _tokens.d)
@@ -128,7 +128,6 @@ enum TOK : ubyte
     construct,
     blit,
     dot,
-    arrow,
     comma,
     question,
     andAnd,
@@ -137,7 +136,7 @@ enum TOK : ubyte
     preMinusMinus,
 
     // Numeric literals
-    int32Literal = 105,
+    int32Literal = 104,
     uns32Literal,
     int64Literal,
     uns64Literal,
@@ -151,12 +150,12 @@ enum TOK : ubyte
     imaginary80Literal,
 
     // Char constants
-    charLiteral = 117,
+    charLiteral = 116,
     wcharLiteral,
     dcharLiteral,
 
     // Leaf operators
-    identifier = 120,
+    identifier = 119,
     string_,
     hexadecimalString,
     this_,
@@ -166,7 +165,7 @@ enum TOK : ubyte
     error,
 
     // Basic types
-    void_ = 128,
+    void_ = 127,
     int8,
     uns8,
     int16,
@@ -192,7 +191,7 @@ enum TOK : ubyte
     bool_,
 
     // Aggregates
-    struct_ = 152,
+    struct_ = 151,
     class_,
     interface_,
     union_,
@@ -224,7 +223,7 @@ enum TOK : ubyte
     immutable_,
 
     // Statements
-    if_ = 182,
+    if_ = 181,
     else_,
     while_,
     for_,
@@ -250,7 +249,7 @@ enum TOK : ubyte
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 206,
+    invariant_ = 205,
 
     // Testing
     unittest_,
@@ -260,7 +259,7 @@ enum TOK : ubyte
     ref_,
     macro_,
 
-    parameters = 211,
+    parameters = 210,
     traits,
     overloadSet,
     pure_,
@@ -280,7 +279,7 @@ enum TOK : ubyte
     vector,
     pound,
 
-    interval = 230,
+    interval = 229,
     voidExpression,
     cantExpression,
     showCtfeContext,
@@ -288,7 +287,8 @@ enum TOK : ubyte
     objcClassReference,
     vectorArray,
 
-    max_,
+    arrow,      // ->
+    colonColon, // ::
 }
 
 // Assert that all token enum members have consecutive values and
@@ -462,7 +462,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private static immutable string[TOK.max_] tochars =
+    extern (D) private static immutable string[TOK.max + 1] tochars =
     [
         // Keywords
         TOK.this_: "this",
@@ -652,6 +652,8 @@ extern (C++) struct Token
         TOK.powAssign: "^^=",
         TOK.goesTo: "=>",
         TOK.pound: "#",
+        TOK.arrow: "->",
+        TOK.colonColon: "::",
 
         // For debugging
         TOK.error: "error",
@@ -682,7 +684,6 @@ extern (C++) struct Token
         TOK.classReference: "classreference",
         TOK.thrownException: "thrownexception",
         TOK.delegateFunctionPointer: "delegatefuncptr",
-        TOK.arrow: "arrow",
         TOK.int32Literal: "int32v",
         TOK.uns32Literal: "uns32v",
         TOK.int64Literal: "int64v",

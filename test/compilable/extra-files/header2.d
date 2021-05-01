@@ -18,7 +18,7 @@ void foo2(const C2 c);
 struct Foo3
 {
    int k;
-   ~this() @trusted @disable @nogc { k = 1; }
+   ~this() @trusted @disable @nogc @live { k = 1; }
    this(this) { k = 2; }
 }
 
@@ -144,11 +144,33 @@ void test13275()
 // https://issues.dlang.org/show_bug.cgi?id=9766
 align (1) struct S9766
 {
+align {}
 align (true ? 2 : 3):
     int var1;
 
 align:
     int var2;
+}
+
+align(2) struct S12200_1
+{
+align:
+}
+
+align(2) struct S12200_2
+{
+align(1):
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=16140
+void gun()()
+{
+    int[] res;
+    while (auto va = fun()) {}  // expression expected, not 'auto'
+
+    while (true)
+        if (auto va = fun()) {}
+        else break;
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=16649

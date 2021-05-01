@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -22,6 +22,7 @@ import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -31,6 +32,7 @@ import dmd.backend.dvec;
 
 extern (C++):
 nothrow:
+@safe:
 
 /***************************************
  * Bit masks for various optimizations.
@@ -116,7 +118,6 @@ void localize();
 int blockinit();
 void compdom();
 void loopopt();
-extern (C) void fillInDNunambig(vec_t v, elem *e);
 extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
 
 /* gother.c */
@@ -131,5 +132,5 @@ void verybusyexp();
 void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
 
 /* gslice.c */
-void sliceStructs(symtab_t* symtab, block* startblock);
+void sliceStructs(ref symtab_t symtab, block* startblock);
 

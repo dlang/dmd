@@ -1,7 +1,7 @@
 /**
  * Perform constant folding.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -66,7 +66,7 @@ Expression expandVar(int result, VarDeclaration v)
 
     static Expression errorReturn()
     {
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     if (!v)
@@ -281,7 +281,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         void error()
         {
-            ret = new ErrorExp();
+            ret = ErrorExp.get();
         }
 
         bool expOptimize(ref Expression e, int flags, bool keepLvalue = false)
@@ -306,9 +306,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return expOptimize(e.e1, flags);
         }
 
-        bool binOptimize(BinExp e, int flags)
+        bool binOptimize(BinExp e, int flags, bool keepLhsLvalue = false)
         {
-            expOptimize(e.e1, flags);
+            expOptimize(e.e1, flags, keepLhsLvalue);
             expOptimize(e.e2, flags);
             return ret.op == TOK.error;
         }
@@ -320,13 +320,23 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         override void visit(VarExp e)
         {
-            if (keepLvalue)
+            VarDeclaration v = e.var.isVarDeclaration();
+
+            if (!(keepLvalue && v && !(v.storage_class & STC.manifest)))
+                ret = fromConstInitializer(result, e);
+
+            // if unoptimized, try to optimize the dtor expression
+            // (e.g., might be a LogicalExp with constant lhs)
+            if (ret == e && v && v.edtor)
             {
-                VarDeclaration v = e.var.isVarDeclaration();
-                if (v && !(v.storage_class & STC.manifest))
-                    return;
+                // prevent infinite recursion (`<var>.~this()`)
+                if (!v.inuse)
+                {
+                    v.inuse++;
+                    expOptimize(v.edtor, WANTvalue);
+                    v.inuse--;
+                }
             }
-            ret = fromConstInitializer(result, e);
         }
 
         override void visit(TupleExp e)
@@ -604,13 +614,15 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 Type t1 = e.e1.type.toBasetype();
                 if (t1.ty == Tdelegate)
                     t1 = t1.nextOf();
-                assert(t1.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)t1;
-                for (size_t i = 0; i < e.arguments.dim; i++)
+                // t1 can apparently be void for __ArrayDtor(T) calls
+                if (auto tf = t1.isTypeFunction())
                 {
-                    Parameter p = tf.parameterList[i];
-                    bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
-                    expOptimize((*e.arguments)[i], WANTvalue, keep);
+                    for (size_t i = 0; i < e.arguments.dim; i++)
+                    {
+                        Parameter p = tf.parameterList[i];
+                        bool keep = p && p.isReference();
+                        expOptimize((*e.arguments)[i], WANTvalue, keep);
+                    }
                 }
             }
         }
@@ -625,9 +637,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             assert(e.type);
             TOK op1 = e.e1.op;
             Expression e1old = e.e1;
-            if (expOptimize(e.e1, result))
+            if (expOptimize(e.e1, result, keepLvalue))
                 return;
-            e.e1 = fromConstInitializer(result, e.e1);
+            if (!keepLvalue)
+                e.e1 = fromConstInitializer(result, e.e1);
             if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
             {
                 // Casting this will result in the same expression, and
@@ -697,8 +710,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     goto L1;
                 }
             }
-            // We can convert 'head const' to mutable
-            if (e.to.mutableOf().constOf().equals(e.e1.type.mutableOf().constOf()))
+            if (e.e1.type.mutableOf().unSharedOf().equals(e.to.mutableOf().unSharedOf()))
             {
                 //printf(" returning5 %s\n", e.e1.toChars());
                 goto L1;
@@ -731,12 +743,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             //printf(" returning6 %s\n", ret.toChars());
         }
 
-        override void visit(BinExp e)
+        override void visit(BinAssignExp e)
         {
-            //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
-            // don't replace const variable with its initializer in e1
-            bool e2only = (e.op == TOK.construct || e.op == TOK.blit);
-            if (e2only ? expOptimize(e.e2, result) : binOptimize(e, result))
+            //printf("BinAssignExp::optimize(result = %d) %s\n", result, e.toChars());
+            if (binOptimize(e, result, /*keepLhsLvalue*/ true))
                 return;
             if (e.op == TOK.leftShiftAssign || e.op == TOK.rightShiftAssign || e.op == TOK.unsignedRightShiftAssign)
             {
@@ -753,6 +763,15 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     }
                 }
             }
+        }
+
+        override void visit(BinExp e)
+        {
+            //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
+            const keepLhsLvalue = e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign
+                || e.op == TOK.plusPlus || e.op == TOK.minusMinus
+                || e.op == TOK.prePlusPlus || e.op == TOK.preMinusMinus;
+            binOptimize(e, result, keepLhsLvalue);
         }
 
         override void visit(AddExp e)
@@ -989,10 +1008,11 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             setLengthVarIfKnown(e.lengthVar, ex);
             if (expOptimize(e.e2, WANTvalue))
                 return;
-            if (keepLvalue)
+            // Don't optimize to an array literal element directly in case an lvalue is requested
+            if (keepLvalue && ex.op == TOK.arrayLiteral)
                 return;
             ret = Index(e.type, ex, e.e2).copy();
-            if (CTFEExp.isCantExp(ret))
+            if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
                 ret = e;
         }
 
@@ -1058,8 +1078,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 ret = Expression_optimize(ret, result, false);
                 return;
             }
-            if (expOptimize(e.e2, WANTvalue))
-                return;
+            expOptimize(e.e2, WANTvalue);
             if (e.e1.isConst())
             {
                 if (e.e2.isConst())

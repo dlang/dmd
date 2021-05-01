@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -62,7 +62,7 @@ public:
     Identifier *ident;
     Module *mod;
 
-    Condition *syntaxCopy();
+    DVCondition *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -92,7 +92,7 @@ class StaticIfCondition : public Condition
 public:
     Expression *exp;
 
-    Condition *syntaxCopy();
+    StaticIfCondition *syntaxCopy();
     int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

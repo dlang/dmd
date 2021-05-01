@@ -1,0 +1,43 @@
+`pragma(mangle)` can now be applied to aggregates
+
+The syntax is `pragma(mangle, str_or_decl [, str] ) declaration;` where `str_or_decl` is either:
+a string expression to substitute the name of `declaration`;
+or a `class`, `struct`, or `union` declaration or template instance to use instead of `declaration`s for mangling.
+If the optional second argument is present, use that as a name instead but keep the namespaces and template parameters of
+`str_or_decl` (if any).
+
+This enables binding with functions that take classes by value or reference and to classes that are D keywords.
+
+To bind C++'s `std::function` by value:
+---
+extern(C++, "std")
+{
+    template std_function(F)
+    {
+        pragma(mangle, "function")
+        class std_function
+        {
+            // member variables and functions
+        }
+    }
+}
+
+template ScopeClass(C , string name)
+{
+    enum ns = __traits(getCppNamespaces,C);
+    extern(C++, class) extern(C++,(ns))
+    {
+        pragma(mangle, C, name)
+        struct ScopeClass
+        {
+            char[__traits(classInstanceSize, C)] buffer;
+            // member variables and functions
+        }
+    }
+}
+
+alias FuncType = void function(int);
+alias RawFuncType = typeof(*FuncType.init);
+// Mangles as `void funk(std::function<void(int)> a)`
+extern(C++) void funk( ScopeClass!(std_function!(RawFuncType)),"function") a );
+---

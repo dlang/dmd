@@ -79,6 +79,7 @@
 // REQUIRED_ARGS: -version=CRuntime_Glibc
 // REQUIRED_ARGS: -version=CRuntime_Microsoft
 // REQUIRED_ARGS: -version=CRuntime_Musl
+// REQUIRED_ARGS: -version=CRuntime_Newlib
 // REQUIRED_ARGS: -version=CRuntime_UClibc
 // REQUIRED_ARGS: -version=CRuntime_WASI
 // REQUIRED_ARGS: -version=CppRuntime_Clang
@@ -178,6 +179,7 @@
 // REQUIRED_ARGS: -debug=CRuntime_Glibc
 // REQUIRED_ARGS: -debug=CRuntime_Microsoft
 // REQUIRED_ARGS: -debug=CRuntime_Musl
+// REQUIRED_ARGS: -debug=CRuntime_Newlib
 // REQUIRED_ARGS: -debug=CRuntime_UClibc
 // REQUIRED_ARGS: -debug=CRuntime_WASI
 // REQUIRED_ARGS: -debug=CppRuntime_Clang
@@ -283,6 +285,7 @@ Error: version identifier `CRuntime_DigitalMars` is reserved and cannot be set
 Error: version identifier `CRuntime_Glibc` is reserved and cannot be set
 Error: version identifier `CRuntime_Microsoft` is reserved and cannot be set
 Error: version identifier `CRuntime_Musl` is reserved and cannot be set
+Error: version identifier `CRuntime_Newlib` is reserved and cannot be set
 Error: version identifier `CRuntime_UClibc` is reserved and cannot be set
 Error: version identifier `CRuntime_WASI` is reserved and cannot be set
 Error: version identifier `CppRuntime_Clang` is reserved and cannot be set

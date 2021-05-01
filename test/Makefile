@@ -1,3 +1,5 @@
+$(warning ===== DEPRECATION: test/Makefile is deprecated. Please use test/run.d instead.)
+
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
         OS:=windows
@@ -108,16 +110,19 @@ ifeq ($(HOST_DMD),)
 endif
 
 # Required version for -lowmem
-MIN_VERSION = v2.086.0
+LOW_MEM_MIN_VERSION = v2.086.0
 VERSION = $(filter v2.%, $(shell $(HOST_DMD) --version 2>/dev/null))
+RUN_FLAGS = -g -i -Itools -version=NoMain
 
 ifeq ($(VERSION),)
-    # dmd was not found in $PATH
-    USE_GENERATED=1
+	# dmd was not found in $PATH
+	USE_GENERATED=1
+endif
+
 # Detect whether the host dmd satisfies MIN_VERSION
-else ifneq ($(MIN_VERSION), $(firstword $(sort $(MIN_VERSION) $(VERSION))))
-    # dmd found in $PATH is too old
-    USE_GENERATED=1
+ifeq ($(LOW_MEM_MIN_VERSION), $(firstword $(sort $(LOW_MEM_MIN_VERSION) $(VERSION))))
+	# dmd found in $PATH is too old
+	RUN_FLAGS := $(RUN_FLAGS) -lowmem
 endif
 
 ifneq ($(USE_GENERATED),)
@@ -139,7 +144,12 @@ ifneq ($(N),)
     EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
 endif
 
+ifeq (windows,$(OS))
+all:
+	echo "Windows builds have been disabled"
+else
 all: run_tests
+endif
 
 quick: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
@@ -206,16 +216,21 @@ start_all_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) all
 
 # The auto-tester cannot run runnable_cxx as its compiler is too old
+ifeq (windows,$(OS))
+auto-tester-test:
+	echo "Windows builds have been disabled"
+else
 auto-tester-test: $(RUNNER)
 	$(EXECUTE_RUNNER) runnable compilable fail_compilation dshell
+endif
 
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
-	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -unittest -run $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -od$(RESULTS_DIR) -of$@ $<
 
 # Build d_do_test here to run it's unittests
 # TODO: Migrate this to run.d

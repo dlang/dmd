@@ -1,7 +1,7 @@
 /**
  * This module defines some utility functions for DMD.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utils.d, _utils.d)
@@ -81,7 +81,7 @@ FileBuffer readFile(Loc loc, const(char)[] filename)
 extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
 {
     ensurePathToNameExists(Loc.initial, filename);
-    if (!File.write(filename, data))
+    if (!File.update(filename, data))
     {
         error(loc, "Error writing file '%*.s'", cast(int) filename.length, filename.ptr);
         fatal();
@@ -138,6 +138,78 @@ void escapePath(OutBuffer* buf, const(char)* fname)
         }
         fname++;
     }
+}
+
+/**
+ * Takes a path, and make it compatible with GNU Makefile format.
+ *
+ * GNU make uses a weird quoting scheme for white space.
+ * A space or tab preceded by 2N+1 backslashes represents N backslashes followed by space;
+ * a space or tab preceded by 2N backslashes represents N backslashes at the end of a file name;
+ * and backslashes in other contexts should not be doubled.
+ *
+ * Params:
+ *   buf = Buffer to write the escaped path to
+ *   fname = Path to escape
+ */
+void writeEscapedMakePath(ref OutBuffer buf, const(char)* fname)
+{
+    uint slashes;
+
+    while (*fname)
+    {
+        switch (*fname)
+        {
+        case '\\':
+            slashes++;
+            break;
+        case '$':
+            buf.writeByte('$');
+            goto default;
+        case ' ':
+        case '\t':
+            while (slashes--)
+                buf.writeByte('\\');
+            goto case;
+        case '#':
+            buf.writeByte('\\');
+            goto default;
+        case ':':
+            // ':' not escaped on Windows because it can
+            // create problems with absolute paths (e.g. C:\Project)
+            version (Windows) {}
+            else
+            {
+                buf.writeByte('\\');
+            }
+            goto default;
+        default:
+            slashes = 0;
+            break;
+        }
+
+        buf.writeByte(*fname);
+        fname++;
+    }
+}
+
+///
+unittest
+{
+    version (Windows)
+    {
+        enum input = `C:\My Project\file#4$.ext`;
+        enum expected = `C:\My\ Project\file\#4$$.ext`;
+    }
+    else
+    {
+        enum input = `/foo\bar/weird$.:name#\ with spaces.ext`;
+        enum expected = `/foo\bar/weird$$.\:name\#\\\ with\ spaces.ext`;
+    }
+
+    OutBuffer buf;
+    buf.writeEscapedMakePath(input);
+    assert(buf[] == expected);
 }
 
 /**

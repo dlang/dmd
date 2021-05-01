@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -29,6 +29,7 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -47,6 +48,7 @@ version (OSX)
 extern (C++):
 
 nothrow:
+@safe:
 
 int os_clock();
 
@@ -61,7 +63,6 @@ void flowlv();
 void flowae();
 void flowvbe();
 void flowcp();
-void flowae();
 void genkillae();
 void flowarraybounds();
 int ae_field_affect(elem *lvalue,elem *e);
@@ -88,12 +89,13 @@ void verybusyexp();
 void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
 
 /* gslice.c */
-void sliceStructs(symtab_t*, block*);
+void sliceStructs(ref symtab_t, block*);
 
 /***************************************************************************/
 
 extern (C) void mem_free(void* p);
 
+@trusted
 void go_term()
 {
     vec_free(go.defkill);
@@ -112,6 +114,7 @@ debug
 debug (DEBUG_TREES)
     void dbg_optprint(const(char) *);
 else
+    @trusted
     void dbg_optprint(const(char) *c)
     {
         // to print progress message, undo comment
@@ -131,7 +134,7 @@ else
  *      0       not recognized
  *      !=0     recognized
  */
-
+@trusted
 int go_flag(char *cp)
 {
     enum GL     // indices of various flags in flagtab[]
@@ -256,6 +259,7 @@ void dbg_optprint(char *title)
  * Optimize function.
  */
 
+@trusted
 void optfunc()
 {
 version (HTOD)
@@ -284,12 +288,13 @@ else
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
-    int iterationLimit = 0;
+    int iterationLimit = 100;
     for (block* b = startblock; b; b = b.Bnext)
     {
         if (!b.Belem)
             continue;
-        int d = el_countCommas(b.Belem) + 100;
+        ++iterationLimit;
+        int d = el_countCommas(b.Belem);
         if (d > iterationLimit)
             iterationLimit = d;
     }
@@ -335,7 +340,7 @@ else
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs(&globsym, startblock);
+        sliceStructs(globsym, startblock);
         if (go.mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))

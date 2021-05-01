@@ -1,3 +1,5 @@
+// See ../README.md for information about DMD unit tests.
+
 module self_test;
 
 import support : afterEach, beforeEach, defaultImportPaths;

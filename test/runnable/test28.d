@@ -136,21 +136,6 @@ void test8()
 
 /*******************************************/
 
-cdouble y9;
-
-cdouble f9(cdouble x)
-{
-    return (y9 = x);
-}
-
-void test9()
-{
-    f9(1.0+2.0i);
-    assert(y9 == 1.0+2.0i);
-}
-
-/*******************************************/
-
 class CBase10
 {
     this() { }
@@ -419,16 +404,6 @@ int foo24(int i ...)
 void test24()
 {
     assert(foo24(3) == 3);
-}
-
-/*******************************************/
-
-void test25()
-{
-    ireal x = 4.0Li;
-    ireal y = 4.0Li;
-    ireal z = 4Li;
-    creal c = 4L + 0Li;
 }
 
 /*******************************************/
@@ -1303,7 +1278,6 @@ void main()
     test6();
     test7();
     test8();
-    test9();
     test10();
     test11();
     test12();
@@ -1318,7 +1292,6 @@ void main()
     test22();
     test23();
     test24();
-    test25();
     test26();
     test27();
     test28();

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2012-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2012-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/pdata.d, backend/pdata.d)
@@ -36,11 +36,8 @@ extern (C++):
 
 nothrow:
 
-static if (TARGET_WINDOS)
-{
-
 // Determine if this Symbol is stored in a COMDAT
-bool symbol_iscomdat3(Symbol* s)
+private bool symbol_iscomdat3(Symbol* s)
 {
     version (MARS)
     {
@@ -65,14 +62,12 @@ enum ALLOCA_LIMIT = 0x10000;
  * Creates an instance of struct RUNTIME_FUNCTION:
  *   http://msdn.microsoft.com/en-US/library/ft9x1kdx(v=vs.80).aspx
  *
- * Input:
- *      sf      function to generate unwind data for
+ * Params:
+ *      sf = function to generate unwind data for
  */
 
-void win64_pdata(Symbol *sf)
+public void win64_pdata(Symbol *sf)
 {
-//    return; // doesn't work yet
-
     //printf("win64_pdata()\n");
     assert(config.exe == EX_WIN64);
 
@@ -108,6 +103,8 @@ void win64_pdata(Symbol *sf)
     if (sflen >= ALLOCA_LIMIT) free(pdata_name);
 }
 
+private:
+
 /**************************************************
  * Unwind data symbol goes in the .xdata section.
  * Input:
@@ -116,7 +113,7 @@ void win64_pdata(Symbol *sf)
  *      generated symbol referring to unwind data
  */
 
-Symbol *win64_unwind(Symbol *sf)
+private Symbol *win64_unwind(Symbol *sf)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf.Sident.ptr);
@@ -213,7 +210,7 @@ static if (0)
 
 
 
-dt_t *unwind_data()
+private dt_t *unwind_data()
 {
     UNWIND_INFO ui;
 
@@ -287,7 +284,5 @@ static if (1)
     auto dtb = DtBuilder(0);
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
-}
-
 }
 }

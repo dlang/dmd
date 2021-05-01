@@ -1,3 +1,5 @@
+// See ../../README.md for information about DMD unit tests.
+
 module parser.diagnostic_reporter;
 
 import core.stdc.stdarg;
@@ -98,27 +100,4 @@ unittest
     });
 
     assert(reporter.warningCount == 1);
-}
-
-@("deprecations: extern(Pascal)")
-unittest
-{
-    static class DeprecationsCountingDiagnosticReporter : NoopDiagnosticReporter
-    {
-        int deprecationCount;
-
-        override bool deprecation(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
-        {
-            deprecationCount++;
-            return true;
-        }
-    }
-
-    scope reporter = new DeprecationsCountingDiagnosticReporter;
-
-    parseModule("test.d", q{
-        extern (Pascal) void foo();
-    });
-
-    assert(reporter.deprecationCount == 1);
 }

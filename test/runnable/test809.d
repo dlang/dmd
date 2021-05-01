@@ -1,9 +1,4 @@
 // https://issues.dlang.org/show_bug.cgi?id=809
-/* TEST_OUTPUT:
----
----
-*/
-
 void test(lazy int dg)
 {
     int delegate() dg_ = &dg;

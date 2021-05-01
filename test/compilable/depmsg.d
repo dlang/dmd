@@ -14,7 +14,7 @@ compilable/depmsg.d(43): Deprecation: enum `depmsg.main.Inner.E` is deprecated -
 compilable/depmsg.d(43): Deprecation: enum `depmsg.main.Inner.E` is deprecated - With message!
 compilable/depmsg.d(45): Deprecation: alias `depmsg.main.Inner.G` is deprecated - With message!
 compilable/depmsg.d(46): Deprecation: variable `depmsg.main.Inner.H` is deprecated - With message!
-compilable/depmsg.d(47): Deprecation: class `depmsg.main.Inner.I!().I` is deprecated - With message!
+compilable/depmsg.d(47): Deprecation: class `depmsg.main.Inner.I()` is deprecated - With message!
 ---
 */
 void main()

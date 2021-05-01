@@ -58,12 +58,12 @@ void test3() nothrow
     }
 }
 
-void test3() nothrow
+void test4() nothrow
 {
     debug throwException();
 }
 
-void test4() nothrow
+void test5() nothrow
 {
     debug willThrowException();
 }
@@ -78,7 +78,7 @@ void throwException()
     throw new Exception("");
 }
 
-void test5() nothrow
+void test6() nothrow
 {
     debug
     {

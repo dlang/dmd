@@ -2,6 +2,7 @@
 /* Copyright (C) 1986-1987 by Northwest Software        */
 /* All Rights Reserved                                  */
 /* Written by Walter Bright                             */
+module dmd.backend.filespec;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -13,6 +14,7 @@ import dmd.backend.mem;
 extern (C++):
 
 nothrow:
+@safe:
 
 /*********************************
  * String compare of filenames.
@@ -54,7 +56,7 @@ else
  *      filespec        mem_malloc'd file specification
  *      NULL            Out of memory
  */
-
+@trusted
 char *filespecaddpath(const(char)* path, const(char)* filename)
 {
     char* filespec;
@@ -100,6 +102,7 @@ else
     import core.sys.posix.unistd: getcwd;
 }
 
+@trusted
 char *filespecrootpath(char* filespec)
 {
     char *cwd;
@@ -196,7 +199,7 @@ else
  * Returns:
  *      mem_malloc'ed string (NULL if error)
  */
-
+@trusted
 char *filespecdefaultext(const(char)* filespec, const(char)* ext)
 {
     char *p;
@@ -226,7 +229,7 @@ char *filespecdefaultext(const(char)* filespec, const(char)* ext)
  * Return pointer to the 0 at the end of filespec if dot isn't found.
  * Return NULL if filespec is NULL.
  */
-
+@trusted
 char *filespecdotext(const(char)* filespec)
 {
     auto p = filespec;
@@ -258,7 +261,7 @@ char *filespecdotext(const(char)* filespec)
  *      NULL if filespec is NULL
  *      If ext is NULL, return mem_strdup(filespec)
  */
-
+@trusted
 char *filespecforceext(const(char)* filespec, const(char)* ext)
 {
     char* p;
@@ -306,6 +309,7 @@ char *filespecgetroot(const(char)* name)
  * The string returned is NOT mem_malloc'ed.
  */
 
+@trusted
 char *filespecname(const(char)* filespec)
 {
     const(char)* p;
@@ -367,6 +371,7 @@ else
  *      NULL if filespec is NULL
  */
 
+@trusted
 char *filespecbackup(const(char)* filespec)
 {
 version (Windows)

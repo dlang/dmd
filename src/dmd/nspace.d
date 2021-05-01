@@ -36,7 +36,7 @@
  * are valid D identifier.
  *
  * See_Also:    https://github.com/dlang/dmd/pull/10031
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nspace.d, _nspace.d)
@@ -75,10 +75,11 @@ extern (C++) final class Nspace : ScopeDsymbol
         this.identExp = identExp;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override Nspace syntaxCopy(Dsymbol s)
     {
         auto ns = new Nspace(loc, ident, identExp, null);
-        return ScopeDsymbol.syntaxCopy(ns);
+        ScopeDsymbol.syntaxCopy(ns);
+        return ns;
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -95,7 +96,7 @@ extern (C++) final class Nspace : ScopeDsymbol
                 ScopeDsymbol sds2 = sce.scopesym;
                 if (sds2)
                 {
-                    sds2.importScope(this, Prot(Prot.Kind.public_));
+                    sds2.importScope(this, Visibility(Visibility.Kind.public_));
                     break;
                 }
             }

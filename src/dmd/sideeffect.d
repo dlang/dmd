@@ -1,7 +1,7 @@
 /**
  * Find side-effects of expressions.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d, _sideeffect.d)
@@ -62,8 +62,13 @@ extern (C++) bool isTrivialExp(Expression e)
 
 /********************************************
  * Determine if Expression has any side effects.
+ *
+ * Params:
+ *   e = the expression
+ *   assumeImpureCalls = whether function calls should always be assumed to
+ *                       be impure (e.g. debug is allowed to violate purity)
  */
-extern (C++) bool hasSideEffect(Expression e)
+extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
@@ -76,7 +81,7 @@ extern (C++) bool hasSideEffect(Expression e)
         override void visit(Expression e)
         {
             // stop walking if we determine this expression has side effects
-            stop = lambdaHasSideEffect(e);
+            stop = lambdaHasSideEffect(e, assumeImpureCalls);
         }
     }
 
@@ -142,7 +147,7 @@ int callSideEffectLevel(Type t)
     return 0;
 }
 
-private bool lambdaHasSideEffect(Expression e)
+private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     switch (e.op)
     {
@@ -178,6 +183,12 @@ private bool lambdaHasSideEffect(Expression e)
         return true;
     case TOK.call:
         {
+            if (assumeImpureCalls)
+                return true;
+
+            if (e.type && e.type.ty == Tnoreturn)
+                return true;
+
             CallExp ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.
@@ -280,7 +291,7 @@ bool discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
-                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
+                    e.warning("calling `%s` without side effects discards return value of type `%s`; prepend a `cast(void)` if intentional", s, e.type.toChars());
                 }
             }
         }
@@ -324,18 +335,12 @@ bool discardValue(Expression e)
     case TOK.comma:
         {
             CommaExp ce = cast(CommaExp)e;
-            /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
-             * In such cases, only check e for side effect (it's OK for __tmp to have
-             * no side effect).
-             * See https://issues.dlang.org/show_bug.cgi?id=4231 for discussion
-             */
-            auto fc = firstComma(ce);
-            if (fc.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)fc).declaration == (cast(VarExp)ce.e2).var)
-            {
+            // Don't complain about compiler-generated comma expressions
+            if (ce.isGenerated)
                 return false;
-            }
-            // Don't check e1 until we cast(void) the a,b code generation
-            //discardValue(ce.e1);
+
+            // Don't check e1 until we cast(void) the a,b code generation.
+            // This is concretely done in expressionSemantic, if a CommaExp has Tvoid as type
             return discardValue(ce.e2);
         }
     case TOK.tuple:

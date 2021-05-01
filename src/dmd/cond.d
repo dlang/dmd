@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/version.html, Conditional Compilation)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cond.d, _cond.d)
@@ -42,7 +42,7 @@ import dmd.func;
 /***********************************************************
  */
 
-enum Include
+enum Include : ubyte
 {
     notComputed,        /// not computed yet
     yes,                /// include the conditional code
@@ -130,8 +130,8 @@ extern (C++) final class StaticForeach : RootObject
     {
         return new StaticForeach(
             loc,
-            aggrfe ? cast(ForeachStatement)aggrfe.syntaxCopy() : null,
-            rangefe ? cast(ForeachRangeStatement)rangefe.syntaxCopy() : null
+            aggrfe ? aggrfe.syntaxCopy() : null,
+            rangefe ? rangefe.syntaxCopy() : null
         );
     }
 
@@ -176,7 +176,7 @@ extern (C++) final class StaticForeach : RootObject
         }
         else
         {
-            aggrfe.aggr = new ErrorExp();
+            aggrfe.aggr = ErrorExp.get();
         }
     }
 
@@ -483,15 +483,15 @@ extern (C++) class DVCondition : Condition
     Identifier ident;
     Module mod;
 
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(Loc.initial);
+        super(loc);
         this.mod = mod;
         this.level = level;
         this.ident = ident;
     }
 
-    override final Condition syntaxCopy()
+    override final DVCondition syntaxCopy()
     {
         return this; // don't need to copy
     }
@@ -548,10 +548,11 @@ extern (C++) final class DebugCondition : DVCondition
      *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
+     *  loc = Location in the source file
      */
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(loc, mod, level, ident);
     }
 
     override int include(Scope* sc)
@@ -655,6 +656,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "CRuntime_Glibc":
             case "CRuntime_Microsoft":
             case "CRuntime_Musl":
+            case "CRuntime_Newlib":
             case "CRuntime_UClibc":
             case "CRuntime_WASI":
             case "Cygwin":
@@ -822,10 +824,11 @@ extern (C++) final class VersionCondition : DVCondition
      *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
+     *  loc = Location in the source file
      */
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(loc, mod, level, ident);
     }
 
     override int include(Scope* sc)
@@ -891,7 +894,7 @@ extern (C++) final class StaticIfCondition : Condition
         this.exp = exp;
     }
 
-    override Condition syntaxCopy()
+    override StaticIfCondition syntaxCopy()
     {
         return new StaticIfCondition(loc, exp.syntaxCopy());
     }
@@ -918,6 +921,10 @@ extern (C++) final class StaticIfCondition : Condition
 
             import dmd.staticcond;
             bool errors;
+
+            if (!exp)
+                return errorReturn();
+
             bool result = evalStaticCondition(sc, exp, exp, errors);
 
             // Prevent repeated condition evaluation.
@@ -954,7 +961,7 @@ extern (C++) final class StaticIfCondition : Condition
  * Returns:
  *      true if found
  */
-bool findCondition(Identifiers* ids, Identifier ident)
+bool findCondition(Identifiers* ids, Identifier ident) @safe nothrow pure
 {
     if (ids)
     {

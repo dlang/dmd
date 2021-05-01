@@ -3,7 +3,7 @@
  *
  * Also used to convert AST nodes to D code in general, e.g. for error messages or `printf` debugging.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.d, _hdrgen.d)
@@ -250,6 +250,20 @@ public:
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
+        if (auto p = s.param)
+        {
+            // Print condition assignment
+            StorageClass stc = p.storageClass;
+            if (!p.type && !stc)
+                stc = STC.auto_;
+            if (stcToBuffer(buf, stc))
+                buf.writeByte(' ');
+            if (p.type)
+                typeToBuffer(p.type, p.ident, buf, hgs);
+            else
+                buf.writestring(p.ident.toString());
+            buf.writestring(" = ");
+        }
         s.condition.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
@@ -862,12 +876,9 @@ public:
         {
             buf.printf("%s = ", imp.aliasId.toChars());
         }
-        if (imp.packages && imp.packages.dim)
+        foreach (const pid; imp.packages)
         {
-            foreach (const pid; *imp.packages)
-            {
-                buf.printf("%s.", pid.toChars());
-            }
+            buf.printf("%s.", pid.toChars());
         }
         buf.writestring(imp.id.toString());
         if (imp.names.dim)
@@ -903,9 +914,7 @@ public:
             buf.writenl();
             return;
         }
-        if (d.decl.dim == 0)
-            buf.writestring("{}");
-        else if (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration())
+        if (d.decl.dim == 0 || (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration()))
         {
             // hack for bugzilla 8081
             buf.writestring("{}");
@@ -972,12 +981,12 @@ public:
         visit(cast(AttribDeclaration)d);
     }
 
-    override void visit(ProtDeclaration d)
+    override void visit(VisibilityDeclaration d)
     {
-        protectionToBuffer(buf, d.protection);
+        visibilityToBuffer(buf, d.visibility);
         buf.writeByte(' ');
         AttribDeclaration ad = cast(AttribDeclaration)d;
-        if (ad.decl.dim == 1 && (*ad.decl)[0].isProtDeclaration)
+        if (ad.decl.dim == 1 && (*ad.decl)[0].isVisibilityDeclaration)
             visit(cast(AttribDeclaration)(*ad.decl)[0]);
         else
             visit(cast(AttribDeclaration)d);
@@ -987,7 +996,13 @@ public:
     {
         buf.writestring("align ");
         if (d.ealign)
-            buf.printf("(%s) ", d.ealign.toChars());
+        {
+            buf.printf("(%s)", d.ealign.toChars());
+            AttribDeclaration ad = cast(AttribDeclaration)d;
+            if (ad.decl && ad.decl.dim < 2)
+                buf.writeByte(' ');
+        }
+
         visit(cast(AttribDeclaration)d);
     }
 
@@ -1444,6 +1459,18 @@ public:
         buf.writenl();
     }
 
+    override void visit(AliasAssign d)
+    {
+        buf.writestring(d.ident.toString());
+        buf.writestring(" = ");
+        if (d.aliassym)
+            d.aliassym.accept(this);
+        else // d.type
+            typeToBuffer(d.type, null, buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
     override void visit(VarDeclaration d)
     {
         if (d.storage_class & STC.local)
@@ -1661,6 +1688,8 @@ public:
             buf.writestring("@safe ");
         if (d.storage_class & STC.nogc)
             buf.writestring("@nogc ");
+        if (d.storage_class & STC.live)
+            buf.writestring("@live ");
         if (d.storage_class & STC.disable)
             buf.writestring("@disable ");
 
@@ -1777,19 +1806,17 @@ public:
             case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
-                    if (hgs.fullDump)
+                    auto sym = te.sym;
+                    if (sym && sym.members && (!hgs.inEnumDecl || hgs.inEnumDecl != sym))
                     {
-                        auto sym = te.sym;
-                        if (hgs.inEnumDecl && sym && hgs.inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
+                        foreach (em; *sym.members)
                         {
-                            EnumMember em = cast(EnumMember) (*sym.members)[i];
-                            if (em.value.toInteger == v)
+                            if ((cast(EnumMember)em).value.toInteger == v)
                             {
                                 buf.printf("%s.%s", sym.toChars(), em.ident.toChars());
                                 return ;
                             }
                         }
-                        //assert(0, "We could not find the EmumMember");// for some reason it won't append char* ~ e.toChars() ~ " in " ~ sym.toChars() );
                     }
 
                     buf.printf("cast(%s)", te.sym.toChars());
@@ -1853,8 +1880,16 @@ public:
                 buf.writeByte(')');
                 if (target.ptrsize == 8)
                     goto case Tuns64;
-                else
+                else if (target.ptrsize == 4 ||
+                         target.ptrsize == 2)
                     goto case Tuns32;
+                else
+                    assert(0);
+
+            case Tvoid:
+                buf.writestring("cast(void)0");
+                break;
+
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().
@@ -1884,45 +1919,7 @@ public:
 
     void floatToBuffer(Type type, real_t value)
     {
-        /** sizeof(value)*3 is because each byte of mantissa is max
-         of 256 (3 characters). The string will be "-M.MMMMe-4932".
-         (ie, 8 chars more than mantissa). Plus one for trailing \0.
-         Plus one for rounding. */
-        const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
-        char[BUFFER_LEN] buffer;
-        CTFloat.sprint(buffer.ptr, 'g', value);
-        assert(strlen(buffer.ptr) < BUFFER_LEN);
-        if (hgs.hdrgen)
-        {
-            real_t r = CTFloat.parse(buffer.ptr);
-            if (r != value) // if exact duplication
-                CTFloat.sprint(buffer.ptr, 'a', value);
-        }
-        buf.writestring(buffer.ptr);
-        if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')
-            buf.remove(buf.length() - 1, 1);
-
-        if (type)
-        {
-            Type t = type.toBasetype();
-            switch (t.ty)
-            {
-            case Tfloat32:
-            case Timaginary32:
-            case Tcomplex32:
-                buf.writeByte('F');
-                break;
-            case Tfloat80:
-            case Timaginary80:
-            case Tcomplex80:
-                buf.writeByte('L');
-                break;
-            default:
-                break;
-            }
-            if (t.isimaginary())
-                buf.writeByte('i');
-        }
+        .floatToBuffer(type, value, buf, hgs.hdrgen);
     }
 
     override void visit(RealExp e)
@@ -2276,7 +2273,7 @@ public:
 
         // not a CommaExp introduced for temporaries, go on
         // the old path
-        if (!ve || !ve.var.storage_class & STC.temp)
+        if (!ve || !(ve.var.storage_class & STC.temp))
         {
             visit(cast(BinExp)e);
             return;
@@ -2290,24 +2287,29 @@ public:
         // are used for other constructs
         auto vd = ve.var.isVarDeclaration();
         assert(vd && vd._init);
-        auto exp = vd._init.isExpInitializer.exp;
-        assert(exp);
-        Expression commaExtract;
-        if (auto ce = exp.isConstructExp())
-            commaExtract = ce.e2;
-        else if (auto se = exp.isStructLiteralExp)
-            commaExtract = se;
+
+        if (auto ei = vd._init.isExpInitializer())
+        {
+            Expression commaExtract;
+            auto exp = ei.exp;
+            if (auto ce = exp.isConstructExp())
+                commaExtract = ce.e2;
+            else if (auto se = exp.isStructLiteralExp())
+                commaExtract = se;
+
+            if (commaExtract)
+            {
+                expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+                return;
+            }
+        }
 
         // not one of the known cases, go on the old path
-        if (!commaExtract)
-        {
-            visit(cast(BinExp)e);
-            return;
-        }
-        expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+        visit(cast(BinExp)e);
+        return;
     }
 
-    override void visit(CompileExp e)
+    override void visit(MixinExp e)
     {
         buf.writestring("mixin(");
         argsToBuffer(e.exps, buf, hgs, null);
@@ -2534,7 +2536,7 @@ public:
 
     override void visit(DefaultInitExp e)
     {
-        buf.writestring(Token.toString(e.subop));
+        buf.writestring(Token.toString(e.op));
     }
 
     override void visit(ClassReferenceExp e)
@@ -2543,6 +2545,58 @@ public:
     }
 }
 
+/**
+ * Formats `value` as a literal of type `type` into `buf`.
+ *
+ * Params:
+ *   type     = literal type (e.g. Tfloat)
+ *   value    = value to print
+ *   buf      = target buffer
+ *   allowHex = whether hex floating point literals may be used
+ *              for greater accuracy
+ */
+void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool allowHex)
+{
+    /** sizeof(value)*3 is because each byte of mantissa is max
+        of 256 (3 characters). The string will be "-M.MMMMe-4932".
+        (ie, 8 chars more than mantissa). Plus one for trailing \0.
+        Plus one for rounding. */
+    const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
+    char[BUFFER_LEN] buffer;
+    CTFloat.sprint(buffer.ptr, 'g', value);
+    assert(strlen(buffer.ptr) < BUFFER_LEN);
+    if (allowHex)
+    {
+        real_t r = CTFloat.parse(buffer.ptr);
+        if (r != value) // if exact duplication
+            CTFloat.sprint(buffer.ptr, 'a', value);
+    }
+    buf.writestring(buffer.ptr);
+    if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')
+        buf.remove(buf.length() - 1, 1);
+
+    if (type)
+    {
+        Type t = type.toBasetype();
+        switch (t.ty)
+        {
+        case Tfloat32:
+        case Timaginary32:
+        case Tcomplex32:
+            buf.writeByte('F');
+            break;
+        case Tfloat80:
+        case Timaginary80:
+        case Tcomplex80:
+            buf.writeByte('L');
+            break;
+        default:
+            break;
+        }
+        if (t.isimaginary())
+            buf.writeByte('i');
+    }
+}
 
 private void templateParameterToBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
@@ -2730,74 +2784,63 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
  */
 string stcToString(ref StorageClass stc)
 {
-    struct SCstring
+    static struct SCstring
     {
         StorageClass stc;
-        TOK tok;
         string id;
     }
 
-    __gshared SCstring* table =
+    // Note: The identifier needs to be `\0` terminated
+    // as some code assumes it (e.g. when printing error messages)
+    static immutable SCstring[] table =
     [
-        SCstring(STC.auto_, TOK.auto_),
-        SCstring(STC.scope_, TOK.scope_),
-        SCstring(STC.static_, TOK.static_),
-        SCstring(STC.extern_, TOK.extern_),
-        SCstring(STC.const_, TOK.const_),
-        SCstring(STC.final_, TOK.final_),
-        SCstring(STC.abstract_, TOK.abstract_),
-        SCstring(STC.synchronized_, TOK.synchronized_),
-        SCstring(STC.deprecated_, TOK.deprecated_),
-        SCstring(STC.override_, TOK.override_),
-        SCstring(STC.lazy_, TOK.lazy_),
-        SCstring(STC.alias_, TOK.alias_),
-        SCstring(STC.out_, TOK.out_),
-        SCstring(STC.in_, TOK.in_),
-        SCstring(STC.manifest, TOK.enum_),
-        SCstring(STC.immutable_, TOK.immutable_),
-        SCstring(STC.shared_, TOK.shared_),
-        SCstring(STC.nothrow_, TOK.nothrow_),
-        SCstring(STC.wild, TOK.inout_),
-        SCstring(STC.pure_, TOK.pure_),
-        SCstring(STC.ref_, TOK.ref_),
-        SCstring(STC.return_, TOK.return_),
-        SCstring(STC.tls),
-        SCstring(STC.gshared, TOK.gshared),
-        SCstring(STC.nogc, TOK.at, "@nogc"),
-        SCstring(STC.property, TOK.at, "@property"),
-        SCstring(STC.safe, TOK.at, "@safe"),
-        SCstring(STC.trusted, TOK.at, "@trusted"),
-        SCstring(STC.system, TOK.at, "@system"),
-        SCstring(STC.disable, TOK.at, "@disable"),
-        SCstring(STC.future, TOK.at, "@__future"),
-        SCstring(STC.local, TOK.at, "__local"),
-        SCstring(0, TOK.reserved)
+        SCstring(STC.auto_, Token.toString(TOK.auto_)),
+        SCstring(STC.scope_, Token.toString(TOK.scope_)),
+        SCstring(STC.static_, Token.toString(TOK.static_)),
+        SCstring(STC.extern_, Token.toString(TOK.extern_)),
+        SCstring(STC.const_, Token.toString(TOK.const_)),
+        SCstring(STC.final_, Token.toString(TOK.final_)),
+        SCstring(STC.abstract_, Token.toString(TOK.abstract_)),
+        SCstring(STC.synchronized_, Token.toString(TOK.synchronized_)),
+        SCstring(STC.deprecated_, Token.toString(TOK.deprecated_)),
+        SCstring(STC.override_, Token.toString(TOK.override_)),
+        SCstring(STC.lazy_, Token.toString(TOK.lazy_)),
+        SCstring(STC.alias_, Token.toString(TOK.alias_)),
+        SCstring(STC.out_, Token.toString(TOK.out_)),
+        SCstring(STC.in_, Token.toString(TOK.in_)),
+        SCstring(STC.manifest, Token.toString(TOK.enum_)),
+        SCstring(STC.immutable_, Token.toString(TOK.immutable_)),
+        SCstring(STC.shared_, Token.toString(TOK.shared_)),
+        SCstring(STC.nothrow_, Token.toString(TOK.nothrow_)),
+        SCstring(STC.wild, Token.toString(TOK.inout_)),
+        SCstring(STC.pure_, Token.toString(TOK.pure_)),
+        SCstring(STC.ref_, Token.toString(TOK.ref_)),
+        SCstring(STC.return_, Token.toString(TOK.return_)),
+        SCstring(STC.tls, "__thread"),
+        SCstring(STC.gshared, Token.toString(TOK.gshared)),
+        SCstring(STC.nogc, "@nogc"),
+        SCstring(STC.live, "@live"),
+        SCstring(STC.property, "@property"),
+        SCstring(STC.safe, "@safe"),
+        SCstring(STC.trusted, "@trusted"),
+        SCstring(STC.system, "@system"),
+        SCstring(STC.disable, "@disable"),
+        SCstring(STC.future, "@__future"),
+        SCstring(STC.local, "__local"),
     ];
-    for (int i = 0; table[i].stc; i++)
+    foreach (ref entry; table)
     {
-        StorageClass tbl = table[i].stc;
+        const StorageClass tbl = entry.stc;
         assert(tbl & STCStorageClass);
         if (stc & tbl)
         {
             stc &= ~tbl;
-            if (tbl == STC.tls) // TOKtls was removed
-                return "__thread";
-            TOK tok = table[i].tok;
-            if (tok != TOK.at && !table[i].id.length)
-                table[i].id = Token.toString(tok); // lazilly initialize table
-            return table[i].id;
+            return entry.id;
         }
     }
     //printf("stc = %llx\n", stc);
     return null;
 }
-
-const(char)* stcToChars(ref StorageClass stc)
-{
-    const s = stcToString(stc);
-    return &s[0];  // assume 0 terminated
-}
-
 
 /// Ditto
 extern (D) string trustToString(TRUST trust) pure nothrow
@@ -2846,8 +2889,6 @@ string linkageToString(LINK linkage) pure nothrow
         return "C++";
     case LINK.windows:
         return "Windows";
-    case LINK.pascal:
-        return "Pascal";
     case LINK.objc:
         return "Objective-C";
     case LINK.system:
@@ -2855,13 +2896,13 @@ string linkageToString(LINK linkage) pure nothrow
     }
 }
 
-void protectionToBuffer(OutBuffer* buf, Prot prot)
+void visibilityToBuffer(OutBuffer* buf, Visibility vis)
 {
-    buf.writestring(protectionToString(prot.kind));
-    if (prot.kind == Prot.Kind.package_ && prot.pkg)
+    buf.writestring(visibilityToString(vis.kind));
+    if (vis.kind == Visibility.Kind.package_ && vis.pkg)
     {
         buf.writeByte('(');
-        buf.writestring(prot.pkg.toPrettyChars(true));
+        buf.writestring(vis.pkg.toPrettyChars(true));
         buf.writeByte(')');
     }
 }
@@ -2870,30 +2911,30 @@ void protectionToBuffer(OutBuffer* buf, Prot prot)
  * Returns:
  *   a human readable representation of `kind`
  */
-const(char)* protectionToChars(Prot.Kind kind)
+const(char)* visibilityToChars(Visibility.Kind kind)
 {
     // Null terminated because we return a literal
-    return protectionToString(kind).ptr;
+    return visibilityToString(kind).ptr;
 }
 
 /// Ditto
-extern (D) string protectionToString(Prot.Kind kind) nothrow pure
+extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure
 {
     final switch (kind)
     {
-    case Prot.Kind.undefined:
+    case Visibility.Kind.undefined:
         return null;
-    case Prot.Kind.none:
+    case Visibility.Kind.none:
         return "none";
-    case Prot.Kind.private_:
+    case Visibility.Kind.private_:
         return "private";
-    case Prot.Kind.package_:
+    case Visibility.Kind.package_:
         return "package";
-    case Prot.Kind.protected_:
+    case Visibility.Kind.protected_:
         return "protected";
-    case Prot.Kind.public_:
+    case Visibility.Kind.public_:
         return "public";
-    case Prot.Kind.export_:
+    case Visibility.Kind.export_:
         return "export";
     }
 }
@@ -2906,10 +2947,10 @@ void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier iden
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
+void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident, bool isStatic)
 {
     HdrGenState hgs;
-    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs);
+    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs, isStatic);
 }
 
 void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
@@ -3057,16 +3098,19 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     if (p.storageClass & STC.return_)
         buf.writestring("return ");
 
-    if (p.storageClass & STC.out_)
-        buf.writestring("out ");
-    else if (p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-    else if (p.storageClass & STC.in_)
+    if (p.storageClass & STC.in_)
         buf.writestring("in ");
+    else if (global.params.previewIn && p.storageClass & STC.ref_)
+        buf.writestring("ref ");
+    else if (p.storageClass & STC.out_)
+        buf.writestring("out ");
     else if (p.storageClass & STC.lazy_)
         buf.writestring("lazy ");
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
+
+    if (!global.params.previewIn && p.storageClass & STC.ref_)
+        buf.writestring("ref ");
 
     StorageClass stc = p.storageClass;
     if (p.type && p.type.mod & MODFlags.shared_)
@@ -3089,7 +3133,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     }
     else
     {
-        typeToBuffer(p.type, p.ident, buf, hgs);
+        typeToBuffer(p.type, p.ident, buf, hgs, (stc & STC.in_) ? MODFlags.const_ : 0);
     }
 
     if (p.defaultArg)
@@ -3220,14 +3264,15 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
 /**************************************************
  * An entry point to pretty-print type.
  */
-private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGenState* hgs)
+private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGenState* hgs,
+                          ubyte modMask = 0)
 {
     if (auto tf = t.isTypeFunction())
     {
         visitFuncIdentWithPrefix(tf, ident, null, buf, hgs);
         return;
     }
-    visitWithMask(t, 0, buf, hgs);
+    visitWithMask(t, modMask, buf, hgs);
     if (ident)
     {
         buf.writeByte(' ');
@@ -3396,7 +3441,7 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
 }
 
 
-private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs)
+private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs, bool isStatic)
 {
     if (t.inuse)
     {
@@ -3409,6 +3454,8 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBu
         linkageToBuffer(buf, t.linkage);
         buf.writeByte(' ');
     }
+    if (t.linkage == LINK.objc && isStatic)
+        buf.write("static ");
     if (t.next)
     {
         typeToBuffer(t.next, null, buf, hgs);
@@ -3645,7 +3692,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
     {
         //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
         if (t.next.ty == Tfunction)
-            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs);
+            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs, false);
         else
         {
             visitWithMask(t.next, t.mod, buf, hgs);
@@ -3662,12 +3709,12 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
     void visitFunction(TypeFunction t)
     {
         //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
-        visitFuncIdentWithPostfix(t, null, buf, hgs);
+        visitFuncIdentWithPostfix(t, null, buf, hgs, false);
     }
 
     void visitDelegate(TypeDelegate t)
     {
-        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs);
+        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs, false);
     }
 
     void visitTypeQualifiedHelper(TypeQualified t)
@@ -3782,6 +3829,12 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writeByte(')');
     }
 
+    void visitNoreturn(TypeNoreturn t)
+    {
+        buf.writestring("noreturn");
+    }
+
+
     switch (t.ty)
     {
         default:        return t.isTypeBasic() ?
@@ -3809,5 +3862,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tslice:     return visitSlice(cast(TypeSlice)t);
         case Tnull:      return visitNull(cast(TypeNull)t);
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
+        case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
     }
 }

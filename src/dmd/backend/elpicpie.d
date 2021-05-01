@@ -5,7 +5,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elpicpie.d, backend/elpicpie.d)
@@ -56,6 +56,7 @@ version (SCPP_HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 /**************************
  * Make an elem out of a symbol.
@@ -63,12 +64,13 @@ nothrow:
 
 version (MARS)
 {
+@trusted
 elem * el_var(Symbol *s)
 {
     elem *e;
     //printf("el_var(s = '%s')\n", s.Sident);
     //printf("%x\n", s.Stype.Tty);
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pie &&
             s.Stype.Tty & mTYthread)
@@ -79,7 +81,10 @@ elem * el_var(Symbol *s)
             return el_picvar(s);            // Position Independent Code
     }
 
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & (EX_OSX | EX_OSX64))
+    {
+    }
+    else if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pic && tyfunc(s.ty()))
         {
@@ -107,10 +112,10 @@ elem * el_var(Symbol *s)
     if (s.Stype.Tty & mTYthread)
     {
         //printf("thread local %s\n", s.Sident);
-static if (TARGET_OSX)
+if (config.exe & (EX_OSX | EX_OSX64))
 {
 }
-else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+else if (config.exe & EX_posix)
 {
         /* For 32 bit:
          * Generate for var locals:
@@ -167,7 +172,7 @@ else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGO
         e.EV.E1 = el_bin(OPadd,e1.Ety,e2,e1);
         e.EV.E2 = null;
 }
-else static if (TARGET_WINDOS)
+else if (config.exe & EX_windos)
 {
         /*
             Win32:
@@ -230,8 +235,7 @@ elem * el_var(Symbol *s)
     elem *e;
 
     //printf("el_var(s = '%s')\n", s.Sident);
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
-               TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pic && !tyfunc(s.ty()))
             return el_picvar(s);
@@ -253,7 +257,7 @@ elem * el_var(Symbol *s)
         type_debug(t);
         e.ET = t;
         t.Tcount++;
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
         switch (t.Tty & (mTYimport | mTYthread))
         {
@@ -316,6 +320,7 @@ static if (TARGET_WINDOS)
  * Returns: `elem` with address of `s`
  */
 
+@trusted
 elem * el_ptr(Symbol *s)
 {
     //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
@@ -325,7 +330,7 @@ elem * el_ptr(Symbol *s)
 
     const typtr = s.symbol_pointerType();
 
-    static if (TARGET_OSX)
+    if (config.exe & (EX_OSX | EX_OSX64))
     {
         if (config.flags3 & CFG3pic && tyfunc(s.ty()) && I32)
         {
@@ -344,8 +349,7 @@ elem * el_ptr(Symbol *s)
         }
     }
 
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
-               TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pie &&
             s.Stype.Tty & mTYthread)
@@ -375,8 +379,12 @@ elem * el_ptr(Symbol *s)
                 assert(0);
             return e;
         }
+    }
 
-        elem *e;
+    elem *e;
+
+    if (config.exe & EX_posix)
+    {
         if (config.flags3 & CFG3pic &&
             tyfunc(s.ty()))
         {
@@ -386,7 +394,7 @@ elem * el_ptr(Symbol *s)
             e = el_var(s);
     }
     else
-        elem* e = el_var(s);
+        e = el_var(s);
 
     version (SCPP_HTOD)
     {
@@ -415,10 +423,12 @@ elem * el_ptr(Symbol *s)
  * Allocate localgot symbol.
  */
 
+@trusted
 private Symbol *el_alloc_localgot()
 {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
+    if (config.exe & EX_windos)
+        return null;
+
     /* Since localgot is a local variable to each function,
      * localgot must be set back to null
      * at the start of code gen for each function.
@@ -442,21 +452,24 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
     }
     return localgot;
 }
-else
-{
-    return null;
-}
-}
 
 
 /**************************
  * Make an elem out of a symbol, PIC style.
  */
 
-static if (TARGET_OSX)
-{
-
+@trusted
 private elem *el_picvar(Symbol *s)
+{
+    if (config.exe & (EX_OSX | EX_OSX64))
+        return el_picvar_OSX(s);
+    else if (config.exe & EX_posix)
+        return el_picvar_posix(s);
+    assert(0);
+}
+
+@trusted
+private elem *el_picvar_OSX(Symbol *s)
 {
     elem *e;
     int x;
@@ -604,21 +617,8 @@ static if (1)
     return e;
 }
 
-private elem *el_pievar(Symbol *s)
-{
-    assert(0);  // option not needed on TARGET_OSX
-}
-
-private elem *el_pieptr(Symbol *s)
-{
-    assert(0);  // option not needed on TARGET_OSX
-}
-}
-
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-
-private elem *el_picvar(Symbol *s)
+@trusted
+private elem *el_picvar_posix(Symbol *s)
 {
     elem *e;
     int x;
@@ -728,8 +728,9 @@ private elem *el_picvar(Symbol *s)
                         assert(0);
                 }
                 e.Ety = tym;
-                break;
             }
+                break;
+
             default:
                 break;
         }
@@ -829,8 +830,12 @@ private elem *el_picvar(Symbol *s)
  * Params: s = variable's symbol
  * Returns: elem created
  */
+@trusted
 private elem *el_pievar(Symbol *s)
 {
+    if (config.exe & (EX_OSX | EX_OSX64))
+        assert(0);
+
     int x;
 
     //printf("el_pievar(s = '%s')\n", s.Sident.ptr);
@@ -908,8 +913,12 @@ private elem *el_pievar(Symbol *s)
  * Params: s = variable's symbol
  * Returns: elem created
  */
+@trusted
 private elem *el_pieptr(Symbol *s)
 {
+    if (config.exe & (EX_OSX | EX_OSX64))
+        assert(0);
+
     int x;
 
     //printf("el_pieptr(s = '%s')\n", s.Sident.ptr);
@@ -1005,7 +1014,6 @@ private elem *el_pieptr(Symbol *s)
         }
     }
     return e;
-}
 }
 
 

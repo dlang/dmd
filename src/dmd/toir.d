@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -27,6 +27,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab : SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -80,10 +81,11 @@ struct IRState
     Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
     const Param* params;            // command line parameters
+    const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
-        const Param* params)
+        const Param* params, const Target* target)
     {
         this.m = m;
         this.symbol = fd;
@@ -91,6 +93,7 @@ struct IRState
         this.deferToObj = deferToObj;
         this.labels = labels;
         this.params = params;
+        this.target = target;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.eh_none);
@@ -497,7 +500,7 @@ int intrinsic_op(FuncDeclaration fd)
     const md = m.md;
     const Identifier id2 = md.id;
 
-    if (!md.packages)
+    if (md.packages.length == 0)
         return op;
 
     // get type of first argument
@@ -505,13 +508,12 @@ int intrinsic_op(FuncDeclaration fd)
     auto param1 = tf && tf.parameterList.length > 0 ? tf.parameterList[0] : null;
     auto argtype1 = param1 ? param1.type : null;
 
-    const Identifier id1 = (*md.packages)[0];
+    const Identifier id1 = md.packages[0];
     // ... except std.math package and core.stdc.stdarg.va_start.
-    if (md.packages.dim == 2)
+    if (md.packages.length == 2)
     {
-        if (id2 == Id.trig &&
-            (*md.packages)[1] == Id.math &&
-            id1 == Id.std)
+        // Matches any module in std.math.*
+        if (md.packages[1] == Id.math && id1 == Id.std)
         {
             goto Lstdmath;
         }
@@ -523,6 +525,11 @@ int intrinsic_op(FuncDeclaration fd)
     Lstdmath:
         if (argtype1 is Type.tfloat80 || id3 == Id._sqrt)
             goto Lmath;
+        if (id3 == Id.fabs &&
+            (argtype1 is Type.tfloat32 || argtype1 is Type.tfloat64))
+        {
+            op = OPabs;
+        }
     }
     else if (id1 == Id.core)
     {
@@ -579,23 +586,20 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!global.params.is64bit)
+    if (!target.is64bit)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
             return NotIntrinsic;
     }
-    // No 64-bit bswap
-    if (op == OPbswap && argtype1 is Type.tuns64)
-        return NotIntrinsic;
     return op;
 
 Lva_start:
-    if (global.params.is64bit &&
+    if (target.is64bit &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&
-        (*md.packages)[1] == Id.stdc &&
+        md.packages[1] == Id.stdc &&
         id1 == Id.core)
     {
         return OPva_start;
@@ -637,11 +641,12 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         {
             elength = *pe;
             *pe = el_same(&elength);
-            elength = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+            elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
             slength = toSymbol(lengthVar);
-            //symbol_add(slength);
+            if (slength.Sclass == SCauto && slength.Ssymnum == SYMIDX.max)
+                symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
         }
@@ -690,53 +695,54 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  */
 void setClosureVarOffset(FuncDeclaration fd)
 {
-    if (fd.needsClosure())
+    // Nothing to do
+    if (!fd.needsClosure())
+        return;
+
+    uint offset = target.ptrsize;      // leave room for previous sthis
+
+    foreach (v; fd.closureVars)
     {
-        uint offset = target.ptrsize;      // leave room for previous sthis
-
-        foreach (v; fd.closureVars)
+        /* Align and allocate space for v in the closure
+         * just like AggregateDeclaration.addField() does.
+         */
+        uint memsize;
+        uint memalignsize;
+        structalign_t xalign;
+        if (v.storage_class & STC.lazy_)
         {
-            /* Align and allocate space for v in the closure
-             * just like AggregateDeclaration.addField() does.
+            /* Lazy variables are really delegates,
+             * so give same answers that TypeDelegate would
              */
-            uint memsize;
-            uint memalignsize;
-            structalign_t xalign;
-            if (v.storage_class & STC.lazy_)
-            {
-                /* Lazy variables are really delegates,
-                 * so give same answers that TypeDelegate would
-                 */
-                memsize = target.ptrsize * 2;
-                memalignsize = memsize;
-                xalign = STRUCTALIGN_DEFAULT;
-            }
-            else if (v.storage_class & (STC.out_ | STC.ref_))
-            {
-                // reference parameters are just pointers
-                memsize = target.ptrsize;
-                memalignsize = memsize;
-                xalign = STRUCTALIGN_DEFAULT;
-            }
-            else
-            {
-                memsize = cast(uint)v.type.size();
-                memalignsize = v.type.alignsize();
-                xalign = v.alignment;
-            }
-            AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
-            v.offset = offset;
-            //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
+            memsize = target.ptrsize * 2;
+            memalignsize = memsize;
+            xalign = STRUCTALIGN_DEFAULT;
+        }
+        else if (v.storage_class & (STC.out_ | STC.ref_))
+        {
+            // reference parameters are just pointers
+            memsize = target.ptrsize;
+            memalignsize = memsize;
+            xalign = STRUCTALIGN_DEFAULT;
+        }
+        else
+        {
+            memsize = cast(uint)v.type.size();
+            memalignsize = v.type.alignsize();
+            xalign = v.alignment;
+        }
+        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        v.offset = offset;
+        //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
 
-            offset += memsize;
+        offset += memsize;
 
-            /* Can't do nrvo if the variable is put in a closure, since
-             * what the shidden points to may no longer exist.
-             */
-            if (fd.nrvo_can && fd.nrvo_var == v)
-            {
-                fd.nrvo_can = false;
-            }
+        /* Can't do nrvo if the variable is put in a closure, since
+         * what the shidden points to may no longer exist.
+         */
+        if (fd.nrvo_can && fd.nrvo_var == v)
+        {
+            fd.nrvo_can = false;
         }
     }
 }
@@ -931,7 +937,7 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!global.params.symdebug)
         return;
-    if (!global.params.mscoff)  // toDebugClosure only implemented for CodeView,
+    if (!target.mscoff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.dim && !fd.needsClosure)

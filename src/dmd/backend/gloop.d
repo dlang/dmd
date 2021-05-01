@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -34,6 +34,7 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -43,8 +44,10 @@ import dmd.backend.dvec;
 import dmd.backend.mem;
 
 nothrow:
+@safe:
 
-char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+@trusted
+char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
@@ -73,6 +76,7 @@ nothrow:
     /*************************
      * Reset memory so this allocation can be re-used.
      */
+    @trusted
     void reset()
     {
         vec_free(Lloop);
@@ -92,6 +96,7 @@ nothrow:
      * Write loop.
      */
 
+    @trusted
     void print()
     {
         debug
@@ -126,6 +131,7 @@ nothrow:
         el_free(c2);
     }
 
+    @trusted
     void print() const
     {
         debug
@@ -144,6 +150,7 @@ nothrow:
     }
 }
 
+@system
 enum FLELIM = cast(Symbol *)-1;
 
 struct Iv
@@ -153,6 +160,7 @@ nothrow:
     elem **IVincr;          // pointer to parent of IV increment elem
     Barray!famlist IVfamily;      // variables in this family
 
+    @trusted
     void reset()
     {
         foreach (ref fl; IVfamily)
@@ -162,6 +170,7 @@ nothrow:
         IVfamily.reset();
     }
 
+    @trusted
     void print() const
     {
         debug
@@ -210,6 +219,7 @@ private void freeloop(ref Loops loops)
  *      !=0     contains BCasm block
  */
 
+@trusted
 int blockinit()
 {
     bool hasasm = false;
@@ -233,12 +243,10 @@ int blockinit()
             hasasm = true;
                                         /* compute number of blocks     */
     }
-    assert(numblks == i && maxblks);
-    assert(i <= maxblks);
     foreach (j, b; dfo[])
     {
         assert(b.Bdfoidx == j);
-        b.Bdom = vec_realloc(b.Bdom, maxblks); /* alloc Bdom vectors */
+        b.Bdom = vec_realloc(b.Bdom, dfo.length); /* alloc Bdom vectors */
         vec_clear(b.Bdom);
     }
     return hasasm;
@@ -255,11 +263,13 @@ int blockinit()
  *      fills in the Bdom vector for each block
  */
 
+@trusted
 void compdom()
 {
     compdom(dfo[]);
 }
 
+@trusted
 private extern (D) void compdom(block*[] dfo)
 {
     assert(dfo.length);
@@ -317,6 +327,7 @@ private extern (D) void compdom(block*[] dfo)
  * Return !=0 if block A dominates block B.
  */
 
+@trusted
 bool dom(const block* A, const block* B)
 {
     assert(A && B && dfo && dfo[A.Bdfoidx] == A);
@@ -377,6 +388,7 @@ private uint loop_weight(uint weight, int factor) pure
  * Note that head dom tail.
  */
 
+@trusted
 private void buildloop(ref Loops ploops,block *head,block *tail)
 {
     loop *l;
@@ -391,7 +403,7 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
             // Calculate loop contents separately so we get the Bweights
             // done accurately.
 
-            v = vec_calloc(maxblks);
+            v = vec_calloc(dfo.length);
             vec_setbit(head.Bdfoidx,v);
             head.Bweight = loop_weight(head.Bweight, 1);
             insert(tail,v);
@@ -407,8 +419,8 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
     /* Allocate loop entry        */
     l = ploops.push();
 
-    l.Lloop = vec_calloc(maxblks);       /* allocate loop bit vector     */
-    l.Lexit = vec_calloc(maxblks);       /* bit vector for exit blocks   */
+    l.Lloop = vec_calloc(dfo.length);    // allocate loop bit vector
+    l.Lexit = vec_calloc(dfo.length);    // bit vector for exit blocks
     l.Lhead = head;
     l.Ltail = tail;
     l.Lpreheader = null;
@@ -541,6 +553,7 @@ private void insert(block *b, vec_t lv)
  *      true need to recompute loop data
  */
 
+@trusted
 private int looprotate(ref loop l)
 {
     block *tail = l.Ltail;
@@ -575,7 +588,6 @@ private int looprotate(ref loop l)
         // generated).
 
         auto head2 = block_calloc(); // create new head block
-        numblks++;                      // number of blocks in existence
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
         head.Bflags = BFLnomerg;       // move flags over to head2
@@ -678,6 +690,7 @@ private __gshared
  *      iter    which optimization iteration we are on
  */
 
+@trusted
 void loopopt()
 {
     __gshared Loops startloop_cache;
@@ -729,8 +742,6 @@ restart:
             if (debugc) printf("Generating preheader for loop\n");
             addblk = true;              /* add one                       */
             p = block_calloc();         // the preheader
-            numblks++;
-            assert (numblks <= maxblks);
             h = l.Lhead;               /* loop header                   */
 
             /* Find parent of h */
@@ -946,6 +957,7 @@ restart:
  * thing this would buy us is stuff that depends on LI assignments.
  */
 
+@trusted
 private void markinvar(elem *n,vec_t rd)
 {
     vec_t tmp;
@@ -1108,6 +1120,7 @@ private void markinvar(elem *n,vec_t rd)
         case OPu64_128:
 
         case OPabs:
+        case OPtoprec:
         case OPrndtol:
         case OPrint:
         case OPsetjmp:
@@ -1304,59 +1317,6 @@ private void markinvar(elem *n,vec_t rd)
     }
 }
 
-/**************************************
- * Fill in the DefNode.DNumambig vector.
- * Set bits defnod[] indices for entries
- * which are completely destroyed when e is
- * unambiguously assigned to.
- * Params:
- *      v = vector to fill in
- *      e = defnod[] entry that is an assignment to a variable
- */
-
-extern (C)
-{
-void fillInDNunambig(vec_t v, elem *e)
-{
-    assert(OTassign(e.Eoper));
-    elem *t = e.EV.E1;
-    assert(t.Eoper == OPvar);
-    Symbol *d = t.EV.Vsym;
-
-    targ_size_t toff = t.EV.Voffset;
-    targ_size_t tsize = (e.Eoper == OPstreq) ? type_size(e.ET) : tysize(t.Ety);
-    targ_size_t ttop = toff + tsize;
-
-    //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
-
-
-    // for all unambig defs in go.defnod[]
-    foreach (const i; 0 .. go.defnod.length)
-    {
-        elem *tn = go.defnod[i].DNelem;
-        elem *tn1;
-        targ_size_t tn1size;
-
-        if (!OTassign(tn.Eoper))
-            continue;
-
-        // If def of same variable, kill that def
-        tn1 = tn.EV.E1;
-        if (tn1.Eoper != OPvar || d != tn1.EV.Vsym)
-            continue;
-
-        // If t completely overlaps tn1
-        tn1size = (tn.Eoper == OPstreq)
-            ? type_size(tn.ET) : tysize(tn1.Ety);
-        if (toff <= tn1.EV.Voffset &&
-            tn1.EV.Voffset + tn1size <= ttop)
-        {
-            vec_setbit(cast(uint)i, v);
-        }
-    }
-}
-}
-
 /********************
  * Update rd vector.
  * Input:
@@ -1368,6 +1328,7 @@ void fillInDNunambig(vec_t v, elem *e)
  */
 
 extern (C) {
+@trusted
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
 {
     const op = n.Eoper;
@@ -1428,6 +1389,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
  * Mark all elems as not being loop invariant.
  */
 
+@trusted
 private void unmarkall(elem *e)
 {
     for (; 1; e = e.EV.E1)
@@ -1456,11 +1418,12 @@ private void unmarkall(elem *e)
  *    true if there are any refs of v in n before nstop is encountered
  */
 
+@trusted
 private bool refs(Symbol *v,elem *n,elem *nstop)
 {
     symbol_debug(v);
     assert(symbol_isintab(v));
-    assert(v.Ssymnum < globsym.top);
+    assert(v.Ssymnum < globsym.length);
     bool stop = false;
 
     // Walk tree in evaluation order
@@ -1543,6 +1506,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
  *      revised domexit
  */
 
+@trusted
 private void movelis(elem* n, block* b, ref loop l, ref uint pdomexit)
 {
     vec_t tmp;
@@ -1931,6 +1895,7 @@ Lret:
  *      *pn     elem to append to
  */
 
+@trusted
 private void appendelem(elem *n,elem **pn)
 {
     assert(n && pn);
@@ -1953,6 +1918,7 @@ private void appendelem(elem *n,elem **pn)
  * Create a new famlist entry.
  */
 
+@trusted
 private void newfamlist(famlist* fl, tym_t ty)
 {
     eve c = void;
@@ -2036,6 +2002,7 @@ private void newfamlist(famlist* fl, tym_t ty)
  * Loop invariant removal should have been done just previously.
  */
 
+@trusted
 private void loopiv(ref loop l)
 {
     if (debugc) printf("loopiv(%p)\n", &l);
@@ -2079,6 +2046,7 @@ private void loopiv(ref loop l)
  *      go.defnod[] loaded with all the definition elems of the loop
  */
 
+@trusted
 private void findbasivs(ref loop l)
 {
     vec_t poss,notposs;
@@ -2086,8 +2054,8 @@ private void findbasivs(ref loop l)
     bool ambdone;
 
     ambdone = false;
-    poss = vec_calloc(globsym.top);
-    notposs = vec_calloc(globsym.top);  /* vector of all variables      */
+    poss = vec_calloc(globsym.length);
+    notposs = vec_calloc(globsym.length);  /* vector of all variables      */
                                         /* (initially all unmarked)     */
 
     /* for each def in go.defnod[] that is within loop l     */
@@ -2134,9 +2102,9 @@ private void findbasivs(ref loop l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                foreach (uint j; 0 .. globsym.top)
+                foreach (j; 0 .. globsym.length)
                 {
-                    if (!(globsym.tab[j].Sflags & SFLunambig))
+                    if (!(globsym[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2152,12 +2120,12 @@ private void findbasivs(ref loop l)
 
     /* create list of IVs */
     uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each basic IV
+    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each basic IV
     {
         Symbol *s;
 
         /* Skip if we don't want it to be a basic IV (see funcprev())   */
-        s = globsym.tab[i];
+        s = globsym[i];
         assert(symbol_isintab(s));
         if (s.Sflags & SFLnotbasiciv)
             continue;
@@ -2218,6 +2186,7 @@ private void findbasivs(ref loop l)
  *      go.defnod[] loaded with all the definition elems of the loop
  */
 
+@trusted
 private void findopeqs(ref loop l)
 {
     vec_t poss,notposs;
@@ -2225,8 +2194,8 @@ private void findopeqs(ref loop l)
     bool ambdone;
 
     ambdone = false;
-    poss = vec_calloc(globsym.top);
-    notposs = vec_calloc(globsym.top);  // vector of all variables
+    poss = vec_calloc(globsym.length);
+    notposs = vec_calloc(globsym.length);  // vector of all variables
                                         // (initially all unmarked)
 
     // for each def in go.defnod[] that is within loop l
@@ -2267,9 +2236,9 @@ private void findopeqs(ref loop l)
 
             if (!ambdone)           // avoid redundant loops
             {
-                foreach (j; 0 .. globsym.top)
+                foreach (j; 0 .. globsym.length)
                 {
-                    if (!(globsym.tab[j].Sflags & SFLunambig))
+                    if (!(globsym[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2294,11 +2263,11 @@ private void findopeqs(ref loop l)
 
     // create list of IVs
     uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.top; ++i)  // for each opeq IV
+    for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each opeq IV
     {
         Symbol *s;
 
-        s = globsym.tab[i];
+        s = globsym[i];
         assert(symbol_isintab(s));
 
         // Do not use aggregates as basic IVs. This is because the other loop
@@ -2352,6 +2321,7 @@ private void findopeqs(ref loop l)
  * Note that we do not do divides, because of roundoff error problems.
  */
 
+@trusted
 private void findivfams(ref loop l)
 {
     if (debugc) printf("findivfams(%p)\n", &l);
@@ -2375,6 +2345,7 @@ private void findivfams(ref loop l)
  *      pn      pointer to elem
  */
 
+@trusted
 private void ivfamelems(Iv *biv,elem **pn)
 {
     tym_t ty,c2ty;
@@ -2561,6 +2532,7 @@ private void ivfamelems(Iv *biv,elem **pn)
  * differ from it only by a constant.
  */
 
+@trusted
 private void elimfrivivs(ref loop l)
 {
     foreach (ref biv; l.Livlist)
@@ -2614,6 +2586,7 @@ private void elimfrivivs(ref loop l)
  * Introduce new variables.
  */
 
+@trusted
 private void intronvars(ref loop l)
 {
     elem *T;
@@ -2710,6 +2683,7 @@ private void intronvars(ref loop l)
  *                      indicate this.
  */
 
+@trusted
 private bool funcprev(ref Iv biv, ref famlist fl)
 {
     tym_t tymin;
@@ -2846,6 +2820,7 @@ private bool funcprev(ref Iv biv, ref famlist fl)
  * Eliminate basic IVs.
  */
 
+@trusted
 private void elimbasivs(ref loop l)
 {
     if (debugc) printf("elimbasivs(%p)\n", &l);
@@ -3095,8 +3070,6 @@ private void elimbasivs(ref loop l)
                     {
                         block *bn = block_calloc();
                         bn.Btry = b.Btry;
-                        numblks++;
-                        assert(numblks <= maxblks);
                         bn.BC = BCgoto;
                         bn.Bnext = dfo[i].Bnext;
                         dfo[i].Bnext = bn;
@@ -3169,6 +3142,7 @@ private void elimbasivs(ref loop l)
  * Eliminate opeq IVs that are not used outside the loop.
  */
 
+@trusted
 private void elimopeqs(ref loop l)
 {
     elem **pref;
@@ -3237,6 +3211,7 @@ private void elimopeqs(ref loop l)
  * Returns: index into fams[] of simplest; fams.length if none found.
  */
 
+@trusted
 extern (D)
 private size_t simfl(famlist[] fams, tym_t tym)
 {
@@ -3267,6 +3242,7 @@ private size_t simfl(famlist[] fams, tym_t tym)
  *      true for f1 is simpler, false  for f2 is simpler
  */
 
+@trusted
 private bool flcmp(ref famlist f1, ref famlist f2)
 {
     auto t1 = &(f1.c1.EV);
@@ -3390,6 +3366,7 @@ private __gshared
     Symbol *X;
 }
 
+@trusted
 private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
 {
     uint i;
@@ -3400,10 +3377,10 @@ private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
     sincn = incn;
 
     debug
-      if (!(X.Ssymnum < globsym.top && incn))
-          printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.top,&l,incn);
+      if (!(X.Ssymnum < globsym.length && incn))
+          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",cast(int) X.Ssymnum,cast(int) globsym.length,&l,incn);
 
-    assert(X.Ssymnum < globsym.top && incn);
+    assert(X.Ssymnum < globsym.length && incn);
     count = 0;
     nd = null;
     for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
@@ -3436,6 +3413,7 @@ private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
  *      flag:   true if block wants to test the elem
  */
 
+@trusted
 private void countrefs(elem **pn,bool flag)
 {
     elem *n = *pn;
@@ -3483,6 +3461,7 @@ private void countrefs(elem **pn,bool flag)
  * Count number of times symbol X appears in elem tree e.
  */
 
+@trusted
 private int countrefs2(elem *e)
 {
     elem_debug(e);
@@ -3498,6 +3477,7 @@ private int countrefs2(elem *e)
  * Eliminate some special cases.
  */
 
+@trusted
 private void elimspec(ref loop l)
 {
     uint i;
@@ -3516,6 +3496,7 @@ private void elimspec(ref loop l)
 /******************************
  */
 
+@trusted
 private void elimspecwalk(elem **pn)
 {
     elem *n;
@@ -3697,6 +3678,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
  * Returns:
  *      true if loop was unrolled
  */
+@trusted
 bool loopunroll(ref loop l)
 {
     const bool log = false;
@@ -3879,7 +3861,8 @@ bool loopunroll(ref loop l)
  * Returns:
  *  number of elems in tree
  */
-int el_length(elem *e)
+@trusted
+private int el_length(elem *e)
 {
     int n = 0;
     while (e)
@@ -3888,7 +3871,7 @@ int el_length(elem *e)
         if (!OTleaf(e.Eoper))
         {
             if (e.Eoper == OPctor || e.Eoper == OPdtor)
-                return 10000;
+                return 10_000;
             n += el_length(e.EV.E2);
             e = e.EV.E1;
         }

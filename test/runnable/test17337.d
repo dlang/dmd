@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -mcpu=native
 
-version (D_SIMD)
+static if (__traits(compiles, __vector(ubyte[16])))
 {
     alias ubyte16 = __vector(ubyte[16]);
 

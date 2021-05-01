@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2011-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2011-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.d, backend/cgxmm.d)
@@ -43,6 +43,7 @@ version (MARS)
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 
@@ -68,6 +69,7 @@ bool isXMMstore(opcode_t op)
  * Move constant value into xmm register xreg.
  */
 
+@trusted
 private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
 {
     /* Generate:
@@ -110,6 +112,7 @@ private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t v
  * Do simple orthogonal operators for XMM registers.
  */
 
+@trusted
 void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("orthxmm(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -202,7 +205,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  * Params:
  *      opcode = store opcode to use, CMP means generate one
  */
-
+@trusted
 void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t *pretregs)
 {
     tym_t tymll;
@@ -274,8 +277,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     if (!(regvar && reg == XMM0 + ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0))))
     {
         cdb.gen(&cs);         // MOV EA+offset,reg
-        if (op == OPeq)
-            checkSetVex(cdb.last(), tyml);
+        checkSetVex(cdb.last(), tyml);
     }
 
     if (e1.Ecount ||                     // if lvalue is a CSE or
@@ -334,6 +336,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
  *
  */
 
+@trusted
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("xmmconvt: %p, %s\n", e, regm_str(*pretregs));
@@ -471,6 +474,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Generate code for op=
  */
 
+@trusted
 void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {   elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
@@ -544,6 +548,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Generate code for post increment and post decrement.
  */
 
+@trusted
 void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     elem *e1 = e.EV.E1;
@@ -628,6 +633,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Negate operator
  */
 
+@trusted
 void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("xmmneg()\n");
@@ -662,6 +668,45 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     fixresult(cdb,e,retregs,pretregs);
 }
 
+/******************
+ * Absolute value operator OPabs
+ */
+
+@trusted
+void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+{
+    //printf("xmmabs()\n");
+    //elem_print(e);
+    assert(*pretregs);
+    tym_t tyml = tybasic(e.EV.E1.Ety);
+    int sz = _tysize[tyml];
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+
+    /* Generate:
+     *    MOV reg,e1
+     *    MOV rreg,mask
+     *    AND reg,rreg
+     */
+    codelem(cdb,e.EV.E1,&retregs,false);
+    getregs(cdb,retregs);
+    const reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    reg_t rreg;
+    allocreg(cdb,&rretregs,&rreg,tyml);
+    targ_size_t mask = 0x7FFF_FFFF;
+    if (sz == 8)
+        mask = cast(targ_size_t)0x7FFF_FFFF_FFFF_FFFFL;
+    movxmmconst(cdb,rreg, sz, mask, 0);
+
+    getregs(cdb,retregs);
+    const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
+    cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    fixresult(cdb,e,retregs,pretregs);
+}
+
 /*****************************
  * Get correct load operator based on type.
  * It is important to use the right one even if the number of bits moved is the same,
@@ -671,6 +716,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  *      aligned = for vectors, true if aligned to 16 bytes
  */
 
+@trusted
 opcode_t xmmload(tym_t tym, bool aligned)
 {
     opcode_t op;
@@ -723,6 +769,7 @@ opcode_t xmmload(tym_t tym, bool aligned)
  * Get correct store operator based on type.
  */
 
+@trusted
 opcode_t xmmstore(tym_t tym, bool aligned)
 {
     opcode_t op;
@@ -774,6 +821,7 @@ opcode_t xmmstore(tym_t tym, bool aligned)
  * Get correct XMM operator based on type and operator.
  */
 
+@trusted
 private opcode_t xmmoperator(tym_t tym, OPER oper)
 {
     tym = tybasic(tym);
@@ -1021,6 +1069,7 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
     return op;
 }
 
+@trusted
 void cdvector(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     /* e should look like one of:
@@ -1156,12 +1205,21 @@ static if (0)
         codelem(cdb,op1,&retregs,false); // eval left leaf
         const reg = findreg(retregs);
 
-        if ((op2.Eoper == OPind && !op2.Ecount) || op2.Eoper == OPvar)
+        /* MOVHLPS and LODLPS have the same opcode. They are distinguished
+         * by MOVHLPS has a second operand of size 128, LODLPS has 64
+         *  https://www.felixcloutier.com/x86/movlps
+         *  https://www.felixcloutier.com/x86/movhlps
+         * MOVHLPS must be an XMM operand, LODLPS must be a memory operand
+         */
+        const isMOVHLPS = op == MOVHLPS && tysize(ty2) == 16;
+
+        if (((op2.Eoper == OPind && !op2.Ecount) || op2.Eoper == OPvar) && !isMOVHLPS)
         {
             getlvalue(cdb,&cs, op2, RMload | retregs);     // get addressing mode
         }
         else
         {
+            // load op2 into XMM register
             regm_t rretregs = XMMREGS & ~retregs;
             scodelem(cdb, op2, &rretregs, retregs, true);
             const rreg = findreg(rretregs) - XMM0;
@@ -1173,21 +1231,30 @@ static if (0)
         }
 
         getregs(cdb,retregs);
+
+        switch (op)
+        {
+            case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
+            case PSHUFD:  case PSHUFHW: case PSHUFLW:
+            case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
+            case MPSADBW: case PBLENDW:
+            case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
+            case SHUFPD:  case SHUFPS:
+                if (n == 3)
+                {
+                    version (MARS)
+                        if (pass == PASSfinal)
+                            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
+                    cs.IFL2 = FLconst;
+                    cs.IEV2.Vsize_t = 0;
+                }
+                break;
+            default:
+                break;
+        }
+
         if (n == 4)
         {
-            switch (op)
-            {
-                case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
-                case PSHUFD:  case PSHUFHW: case PSHUFLW:
-                case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
-                case MPSADBW: case PBLENDW:
-                case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
-                case SHUFPD:  case SHUFPS:
-                    break;
-                default:
-                    printf("op = x%x\n", op);
-                    assert(0);
-            }
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
 version (MARS)
@@ -1222,6 +1289,7 @@ else
  *  (op1 OPvecsto (op OPparam op2))
  * where op is the store instruction STOxxxx.
  */
+@trusted
 void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecsto()\n");
@@ -1239,6 +1307,7 @@ void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  * OPvecfill takes the single value in e1 and
  * fills the vector type with it.
  */
+@trusted
 void cdvecfill(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
@@ -1270,7 +1339,37 @@ static if (0)
     }
 }
 
-    const ty = tybasic(e.Ety);
+    /* e.Ety only gives us the size of the result vector, not its type.
+     * We must combine it with the vector element type, e1.Ety, to
+     * form the resulting vector type, ty.
+     * The reason is someone may have painted the result of the OPvecfill to
+     * a different vector type.
+     */
+    const sz = tysize(e.Ety);
+    const ty1 = tybasic(e1.Ety);
+    assert(sz == 16 || sz == 32);
+    const bool x16 = (sz == 16);
+
+    tym_t ty;
+    switch (ty1)
+    {
+        case TYfloat:   ty = x16 ? TYfloat4  : TYfloat8;   break;
+        case TYdouble:  ty = x16 ? TYdouble2 : TYdouble4;  break;
+        case TYschar:   ty = x16 ? TYschar16 : TYschar32;  break;
+        case TYuchar:   ty = x16 ? TYuchar16 : TYuchar32;  break;
+        case TYshort:   ty = x16 ? TYshort8  : TYshort16;  break;
+        case TYushort:  ty = x16 ? TYushort8 : TYushort16; break;
+        case TYint:
+        case TYlong:    ty = x16 ? TYlong4   : TYlong8;    break;
+        case TYuint:
+        case TYulong:   ty = x16 ? TYulong4  : TYulong8;   break;
+        case TYllong:   ty = x16 ? TYllong2  : TYllong4;   break;
+        case TYullong:  ty = x16 ? TYullong2 : TYullong4;  break;
+
+        default:
+            assert(0);
+    }
+
     switch (ty)
     {
         case TYfloat4:
@@ -1580,6 +1679,7 @@ static if (0)
  *      false if definitely not aligned
  */
 
+@trusted
 bool xmmIsAligned(elem *e)
 {
     if (tyvector(e.Ety) && e.Eoper == OPvar)
@@ -1619,8 +1719,10 @@ void checkSetVex3(code *c)
  *      ty = type of operand
  */
 
+@trusted
 void checkSetVex(code *c, tym_t ty)
 {
+    //printf("checkSetVex() %d %x\n", tysize(ty), c.Iop);
     if (config.avx || tysize(ty) == 32)
     {
         uint vreg = (c.Irm >> 3) & 7;
@@ -1716,6 +1818,43 @@ void checkSetVex(code *c, tym_t ty)
         c.Iflags |= CFvex;
         checkSetVex3(c);
     }
+}
+
+/**************************************
+ * Load complex operand into XMM registers or flags or both.
+ */
+
+@trusted
+void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //elem_print(e);
+    assert(*pretregs & (XMMREGS | mPSW));
+    if (*pretregs == (mXMM0 | mXMM1) &&
+        e.Eoper != OPconst)
+    {
+        code cs = void;
+        tym_t tym = tybasic(e.Ety);
+        tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
+        opcode_t opmv = xmmload(tym, xmmIsAligned(e));
+
+        regm_t retregs0 = mXMM0;
+        reg_t reg0;
+        allocreg(cdb, &retregs0, &reg0, ty);
+        loadea(cdb, e, &cs, opmv, reg0, 0, RMload, 0);  // MOVSS/MOVSD XMM0,data
+        checkSetVex(cdb.last(), ty);
+
+        regm_t retregs1 = mXMM1;
+        reg_t reg1;
+        allocreg(cdb, &retregs1, &reg1, ty);
+        loadea(cdb, e, &cs, opmv, reg1, tysize(ty), RMload, mXMM0); // MOVSS/MOVSD XMM1,data+offset
+        checkSetVex(cdb.last(), ty);
+
+        return;
+    }
+
+    // See test/complex.d for cases winding up here
+    cload87(cdb, e, pretregs);
 }
 
 }

@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -inline -O
-// REQUIRED_ARGS: -preview=dip25 -preview=fieldwise
+// REQUIRED_ARGS: -preview=fieldwise
 
 // Test operator overloading
 
@@ -803,7 +803,7 @@ struct T
 
 void test11161()
 {
-    T t1, t2; 
+    T t1, t2;
     assert(t1.tupleof != t2.tupleof);
     assert(t1 != t2); // fails
 }
@@ -2037,4 +2037,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

@@ -1,14 +1,14 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Other data flow analysis based optimizations.
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.c
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.c
+ * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.d
+ * Documentation: https://dlang.org/phobos/dmd_backend_gother.html
  */
 
 module dmd.backend.gother;
@@ -33,6 +33,7 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -41,8 +42,10 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 nothrow:
+@safe:
 
-char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+@trusted
+char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
@@ -67,6 +70,7 @@ nothrow:
     /***************************
      * Reset memory so this allocation can be re-used.
      */
+    @trusted
     void reset()
     {
         rdlist.reset();
@@ -90,6 +94,7 @@ nothrow:
  *      Elemdata entry if found,
  *      null if not
  */
+@trusted
 Elemdata* find(ref Elemdatas eds, elem *e)
 {
     foreach (ref edl; eds)
@@ -126,11 +131,12 @@ private __gshared
  * Also detects use of variable before any possible def.
  */
 
+@trusted
 void constprop()
 {
     rd_compute();
-    intranges();                // compute integer ranges
-    eqeqranges();               // see if we can eliminate some relationals
+    intranges(rellist, inclist); // compute integer ranges
+    eqeqranges(eqeqlist);        // see if we can eliminate some relationals
     elemdatafree(eqeqlist);
     elemdatafree(rellist);
     elemdatafree(inclist);
@@ -143,6 +149,7 @@ void constprop()
 
 private __gshared block *thisblock;
 
+@trusted
 private void rd_compute()
 {
     if (debugc) printf("constprop()\n");
@@ -215,7 +222,7 @@ private void rd_compute()
  *              If elem is an assignment or function call or OPasm
  *                      Modify vector of reaching defs.
  */
-
+@trusted
 private void conpropwalk(elem *n,vec_t IN)
 {
     vec_t L,R;
@@ -395,6 +402,7 @@ private void conpropwalk(elem *n,vec_t IN)
  * Give error if there are no reaching defs for variable v.
  */
 
+@trusted
 private void chkrd(elem *n, Barray!(elem*) rdlist)
 {
     Symbol *sv;
@@ -504,6 +512,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
  *      e       constant elem that we should replace n with
  */
 
+@trusted
 private elem * chkprop(elem *n, Barray!(elem*) rdlist)
 {
     elem *foundelem = null;
@@ -615,6 +624,7 @@ noprop:
  *      rdlist = if not null, append reaching defs to it
  */
 
+@trusted
 void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
 {
     uint i;
@@ -675,9 +685,12 @@ void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
  * Look at reaching defs for expressions of the form (v == c) and (v != c).
  * If all definitions of v are c or are not c, then we can replace the
  * expression with 1 or 0.
+ * Params:
+ *      eqeqlist = array of == and != expressions
  */
 
-private void eqeqranges()
+@trusted
+private void eqeqranges(ref Elemdatas eqeqlist)
 {
     Symbol *v;
     int sz;
@@ -735,11 +748,13 @@ private void eqeqranges()
 /******************************
  * Examine rellist and inclist to determine if any of the signed compare
  * elems in rellist can be replace by unsigned compares.
- * rellist is list of relationals in function.
- * inclist is list of increment elems in function.
+ * Params:
+ *      rellist = array of relationals in function
+ *      inclist = array of increment elems in function
  */
 
-private void intranges()
+@trusted
+private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
 {
     block *rb;
     block *ib;
@@ -750,6 +765,14 @@ private void intranges()
     targ_llong initial,increment,final_;
 
     if (debugc) printf("intranges()\n");
+    static if (0)
+    {
+        foreach (int i, ref rel; rellist)
+        {
+            printf("[%d] rel.pelem: ", i); WReqn(rel.pelem); printf("\n");
+        }
+    }
+
     foreach (ref rel; rellist)
     {
         rb = rel.pblock;
@@ -841,7 +864,13 @@ private void intranges()
         /* Determine if we can make the relational an unsigned  */
         if (initial >= 0)
         {
-            if (final_ >= initial)
+            if (final_ == 0 && relatop == OPge)
+            {
+                /* if the relation is (i >= 0) there is likely some dependency
+                 * on switching sign, so do not make it unsigned
+                 */
+            }
+            else if (final_ >= initial)
             {
                 if (increment > 0 && ((final_ - initial) % increment) == 0)
                     goto makeuns;
@@ -917,6 +946,7 @@ private void intranges()
  *   false if cannot find rdeq or rdinc
  */
 
+@trusted
 private bool returnResult(bool result)
 {
     elemdatafree(eqeqlist);
@@ -925,6 +955,7 @@ private bool returnResult(bool result)
     return result;
 }
 
+@trusted
 bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 {
     if (debugc) printf("findloopparameters()\n");
@@ -1038,6 +1069,7 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
  * passing through rel.
  */
 
+@trusted
 private int loopcheck(block *start,block *inc,block *rel)
 {
     if (!(start.Bflags & BFLvisited))
@@ -1059,6 +1091,7 @@ private int loopcheck(block *start,block *inc,block *rel)
  */
 
 
+@trusted
 void copyprop()
 {
     out_regcand(&globsym);
@@ -1127,6 +1160,7 @@ Louter:
  *      true if need to recalculate data flow equations and try again
  */
 
+@trusted
 private bool copyPropWalk(elem *n,vec_t IN)
 {
     bool recalc = false;
@@ -1256,7 +1290,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
         {
             Symbol *v = n.EV.Vsym;
 
-            //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
+            //printf("Checking copyprop for '%s', ty=x%x\n", v.Sident.ptr,n.Ety);
             symbol_debug(v);
             const ty = n.Ety;
             uint sz = tysize(n.Ety);
@@ -1275,7 +1309,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                     csz = cast(uint)type_size(c.ET);
                 assert(cast(int)csz >= 0);
 
-                //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
+                //printf("  looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
                 /* Not only must symbol numbers match, but      */
                 /* offsets too (in case of arrays) and sizes    */
                 /* (in case of unions).                         */
@@ -1299,9 +1333,9 @@ private bool copyPropWalk(elem *n,vec_t IN)
             {
                 debug if (debugc)
                 {
-                    printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
-                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
+                    printf("Copyprop, '%s'(%d) replaced with '%s'(%d)\n",
+                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
+                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
                 }
 
                 type *nt = n.ET;
@@ -1353,6 +1387,7 @@ private __gshared
                                 /* reference is done (as in *p or call) */
 }
 
+@trusted
 void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
@@ -1434,6 +1469,7 @@ void rmdeadass()
  * Remove side effect of assignment elem.
  */
 
+@trusted
 void elimass(elem *n)
 {   elem *e1;
 
@@ -1504,6 +1540,7 @@ void elimass(elem *n)
  * Some compilers generate better code for ?: than if-then-else.
  */
 
+@trusted
 private uint numasg(elem *e)
 {
     assert(e);
@@ -1530,8 +1567,10 @@ private uint numasg(elem *e)
  *              clear all bits in POSS that are refs of v
  */
 
+@trusted
 private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {
+  LtailRecurse:
     assert(n && DEAD && POSS);
     const op = n.Eoper;
     switch (op)
@@ -1729,15 +1768,20 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             else if (OTrtol(op))
             {
                 accumda(n.EV.E2,DEAD,POSS);
-                accumda(n.EV.E1,DEAD,POSS);
+                n = n.EV.E1;
+                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
             }
             else if (OTbinary(op))
             {
                 accumda(n.EV.E1,DEAD,POSS);
-                accumda(n.EV.E2,DEAD,POSS);
+                n = n.EV.E2;
+                goto LtailRecurse;              //  accumda(n.EV.E2,DEAD,POSS);
             }
             else if (OTunary(op))
-                accumda(n.EV.E1,DEAD,POSS);
+            {
+                n = n.EV.E1;
+                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
+            }
             break;
     }
 }
@@ -1748,22 +1792,23 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
  * Compute live ranges for register candidates.
  * Be careful not to compute live ranges for members of structures (CLMOS).
  */
+@trusted
 void deadvar()
 {
         assert(dfo);
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLunambig)
             {
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)
                 {
-                    s.Srange = vec_realloc(s.Srange, maxblks);
+                    s.Srange = vec_realloc(s.Srange, dfo.length);
                     vec_clear(s.Srange);
                 }
             }
@@ -1777,19 +1822,19 @@ void deadvar()
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
+            if (globsym[i].Srange /*&& globsym[i].Sclass != CLMOS*/)
                 foreach (j, b; dfo[])
                     if (vec_testbit(i,b.Binlv))
-                        vec_setbit(cast(uint)j,globsym.tab[i].Srange);
+                        vec_setbit(cast(uint)j,globsym[i].Srange);
         }
 
         /* Print results        */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             char *p;
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
@@ -1797,10 +1842,10 @@ void deadvar()
             {
                 p = cast(char *) s.Sident.ptr ;
                 if (s.Sflags & SFLdead)
-                    if (debugc) printf("Symbol %d '%s' is dead\n",i,p);
+                    if (debugc) printf("Symbol %d '%s' is dead\n",cast(int) i,p);
                 if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
                 {
-                    printf("Live range for %d '%s': ",i,p);
+                    printf("Live range for %d '%s': ",cast(int) i,p);
                     vec_println(s.Srange);
                 }
             }
@@ -1814,6 +1859,7 @@ void deadvar()
  *      n = elem to look at
  *      i = block index
  */
+@trusted
 private void dvwalk(elem *n,uint i)
 {
     for (; true; n = n.EV.E1)
@@ -1843,6 +1889,7 @@ private void dvwalk(elem *n,uint i)
 
 private __gshared vec_t blockseen; /* which blocks we have visited         */
 
+@trusted
 void verybusyexp()
 {
     elem **pn;
@@ -2023,6 +2070,7 @@ void verybusyexp()
  * between b and bp.
  */
 
+@trusted
 private int killed(uint j,block *bp,block *b)
 {
     if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
@@ -2045,6 +2093,7 @@ private int killed(uint j,block *bp,block *b)
  *      j =     VBE expression elem candidate (index into go.expnod[])
  */
 
+@trusted
 private int ispath(uint j,block *bp,block *b)
 {
     /*chkvecdim(go.exptop,0);*/

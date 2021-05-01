@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/var.d, backend/var.d)
@@ -22,6 +22,7 @@ import dmd.backend.dlist;
 import dmd.backend.goh;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -44,6 +45,7 @@ version (HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 __gshared:
 
@@ -184,27 +186,6 @@ int level = 0;                  /* declaration level                    */
 param_t *paramlst = null;       /* function parameter list              */
 tym_t pointertype = TYnptr;     /* default data pointer type            */
 
-/************************
- * Bit masks
- */
-
-const uint[32] mask =
-        [1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,
-         0x10000,0x20000,0x40000,0x80000,0x100000,0x200000,0x400000,0x800000,
-         0x1000000,0x2000000,0x4000000,0x8000000,
-         0x10000000,0x20000000,0x40000000,0x80000000];
-
-static if (0)
-{
-const uint[32] maskl =
-        [1,2,4,8,0x10,0x20,0x40,0x80,
-         0x100,0x200,0x400,0x800,0x1000,0x2000,0x4000,0x8000,
-         0x10000,0x20000,0x40000,0x80000,0x100000,0x200000,0x400000,0x800000,
-         0x1000000,0x2000000,0x4000000,0x8000000,
-         0x10000000,0x20000000,0x40000000,0x80000000];
-}
-
-
 /* From util.c */
 
 /*****************************
@@ -268,10 +249,7 @@ symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
 
-uint
-         maxblks = 0,   /* array max for all block stuff                */
-                        /* dfoblks <= numblks <= maxblks                */
-         numcse;        /* number of common subexpressions              */
+uint numcse;        // number of common subexpressions
 
 GlobalOptimizer go;
 
@@ -390,6 +368,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
     TYnptr    : "*",
     TYref     : "&",
     TYvoid    : "void",
+    TYnoreturn : "noreturn",
     TYstruct  : "struct",
     TYarray   : "array",
     TYnfunc   : "C func",
@@ -599,6 +578,7 @@ __gshared ubyte[TYMAX] dttab =
     TYnptr    : 0x20,
     TYref     : 0x00,
     TYvoid    : 0x85,
+    TYnoreturn : 0x85, // same as TYvoid
     TYstruct  : 0x00,
     TYarray   : 0x78,
     TYnfunc   : 0x63,
@@ -709,6 +689,7 @@ __gshared ushort[TYMAX] dttab4 =
     TYnptr    : 0x100,
     TYref     : 0x00,
     TYvoid    : 0x03,
+    TYnoreturn : 0x03, // same as TYvoid
     TYstruct  : 0x00,
     TYarray   : 0x00,
     TYnfunc   : 0x00,
@@ -819,6 +800,7 @@ __gshared byte[256] _tysize =
     TYnptr    : 2,
     TYref     : -1,
     TYvoid    : -1,
+    TYnoreturn : 0,
     TYstruct  : -1,
     TYarray   : -1,
     TYnfunc   : -1,
@@ -855,16 +837,8 @@ __gshared byte[256] _tysize =
     TYvtshape  : -1,
 ];
 
-// Alignment of long doubles varies by target
-static if (TARGET_OSX)
-    enum LDOUBLE_ALIGN = 16;
-else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    enum LDOUBLE_ALIGN = 4;
-else static if (TARGET_WINDOS)
-    enum LDOUBLE_ALIGN = 2;
-else
-    static assert(0, "fix this");
-
+// set alignment after we know the target
+enum SET_ALIGN = -1;
 
 /// Size of a type to use for alignment
 __gshared byte[256] _tyalignsize =
@@ -893,15 +867,15 @@ __gshared byte[256] _tyalignsize =
     TYfloat   : FLOATSIZE,
     TYdouble  : DOUBLESIZE,
     TYdouble_alias : 8,
-    TYldouble : LDOUBLE_ALIGN,
+    TYldouble : SET_ALIGN,
 
     TYifloat   : FLOATSIZE,
     TYidouble  : DOUBLESIZE,
-    TYildouble : LDOUBLE_ALIGN,
+    TYildouble : SET_ALIGN,
 
     TYcfloat   : 2*FLOATSIZE,
     TYcdouble  : 2*DOUBLESIZE,
-    TYcldouble : LDOUBLE_ALIGN,
+    TYcldouble : SET_ALIGN,
 
     TYfloat4  : 16,
     TYdouble2 : 16,
@@ -940,6 +914,7 @@ __gshared byte[256] _tyalignsize =
     TYnptr    : 2,
     TYref     : -1,
     TYvoid    : -1,
+    TYnoreturn : 0,
     TYstruct  : -1,
     TYarray   : -1,
     TYnfunc   : -1,
@@ -1020,6 +995,7 @@ enum TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
 enum TXaggregate  = [ TYstruct,TYarray ];
 enum TXxmmreg     = [
                      TYfloat,TYdouble,TYifloat,TYidouble,
+                     //TYcfloat,TYcdouble,
                      TYfloat4,TYdouble2,
                      TYschar16,TYuchar16,TYshort8,TYushort8,
                      TYlong4,TYulong4,TYllong2,TYullong2,
@@ -1041,4 +1017,3 @@ enum TXsimd       = [
                      TYlong16,TYulong16,TYllong8,TYullong8,
                      TYfloat16,TYdouble8,
                     ];
-

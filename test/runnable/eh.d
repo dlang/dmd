@@ -939,6 +939,75 @@ L10:
 
 /****************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=10966
+
+void bug10966a(void* p)
+{
+    void* pstart = p;
+
+    try
+    {
+        p = null;
+        throw new Exception("dummy");
+    }
+    catch (Throwable o)
+    {
+        assert(p != pstart);
+    }
+}
+
+void bug10966b()
+{
+    int x = 0;
+    int i = 0;
+    try
+    {
+        i = 1;
+        throw new Exception("dummy");
+    }
+    catch (Throwable o)
+    {
+        x = i;
+    }
+    assert(x == 1);
+}
+
+void test10966()
+{
+    int s;
+    bug10966a(&s);
+    bug10966b();
+}
+
+/****************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=11049
+
+void test11049()
+{
+    int[] arr = [1,2,3];
+
+#line 4100 "foo"
+    try { auto n = arr[3]; }
+    catch (Error e)
+    {
+        //printf("e.file = %s\n", e.file.ptr);
+        assert(e.file == "foo");  // fails
+        assert(e.line == 4100);
+    }
+
+#line 4200 "bar"
+    try { auto a = arr[3..9]; }
+    catch (Error e)
+    {
+        //printf("e.file = %s\n", e.file.ptr);
+        assert(e.file == "bar");  // fails
+        assert(e.line == 4200);
+    }
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -965,6 +1034,8 @@ int main()
     test17481();
     test12();
     test13();
+    test10966();
+    test11049();
 
     printf("finish\n");
     return 0;

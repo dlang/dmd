@@ -3,7 +3,7 @@
  *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/builtin.d, _builtin.d)
@@ -86,18 +86,16 @@ BUILTIN determine_builtin(FuncDeclaration func)
     if (!m || !m.md)
         return BUILTIN.unimp;
     const md = m.md;
-    const id2 = md.id;
 
-    // Look for core.math, core.bitop and std.math
+    // Look for core.math, core.bitop, std.math, and std.math.<package>
+    const id2 = (md.packages.length == 2) ? md.packages[1] : md.id;
     if (id2 != Id.math && id2 != Id.bitop)
         return BUILTIN.unimp;
 
-    if (!md.packages)
-        return BUILTIN.unimp;
-    if (md.packages.length != 1)
+    if (md.packages.length != 1 && !(md.packages.length == 2 && id2 == Id.math))
         return BUILTIN.unimp;
 
-    const id1 = (*md.packages)[0];
+    const id1 = md.packages[0];
     if (id1 != Id.core && id1 != Id.std)
         return BUILTIN.unimp;
     const id3 = fd.ident;
@@ -437,4 +435,15 @@ Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     return new RealExp(loc, arg0.toReal(), Type.tfloat80);
+}
+
+// These built-ins are reserved for GDC and LDC.
+Expression eval_gcc(Loc, FuncDeclaration, Expressions*)
+{
+    assert(0);
+}
+
+Expression eval_llvm(Loc, FuncDeclaration, Expressions*)
+{
+    assert(0);
 }

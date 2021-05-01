@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -46,6 +46,7 @@ import scopeh;
 extern (C++):
 
 nothrow:
+@safe:
 
 version (MARS)
     import dmd.backend.errors;
@@ -240,49 +241,62 @@ version (SCPP)
  * Return true if expression will always evaluate to true.
  */
 
+@trusted
 int iftrue(elem *e)
 {
-  while (1)
-  {
+    while (1)
+    {
         assert(e);
         elem_debug(e);
         switch (e.Eoper)
-        {       case OPcomma:
-                case OPinfo:
-                        e = e.EV.E2;
-                        break;
-                case OPrelconst:
-                case OPconst:
-                case OPstring:
-                        return boolres(e);
-                default:
-                        return false;
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPrelconst:
+            case OPconst:
+            case OPstring:
+                return boolres(e);
+
+            case OPoror:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
+            default:
+                return false;
         }
-  }
+    }
 }
 
 /***************************
  * Return true if expression will always evaluate to false.
  */
 
+@trusted
 int iffalse(elem *e)
 {
-        while (1)
-        {       assert(e);
-                elem_debug(e);
-                switch (e.Eoper)
-                {       case OPcomma:
-                        case OPinfo:
-                                e = e.EV.E2;
-                                break;
-                        case OPconst:
-                                return !boolres(e);
-                        //case OPstring:
-                        //case OPrelconst:
-                        default:
-                                return false;
-                }
+    while (1)
+    {
+        assert(e);
+        elem_debug(e);
+        switch (e.Eoper)
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPconst:
+                return !boolres(e);
+
+            case OPandand:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
+            default:
+                return false;
         }
+    }
 }
 
 
@@ -291,6 +305,7 @@ int iffalse(elem *e)
  * Return with the result.
  */
 
+@trusted
 elem * evalu8(elem *e, goal_t goal)
 {
     elem* e1;
@@ -1736,7 +1751,15 @@ else
         e.EV.Vlong = i1 & 1;
         break;
     case OPbswap:
-        e.EV.Vint = core.bitop.bswap(cast(uint) i1);
+        if (tysize(tym) == 2)
+        {
+            e.EV.Vint = ((i1 >> 8) & 0x00FF) |
+                        ((i1 << 8) & 0xFF00);
+        }
+        else if (tysize(tym) == 4)
+            e.EV.Vint = core.bitop.bswap(cast(uint) i1);
+        else
+            e.EV.Vllong = core.bitop.bswap(cast(ulong) l1);
         break;
 
     case OPpopcnt:

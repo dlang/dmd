@@ -10,7 +10,7 @@
  *         different lists to 'share' a common tail.
  *
  * Copyright:   Copyright (C) 1986-1990 by Northwest Software
- *              Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dlist.d, backend/dlist.d)
@@ -26,7 +26,11 @@ import core.stdc.string;
 extern (C++):
 
 nothrow:
-@nogc:
+@safe:
+@nogc
+{
+
+/* **************** TYPEDEFS AND DEFINES ****************** */
 
 struct LIST
 {
@@ -50,9 +54,31 @@ alias list_free_fp = void function(void*) @nogc nothrow;
 
 enum FPNULL = cast(list_free_fp)null;
 
-private __gshared list_t list_freelist;
+/* **************** PUBLIC VARIABLES ********************* */
+
+__gshared
+{
+    int list_inited;         // != 0 if list package is initialized
+    list_t list_freelist;
+    int nlist;
+}
 
 /* **************** PUBLIC FUNCTIONS ********************* */
+
+/********************************
+ * Create link to existing list, that is, share the list with
+ * somebody else.
+ *
+ * Returns:
+ *    pointer to that list entry.
+ */
+
+list_t list_link(list_t list)
+{
+    if (list)
+        ++list.count;
+    return list;
+}
 
 /********************************
  * Returns:
@@ -66,6 +92,7 @@ list_t list_next(list_t list) { return list.next; }
  *    ptr from list entry.
  */
 
+@trusted
 inout(void)* list_ptr(inout list_t list) { return list.ptr; }
 
 /********************************
@@ -76,6 +103,15 @@ inout(void)* list_ptr(inout list_t list) { return list.ptr; }
 int list_data(list_t list) { return list.data; }
 
 /********************************
+ * Append integer item to list.
+ */
+
+void list_appenddata(list_t* plist, int d)
+{
+    list_append(plist, null).data = d;
+}
+
+/********************************
  * Prepend integer item to list.
  */
 
@@ -84,6 +120,50 @@ void list_prependdata(list_t *plist,int d)
     list_prepend(plist, null).data = d;
 }
 
+/**********************
+ * Initialize list package.
+ * Output:
+ *      list_inited = 1
+ */
+
+@trusted
+void list_init()
+{
+    if (list_inited == 0)
+    {
+        nlist = 0;
+        list_inited++;
+    }
+}
+
+/*******************
+ * Terminate list package.
+ * Output:
+ *      list_inited = 0
+ */
+
+@trusted
+void list_term()
+{
+    if (list_inited)
+    {
+        debug printf("Max # of lists = %d\n",nlist);
+        while (list_freelist)
+        {
+            list_t list = list_next(list_freelist);
+            list_delete(list_freelist);
+            list_freelist = list;
+            nlist--;
+        }
+        debug if (nlist)
+            printf("nlist = %d\n",nlist);
+        assert(nlist == 0);
+        list_inited = 0;
+    }
+}
+
+
+@trusted
 list_t list_alloc()
 {
     list_t list;
@@ -96,12 +176,22 @@ list_t list_alloc()
     }
     else
     {
+        nlist++;
         list = list_new();
     }
     return list;
 }
 
+list_t list_alloc(const(char)* file, int line)
+{
+    return list_alloc();
+}
+
+
+@trusted
 list_t list_new() { return cast(list_t)malloc(LIST.sizeof); }
+
+@trusted
 void list_delete(list_t list) { free(list); }
 
 /********************
@@ -114,6 +204,7 @@ void list_delete(list_t list) { free(list); }
  *      *plist is null
  */
 
+@trusted
 void list_free(list_t* plist, list_free_fp freeptr)
 {
     list_t list = *plist;
@@ -144,6 +235,7 @@ void list_free(list_t *l)
  *      otherwise ptr
  */
 
+@trusted
 void* list_subtract(list_t* plist, void* ptr)
 {
     list_t list;
@@ -184,6 +276,7 @@ void* list_pop(list_t* plist)
  *      null if out of memory
  */
 
+@trusted
 list_t list_append(list_t* plist, void* ptr)
 {
     while (*plist)
@@ -200,6 +293,11 @@ list_t list_append(list_t* plist, void* ptr)
     return list;
 }
 
+list_t list_append_debug(list_t* plist, void* ptr, const(char)* file, int line)
+{
+    return list_append(plist, ptr);
+}
+
 /*************************
  * Prepend ptr to *plist.
  * Returns:
@@ -207,6 +305,7 @@ list_t list_append(list_t* plist, void* ptr)
  *      null if out of memory
  */
 
+@trusted
 list_t list_prepend(list_t *plist, void *ptr)
 {
     list_t list = list_alloc();
@@ -251,6 +350,53 @@ list_t list_nth(list_t list, int n)
     return list;
 }
 
+/***********************
+ * Returns:
+ *    last list entry in list.
+ */
+
+list_t list_last(list_t list)
+{
+    if (list)
+        while (list_next(list))
+            list = list_next(list);
+    return list;
+}
+
+/********************************
+ * Returns:
+ *    pointer to previous item in list.
+ */
+
+list_t list_prev(list_t start, list_t list)
+{
+    if (start)
+    {
+        if (start == list)
+            start = null;
+        else
+            while (list_next(start) != list)
+            {
+                start = list_next(start);
+                assert(start);
+            }
+    }
+    return start;
+}
+
+/***********************
+ * Copy a list and return it.
+ */
+
+@trusted
+list_t list_copy(list_t list)
+{
+    list_t c = null;
+    for (; list; list = list_next(list))
+        list_append(&c,list_ptr(list));
+    return c;
+}
+
 /************************
  * Compare two lists.
  * Returns:
@@ -269,12 +415,45 @@ int list_equal(list_t list1, list_t list2)
     return list1 == list2;
 }
 
+/************************
+ * Compare two lists using the comparison function fp.
+ * The comparison function is the same as used for qsort().
+ * Returns:
+ *    If they compare equal, return 0 else value returned by fp.
+ */
+
+@trusted
+int list_cmp(list_t list1, list_t list2, int function(void*, void*) @nogc nothrow fp)
+{
+    int result = 0;
+
+    while (1)
+    {
+        if (!list1)
+        {   if (list2)
+                result = -1;    /* list1 < list2        */
+            break;
+        }
+        if (!list2)
+        {   result = 1;         /* list1 > list2        */
+            break;
+        }
+        result = (*fp)(list_ptr(list1),list_ptr(list2));
+        if (result)
+            break;
+        list1 = list_next(list1);
+        list2 = list_next(list2);
+    }
+    return result;
+}
+
 /*************************
  * Search for ptr in list.
  * Returns:
  *    If found, return list entry that it is, else null.
  */
 
+@trusted
 list_t list_inlist(list_t list, void* ptr)
 {
     foreach (l; ListRange(list))
@@ -283,10 +462,28 @@ list_t list_inlist(list_t list, void* ptr)
     return null;
 }
 
+/*************************
+ * Concatenate two lists (l2 appended to l1).
+ * Output:
+ *      *pl1 updated to be start of concatenated list.
+ * Returns:
+ *      *pl1
+ */
+
+list_t list_cat(list_t *pl1, list_t l2)
+{
+    list_t *pl;
+    for (pl = pl1; *pl; pl = &(*pl).next)
+    { }
+    *pl = l2;
+    return *pl1;
+}
+
 /***************************************
  * Apply a function fp to each member of a list.
  */
 
+@trusted
 void list_apply(list_t* plist, void function(void*) @nogc nothrow fp)
 {
     if (fp)
@@ -313,6 +510,47 @@ list_t list_reverse(list_t l)
     return r;
 }
 
+
+/**********************************************
+ * Copy list of pointers into an array of pointers.
+ */
+
+@trusted
+void list_copyinto(list_t l, void *pa)
+{
+    void **ppa = cast(void **)pa;
+    for (; l; l = l.next)
+    {
+        *ppa = l.ptr;
+        ++ppa;
+    }
+}
+
+/**********************************************
+ * Insert item into list at nth position.
+ */
+
+@trusted
+list_t list_insert(list_t *pl,void *ptr,int n)
+{
+    list_t list;
+
+    while (n)
+    {
+        pl = &(*pl).next;
+        n--;
+    }
+    list = list_alloc();
+    if (list)
+    {
+        list.next = *pl;
+        *pl = list;
+        list.ptr = ptr;
+        list.count = 1;
+    }
+    return list;
+}
+
 /********************************
  * Range for Lists.
  */
@@ -332,3 +570,40 @@ struct ListRange
   private:
     list_t li;
 }
+
+}
+
+/* The following function should be nothrow @nogc, too, but on
+ * some platforms core.stdc.stdarg is not fully nothrow @nogc.
+ */
+
+/*************************
+ * Build a list out of the null-terminated argument list.
+ * Returns:
+ *      generated list
+ */
+
+@trusted
+list_t list_build(void *p,...)
+{
+    va_list ap;
+
+    list_t alist = null;
+    list_t *pe = &alist;
+    for (va_start(ap,p); p; p = va_arg!(void*)(ap))
+    {
+        list_t list = list_alloc();
+        if (list)
+        {
+            list.next = null;
+            list.ptr = p;
+            list.count = 1;
+            *pe = list;
+            pe = &list.next;
+        }
+    }
+    va_end(ap);
+    return alist;
+}
+
+

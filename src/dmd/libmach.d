@@ -1,7 +1,7 @@
 /**
  * A library in the Mach-O format, used on macOS.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmach.d, _libmach.d)
@@ -11,16 +11,21 @@
 
 module dmd.libmach;
 
-version(OSX):
-
 import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.stdio;
 import core.stdc.config;
 
-import core.sys.posix.sys.stat;
-import core.sys.posix.unistd;
+version (Posix)
+{
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd;
+}
+version (Windows)
+{
+    import core.sys.windows.stat;
+}
 
 import dmd.globals;
 import dmd.lib;
@@ -64,7 +69,7 @@ final class LibMach : Library
 
     extern (D) this()
     {
-        tab._init(14000);
+        tab._init(14_000);
     }
 
     /***************************************
@@ -213,7 +218,10 @@ final class LibMach : Library
         om.scan = 1;
         if (fromfile)
         {
-            stat_t statbuf;
+            version (Posix)
+                stat_t statbuf;
+            version (Windows)
+                struct_stat statbuf;
             int i = module_name.toCStringThen!(slice => stat(slice.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
@@ -227,18 +235,26 @@ final class LibMach : Library
             /* Mock things up for the object module file that never was
              * actually written out.
              */
-            __gshared uid_t uid;
-            __gshared gid_t gid;
-            __gshared int _init;
-            if (!_init)
+            version (Posix)
             {
-                _init = 1;
-                uid = getuid();
-                gid = getgid();
+                __gshared uid_t uid;
+                __gshared gid_t gid;
+                __gshared int _init;
+                if (!_init)
+                {
+                    _init = 1;
+                    uid = getuid();
+                    gid = getgid();
+                }
+                om.user_id = uid;
+                om.group_id = gid;
+            }
+            version (Windows)
+            {
+                om.user_id = 0; // meaningless on Windows
+                om.group_id = 0;        // meaningless on Windows
             }
             time(&om.file_time);
-            om.user_id = uid;
-            om.group_id = gid;
             om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         }
         objmodules.push(om);
@@ -375,8 +391,16 @@ private:
         om.offset = 8;
         om.name = "";
         .time(&om.file_time);
-        om.user_id = getuid();
-        om.group_id = getgid();
+        version (Posix)
+        {
+            om.user_id = getuid();
+            om.group_id = getgid();
+        }
+        version (Windows)
+        {
+            om.user_id = 0;
+            om.group_id = 0;
+        }
         om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         MachLibHeader h;
         MachOmToHeader(&h, &om);
@@ -487,7 +511,7 @@ extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
     int nzeros = 8 - ((slen + 4) & 7);
     if (nzeros < 4)
         nzeros += 8; // emulate mysterious behavior of ar
-    size_t len = sprintf(h.object_name.ptr, "#1/%ld", slen + nzeros);
+    size_t len = sprintf(h.object_name.ptr, "#1/%lld", cast(long)(slen + nzeros));
     memset(h.object_name.ptr + len, ' ', MACH_OBJECT_NAME_SIZE - len);
     /* In the following sprintf's, don't worry if the trailing 0
      * that sprintf writes goes off the end of the field. It will
@@ -497,12 +521,12 @@ extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
     len = sprintf(h.file_time.ptr, "%llu", cast(long)om.file_time);
     assert(len <= 12);
     memset(h.file_time.ptr + len, ' ', 12 - len);
-    if (om.user_id > 999999) // yes, it happens
+    if (om.user_id > 999_999) // yes, it happens
         om.user_id = 0; // don't really know what to do here
     len = sprintf(h.user_id.ptr, "%u", om.user_id);
     assert(len <= 6);
     memset(h.user_id.ptr + len, ' ', 6 - len);
-    if (om.group_id > 999999) // yes, it happens
+    if (om.group_id > 999_999) // yes, it happens
         om.group_id = 0; // don't really know what to do here
     len = sprintf(h.group_id.ptr, "%u", om.group_id);
     assert(len <= 6);
@@ -512,7 +536,7 @@ extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
     memset(h.file_mode.ptr + len, ' ', 8 - len);
     int filesize = om.length;
     filesize = (filesize + 7) & ~7;
-    len = sprintf(h.file_size.ptr, "%lu", slen + nzeros + filesize);
+    len = sprintf(h.file_size.ptr, "%llu", cast(ulong)(slen + nzeros + filesize));
     assert(len <= 10);
     memset(h.file_size.ptr + len, ' ', 10 - len);
     h.trailer[0] = '`';

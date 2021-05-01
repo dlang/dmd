@@ -2831,6 +2831,7 @@ struct S17457 {
     this(int seconds) {
         dg17457 = &mfunc;
     }
+    @disable this(this);
     void mfunc() {}
 }
 
@@ -4691,6 +4692,135 @@ void test19676()
 
 /**********************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=14708
+
+__gshared bool dtor14078 = false;
+
+struct S14078
+{
+    int n;
+
+    void* get(void* p = null)
+    {
+        return null;
+    }
+
+    ~this()
+    {
+        //printf("dtor\n");
+        dtor14078 = true;
+    }
+}
+
+S14078 makeS14078(int n)
+{
+    return S14078(n);
+}
+
+void foo14078(void* x)
+{
+    throw new Exception("fail!");
+}
+
+void test(int len = 2)
+{
+    foo14078(makeS14078(1).get());
+    // A temporary is allocated on stack for the
+    // return value from makeS14078(1).
+    // When foo14078 throws exception, it's dtor should be called
+    // during unwinding stack, but it does not happen in Win64.
+}
+
+void test14078()
+{
+    try
+    {
+        test();
+    } catch (Exception e) {}
+    assert(dtor14078);   // fails!
+}
+
+/**********************************/
+
+void test67()
+{
+    char[] deleted;
+
+    struct S
+    {
+        char* p;
+
+        ~this() { deleted ~= *p; }
+
+        void opAssign(S rhs)
+        {
+            // swap
+            char* tmp = p;
+            this.p = rhs.p;
+            rhs.p = tmp;
+        }
+    }
+
+    char a = 'a', b = 'b';
+    {
+        S s = S(&a);
+        s = S(&b);
+    }
+    assert(deleted == "ab", deleted);
+}
+
+/**********************************/
+
+void test68()
+{
+    static struct S
+    {
+        int i;
+        bool opEquals(S) { return false; }
+        ~this() {}
+    }
+
+    assert(S(0) != S(1));
+}
+
+/**********************************/
+
+// https://github.com/dlang/dmd/pull/12012
+
+extern (C++)
+{
+struct S12012
+{
+    int* ctr;
+    ~this() { }
+}
+
+void bar12012(int value, S12012 s)
+{
+}
+
+S12012 abc12012(ref S12012 s)
+{
+    s.ctr = null;
+    return s;
+}
+
+int def12012(ref S12012 s)
+{
+    return *s.ctr; // seg fault is here
+}
+
+void testPR12012()
+{
+    int i;
+    S12012 s = S12012(&i);
+    // def must be executed before abc else seg fault
+    bar12012(def12012(s), abc12012(s));
+}
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4826,6 +4956,10 @@ int main()
     test18045();
     test16652();
     test19676();
+    test14078();
+    test67();
+    test68();
+    testPR12012();
 
     printf("Success\n");
     return 0;

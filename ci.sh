@@ -1,17 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# Implements CI steps for Cirrus CI and Semaphore.
+# This file is invoked by .cirrus.yml and semaphoreci.sh.
 
 set -uexo pipefail
 
+# N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-if [ -z ${BRANCH+x} ] ; then echo "Variable 'BRANCH' needs to be set."; exit 1; fi
+# OS_NAME: linux|darwin|freebsd
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
+# FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
+# MODEL: 32|64
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
-if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
+# HOST_DMD: dmd[-<version>]|ldc[-<version>]|gdmd-<version>
+if [ ! -z ${HOST_DC+x} ] ; then HOST_DMD=${HOST_DC}; fi
+if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit 1; fi
+# CI_DFLAGS: Optional flags to pass to the build
+if [ -z ${CI_DFLAGS+x} ] ; then CI_DFLAGS=""; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
-build_path=generated/$OS_NAME/release/$MODEL
-
 build_path=generated/$OS_NAME/release/$MODEL
 
 # use faster ld.gold linker on linux
@@ -25,7 +33,7 @@ else
     NM=nm
 fi
 
-# clone druntime and phobos
+# clone a repo
 clone() {
     local url="$1"
     local path="$2"
@@ -42,10 +50,11 @@ clone() {
     done
 }
 
-# build dmd, druntime, phobos
+# build dmd (incl. building and running the unittests), druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
     deactivate # deactivate host compiler
@@ -61,7 +70,7 @@ rebuild() {
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -78,8 +87,8 @@ rebuild() {
 # test druntime, phobos, dmd
 test() {
     test_dub_package
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+    test_druntime
+    test_phobos
     test_dmd
 }
 
@@ -91,6 +100,16 @@ test_dmd() {
     else
         make -j1 -C test auto-tester-test MODEL=$MODEL N=$N ARGS="-O -inline -release"
     fi
+}
+
+# build and run druntime unit tests
+test_druntime() {
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
+}
+
+# build and run Phobos unit tests
+test_phobos() {
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
 }
 
 # test dub package
@@ -120,16 +139,20 @@ test_dub_package() {
     deactivate
 }
 
+# clone druntime/phobos repos if not already available
 setup_repos() {
-for proj in druntime phobos; do
-    if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
-           ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $BRANCH > /dev/null; then
-        # use master as fallback for other repos to test feature branches
-        clone https://github.com/dlang/$proj.git ../$proj master
-    else
-        clone https://github.com/dlang/$proj.git ../$proj $BRANCH
-    fi
-done
+    local branch="$1"
+    for proj in druntime phobos; do
+        if [ ! -d ../$proj ]; then
+            if [ $branch != master ] && [ $branch != stable ] &&
+                   ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $branch > /dev/null; then
+                # use master as fallback for other repos to test feature branches
+                clone https://github.com/dlang/$proj.git ../$proj master
+            else
+                clone https://github.com/dlang/$proj.git ../$proj $branch
+            fi
+        fi
+    done
 }
 
 testsuite() {
@@ -162,23 +185,55 @@ download_install_sh() {
   done
 }
 
-install_d() {
-  if [ "${DMD:-dmd}" == "gdc" ] || [ "${DMD:-dmd}" == "gdmd" ] ; then
-    export DMD=gdmd-${GDC_VERSION}
-    if [ ! -e ~/dlang/gdc-${GDC_VERSION}/activate ] ; then
+# install D host compiler
+install_host_compiler() {
+  if [ "${HOST_DMD:0:5}" == "gdmd-" ] ; then
+    local gdc_version="${HOST_DMD:5}"
+    if [ ! -e ~/dlang/gdc-$gdc_version/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update
-        sudo apt-get install -y gdc-${GDC_VERSION}
-        # fetch the dmd-like wrapper
-        sudo wget https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -O /usr/bin/gdmd-${GDC_VERSION}
-        sudo chmod +x /usr/bin/gdmd-${GDC_VERSION}
+        sudo apt-get install -y gdc-$gdc_version
+        # fetch the gdmd wrapper for CLI compatibility with dmd
+        sudo curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-$gdc_version
+        sudo chmod +x /usr/bin/gdmd-$gdc_version
         # fake install script and create a fake 'activate' script
-        mkdir -p ~/dlang/gdc-${GDC_VERSION}
-        echo "deactivate(){ echo;}" > ~/dlang/gdc-${GDC_VERSION}/activate
+        mkdir -p ~/dlang/gdc-$gdc_version
+        echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
+        echo "deactivate(){ echo;}" >> ~/dlang/gdc-$gdc_version/activate
     fi
   else
     local install_sh="install.sh"
     download_install_sh "$install_sh"
-    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
+    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DMD"
   fi
 }
+
+# Upload coverage reports
+codecov()
+{
+    # CodeCov gets confused by lst files which it can't match
+    rm -rf test/runnable/extra-files test/*.lst
+    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 \
+        --retry 5 --retry-delay 5 "https://codecov.io/bash" -o "codecov.sh"
+    bash ./codecov.sh -p . -Z
+    rm codecov.sh
+}
+
+# Define commands
+
+if [ "$#" -gt 0 ]; then
+  case $1 in
+    install_host_compiler) install_host_compiler ;;
+    setup_repos) setup_repos "$2" ;; # ci.sh setup_repos <git branch>
+    build) build ;;
+    rebuild) rebuild "${2:-}" ;; # ci.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
+    test) test ;;
+    test_dmd) test_dmd ;;
+    test_druntime) test_druntime ;;
+    test_phobos) test_phobos ;;
+    test_dub_package) test_dub_package ;;
+    testsuite) testsuite ;;
+    codecov) codecov ;;
+    *) echo "Unknown command: $1" >&2; exit 1 ;;
+  esac
+fi

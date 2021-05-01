@@ -1,8 +1,5 @@
 /*
 DISABLED: win32 win64 osx32 linux32 freebsd32
-TEST_OUTPUT:
----
----
 */
 
 void chkArgTypes(S, V...)()
@@ -43,69 +40,35 @@ int main()
     chkIdentity!int();
     chkIdentity!long();
 
-    version (DigitalMars)
-    {
-        chkIdentity!ubyte();
-        chkIdentity!ushort();
-        chkIdentity!uint();
-        chkIdentity!ulong();
+    chkSingle!(ubyte,  byte)();
+    chkSingle!(ushort, short)();
+    chkSingle!(uint,   int)();
+    chkSingle!(ulong,  long)();
 
-        chkSingle!(char,  ubyte)();
-        chkSingle!(wchar, ushort)();
-        chkSingle!(dchar, uint)();
-    }
-    else
-    {
-        chkSingle!(ubyte,  byte)();
-        chkSingle!(ushort, short)();
-        chkSingle!(uint,   int)();
-        chkSingle!(ulong,  long)();
-
-        chkSingle!(char,  byte)();
-        chkSingle!(wchar, short)();
-        chkSingle!(dchar, int)();
-    }
+    chkSingle!(char,  byte)();
+    chkSingle!(wchar, short)();
+    chkSingle!(dchar, int)();
 
     chkIdentity!float();
     chkIdentity!double();
     chkIdentity!real();
 
-    version (DigitalMars)
-        chkIdentity!(void*)();
-    else
-        chkSingle!(void*, ptrdiff_t)();
+    chkSingle!(void*, ptrdiff_t)();
 
-    version (DigitalMars)
-    {
-        chkIdentity!(__vector(byte[16]))();
-        chkIdentity!(__vector(ubyte[16]))();
-        chkIdentity!(__vector(short[8]))();
-        chkIdentity!(__vector(ushort[8]))();
-        chkIdentity!(__vector(int[4]))();
-        chkIdentity!(__vector(uint[4]))();
-        chkIdentity!(__vector(long[2]))();
-        chkIdentity!(__vector(ulong[2]))();
+    chkSingle!(__vector(byte[16]),  __vector(double[2]))();
+    chkSingle!(__vector(ubyte[16]), __vector(double[2]))();
+    chkSingle!(__vector(short[8]),  __vector(double[2]))();
+    chkSingle!(__vector(ushort[8]), __vector(double[2]))();
+    chkSingle!(__vector(int[4]),    __vector(double[2]))();
+    chkSingle!(__vector(uint[4]),   __vector(double[2]))();
+    chkSingle!(__vector(long[2]),   __vector(double[2]))();
+    chkSingle!(__vector(ulong[2]),  __vector(double[2]))();
 
-        chkIdentity!(__vector(float[4]))();
-        chkIdentity!(__vector(double[2]))();
-    }
-    else
-    {
-        chkSingle!(__vector(byte[16]),  __vector(double[2]))();
-        chkSingle!(__vector(ubyte[16]), __vector(double[2]))();
-        chkSingle!(__vector(short[8]),  __vector(double[2]))();
-        chkSingle!(__vector(ushort[8]), __vector(double[2]))();
-        chkSingle!(__vector(int[4]),    __vector(double[2]))();
-        chkSingle!(__vector(uint[4]),   __vector(double[2]))();
-        chkSingle!(__vector(long[2]),   __vector(double[2]))();
-        chkSingle!(__vector(ulong[2]),  __vector(double[2]))();
+    chkSingle!(__vector(float[4]),  __vector(double[2]))();
+    chkSingle!(__vector(double[2]), __vector(double[2]))();
 
-        chkSingle!(__vector(float[4]),  __vector(double[2]))();
-        chkSingle!(__vector(double[2]), __vector(double[2]))();
-
-        version (D_AVX)
-            chkSingle!(__vector(int[8]), __vector(double[4]))();
-    }
+    version (D_AVX)
+        chkSingle!(__vector(int[8]), __vector(double[4]))();
 
     chkPair!(byte,  byte,  short);
     chkPair!(ubyte, ubyte, short);
@@ -160,20 +123,10 @@ int main()
     chkArgTypes!(int[3], long, int)();
 
     struct S12 { align(16) int a; }
-    version (DigitalMars)
-        chkArgTypes!(S12, int)();
-    else
-        chkArgTypes!(S12, long)();
+    chkArgTypes!(S12, long)();
 
-    version (DigitalMars) {}
-    else
-    {
-        struct S13 { short a; cfloat b; }
-        chkArgTypes!(S13, long, float)();
-
-        struct S13957 { double a; ulong b; }
-        chkArgTypes!(S13957, double, long)();
-    }
+    struct S13957 { double a; ulong b; }
+    chkArgTypes!(S13957, double, long)();
 
     return 0;
 }

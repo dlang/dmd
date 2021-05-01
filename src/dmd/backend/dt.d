@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dt.d
+ * Documentation:  https://dlang.org/phobos/dmd_backend_dt.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dt.d
  */
 
 module dmd.backend.dt;
-
-// Online documentation: https://dlang.org/phobos/dmd_backend_dt.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -25,6 +25,7 @@ import dmd.backend.type;
 
 nothrow:
 @nogc:
+@safe:
 
 extern (C++):
 
@@ -32,6 +33,7 @@ extern (C++):
  * Free a data definition struct.
  */
 
+@trusted
 void dt_free(dt_t *dt)
 {
     if (dt)
@@ -96,6 +98,7 @@ void dtpatchoffset(dt_t *dt, uint offset)
  * Make a common block for s.
  */
 
+@trusted
 void init_common(Symbol *s)
 {
     //printf("init_common('%s')\n", s.Sident);
@@ -113,6 +116,7 @@ void init_common(Symbol *s)
  * Compute size of a dt
  */
 
+@trusted
 uint dt_size(const(dt_t)* dtstart)
 {
     uint datasize = 0;
@@ -199,6 +203,7 @@ private:
 public:
 nothrow:
 @nogc:
+    @trusted
     this(int dummy)
     {
         pTail = &head;
@@ -234,6 +239,7 @@ nothrow:
     /***********************
      * Append data represented by ptr[0..size]
      */
+    @trusted
     void nbytes(uint size, const(char)* ptr)
     {
         if (!size)
@@ -262,13 +268,22 @@ nothrow:
 
     /*****************************************
      * Write a reference to the data ptr[0..size+nzeros]
+     * Params:
+     *  ty = pointer type
+     *  offset = to be added to offset of data generated
+     *  size = number of bytes pointed to by ptr
+     *  ptr = points to data bytes
+     *  nzeros = number of zero bytes to add to the end
+     *  _align = alignment of pointed-to data
      */
-    void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros)
+    @trusted
+    void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
     {
         dt_t *dt = dt_calloc(DT_abytes);
         dt.DTnbytes = size + nzeros;
         dt.DTpbytes = cast(byte *) mem_malloc(size + nzeros);
         dt.Dty = cast(ubyte)ty;
+        dt.DTalign = _align;
         dt.DTabytes = offset;
         memcpy(dt.DTpbytes,ptr,size);
         if (nzeros)
@@ -280,14 +295,15 @@ nothrow:
         assert(!*pTail);
     }
 
-    void abytes(uint offset, uint size, const(char)* ptr, uint nzeros)
+    void abytes(uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
     {
-        abytes(TYnptr, offset, size, ptr, nzeros);
+        abytes(TYnptr, offset, size, ptr, nzeros, _align);
     }
 
     /**************************************
      * Write 4 bytes of value.
      */
+    @trusted
     void dword(int value)
     {
         if (value == 0)
@@ -313,6 +329,7 @@ nothrow:
     /***********************
      * Write a size_t value.
      */
+    @trusted
     void size(ulong value)
     {
         if (value == 0)
@@ -357,6 +374,7 @@ nothrow:
     /*************************
      * Write a reference to s+offset
      */
+    @trusted
     void xoff(Symbol *s, uint offset, tym_t ty)
     {
         dt_t *dt = dt_calloc(DT_xoff);
@@ -381,6 +399,7 @@ nothrow:
     /*******************************
      * Like xoff(), but returns handle with which to patch 'offset' value.
      */
+    @trusted
     dt_t *xoffpatch(Symbol *s, uint offset, tym_t ty)
     {
         dt_t *dt = dt_calloc(DT_xoff);
@@ -402,6 +421,7 @@ nothrow:
      * Create a reference to another dt.
      * Returns: the internal symbol used for the other dt
      */
+    @trusted
     Symbol *dtoff(dt_t *dt, uint offset)
     {
         type *t = type_alloc(TYint);
@@ -421,11 +441,12 @@ nothrow:
     /********************************
      * Write reference to offset in code segment.
      */
+    @trusted
     void coff(uint offset)
     {
         dt_t *dt = dt_calloc(DT_coff);
 
-        static if (TARGET_SEGMENTED)
+        if (config.exe & EX_segmented)
             dt.Dty = TYcptr;
         else
             dt.Dty = TYnptr;
@@ -466,6 +487,7 @@ nothrow:
     /**************************************
      * Repeat a list of dt_t's count times.
      */
+    @trusted
     void repeat(dt_t *dt, size_t count)
     {
         if (!count)
@@ -584,6 +606,7 @@ private __gshared dt_t *dt_freelist;
  * Allocate a data definition struct.
  */
 
+@trusted
 private dt_t *dt_calloc(int dtx)
 {
     dt_t *dt = dt_freelist;

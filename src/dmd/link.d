@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -22,18 +22,22 @@ import core.sys.windows.windef;
 import dmd.env;
 import dmd.errors;
 import dmd.globals;
+import dmd.mars;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
+import dmd.target;
 import dmd.vsoptions;
 
 version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
+// Workaround lack of 'vfork' in older druntime binding for non-Glibc
+version (Posix) extern(C) pid_t vfork();
 version (CRuntime_Microsoft)
 {
   // until the new windows bindings are available when building dmd.
@@ -212,7 +216,7 @@ public int runLINK()
 
     const(char)[] getMapFilename()
     {
-        const(char)[] fn = FileName.forceExt(global.params.exefile, "map");
+        const(char)[] fn = FileName.forceExt(global.params.exefile, map_ext);
         const(char)[] path = FileName.path(global.params.exefile);
         return path.length ? fn : FileName.combine(global.params.objdir, fn);
     }
@@ -222,7 +226,7 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -255,7 +259,7 @@ public int runLINK()
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, global.params.mapfile);
             }
-            else if (global.params.map)
+            else if (dmdParams.map)
             {
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, getMapFilename());
@@ -297,21 +301,21 @@ public int runLINK()
                 global.params.mscrtlib[0..6] != "msvcrt" || !isdigit(global.params.mscrtlib[6]))
                 vsopt.initialize();
 
-            const(char)* lflags = vsopt.linkOptions(global.params.is64bit);
+            const(char)* lflags = vsopt.linkOptions(target.is64bit);
             if (lflags)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
             }
 
-            const(char)* linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
+            const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
                 linkcmd = getenv("LINKCMD"); // backward compatible
             if (!linkcmd)
-                linkcmd = vsopt.linkerPath(global.params.is64bit);
+                linkcmd = vsopt.linkerPath(target.is64bit);
 
             // object files not SAFESEH compliant, but LLD is more picky than MS link
-            if (!global.params.is64bit)
+            if (!target.is64bit)
                 if (FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
                     cmdbuf.writestring(" /SAFESEH:NO");
 
@@ -371,7 +375,7 @@ public int runLINK()
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
-            else if (global.params.map)
+            else if (dmdParams.map)
             {
                 writeFilename(&cmdbuf, getMapFilename());
             }
@@ -402,7 +406,7 @@ public int runLINK()
                 cmdbuf.writestring("/RC:");
                 writeFilename(&cmdbuf, global.params.resfile);
             }
-            if (global.params.map || global.params.mapfile)
+            if (dmdParams.map || global.params.mapfile)
                 cmdbuf.writestring("/m");
             version (none)
             {
@@ -538,7 +542,7 @@ public int runLINK()
             if (const e = FileName.ext(n))
             {
                 if (global.params.dll)
-                    ex = FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, target.dll_ext);
                 else
                     ex = FileName.removeExt(n);
             }
@@ -551,7 +555,7 @@ public int runLINK()
         ensurePathToNameExists(Loc.initial, global.params.exefile);
         if (global.params.symdebug)
             argv.push("-g");
-        if (global.params.is64bit)
+        if (target.is64bit)
             argv.push("-m64");
         else
             argv.push("-m32");
@@ -576,7 +580,7 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("-no_compact_unwind");
         }
-        if (global.params.map || global.params.mapfile.length)
+        if (dmdParams.map || global.params.mapfile.length)
         {
             argv.push("-Xlinker");
             version (OSX)
@@ -589,7 +593,7 @@ public int runLINK()
             }
             if (!global.params.mapfile.length)
             {
-                const(char)[] fn = FileName.forceExt(global.params.exefile, "map");
+                const(char)[] fn = FileName.forceExt(global.params.exefile, map_ext);
                 const(char)[] path = FileName.path(global.params.exefile);
                 global.params.mapfile = path.length ? fn : FileName.combine(global.params.objdir, fn);
             }
@@ -740,6 +744,11 @@ public int runLINK()
             // Link against libdl for phobos usage of dlopen
             argv.push("-ldl");
         }
+        else version (OpenBSD)
+        {
+            // Link against -lc++abi for Unwind symbols
+            argv.push("-lc++abi");
+        }
         if (global.params.verbose)
         {
             // Print it
@@ -759,7 +768,8 @@ public int runLINK()
             perror("unable to create pipe to linker");
             return -1;
         }
-        childpid = fork();
+        // vfork instead of fork to avoid https://issues.dlang.org/show_bug.cgi?id=21089
+        childpid = vfork();
         if (childpid == 0)
         {
             // pipe linker stderr to fds[0]
@@ -767,7 +777,7 @@ public int runLINK()
             close(fds[0]);
             execvp(argv[0], argv.tdata());
             perror(argv[0]); // failed to execute
-            return -1;
+            _exit(-1);
         }
         else if (childpid == -1)
         {
@@ -823,7 +833,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!global.params.mscoff)
+        if (!target.mscoff)
         {
             if ((len = strlen(args)) > 255)
             {

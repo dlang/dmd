@@ -1,9 +1,4 @@
-/*
-REQUIRED_ARGS:
-TEST_OUTPUT:
----
----
-*/
+// REQUIRED_ARGS:
 shared struct S
 {
     int x = 0;

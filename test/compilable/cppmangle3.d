@@ -1,8 +1,6 @@
-/**
-TEST_OUTPUT:
----
----
-*/
+// https://issues.dlang.org/show_bug.cgi?id=15512
+// https://issues.dlang.org/show_bug.cgi?id=19893
+// https://issues.dlang.org/show_bug.cgi?id=19920
 module cppmangle3;
 
 

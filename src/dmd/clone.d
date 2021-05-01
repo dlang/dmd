@@ -1,7 +1,7 @@
 /**
  * Define the implicit `opEquals`, `opAssign`, post blit, copy constructor and destructor for structs.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/clone.d, _clone.d)
@@ -315,7 +315,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         auto idswap = Identifier.generateId("__swap");
         auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
         swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
-        if (tdtor.isscope)
+        if (tdtor.isScopeQual)
             swap.storage_class |= STC.scope_;
         auto e1 = new DeclarationExp(loc, swap);
 
@@ -1110,8 +1110,8 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     if (!dtor)
         return null;
 
-    // ABI incompatible on all (?) x86 32-bit platforms
-    if (ad.classKind != ClassKind.cpp || global.params.is64bit)
+    // Generate shim only when ABI incompatible on target platform
+    if (ad.classKind != ClassKind.cpp || !target.cpp.wrapDtorInExternD)
         return dtor;
 
     // generate member function that adjusts calling convention
@@ -1146,10 +1146,12 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
 /******************************************
  * Create inclusive invariant for struct/class by aggregating
  * all the invariants in invs[].
- *      void __invariant() const [pure nothrow @trusted]
- *      {
- *          invs[0](), invs[1](), ...;
- *      }
+ * ---
+ * void __invariant() const [pure nothrow @trusted]
+ * {
+ *     invs[0](), invs[1](), ...;
+ * }
+ * ---
  */
 FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {

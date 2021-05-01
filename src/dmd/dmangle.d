@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmangle.d, _dmangle.d)
@@ -13,6 +13,134 @@
  */
 
 module dmd.dmangle;
+
+/******************************************************************************
+ * Returns exact mangled name of function.
+ */
+extern (C++) const(char)* mangleExact(FuncDeclaration fd)
+{
+    if (!fd.mangleString)
+    {
+        OutBuffer buf;
+        scope Mangler v = new Mangler(&buf);
+        v.mangleExact(fd);
+        fd.mangleString = buf.extractChars();
+    }
+    return fd.mangleString;
+}
+
+extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
+{
+    if (t.deco)
+        buf.writestring(t.deco);
+    else
+    {
+        scope Mangler v = new Mangler(buf, t);
+        v.visitWithMask(t, 0);
+    }
+}
+
+extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    e.accept(v);
+}
+
+extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    s.accept(v);
+}
+
+extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    v.mangleTemplateInstance(ti);
+}
+
+/******************************************************************************
+ * Mangle function signatures ('this' qualifier, and parameter types)
+ * to check conflicts in function overloads.
+ * It's different from fd.type.deco. For example, fd.type.deco would be null
+ * if fd is an auto function.
+ *
+ * Params:
+ *    buf = `OutBuffer` to write the mangled function signature to
+*     fd  = `FuncDeclaration` to mangle
+ */
+void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
+{
+    auto tf = fd.type.isTypeFunction();
+
+    scope Mangler v = new Mangler(&buf);
+
+    MODtoDecoBuffer(&buf, tf.mod);
+    foreach (idx, param; tf.parameterList)
+        param.accept(v);
+    buf.writeByte('Z' - tf.parameterList.varargs);
+}
+
+
+/// Returns: `true` if the given character is a valid mangled character
+package bool isValidMangling(dchar c) nothrow
+{
+    return
+        c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '0' && c <= '9' ||
+        c != 0 && strchr("$%().:?@[]_", c) ||
+        isUniAlpha(c);
+}
+
+// valid mangled characters
+unittest
+{
+    assert('a'.isValidMangling);
+    assert('B'.isValidMangling);
+    assert('2'.isValidMangling);
+    assert('@'.isValidMangling);
+    assert('_'.isValidMangling);
+}
+
+// invalid mangled characters
+unittest
+{
+    assert(!'-'.isValidMangling);
+    assert(!0.isValidMangling);
+    assert(!'/'.isValidMangling);
+    assert(!'\\'.isValidMangling);
+}
+
+/**********************************************
+ * Convert a string representing a type (the deco) and
+ * return its equivalent Type.
+ * Params:
+ *      deco = string containing the deco
+ * Returns:
+ *      null for failed to convert
+ *      Type for succeeded
+ */
+
+public Type decoToType(const(char)[] deco)
+{
+    //printf("decoToType(): %.*s\n", cast(int)deco.length, deco.ptr);
+    if (auto sv = Type.stringtable.lookup(deco))
+    {
+        if (sv.value)
+        {
+            Type t = cast(Type)sv.value;
+            assert(t.deco);
+            return t;
+        }
+    }
+    return null;
+}
+
+
+/***************************************** private ***************************************/
+
+private:
+
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -35,6 +163,7 @@ import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.aav;
 import dmd.root.string;
+import dmd.root.stringtable;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
@@ -55,8 +184,7 @@ private immutable char[TMAX] mangleChar =
     Tuns32       : 'k',
     Tint64       : 'l',
     Tuns64       : 'm',
-    Tnone        : 'n',
-    Tnull        : 'n', // yes, same as TypeNone
+    Tnull        : 'n',
     Timaginary32 : 'o',
     Timaginary64 : 'p',
     Tcomplex32   : 'q',
@@ -79,12 +207,12 @@ private immutable char[TMAX] mangleChar =
     Tfunction    : 'F', // D function
     Tsarray      : 'G',
     Taarray      : 'H',
-    Tident       : 'I',
+    //              I   // in
     //              J   // out
     //              K   // ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild
+    //              N   // Nh:vector Ng:wild Nn:noreturn
     //              O   // shared
     Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
@@ -92,13 +220,14 @@ private immutable char[TMAX] mangleChar =
     Tstruct      : 'S',
     //              T   // Ttypedef
     //              U   // C function
-    //              V   // Pascal function
     //              W   // Windows function
     //              X   // variadic T t...)
     //              Y   // variadic T t,...)
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
+    Tnone        : '@',
+    Tident       : '@',
     Tinstance    : '@',
     Terror       : '@',
     Ttypeof      : '@',
@@ -107,6 +236,7 @@ private immutable char[TMAX] mangleChar =
     Tvector      : '@',
     Ttraits      : '@',
     Tmixin       : '@',
+    Tnoreturn    : '@',         // becomes 'Nn'
 ];
 
 unittest
@@ -176,13 +306,15 @@ private extern (C++) final class Mangler : Visitor
     alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
-    AssocArray!(Type, size_t) types;
-    AssocArray!(Identifier, size_t) idents;
+    AssocArray!(Type, size_t) types;        // Type => (offset+1) in buf
+    AssocArray!(Identifier, size_t) idents; // Identifier => (offset+1) in buf
     OutBuffer* buf;
+    Type rootType;
 
-    extern (D) this(OutBuffer* buf)
+    extern (D) this(OutBuffer* buf, Type rootType = null)
     {
         this.buf = buf;
+        this.rootType = rootType;
     }
 
     /**
@@ -190,7 +322,7 @@ public:
     *  using upper case letters for all digits but the last digit which uses
     *  a lower case letter.
     * The decoder has to look up the referenced position to determine
-    *  whether the back reference is an identifer (starts with a digit)
+    *  whether the back reference is an identifier (starts with a digit)
     *  or a type (starts with a letter).
     *
     * Params:
@@ -228,17 +360,29 @@ public:
     */
     bool backrefType(Type t)
     {
-        if (!t.isTypeBasic())
+        if (t.isTypeBasic())
+            return false;
+
+        /**
+         * https://issues.dlang.org/show_bug.cgi?id=21591
+         *
+         * Special case for unmerged TypeFunctions: use the generic merged
+         * function type as backref cache key to avoid missed backrefs.
+         *
+         * Merging is based on mangling, so we need to avoid an infinite
+         * recursion by excluding the case where `t` is the root type passed to
+         * `mangleToBuffer()`.
+         */
+        if (t != rootType)
         {
-            auto p = types.getLvalue(t);
-            if (*p)
+            if (t.ty == Tfunction || t.ty == Tdelegate ||
+                (t.ty == Tpointer && t.nextOf().ty == Tfunction))
             {
-                writeBackRef(buf.length - *p);
-                return true;
+                t = t.merge2();
             }
-            *p = buf.length;
         }
-        return false;
+
+        return backrefImpl(types, t);
     }
 
     /**
@@ -256,13 +400,19 @@ public:
     */
     bool backrefIdentifier(Identifier id)
     {
-        auto p = idents.getLvalue(id);
+        return backrefImpl(idents, id);
+    }
+
+    private extern(D) bool backrefImpl(T)(ref AssocArray!(T, size_t) aa, T key)
+    {
+        auto p = aa.getLvalue(key);
         if (*p)
         {
-            writeBackRef(buf.length - *p);
+            const offset = *p - 1;
+            writeBackRef(buf.length - offset);
             return true;
         }
-        *p = buf.length;
+        *p = buf.length + 1;
         return false;
     }
 
@@ -370,9 +520,6 @@ public:
         case LINK.windows:
             mc = 'W';
             break;
-        case LINK.pascal:
-            mc = 'V';
-            break;
         case LINK.cpp:
             mc = 'R';
             break;
@@ -395,7 +542,7 @@ public:
 
         if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
-        else if (ta.isscope && !ta.isscopeinferred)
+        else if (ta.isScopeQual && !ta.isscopeinferred)
             buf.writestring("Nl");
 
         if (ta.islive)
@@ -414,7 +561,8 @@ public:
         }
 
         // Write argument types
-        paramsToDecoBuffer(t.parameterList.parameters);
+        foreach (idx, param; t.parameterList)
+            param.accept(this);
         //if (buf.data[buf.length - 1] == '@') assert(0);
         buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
@@ -454,13 +602,21 @@ public:
     {
         //printf("TypeTuple.toDecoBuffer() t = %p, %s\n", t, t.toChars());
         visit(cast(Type)t);
-        paramsToDecoBuffer(t.arguments);
+        Parameter._foreach(t.arguments, (idx, param) {
+                param.accept(this);
+                return 0;
+        });
         buf.writeByte('Z');
     }
 
     override void visit(TypeNull t)
     {
         visit(cast(Type)t);
+    }
+
+    override void visit(TypeNoreturn t)
+    {
+        buf.writestring("Nn");
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -483,6 +639,7 @@ public:
 
     void mangleParent(Dsymbol s)
     {
+        //printf("mangleParent() %s %s\n", s.kind(), s.toChars());
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
@@ -490,10 +647,12 @@ public:
             p = s.parent;
         if (p)
         {
+            uint localNum = s.localNum;
             mangleParent(p);
             auto ti = p.isTemplateInstance();
             if (ti && !ti.isTemplateMixin())
             {
+                localNum = ti.tempdecl.localNum;
                 mangleTemplateInstance(ti);
             }
             else if (p.getIdent())
@@ -504,6 +663,25 @@ public:
             }
             else
                 buf.writeByte('0');
+
+            /* There can be multiple different declarations in the same
+             * function that have the same mangled name.
+             * This results in localNum having a non-zero number, which
+             * is used to add a fake parent of the form `__Sddd` to make
+             * the mangled names unique.
+             * https://issues.dlang.org/show_bug.cgi?id=20565
+             */
+            if (localNum)
+            {
+                uint ndigits = 1;
+                auto n = localNum;
+                while (n >= 10)
+                {
+                    n /= 10;
+                    ++ndigits;
+                }
+                buf.printf("%u__S%u", ndigits + 3, localNum);
+            }
         }
     }
 
@@ -571,13 +749,14 @@ public:
         const par = d.toParent(); //toParent() skips over mixin templates
         if (!par || par.isModule() || d.linkage == LINK.cpp)
         {
+            if (d.linkage != LINK.d && d.localNum)
+                d.error("the same declaration cannot be in multiple scopes with non-D linkage");
             final switch (d.linkage)
             {
                 case LINK.d:
                     break;
                 case LINK.c:
                 case LINK.windows:
-                case LINK.pascal:
                 case LINK.objc:
                     return d.ident.toString();
                 case LINK.cpp:
@@ -679,7 +858,7 @@ public:
         }
         if (FuncDeclaration fd = od.aliassym.isFuncDeclaration())
         {
-            if (!od.hasOverloads || fd.isUnique())
+            if (fd.isUnique())
             {
                 mangleExact(fd);
                 return;
@@ -687,7 +866,7 @@ public:
         }
         if (TemplateDeclaration td = od.aliassym.isTemplateDeclaration())
         {
-            if (!od.hasOverloads || td.overnext is null)
+            if (td.overnext is null)
             {
                 mangleSymbol(td);
                 return;
@@ -841,8 +1020,10 @@ public:
             {
             Lsa:
                 sa = sa.toAlias();
-                if (Declaration d = sa.isDeclaration())
+                if (sa.isDeclaration() && !sa.isOverDeclaration())
                 {
+                    Declaration d = sa.isDeclaration();
+
                     if (auto fad = d.isFuncAliasDeclaration())
                         d = fad.toAliasFunc();
                     if (d.mangleOverride)
@@ -1086,19 +1267,16 @@ public:
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    void paramsToDecoBuffer(Parameters* parameters)
+    override void visit(FuncExp e)
     {
-        //printf("Parameter.paramsToDecoBuffer()\n");
-
-        int paramsToDecoBufferDg(size_t n, Parameter p)
-        {
-            p.accept(this);
-            return 0;
-        }
-
-        Parameter._foreach(parameters, &paramsToDecoBufferDg);
+        buf.writeByte('f');
+        if (e.td)
+            mangleSymbol(e.td);
+        else
+            mangleSymbol(e.fd);
     }
+
+    ////////////////////////////////////////////////////////////////////////////
 
     override void visit(Parameter p)
     {
@@ -1112,7 +1290,12 @@ public:
         switch (p.storageClass & (STC.IOR | STC.lazy_))
         {
         case 0:
+            break;
         case STC.in_:
+            buf.writeByte('I');
+            break;
+        case STC.in_ | STC.ref_:
+            buf.writestring("IK");
             break;
         case STC.out_:
             buf.writeByte('J');
@@ -1130,101 +1313,6 @@ public:
             }
             assert(0);
         }
-        visitWithMask(p.type, 0);
+        visitWithMask(p.type, (p.storageClass & STC.in_) ? MODFlags.const_ : 0);
     }
-}
-
-/// Returns: `true` if the given character is a valid mangled character
-package bool isValidMangling(dchar c) nothrow
-{
-    return
-        c >= 'A' && c <= 'Z' ||
-        c >= 'a' && c <= 'z' ||
-        c >= '0' && c <= '9' ||
-        c != 0 && strchr("$%().:?@[]_", c) ||
-        isUniAlpha(c);
-}
-
-// valid mangled characters
-unittest
-{
-    assert('a'.isValidMangling);
-    assert('B'.isValidMangling);
-    assert('2'.isValidMangling);
-    assert('@'.isValidMangling);
-    assert('_'.isValidMangling);
-}
-
-// invalid mangled characters
-unittest
-{
-    assert(!'-'.isValidMangling);
-    assert(!0.isValidMangling);
-    assert(!'/'.isValidMangling);
-    assert(!'\\'.isValidMangling);
-}
-
-/******************************************************************************
- * Returns exact mangled name of function.
- */
-extern (C++) const(char)* mangleExact(FuncDeclaration fd)
-{
-    if (!fd.mangleString)
-    {
-        OutBuffer buf;
-        scope Mangler v = new Mangler(&buf);
-        v.mangleExact(fd);
-        fd.mangleString = buf.extractChars();
-    }
-    return fd.mangleString;
-}
-
-extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
-{
-    if (t.deco)
-        buf.writestring(t.deco);
-    else
-    {
-        scope Mangler v = new Mangler(buf);
-        v.visitWithMask(t, 0);
-    }
-}
-
-extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    e.accept(v);
-}
-
-extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    s.accept(v);
-}
-
-extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
-{
-    scope Mangler v = new Mangler(buf);
-    v.mangleTemplateInstance(ti);
-}
-
-/******************************************************************************
- * Mangle function signatures ('this' qualifier, and parameter types)
- * to check conflicts in function overloads.
- * It's different from fd.type.deco. For example, fd.type.deco would be null
- * if fd is an auto function.
- *
- * Params:
- *    buf = `OutBuffer` to write the mangled function signature to
-*     fd  = `FuncDeclaration` to mangle
- */
-void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
-{
-    auto tf = fd.type.isTypeFunction();
-
-    scope Mangler v = new Mangler(&buf);
-
-    MODtoDecoBuffer(&buf, tf.mod);
-    v.paramsToDecoBuffer(tf.parameterList.parameters);
-    buf.writeByte('Z' - tf.parameterList.varargs);
 }

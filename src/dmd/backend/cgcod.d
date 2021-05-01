@@ -1,12 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cgcod.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcod.d
  */
 
@@ -44,6 +44,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
@@ -59,6 +60,7 @@ version (SCPP)
 extern (C++):
 
 nothrow:
+@safe:
 
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
@@ -161,7 +163,7 @@ private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
  * Params:
  *      sfunc = function to generate code for
  */
-
+@trusted
 void codgen(Symbol *sfunc)
 {
     bool flag;
@@ -224,9 +226,10 @@ tryagain:
     calledFinally = false;
     usednteh = 0;
 
-    static if (MARS && TARGET_WINDOS)
+    static if (MARS)
     {
-        if (sfunc.Sfunc.Fflags3 & Fjmonitor)
+        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+            config.exe & EX_windos)
             usednteh |= NTEHjmonitor;
     }
     else version (SCPP)
@@ -254,6 +257,8 @@ tryagain:
     mfuncreg = fregsaved;               // so we can see which are used
                                         // (bit is cleared each time
                                         //  we use one)
+    assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
+
     for (block* b = startblock; b; b = b.Bnext)
     {
         memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
@@ -268,9 +273,9 @@ tryagain:
     if (!config.fulltypes || (config.flags4 & CFG4optimized))
     {
         regm_t noparams = 0;
-        for (int i = 0; i < globsym.top; i++)
+        for (int i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
             s.Sflags &= ~SFLread;
             switch (s.Sclass)
             {
@@ -351,9 +356,9 @@ tryagain:
     }
 
     // See if we need to enforce a particular stack alignment
-    foreach (i; 0 .. globsym.top)
+    foreach (i; 0 .. globsym.length)
     {
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
 
         if (Symbol_Sisdead(s, anyiasm))
             continue;
@@ -379,7 +384,7 @@ tryagain:
         }
     }
 
-    stackoffsets(1);            // compute addresses of stack variables
+    stackoffsets(globsym, false);  // compute final offsets of stack variables
     cod5_prol_epi();            // see where to place prolog/epilog
     CSE.finish();               // compute addresses and sizes of CSE saves
 
@@ -634,7 +639,7 @@ tryagain:
             if (retoffset < sfunc.Ssize)
                 objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
 
-        static if (TARGET_WINDOS && MARS)
+        static if (MARS)
         {
             if (config.exe == EX_WIN64)
                 win64_pdata(sfunc);
@@ -647,7 +652,7 @@ tryagain:
                 // Do this before code is emitted because we patch some instructions
                 nteh_gentables(sfunc);
             }
-            if (usednteh & EHtry &&             // saw BCtry or BC_try (test EHcleanup too?)
+            if (usednteh & (EHtry | EHcleanup) &&   // saw BCtry or BC_try or OPddtor
                 config.ehmethod == EHmethod.EH_DM)
             {
                 except_gentables();
@@ -710,6 +715,7 @@ tryagain:
  * Returns:
  *  base        revised downward so it is aligned
  */
+@trusted
 targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 {
     assert(cast(int)base <= 0);
@@ -737,11 +743,12 @@ targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
  *      hasframe
  *      BPoff
  */
+@trusted
 void prolog(ref CodeBuilder cdb)
 {
     bool enter;
 
-    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident, needframe, Auto.alignment);
+    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, Auto.alignment);
     debug debugw && printf("funcstart()\n");
     regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
@@ -754,7 +761,7 @@ void prolog(ref CodeBuilder cdb)
     bool pushalloc = false;
     tym_t tyf = funcsym_p.ty();
     tym_t tym = tybasic(tyf);
-    uint farfunc = tyfarfunc(tym);
+    const farfunc = tyfarfunc(tym) != 0;
 
     // Special Intel 64 bit ABI prolog setup for variadic functions
     Symbol *sv64 = null;                        // set to __va_argsave
@@ -767,9 +774,9 @@ void prolog(ref CodeBuilder cdb)
          */
         /* Look for __va_argsave
          */
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *s = globsym.tab[si];
+            Symbol *s = globsym[si];
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
             {
                 if (!(s.Sflags & SFLdead))
@@ -796,7 +803,7 @@ Lagain:
     spoff = 0;
     char guessneedframe = needframe;
     int cfa_offset = 0;
-//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
+//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
 //      usednteh |= NTEHpassthru;
 
     /* Compute BP offsets for variables on stack.
@@ -849,7 +856,7 @@ Lagain:
         Fast.size -= nteh_contextsym_size();
         version (MARS)
         {
-            static if (TARGET_WINDOS)
+            if (config.exe & EX_windos)
             {
                 if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
                     Fast.size -= 5 * 4;
@@ -942,7 +949,17 @@ else
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    cgstate.funcarg.alignment = cgstate.funcarg.size ? STACKALIGN : REGSIZE;
+    cgstate.funcarg.alignment = STACKALIGN;
+    /* If the function doesn't need the extra alignment, don't do it.
+     * Can expand on this by allowing for locals that don't need extra alignment
+     * and calling functions that don't need it.
+     */
+    if (pushoff == 0 && !calledafunc && config.fpxmmregs && (I32 || I64))
+    {
+        cgstate.funcarg.alignment = I64 ? 8 : 4;
+    }
+
+    //printf("pushoff = %d, size = %d, alignment = %d, bias = %d\n", cast(int)pushoff, cast(int)cgstate.funcarg.size, cast(int)cgstate.funcarg.alignment, cast(int)bias);
     cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
 
     localsize = -cgstate.funcarg.offset;
@@ -1001,7 +1018,6 @@ else
         // we need BP to reset the stack before return
         // otherwise the return address is lost
         needframe = 1;
-
     }
     else if (config.flags & CFGalwaysframe)
         needframe = 1;
@@ -1019,7 +1035,9 @@ else
                 anyiasm ||
                 Alloca.size
                )
+            {
                 needframe = 1;
+            }
         }
         if (refparam && (anyiasm || I16))
             needframe = 1;
@@ -1041,7 +1059,7 @@ else
     }
     else if (needframe)                 // if variables or parameters
     {
-        prolog_frame(cdbx, farfunc, &xlocalsize, &enter, &cfa_offset);
+        prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
         hasframe = 1;
     }
 
@@ -1125,7 +1143,7 @@ else
             }
 
             uint regsaved;
-            prolog_trace(cdbx, farfunc != 0, &regsaved);
+            prolog_trace(cdbx, farfunc, &regsaved);
 
             if (spalign)
                 cod3_stackadj(cdbx, -spalign);
@@ -1139,8 +1157,8 @@ else
         {   Symbol *sthis;
 
             for (SYMIDX si = 0; 1; si++)
-            {   assert(si < globsym.top);
-                sthis = globsym.tab[si];
+            {   assert(si < globsym.length);
+                sthis = globsym[si];
                 if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                     break;
             }
@@ -1194,6 +1212,7 @@ Lcont:
  *      = 0     no difference
  */
 
+@trusted
 extern (C) int
  autosort_cmp(scope const void *ps1, scope const void *ps2)
 {
@@ -1228,15 +1247,16 @@ extern (C) int
 }
 
 /******************************
- * Compute offsets for remaining tmp, automatic and register variables
+ * Compute stack frame offsets for local variables.
  * that did not make it into registers.
- * Input:
- *      flags   0: do estimate only
- *              1: final
+ * Params:
+ *      symtab = function's symbol table
+ *      estimate = true for do estimate only, false for final
  */
-void stackoffsets(int flags)
+@trusted
+void stackoffsets(ref symtab_t symtab, bool estimate)
 {
-    //printf("stackoffsets() %s\n", funcsym_p.Sident);
+    //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
     Para.init();        // parameter offset
     Fast.init();        // SCfastpar offset
@@ -1244,24 +1264,24 @@ void stackoffsets(int flags)
     EEStack.init();     // for SCstack's
 
     // Set if doing optimization of auto layout
-    bool doAutoOpt = flags && config.flags4 & CFG4optimized;
+    bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
 
     // Put autos in another array so we can do optimizations on the stack layout
-    Symbol*[10] autotmp;
+    Symbol*[10] autotmp = void;
     Symbol **autos = null;
     if (doAutoOpt)
     {
-        if (globsym.top <= autotmp.length)
+        if (symtab.length <= autotmp.length)
             autos = autotmp.ptr;
         else
-        {   autos = cast(Symbol **)malloc(globsym.top * (*autos).sizeof);
+        {   autos = cast(Symbol **)malloc(symtab.length * (*autos).sizeof);
             assert(autos);
         }
     }
     size_t autosi = 0;  // number used in autos[]
 
-    for (int si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    for (int si = 0; si < symtab.length; si++)
+    {   Symbol *s = symtab[si];
 
         /* Don't allocate space for dead or zero size parameters
          */
@@ -1299,7 +1319,7 @@ void stackoffsets(int flags)
         if (alignsize > STACKALIGN)
             alignsize = STACKALIGN;         // no point if the stack is less aligned
 
-        //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s.Sident,(long)sz, (int)alignsize, s.Sflags & SFLread);
+        //printf("symbol '%s', size = %d, alignsize = %d, read = %x\n",s.Sident.ptr, cast(int)sz, cast(int)alignsize, s.Sflags & SFLread);
         assert(cast(int)sz >= 0);
 
         switch (s.Sclass)
@@ -1453,6 +1473,7 @@ void stackoffsets(int flags)
  * Generate code for a block.
  */
 
+@trusted
 private void blcodgen(block *bl)
 {
     regm_t mfuncregsave = mfuncreg;
@@ -1502,10 +1523,10 @@ private void blcodgen(block *bl)
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(char *) alloca(globsym.top * char.sizeof);
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        sflsave = cast(char *) alloca(globsym.length * char.sizeof);
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
@@ -1528,7 +1549,7 @@ private void blcodgen(block *bl)
             {
                 if (vec_testbit(dfoidx,s.Srange))
                 {
-                    anyspill = i + 1;
+                    anyspill = cast(int)(i + 1);
                     cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
                     if (vec_testbit(dfoidx,s.Slvreg))
                     {
@@ -1572,7 +1593,7 @@ private void blcodgen(block *bl)
 
     for (int i = 0; i < anyspill; i++)
     {
-        Symbol *s = globsym.tab[i];
+        Symbol *s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
     }
 
@@ -1818,11 +1839,13 @@ int numbitsset(regm_t regm)
  * of the first register that fits.
  */
 
+@trusted
 reg_t findreg(regm_t regm)
 {
     return findreg(regm, __LINE__, __FILE__);
 }
 
+@trusted
 reg_t findreg(regm_t regm, int line, const(char)* file)
 {
     debug
@@ -1853,13 +1876,14 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
 }
 
 /***************
- * Free element (but not it's leaves! (assume they are already freed))
+ * Free element (but not its leaves! (assume they are already freed))
  * Don't decrement Ecount! This is so we can detect if the common subexp
  * has already been evaluated.
  * If common subexpression is not required anymore, eliminate
  * references to it.
  */
 
+@trusted
 void freenode(elem *e)
 {
     elem_debug(e);
@@ -1883,6 +1907,7 @@ void freenode(elem *e)
  * Reset Ecomsub for all elem nodes, i.e. reverse the effects of freenode().
  */
 
+@trusted
 private void resetEcomsub(elem *e)
 {
     while (1)
@@ -1911,6 +1936,7 @@ private void resetEcomsub(elem *e)
  *      returns false
  */
 
+@trusted
 int isregvar(elem *e,regm_t *pregm,reg_t *preg)
 {
     Symbol *s;
@@ -2011,6 +2037,7 @@ void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym)
     allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
 }
 
+@trusted
 void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
         ,int line,const(char)* file)
 {
@@ -2193,10 +2220,29 @@ L3:
         getregs(cdb, retregs);
 }
 
+
+/*****************************************
+ * Allocate a scratch register.
+ * Params:
+ *      cdb = where to write any generated code to
+ *      regm = mask of registers to pick one from
+ * Returns:
+ *      selected register
+ */
+@trusted
+reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
+{
+    reg_t r;
+    allocreg(cdb, &regm, &r, TYoffset);
+    return r;
+}
+
+
 /******************************
  * Determine registers that should be destroyed upon arrival
  * to code entry point for exception handling.
  */
+@trusted
 regm_t lpadregs()
 {
     regm_t used;
@@ -2213,6 +2259,7 @@ regm_t lpadregs()
  * Mark registers as used.
  */
 
+@trusted
 void useregs(regm_t regm)
 {
     //printf("useregs(x%x) %s\n", regm, regm_str(regm));
@@ -2228,6 +2275,7 @@ void useregs(regm_t regm)
  * Generate any code necessary to save any regs.
  */
 
+@trusted
 void getregs(ref CodeBuilder cdb, regm_t r)
 {
     //printf("getregs(x%x) %s\n", r, regm_str(r));
@@ -2244,6 +2292,7 @@ void getregs(ref CodeBuilder cdb, regm_t r)
  * We are going to use the registers in mask r.
  * Same as getregs(), but assert if code is needed to be generated.
  */
+@trusted
 void getregsNoSave(regm_t r)
 {
     //printf("getregsNoSave(x%x) %s\n", r, regm_str(r));
@@ -2258,6 +2307,7 @@ void getregsNoSave(regm_t r)
  * Copy registers in cse.mops into memory.
  */
 
+@trusted
 private void cse_save(ref CodeBuilder cdb, regm_t ms)
 {
     assert((ms & regcon.cse.mops) == ms);
@@ -2313,6 +2363,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
  * Getregs without marking immediate register values as gone.
  */
 
+@trusted
 void getregs_imm(ref CodeBuilder cdb, regm_t r)
 {
     regm_t save = regcon.immed.mval;
@@ -2326,6 +2377,7 @@ void getregs_imm(ref CodeBuilder cdb, regm_t r)
  *      do87    !=0 means save 87 registers too
  */
 
+@trusted
 void cse_flush(ref CodeBuilder cdb, int do87)
 {
     //dbg_printf("cse_flush()\n");
@@ -2345,6 +2397,7 @@ void cse_flush(ref CodeBuilder cdb, int do87)
  *      true    saved as a CSE
  */
 
+@trusted
 bool cssave(elem *e,regm_t regm,uint opsflag)
 {
     bool result = false;
@@ -2394,6 +2447,7 @@ bool cssave(elem *e,regm_t regm,uint opsflag)
  * Determine if a computation should be done into a register.
  */
 
+@trusted
 bool evalinregister(elem *e)
 {
     if (config.exe == EX_WIN64 && e.Eoper == OPrelconst)
@@ -2451,6 +2505,7 @@ bool evalinregister(elem *e)
  * Return mask of scratch registers.
  */
 
+@trusted
 regm_t getscratch()
 {
     regm_t scratch = 0;
@@ -2468,6 +2523,7 @@ regm_t getscratch()
  * Look first to see if it is already in a register.
  */
 
+@trusted
 private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     tym_t tym;
@@ -2711,12 +2767,14 @@ reload:                                 /* reload result from memory    */
             cdrelconst(cdb,e,pretregs);
             break;
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
         case OPgot:
-            cdgot(cdb,e,pretregs);
-            break;
-}
+            if (config.exe & EX_posix)
+            {
+                cdgot(cdb,e,pretregs);
+                break;
+            }
+            goto default;
+
         default:
             if (*pretregs == mPSW &&
                 config.fpxmmregs &&
@@ -2738,6 +2796,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  * Load reg from cse save area on stack.
  */
 
+@trusted
 private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 {
     foreach (ref cse; CSE.filter(e))
@@ -2777,6 +2836,7 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
  *      pointer to code sequence generated
  */
 
+@trusted
 void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 {
     (*cdxxx[op])(cdb,e,pretregs);
@@ -2794,9 +2854,9 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPcom:     &cdcom,
     OPcond:    &cdcond,
     OPcomma:   &cdcomma,
-    OPremquo:  &cdmul,
-    OPdiv:     &cdmul,
-    OPmod:     &cdmul,
+    OPremquo:  &cddiv,
+    OPdiv:     &cddiv,
+    OPmod:     &cddiv,
     OPxor:     &cdorth,
     OPstring:  &cderr,
     OPrelconst: &cdrelconst,
@@ -2829,6 +2889,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPneg:     &cdneg,
     OPuadd:    &cderr,
     OPabs:     &cdabs,
+    OPtoprec:  &cdtoprec,
     OPsqrt:    &cdneg,
     OPsin:     &cdneg,
     OPcos:     &cdneg,
@@ -2856,8 +2917,8 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPaddass:  &cdaddass,
     OPminass:  &cdaddass,
     OPmulass:  &cdmulass,
-    OPdivass:  &cdmulass,
-    OPmodass:  &cdmulass,
+    OPdivass:  &cddivass,
+    OPmodass:  &cddivass,
     OPshrass:  &cdshass,
     OPashrass: &cdshass,
     OPshlass:  &cdshass,
@@ -2976,6 +3037,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
 ];
 
 
+@trusted
 void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 {
     Symbol *s;
@@ -3136,6 +3198,7 @@ L1:
  *                      registers returned in *pretregs.
  */
 
+@trusted
 void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 {
     regm_t touse;
@@ -3319,6 +3382,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
  * Turn register mask into a string suitable for printing.
  */
 
+@trusted
 const(char)* regm_str(regm_t rm)
 {
     enum NUM = 10;
@@ -3366,6 +3430,7 @@ const(char)* regm_str(regm_t rm)
  *      code generated for left branches of comma-expressions
  */
 
+@trusted
 void docommas(ref CodeBuilder cdb,elem **pe)
 {
     uint stackpushsave = stackpush;
@@ -3399,6 +3464,7 @@ void docommas(ref CodeBuilder cdb,elem **pe)
  * Do same for regcon.immed.
  */
 
+@trusted
 void andregcon(con_t *pregconsave)
 {
     regm_t m = ~1;

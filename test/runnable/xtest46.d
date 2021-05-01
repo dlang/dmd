@@ -4107,14 +4107,6 @@ static assert(!is(typeof(bug6389 = bug6389)));
 
 /***************************************************/
 
-void test10927()
-{
-    static assert( (1+2i) ^^ 3 == -11 - 2i );
-    auto a = (1+2i) ^^ 3;
-}
-
-/***************************************************/
-
 void test4963()
 {
     struct Value {
@@ -4963,7 +4955,7 @@ void test6763()
     static assert(typeof(f6763).stringof == "void(int _param_0)");
     static assert(typeof(c6763).stringof == "void(const(int) _param_0)");
     static assert(typeof(r6763).stringof == "void(ref int _param_0)");
-    static assert(typeof(i6763).stringof == "void(const(int) _param_0)");
+    static assert(typeof(i6763).stringof == "void(in int _param_0)");
     static assert(typeof(o6763).stringof == "void(out int _param_0)");
 }
 

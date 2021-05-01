@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1996-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/drtlsym.d, backend/drtlsym.d)
@@ -31,6 +31,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.global;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -254,7 +255,7 @@ private void symbolz(Symbol** ps, int fl, regm_t regsaved, const(char)* name, SY
 {
     Symbol *s = symbol_calloc(name);
     s.Stype = t;
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     s.Sclass = SCextern;
     s.Sfl = cast(char)fl;
     s.Sregsaved = regsaved;

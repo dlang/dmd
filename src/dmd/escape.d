@@ -1,7 +1,7 @@
 /**
  * Most of the logic to implement scoped pointers and scoped references is here.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/escape.d, _escape.d)
@@ -105,7 +105,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             if (i < paramLength)
             {
                 eb.param = tf.parameterList[i];
-                refs = (eb.param.storageClass & (STC.out_ | STC.ref_)) != 0;
+                refs = eb.param.isReference();
                 eb.isMutable = eb.param.isReferenceToMutable(arg.type);
             }
             else
@@ -776,8 +776,7 @@ ByRef:
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STC.parameter) ||
-             va.storage_class & STC.ref_ ||
+            (va.enclosesLifetimeOf(v) && !(v.isParameter() && v.isRef()) ||
              va.isDataseg()) &&
             sc.func.setUnsafe())
         {
@@ -882,34 +881,34 @@ ByRef:
 
         /* Do not allow slicing of a static array returned by a function
          */
-        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Tsarray && va.type.toBasetype().ty == Tarray &&
-            !(va.storage_class & STC.temp))
+        if (ee.op == TOK.call && ee.type.toBasetype().ty == Tsarray && e1.type.toBasetype().ty == Tarray &&
+            !(va && va.storage_class & STC.temp))
         {
             if (!gag)
                 deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), va.toChars());
+                    ee.toChars(), e1.toChars());
             //result = true;
             continue;
         }
 
-        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
-            !(va.storage_class & STC.temp) && va.ident != Id.withSym &&
+        if (ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
+            (!va || !(va.storage_class & STC.temp)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
                 error(ee.loc, "address of struct temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), va.toChars());
+                    ee.toChars(), e1.toChars());
             result = true;
             continue;
         }
 
-        if (va && ee.op == TOK.structLiteral &&
-            !(va.storage_class & STC.temp) && va.ident != Id.withSym &&
+        if (ee.op == TOK.structLiteral &&
+            (!va || !(va.storage_class & STC.temp)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
                 error(ee.loc, "address of struct literal `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), va.toChars());
+                    ee.toChars(), e1.toChars());
             result = true;
             continue;
         }
@@ -1000,6 +999,9 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
+    import dmd.globals: FeatureState;
+    import dmd.errors: previewErrorFunc;
+
     //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
     enum log = false;
     if (log) printf("[%s] checkNewEscape, e: `%s`\n", e.loc.toChars(), e.toChars());
@@ -1034,7 +1036,8 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 !(p.parent == sc.func))
             {
                 // Only look for errors if in module listed on command line
-                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                if (global.params.vsafe         // https://issues.dlang.org/show_bug.cgi?id=17029
+                    && sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     if (!gag)
                         error(e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());
@@ -1064,20 +1067,17 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        // 'emitError' tells us whether to emit an error or a deprecation,
+        // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, bool emitError = true)
+        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
         {
             if (!gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
                 const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
-                if (emitError)
-                    error(e.loc, msg, e.toChars(), kind, v.toChars());
-                else
-                    deprecation(e.loc, msg, e.toChars(), kind, v.toChars());
+                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), kind, v.toChars());
             }
-            result |= emitError;
+            result |= (featureState == FeatureState.enabled);
         }
 
         if (v.isDataseg())
@@ -1103,16 +1103,13 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         if (!sc._module || !sc._module.isRoot())
             continue;
 
-        // If -preview=dip25 is used, the user wants an error
-        // Otherwise, issue a deprecation
-        const emitError = global.params.useDIP25;
         // https://dlang.org/spec/function.html#return-ref-parameters
         // Only look for errors if in module listed on command line
         if (p == sc.func)
         {
             //printf("escaping reference to local ref variable %s\n", v.toChars());
             //printf("storage class = x%llx\n", v.storage_class);
-            escapingRef(v, emitError);
+            escapingRef(v, global.params.useDIP25);
             continue;
         }
         // Don't need to be concerned if v's parent does not return a ref
@@ -1125,11 +1122,14 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 continue;
 
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
-            if (!gag && emitError)
-                error(e.loc, msg, v.toChars());
-            else if (!gag)
-                deprecation(e.loc, msg, v.toChars());
-            result |= emitError;
+            if (!gag)
+            {
+                previewErrorFunc(sc.isDeprecated(), global.params.useDIP25)(e.loc, msg, v.toChars());
+            }
+
+            // If -preview=dip25 is used, the user wants an error
+            // Otherwise, issue a deprecation
+            result |= (global.params.useDIP25 == FeatureState.enabled);
         }
     }
 
@@ -1235,7 +1235,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             if (v.storage_class & STC.return_)
                 continue;
 
-            if (sc._module && sc._module.isRoot() &&
+            auto pfunc = p.isFuncDeclaration();
+            if (pfunc && sc._module && sc._module.isRoot() &&
                 /* This case comes up when the ReturnStatement of a __foreachbody is
                  * checked for escapes by the caller of __foreachbody. Skip it.
                  *
@@ -1245,13 +1246,13 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
                  *    return null; }
                  */
-                !(!refs && p.parent == sc.func && p.isFuncDeclaration() && p.isFuncDeclaration().fes) &&
+                !(!refs && p.parent == sc.func && pfunc.fes) &&
                 /*
                  *  auto p(scope string s) {
                  *      string scfunc() { return s; }
                  *  }
                  */
-                !(!refs && p.isFuncDeclaration() && sc.func.isFuncDeclaration().getLevel(p.isFuncDeclaration(), sc.intypeof) > 0)
+                !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
                 // Only look for errors if in module listed on command line
@@ -1285,21 +1286,29 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        // 'emitError' tells us whether to emit an error or a deprecation,
+        // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, bool emitError = true)
+        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
         {
             if (!gag)
             {
-                const(char)* msg;
-                if (v.storage_class & STC.parameter)
-                    msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
+                const(char)* msg, supplemental;
+                if (v.storage_class & STC.parameter &&
+                    (v.type.hasPointers() || v.storage_class & STC.ref_))
+                {
+                    msg = "returning `%s` escapes a reference to parameter `%s`";
+                    supplemental = "perhaps annotate the parameter with `return`";
+                }
                 else
+                {
                     msg = "returning `%s` escapes a reference to local variable `%s`";
-                if (emitError)
-                    error(e.loc, msg, e.toChars(), v.toChars());
-                else
-                    deprecation(e.loc, msg, e.toChars(), v.toChars());
+                    if (v.ident is Id.This)
+                        supplemental = "perhaps annotate the function with `return`";
+                }
+
+                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
+                if (supplemental)
+                    previewSupplementalFunc(sc.isDeprecated(), featureState)(e.loc, supplemental);
             }
             result = true;
         }
@@ -1350,16 +1359,13 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             }
             else if (sc._module && sc._module.isRoot())
             {
-                // If -preview=dip25 is used, the user wants an error
-                // Otherwise, issue a deprecation
-                const emitError = global.params.useDIP25;
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
                 if (p == sc.func)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, emitError);
+                    escapingRef(v, global.params.useDIP25);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1370,10 +1376,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     if (tf.isref)
                     {
                         const(char)* msg = "escaping reference to outer local variable `%s`";
-                        if (!gag && emitError)
-                            error(e.loc, msg, v.toChars());
-                        else if (!gag)
-                            deprecation(e.loc, msg, v.toChars());
+                        if (!gag)
+                            previewErrorFunc(sc.isDeprecated(), global.params.useDIP25)(e.loc, msg, v.toChars());
                         result = true;
                         continue;
                     }
@@ -1731,7 +1735,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 AggregateDeclaration ad;
                 if (global.params.vsafe && tf.isreturn && fd && (ad = fd.isThis()) !is null)
                 {
-                    if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
+                    if (ad.isClassDeclaration() || tf.isScopeQual)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
                     {
@@ -1758,7 +1762,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 // If it's also a nested function that is 'return scope'
                 if (fd && fd.isNested())
                 {
-                    if (tf.isreturn && tf.isscope)
+                    if (tf.isreturn && tf.isScopeQual)
                         er.byexp.push(e);
                 }
             }
@@ -1780,7 +1784,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 FuncDeclaration fd = ve.var.isFuncDeclaration();
                 if (fd && fd.isNested())
                 {
-                    if (tf.isreturn && tf.isscope)
+                    if (tf.isreturn && tf.isScopeQual)
                         er.byexp.push(e);
                 }
             }
@@ -1996,7 +2000,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                     {
                         if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
-                        else if (dve.var.storage_class & STC.scope_ || tf.isscope)
+                        else if (dve.var.storage_class & STC.scope_ || tf.isScopeQual)
                             escapeByValue(dve.e1, er, live);
                     }
                     // If it's also a nested function that is 'return ref'
@@ -2234,7 +2238,7 @@ bool isReferenceToMutable(Type t)
  */
 bool isReferenceToMutable(Parameter p, Type t)
 {
-    if (p.storageClass & (STC.ref_ | STC.out_))
+    if (p.isReference())
     {
         if (p.type.isConst() || p.type.isImmutable())
             return false;

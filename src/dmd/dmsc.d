@@ -1,7 +1,7 @@
 /**
  * Configures and initializes the backend.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
@@ -20,7 +20,9 @@ extern (C++):
 import dmd.globals;
 import dmd.dclass;
 import dmd.dmodule;
+import dmd.mars;
 import dmd.mtype;
+import dmd.target;
 
 import dmd.root.filename;
 
@@ -50,7 +52,9 @@ extern (C) void out_config_init(
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
-        string _version         // Compiler version
+        ubyte dwarf,            // DWARF version used
+        string _version,        // Compiler version
+        exefmt_t exefmt         // Executable file format
         );
 
 void out_config_debug(
@@ -71,6 +75,18 @@ void backend_init()
 {
     //printf("out_config_init()\n");
     Param *params = &global.params;
+    exefmt_t exfmt;
+    switch (target.os)
+    {
+        case Target.OS.Windows: exfmt = target.is64bit ? EX_WIN64 : EX_WIN32;       break;
+        case Target.OS.linux:   exfmt = target.is64bit ? EX_LINUX64 : EX_LINUX;     break;
+        case Target.OS.OSX:     exfmt = target.is64bit ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.FreeBSD: exfmt = target.is64bit ? EX_FREEBSD64 : EX_FREEBSD; break;
+        case Target.OS.OpenBSD: exfmt = target.is64bit ? EX_OPENBSD64 : EX_OPENBSD; break;
+        case Target.OS.Solaris: exfmt = target.is64bit ? EX_SOLARIS64 : EX_SOLARIS; break;
+        case Target.OS.DragonFlyBSD: exfmt = EX_DRAGONFLYBSD64; break;
+        default: assert(0);
+    }
 
     bool exe;
     if (params.dll || params.pic != PIC.fixed)
@@ -86,33 +102,35 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
-        (params.is64bit ? 64 : 32) | (params.mscoff ? 1 : 0),
+        (target.is64bit ? 64 : 32) | (target.mscoff ? 1 : 0),
         exe,
         false, //params.trace,
         params.nofloat,
         params.verbose,
         params.optimize,
         params.symdebug,
-        params.alwaysframe,
+        dmdParams.alwaysframe,
         params.stackstomp,
-        params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
+        target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
         params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,
-        global._version
+        dmdParams.dwarf,
+        global.versionString(),
+        exfmt
     );
 
     debug
     {
         out_config_debug(
-            params.debugb,
-            params.debugc,
-            params.debugf,
-            params.debugr,
+            dmdParams.debugb,
+            dmdParams.debugc,
+            dmdParams.debugf,
+            dmdParams.debugr,
             false,
-            params.debugx,
-            params.debugy
+            dmdParams.debugx,
+            dmdParams.debugy
         );
     }
 }

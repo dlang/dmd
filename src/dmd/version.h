@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -17,7 +17,7 @@ class DebugSymbol : public Dsymbol
 public:
     unsigned level;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    DebugSymbol *syntaxCopy(Dsymbol *);
 
     const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
@@ -31,7 +31,7 @@ class VersionSymbol : public Dsymbol
 public:
     unsigned level;
 
-    Dsymbol *syntaxCopy(Dsymbol *);
+    VersionSymbol *syntaxCopy(Dsymbol *);
 
     const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);

@@ -1,7 +1,7 @@
 /**
  * Read a file from disk and store it in memory.
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/file.d, root/_file.d)
@@ -261,4 +261,116 @@ nothrow:
             assert(0);
         }
     }
+
+    /***************************************************
+     * Update file
+     *
+     * If the file exists and is identical to what is to be written,
+     * merely update the timestamp on the file.
+     * Otherwise, write the file.
+     *
+     * The idea is writes are much slower than reads, and build systems
+     * often wind up generating identical files.
+     * Params:
+     *  name = name of file to update
+     *  data = updated contents of file
+     * Returns:
+     *  `true` on success
+     */
+    extern (D) static bool update(const(char)* namez, const void[] data)
+    {
+        enum log = false;
+        if (log) printf("update %s\n", namez);
+        version (Windows)
+        {
+            const nameStr = namez.toDString();
+
+            import core.sys.windows.windows;
+
+            WIN32_FILE_ATTRIBUTE_DATA fad = void;
+            // Doesn't exist, not a regular file, different size
+            if (nameStr.extendedPathThen!(p => GetFileAttributesExW(p.ptr, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &fad)) == 0 ||
+                fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ||
+                ((cast(ulong) fad.nFileSizeHigh << 32) | fad.nFileSizeLow) != data.length)
+            {
+                return write(namez, data);               // write new file
+            }
+        }
+        else version (Posix)
+        {
+            import core.sys.posix.sys.stat;
+
+            stat_t statbuf = void;
+            if (stat(namez, &statbuf) != 0 ||            // doesn't exist
+                (statbuf.st_mode & S_IFMT) != S_IFREG || // not a regular file
+                statbuf.st_size != data.length)          // different size
+            {
+                if (log) printf("not exist or diff size %d %d %d\n",
+                    stat(namez, &statbuf) != 0,
+                    (statbuf.st_mode & S_IFMT) != S_IFREG,
+                     statbuf.st_size != data.length);
+                return write(namez, data);               // write new file
+            }
+        }
+        else
+            static assert(0);
+        if (log) printf("same size\n");
+
+        /* The file already exists, and is the same size.
+         * Read it in, and compare for equality.
+         * For larger files, this could be faster by comparing the file
+         * block by block and quitting on first difference.
+         */
+        ReadResult r = read(namez);
+        if (!r.success ||
+            r.buffer.data[] != data[])
+            return write(namez, data); // contents not same, so write new file
+        if (log) printf("same contents\n");
+
+        /* Contents are identical, so set timestamp of existing file to current time
+         */
+        version (Windows)
+        {
+            FILETIME ft = void;
+            SYSTEMTIME st = void;
+            GetSystemTime(&st);
+            SystemTimeToFileTime(&st, &ft);
+
+            // get handle to file
+            HANDLE h = nameStr.extendedPathThen!(p => CreateFile(p.ptr,
+                FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                null, OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL, null));
+            if (h == INVALID_HANDLE_VALUE)
+                return false;
+
+            const f = SetFileTime(h, null, null, &ft); // set last write time
+
+            if (!CloseHandle(h))
+                return false;
+
+            return f != 0;
+        }
+        else version (Posix)
+        {
+            import core.sys.posix.utime;
+
+            return utime(namez, null) == 0;
+        }
+        else
+            static assert(0);
+    }
+
+    ///ditto
+    extern(D) static bool update(const(char)[] name, const void[] data)
+    {
+        return name.toCStringThen!((fname) => update(fname.ptr, data));
+    }
+
+    /// ditto
+    extern (C++) static bool update(const(char)* name, const(void)* data, size_t size)
+    {
+        return update(name, data[0 .. size]);
+    }
+
 }

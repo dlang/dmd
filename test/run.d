@@ -18,7 +18,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-immutable testDirs = ["runnable", "runnable_cxx", "compilable", "fail_compilation", "dshell"];
+immutable testDirs = ["runnable", "runnable_cxx", "dshell", "compilable", "fail_compilation"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
@@ -134,13 +134,29 @@ Options:
     unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner").exeName;
 
     // bootstrap all needed environment variables
-    auto env = getEnvironment;
+    const env = getEnvironment();
+
+    // Dump environnment
+    if (verbose || dumpEnvironment)
+    {
+        writefln("================================================================================");
+        foreach (key, value; env)
+            writefln("%s=%s", key, value);
+        writefln("================================================================================");
+    }
 
     if (runUnitTests)
     {
         verifyCompilerExists(env);
         ensureToolsExists(env, TestTools.unitTestRunner);
         return spawnProcess(unitTestRunnerCommand ~ args).wait();
+    }
+
+    if (args == ["tools"])
+    {
+        verifyCompilerExists(env);
+        ensureToolsExists(env, EnumMembers!TestTools);
+        return 0;
     }
 
     // default target
@@ -177,30 +193,33 @@ Options:
     {
         verifyCompilerExists(env);
 
-        if (verbose || dumpEnvironment)
-        {
-            writefln("================================================================================");
-            foreach (key, value; env)
-                writefln("%s=%s", key, value);
-            writefln("================================================================================");
-        }
-
-        int ret;
+        string[] failedTargets;
         ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
-            ret |= spawnProcess(target.args, env, Config.none, scriptDir).wait;
+            int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
+            if (status != 0)
+            {
+                const name = target.normalizedTestName;
+                writeln(">>> TARGET FAILED: ", name);
+                failedTargets ~= name;
+            }
         }
-        if (ret)
+        if (failedTargets.length > 0)
+        {
+            // print overview of failed targets (for CIs)
+            writeln("FAILED targets:");
+            failedTargets.each!(l => writeln("- ",  l));
             return 1;
+        }
     }
 
     return 0;
 }
 
 /// Verify that the compiler has been built.
-void verifyCompilerExists(string[string] env)
+void verifyCompilerExists(const string[string] env)
 {
     if (!env["DMD"].exists)
     {
@@ -213,7 +232,7 @@ void verifyCompilerExists(string[string] env)
 Builds the binary of the tools required by the testsuite.
 Does nothing if the tools already exist and are newer than their source.
 */
-void ensureToolsExists(string[string] env, const TestTool[] tools ...)
+void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 {
     resultsDir.mkdirRecurse;
 
@@ -233,11 +252,11 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
             sourceFile = toolsDir.buildPath(tool ~ ".d");
         }
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
-            writefln("%s is already up-to-date", tool);
+            log("%s is already up-to-date", tool);
         else
         {
             string[] command;
-            string[string] commandEnv = null;
+            bool overrideEnv;
             if (tool.linksWithTests)
             {
                 // This will compile the dshell library thus needs the actual
@@ -250,7 +269,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
                     "-c",
                     sourceFile
                 ] ~ getPicFlags(env);
-                commandEnv = env;
+                overrideEnv = true;
             }
             else
             {
@@ -264,7 +283,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
 
             writefln("Executing: %-(%s %)", command);
             stdout.flush();
-            if (spawnProcess(command, commandEnv).wait)
+            if (spawnProcess(command, overrideEnv ? env : null).wait)
             {
                 stderr.writefln("failed to build '%s'", targetBin);
                 atomicOp!"+="(failCount, 1);
@@ -399,7 +418,7 @@ auto predefinedTargets(string[] targets)
 }
 
 // Removes targets that do not need updating (i.e. their .out file exists and is newer than the source file)
-auto filterTargets(Target[] targets, string[string] env)
+auto filterTargets(Target[] targets, const string[string] env)
 {
     bool error;
     foreach (target; targets)
@@ -420,7 +439,7 @@ auto filterTargets(Target[] targets, string[string] env)
         auto resultRunTime = resultsDir.buildPath(testName ~ ".out").timeLastModified.ifThrown(SysTime.init);
         if (!force && resultRunTime > testPath(testName).timeLastModified &&
                 resultRunTime > env["DMD"].timeLastModified.ifThrown(SysTime.init))
-            writefln("%s is already up-to-date", testName);
+            log("%s is already up-to-date", testName);
         else
             targetsThatNeedUpdating ~= t;
     }
@@ -453,7 +472,7 @@ Params:
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
 */
-auto getDefault(string[string] env, string key, string default_)
+auto setDefault(string[string] env, string key, string default_)
 {
     if (key in environment)
         env[key] = environment[key];
@@ -475,24 +494,24 @@ string[string] getEnvironment()
     env["BUILD"] = build;
     env["EXE"] = exeExtension;
     env["DMD"] = dmdPath;
-    env.getDefault("DMD_TEST_COVERAGE", "0");
+    env.setDefault("DMD_TEST_COVERAGE", "0");
 
     const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
 
     version(Windows)
     {
-        env.getDefault("ARGS", "-inline -release -g -O");
+        env.setDefault("ARGS", "-inline -release -g -O");
         env["OBJ"] = ".obj";
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\phobos`));
-        env["DFLAGS"] = `-I%s\import -I%s`.format(druntimePath, phobosPath);
+        env["DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
         env["LIB"] = phobosPath ~ ";" ~ environment.get("LIB");
     }
     else
     {
-        env.getDefault("ARGS", "-inline -release -g -O -fPIC");
+        env.setDefault("ARGS", "-inline -release -g -O -fPIC");
         env["OBJ"] = ".o";
         env["DSEP"] = "/";
         env["SEP"] = "/";
@@ -551,7 +570,7 @@ auto objName(T)(T name)
 }
 
 /// Return the correct pic flags as an array of strings
-string[] getPicFlags(string[string] env)
+string[] getPicFlags(const string[string] env)
 {
     version(Windows) {} else
     {

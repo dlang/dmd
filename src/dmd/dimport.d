@@ -1,7 +1,7 @@
 /**
  * A `Dsymbol` representing a renamed import.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d, _dimport.d)
@@ -30,11 +30,11 @@ extern (C++) final class Import : Dsymbol
 {
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
-    Identifiers* packages;  // array of Identifier's representing packages
+    Identifier[] packages;  // array of Identifier's representing packages
     Identifier id;          // module Identifier
     Identifier aliasId;
     int isstatic;           // !=0 if static import
-    Prot protection;
+    Visibility visibility;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -46,7 +46,7 @@ extern (C++) final class Import : Dsymbol
     // corresponding AliasDeclarations for alias=name pairs
     AliasDeclarations aliasdecls;
 
-    extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
+    extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
     {
         Identifier selectIdent()
         {
@@ -56,10 +56,10 @@ extern (C++) final class Import : Dsymbol
                 // import [aliasId] = std.stdio;
                 return aliasId;
             }
-            else if (packages && packages.dim)
+            else if (packages.length > 0)
             {
                 // import [std].stdio;
-                return (*packages)[0];
+                return packages[0];
             }
             else
             {
@@ -74,13 +74,9 @@ extern (C++) final class Import : Dsymbol
         version (none)
         {
             printf("Import::Import(");
-            if (packages && packages.dim)
+            foreach (id; packages)
             {
-                for (size_t i = 0; i < packages.dim; i++)
-                {
-                    Identifier id = (*packages)[i];
-                    printf("%s.", id.toChars());
-                }
+                printf("%s.", id.toChars());
             }
             printf("%s)\n", id.toChars());
         }
@@ -88,7 +84,7 @@ extern (C++) final class Import : Dsymbol
         this.id = id;
         this.aliasId = aliasId;
         this.isstatic = isstatic;
-        this.protection = Prot.Kind.private_; // default to private
+        this.visibility = Visibility.Kind.private_; // default to private
     }
 
     extern (D) void addAlias(Identifier name, Identifier _alias)
@@ -106,13 +102,13 @@ extern (C++) final class Import : Dsymbol
         return isstatic ? "static import" : "import";
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     // copy only syntax trees
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override Import syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
@@ -233,11 +229,44 @@ extern (C++) final class Import : Dsymbol
             isstatic = true;
         mod.importAll(null);
         mod.checkImportDeprecation(loc, sc);
-        if (sc.explicitProtection)
-            protection = sc.protection;
+        if (sc.explicitVisibility)
+            visibility = sc.visibility;
         if (!isstatic && !aliasId && !names.dim)
-            sc.scopesym.importScope(mod, protection);
+            sc.scopesym.importScope(mod, visibility);
+        // Enable access to pkgs/mod as soon as posible, because compiler
+        // can traverse them before the import gets semantic (Issue: 21501)
+        if (!aliasId && !names.dim)
+            addPackageAccess(sc.scopesym);
     }
+
+    /*******************************
+     * Mark the imported packages as accessible from the current
+     * scope. This access check is necessary when using FQN b/c
+     * we're using a single global package tree.
+     * https://issues.dlang.org/show_bug.cgi?id=313
+     */
+    extern (D) void addPackageAccess(ScopeDsymbol scopesym)
+    {
+        //printf("Import::addPackageAccess('%s') %p\n", toPrettyChars(), this);
+        if (packages.length > 0)
+        {
+            // import a.b.c.d;
+            auto p = pkg; // a
+            scopesym.addAccessiblePackage(p, visibility);
+            foreach (id; packages[1 .. $]) // [b, c]
+            {
+                p = cast(Package) p.symtab.lookup(id);
+                // https://issues.dlang.org/show_bug.cgi?id=17991
+                // An import of truly empty file/package can happen
+                // https://issues.dlang.org/show_bug.cgi?id=20151
+                // Package in the path conflicts with a module name
+                if (p is null)
+                    break;
+                scopesym.addAccessiblePackage(p, visibility);
+            }
+        }
+        scopesym.addAccessiblePackage(mod, visibility); // d
+     }
 
     override Dsymbol toAlias()
     {
@@ -282,7 +311,7 @@ extern (C++) final class Import : Dsymbol
                 importAll(sc);
 
             sc = sc.push(mod);
-            sc.protection = protection;
+            sc.visibility = visibility;
             foreach (ad; aliasdecls)
                 ad.setScope(sc);
             sc = sc.pop();

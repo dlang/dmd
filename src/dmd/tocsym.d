@@ -1,7 +1,7 @@
 /**
  * Convert a D symbol to a symbol the linker understands (with mangled name).
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocsym.d)
@@ -41,6 +41,7 @@ import dmd.mtype;
 import dmd.target;
 import dmd.toctype;
 import dmd.todt;
+import dmd.toir;
 import dmd.tokens;
 import dmd.typinf;
 import dmd.visitor;
@@ -53,6 +54,7 @@ import dmd.backend.type;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.cgcv;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 
 extern (C++):
@@ -173,7 +175,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.storage_class & STC.lazy_)
             {
-                if (config.exe == EX_WIN64 && vd.isParameter())
+                if (target.os == Target.OS.Windows && target.is64bit && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
                     t = type_fake(TYdelegate);          // Tdelegate as C type
@@ -284,11 +286,7 @@ Symbol *toSymbol(Dsymbol s)
             final switch (vd.linkage)
             {
                 case LINK.windows:
-                    m = global.params.is64bit ? mTYman_c : mTYman_std;
-                    break;
-
-                case LINK.pascal:
-                    m = mTYman_pas;
+                    m = target.is64bit ? mTYman_c : mTYman_std;
                     break;
 
                 case LINK.objc:
@@ -356,6 +354,9 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn())
+                s.Sflags |= SFLexit;    // the function never returns
+
             f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
             if (fd.endloc.linnum)
             {
@@ -378,12 +379,7 @@ Symbol *toSymbol(Dsymbol s)
                 final switch (fd.linkage)
                 {
                     case LINK.windows:
-                        t.Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
-                        break;
-
-                    case LINK.pascal:
-                        t.Tty = TYnpfunc;
-                        t.Tmangle = mTYman_pas;
+                        t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;
                         break;
 
                     case LINK.c:
@@ -396,7 +392,7 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.cpp:
                         s.Sflags |= SFLpublic;
-                        if (fd.isThis() && !global.params.is64bit && global.params.isWindows)
+                        if (fd.isThis() && !target.is64bit && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -490,21 +486,21 @@ Symbol *toImport(Symbol *sym)
     import core.stdc.stdlib : alloca;
     char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
     int idlen;
-    if (config.exe != EX_WIN32 && config.exe != EX_WIN64)
+    if (target.os & Target.OS.Posix)
     {
         id = n;
         idlen = cast(int)strlen(n);
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
-        if (config.exe == EX_WIN64)
+        if (target.os == Target.OS.Windows && target.is64bit)
             idlen = sprintf(id,"__imp_%s",n);
         else
             idlen = sprintf(id,"_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
     else
     {
-        idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
+        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
@@ -542,6 +538,9 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     Symbol *s = toSymbol(fd);
     if (!offset)
         return s;
+
+    if (retStyle(fd.type.isTypeFunction(), fd.needThis()) == RET.stack)
+        s.Sfunc.Fflags3 |= F3hiddenPtr;
 
     __gshared int tmpnum;
     char[6 + tmpnum.sizeof * 3 + 1] name = void;
@@ -617,7 +616,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
-            !(config.objfmt == OBJ_MSCOFF && !global.params.is64bit)) // -m32mscoff relocations are wrong
+            !(config.objfmt == OBJ_MSCOFF && !target.is64bit)) // -m32mscoff relocations are wrong
         {
             auto bzsave = bzeroSymbol;
             ad.sinit = getBzeroSymbol();
@@ -688,7 +687,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 
     auto s = symbol_calloc(id, idlen);
     s.Sclass = SCextern;
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     symbol_func(s);
 
     auto t = type_function(TYnfunc, null, false, Type_toCtype(taa.next));

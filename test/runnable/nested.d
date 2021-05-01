@@ -2,7 +2,6 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/nested.d(800): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
 null
 ---
 */
@@ -797,18 +796,9 @@ void test33()
         return 3;
     }
 
-    extern (Pascal) int Foo4(int a, int b, int c)
-    {
-        assert(a == 1);
-        assert(b == 2);
-        assert(c == 3);
-        return 4;
-    }
-
     assert(Foo1(1, 2, 3) == 1);
     assert(Foo2(1, 2, 3) == 2);
     assert(Foo3(1, 2, 3) == 3);
-    assert(Foo4(1, 2, 3) == 4);
 
     printf("test33 success\n");
 }
@@ -2733,6 +2723,45 @@ void test15757() @safe
 
 /***************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=19384
+
+struct Vec
+{
+    uint item;
+
+    ref uint august() return
+    {
+        return item;
+        // commenting next line removes bug
+        foreach(ref val; range()) return val;
+        assert(false);
+    }
+
+    uint* august2() return
+    {
+        return &item;
+        foreach(ref val; range()) return &val;
+        assert(false);
+    }
+}
+
+struct range
+{
+    int opApply(scope int delegate(ref uint) dg) { return 0; }
+}
+
+void test19384()
+{
+    Vec preds = Vec(0xDEAD);
+    void* ptr2 = &preds.august();
+    void* ptr3 = preds.august2();
+    assert(&preds == ptr2);
+    assert(&preds == ptr3);
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2828,6 +2857,7 @@ int main()
     test15422a();
     test15422b();
     test15757();
+    test19384();
 
     printf("Success\n");
     return 0;

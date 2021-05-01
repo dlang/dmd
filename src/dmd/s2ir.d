@@ -1,7 +1,7 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -60,6 +60,7 @@ import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -86,6 +87,21 @@ private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
     s.set(loc.filename, loc.linnum, loc.charnum);
 }
 
+private bool isAssertFalse(const Expression e) nothrow
+{
+    return e ? e.type == Type.tnoreturn && (e.op == TOK.halt || e.op == TOK.assert_) : false;
+}
+
+private bool isAssertFalse(const Statement s) nothrow
+{
+    if (!s)
+        return false;
+    if (auto es = s.isExpStatement())
+        return isAssertFalse(es.exp);
+    else if (auto ss = s.isScopeStatement())
+        return isAssertFalse(ss.statement);
+    return false;
+}
 
 /***********************************************
  * Generate code to set index into scope table.
@@ -531,7 +547,8 @@ private extern (C++) class S2irVisitor : Visitor
         if (bsw.BC == BCswitch)
             bsw.appendSucc(cb);   // second entry in pair
         bcase.appendSucc(cb);
-        incUsage(irs, s.loc);
+        if (!isAssertFalse(s.statement))
+            incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs, stmtstate);
     }
@@ -543,7 +560,8 @@ private extern (C++) class S2irVisitor : Visitor
         block *bdefault = stmtstate.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
-        incUsage(irs, s.loc);
+        if (!isAssertFalse(s.statement))
+            incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs, stmtstate);
     }
@@ -687,7 +705,22 @@ private extern (C++) class S2irVisitor : Visitor
             {
                 // Reference return, so convert to a pointer
                 e = toElemDtor(s.exp, irs);
+
+                /* already taken care of for vresult in buildResultVar() and semantic3.d
+                 * https://issues.dlang.org/show_bug.cgi?id=19384
+                 */
+                if (func.vresult)
+                    if (BlitExp be = s.exp.isBlitExp())
+                    {
+                         if (VarExp ve = be.e1.isVarExp())
+                         {
+                            if (ve.var == func.vresult)
+                                goto Lskip;
+                         }
+                    }
+
                 e = addressElem(e, s.exp.type.pointerTo());
+             Lskip:
             }
             else
             {
@@ -726,10 +759,16 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
         if (s.exp)
         {
-            if (s.exp.hasCode)
+            if (s.exp.hasCode &&
+                !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
                 incUsage(irs, s.loc);
 
             block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+
+            // goto the next block
+            block* b = blx.curblock;
+            block_next(blx, BCgoto, null);
+            b.appendSucc(blx.curblock);
         }
     }
 
@@ -1090,6 +1129,24 @@ private extern (C++) class S2irVisitor : Visitor
                     bcatch.Bcatchtype = toSymbol(cs.type.toBasetype());
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
+
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
+                {
+                    /* The linker will attempt to merge together identical functions,
+                     * even if the catch types differ. So add a reference to the
+                     * catch type here.
+                     * https://issues.dlang.org/show_bug.cgi?id=10664
+                     */
+                    auto tc = cs.type.toBasetype().isTypeClass();
+                    if (!tc.sym.vclassinfo)
+                        tc.sym.vclassinfo = TypeInfoClassDeclaration.create(tc);
+                    auto sinfo = toSymbol(tc.sym.vclassinfo);
+                    elem* ex = el_var(sinfo);
+                    ex.Ety = mTYvolatile | TYnptr;
+                    ex = el_una(OPind, TYint, ex);
+                    block_appendexp(irs.blx.curblock, ex);
+                }
+
                 if (cs.handler !is null)
                 {
                     StmtState catchState = StmtState(stmtstate, s);
@@ -1412,7 +1469,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLdsymbol:
                 case FLfunc:
                     sym = toSymbol(cast(Dsymbol)c.IEV1.Vdsym);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == -1)
+                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV1.Vsym = sym;
                     c.IFL1 = sym.Sfl ? sym.Sfl : FLauto;
@@ -1440,7 +1497,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     Declaration d = cast(Declaration)c.IEV2.Vdsym;
                     sym = toSymbol(cast(Dsymbol)d);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == -1)
+                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV2.Vsym = sym;
                     c.IFL2 = sym.Sfl ? sym.Sfl : FLauto;

@@ -1,7 +1,7 @@
 /**
  * Check the arguments to `printf` and `scanf` against the `format` string.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d, _chkformat.d)
@@ -13,9 +13,11 @@ module dmd.chkformat;
 //import core.stdc.stdio : printf, scanf;
 import core.stdc.ctype : isdigit;
 
+import dmd.cond;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
+import dmd.identifier;
 import dmd.mtype;
 import dmd.target;
 
@@ -59,7 +61,7 @@ import dmd.target;
 bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
     //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
-    size_t n = 0;
+    size_t n, gnu_m_count;    // index in args / number of Format.GNU_m
     for (size_t i = 0; i < format.length;)
     {
         if (format[i] != '%')
@@ -85,17 +87,23 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             continue;
         }
 
-        Expression getNextArg()
+        if (fmt == Format.GNU_m)
+            ++gnu_m_count;
+
+        Expression getNextArg(ref bool skip)
         {
             if (n == args.length)
             {
-                deprecation(loc, "more format specifiers than %d arguments", cast(int)n);
+                if (args.length < (n + 1) - gnu_m_count)
+                    deprecation(loc, "more format specifiers than %d arguments", cast(int)n);
+                else
+                    skip = true;
                 return null;
             }
             return args[n++];
         }
 
-        void errorMsg(const char* prefix, const char[] specifier, Expression arg, const char* texpect, Type tactual)
+        void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
             deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
                   prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
@@ -103,31 +111,40 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         if (widthStar)
         {
-            auto e = getNextArg();
+            bool skip;
+            auto e = getNextArg(skip);
+            if (skip)
+                continue;
             if (!e)
                 return true;
             auto t = e.type.toBasetype();
             if (t.ty != Tint32 && t.ty != Tuns32)
-                errorMsg("width ", slice, e, "int", t);
+                errorMsg("width ", e, "int", t);
         }
 
         if (precisionStar)
         {
-            auto e = getNextArg();
+            bool skip;
+            auto e = getNextArg(skip);
+            if (skip)
+                continue;
             if (!e)
                 return true;
             auto t = e.type.toBasetype();
             if (t.ty != Tint32 && t.ty != Tuns32)
-                errorMsg("precision ", slice, e, "int", t);
+                errorMsg("precision ", e, "int", t);
         }
 
-        auto e = getNextArg();
+        bool skip;
+        auto e = getNextArg(skip);
+        if (skip)
+            continue;
         if (!e)
             return true;
         auto t = e.type.toBasetype();
         auto tnext = t.nextOf();
         const c_longsize = target.c.longsize;
-        const is64bit = global.params.is64bit;
+        const ptrsize = target.ptrsize;
 
         // Types which are promoted to int are allowed.
         // Spec: C99 6.5.2.2.7
@@ -136,129 +153,142 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             case Format.u:      // unsigned int
             case Format.d:      // int
                 if (t.ty != Tint32 && t.ty != Tuns32)
-                    errorMsg(null, slice, e, "int", t);
+                    errorMsg(null, e, fmt == Format.u ? "uint" : "int", t);
                 break;
 
             case Format.hhu:    // unsigned char
             case Format.hhd:    // signed char
                 if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint8 && t.ty != Tuns8)
-                    errorMsg(null, slice, e, "byte", t);
+                    errorMsg(null, e, fmt == Format.hhu ? "ubyte" : "byte", t);
                 break;
 
             case Format.hu:     // unsigned short int
             case Format.hd:     // short int
                 if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint16 && t.ty != Tuns16)
-                    errorMsg(null, slice, e, "short", t);
+                    errorMsg(null, e, fmt == Format.hu ? "ushort" : "short", t);
                 break;
 
             case Format.lu:     // unsigned long int
             case Format.ld:     // long int
                 if (!(t.isintegral() && t.size() == c_longsize))
-                    errorMsg(null, slice, e, (c_longsize == 4 ? "int" : "long"), t);
+                {
+                    if (fmt == Format.lu)
+                        errorMsg(null, e, (c_longsize == 4 ? "uint" : "ulong"), t);
+                    else
+                        errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
+                }
                 break;
 
             case Format.llu:    // unsigned long long int
             case Format.lld:    // long long int
                 if (t.ty != Tint64 && t.ty != Tuns64)
-                    errorMsg(null, slice, e, "long", t);
+                    errorMsg(null, e, fmt == Format.llu ? "ulong" : "long", t);
                 break;
 
             case Format.ju:     // uintmax_t
             case Format.jd:     // intmax_t
                 if (t.ty != Tint64 && t.ty != Tuns64)
-                    errorMsg(null, slice, e, "core.stdc.stdint.intmax_t", t);
+                {
+                    if (fmt == Format.ju)
+                        errorMsg(null, e, "core.stdc.stdint.uintmax_t", t);
+                    else
+                        errorMsg(null, e, "core.stdc.stdint.intmax_t", t);
+                }
                 break;
 
             case Format.zd:     // size_t
-                if (!(t.isintegral() && t.size() == (is64bit ? 8 : 4)))
-                    errorMsg(null, slice, e, "size_t", t);
+                if (!(t.isintegral() && t.size() == ptrsize))
+                    errorMsg(null, e, "size_t", t);
                 break;
 
             case Format.td:     // ptrdiff_t
-                if (!(t.isintegral() && t.size() == (is64bit ? 8 : 4)))
-                    errorMsg(null, slice, e, "ptrdiff_t", t);
+                if (!(t.isintegral() && t.size() == ptrsize))
+                    errorMsg(null, e, "ptrdiff_t", t);
                 break;
 
+            case Format.GNU_a:  // Format.GNU_a is only for scanf
             case Format.lg:
             case Format.g:      // double
                 if (t.ty != Tfloat64 && t.ty != Timaginary64)
-                    errorMsg(null, slice, e, "double", t);
+                    errorMsg(null, e, "double", t);
                 break;
 
             case Format.Lg:     // long double
                 if (t.ty != Tfloat80 && t.ty != Timaginary80)
-                    errorMsg(null, slice, e, "real", t);
+                    errorMsg(null, e, "real", t);
                 break;
 
             case Format.p:      // pointer
                 if (t.ty != Tpointer && t.ty != Tnull && t.ty != Tclass && t.ty != Tdelegate && t.ty != Taarray)
-                    errorMsg(null, slice, e, "void*", t);
+                    errorMsg(null, e, "void*", t);
                 break;
 
             case Format.n:      // pointer to int
                 if (!(t.ty == Tpointer && tnext.ty == Tint32))
-                    errorMsg(null, slice, e, "int*", t);
+                    errorMsg(null, e, "int*", t);
                 break;
 
             case Format.ln:     // pointer to long int
                 if (!(t.ty == Tpointer && tnext.isintegral() && tnext.size() == c_longsize))
-                    errorMsg(null, slice, e, (c_longsize == 4 ? "int*" : "long*"), t);
+                    errorMsg(null, e, (c_longsize == 4 ? "int*" : "long*"), t);
                 break;
 
             case Format.lln:    // pointer to long long int
                 if (!(t.ty == Tpointer && tnext.ty == Tint64))
-                    errorMsg(null, slice, e, "long*", t);
+                    errorMsg(null, e, "long*", t);
                 break;
 
             case Format.hn:     // pointer to short
                 if (!(t.ty == Tpointer && tnext.ty == Tint16))
-                    errorMsg(null, slice, e, "short*", t);
+                    errorMsg(null, e, "short*", t);
                 break;
 
             case Format.hhn:    // pointer to signed char
                 if (!(t.ty == Tpointer && tnext.ty == Tint16))
-                    errorMsg(null, slice, e, "byte*", t);
+                    errorMsg(null, e, "byte*", t);
                 break;
 
             case Format.jn:     // pointer to intmax_t
                 if (!(t.ty == Tpointer && tnext.ty == Tint64))
-                    errorMsg(null, slice, e, "core.stdc.stdint.intmax_t*", t);
+                    errorMsg(null, e, "core.stdc.stdint.intmax_t*", t);
                 break;
 
             case Format.zn:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
-                    errorMsg(null, slice, e, "size_t*", t);
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == ptrsize))
+                    errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
-                    errorMsg(null, slice, e, "ptrdiff_t*", t);
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == ptrsize))
+                    errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
             case Format.c:      // char
                 if (t.ty != Tint32 && t.ty != Tuns32)
-                    errorMsg(null, slice, e, "char", t);
+                    errorMsg(null, e, "char", t);
                 break;
 
             case Format.lc:     // wint_t
                 if (t.ty != Tint32 && t.ty != Tuns32)
-                    errorMsg(null, slice, e, "wchar_t", t);
+                    errorMsg(null, e, "wchar_t", t);
                 break;
 
             case Format.s:      // pointer to char string
                 if (!(t.ty == Tpointer && (tnext.ty == Tchar || tnext.ty == Tint8 || tnext.ty == Tuns8)))
-                    errorMsg(null, slice, e, "char*", t);
+                    errorMsg(null, e, "char*", t);
                 break;
 
             case Format.ls:     // pointer to wchar_t string
-                const twchar_t = global.params.isWindows ? Twchar : Tdchar;
-                if (!(t.ty == Tpointer && tnext.ty == twchar_t))
-                    errorMsg(null, slice, e, "wchar_t*", t);
+                if (!(t.ty == Tpointer && tnext == target.c.twchar_t))
+                    errorMsg(null, e, "wchar_t*", t);
                 break;
 
             case Format.error:
                 deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
                 break;
+
+            case Format.GNU_m:
+                break;  // not assert(0) because it may go through it if there are extra arguments
 
             case Format.percent:
                 assert(0);
@@ -340,7 +370,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
             return args[n++];
         }
 
-        void errorMsg(const char* prefix, const char[] specifier, Expression arg, const char* texpect, Type tactual)
+        void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
             deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
                   prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
@@ -353,117 +383,120 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
         auto t = e.type.toBasetype();
         auto tnext = t.nextOf();
         const c_longsize = target.c.longsize;
-        const is64bit = global.params.is64bit;
+        const ptrsize = target.ptrsize;
 
         final switch (fmt)
         {
             case Format.n:
             case Format.d:      // pointer to int
                 if (!(t.ty == Tpointer && tnext.ty == Tint32))
-                    errorMsg(null, slice, e, "int*", t);
+                    errorMsg(null, e, "int*", t);
                 break;
 
             case Format.hhn:
             case Format.hhd:    // pointer to signed char
                 if (!(t.ty == Tpointer && tnext.ty == Tint16))
-                    errorMsg(null, slice, e, "byte*", t);
+                    errorMsg(null, e, "byte*", t);
                 break;
 
             case Format.hn:
             case Format.hd:     // pointer to short
                 if (!(t.ty == Tpointer && tnext.ty == Tint16))
-                    errorMsg(null, slice, e, "short*", t);
+                    errorMsg(null, e, "short*", t);
                 break;
 
             case Format.ln:
             case Format.ld:     // pointer to long int
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.size() == c_longsize))
-                    errorMsg(null, slice, e, (c_longsize == 4 ? "int*" : "long*"), t);
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == c_longsize))
+                    errorMsg(null, e, (c_longsize == 4 ? "int*" : "long*"), t);
                 break;
 
             case Format.lln:
             case Format.lld:    // pointer to long long int
                 if (!(t.ty == Tpointer && tnext.ty == Tint64))
-                    errorMsg(null, slice, e, "long*", t);
+                    errorMsg(null, e, "long*", t);
                 break;
 
             case Format.jn:
             case Format.jd:     // pointer to intmax_t
                 if (!(t.ty == Tpointer && tnext.ty == Tint64))
-                    errorMsg(null, slice, e, "core.stdc.stdint.intmax_t*", t);
+                    errorMsg(null, e, "core.stdc.stdint.intmax_t*", t);
                 break;
 
             case Format.zn:
             case Format.zd:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
-                    errorMsg(null, slice, e, "size_t*", t);
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == ptrsize))
+                    errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:
             case Format.td:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
-                    errorMsg(null, slice, e, "ptrdiff_t*", t);
+                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == ptrsize))
+                    errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
             case Format.u:      // pointer to unsigned int
                 if (!(t.ty == Tpointer && tnext.ty == Tuns32))
-                    errorMsg(null, slice, e, "uint*", t);
+                    errorMsg(null, e, "uint*", t);
                 break;
 
             case Format.hhu:    // pointer to unsigned char
                 if (!(t.ty == Tpointer && tnext.ty == Tuns8))
-                    errorMsg(null, slice, e, "ubyte*", t);
+                    errorMsg(null, e, "ubyte*", t);
                 break;
 
             case Format.hu:     // pointer to unsigned short int
                 if (!(t.ty == Tpointer && tnext.ty == Tuns16))
-                    errorMsg(null, slice, e, "ushort*", t);
+                    errorMsg(null, e, "ushort*", t);
                 break;
 
             case Format.lu:     // pointer to unsigned long int
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
-                    errorMsg(null, slice, e, (c_longsize == 4 ? "uint*" : "ulong*"), t);
+                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == c_longsize))
+                    errorMsg(null, e, (c_longsize == 4 ? "uint*" : "ulong*"), t);
                 break;
 
             case Format.llu:    // pointer to unsigned long long int
                 if (!(t.ty == Tpointer && tnext.ty == Tuns64))
-                    errorMsg(null, slice, e, "ulong*", t);
+                    errorMsg(null, e, "ulong*", t);
                 break;
 
             case Format.ju:     // pointer to uintmax_t
-                if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
-                    errorMsg(null, slice, e, "ulong*", t);
+                if (!(t.ty == Tpointer && tnext.ty == Tuns64))
+                    errorMsg(null, e, "core.stdc.stdint.uintmax_t*", t);
                 break;
 
             case Format.g:      // pointer to float
                 if (!(t.ty == Tpointer && tnext.ty == Tfloat32))
-                    errorMsg(null, slice, e, "float*", t);
-                break;
-            case Format.lg:     // pointer to double
-                if (!(t.ty == Tpointer && tnext.ty == Tfloat64))
-                    errorMsg(null, slice, e, "double*", t);
-                break;
-            case Format.Lg:     // pointer to long double
-                if (!(t.ty == Tpointer && tnext.ty == Tfloat80))
-                    errorMsg(null, slice, e, "real*", t);
+                    errorMsg(null, e, "float*", t);
                 break;
 
+            case Format.lg:     // pointer to double
+                if (!(t.ty == Tpointer && tnext.ty == Tfloat64))
+                    errorMsg(null, e, "double*", t);
+                break;
+
+            case Format.Lg:     // pointer to long double
+                if (!(t.ty == Tpointer && tnext.ty == Tfloat80))
+                    errorMsg(null, e, "real*", t);
+                break;
+
+            case Format.GNU_a:
+            case Format.GNU_m:
             case Format.c:
             case Format.s:      // pointer to char string
                 if (!(t.ty == Tpointer && (tnext.ty == Tchar || tnext.ty == Tint8 || tnext.ty == Tuns8)))
-                    errorMsg(null, slice, e, "char*", t);
+                    errorMsg(null, e, "char*", t);
                 break;
 
             case Format.lc:
             case Format.ls:     // pointer to wchar_t string
-                const twchar_t = global.params.isWindows ? Twchar : Tdchar;
-                if (!(t.ty == Tpointer && tnext.ty == twchar_t))
-                    errorMsg(null, slice, e, "wchar_t*", t);
+                if (!(t.ty == Tpointer && tnext == target.c.twchar_t))
+                    errorMsg(null, e, "wchar_t*", t);
                 break;
 
             case Format.p:      // double pointer
                 if (!(t.ty == Tpointer && tnext.ty == Tpointer))
-                    errorMsg(null, slice, e, "void**", t);
+                    errorMsg(null, e, "void**", t);
                 break;
 
             case Format.error:
@@ -493,9 +526,8 @@ private:
  * Returns:
  *      Format
  */
-pure nothrow @safe
 Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool asterisk)
+        out bool asterisk) nothrow pure @safe
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -583,9 +615,8 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
  * Returns:
  *      Format
  */
-pure nothrow @safe
 Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool widthStar, out bool precisionStar)
+        out bool widthStar, out bool precisionStar) nothrow pure @safe
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -767,6 +798,8 @@ enum Format
     jn,         // pointer to intmax_t
     zn,         // pointer to size_t
     tn,         // pointer to ptrdiff_t
+    GNU_a,      // GNU ext. : address to a string with no maximum size (scanf)
+    GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf) / length modifier (scanf)
     percent,    // %% (i.e. no argument)
     error,      // invalid format specification
 }
@@ -785,9 +818,9 @@ enum Format
  * Returns:
  *      Format
  */
-pure @safe nothrow
 Format parseGenericFormatSpecifier(scope const char[] format,
-    ref size_t idx, out char genSpecifier)
+    ref size_t idx, out char genSpecifier, bool useGNUExts =
+    findCondition(global.versionids, Identifier.idPool("CRuntime_Glibc"))) nothrow pure @trusted
 {
     const length = format.length;
 
@@ -859,13 +892,21 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                                                Format.u;
             break;
 
+        case 'a':
+            if (useGNUExts)
+            {
+                // https://www.gnu.org/software/libc/manual/html_node/Dynamic-String-Input.html
+                specifier = Format.GNU_a;
+                break;
+            }
+            goto case;
+
         case 'f':
         case 'F':
         case 'e':
         case 'E':
         case 'g':
         case 'G':
-        case 'a':
         case 'A':
             if (lm == 'L')
                 specifier = Format.Lg;
@@ -909,6 +950,15 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                             lm == 't'        ? Format.tn  :
                                                Format.n;
             break;
+
+        case 'm':
+            if (useGNUExts)
+            {
+                // http://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
+                specifier = Format.GNU_m;
+                break;
+            }
+            goto default;
 
         default:
             specifier = Format.error;
@@ -1075,7 +1125,8 @@ unittest
      assert(idx == 2);
 
      idx = 0;
-     assert(parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar) == Format.g);
+     Format g = parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar);
+     assert(g == Format.g || g == Format.GNU_a);
      assert(idx == 2);
 
      idx = 0;
@@ -1245,7 +1296,8 @@ unittest
     assert(idx == 2);
 
     idx = 0;
-    assert(parseScanfFormatSpecifier("%a", idx, asterisk) == Format.g);
+    g = parseScanfFormatSpecifier("%a", idx, asterisk);
+    assert(g == Format.g || g == Format.GNU_a);
     assert(idx == 2);
 
     idx = 0;

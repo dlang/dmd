@@ -1,7 +1,7 @@
 /**
  * An expandable buffer in which you can write text or binary data.
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.d, root/_outbuffer.d)
@@ -366,12 +366,25 @@ struct OutBuffer
             memset(data.ptr + offset, 0xff, psize - count);
     }
 
-    extern (C++) void printf(const(char)* format, ...) nothrow
+    static if (__VERSION__ < 2092)
     {
-        va_list ap;
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
+        extern (C++) void printf(const(char)* format, ...) nothrow
+        {
+            va_list ap;
+            va_start(ap, format);
+            vprintf(format, ap);
+            va_end(ap);
+        }
+    }
+    else
+    {
+        pragma(printf) extern (C++) void printf(const(char)* format, ...) nothrow
+        {
+            va_list ap;
+            va_start(ap, format);
+            vprintf(format, ap);
+            va_end(ap);
+        }
     }
 
     /**************************************

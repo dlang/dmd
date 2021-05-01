@@ -1,7 +1,7 @@
 /**
  * Generate the object file for function declarations and critical sections.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -32,6 +32,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -135,7 +136,7 @@ void obj_write_deferred(Library library)
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
-            //  so output it into it's own object file without ModuleInfo
+            //  so output it into its own object file without ModuleInfo
             objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
             objmod.termfile();
@@ -163,7 +164,7 @@ void obj_write_deferred(Library library)
         for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%.*s", fname, count, hash,
-                       cast(int)global.obj_ext.length, global.obj_ext.ptr);
+                       cast(int)target.obj_ext.length, target.obj_ext.ptr);
         FileName.free(cast(char *)fname);
         fname = namebuf.extractChars();
 
@@ -256,8 +257,8 @@ void obj_start(const(char)* srcfile)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
         assert(objbuf.length() == 0);
-        objmod = global.params.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
-                                      :    OmfObj_init(&objbuf, srcfile, null);
+        objmod = target.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
+                               :    OmfObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -267,6 +268,7 @@ void obj_start(const(char)* srcfile)
     el_reset();
     cg87_reset();
     out_reset();
+    objc.reset();
 }
 
 
@@ -374,7 +376,37 @@ void genObjFile(Module m, bool multiobj)
         m.cov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
-        dtb.nzeros(4 * m.numlines);
+
+        if (m.ctfe_cov)
+        {
+            // initalize the uint[] __coverage symbol with data from ctfe.
+            static extern (C) int comp_uints (const scope void* a, const scope void* b)
+                { return (*cast(uint*) a) - (*cast(uint*) b); }
+
+            uint[] sorted_lines = m.ctfe_cov.keys;
+            qsort(sorted_lines.ptr, sorted_lines.length, sorted_lines[0].sizeof,
+                &comp_uints);
+
+            uint lastLine = 0;
+            foreach (line;sorted_lines)
+            {
+                // zero fill from last line to line.
+                if (line)
+                {
+                    assert(line > lastLine);
+                    dtb.nzeros((line - lastLine - 1) * 4);
+                }
+                dtb.dword(m.ctfe_cov[line]);
+                lastLine = line;
+            }
+            // zero fill from last line to end
+            if (m.numlines > lastLine)
+                dtb.nzeros((m.numlines - lastLine) * 4);
+        }
+        else
+        {
+            dtb.nzeros(4 * m.numlines);
+        }
         m.cov.Sdt = dtb.finish();
 
         outdata(m.cov);
@@ -427,14 +459,14 @@ void genObjFile(Module m, bool multiobj)
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
-        if (config.exe == EX_WIN64)
+        if (target.os == Target.OS.Windows && target.is64bit)
         {
             ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
             ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
         elem *efilename = toEfilename(m);
-        if (config.exe == EX_WIN64)
+        if (target.os == Target.OS.Windows && target.is64bit)
             efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_params(
@@ -492,194 +524,6 @@ void genObjFile(Module m, bool multiobj)
     objmod.termfile();
 }
 
-
-
-/**************************************
- * Search for a druntime array op
- */
-private bool isDruntimeArrayOp(Identifier ident)
-{
-    /* Some of the array op functions are written as library functions,
-     * presumably to optimize them with special CPU vector instructions.
-     * List those library functions here, in alpha order.
-     */
-    __gshared const(char)*[143] libArrayopFuncs =
-    [
-        "_arrayExpSliceAddass_a",
-        "_arrayExpSliceAddass_d",
-        "_arrayExpSliceAddass_f",           // T[]+=T
-        "_arrayExpSliceAddass_g",
-        "_arrayExpSliceAddass_h",
-        "_arrayExpSliceAddass_i",
-        "_arrayExpSliceAddass_k",
-        "_arrayExpSliceAddass_s",
-        "_arrayExpSliceAddass_t",
-        "_arrayExpSliceAddass_u",
-        "_arrayExpSliceAddass_w",
-
-        "_arrayExpSliceDivass_d",           // T[]/=T
-        "_arrayExpSliceDivass_f",           // T[]/=T
-
-        "_arrayExpSliceMinSliceAssign_a",
-        "_arrayExpSliceMinSliceAssign_d",   // T[]=T-T[]
-        "_arrayExpSliceMinSliceAssign_f",   // T[]=T-T[]
-        "_arrayExpSliceMinSliceAssign_g",
-        "_arrayExpSliceMinSliceAssign_h",
-        "_arrayExpSliceMinSliceAssign_i",
-        "_arrayExpSliceMinSliceAssign_k",
-        "_arrayExpSliceMinSliceAssign_s",
-        "_arrayExpSliceMinSliceAssign_t",
-        "_arrayExpSliceMinSliceAssign_u",
-        "_arrayExpSliceMinSliceAssign_w",
-
-        "_arrayExpSliceMinass_a",
-        "_arrayExpSliceMinass_d",           // T[]-=T
-        "_arrayExpSliceMinass_f",           // T[]-=T
-        "_arrayExpSliceMinass_g",
-        "_arrayExpSliceMinass_h",
-        "_arrayExpSliceMinass_i",
-        "_arrayExpSliceMinass_k",
-        "_arrayExpSliceMinass_s",
-        "_arrayExpSliceMinass_t",
-        "_arrayExpSliceMinass_u",
-        "_arrayExpSliceMinass_w",
-
-        "_arrayExpSliceMulass_d",           // T[]*=T
-        "_arrayExpSliceMulass_f",           // T[]*=T
-        "_arrayExpSliceMulass_i",
-        "_arrayExpSliceMulass_k",
-        "_arrayExpSliceMulass_s",
-        "_arrayExpSliceMulass_t",
-        "_arrayExpSliceMulass_u",
-        "_arrayExpSliceMulass_w",
-
-        "_arraySliceExpAddSliceAssign_a",
-        "_arraySliceExpAddSliceAssign_d",   // T[]=T[]+T
-        "_arraySliceExpAddSliceAssign_f",   // T[]=T[]+T
-        "_arraySliceExpAddSliceAssign_g",
-        "_arraySliceExpAddSliceAssign_h",
-        "_arraySliceExpAddSliceAssign_i",
-        "_arraySliceExpAddSliceAssign_k",
-        "_arraySliceExpAddSliceAssign_s",
-        "_arraySliceExpAddSliceAssign_t",
-        "_arraySliceExpAddSliceAssign_u",
-        "_arraySliceExpAddSliceAssign_w",
-
-        "_arraySliceExpDivSliceAssign_d",   // T[]=T[]/T
-        "_arraySliceExpDivSliceAssign_f",   // T[]=T[]/T
-
-        "_arraySliceExpMinSliceAssign_a",
-        "_arraySliceExpMinSliceAssign_d",   // T[]=T[]-T
-        "_arraySliceExpMinSliceAssign_f",   // T[]=T[]-T
-        "_arraySliceExpMinSliceAssign_g",
-        "_arraySliceExpMinSliceAssign_h",
-        "_arraySliceExpMinSliceAssign_i",
-        "_arraySliceExpMinSliceAssign_k",
-        "_arraySliceExpMinSliceAssign_s",
-        "_arraySliceExpMinSliceAssign_t",
-        "_arraySliceExpMinSliceAssign_u",
-        "_arraySliceExpMinSliceAssign_w",
-
-        "_arraySliceExpMulSliceAddass_d",   // T[] += T[]*T
-        "_arraySliceExpMulSliceAddass_f",
-        "_arraySliceExpMulSliceAddass_r",
-
-        "_arraySliceExpMulSliceAssign_d",   // T[]=T[]*T
-        "_arraySliceExpMulSliceAssign_f",   // T[]=T[]*T
-        "_arraySliceExpMulSliceAssign_i",
-        "_arraySliceExpMulSliceAssign_k",
-        "_arraySliceExpMulSliceAssign_s",
-        "_arraySliceExpMulSliceAssign_t",
-        "_arraySliceExpMulSliceAssign_u",
-        "_arraySliceExpMulSliceAssign_w",
-
-        "_arraySliceExpMulSliceMinass_d",   // T[] -= T[]*T
-        "_arraySliceExpMulSliceMinass_f",
-        "_arraySliceExpMulSliceMinass_r",
-
-        "_arraySliceSliceAddSliceAssign_a",
-        "_arraySliceSliceAddSliceAssign_d", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_f", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_g",
-        "_arraySliceSliceAddSliceAssign_h",
-        "_arraySliceSliceAddSliceAssign_i",
-        "_arraySliceSliceAddSliceAssign_k",
-        "_arraySliceSliceAddSliceAssign_r", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_s",
-        "_arraySliceSliceAddSliceAssign_t",
-        "_arraySliceSliceAddSliceAssign_u",
-        "_arraySliceSliceAddSliceAssign_w",
-
-        "_arraySliceSliceAddass_a",
-        "_arraySliceSliceAddass_d",         // T[]+=T[]
-        "_arraySliceSliceAddass_f",         // T[]+=T[]
-        "_arraySliceSliceAddass_g",
-        "_arraySliceSliceAddass_h",
-        "_arraySliceSliceAddass_i",
-        "_arraySliceSliceAddass_k",
-        "_arraySliceSliceAddass_s",
-        "_arraySliceSliceAddass_t",
-        "_arraySliceSliceAddass_u",
-        "_arraySliceSliceAddass_w",
-
-        "_arraySliceSliceMinSliceAssign_a",
-        "_arraySliceSliceMinSliceAssign_d", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_f", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_g",
-        "_arraySliceSliceMinSliceAssign_h",
-        "_arraySliceSliceMinSliceAssign_i",
-        "_arraySliceSliceMinSliceAssign_k",
-        "_arraySliceSliceMinSliceAssign_r", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_s",
-        "_arraySliceSliceMinSliceAssign_t",
-        "_arraySliceSliceMinSliceAssign_u",
-        "_arraySliceSliceMinSliceAssign_w",
-
-        "_arraySliceSliceMinass_a",
-        "_arraySliceSliceMinass_d",         // T[]-=T[]
-        "_arraySliceSliceMinass_f",         // T[]-=T[]
-        "_arraySliceSliceMinass_g",
-        "_arraySliceSliceMinass_h",
-        "_arraySliceSliceMinass_i",
-        "_arraySliceSliceMinass_k",
-        "_arraySliceSliceMinass_s",
-        "_arraySliceSliceMinass_t",
-        "_arraySliceSliceMinass_u",
-        "_arraySliceSliceMinass_w",
-
-        "_arraySliceSliceMulSliceAssign_d", // T[]=T[]*T[]
-        "_arraySliceSliceMulSliceAssign_f", // T[]=T[]*T[]
-        "_arraySliceSliceMulSliceAssign_i",
-        "_arraySliceSliceMulSliceAssign_k",
-        "_arraySliceSliceMulSliceAssign_s",
-        "_arraySliceSliceMulSliceAssign_t",
-        "_arraySliceSliceMulSliceAssign_u",
-        "_arraySliceSliceMulSliceAssign_w",
-
-        "_arraySliceSliceMulass_d",         // T[]*=T[]
-        "_arraySliceSliceMulass_f",         // T[]*=T[]
-        "_arraySliceSliceMulass_i",
-        "_arraySliceSliceMulass_k",
-        "_arraySliceSliceMulass_s",
-        "_arraySliceSliceMulass_t",
-        "_arraySliceSliceMulass_u",
-        "_arraySliceSliceMulass_w",
-    ];
-    const(char)* name = ident.toChars();
-    int i = binary(name, libArrayopFuncs.ptr, libArrayopFuncs.length);
-    if (i != -1)
-        return true;
-
-    debug    // Make sure our array is alphabetized
-    {
-        foreach (s; libArrayopFuncs)
-        {
-            if (strcmp(name, s) == 0)
-                assert(0);
-        }
-    }
-    return false;
-}
 
 
 /* ================================================================== */
@@ -781,12 +625,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    if (fd.isArrayOp && isDruntimeArrayOp(fd.ident))
-    {
-        // Implementation is in druntime
-        return;
-    }
-
     // start code generation
     fd.semanticRun = PASS.obj;
 
@@ -817,7 +655,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Same as config.ehmethod==EH_NONE, but only for this function
         f.Fflags3 |= Feh_none;
 
-    s.Sclass = global.params.isOSX ? SCcomdat : SCglobal;
+    s.Sclass = target.os == Target.OS.OSX ? SCcomdat : SCglobal;
     for (Dsymbol p = fd.parent; p; p = p.parent)
     {
         if (p.isTemplateInstance())
@@ -825,7 +663,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             // functions without D or C++ name mangling mixed in at global scope
             // shouldn't have multiple definitions
             if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
-                fd.linkage == LINK.pascal || fd.linkage == LINK.objc))
+                fd.linkage == LINK.objc))
             {
                 const q = p.toParent();
                 if (q && q.isModule())
@@ -838,11 +676,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             break;
         }
     }
-
-    /* Vector operations should be comdat's
-     */
-    if (fd.isArrayOp)
-        s.Sclass = SCcomdat;
 
     if (fd.inlinedNestedCallees)
     {
@@ -896,7 +729,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Dsymbols deferToObj;                   // write these to OBJ file later
     Array!(elem*) varsInScope;
     Label*[void*] labels = null;
-    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params);
+    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params, &target);
 
     Symbol *shidden = null;
     Symbol *sthis = null;
@@ -912,15 +745,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // If function returns a struct, put a pointer to that
         // as the first argument
         .type *thidden = Type_toCtype(tf.next.pointerTo());
-        char[5+4+1] hiddenparam = void;
-        __gshared int hiddenparami;    // how many we've generated so far
+        char[5 + 10 + 1] hiddenparam = void;
+        __gshared uint hiddenparami;    // how many we've generated so far
 
         const(char)* name;
         if (fd.nrvo_can && fd.nrvo_var)
             name = fd.nrvo_var.ident.toChars();
         else
         {
-            sprintf(hiddenparam.ptr, "__HID%d", ++hiddenparami);
+            sprintf(hiddenparam.ptr, "__HID%u", ++hiddenparami);
             name = hiddenparam.ptr;
         }
         shidden = symbol_name(name, SCparameter, thidden);
@@ -952,7 +785,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
         pi += fd.parameters.dim;
-    if (fd.selector)
+    if (fd.objc.selector)
         pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
     Symbol*[10] paramsbuf = void;
@@ -1042,7 +875,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+                sp.Sclass = (target.os == Target.OS.Windows && target.is64bit) ? SCshadowreg : SCfastpar;
                 sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
             }
         }
@@ -1071,8 +904,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.v_argptr)
     {
         // Declare va_argsave
-        if (global.params.is64bit &&
-            !global.params.isWindows)
+        if (target.is64bit &&
+            target.os & Target.OS.Posix)
         {
             type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
             // The backend will pick this up by name
@@ -1092,7 +925,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * 2. impact on function inlining
      * 3. what to do when writing out .di files, or other pretty printing
      */
-    if (global.params.trace && !fd.isCMain() && !fd.naked)
+    if (global.params.trace && !fd.isCMain() && !fd.naked && !(fd.hasReturnExp & 8))
     {
         /* The profiler requires TLS, and TLS may not be set up yet when C main()
          * gets control (i.e. OSX), leading to a crash.
@@ -1292,11 +1125,11 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.external_def("_main");
         }
-        else if (global.params.mscoff)
+        else if (target.mscoff)
         {
             objmod.external_def("main");
         }
-        else if (config.exe == EX_WIN32)
+        else if (target.os == Target.OS.Windows && !target.is64bit)
         {
             objmod.external_def("_main");
             objmod.external_def("__acrtused_con");
@@ -1307,29 +1140,29 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
     else if (fd.isRtInit())
     {
-        if (target.isPOSIX || global.params.mscoff)
+        if (target.isPOSIX || target.mscoff)
         {
             objmod.ehsections();   // initialize exception handling sections
         }
     }
     else if (fd.isCMain())
     {
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
-        else if (config.exe == EX_WIN32)
+        else if (target.os == Target.OS.Windows && !target.is64bit)
         {
             objmod.external_def("__acrtused_con");        // bring in C startup code
             objmod.includelib("snn.lib");          // bring in C runtime library
         }
         s.Sclass = SCglobal;
     }
-    else if (global.params.isWindows && fd.isWinMain() && onlyOneMain(fd.loc))
+    else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
@@ -1346,9 +1179,9 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
 
     // Pull in RTL startup code
-    else if (global.params.isWindows && fd.isDllMain() && onlyOneMain(fd.loc))
+    else if (target.os == Target.OS.Windows && fd.isDllMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
@@ -1376,7 +1209,7 @@ private bool onlyOneMain(Loc loc)
         if (global.params.addMain)
             msg = ", -main switch added another `main()`";
         const(char)* otherMainNames = "";
-        if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
+        if (target.os == Target.OS.Windows)
             otherMainNames = ", `WinMain`, or `DllMain`";
         error(loc, "only one `main`%s allowed%s. Previously found `main` at %s",
             otherMainNames, msg, lastLoc.toChars());
@@ -1420,7 +1253,7 @@ tym_t totym(Type tx)
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
         case Tdchar:
-            t = (global.params.symdebug == 1 || !global.params.isWindows) ? TYdchar : TYulong;
+            t = (global.params.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
             break;
 
         case Taarray:   t = TYaarray;   break;
@@ -1430,6 +1263,7 @@ tym_t totym(Type tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
+        case Tnoreturn: t = TYnoreturn; break;
 
         case Tstruct:
             t = TYstruct;
@@ -1445,6 +1279,12 @@ tym_t totym(Type tx)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
                 t = TYdouble;
+            else if (id == Id.__c_complex_float)
+                t = TYcfloat;
+            else if (id == Id.__c_complex_double)
+                t = TYcdouble;
+            else if (id == Id.__c_complex_real)
+                t = TYcldouble;
             else
                 t = totym(tb);
             break;
@@ -1492,23 +1332,19 @@ tym_t totym(Type tx)
             final switch (tf.linkage)
             {
                 case LINK.windows:
-                    if (global.params.is64bit)
+                    if (target.is64bit)
                         goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
-                    break;
-
-                case LINK.pascal:
-                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:
                 case LINK.cpp:
                 case LINK.objc:
                     t = TYnfunc;
-                    if (global.params.isWindows)
+                    if (target.os == Target.OS.Windows)
                     {
                     }
-                    else if (!global.params.is64bit && retStyle(tf, false) == RET.stack)
+                    else if (!target.is64bit && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 

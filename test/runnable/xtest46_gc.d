@@ -1,5 +1,6 @@
 /*
 REQUIRED_ARGS: -lowmem -Jrunnable -preview=rvaluerefparam
+EXTRA_FILES: xtest46.d
 TEST_OUTPUT:
 ---
 Boo!double
@@ -14,14 +15,14 @@ tuple(height)
 tuple(get, get)
 tuple(clear)
 tuple(draw, draw)
-runnable/xtest46_gc.d-mixin-$n$(184): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46_gc.d-mixin-$n$(186): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46_gc.d-mixin-$n$(185): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46_gc.d-mixin-$n$(187): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46_gc.d-mixin-$n$(189): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46_gc.d-mixin-$n$(216): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46_gc.d-mixin-$n$(218): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46_gc.d-mixin-$n$(188): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46_gc.d-mixin-$n$(190): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46_gc.d-mixin-$n$(217): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46_gc.d-mixin-$n$(219): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46_gc.d-mixin-$n$(221): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46_gc.d-mixin-$n$(220): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46_gc.d-mixin-$n$(222): Deprecation: `opDot` is deprecated. Use `alias this`
 const(int)
 string[]
 double[]

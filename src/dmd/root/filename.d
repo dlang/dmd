@@ -1,7 +1,7 @@
 /**
  * Encapsulate path and file names.
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.d, root/_filename.d)
@@ -49,6 +49,24 @@ version (CRuntime_Glibc)
 }
 
 alias Strings = Array!(const(char)*);
+
+
+// Check whether character is a directory separator
+private bool isDirSeparator(char c) pure nothrow @nogc
+{
+    version (Windows)
+    {
+        return c == '\\' || c == '/';
+    }
+    else version (Posix)
+    {
+        return c == '/';
+    }
+    else
+    {
+        assert(0);
+    }
+}
 
 /***********************************************************
  * Encapsulate path and file names.
@@ -107,12 +125,12 @@ nothrow:
 
         version (Windows)
         {
-            return (name[0] == '\\') || (name[0] == '/')
+            return isDirSeparator(name[0])
                 || (name.length >= 2 && name[1] == ':');
         }
         else version (Posix)
         {
-            return (name[0] == '/');
+            return isDirSeparator(name[0]);
         }
         else
         {
@@ -124,6 +142,13 @@ nothrow:
     {
         assert(absolute("/"[]) == true);
         assert(absolute(""[]) == false);
+
+        version (Windows)
+        {
+            assert(absolute(r"\"[]) == true);
+            assert(absolute(r"\\"[]) == true);
+            assert(absolute(r"c:"[]) == true);
+        }
     }
 
     /**
@@ -307,20 +332,8 @@ nothrow:
         bool hasTrailingSlash;
         if (n.length < str.length)
         {
-            version (Posix)
-            {
-                if (str[$ - n.length - 1] == '/')
-                    hasTrailingSlash = true;
-            }
-            else version (Windows)
-            {
-                if (str[$ - n.length - 1] == '\\' || str[$ - n.length - 1] == '/')
-                    hasTrailingSlash = true;
-            }
-            else
-            {
-                assert(0);
-            }
+            if (isDirSeparator(str[$ - n.length - 1]))
+                hasTrailingSlash = true;
         }
         const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
         char* path = cast(char*)mem.xmalloc(pathlen + 1);
@@ -402,12 +415,12 @@ nothrow:
             const last = p[length - 1];
             version (Posix)
             {
-                if (last != '/')
+                if (!isDirSeparator(last))
                     p[length++] = '/';
             }
             else version (Windows)
             {
-                if (last != '\\' && last != '/' && last != ':')
+                if (!isDirSeparator(last) && last != ':')
                     p[length++] = '\\';
             }
             else
@@ -711,97 +724,106 @@ nothrow:
         return null;
     }
 
-    /*************************************
-     * Search Path for file in a safe manner.
-     *
-     * Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
-     * ('Path Traversal') attacks.
-     *      http://cwe.mitre.org/data/definitions/22.html
-     * More info:
-     *      https://www.securecoding.cert.org/confluence/display/c/FIO02-C.+Canonicalize+path+names+originating+from+tainted+sources
+    /************************************
+     * Determine if path contains reserved character.
+     * Params:
+     *  name = path
      * Returns:
-     *      NULL    file not found
-     *      !=NULL  mem.xmalloc'd file name
+     *  index of the first reserved character in path if found, size_t.max otherwise
      */
-    extern (C++) static const(char)* safeSearchPath(Strings* path, const(char)* name)
+    extern (D) static size_t findReservedChar(const(char)* name) pure @nogc
     {
         version (Windows)
         {
-            // don't allow leading / because it might be an absolute
-            // path or UNC path or something we'd prefer to just not deal with
-            if (*name == '/')
-            {
-                return null;
-            }
-            /* Disallow % \ : and .. in name characters
-             * We allow / for compatibility with subdirectories which is allowed
-             * on dmd/posix. With the leading / blocked above and the rest of these
-             * conservative restrictions, we should be OK.
-             */
-            for (const(char)* p = name; *p; p++)
+            size_t idx = 0;
+            // According to https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
+            // the following characters are not allowed in path: < > : " | ? *
+            for (const(char)* p = name; *p; p++, idx++)
             {
                 char c = *p;
-                if (c == '\\' || c == ':' || c == '%' || (c == '.' && p[1] == '.') || (c == '/' && p[1] == '/'))
+                if (c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' || c == '*')
                 {
-                    return null;
+                    return idx;
                 }
             }
-            return FileName.searchPath(path, name, false);
-        }
-        else version (Posix)
-        {
-            /* Even with realpath(), we must check for // and disallow it
-             */
-            for (const(char)* p = name; *p; p++)
-            {
-                char c = *p;
-                if (c == '/' && p[1] == '/')
-                {
-                    return null;
-                }
-            }
-            if (path)
-            {
-                /* Each path is converted to a cannonical name and then a check is done to see
-                 * that the searched name is really a child one of the the paths searched.
-                 */
-                for (size_t i = 0; i < path.dim; i++)
-                {
-                    const(char)* cname = null;
-                    const(char)* cpath = canonicalName((*path)[i]);
-                    //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
-                    //      name, (char *)path.data[i], cpath);
-                    if (cpath is null)
-                        goto cont;
-                    cname = canonicalName(combine(cpath, name));
-                    //printf("FileName::safeSearchPath(): cname=%s\n", cname);
-                    if (cname is null)
-                        goto cont;
-                    //printf("FileName::safeSearchPath(): exists=%i "
-                    //      "strncmp(cpath, cname, %i)=%i\n", exists(cname),
-                    //      strlen(cpath), strncmp(cpath, cname, strlen(cpath)));
-                    // exists and name is *really* a "child" of path
-                    if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
-                    {
-                        mem.xfree(cast(void*)cpath);
-                        const(char)* p = mem.xstrdup(cname);
-                        mem.xfree(cast(void*)cname);
-                        return p;
-                    }
-                cont:
-                    if (cpath)
-                        mem.xfree(cast(void*)cpath);
-                    if (cname)
-                        mem.xfree(cast(void*)cname);
-                }
-            }
-            return null;
+            return size_t.max;
         }
         else
         {
-            assert(0);
+            return size_t.max;
         }
     }
+    unittest
+    {
+        assert(findReservedChar(r"") == size_t.max);
+        assert(findReservedChar(r" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-_=+()") == size_t.max);
+
+        version (Windows)
+        {
+            assert(findReservedChar(` < `) == 1);
+            assert(findReservedChar(` >`) == 1);
+            assert(findReservedChar(`: `) == 0);
+            assert(findReservedChar(`"`) == 0);
+            assert(findReservedChar(`|`) == 0);
+            assert(findReservedChar(`?`) == 0);
+            assert(findReservedChar(`*`) == 0);
+        }
+        else
+        {
+            assert(findReservedChar(`<>:"|?*`) == size_t.max);
+        }
+    }
+
+    /************************************
+     * Determine if path has a reference to parent directory.
+     * Params:
+     *  name = path
+     * Returns:
+     *  true if path contains '..' reference to parent directory
+     */
+    extern (D) static bool refersToParentDir(const(char)* name) pure @nogc
+    {
+        if (name[0] == '.' && name[1] == '.' && (!name[2] || isDirSeparator(name[2])))
+        {
+            return true;
+        }
+
+        for (const(char)* p = name; *p; p++)
+        {
+            char c = *p;
+            if (isDirSeparator(c) && p[1] == '.' && p[2] == '.' && (!p[3] || isDirSeparator(p[3])))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    unittest
+    {
+        assert(!refersToParentDir(r""));
+        assert(!refersToParentDir(r"foo"));
+        assert(!refersToParentDir(r"foo.."));
+        assert(!refersToParentDir(r"foo..boo"));
+        assert(!refersToParentDir(r"foo/..boo"));
+        assert(!refersToParentDir(r"foo../boo"));
+        assert(refersToParentDir(r".."));
+        assert(refersToParentDir(r"../"));
+        assert(refersToParentDir(r"foo/.."));
+        assert(refersToParentDir(r"foo/../"));
+        assert(refersToParentDir(r"foo/../../boo"));
+
+        version (Windows)
+        {
+            // Backslash as directory separator
+            assert(!refersToParentDir(r"foo\..boo"));
+            assert(!refersToParentDir(r"foo..\boo"));
+            assert(refersToParentDir(r"..\"));
+            assert(refersToParentDir(r"foo\.."));
+            assert(refersToParentDir(r"foo\..\"));
+            assert(refersToParentDir(r"foo\..\..\boo"));
+        }
+    }
+
 
     /**
        Check if the file the `path` points to exists

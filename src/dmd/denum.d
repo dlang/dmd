@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
@@ -50,7 +50,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Type type;              // the TypeEnum
     Type memtype;           // type of the members
 
-    Prot protection;
+    Visibility visibility;
     Expression maxval;
     Expression minval;
     Expression defaultval;  // default initializer
@@ -64,14 +64,15 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         //printf("EnumDeclaration() %s\n", toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
-        protection = Prot(Prot.Kind.undefined);
+        visibility = Visibility(Visibility.Kind.undefined);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override EnumDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
-        return ScopeDsymbol.syntaxCopy(ed);
+        ScopeDsymbol.syntaxCopy(ed);
+        return ed;
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -143,13 +144,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         }
 
-        if (!members || !symtab || _scope)
-        {
-            error("is forward referenced when looking for `%s`", ident.toChars());
-            //*(char*)0=0;
-            return null;
-        }
-
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         return s;
     }
@@ -160,9 +154,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return isdeprecated;
     }
 
-    override Prot prot() pure nothrow @nogc @safe
+    override Visibility visible() pure nothrow @nogc @safe
     {
-        return protection;
+        return visibility;
     }
 
     /******************************
@@ -193,7 +187,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         Expression errorReturn()
         {
-            *pval = new ErrorExp();
+            *pval = ErrorExp.get();
             return *pval;
         }
 
@@ -209,7 +203,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return errorReturn();
-        if (semanticRun == PASS.init || !members)
+        if (!members)
         {
             if (isSpecial())
             {
@@ -218,7 +212,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return memtype.getProperty(_scope, loc, id, 0);
             }
 
-            error("is forward referenced looking for `.%s`", id.toChars());
+            error(loc, "is opaque and has no `.%s`", id.toChars());
             return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
@@ -235,6 +229,13 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 continue;
             if (em.errors)
             {
+                errors = true;
+                continue;
+            }
+
+            if (em.semanticRun < PASS.semanticdone)
+            {
+                em.error("is forward referenced looking for `.%s`", id.toChars());
                 errors = true;
                 continue;
             }
@@ -287,7 +288,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Expression getDefaultValue(const ref Loc loc)
     {
         Expression handleErrors(){
-            defaultval = new ErrorExp();
+            defaultval = ErrorExp.get();
             return defaultval;
         }
         //printf("EnumDeclaration::getDefaultValue() %p %s\n", this, toChars());
@@ -298,16 +299,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return handleErrors();
-        if (semanticRun == PASS.init || !members)
+        if (!members)
         {
             if (isSpecial())
             {
                 /* Allow these special enums to not need a member list
                  */
-                return memtype.defaultInit(loc);
+                return defaultval = memtype.defaultInit(loc);
             }
 
-            error(loc, "forward reference of `%s.init`", toChars());
+            error(loc, "is opaque and has no default initializer");
             return handleErrors();
         }
 
@@ -316,6 +317,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
             {
+                if (em.semanticRun < PASS.semanticdone)
+                {
+                    error(loc, "forward reference of `%s.init`", toChars());
+                    return handleErrors();
+                }
+
                 defaultval = em.value;
                 return defaultval;
             }
@@ -337,13 +344,13 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
             else
             {
-                if (!isAnonymous() && members)
-                    memtype = Type.tint32;
+                // Run semantic to get the type from a possible first member value
+                dsymbolSemantic(this, _scope);
             }
         }
         if (!memtype)
         {
-            if (!isAnonymous() && members)
+            if (!isAnonymous() && (members || semanticRun >= PASS.semanticdone))
                 memtype = Type.tint32;
             else
             {
@@ -407,7 +414,7 @@ extern (C++) final class EnumMember : VarDeclaration
         depdecl = dd;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override EnumMember syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new EnumMember(
@@ -415,8 +422,8 @@ extern (C++) final class EnumMember : VarDeclaration
             value ? value.syntaxCopy() : null,
             origType ? origType.syntaxCopy() : null,
             storage_class,
-            userAttribDecl ? cast(UserAttributeDeclaration)userAttribDecl.syntaxCopy(s) : null,
-            depdecl ? cast(DeprecatedDeclaration)depdecl.syntaxCopy(s) : null);
+            userAttribDecl ? userAttribDecl.syntaxCopy(s) : null,
+            depdecl ? depdecl.syntaxCopy(s) : null);
     }
 
     override const(char)* kind() const
@@ -428,7 +435,7 @@ extern (C++) final class EnumMember : VarDeclaration
     {
         dsymbolSemantic(this, sc);
         if (errors)
-            return new ErrorExp();
+            return ErrorExp.get();
         checkDisabled(loc, sc);
 
         if (depdecl && !depdecl._scope)
@@ -436,7 +443,7 @@ extern (C++) final class EnumMember : VarDeclaration
         checkDeprecated(loc, sc);
 
         if (errors)
-            return new ErrorExp();
+            return ErrorExp.get();
         Expression e = new VarExp(loc, this);
         return e.expressionSemantic(sc);
     }
@@ -469,7 +476,8 @@ bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
             ident == Id.__c_longlong ||
             ident == Id.__c_ulonglong ||
             ident == Id.__c_long_double ||
-            ident == Id.__c_wchar_t;
+            ident == Id.__c_wchar_t ||
+            ident == Id.__c_complex_float ||
+            ident == Id.__c_complex_double ||
+            ident == Id.__c_complex_real;
 }
-
-

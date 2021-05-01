@@ -9,25 +9,11 @@ import std.math : signbit, sqrt;
 /************************************/
 
 static assert(-(1) == -1);
-static assert(-(6i) == -6i);
-static assert(-(1 + 6i) == -1 - 6i);
 
 static assert(!27 == 0);
 static assert(!0 == 1);
 static assert(!6.2 == 0);
 static assert(!0.0 == 1);
-static assert(!3.7i == 0);
-static assert(!0.0i == 1);
-static assert(!(2+3.7i) == 0);
-static assert(!(0+3.7i) == 0);
-static assert(!(2+0.0i) == 0);
-static assert(!(0+0.0i) == 1);
-
-static assert(-6i + 2i == -4i);
-static assert(6i - 1i == 5i);
-
-static assert((3.6 + 7.2i) / (1 + 0i) == 3.6 + 7.2i);
-static assert((3.6 + 7.2i) / (0.0 + 1i) == 7.2 - 3.6i);
 
 static assert((6 % 4) == 2);
 static assert((6u % 4u) == 2u);
@@ -157,16 +143,9 @@ static assert((7.2 <=   6.2) == 0);
 static assert((7.2 >    6.2) == 1);
 static assert((7.2 >=   6.2) == 1);
 
-static assert((7.2i < 6.2i) == 0);
-
-
-static assert((7.2i == 6.2i) == 0);
-static assert((7.2i != 6.2i) == 1);
 static assert((7.2 == 6.2) == 0);
 static assert((7.2 != 6.2) == 1);
 
-static assert((7.2i == 7.2i) == 1);
-static assert((7.2i != 7.2i) == 0);
 static assert((7.2 == 7.2) == 1);
 static assert((7.2 != 7.2) == 0);
 
@@ -186,9 +165,6 @@ static assert((5.1 is 5.1) == 1);
 static assert((5.1 is 4.1) == 0);
 static assert((5.1 !is 5.1) == 0);
 static assert((5.1 !is 4.1) == 1);
-
-static assert((5.1 is 5.1i) == 0);
-static assert((5.1 !is 5.1i) == 1);
 
 static assert((5 ? 2 : 3) == 2);
 static assert((0 ? 2 : 3) == 3);
@@ -270,19 +246,11 @@ void test3()
      real n = -0.0;
      const real m = -0.0;
 
-     creal c = -0.0 + 3i;
-     creal d = n + 3i;
-     creal e = m + 3i;
-
-     // should print "11111"
-     writeln(signbit(n), signbit(m),
-        signbit(c.re), signbit(d.re), signbit(e.re));
+     // should print "11"
+     writeln(signbit(n), signbit(m));
 
      assert(signbit(n) == 1);
      assert(signbit(m) == 1);
-     assert(signbit(c.re) == 1);
-     assert(signbit(d.re) == 1);
-     assert(signbit(e.re) == 1);
 }
 
 /************************************/

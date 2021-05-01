@@ -3254,7 +3254,7 @@ alias immutable(char[vlen10946]) i4; // NG -> OK
 void test9046()
 {
     foreach (T; TypeTuple!(byte, ubyte, short, ushort, int, uint, long, ulong, char, wchar, dchar,
-                           float, double, real, ifloat, idouble, ireal, cfloat, cdouble, creal))
+                           float, double, real))
     foreach (U; TypeTuple!(T, const T, immutable T, shared T, shared const T, inout T, shared inout T))
     {
         static assert(is(typeof(U.init) == U));

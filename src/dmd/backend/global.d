@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -28,12 +28,14 @@ import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
+import dmd.backend.symtab;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
 import dmd.backend.barray;
 
 nothrow:
+@safe:
 
 extern __gshared
 {
@@ -76,8 +78,6 @@ extern __gshared
     char[SCMAX] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
-    uint maxblks;                   // array max for all block stuff
-    uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function
 
     Barray!(block*) dfo;            // array of depth first order
@@ -104,15 +104,10 @@ else
 Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
-version (SCPP)
-    const(char)* cpp_mangle(Symbol* s);
-else version (MARS)
-    const(char)* cpp_mangle(Symbol* s);
-else
-    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+const(char)* cpp_mangle(Symbol* s);
 
 // ee.c
-void eecontext_convs(uint marksi);
+void eecontext_convs(SYMIDX marksi);
 void eecontext_parse();
 
 // exp2.c
@@ -149,7 +144,7 @@ version (Posix)
 void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
 void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void *p) { mem_free(p); }
-void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
+void *util_realloc(void *oldp,size_t n,size_t size) { return mem_realloc(oldp, n * size); }
 //#define parc_malloc     mem_malloc
 //#define parc_calloc     mem_calloc
 //#define parc_realloc    mem_realloc
@@ -161,7 +156,7 @@ else
 void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
-void *util_realloc(void *oldp,uint n,uint size);
+void *util_realloc(void *oldp,size_t n,size_t size);
 void *parc_malloc(size_t len);
 void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);
@@ -171,7 +166,6 @@ void parc_free(void *p);
 
 void swap(int *, int *);
 //void crlf(FILE *);
-char *unsstr(uint);
 int isignore(int);
 int isillegal(int);
 
@@ -322,10 +316,6 @@ extern __gshared
 }
 
 /* Symbol.c */
-extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax);
-Symbol **symtab_malloc(size_t symmax);
-Symbol **symtab_calloc(size_t symmax);
-void symtab_free(Symbol **tab);
 //#if TERMCODE
 //void symbol_keep(Symbol *s);
 //#else
@@ -359,8 +349,8 @@ baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase);
 int baseclass_nitems(baseclass_t *b);
 void symbol_free(Symbol *s);
 SYMIDX symbol_add(Symbol *s);
-SYMIDX symbol_add(symtab_t*, Symbol *s);
-SYMIDX symbol_insert(symtab_t*, Symbol *s, SYMIDX n);
+SYMIDX symbol_add(ref symtab_t, Symbol *s);
+SYMIDX symbol_insert(ref symtab_t, Symbol *s, SYMIDX n);
 void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol *symbol_copy(Symbol *s);
 Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
@@ -396,7 +386,7 @@ void out_readonly(Symbol *s);
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros);
 void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
-void alignOffset(int seg,targ_size_t datasize);
+@trusted void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
@@ -457,7 +447,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-Symbol *symboldata(targ_size_t offset,tym_t ty);
+@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
 bool dom(const block* A, const block* B);
 uint revop(uint op);
 uint invrel(uint op);
@@ -532,7 +522,7 @@ void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
 
-// TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+// Posix
 elem *exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const(char)*);

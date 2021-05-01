@@ -1,9 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9891.d(13): Error: `cast(int)i` is not an lvalue and cannot be modified
-fail_compilation/fail9891.d(18): Error: `cast(int)i` is not an lvalue and cannot be modified
-fail_compilation/fail9891.d(23): Error: `prop()` is not an lvalue and cannot be modified
+fail_compilation/fail9891.d(14): Error: expression `i` of type `immutable(int)` is not implicitly convertible to type `ref int` of parameter `n`
+fail_compilation/fail9891.d(19): Error: expression `i` of type `immutable(int)` is not implicitly convertible to type `out int` of parameter `n`
+fail_compilation/fail9891.d(24): Error: `prop()` is not an lvalue and cannot be modified
+       use `-preview=in` or `preview=rvaluerefparam`
 ---
 */
 

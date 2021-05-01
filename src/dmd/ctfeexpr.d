@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -179,7 +179,7 @@ extern (C++) final class CTFEExp : Expression
         case TOK.cantExpression:
             return "<cant>";
         case TOK.voidExpression:
-            return "<void>";
+            return "cast(void)0";
         case TOK.showCtfeContext:
             return "<error>";
         case TOK.break_:
@@ -453,7 +453,7 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         return ue;
     }
     // If it is a cast to inout, retain the original type of the referenced part.
-    if (type.hasWild() && type.hasPointers())
+    if (type.hasWild())
     {
         emplaceExp!(UnionExp)(&ue, lit);
         ue.exp().type = type;
@@ -746,6 +746,15 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
             return se.e1;
         }
     }
+
+    // It can be a `null` disguised as a cast, e.g. `cast(void*)0`.
+    if (auto ie = e.isIntegerExp())
+        if (ie.type.ty == Tpointer && ie.getInteger() == 0)
+            return new NullExp(ie.loc, e.type.nextOf());
+    // Those casts are invalid, but let the rest of the code handle it,
+    // as it could be something like `x !is null`, which doesn't need
+    // to dereference the pointer, even if the pointer is `cast(void*)420`.
+
     return e;
 }
 
@@ -1537,7 +1546,7 @@ Expression ctfeIndex(UnionExp* pue, const ref Loc loc, Type type, Expression e1,
     {
         if (indx >= es1.len)
         {
-            error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
+            error(loc, "string index %llu is out of bounds `[0 .. %zu]`", indx, es1.len);
             return CTFEExp.cantexp;
         }
         emplaceExp!IntegerExp(pue, loc, es1.charAt(indx), type);
@@ -1548,7 +1557,7 @@ Expression ctfeIndex(UnionExp* pue, const ref Loc loc, Type type, Expression e1,
     {
         if (indx >= ale.elements.dim)
         {
-            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.dim);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %zu]`", indx, e1.toChars(), ale.elements.dim);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];

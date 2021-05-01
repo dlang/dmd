@@ -4,7 +4,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
@@ -82,6 +82,17 @@ extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     buf.writestring("_ZTI");    // "TI" means typeinfo structure
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.cpp_mangle_name(s, false);
+    return buf.extractChars();
+}
+
+///
+extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
+{
+    //printf("cppThunkMangleItanium(%s)\n", fd.toChars());
+    OutBuffer buf;
+    buf.printf("_ZThn%u_", offset);  // "Th" means thunk, "n%u" is the call offset
+    scope CppMangleVisitor v = new CppMangleVisitor(&buf, fd.loc);
+    v.mangle_function_encoding(fd);
     return buf.extractChars();
 }
 
@@ -259,19 +270,18 @@ private final class CppMangleVisitor : Visitor
     {
         //printf("substitute %s\n", p ? p.toChars() : null);
         auto i = find(p);
-        if (i >= 0)
-        {
-            //printf("\tmatch\n");
-            /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
-             */
-            if (nested)
-                buf.writeByte('N');
-            buf.writeByte('S');
-            writeSequenceFromIndex(i);
-            buf.writeByte('_');
-            return true;
-        }
-        return false;
+        if (i < 0)
+            return false;
+
+        //printf("\tmatch\n");
+        /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
+         */
+        if (nested)
+            buf.writeByte('N');
+        buf.writeByte('S');
+        writeSequenceFromIndex(i);
+        buf.writeByte('_');
+        return true;
     }
 
     /******
@@ -600,51 +610,74 @@ private final class CppMangleVisitor : Visitor
             auto sl = this.buf.peekSlice();
             assert(sl.length == 0 || haveNE || s.cppnamespace is null || sl != "_ZN");
         }
-        if (TemplateInstance ti = s.isTemplateInstance())
+        auto ti = s.isTemplateInstance();
+
+        if (!ti)
         {
-            bool needsTa = false;
-
-            // https://issues.dlang.org/show_bug.cgi?id=20413
-            // N..E is not needed when substituting members of the std namespace.
-            // This is observed in the GCC and Clang implementations.
-            // The Itanium specification is not clear enough on this specific case.
-            // References:
-            //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.name
-            //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-compression
-            Dsymbol q = getQualifier(ti.tempdecl);
-            Dsymbol ns = ti.tempdecl.cppnamespace;
-            const inStd = ns && isStd(ns) || q && isStd(q);
-            const isNested = !inStd && (ns || q);
-
-            if (substitute(ti.tempdecl, !haveNE && isNested))
-            {
-                template_args(ti);
-                if (!haveNE && isNested)
-                    buf.writeByte('E');
-            }
-            else if (this.writeStdSubstitution(ti, needsTa))
-            {
-                this.abiTags.writeSymbol(ti, this);
-                if (needsTa)
-                    template_args(ti);
-            }
-            else
-            {
-                this.writeNamespace(
-                    s.cppnamespace, () {
-                        this.writeIdentifier(ti.tempdecl.toAlias().ident);
-                        append(ti.tempdecl);
-                        this.abiTags.writeSymbol(ti.tempdecl, this);
-                        template_args(ti);
-                    }, haveNE);
-            }
-        }
-        else
+            auto ag = s.isAggregateDeclaration();
+            const ident = (ag && ag.mangleOverride) ? ag.mangleOverride.id : s.ident;
             this.writeNamespace(s.cppnamespace, () {
-                    this.writeIdentifier(s.ident);
-                    this.abiTags.writeSymbol(s, this);
+                this.writeIdentifier(ident);
+                this.abiTags.writeSymbol(s, this);
                 },
                 haveNE);
+            return;
+        }
+
+        bool needsTa = false;
+
+        // https://issues.dlang.org/show_bug.cgi?id=20413
+        // N..E is not needed when substituting members of the std namespace.
+        // This is observed in the GCC and Clang implementations.
+        // The Itanium specification is not clear enough on this specific case.
+        // References:
+        //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.name
+        //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-compression
+        Dsymbol q = getQualifier(ti.tempdecl);
+        Dsymbol ns = ti.tempdecl.cppnamespace;
+        const inStd = ns && isStd(ns) || q && isStd(q);
+        const isNested = !inStd && (ns || q);
+
+        if (substitute(ti.tempdecl, !haveNE && isNested))
+        {
+            template_args(ti);
+            if (!haveNE && isNested)
+                buf.writeByte('E');
+            return;
+        }
+        else if (this.writeStdSubstitution(ti, needsTa))
+        {
+            this.abiTags.writeSymbol(ti, this);
+            if (needsTa)
+                template_args(ti);
+            return;
+        }
+
+        auto ag = ti.aliasdecl ? ti.aliasdecl.isAggregateDeclaration() : null;
+        if (ag && ag.mangleOverride)
+        {
+            this.writeNamespace(
+                ti.toAlias().cppnamespace, () {
+                    this.writeIdentifier(ag.mangleOverride.id);
+                    if (ag.mangleOverride.agg && ag.mangleOverride.agg.isInstantiated())
+                    {
+                        auto to = ag.mangleOverride.agg.isInstantiated();
+                        append(to);
+                        this.abiTags.writeSymbol(to.tempdecl, this);
+                        template_args(to);
+                    }
+              }, haveNE);
+        }
+        else
+        {
+            this.writeNamespace(
+                s.cppnamespace, () {
+                    this.writeIdentifier(ti.tempdecl.toAlias().ident);
+                    append(ti.tempdecl);
+                    this.abiTags.writeSymbol(ti.tempdecl, this);
+                    template_args(ti);
+                }, haveNE);
+        }
     }
 
     /********
@@ -850,7 +883,6 @@ private final class CppMangleVisitor : Visitor
         return false;
     }
 
-
     void cpp_mangle_name(Dsymbol s, bool qualified)
     {
         //printf("cpp_mangle_name(%s, %d)\n", s.toChars(), qualified);
@@ -864,74 +896,75 @@ private final class CppMangleVisitor : Visitor
                 write_prefix = false;
             p = p.toParent();
         }
-        if (p && !p.isModule())
+        if (!p || p.isModule())
         {
-            /* The N..E is not required if:
-             * 1. the parent is 'std'
-             * 2. 'std' is the initial qualifier
-             * 3. there is no CV-qualifier or a ref-qualifier for a member function
-             * ABI 5.1.8
-             */
-            if (isStd(p) && !qualified)
+            source_name(se, false);
+            append(s);
+            return;
+        }
+
+        if (!isStd(p) || qualified)
+        {
+            buf.writeByte('N');
+            if (write_prefix)
             {
-                TemplateInstance ti = se.isTemplateInstance();
-                if (s.ident == Id.allocator)
-                {
-                    buf.writestring("Sa"); // "Sa" is short for ::std::allocator
-                    template_args(ti);
-                }
-                else if (s.ident == Id.basic_string)
-                {
-                    // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
-                    if (ti.tiargs.dim == 3 &&
-                        isChar((*ti.tiargs)[0]) &&
-                        isChar_traits_char((*ti.tiargs)[1]) &&
-                        isAllocator_char((*ti.tiargs)[2]))
-                    {
-                        buf.writestring("Ss");
-                        return;
-                    }
-                    buf.writestring("Sb");      // ::std::basic_string
-                    template_args(ti);
-                }
-                else
-                {
-                    // ::std::basic_istream<char, ::std::char_traits<char>>
-                    if (s.ident == Id.basic_istream)
-                    {
-                        if (char_std_char_traits_char(ti, "Si"))
-                            return;
-                    }
-                    else if (s.ident == Id.basic_ostream)
-                    {
-                        if (char_std_char_traits_char(ti, "So"))
-                            return;
-                    }
-                    else if (s.ident == Id.basic_iostream)
-                    {
-                        if (char_std_char_traits_char(ti, "Sd"))
-                            return;
-                    }
+                if (isStd(p))
                     buf.writestring("St");
-                    source_name(se, true);
-                }
+                else
+                    prefix_name(p);
             }
-            else
+            source_name(se, true);
+            buf.writeByte('E');
+            append(s);
+            return;
+        }
+        /* The N..E is not required if:
+         * 1. the parent is 'std'
+         * 2. 'std' is the initial qualifier
+         * 3. there is no CV-qualifier or a ref-qualifier for a member function
+         * ABI 5.1.8
+         */
+        TemplateInstance ti = se.isTemplateInstance();
+        if (s.ident == Id.allocator)
+        {
+            buf.writestring("Sa"); // "Sa" is short for ::std::allocator
+            template_args(ti);
+        }
+        else if (s.ident == Id.basic_string)
+        {
+            // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
+            if (ti.tiargs.dim == 3 &&
+                isChar((*ti.tiargs)[0]) &&
+                isChar_traits_char((*ti.tiargs)[1]) &&
+                isAllocator_char((*ti.tiargs)[2]))
             {
-                buf.writeByte('N');
-                if (write_prefix)
-                {
-                    if (isStd(p))
-                        buf.writestring("St");
-                    else
-                        prefix_name(p);
-                }
-                source_name(se, true);
-                buf.writeByte('E');
+                buf.writestring("Ss");
+                return;
             }
+            buf.writestring("Sb");      // ::std::basic_string
+            template_args(ti);
         }
         else
-            source_name(se, false);
+        {
+            // ::std::basic_istream<char, ::std::char_traits<char>>
+            if (s.ident == Id.basic_istream)
+            {
+                if (char_std_char_traits_char(ti, "Si"))
+                    return;
+            }
+            else if (s.ident == Id.basic_ostream)
+            {
+                if (char_std_char_traits_char(ti, "So"))
+                    return;
+            }
+            else if (s.ident == Id.basic_iostream)
+            {
+                if (char_std_char_traits_char(ti, "Sd"))
+                    return;
+            }
+            buf.writestring("St");
+            source_name(se, true);
+        }
         append(s);
     }
 
@@ -1003,12 +1036,20 @@ private final class CppMangleVisitor : Visitor
         //printf("mangle_function(%s)\n", d.toChars());
         /*
          * <mangled-name> ::= _Z <encoding>
+         */
+        buf.writestring("_Z");
+        this.mangle_function_encoding(d);
+    }
+
+    void mangle_function_encoding(FuncDeclaration d)
+    {
+        //printf("mangle_function_encoding(%s)\n", d.toChars());
+        /*
          * <encoding> ::= <function name> <bare-function-type>
          *            ::= <data name>
          *            ::= <special-name>
          */
         TypeFunction tf = cast(TypeFunction)d.type;
-        buf.writestring("_Z");
 
         if (TemplateDeclaration ftd = getFuncTemplateDecl(d))
         {
@@ -1017,45 +1058,44 @@ private final class CppMangleVisitor : Visitor
             TemplateInstance ti = d.parent.isTemplateInstance();
             assert(ti);
             this.mangleTemplatedFunction(d, tf, ftd, ti);
+            return;
+        }
+
+        Dsymbol p = d.toParent();
+        if (p && !p.isModule() && tf.linkage == LINK.cpp)
+        {
+            this.mangleNestedFuncPrefix(tf, p);
+
+            if (auto ctor = d.isCtorDeclaration())
+                buf.writestring(ctor.isCpCtor ? "C2" : "C1");
+            else if (d.isPrimaryDtor())
+                buf.writestring("D1");
+            else if (d.ident && d.ident == Id.assign)
+                buf.writestring("aS");
+            else if (d.ident && d.ident == Id.eq)
+                buf.writestring("eq");
+            else if (d.ident && d.ident == Id.index)
+                buf.writestring("ix");
+            else if (d.ident && d.ident == Id.call)
+                buf.writestring("cl");
+            else
+                source_name(d, true);
+            buf.writeByte('E');
         }
         else
         {
-            Dsymbol p = d.toParent();
-            if (p && !p.isModule() && tf.linkage == LINK.cpp)
-            {
-                this.mangleNestedFuncPrefix(tf, p);
-
-                if (auto ctor = d.isCtorDeclaration())
-                    buf.writestring(ctor.isCpCtor ? "C2" : "C1");
-                else if (d.isPrimaryDtor())
-                    buf.writestring("D1");
-                else if (d.ident && d.ident == Id.assign)
-                    buf.writestring("aS");
-                else if (d.ident && d.ident == Id.eq)
-                    buf.writestring("eq");
-                else if (d.ident && d.ident == Id.index)
-                    buf.writestring("ix");
-                else if (d.ident && d.ident == Id.call)
-                    buf.writestring("cl");
-                else
-                    source_name(d, true);
-                buf.writeByte('E');
-            }
-            else
-            {
-                source_name(d, false);
-            }
-
-            // Save offset for potentially writing tags
-            const size_t off = this.buf.length();
-
-            // Template args accept extern "C" symbols with special mangling
-            if (tf.linkage == LINK.cpp)
-                mangleFunctionParameters(tf.parameterList);
-
-            if (!tf.next.isTypeBasic())
-                this.writeRemainingTags(off, tf);
+            source_name(d, false);
         }
+
+        // Save offset for potentially writing tags
+        const size_t off = this.buf.length();
+
+        // Template args accept extern "C" symbols with special mangling
+        if (tf.linkage == LINK.cpp)
+            mangleFunctionParameters(tf.parameterList);
+
+        if (!tf.next.isTypeBasic())
+            this.writeRemainingTags(off, tf);
     }
 
     /**
@@ -1073,7 +1113,7 @@ private final class CppMangleVisitor : Visitor
     {
         void runDg () { if (dg !is null) dg(); }
 
-        if (ns is null)
+        if (ns is null || ns.ident is null)
             return runDg();
 
         if (isStd(ns))
@@ -1140,121 +1180,123 @@ private final class CppMangleVisitor : Visitor
         if (d.isCtorDeclaration())
         {
             buf.writestring("C1");
+            mangleFunctionParameters(tf.parameterList);
+            return;
         }
         else if (d.isPrimaryDtor())
         {
             buf.writestring("D1");
+            mangleFunctionParameters(tf.parameterList);
+            return;
         }
-        else
-        {
-            int firstTemplateArg = 0;
-            bool appendReturnType = true;
-            bool isConvertFunc = false;
-            string symName;
 
-            // test for special symbols
-            CppOperator whichOp = isCppOperator(ti.name);
-            final switch (whichOp)
+        int firstTemplateArg = 0;
+        bool appendReturnType = true;
+        bool isConvertFunc = false;
+        string symName;
+
+        // test for special symbols
+        CppOperator whichOp = isCppOperator(ti.name);
+        final switch (whichOp)
+        {
+        case CppOperator.Unknown:
+            break;
+        case CppOperator.Cast:
+            symName = "cv";
+            firstTemplateArg = 1;
+            isConvertFunc = true;
+            appendReturnType = false;
+            break;
+        case CppOperator.Assign:
+            symName = "aS";
+            break;
+        case CppOperator.Eq:
+            symName = "eq";
+            break;
+        case CppOperator.Index:
+            symName = "ix";
+            break;
+        case CppOperator.Call:
+            symName = "cl";
+            break;
+        case CppOperator.Unary:
+        case CppOperator.Binary:
+        case CppOperator.OpAssign:
+            TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+            assert(td);
+            assert(ti.tiargs.dim >= 1);
+            TemplateParameter tp = (*td.parameters)[0];
+            TemplateValueParameter tv = tp.isTemplateValueParameter();
+            if (!tv || !tv.valType.isString())
+                break; // expecting a string argument to operators!
+            Expression exp = (*ti.tiargs)[0].isExpression();
+            StringExp str = exp.toStringExp();
+            switch (whichOp)
             {
-            case CppOperator.Unknown:
-                break;
-            case CppOperator.Cast:
-                symName = "cv";
-                firstTemplateArg = 1;
-                isConvertFunc = true;
-                appendReturnType = false;
-                break;
-            case CppOperator.Assign:
-                symName = "aS";
-                break;
-            case CppOperator.Eq:
-                symName = "eq";
-                break;
-            case CppOperator.Index:
-                symName = "ix";
-                break;
-            case CppOperator.Call:
-                symName = "cl";
-                break;
             case CppOperator.Unary:
-            case CppOperator.Binary:
-            case CppOperator.OpAssign:
-                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                assert(td);
-                assert(ti.tiargs.dim >= 1);
-                TemplateParameter tp = (*td.parameters)[0];
-                TemplateValueParameter tv = tp.isTemplateValueParameter();
-                if (!tv || !tv.valType.isString())
-                    break; // expecting a string argument to operators!
-                Expression exp = (*ti.tiargs)[0].isExpression();
-                StringExp str = exp.toStringExp();
-                switch (whichOp)
+                switch (str.peekString())
                 {
-                case CppOperator.Unary:
-                    switch (str.peekString())
-                    {
-                    case "*":   symName = "de"; goto continue_template;
-                    case "++":  symName = "pp"; goto continue_template;
-                    case "--":  symName = "mm"; goto continue_template;
-                    case "-":   symName = "ng"; goto continue_template;
-                    case "+":   symName = "ps"; goto continue_template;
-                    case "~":   symName = "co"; goto continue_template;
-                    default:    break;
-                    }
-                    break;
-                case CppOperator.Binary:
-                    switch (str.peekString())
-                    {
-                    case ">>":  symName = "rs"; goto continue_template;
-                    case "<<":  symName = "ls"; goto continue_template;
-                    case "*":   symName = "ml"; goto continue_template;
-                    case "-":   symName = "mi"; goto continue_template;
-                    case "+":   symName = "pl"; goto continue_template;
-                    case "&":   symName = "an"; goto continue_template;
-                    case "/":   symName = "dv"; goto continue_template;
-                    case "%":   symName = "rm"; goto continue_template;
-                    case "^":   symName = "eo"; goto continue_template;
-                    case "|":   symName = "or"; goto continue_template;
-                    default:    break;
-                    }
-                    break;
-                case CppOperator.OpAssign:
-                    switch (str.peekString())
-                    {
-                    case "*":   symName = "mL"; goto continue_template;
-                    case "+":   symName = "pL"; goto continue_template;
-                    case "-":   symName = "mI"; goto continue_template;
-                    case "/":   symName = "dV"; goto continue_template;
-                    case "%":   symName = "rM"; goto continue_template;
-                    case ">>":  symName = "rS"; goto continue_template;
-                    case "<<":  symName = "lS"; goto continue_template;
-                    case "&":   symName = "aN"; goto continue_template;
-                    case "|":   symName = "oR"; goto continue_template;
-                    case "^":   symName = "eO"; goto continue_template;
-                    default:    break;
-                    }
-                    break;
-                default:
-                    assert(0);
-                continue_template:
-                    firstTemplateArg = 1;
-                    break;
+                case "*":   symName = "de"; goto continue_template;
+                case "++":  symName = "pp"; goto continue_template;
+                case "--":  symName = "mm"; goto continue_template;
+                case "-":   symName = "ng"; goto continue_template;
+                case "+":   symName = "ps"; goto continue_template;
+                case "~":   symName = "co"; goto continue_template;
+                default:    break;
                 }
                 break;
+            case CppOperator.Binary:
+                switch (str.peekString())
+                {
+                case ">>":  symName = "rs"; goto continue_template;
+                case "<<":  symName = "ls"; goto continue_template;
+                case "*":   symName = "ml"; goto continue_template;
+                case "-":   symName = "mi"; goto continue_template;
+                case "+":   symName = "pl"; goto continue_template;
+                case "&":   symName = "an"; goto continue_template;
+                case "/":   symName = "dv"; goto continue_template;
+                case "%":   symName = "rm"; goto continue_template;
+                case "^":   symName = "eo"; goto continue_template;
+                case "|":   symName = "or"; goto continue_template;
+                default:    break;
+                }
+                break;
+            case CppOperator.OpAssign:
+                switch (str.peekString())
+                {
+                case "*":   symName = "mL"; goto continue_template;
+                case "+":   symName = "pL"; goto continue_template;
+                case "-":   symName = "mI"; goto continue_template;
+                case "/":   symName = "dV"; goto continue_template;
+                case "%":   symName = "rM"; goto continue_template;
+                case ">>":  symName = "rS"; goto continue_template;
+                case "<<":  symName = "lS"; goto continue_template;
+                case "&":   symName = "aN"; goto continue_template;
+                case "|":   symName = "oR"; goto continue_template;
+                case "^":   symName = "eO"; goto continue_template;
+                default:    break;
+                }
+                break;
+            default:
+                assert(0);
+            continue_template:
+                firstTemplateArg = 1;
+                break;
             }
-            if (symName.length == 0)
-                source_name(ti, true);
-            else
-            {
-                buf.writestring(symName);
-                if (isConvertFunc)
-                    template_arg(ti, 0);
-                appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
-            }
-            buf.writeByte('E');
-            if (appendReturnType)
-                headOfType(tf.nextOf());  // mangle return type
+            break;
         }
+        if (symName.length == 0)
+            source_name(ti, true);
+        else
+        {
+            buf.writestring(symName);
+            if (isConvertFunc)
+                template_arg(ti, 0);
+            appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
+        }
+        buf.writeByte('E');
+        if (appendReturnType)
+            headOfType(tf.nextOf());  // mangle return type
         mangleFunctionParameters(tf.parameterList);
     }
 
@@ -1291,6 +1333,10 @@ private final class CppMangleVisitor : Visitor
                     return (*tf.parameterList.parameters)[n].type;
                 }());
             scope (exit) this.context.pop(prev);
+
+            if (this.context.ti && global.params.cplusplus >= CppStdRevision.cpp11)
+                handleParamPack(t, this.context.ti.tempdecl.isTemplateDeclaration().parameters);
+
             headOfType(t);
             ++numparams;
         }
@@ -1469,6 +1515,26 @@ private final class CppMangleVisitor : Visitor
     }
 
     /**
+     * Write `Dp` (C++11 function parameter pack prefix) if 't' is a TemplateSequenceParameter (T...).
+     *
+     * Params:
+     *   t      = Parameter type
+     *   params = Template parameters of the function
+     */
+    private void handleParamPack(Type t, TemplateParameters* params)
+    {
+        if (t.isTypeReference())
+            t = t.nextOf();
+        auto ti = t.isTypeIdentifier();
+        if (!ti)
+            return;
+
+        auto idx = templateParamIndex(ti.ident, params);
+        if (idx < params.length && (*params)[idx].isTemplateTupleParameter())
+            buf.writestring("Dp");
+    }
+
+    /**
      * Helper function to write a `T..._` template index.
      *
      * Params:
@@ -1575,6 +1641,14 @@ extern(C++):
             return error(t);
 
         writeBasicType(t, 'D', 'n');
+    }
+
+    override void visit(TypeNoreturn t)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        writeBasicType(t, 0, 'v');      // mangle like `void`
     }
 
     override void visit(TypeBasic t)
@@ -1685,15 +1759,11 @@ extern(C++):
         else
         {
             assert(t.basetype && t.basetype.ty == Tsarray);
-            assert((cast(TypeSArray)t.basetype).dim);
-            version (none)
-            {
-                buf.writestring("Dv");
-                buf.print((cast(TypeSArray *)t.basetype).dim.toInteger()); // -- Gnu ABI v.4
-                buf.writeByte('_');
-            }
-            else
-                buf.writestring("U8__vector"); //-- Gnu ABI v.3
+            auto tsa = t.basetype.isTypeSArray();
+            assert(tsa.dim);
+            buf.writestring("Dv");          // -- Gnu ABI v.4
+            buf.print(tsa.dim.toInteger());
+            buf.writeByte('_');
             t.basetype.nextOf().accept(this);
         }
     }
@@ -1793,7 +1863,7 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        /* __c_(u)long(long) get special mangling
+        /* __c_(u)long(long) and others get special mangling
          */
         const id = t.sym.ident;
         //printf("enum id = '%s'\n", id.toChars());
@@ -1807,6 +1877,12 @@ extern(C++):
             return writeBasicType(t, 0, 'x');
         else if (id == Id.__c_ulonglong)
             return writeBasicType(t, 0, 'y');
+        else if (id == Id.__c_complex_float)
+            return writeBasicType(t, 'C', 'f');
+        else if (id == Id.__c_complex_double)
+            return writeBasicType(t, 'C', 'd');
+        else if (id == Id.__c_complex_real)
+            return writeBasicType(t, 'C', 'e');
 
         doSymbol(t);
     }
@@ -2001,6 +2077,9 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 private Type asType(RootObject o)
 {
     Type ta = isType(o);
+    // When called with context.res as argument, it can be `FuncDeclaration`
+    if (!ta && o.asFuncDecl())
+        ta = (cast(FuncDeclaration)o).type;
     assert(ta !is null, o.toString());
     return ta;
 }

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -76,6 +76,7 @@ public:
     unsigned numlines;  // number of lines in source file
     bool isHdrFile;     // if it is a header (.di) file
     bool isDocFile;     // if it is a documentation input file, not D source
+    bool hasAlwaysInlines; // contains references to functions that must be inlined
     bool isPackageFile; // if it is a package.d
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
@@ -124,7 +125,7 @@ public:
     void importAll(Scope *sc);
     int needModuleInfo();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
-    bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
+    bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void runDeferredSemantic();
@@ -152,6 +153,8 @@ public:
 
     Symbol *sfilename;          // symbol for filename
 
+    void *ctfe_cov;             // stores coverage information from ctfe
+
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -161,7 +164,7 @@ struct ModuleDeclaration
 {
     Loc loc;
     Identifier *id;
-    Identifiers *packages;            // array of Identifier's representing packages
+    DArray<Identifier*> packages;  // array of Identifier's representing packages
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
 

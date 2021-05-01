@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -19,11 +19,13 @@ import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.type;
 
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum GENOBJ = 1;       // generating .obj file
 
@@ -59,7 +61,7 @@ enum WM
     WM_ccast        = 25,
     WM_obsolete     = 26,
 
-    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+    // Posix
     WM_skip_attribute   = 27, // skip GNUC attribute specification
     WM_warning_message  = 28, // preprocessor warning message
     WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -76,28 +78,6 @@ else
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
-
-// Language for error messages
-enum LANG
-{
-    LANGenglish,
-    LANGgerman,
-    LANGfrench,
-    LANGjapanese,
-}
-
-
-//#if SPP || SCPP
-//#include        "msgs2.h"
-//#endif
-//#include        "ty.h"
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-//#include        "../tk/mem.h"
-//#else
-//#include        "mem.h"
-//#endif
-//#include        "list.h"
-//#include        "vec.h"
 
 version (SPP)
 {
@@ -146,8 +126,8 @@ else version (SCPP)
 
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
-enum STRMAX = 65000;           // max length of string (determined by
-                               // max ph size)
+enum STRMAX = 65_000;           // max length of string (determined by
+                                // max ph size)
 
 //enum SC;
 struct Thunk
@@ -188,6 +168,7 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
+@trusted
 uint CPP() { return config.flags3 & CFG3cpp; }
 
 
@@ -383,10 +364,16 @@ struct Pstate
                                 // than STmaxsequence
 }
 
+@trusted
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
+
+@trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
 
+@trusted
 stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
+
+@trusted
 stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
 extern __gshared Pstate pstate;
@@ -628,13 +615,23 @@ nothrow:
         }
     }
 
+    @trusted
     void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
+
+    @trusted
     void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
+
+    @trusted
     int numSucc()                    { return list_nitems(this.Bsucc); }
+
+    @trusted
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
+
+    @trusted
     void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
 }
 
+@trusted
 inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
@@ -702,13 +699,6 @@ struct BlockRange
  * Functions
  */
 
-struct symtab_t
-{
-    SYMIDX top;                 // 1 past end
-    SYMIDX symmax;              // max # of entries in tab[] possible
-    Symbol **tab;               // local Symbol table
-}
-
 alias func_flags_t = uint;
 enum
 {
@@ -765,6 +755,7 @@ enum
     Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
     Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
+    F3hiddenPtr      = 0x40000, // function has hidden pointer to return value
 }
 
 struct func_t
@@ -914,6 +905,7 @@ struct mptr_t
     mptr_flags_t   MPflags;
 }
 
+@trusted
 inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
 
 
@@ -1175,8 +1167,13 @@ struct struct_t
  * Symbol Table
  */
 
+@trusted
 inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
+
+@trusted
 void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
+
+@trusted
 inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
@@ -1209,12 +1206,12 @@ enum
     SFLtmp          = 0x400000,    // symbol is a generated temporary
     SFLthunk        = 0x40000,     // symbol is temporary for thunk
 
-    // Possible values for protection bits
+    // Possible values for visibility bits
     SFLprivate      = 0x60,
     SFLprotected    = 0x40,
     SFLpublic       = 0x20,
     SFLnone         = 0x00,
-    SFLpmask        = 0x60,        // mask for the protection bits
+    SFLpmask        = 0x60,        // mask for the visibility bits
 
     SFLvtbl         = 0x2000,      // VEC_VTBL_LIST: Symbol is a vtable or vbtable
 
@@ -1415,7 +1412,7 @@ struct Symbol
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
 
     // CPP || OPTIMIZER
-    SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
+    SYMIDX Ssymnum;             // Symbol number (index into globsym[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
     int Sseg;                   // segment index
@@ -1549,6 +1546,7 @@ enum
  * Returns:
  *      exception method for f
  */
+@trusted
 EHmethod ehmethod(Symbol *f)
 {
     return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
@@ -1814,6 +1812,7 @@ struct dt_t
     char dt;                            // type (DTxxxx)
     ubyte Dty;                          // pointer type
     ubyte DTn;                          // DTibytes: number of bytes
+    ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
     union
     {
         struct                          // DTibytes

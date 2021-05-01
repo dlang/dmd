@@ -240,7 +240,7 @@ static assert(is( X!( void function() pure @trusted, void function() nothrow @sa
 static assert(is( X!( void function() @trusted, void function() ) == void function()));
 static assert(is( X!( void function() @trusted, void function() @trusted ) == void function() @trusted ));
 static assert(is( X!( void function() @safe, void function() @trusted ) == void function() @trusted ));
-static assert(is( X!( void function() @trusted, void function() @safe ) == void function() @safe )); // not commutative 
+static assert(is( X!( void function() @trusted, void function() @safe ) == void function() @safe )); // not commutative
 
 static assert(is( X!( const(int function())*, int function()* ) == const(int function())* ));
 static assert(is( X!( immutable(int function())*, int function()* ) == const(int function())* ));
@@ -299,10 +299,10 @@ static assert(is( X!( shared(const(C))[4], shared(C)[4] ) == shared(const(C))[4]
 static assert(is( X!( shared(C)[4], shared(const(C))[4] ) == shared(const(C))[4] ));
 
 // base class conversion
-static assert(Error!( C[4], B[4] ));
+static assert(is( X!(C[4], B[4]) ));
 static assert(Error!( C[4], I[4] ));
 static assert(Error!( C[4], D[4] ));
-static assert(is( X!( C[4], const(B)[4] ) == const(B)[] )); // !?
+static assert(is( X!( C[4], const(B)[4] ) == const(B)[4] ));
 static assert(Error!( C[4], const(I)[4] ));
 static assert(Error!( C[4], const(D)[4] ));
 static assert(Error!( C*[4], B*[4] ));
@@ -455,32 +455,27 @@ static assert(is( X!( Si, Sl ) == long ));
  * Vectors
  */
 
-version(D_SIMD)
+static if (__traits(compiles, int4))
 {
+    static assert(is( X!( int4, int4 ) == int4));
+    static assert(is( X!( int4, const(int4) ) == const(int4)));
+    static assert(is( X!( int4, immutable(int4) ) == const(int4)));
+    static assert(is( X!( __vector(const(int)[4]), int4 ) == int4));
+    static assert(is( X!( int4, __vector(const(int)[4]) ) == int4));
 
-static assert(is( X!( int4, int4 ) == int4));
-static assert(is( X!( int4, const(int4) ) == const(int4)));
-static assert(is( X!( int4, immutable(int4) ) == const(int4)));
-static assert(is( X!( __vector(const(int)[4]), int4 ) == int4));
-static assert(is( X!( int4, __vector(const(int)[4]) ) == int4));
-
-static assert(Error!( byte16, void16 ));
-static assert(Error!( int4, void16 ));
-static assert(Error!( float4, void16 ));
-static assert(Error!( byte16, ubyte16 ));
-static assert(Error!( short8, ushort8 ));
-static assert(Error!( int4, uint4 ));
-static assert(Error!( int4, float4 ));
-version (D_AVX)
-{
-static assert(Error!( long4, ulong4 ));
-static assert(Error!( double4, float8 ));
+    static assert(Error!( int[4], int4 ));
+    static assert(Error!( int4, int[4] ));
 }
 
-static assert(Error!( int[4], int4 ));
-static assert(Error!( int4, int[4] ));
-
-}
+static if (__traits(compiles, { byte16 a; void16 b; }))  static assert(Error!( byte16, void16 ));
+static if (__traits(compiles, { int4 a; void16 b; }))    static assert(Error!( int4, void16 ));
+static if (__traits(compiles, { float4 a; void16 b; }))  static assert(Error!( float4, void16 ));
+static if (__traits(compiles, { byte16 a; ubyte16 b; })) static assert(Error!( byte16, ubyte16 ));
+static if (__traits(compiles, { short8 a; ushort8 b; })) static assert(Error!( short8, ushort8 ));
+static if (__traits(compiles, { int4 a; uint4 b; }))     static assert(Error!( int4, uint4 ));
+static if (__traits(compiles, { int4 a; float4 b; }))    static assert(Error!( int4, float4 ));
+static if (__traits(compiles, { long4 a; ulong4 b; }))   static assert(Error!( long4, ulong4 ));
+static if (__traits(compiles, { double4 a; float8 b; })) static assert(Error!( double4, float8 ));
 
 /******************************
  * Null

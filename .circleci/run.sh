@@ -2,7 +2,7 @@
 
 set -uexo pipefail
 
-HOST_DMD_VER=2.088.0 # same as in dmd/src/posix.mak
+HOST_DMD_VER=2.095.0 # same as in dmd/src/bootstrap.sh
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
@@ -10,7 +10,6 @@ CIRCLE_STAGE=${CIRCLE_STAGE:-pic}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
 BUILD="debug"
 DMD=dmd
-PIC=1
 
 case $CIRCLE_NODE_INDEX in
     0) MODEL=64 ;;
@@ -70,6 +69,7 @@ install_deps() {
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash install.sh dmd-$HOST_DMD_VER --activate)"
     $DC --version
     env
+    deactivate
 }
 
 setup_repos() {
@@ -104,48 +104,39 @@ setup_repos() {
 coverage()
 {
     # load environment for bootstrap compiler
-    if [ -f ~/dlang/install.sh ] ; then
-        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    fi
-    RDMD="$(type -p rdmd)"
+    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
+    local build_path=generated/linux/$BUILD/$MODEL
+    local builder=generated/build
+
+    dmd -g -od=generated -of=$builder src/build
     # build dmd, druntime, and phobos
-    if [ "$MODEL" == "64" ] ; then
-        "$RDMD" ./src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
-    else
-        make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
-    fi
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
+    $builder MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+
+    # save the built dmd as host compiler this time
+    # `generated` gets removed in 'clean', so we create another _generated
+    mkdir -p _${build_path}
+    cp $build_path/dmd _${build_path}/host_dmd
+    cp $build_path/dmd.conf _${build_path}
+    $builder clean MODEL=$MODEL BUILD=$BUILD
 
     # FIXME
     # Building d_do_test currently uses the host library for linking
     # Remove me after https://github.com/dlang/dmd/pull/7846 has been merged (-conf=)
-    if [ -f ~/dlang/install.sh ] ; then
-        deactivate
-    else
-        sudo rm -rf /dlang
-    fi
+    deactivate
 
     # FIXME
     # Temporarily the failing long file name test has been removed
     rm -rf test/compilable/issue17167.sh
 
     # rebuild dmd with coverage enabled
-    # use the just build dmd as host compiler this time
-    local build_path=generated/linux/$BUILD/$MODEL
-    # `generated` gets cleaned in the next step, so we create another _generated
-    # The nested folder hierarchy is needed to conform to those specified in
-    # the generate dmd.conf
-    mkdir -p _${build_path}
-    cp $build_path/dmd _${build_path}/host_dmd
-    cp $build_path/dmd.conf _${build_path}
-    make -j$N -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd PIC="$PIC" clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1 ENABLE_WARNINGS=1 PIC="$PIC"
+    $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
-    make -j1 -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
-    make -j1 -C test start_all_tests MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC" N=3
+    $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1 unittest
+    _${build_path}/host_dmd -Itest -i -run ./test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -159,6 +150,7 @@ check_clean_git()
     rm -f install.sh
     # auto-removal of these files doesn't work on CirleCi
     rm -f test/compilable/vcg-ast.d.cg
+    rm -f test/compilable/vcg-ast-arraylength.d.cg
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
 }
@@ -175,27 +167,36 @@ check_d_builder()
 {
     echo "Testing D build"
     # load environment for bootstrap compiler
-    if [ -f ~/dlang/install.sh ] ; then
-        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    fi
+    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     ./src/build.d clean
     rm -rf generated # just to be sure
     # TODO: add support for 32-bit builds
     ./src/build.d MODEL=64
     ./generated/linux/release/64/dmd --version | grep -v "dirty"
     ./src/build.d clean
-    if [ -f ~/dlang/install.sh ] ; then
-        deactivate
-    fi
+    deactivate
+}
+
+# Generate frontend.h header file and check for changes
+test_cxx()
+{
+    # load environment for bootstrap compiler
+    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    echo "Test CXX frontend.h header generation"
+    ./src/build.d
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    ./src/build.d cxx-headers-test
+    deactivate
 }
 
 codecov()
 {
-    # CodeCov gets confused by lst files which it can't matched
+    # CodeCov gets confused by lst files which it can't match
     rm -rf test/runnable/extra-files
     download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
-    cd src # need to run from compilation folder for gcov to find sources
-    bash ../codecov.sh -p .. -x gcov-4.9 # must match g++ version (on CircleCI `g++` is 4.9 and `gcov` 4.6 :/)
+    bash ./codecov.sh -p . -Z || echo "Failed to upload coverage reports!"
+    rm codecov.sh
 }
 
 case $1 in
@@ -205,7 +206,8 @@ case $1 in
         check_d_builder;
         coverage;
         check_clean_git;
-        check_run_individual;
         codecov;
+        check_run_individual;
+        test_cxx;
     ;;
 esac

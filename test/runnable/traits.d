@@ -59,12 +59,6 @@ void test1()
     assert(__traits(isArithmetic, float) == true);
     assert(__traits(isArithmetic, double) == true);
     assert(__traits(isArithmetic, real) == true);
-    assert(__traits(isArithmetic, ifloat) == true);
-    assert(__traits(isArithmetic, idouble) == true);
-    assert(__traits(isArithmetic, ireal) == true);
-    assert(__traits(isArithmetic, cfloat) == true);
-    assert(__traits(isArithmetic, cdouble) == true);
-    assert(__traits(isArithmetic, creal) == true);
     assert(__traits(isArithmetic, char) == true);
     assert(__traits(isArithmetic, wchar) == true);
     assert(__traits(isArithmetic, dchar) == true);
@@ -105,12 +99,6 @@ void test2()
     assert(__traits(isScalar, float) == true);
     assert(__traits(isScalar, double) == true);
     assert(__traits(isScalar, real) == true);
-    assert(__traits(isScalar, ifloat) == true);
-    assert(__traits(isScalar, idouble) == true);
-    assert(__traits(isScalar, ireal) == true);
-    assert(__traits(isScalar, cfloat) == true);
-    assert(__traits(isScalar, cdouble) == true);
-    assert(__traits(isScalar, creal) == true);
     assert(__traits(isScalar, char) == true);
     assert(__traits(isScalar, wchar) == true);
     assert(__traits(isScalar, dchar) == true);
@@ -144,12 +132,6 @@ void test3()
     assert(__traits(isIntegral, float) == false);
     assert(__traits(isIntegral, double) == false);
     assert(__traits(isIntegral, real) == false);
-    assert(__traits(isIntegral, ifloat) == false);
-    assert(__traits(isIntegral, idouble) == false);
-    assert(__traits(isIntegral, ireal) == false);
-    assert(__traits(isIntegral, cfloat) == false);
-    assert(__traits(isIntegral, cdouble) == false);
-    assert(__traits(isIntegral, creal) == false);
     assert(__traits(isIntegral, char) == true);
     assert(__traits(isIntegral, wchar) == true);
     assert(__traits(isIntegral, dchar) == true);
@@ -182,12 +164,6 @@ void test4()
     assert(__traits(isFloating, float) == true);
     assert(__traits(isFloating, double) == true);
     assert(__traits(isFloating, real) == true);
-    assert(__traits(isFloating, ifloat) == true);
-    assert(__traits(isFloating, idouble) == true);
-    assert(__traits(isFloating, ireal) == true);
-    assert(__traits(isFloating, cfloat) == true);
-    assert(__traits(isFloating, cdouble) == true);
-    assert(__traits(isFloating, creal) == true);
     assert(__traits(isFloating, char) == false);
     assert(__traits(isFloating, wchar) == false);
     assert(__traits(isFloating, dchar) == false);
@@ -220,12 +196,6 @@ void test5()
     assert(__traits(isUnsigned, float) == false);
     assert(__traits(isUnsigned, double) == false);
     assert(__traits(isUnsigned, real) == false);
-    assert(__traits(isUnsigned, ifloat) == false);
-    assert(__traits(isUnsigned, idouble) == false);
-    assert(__traits(isUnsigned, ireal) == false);
-    assert(__traits(isUnsigned, cfloat) == false);
-    assert(__traits(isUnsigned, cdouble) == false);
-    assert(__traits(isUnsigned, creal) == false);
     assert(__traits(isUnsigned, char) == true);
     assert(__traits(isUnsigned, wchar) == true);
     assert(__traits(isUnsigned, dchar) == true);
@@ -258,12 +228,6 @@ void test6()
     assert(__traits(isAssociativeArray, float) == false);
     assert(__traits(isAssociativeArray, double) == false);
     assert(__traits(isAssociativeArray, real) == false);
-    assert(__traits(isAssociativeArray, ifloat) == false);
-    assert(__traits(isAssociativeArray, idouble) == false);
-    assert(__traits(isAssociativeArray, ireal) == false);
-    assert(__traits(isAssociativeArray, cfloat) == false);
-    assert(__traits(isAssociativeArray, cdouble) == false);
-    assert(__traits(isAssociativeArray, creal) == false);
     assert(__traits(isAssociativeArray, char) == false);
     assert(__traits(isAssociativeArray, wchar) == false);
     assert(__traits(isAssociativeArray, dchar) == false);
@@ -296,12 +260,6 @@ void test7()
     assert(__traits(isStaticArray, float) == false);
     assert(__traits(isStaticArray, double) == false);
     assert(__traits(isStaticArray, real) == false);
-    assert(__traits(isStaticArray, ifloat) == false);
-    assert(__traits(isStaticArray, idouble) == false);
-    assert(__traits(isStaticArray, ireal) == false);
-    assert(__traits(isStaticArray, cfloat) == false);
-    assert(__traits(isStaticArray, cdouble) == false);
-    assert(__traits(isStaticArray, creal) == false);
     assert(__traits(isStaticArray, char) == false);
     assert(__traits(isStaticArray, wchar) == false);
     assert(__traits(isStaticArray, dchar) == false);
@@ -335,12 +293,6 @@ void test8()
     assert(__traits(isAbstractClass, float) == false);
     assert(__traits(isAbstractClass, double) == false);
     assert(__traits(isAbstractClass, real) == false);
-    assert(__traits(isAbstractClass, ifloat) == false);
-    assert(__traits(isAbstractClass, idouble) == false);
-    assert(__traits(isAbstractClass, ireal) == false);
-    assert(__traits(isAbstractClass, cfloat) == false);
-    assert(__traits(isAbstractClass, cdouble) == false);
-    assert(__traits(isAbstractClass, creal) == false);
     assert(__traits(isAbstractClass, char) == false);
     assert(__traits(isAbstractClass, wchar) == false);
     assert(__traits(isAbstractClass, dchar) == false);
@@ -636,7 +588,7 @@ struct Test24
     private void test24(int, int){}
 }
 
-static assert(__traits(getProtection, __traits(getOverloads, Test24, "test24")[1]) == "private");
+static assert(__traits(getVisibility, __traits(getOverloads, Test24, "test24")[1]) == "private");
 
 /********************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=1369
@@ -891,7 +843,7 @@ protected struct TestProt3 {}
 public    struct TestProt4 {}
 export    struct TestProt5 {}
 
-void getProtection()
+void getVisibility()
 {
     class Test
     {
@@ -904,52 +856,52 @@ void getProtection()
     Test t;
 
     // TOKvar and VarDeclaration
-    static assert(__traits(getProtection, Test.va) == "private");
-    static assert(__traits(getProtection, Test.vb) == "package");
-    static assert(__traits(getProtection, Test.vc) == "protected");
-    static assert(__traits(getProtection, Test.vd) == "public");
-    static assert(__traits(getProtection, Test.ve) == "export");
+    static assert(__traits(getVisibility, Test.va) == "private");
+    static assert(__traits(getVisibility, Test.vb) == "package");
+    static assert(__traits(getVisibility, Test.vc) == "protected");
+    static assert(__traits(getVisibility, Test.vd) == "public");
+    static assert(__traits(getVisibility, Test.ve) == "export");
 
     // TOKdotvar and VarDeclaration
-    static assert(__traits(getProtection, t.va) == "private");
-    static assert(__traits(getProtection, t.vb) == "package");
-    static assert(__traits(getProtection, t.vc) == "protected");
-    static assert(__traits(getProtection, t.vd) == "public");
-    static assert(__traits(getProtection, t.ve) == "export");
+    static assert(__traits(getVisibility, t.va) == "private");
+    static assert(__traits(getVisibility, t.vb) == "package");
+    static assert(__traits(getVisibility, t.vc) == "protected");
+    static assert(__traits(getVisibility, t.vd) == "public");
+    static assert(__traits(getVisibility, t.ve) == "export");
 
     // TOKvar and FuncDeclaration
-    static assert(__traits(getProtection, Test.fa) == "private");
-    static assert(__traits(getProtection, Test.fb) == "package");
-    static assert(__traits(getProtection, Test.fc) == "protected");
-    static assert(__traits(getProtection, Test.fd) == "public");
-    static assert(__traits(getProtection, Test.fe) == "export");
+    static assert(__traits(getVisibility, Test.fa) == "private");
+    static assert(__traits(getVisibility, Test.fb) == "package");
+    static assert(__traits(getVisibility, Test.fc) == "protected");
+    static assert(__traits(getVisibility, Test.fd) == "public");
+    static assert(__traits(getVisibility, Test.fe) == "export");
 
     // TOKdotvar and FuncDeclaration
-    static assert(__traits(getProtection, t.fa) == "private");
-    static assert(__traits(getProtection, t.fb) == "package");
-    static assert(__traits(getProtection, t.fc) == "protected");
-    static assert(__traits(getProtection, t.fd) == "public");
-    static assert(__traits(getProtection, t.fe) == "export");
+    static assert(__traits(getVisibility, t.fa) == "private");
+    static assert(__traits(getVisibility, t.fb) == "package");
+    static assert(__traits(getVisibility, t.fc) == "protected");
+    static assert(__traits(getVisibility, t.fd) == "public");
+    static assert(__traits(getVisibility, t.fe) == "export");
 
     // TOKtype
-    static assert(__traits(getProtection, TestProt1) == "private");
-    static assert(__traits(getProtection, TestProt2) == "package");
-    static assert(__traits(getProtection, TestProt3) == "protected");
-    static assert(__traits(getProtection, TestProt4) == "public");
-    static assert(__traits(getProtection, TestProt5) == "export");
+    static assert(__traits(getVisibility, TestProt1) == "private");
+    static assert(__traits(getVisibility, TestProt2) == "package");
+    static assert(__traits(getVisibility, TestProt3) == "protected");
+    static assert(__traits(getVisibility, TestProt4) == "public");
+    static assert(__traits(getVisibility, TestProt5) == "export");
 
     // This specific pattern is important to ensure it always works
     // through reflection, however that becomes implemented
-    static assert(__traits(getProtection, __traits(getMember, t, "va")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, t, "vb")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, t, "vc")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, t, "vd")) == "public");
-    static assert(__traits(getProtection, __traits(getMember, t, "ve")) == "export");
-    static assert(__traits(getProtection, __traits(getMember, t, "fa")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, t, "fb")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, t, "fc")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, t, "fd")) == "public");
-    static assert(__traits(getProtection, __traits(getMember, t, "fe")) == "export");
+    static assert(__traits(getVisibility, __traits(getMember, t, "va")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, t, "vb")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, t, "vc")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, t, "vd")) == "public");
+    static assert(__traits(getVisibility, __traits(getMember, t, "ve")) == "export");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fa")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fb")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fc")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fd")) == "public");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fe")) == "export");
 }
 
 /********************************************************/
@@ -960,47 +912,47 @@ void test9546()
     import imports.a9546 : S;
 
     S s;
-    static assert(__traits(getProtection, s.privA) == "private");
-    static assert(__traits(getProtection, s.protA) == "protected");
-    static assert(__traits(getProtection, s.packA) == "package");
-    static assert(__traits(getProtection, S.privA) == "private");
-    static assert(__traits(getProtection, S.protA) == "protected");
-    static assert(__traits(getProtection, S.packA) == "package");
+    static assert(__traits(getVisibility, s.privA) == "private");
+    static assert(__traits(getVisibility, s.protA) == "protected");
+    static assert(__traits(getVisibility, s.packA) == "package");
+    static assert(__traits(getVisibility, S.privA) == "private");
+    static assert(__traits(getVisibility, S.protA) == "protected");
+    static assert(__traits(getVisibility, S.packA) == "package");
 
-    static assert(__traits(getProtection, mixin("s.privA")) == "private");
-    static assert(__traits(getProtection, mixin("s.protA")) == "protected");
-    static assert(__traits(getProtection, mixin("s.packA")) == "package");
-    static assert(__traits(getProtection, mixin("S.privA")) == "private");
-    static assert(__traits(getProtection, mixin("S.protA")) == "protected");
-    static assert(__traits(getProtection, mixin("S.packA")) == "package");
+    static assert(__traits(getVisibility, mixin("s.privA")) == "private");
+    static assert(__traits(getVisibility, mixin("s.protA")) == "protected");
+    static assert(__traits(getVisibility, mixin("s.packA")) == "package");
+    static assert(__traits(getVisibility, mixin("S.privA")) == "private");
+    static assert(__traits(getVisibility, mixin("S.protA")) == "protected");
+    static assert(__traits(getVisibility, mixin("S.packA")) == "package");
 
-    static assert(__traits(getProtection, __traits(getMember, s, "privA")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, s, "protA")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, s, "packA")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, S, "privA")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, S, "protA")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, S, "packA")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, s, "privA")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, s, "protA")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, s, "packA")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, S, "privA")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, S, "protA")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, S, "packA")) == "package");
 
-    static assert(__traits(getProtection, s.privF) == "private");
-    static assert(__traits(getProtection, s.protF) == "protected");
-    static assert(__traits(getProtection, s.packF) == "package");
-    static assert(__traits(getProtection, S.privF) == "private");
-    static assert(__traits(getProtection, S.protF) == "protected");
-    static assert(__traits(getProtection, S.packF) == "package");
+    static assert(__traits(getVisibility, s.privF) == "private");
+    static assert(__traits(getVisibility, s.protF) == "protected");
+    static assert(__traits(getVisibility, s.packF) == "package");
+    static assert(__traits(getVisibility, S.privF) == "private");
+    static assert(__traits(getVisibility, S.protF) == "protected");
+    static assert(__traits(getVisibility, S.packF) == "package");
 
-    static assert(__traits(getProtection, mixin("s.privF")) == "private");
-    static assert(__traits(getProtection, mixin("s.protF")) == "protected");
-    static assert(__traits(getProtection, mixin("s.packF")) == "package");
-    static assert(__traits(getProtection, mixin("S.privF")) == "private");
-    static assert(__traits(getProtection, mixin("S.protF")) == "protected");
-    static assert(__traits(getProtection, mixin("S.packF")) == "package");
+    static assert(__traits(getVisibility, mixin("s.privF")) == "private");
+    static assert(__traits(getVisibility, mixin("s.protF")) == "protected");
+    static assert(__traits(getVisibility, mixin("s.packF")) == "package");
+    static assert(__traits(getVisibility, mixin("S.privF")) == "private");
+    static assert(__traits(getVisibility, mixin("S.protF")) == "protected");
+    static assert(__traits(getVisibility, mixin("S.packF")) == "package");
 
-    static assert(__traits(getProtection, __traits(getMember, s, "privF")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, s, "protF")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, s, "packF")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, S, "privF")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, S, "protF")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, S, "packF")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, s, "privF")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, s, "protF")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, s, "packF")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, S, "privF")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, S, "protF")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, S, "packF")) == "package");
 }
 
 /********************************************************/

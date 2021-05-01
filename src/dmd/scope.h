@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -105,8 +105,8 @@ struct Scope
     CPPMANGLE cppmangle;        // C++ mangle type
     PINLINE inlining;            // inlining strategy for functions
 
-    Prot protection;            // protection for class members
-    int explicitProtection;     // set if in an explicit protection attribute
+    Visibility visibility;            // visibility for class members
+    int explicitVisibility;     // set if in an explicit visibility attribute
 
     StorageClass stc;           // storage class
 
@@ -120,6 +120,8 @@ struct Scope
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
+    AliasDeclaration *aliasAsg; // if set, then aliasAsg is being assigned a new value,
+                                // do not set wasRead for it
     Scope();
 
     Scope *copy();

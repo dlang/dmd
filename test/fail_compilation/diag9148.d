@@ -41,7 +41,8 @@ void test9148a() pure
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9148.d(53): Error: static function diag9148.test9148b.foo cannot access frame of function diag9148.test9148b
+fail_compilation/diag9148.d(54): Error: `static` function `diag9148.test9148b.foo` cannot access variable `x` in frame of function `diag9148.test9148b`
+fail_compilation/diag9148.d(51):        `x` declared here
 ---
 */
 
