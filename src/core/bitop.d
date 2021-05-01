@@ -951,6 +951,9 @@ pure T rol(T)(const T value, const uint count)
     if (__traits(isIntegral, T) && __traits(isUnsigned, T))
 {
     assert(count < 8 * T.sizeof);
+    if (count == 0)
+        return cast(T) value;
+
     return cast(T) ((value << count) | (value >> (T.sizeof * 8 - count)));
 }
 /// ditto
@@ -958,6 +961,9 @@ pure T ror(T)(const T value, const uint count)
     if (__traits(isIntegral, T) && __traits(isUnsigned, T))
 {
     assert(count < 8 * T.sizeof);
+    if (count == 0)
+        return cast(T) value;
+
     return cast(T) ((value >> count) | (value << (T.sizeof * 8 - count)));
 }
 /// ditto
@@ -965,6 +971,9 @@ pure T rol(uint count, T)(const T value)
     if (__traits(isIntegral, T) && __traits(isUnsigned, T))
 {
     static assert(count < 8 * T.sizeof);
+    static if (count == 0)
+        return cast(T) value;
+
     return cast(T) ((value << count) | (value >> (T.sizeof * 8 - count)));
 }
 /// ditto
@@ -972,6 +981,9 @@ pure T ror(uint count, T)(const T value)
     if (__traits(isIntegral, T) && __traits(isUnsigned, T))
 {
     static assert(count < 8 * T.sizeof);
+    static if (count == 0)
+        return cast(T) value;
+
     return cast(T) ((value >> count) | (value << (T.sizeof * 8 - count)));
 }
 
@@ -994,4 +1006,9 @@ unittest
 
     assert(rol!3(a) == 0b10000111);
     assert(ror!3(a) == 0b00011110);
+
+    enum c = rol(uint(1), 0);
+    enum d = ror(uint(1), 0);
+    assert(c == uint(1));
+    assert(d == uint(1));
 }
