@@ -48,9 +48,9 @@ alias responseExpand = responseExpandFrom!lookupInEnvironment;
  *     args = array containing arguments as null-terminated strings
  *
  * Returns:
- *     true on success, false if a response file could not be expanded.
+ *     `null` on success, or the first response file that could not be found
  */
-bool responseExpandFrom(alias lookup)(ref Strings args) nothrow
+const(char)* responseExpandFrom(alias lookup)(ref Strings args) nothrow
 {
     const(char)* cp;
     bool recurse = false;
@@ -66,10 +66,11 @@ bool responseExpandFrom(alias lookup)(ref Strings args) nothrow
         }
         args.remove(i);
         auto buffer = lookup(&cp[1]);
-        if (!buffer) {
+        if (!buffer)
+        {
             /* error         */
             /* BUG: any file buffers are not free'd   */
-            return false;
+            return cp;
         }
 
         recurse = insertArgumentsFromResponse(buffer, args, i) || recurse;
@@ -77,18 +78,18 @@ bool responseExpandFrom(alias lookup)(ref Strings args) nothrow
     if (recurse)
     {
         /* Recursively expand @filename   */
-        if (!responseExpandFrom!lookup(args))
+        if (auto missingFile = responseExpandFrom!lookup(args))
             /* error         */
             /* BUG: any file buffers are not free'd   */
-            return false;
+            return missingFile;
     }
-    return true; /* success         */
+    return null; /* success         */
 }
 
 version (unittest)
 {
     char[] testEnvironment(const(char)* str) nothrow pure
-        {
+    {
         import core.stdc.string: strlen;
         import dmd.root.string : toDString;
         switch (str.toDString())
@@ -115,7 +116,7 @@ unittest
     args[2] = "@Bar";
     args[3] = "last";
 
-    assert(responseExpand!testEnvironment(args));
+    assert(responseExpand!testEnvironment(args) == null);
     assert(args.length == 5);
     assert(args[0][0 .. 6] == "first\0");
     assert(args[1][0 .. 4] == "foo\0");
@@ -129,7 +130,7 @@ unittest
     auto args = Strings(2);
     args[0] = "@phony";
     args[1] = "dummy";
-    assert(!responseExpand!testEnvironment(args));
+    assert(responseExpand!testEnvironment(args)[0..7] == "@phony\0");
 }
 
 unittest
@@ -137,7 +138,7 @@ unittest
     auto args = Strings(2);
     args[0] = "@Foo";
     args[1] = "@Error";
-    assert(!responseExpand!testEnvironment(args));
+    assert(responseExpand!testEnvironment(args)[0..7] == "@phony\0");
 }
 
 /*********************************

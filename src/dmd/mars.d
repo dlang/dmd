@@ -722,8 +722,8 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
             return badArgs();
         arguments[i] = argv[i];
     }
-    if (!responseExpand(arguments)) // expand response files
-        error(Loc.initial, "can't open response file");
+    if (const(char)* missingFile = responseExpand(arguments)) // expand response files
+        error(Loc.initial, "cannot open response file '%s'", missingFile);
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
