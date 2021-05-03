@@ -2116,8 +2116,8 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
     // issue 12001, allow isSame, <BasicType>, <BasicType>
     Type t1 = isType(o1);
     Type t2 = isType(o2);
-    if (t1 && t2 && t1.equals(t2))
-        return true;
+    if (t1 && t2)
+        return t1.equals(t2);
 
     auto s1 = getDsymbol(o1);
     auto s2 = getDsymbol(o2);

@@ -322,3 +322,13 @@ extern(C++, `inst`)
 mixin GetNamespaceTestTemplatedMixin!() GNTT;
 
 static assert (__traits(getCppNamespaces, GNTT.foo) == Seq!(`inst`,/*`decl`,*/ `f`));
+
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21889
+
+struct S21889 {}
+class C21889 {}
+
+static assert(!__traits(isSame, Object, const Object));
+static assert(!__traits(isSame, S21889, const S21889));
+static assert(!__traits(isSame, C21889, const C21889));
