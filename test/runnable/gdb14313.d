@@ -3,7 +3,7 @@ REQUIRED_ARGS: -g
 PERMUTE_ARGS:
 GDB_SCRIPT:
 ---
-b 21
+b gdb14313.d:21
 r
 echo RESULT=
 p 'gdb.x' + 'gdb.y'
