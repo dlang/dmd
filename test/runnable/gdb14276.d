@@ -3,7 +3,7 @@ REQUIRED_ARGS: -g
 PERMUTE_ARGS:
 GDB_SCRIPT:
 ---
-b 21
+b gdb14276.d:21
 r
 echo RESULT=
 p v[0] + v[1] + v[2] + v[3]
