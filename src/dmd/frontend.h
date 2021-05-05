@@ -2041,8 +2041,6 @@ enum class TargetOS : uint8_t
     Posix = 125u,
 };
 
-extern Module* rootHasMain;
-
 extern bool includeImports;
 
 extern Array<const char* > includeModulePatterns;

@@ -4211,8 +4211,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
                 sc._module.members.push(tm);
             }
-
-            rootHasMain = sc._module;
         }
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
