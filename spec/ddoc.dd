@@ -20,11 +20,11 @@ Some existing approaches to this are:
 )
 
 $(UL
-$(LI $(LINK2 http://www.stack.nl/~dimitri/doxygen, Doxygen) which already has some support for D)
+$(LI $(LINK2 https://www.doxygen.nl/, Doxygen) which already has some support for D)
 $(LI Java's $(LINK2 https://docs.oracle.com/javase/7/docs/technotes/guides/javadoc/index.html, Javadoc),
  probably the most well-known)
 $(LI C$(HASH)'s $(LINK2 https://msdn.microsoft.com/en-us/library/b2s063f7.aspx, embedded XML))
-$(LI Other $(LINK2 https://python.org/sigs/doc-sig/otherlangs.html, documentation tools))
+$(LI Other $(LINK2 https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html, documentation tools))
 )
 
 $(P
@@ -201,7 +201,7 @@ $(P
 The document comment is a series of $(I Section)s.
 A $(I Section) is a name that is the first non-blank character on
 a line immediately followed by a ':'. This name forms the section name.
-The section name is not case sensitive.
+The section name is not case-sensitive.
 )
 
 $(P
