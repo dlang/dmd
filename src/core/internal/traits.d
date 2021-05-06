@@ -37,7 +37,7 @@ template Unconst(T)
 /// taken from std.traits.Unqual
 template Unqual(T)
 {
-    static if (is(T U : const U))
+    static if (is(T : const U, U))
     {
         static if (is(U V == shared V))
             alias Unqual = V;
