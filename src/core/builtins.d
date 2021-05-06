@@ -9,5 +9,11 @@
 
 module core.builtins;
 
+version (GNU)
+    public import gcc.builtins;
+
+version (LDC)
+    public import ldc.intrinsics;
+
 /// Writes `s` to `stderr` during CTFE (does nothing at runtime).
 void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
