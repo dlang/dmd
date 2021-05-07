@@ -25,14 +25,7 @@ T trustedCast(T, U)(auto ref U u) @trusted pure nothrow
     return cast(T)u;
 }
 
-template Unconst(T)
-{
-         static if (is(T U ==   immutable U)) alias Unconst = U;
-    else static if (is(T U == inout const U)) alias Unconst = U;
-    else static if (is(T U == inout       U)) alias Unconst = U;
-    else static if (is(T U ==       const U)) alias Unconst = U;
-    else                                      alias Unconst = T;
-}
+alias Unconst(T : const U, U) = U;
 
 /// taken from std.traits.Unqual
 template Unqual(T : const U, U)
