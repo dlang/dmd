@@ -369,8 +369,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(P Others will be added as they make sense and new implementations appear.
         )
 
-        $(P It is inevitable that the D language will evolve over time.
-        Therefore, the version identifier namespace beginning with "D$(UNDERSCORE)"
+        $(P To allow for future growth of the language,
+        the version identifier namespace beginning with "D$(UNDERSCORE)"
         is reserved for identifiers indicating D language specification
         or new feature conformance. Further, all identifiers derived from
         the ones listed above by appending any character(s) are reserved. This
