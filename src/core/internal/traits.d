@@ -35,15 +35,12 @@ template Unconst(T)
 }
 
 /// taken from std.traits.Unqual
-template Unqual(T)
+template Unqual(T : const U, U)
 {
-    static if (is(T : const U, U))
-    {
-        static if (is(U V == shared V))
-            alias Unqual = V;
-        else
-            alias Unqual = U;
-    }
+    static if (is(U V == shared V))
+        alias Unqual = V;
+    else
+        alias Unqual = U;
 }
 
 template BaseElemOf(T)
