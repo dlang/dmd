@@ -6817,8 +6817,13 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
      */
     AliasDeclaration findAliasDeclaration(AliasAssign ds, Scope* sc)
     {
-        Dsymbol scopesym;
-        Dsymbol as = sc.search(ds.loc, ds.ident, &scopesym);
+        Dsymbol as;
+        for (Scope *sc2 = sc; sc2; sc2 = sc2.enclosing)
+        {
+            as = sc2.search(ds.loc, ds.ident, null);
+            if (!as || !as.isAliasAssign())
+                break;
+        }
         if (!as)
         {
             ds.error("undefined identifier `%s`", ds.ident.toChars());
@@ -6978,6 +6983,8 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         aliassym.aliassym = null;
     }
 
+    ds.type = null;
+    ds.aliassym = aliassym;
 
     aliassym.adFlags &= ~Declaration.ignoreRead;
 

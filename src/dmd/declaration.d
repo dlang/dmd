@@ -756,6 +756,8 @@ extern (C++) final class AliasDeclaration : Declaration
 
     override bool overloadInsert(Dsymbol s)
     {
+        if (s.isAliasAssign())
+            return true;
         //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
         //       loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
