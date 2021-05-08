@@ -7589,6 +7589,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (exp.lwr || exp.upr)
             {
+                Type t = exp.e1.type.aliasthisOf();
+                TypeTuple tt = t ? t.isTypeTuple() : null;
+                if (tt)
+                {
+                    result = expressionSemantic(new TypeExp(exp.loc, tt), sc);
+                    return;
+                }
                 exp.error("cannot slice type `%s`", exp.e1.toChars());
                 return setError();
             }

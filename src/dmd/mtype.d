@@ -2056,8 +2056,8 @@ extern (C++) abstract class Type : ASTNode
         if (s.isAliasDeclaration())
             s = s.toAlias();
 
-        if (s.isTupleDeclaration())
-            return null;
+        if (TupleDeclaration td = s.isTupleDeclaration())
+            return td.tupletype;
 
         if (auto vd = s.isVarDeclaration())
         {
