@@ -4921,20 +4921,24 @@ extern (C++) final class TypeFunction : TypeNext
                         }
                     }
 
-                    /* Find most derived alias this type being matched.
-                     * https://issues.dlang.org/show_bug.cgi?id=15674
-                     * Allow on both ref and out parameters.
-                     */
-                    Type firsttab = ta.toBasetype();
-                    while (1)
+                    /* If the match is not already perfect or if the arg
+                       is not a lvalue then try the `alias this` chain
+                       see  https://issues.dlang.org/show_bug.cgi?id=15674
+                       and https://issues.dlang.org/show_bug.cgi?id=21905
+                    */
+                    if (ta != tp || !arg.isLvalue())
                     {
-                        Type tab = ta.toBasetype();
-                        Type tat = tab.aliasthisOf();
-                        if (!tat || !tat.implicitConvTo(tprm))
-                            break;
-                        if (tat == tab || tat == firsttab)
-                            break;
-                        ta = tat;
+                        Type firsttab = ta.toBasetype();
+                        while (1)
+                        {
+                            Type tab = ta.toBasetype();
+                            Type tat = tab.aliasthisOf();
+                            if (!tat || !tat.implicitConvTo(tprm))
+                                break;
+                            if (tat == tab || tat == firsttab)
+                                break;
+                            ta = tat;
+                        }
                     }
 
                     /* A ref variable should work like a head-const reference.
