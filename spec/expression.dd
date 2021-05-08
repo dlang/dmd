@@ -288,12 +288,12 @@ $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
     )
 
     $(P If the lvalue is the `.length` property of a dynamic array, the behavior is
-    as described in $(DDSUBLINK spec/array, resize, Setting Dynamic Array Length).
+    as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
     )
 
     $(P If the lvalue is a static array or a slice, the behavior is as
-    described in $(DDSUBLINK spec/array, array-copying, Array Copying) and
-    $(DDSUBLINK spec/array, array-setting, Array Setting).
+    described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
+    $(DDSUBLINK spec/arrays, array-setting, Array Setting).
     )
 
     $(P If the lvalue is a user-defined property, the behavior is as
