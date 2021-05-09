@@ -272,6 +272,14 @@ void obj_start(const(char)* srcfile)
 }
 
 
+/****************************************
+ * Finish creating the object module and writing it to objbuf[].
+ * Then either write the object module to an actual file,
+ * or add it to a library.
+ * Params:
+ *      objfilename = what to call the object module
+ *      library = if non-null, add object module to this library
+ */
 void obj_end(Library library, const(char)* objfilename)
 {
     objmod.term(objfilename);

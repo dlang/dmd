@@ -997,6 +997,7 @@ void *elf_renumbersyms()
 
 /***************************
  * Fixup and terminate object file.
+ * Pairs with ElfObj_initfile()
  */
 
 void ElfObj_termfile()
@@ -1009,40 +1010,32 @@ void ElfObj_termfile()
 }
 
 /*********************************
- * Terminate package.
+ * Finish up creating the object module and putting it in fobjbuf[].
+ * Does not write the file.
+ * Pairs with ElfObj_init()
+ * Params:
+ *    objfilename = file name for object module (not used)
  */
 
 void ElfObj_term(const(char)* objfilename)
 {
     //printf("ElfObj_term()\n");
-version (SCPP)
-{
-    if (!errcnt)
+    version (SCPP)
     {
-        outfixlist();           // backpatches
+        if (errcnt)
+            return;
     }
-}
-else
-{
+
     outfixlist();           // backpatches
-}
 
     if (configv.addlinenumbers)
-    {
         dwarf_termfile();
+
+    version (MARS)
+    {
+        if (config.useModuleInfo)
+            obj_rtinit();
     }
-
-version (MARS)
-{
-    if (config.useModuleInfo)
-        obj_rtinit();
-}
-
-version (SCPP)
-{
-    if (errcnt)
-        return;
-}
 
     int foffset;
     Elf32_Shdr *sechdr;
@@ -1063,26 +1056,25 @@ version (SCPP)
     // uint16_t e_shstrndx = SHN_SECNAMES;
     fobjbuf.writezeros(hdrsize);
 
-            // Walk through sections determining size and file offsets
-            // Sections will be output in the following order
-            //  Null segment
-            //  For each Code/Data Segment
-            //      code/data to load
-            //      relocations without addens
-            //  .bss
-            //  notes
-            //  comments
-            //  section names table
-            //  symbol table
-            //  strings table
-
+    /* Walk through sections determining size and file offsets
+     * Sections will be output in the following order
+     *  Null segment
+     *  For each Code/Data Segment
+     *      code/data to load
+     *      relocations without addens
+     *  .bss
+     *  notes
+     *  comments
+     *  section names table
+     *  symbol table
+     *  strings table
+     */
     foffset = hdrsize;      // start after header
-                                    // section header table at end
+                            // section header table at end
 
-    //
-    // First output individual section data associate with program
-    //  code and data
-    //
+    /* First output individual section data associated with program
+     * code and data
+     */
     //printf("Setup offsets and sizes foffset %d\n\tSecHdrTab.length %d, SegData.length %d\n",foffset,cast(int)SecHdrTab.length,SegData.length);
     foreach (int i; 1 .. cast(int)SegData.length)
     {
@@ -1122,9 +1114,8 @@ version (SCPP)
         //printf(" assigned offset %d, size %d\n",foffset,sechdr2.sh_size);
     }
 
-    //
-    // Next output any notes or comments
-    //
+    /* Next output any notes or comments
+     */
     if (note_data)
     {
         sechdr = &SecHdrTab[secidx_note];               // Notes
@@ -1143,9 +1134,8 @@ version (SCPP)
         foffset += sechdr.sh_size;
     }
 
-    //
-    // Then output string table for section names
-    //
+    /* Then output string table for section names
+     */
     sechdr = &SecHdrTab[SHN_SECNAMES];  // Section Names
     sechdr.sh_size = cast(uint)section_names.length();
     sechdr.sh_offset = foffset;
@@ -1153,9 +1143,8 @@ version (SCPP)
     fobjbuf.write(section_names.buf, sechdr.sh_size);
     foffset += sechdr.sh_size;
 
-    //
-    // Symbol table and string table for symbols next
-    //
+    /* Symbol table and string table for symbols next
+     */
     //dbg_printf("output symbol table size %d\n",SYMbuf.length());
     sechdr = &SecHdrTab[SHN_SYMTAB];    // Symbol Table
     sechdr.sh_size = I64 ? cast(uint)(elfobj.SymbolTable64.length * Elf64_Sym.sizeof)
@@ -1186,9 +1175,8 @@ version (SCPP)
     fobjbuf.write(symtab_strings.buf, sechdr.sh_size);
     foffset += sechdr.sh_size;
 
-    //
-    // Now the relocation data for program code and data sections
-    //
+    /* Now the relocation data for program code and data sections
+     */
     foffset = elf_align(4,foffset);
     //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names.length(),foffset);
     for (int i=1; i < SegData.length; i++)
@@ -1196,9 +1184,9 @@ version (SCPP)
         seg = SegData[i];
         if (!seg.SDbuf)
         {
-//            sechdr = &SecHdrTab[seg.SDrelidx];
-//          if (I64 && sechdr.sh_type == SHT_RELA)
-//              sechdr.sh_offset = foffset;
+            //sechdr = &SecHdrTab[seg.SDrelidx];
+            //if (I64 && sechdr.sh_type == SHT_RELA)
+                //sechdr.sh_offset = foffset;
             continue;           // 0, BSS never allocated
         }
         if (seg.SDrel && seg.SDrel.length())
@@ -1210,14 +1198,12 @@ version (SCPP)
             if (I64)
             {
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf64_Rela.sizeof);
-debug
-{
-                for (size_t j = 0; j < seg.SDrelcnt; ++j)
-                {   Elf64_Rela *p = (cast(Elf64_Rela *)seg.SDrel.buf) + j;
+                debug for (size_t j = 0; j < seg.SDrelcnt; ++j)
+                {
+                    Elf64_Rela *p = (cast(Elf64_Rela *)seg.SDrel.buf) + j;
                     if (ELF64_R_TYPE(p.r_info) == R_X86_64_64)
                         assert(*cast(Elf64_Xword *)(seg.SDbuf.buf + p.r_offset) == 0);
                 }
-}
             }
             else
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf32_Rel.sizeof);
@@ -1226,9 +1212,8 @@ debug
         }
     }
 
-    //
-    // Finish off with the section header table
-    //
+    /* Finish off with the section header table
+     */
     ulong e_shoff = foffset;       // remember location in elf header
     //dbg_printf("output section header table\n");
 
@@ -1260,10 +1245,9 @@ debug
         foffset += SecHdrTab.length * Elf32_Shdr.sizeof;
     }
 
-    //
-    // Now that we have correct offset to section header table, e_shoff,
-    //  go back and re-output the elf header
-    //
+    /* Now that we have correct offset to section header table, e_shoff,
+     *  go back and re-output the elf header
+     */
     ubyte ELFOSABI;
     switch (config.exe)
     {
