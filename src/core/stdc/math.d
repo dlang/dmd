@@ -1487,35 +1487,35 @@ extern (D)
 {
     //int isgreater(real-floating x, real-floating y);
     ///
-    pure int isgreater(float x, float y)        { return x > y && !isunordered(x, y); }
+    pure int isgreater(float x, float y)        { return x > y; }
     ///
-    pure int isgreater(double x, double y)      { return x > y && !isunordered(x, y); }
+    pure int isgreater(double x, double y)      { return x > y; }
     ///
-    pure int isgreater(real x, real y)          { return x > y && !isunordered(x, y); }
+    pure int isgreater(real x, real y)          { return x > y; }
 
     //int isgreaterequal(real-floating x, real-floating y);
     ///
-    pure int isgreaterequal(float x, float y)   { return x >= y && !isunordered(x, y); }
+    pure int isgreaterequal(float x, float y)   { return x >= y; }
     ///
-    pure int isgreaterequal(double x, double y) { return x >= y && !isunordered(x, y); }
+    pure int isgreaterequal(double x, double y) { return x >= y; }
     ///
-    pure int isgreaterequal(real x, real y)     { return x >= y && !isunordered(x, y); }
+    pure int isgreaterequal(real x, real y)     { return x >= y; }
 
     //int isless(real-floating x, real-floating y);
     ///
-    pure int isless(float x, float y)           { return x < y && !isunordered(x, y); }
+    pure int isless(float x, float y)           { return x < y; }
     ///
-    pure int isless(double x, double y)         { return x < y && !isunordered(x, y); }
+    pure int isless(double x, double y)         { return x < y; }
     ///
-    pure int isless(real x, real y)             { return x < y && !isunordered(x, y); }
+    pure int isless(real x, real y)             { return x < y; }
 
     //int islessequal(real-floating x, real-floating y);
     ///
-    pure int islessequal(float x, float y)      { return x <= y && !isunordered(x, y); }
+    pure int islessequal(float x, float y)      { return x <= y; }
     ///
-    pure int islessequal(double x, double y)    { return x <= y && !isunordered(x, y); }
+    pure int islessequal(double x, double y)    { return x <= y; }
     ///
-    pure int islessequal(real x, real y)        { return x <= y && !isunordered(x, y); }
+    pure int islessequal(real x, real y)        { return x <= y; }
 
     //int islessgreater(real-floating x, real-floating y);
     ///
