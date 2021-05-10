@@ -620,7 +620,7 @@ public:
     {
         static if (is(immutable D == immutable Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
-        else if (is(immutable D == immutable TickDuration))
+        else
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
@@ -759,7 +759,7 @@ public:
     {
         static if (is(immutable D == immutable Duration))
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
-        else if (is(immutable D == immutable TickDuration))
+        else
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
         return this;
     }
