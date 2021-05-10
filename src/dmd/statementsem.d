@@ -1780,7 +1780,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     {
         version (none)
         {
-            if (global.params.vsafe)
+            if (global.params.useDIP1000 == FeatureState.enabled)
             {
                 message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
             }
@@ -1788,7 +1788,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
         else
         {
-            if (global.params.vsafe)
+            if (global.params.useDIP1000 == FeatureState.enabled)
                 ++(cast(FuncExp)flde).fd.tookAddressOf;  // allocate a closure unless the opApply() uses 'scope'
         }
         assert(tab.ty == Tstruct || tab.ty == Tclass);

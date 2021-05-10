@@ -1,3 +1,4 @@
+
 /**
  * Entry point for DMD.
  *
@@ -1985,11 +1986,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
 
             if (params.useDIP1021)
-                params.vsafe = true;    // dip1021 implies dip1000
+                params.useDIP1000 = FeatureState.enabled;    // dip1021 implies dip1000
 
             // copy previously standalone flags from -transition
             // -preview=dip1000 implies -preview=dip25 too
-            if (params.vsafe)
+            if (params.useDIP1000 == FeatureState.enabled)
                 params.useDIP25 = FeatureState.enabled;
         }
         else if (startsWith(p + 1, "revert") ) // https://dlang.org/dmd.html#switch-revert
@@ -2202,7 +2203,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-dip1000")
         {
             params.useDIP25 = FeatureState.enabled;
-            params.vsafe = true;
+            params.useDIP1000 = FeatureState.enabled;
         }
         else if (arg == "-dip1008")
         {

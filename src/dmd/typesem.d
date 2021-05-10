@@ -3710,7 +3710,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags |= global.params.vsafe ? SCOPE.onlysafeaccess : SCOPE.noaccesscheck;
+            sc2.flags |= global.params.useDIP1000 == FeatureState.enabled ? SCOPE.onlysafeaccess : SCOPE.noaccesscheck;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
@@ -3973,7 +3973,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags |= global.params.vsafe ? SCOPE.onlysafeaccess : SCOPE.noaccesscheck;
+            sc2.flags |= global.params.useDIP1000 == FeatureState.enabled ? SCOPE.onlysafeaccess : SCOPE.noaccesscheck;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;

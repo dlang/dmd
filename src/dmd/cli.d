@@ -788,7 +788,7 @@ dmd -cov -unittest myprog.d
     static immutable previews = [
         Feature("dip25", "useDIP25",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
-        Feature("dip1000", "vsafe",
+        Feature("dip1000", "useDIP1000",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("dip1008", "ehnogc",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md (@nogc Throwable)"),

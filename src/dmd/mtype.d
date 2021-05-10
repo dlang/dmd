@@ -4470,7 +4470,7 @@ extern (C++) final class TypeFunction : TypeNext
     {
         //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
-        if (!global.params.vsafe)
+        if (global.params.useDIP1000 != FeatureState.enabled)
             return stc;
 
         // When the preview switch is enable, `in` parameters are `scope`
@@ -5297,7 +5297,7 @@ extern (C++) final class TypeDelegate : TypeNext
     override Type addStorageClass(StorageClass stc)
     {
         TypeDelegate t = cast(TypeDelegate)Type.addStorageClass(stc);
-        if (!global.params.vsafe)
+        if (global.params.useDIP1000 != FeatureState.enabled)
             return t;
 
         /* The rest is meant to add 'scope' to a delegate declaration if it is of the form:

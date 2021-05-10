@@ -855,7 +855,7 @@ MATCH implicitConvTo(Expression e, Type t)
              * convert to immutable
              */
             if (e.f && e.f.isReturnIsolated() &&
-                (!global.params.vsafe ||        // lots of legacy code breaks with the following purity check
+                (global.params.useDIP1000 != FeatureState.enabled ||        // lots of legacy code breaks with the following purity check
                  e.f.isPure() >= PURE.strong ||
                  // Special case exemption for Object.dup() which we assume is implemented correctly
                  e.f.ident == Id.dup &&
@@ -2177,7 +2177,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             ArrayLiteralExp ae = e;
 
             Type tb = t.toBasetype();
-            if (tb.ty == Tarray && global.params.vsafe)
+            if (tb.ty == Tarray && global.params.useDIP1000 == FeatureState.enabled)
             {
                 if (checkArrayLiteralEscape(sc, ae, false))
                 {
