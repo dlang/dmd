@@ -8284,7 +8284,8 @@ struct TemplateStats
     __gshared TemplateStats[const void*] stats;
 
     uint numInstantiations;     // number of instantiations of the template
-    uint uniqueInstantiations;  // number of unique instantiations of the template
+    uint distinctInstantiations; // number of distinct instantiations of the template
+    uint numSubInstantiations; // number of sub instantiations of the template
 
     TemplateInstances* allInstances;
 
@@ -8292,7 +8293,8 @@ struct TemplateStats
      * Add this instance
      */
     static void incInstance(const TemplateDeclaration td,
-                            const TemplateInstance ti)
+                            const TemplateInstance ti,
+                            bool isParent = false)
     {
         void log(ref TemplateStats ts)
         {
@@ -8308,32 +8310,44 @@ struct TemplateStats
         if (!td)
             return;
         assert(ti);
-        if (auto ts = cast(const void*) td in stats)
+        if (isParent)
         {
-            log(*ts);
-            ++ts.numInstantiations;
+            if (auto ts = cast(const void*) td in stats)
+                ts.numSubInstantiations += 1;
+            else
+                stats[cast(const void*) td] = TemplateStats(0, 0, 1);
         }
         else
         {
-            stats[cast(const void*) td] = TemplateStats(1, 0);
-            log(stats[cast(const void*) td]);
+            if (auto ts = cast(const void*) td in stats)
+            {
+                log(*ts);
+                ++ts.numInstantiations;
+            }
+            else
+            {
+                stats[cast(const void*) td] = TemplateStats(1, 0);
+                log(stats[cast(const void*) td]);
+            }
         }
+        if (ti.tinst)           // non-top instance
+            incInstance(ti.tinst.tempdecl.isTemplateDeclaration, ti.tinst, true); // traverse upwards
     }
 
     /*******************************
-     * Add this unique instance
+     * Add this distinct instance
      */
-    static void incUnique(const TemplateDeclaration td,
-                          const TemplateInstance ti)
+    static void incDistinct(const TemplateDeclaration td,
+                            const TemplateInstance ti)
     {
-        // message(ti.loc, "incUnique %p %p", td, ti);
+        // message(ti.loc, "incDistinct %p %p", td, ti);
         if (!global.params.vtemplates)
             return;
         if (!td)
             return;
         assert(ti);
         if (auto ts = cast(const void*) td in stats)
-            ++ts.uniqueInstantiations;
+            ++ts.distinctInstantiations;
         else
             stats[cast(const void*) td] = TemplateStats(0, 1);
     }
@@ -8348,7 +8362,7 @@ void printTemplateStats()
         static int compare(scope const TemplateDeclarationStats* a,
                            scope const TemplateDeclarationStats* b) @safe nothrow @nogc pure
         {
-            auto diff = b.ts.uniqueInstantiations - a.ts.uniqueInstantiations;
+            auto diff = b.ts.distinctInstantiations - a.ts.distinctInstantiations;
             if (diff)
                 return diff;
             else
@@ -8374,14 +8388,24 @@ void printTemplateStats()
             ss.ts.allInstances)
         {
             message(ss.td.loc,
-                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found, they are:",
+                    "vtemplate: %u/%u/%u distinct/total/transitive instantiation(s) of template `%s` found, they are:",
+                    ss.ts.distinctInstantiations,
                     ss.ts.numInstantiations,
-                    ss.ts.uniqueInstantiations,
+                    ss.ts.numSubInstantiations,
                     ss.td.toCharsNoConstraints());
             foreach (const ti; (*ss.ts.allInstances)[])
             {
-                if (ti.tinst)   // if has enclosing instance
-                    message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
+                const eti = ti.tinst; // enclosing template instance
+                if (eti)              // if has enclosing instance
+                {
+                    message(ti.loc, "vtemplate: implicit instance `%s` of", ti.toChars());
+                    do
+                    {
+                        message(ti.loc, "vtemplate: parenting instance `%s`", eti.toChars());
+                        cast()eti = cast()eti.tinst; // rebindable
+                    }
+                    while (eti);
+                }
                 else
                     message(ti.loc, "vtemplate: explicit instance `%s`", ti.toChars());
             }
@@ -8389,9 +8413,10 @@ void printTemplateStats()
         else
         {
             message(ss.td.loc,
-                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found",
+                    "vtemplate: %u/%u/%u distinct/total/transitive instantiation(s) of template `%s` found",
+                    ss.ts.distinctInstantiations,
                     ss.ts.numInstantiations,
-                    ss.ts.uniqueInstantiations,
+                    ss.ts.numSubInstantiations,
                     ss.td.toCharsNoConstraints());
         }
     }
