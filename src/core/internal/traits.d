@@ -25,25 +25,15 @@ T trustedCast(T, U)(auto ref U u) @trusted pure nothrow
     return cast(T)u;
 }
 
-template Unconst(T)
-{
-         static if (is(T U ==   immutable U)) alias Unconst = U;
-    else static if (is(T U == inout const U)) alias Unconst = U;
-    else static if (is(T U == inout       U)) alias Unconst = U;
-    else static if (is(T U ==       const U)) alias Unconst = U;
-    else                                      alias Unconst = T;
-}
+alias Unconst(T : const U, U) = U;
 
 /// taken from std.traits.Unqual
-template Unqual(T)
+template Unqual(T : const U, U)
 {
-    static if (is(T : const U, U))
-    {
-        static if (is(U V == shared V))
-            alias Unqual = V;
-        else
-            alias Unqual = U;
-    }
+    static if (is(U == shared V, V))
+        alias Unqual = V;
+    else
+        alias Unqual = U;
 }
 
 template BaseElemOf(T)
