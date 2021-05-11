@@ -1661,7 +1661,7 @@ $(GNAME FunctionLiteral):
     $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
     $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
     $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
-    $(GLINK FunctionLiteralBody)
+    $(GLINK2 function, FunctionLiteralBody)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
 $(GNAME ParameterWithAttributes):
@@ -1672,11 +1672,7 @@ $(GNAME ParameterWithMemberAttributes):
 
 $(GNAME FunctionLiteralBody2):
     $(D =>) $(GLINK AssignExpression)
-    $(GLINK FunctionLiteralBody)
-
-$(GNAME FunctionLiteralBody):
-    $(GLINK2 statement, BlockStatement)
-    $(GLINK2 function, FunctionContracts)$(OPT) $(GLINK2 function, BodyStatement)
+    $(GLINK2 function, FunctionLiteralBody)
 )
 
     $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
