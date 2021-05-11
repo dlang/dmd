@@ -1,6 +1,6 @@
 // https://issues.dlang.org/show_bug.cgi?id=15762
 
-enum Windows1252Char : ubyte { init }
+enum Windows1252Char : ubyte { init_ }
 
 void main() @safe {
 	ubyte[] a = [1, 2, 3, 4];
