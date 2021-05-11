@@ -28,38 +28,44 @@ class CPPNamespaceDeclaration;
 
 #include "dsymbol.h"
 
-#define CSXthis_ctor    1       // called this()
-#define CSXsuper_ctor   2       // called super()
-#define CSXthis         4       // referenced this
-#define CSXsuper        8       // referenced super
-#define CSXlabel        0x10    // seen a label
-#define CSXreturn       0x20    // seen a return statement
-#define CSXany_ctor     0x40    // either this() or super() was called
-#define CSXhalt         0x80    // assert(0)
+enum
+{
+    CSXthis_ctor  = 1,      // called this()
+    CSXsuper_ctor = 2,      // called super()
+    CSXthis       = 4,      // referenced this
+    CSXsuper      = 8,      // referenced super
+    CSXlabel      = 0x10,   // seen a label
+    CSXreturn     = 0x20,   // seen a return statement
+    CSXany_ctor   = 0x40,   // either this() or super() was called
+    CSXhalt       = 0x80,   // assert(0)
+};
 
-// Flags that would not be inherited beyond scope nesting
-#define SCOPEctor           0x0001  // constructor type
-#define SCOPEcondition      0x0004  // inside static if/assert condition
-#define SCOPEdebug          0x0008  // inside debug conditional
+enum
+{
+    // Flags that would not be inherited beyond scope nesting
+    SCOPEctor          = 0x0001,  // constructor type
+    SCOPEcondition     = 0x0004,  // inside static if/assert condition
+    SCOPEdebug         = 0x0008,  // inside debug conditional
 
-// Flags that would be inherited beyond scope nesting
-#define SCOPEnoaccesscheck  0x0002  // don't do access checks
-#define SCOPEconstraint     0x0010  // inside template constraint
-#define SCOPEinvariant      0x0020  // inside invariant code
-#define SCOPErequire        0x0040  // inside in contract code
-#define SCOPEensure         0x0060  // inside out contract code
-#define SCOPEcontract       0x0060  // [mask] we're inside contract code
-#define SCOPEctfe           0x0080  // inside a ctfe-only expression
-#define SCOPEcompile        0x0100  // inside __traits(compile)
-#define SCOPEignoresymbolvisibility 0x0200  // ignore symbol visibility (Bugzilla 15907)
+    // Flags that would be inherited beyond scope nesting
+    SCOPEnoaccesscheck = 0x0002,  // don't do access checks
+    SCOPEconstraint    = 0x0010,  // inside template constraint
+    SCOPEinvariant     = 0x0020,  // inside invariant code
+    SCOPErequire       = 0x0040,  // inside in contract code
+    SCOPEensure        = 0x0060,  // inside out contract code
+    SCOPEcontract      = 0x0060,  // [mask] we're inside contract code
+    SCOPEctfe          = 0x0080,  // inside a ctfe-only expression
+    SCOPEcompile       = 0x0100,  // inside __traits(compile)
+    SCOPEignoresymbolvisibility = 0x0200,  // ignore symbol visibility (Bugzilla 15907)
 
-#define SCOPEfree           0x8000  // is on free list
-#define SCOPEfullinst       0x10000 // fully instantiate templates
-#define SCOPEalias          0x20000 // inside alias declaration
+    SCOPEfree          = 0x8000,  // is on free list
+    SCOPEfullinst      = 0x10000, // fully instantiate templates
+    SCOPEalias         = 0x20000, // inside alias declaration
 
-// The following are mutually exclusive
-#define SCOPEprintf         0x40000 // printf-style function
-#define SCOPEscanf          0x80000 // scanf-style function
+    // The following are mutually exclusive
+    SCOPEprintf        = 0x40000, // printf-style function
+    SCOPEscanf         = 0x80000, // scanf-style function
+};
 
 struct Scope
 {
