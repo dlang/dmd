@@ -8382,32 +8382,48 @@ void printTemplateStats()
 
     sortedStats.sort!(TemplateDeclarationStats.compare);
 
-    foreach (const ref ss; sortedStats[])
+    const explicitFlag = true;
+
+    foreach (ref ss; sortedStats[])
     {
         if (global.params.vtemplatesListInstances &&
             ss.ts.allInstances)
         {
-            message(ss.td.loc,
-                    "vtemplate: %u/%u/%u distinct/total/transitive instantiation(s) of template `%s` found, they are:",
-                    ss.ts.distinctInstantiations,
-                    ss.ts.numInstantiations,
-                    ss.ts.numSubInstantiations,
-                    ss.td.toCharsNoConstraints());
-            foreach (const ti; (*ss.ts.allInstances)[])
+            if (!explicitFlag)
             {
-                const eti = ti.tinst; // enclosing template instance
-                if (eti)              // if has enclosing instance
+                message(ss.td.loc,
+                        "vtemplate: %u/%u/%u distinct/total/transitive instantiation(s) of template `%s` found, they are:",
+                        ss.ts.distinctInstantiations,
+                        ss.ts.numInstantiations,
+                        ss.ts.numSubInstantiations,
+                        ss.td.toCharsNoConstraints());
+            }
+            foreach (ti; (*ss.ts.allInstances)[])
+            {
+                if (explicitFlag)
                 {
-                    message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
-                    do
-                    {
-                        message(ti.loc, "vtemplate: of parenting instance `%s`", eti.toChars());
-                        cast()eti = cast()eti.tinst; // rebindable
-                    }
-                    while (eti);
+                    if (ti.tinst !is null) // top-level
+                        continue;
+                    scope walker = new TemplateInstanceWalker();
+                    ti.accept(walker);
+                    putchar('\n');
                 }
                 else
-                    message(ti.loc, "vtemplate: explicit instance `%s`", ti.toChars());
+                {
+                    const eti = ti.tinst; // enclosing template instance
+                    if (eti)              // if has enclosing instance
+                    {
+                        message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
+                        do
+                        {
+                            message(ti.loc, "vtemplate: of parenting instance `%s`", eti.toChars());
+                            cast()eti = cast()eti.tinst; // rebindable
+                        }
+                        while (eti);
+                    }
+                    else
+                        message(ti.loc, "vtemplate: explicit instance `%s`", ti.toChars());
+                }
             }
         }
         else
@@ -8418,6 +8434,31 @@ void printTemplateStats()
                     ss.ts.numInstantiations,
                     ss.ts.numSubInstantiations,
                     ss.td.toCharsNoConstraints());
+        }
+    }
+}
+
+extern(C++) final class TemplateInstanceWalker : SemanticTimeTransitiveVisitor {
+    alias visit = SemanticTimeTransitiveVisitor.visit;
+public:
+    size_t depth = 0;
+    override void visit(TemplateInstance ti)
+    {
+        foreach (n; 0..depth)
+            putchar(' ');
+        message(ti.loc, "TI");
+
+        depth += 1;
+        ti.tempdecl.accept(this);
+        depth -= 1;
+    }
+    override void visit(TemplateDeclaration td)
+    {
+        if (depth)
+        {
+            foreach (n; 0..depth)
+                putchar(' ');
+            message(td.loc, "TD");
         }
     }
 }
