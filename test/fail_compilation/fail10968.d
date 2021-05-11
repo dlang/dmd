@@ -49,12 +49,12 @@ void bar() pure @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10968.d(72): Error: struct `fail10968.SD` is not copyable because it is annotated with `@disable`
-fail_compilation/fail10968.d(73): Error: struct `fail10968.SD` is not copyable because it is annotated with `@disable`
-fail_compilation/fail10968.d(74): Error: struct `fail10968.SD` is not copyable because it is annotated with `@disable`
-fail_compilation/fail10968.d(77): Error: struct `fail10968.SD` is not copyable because it is annotated with `@disable`
-fail_compilation/fail10968.d(78): Error: struct `fail10968.SD` is not copyable because it is annotated with `@disable`
-fail_compilation/fail10968.d(79): Error: struct `fail10968.SD` is not copyable because it is annotated with `@disable`
+fail_compilation/fail10968.d(72): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+fail_compilation/fail10968.d(73): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+fail_compilation/fail10968.d(74): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+fail_compilation/fail10968.d(77): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+fail_compilation/fail10968.d(78): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+fail_compilation/fail10968.d(79): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
 ---
 */
 

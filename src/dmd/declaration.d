@@ -349,11 +349,42 @@ extern (C++) abstract class Declaration : Dsymbol
         if (sc.func && sc.func.storage_class & STC.disable)
             return true;
 
-        auto p = toParent();
-        if (p && isPostBlitDeclaration())
+        if (auto p = toParent())
         {
-            p.error(loc, "is not copyable because it is annotated with `@disable`");
-            return true;
+            if (auto postblit = isPostBlitDeclaration())
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=21885
+                 *
+                 * If the generated postblit is disabled, it
+                 * means that one of the fields has a disabled
+                 * postblit. Print the first field that has
+                 * a disabled postblit.
+                 */
+                if (postblit.generated)
+                {
+                    auto sd = p.isStructDeclaration();
+                    assert(sd);
+                    for (size_t i = 0; i < sd.fields.dim; i++)
+                    {
+                        auto structField = sd.fields[i];
+                        if (structField.overlapped)
+                            continue;
+                        Type tv = structField.type.baseElemOf();
+                        if (tv.ty != Tstruct)
+                            continue;
+                        auto sdv = (cast(TypeStruct)tv).sym;
+                        if (!sdv.postblit)
+                            continue;
+                        if (sdv.postblit.isDisabled())
+                        {
+                            p.error(loc, "is not copyable because field `%s` is not copyable", structField.toChars());
+                            return true;
+                        }
+                    }
+                }
+                p.error(loc, "is not copyable because it has a disabled postblit");
+                return true;
+            }
         }
 
         // if the function is @disabled, maybe there
