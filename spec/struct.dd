@@ -1703,7 +1703,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
 
     $(P A nested struct can have member functions.
         It has access to the context of its enclosing scope
-        via a hidden field.
+        via a hidden field.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
