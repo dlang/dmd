@@ -1693,12 +1693,17 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
 
 $(H2 $(LNAME2 nested, Nested Structs))
 
-    $(P A $(I nested struct) is a struct that is declared inside the scope
-        of a function or a templated struct that has aliases to local
-        functions as a template argument.
-        Nested structs have member functions.
+    $(P A struct is a $(I nested struct) if)
+
+        $(OL
+        $(LI it is declared inside the scope of a function, or)
+        $(LI it is a templated struct with one or more template arguments
+             that alias local functions.)
+        )
+
+    $(P A nested struct can have member functions.
         It has access to the context of its enclosing scope
-        (via an added hidden field).)
+        via a hidden field.
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -1717,10 +1722,8 @@ $(H2 $(LNAME2 nested, Nested Structs))
         ---
         )
 
-    $(P A struct can be prevented from being nested by
-        using the static attribute, but then of course it
-        will not be able to access variables from its enclosing
-        scope.)
+    $(P The static attribute will prevent a struct from being nested. As such,
+        the struct will not have access to its enclosing scope.)
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
