@@ -815,6 +815,43 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
+    $(P Multiple loop variables are allowed if the `front` property returns a type that
+        expands to an $(DDSUBLINK spec/template, variadic-templates, expression sequence)
+        whose size matches the number of variables. Each variable is assigned
+        to the corresponding value in the tuple.
+    )
+
+        ---
+        // Common tuple implementation that can decay into its members
+        import std.typecons : Tuple;
+
+        // Range whose elements are tuples
+        struct TupleRange
+        {
+            Tuple!(char, bool, int) front()
+            {
+                return typeof(return)('a', true, 2);
+            }
+
+            bool empty() { return false; }
+
+            void popFront() {}
+        }
+
+        void main()
+        {
+            foreach (a, b, c; TupleRange())
+            {
+                assert(a == 'a');
+                assert(b == true);
+                assert(c == 2);
+            }
+
+            // Expected 3 arguments, not 1
+            // foreach (a; TupleRange()) { ... }
+        }
+        ---
+
 $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
         $(P If $(I ForeachAggregate) is a delegate, the type signature of
