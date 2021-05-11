@@ -8398,10 +8398,10 @@ void printTemplateStats()
                 const eti = ti.tinst; // enclosing template instance
                 if (eti)              // if has enclosing instance
                 {
-                    message(ti.loc, "vtemplate: implicit instance `%s` of", ti.toChars());
+                    message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
                     do
                     {
-                        message(ti.loc, "vtemplate: parenting instance `%s`", eti.toChars());
+                        message(ti.loc, "vtemplate: of parenting instance `%s`", eti.toChars());
                         cast()eti = cast()eti.tinst; // rebindable
                     }
                     while (eti);
