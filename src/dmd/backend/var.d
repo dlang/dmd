@@ -45,6 +45,7 @@ version (HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 __gshared:
 
@@ -367,6 +368,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
     TYnptr    : "*",
     TYref     : "&",
     TYvoid    : "void",
+    TYnoreturn : "noreturn",
     TYstruct  : "struct",
     TYarray   : "array",
     TYnfunc   : "C func",
@@ -576,6 +578,7 @@ __gshared ubyte[TYMAX] dttab =
     TYnptr    : 0x20,
     TYref     : 0x00,
     TYvoid    : 0x85,
+    TYnoreturn : 0x85, // same as TYvoid
     TYstruct  : 0x00,
     TYarray   : 0x78,
     TYnfunc   : 0x63,
@@ -686,6 +689,7 @@ __gshared ushort[TYMAX] dttab4 =
     TYnptr    : 0x100,
     TYref     : 0x00,
     TYvoid    : 0x03,
+    TYnoreturn : 0x03, // same as TYvoid
     TYstruct  : 0x00,
     TYarray   : 0x00,
     TYnfunc   : 0x00,
@@ -796,6 +800,7 @@ __gshared byte[256] _tysize =
     TYnptr    : 2,
     TYref     : -1,
     TYvoid    : -1,
+    TYnoreturn : 0,
     TYstruct  : -1,
     TYarray   : -1,
     TYnfunc   : -1,
@@ -909,6 +914,7 @@ __gshared byte[256] _tyalignsize =
     TYnptr    : 2,
     TYref     : -1,
     TYvoid    : -1,
+    TYnoreturn : 0,
     TYstruct  : -1,
     TYarray   : -1,
     TYnfunc   : -1,

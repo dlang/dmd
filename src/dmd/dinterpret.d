@@ -2090,6 +2090,7 @@ public:
                     e = v._init.initializerToExpression();
                 }
                 else
+                    // Zero-length arrays don't have an initializer
                     e = v.type.defaultInitLiteral(e.loc);
 
                 e = interpret(e, istate);
@@ -2102,17 +2103,23 @@ public:
             else
             {
                 e = hasValue(v) ? getValue(v) : null;
-                if (!e && !v.isCTFE() && v.isDataseg())
-                {
-                    error(loc, "static variable `%s` cannot be read at compile time", v.toChars());
-                    return CTFEExp.cantexp;
-                }
                 if (!e)
                 {
-                    assert(!(v._init && v._init.isVoidInitializer()));
-                    // CTFE initiated from inside a function
-                    error(loc, "variable `%s` cannot be read at compile time", v.toChars());
-                    return CTFEExp.cantexp;
+                    // Zero-length arrays don't have an initializer
+                    if (v.type.size() == 0)
+                        e = v.type.defaultInitLiteral(loc);
+                    else if (!v.isCTFE() && v.isDataseg())
+                    {
+                        error(loc, "static variable `%s` cannot be read at compile time", v.toChars());
+                        return CTFEExp.cantexp;
+                    }
+                    else
+                    {
+                        assert(!(v._init && v._init.isVoidInitializer()));
+                        // CTFE initiated from inside a function
+                        error(loc, "variable `%s` cannot be read at compile time", v.toChars());
+                        return CTFEExp.cantexp;
+                    }
                 }
                 if (auto vie = e.isVoidInitExp())
                 {
@@ -2225,6 +2232,12 @@ public:
             printf("%s DeclarationExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         Dsymbol s = e.declaration;
+        while (s.isAttribDeclaration())
+        {
+            auto ad = cast(AttribDeclaration)s;
+            assert(ad.decl && ad.decl.dim == 1); // Currently, only one allowed when parsing
+            s = (*ad.decl)[0];
+        }
         if (VarDeclaration v = s.isVarDeclaration())
         {
             if (TupleDeclaration td = v.toAlias().isTupleDeclaration())
@@ -2307,20 +2320,8 @@ public:
             }
             return;
         }
-        if (s.isAttribDeclaration() || s.isTemplateMixin() || s.isTupleDeclaration())
+        if (s.isTemplateMixin() || s.isTupleDeclaration())
         {
-            // Check for static struct declarations, which aren't executable
-            AttribDeclaration ad = e.declaration.isAttribDeclaration();
-            if (ad && ad.decl && ad.decl.dim == 1)
-            {
-                Dsymbol sparent = (*ad.decl)[0];
-                if (sparent.isAggregateDeclaration() || sparent.isTemplateDeclaration() || sparent.isAliasDeclaration())
-                {
-                    result = null;
-                    return; // static (template) struct declaration. Nothing to do.
-                }
-            }
-
             // These can be made to work, too lazy now
             e.error("declaration `%s` is not yet implemented in CTFE", e.toChars());
             result = CTFEExp.cantexp;

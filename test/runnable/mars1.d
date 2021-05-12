@@ -1008,25 +1008,6 @@ void testshrshl()
 
 ////////////////////////////////////////////////////////////////////////
 
-struct S1
-{
-    cdouble val;
-}
-
-void formatTest(S1 s, double re, double im)
-{
-    assert(s.val.re == re);
-    assert(s.val.im == im);
-}
-
-void test10639()
-{
-    S1 s = S1(3+2.25i);
-    formatTest(s, 3, 2.25);
-}
-
-////////////////////////////////////////////////////////////////////////
-
 bool bt10715(in uint[] ary, size_t bitnum)
 {
     return !!(ary[bitnum >> 5] & 1 << (bitnum & 31)); // uses bt
@@ -1328,18 +1309,6 @@ void test14829()
         assert(0);
 }
 
-
-////////////////////////////////////////////////////////////////////////
-
-void test2()
-{
-    void test(cdouble v)
-    {
-            auto x2 = cdouble(v);
-            assert(x2 == v);
-    }
-    test(1.2+3.4i);
-}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -2426,6 +2395,53 @@ void test21256()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21816
+
+bool test21816a(float t)
+{
+    return cast(bool)t;
+}
+
+void test21816()
+{
+    assert(test21816a(float.nan));
+}
+
+////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=21835
+
+struct Point21835
+{
+    float  f = 3.0;
+    double d = 4.0;
+    real   r = 5.0;
+}
+
+void test21835y()
+{
+    Point21835[1] arr;
+    if (arr[0].f != 3.0) assert(0);
+    if (arr[0].d != 4.0) assert(0);
+    if (arr[0].r != 5.0) assert(0);
+}
+
+struct Point21835x
+{
+    float  f = 0.0;
+    double d = 0.0;
+    real   r = 0.0;
+}
+
+void test21835()
+{
+    test21835y();
+    Point21835x[1] arr;
+    if (arr[0].f != 0.0) assert(0);
+    if (arr[0].d != 0.0) assert(0);
+    if (arr[0].r != 0.0) assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2466,7 +2482,6 @@ int main()
     test13190();
     test13485();
     test14436();
-    test10639();
     test10715();
     test10678();
     test7565();
@@ -2478,7 +2493,6 @@ int main()
     test13784();
     test14220();
     test14829();
-    test2();
     test3();
     test14782();
     test14987();
@@ -2523,6 +2537,8 @@ int main()
     test11435b();
     test21513();
     test21256();
+    test21816();
+    test21835();
 
     printf("Success\n");
     return 0;

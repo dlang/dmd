@@ -28,8 +28,8 @@ enum TOK : ubyte
     reserved,
 
     // Other
-    leftParentheses,
-    rightParentheses,
+    leftParenthesis,
+    rightParenthesis,
     leftBracket,
     rightBracket,
     leftCurly,
@@ -287,7 +287,8 @@ enum TOK : ubyte
     objcClassReference,
     vectorArray,
 
-    max_,
+    arrow,      // ->
+    colonColon, // ::
 }
 
 // Assert that all token enum members have consecutive values and
@@ -461,7 +462,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private static immutable string[TOK.max_] tochars =
+    extern (D) private static immutable string[TOK.max + 1] tochars =
     [
         // Keywords
         TOK.this_: "this",
@@ -579,8 +580,8 @@ extern (C++) struct Token
         TOK.endOfFile: "End of File",
         TOK.leftCurly: "{",
         TOK.rightCurly: "}",
-        TOK.leftParentheses: "(",
-        TOK.rightParentheses: ")",
+        TOK.leftParenthesis: "(",
+        TOK.rightParenthesis: ")",
         TOK.leftBracket: "[",
         TOK.rightBracket: "]",
         TOK.semicolon: ";",
@@ -651,6 +652,8 @@ extern (C++) struct Token
         TOK.powAssign: "^^=",
         TOK.goesTo: "=>",
         TOK.pound: "#",
+        TOK.arrow: "->",
+        TOK.colonColon: "::",
 
         // For debugging
         TOK.error: "error",

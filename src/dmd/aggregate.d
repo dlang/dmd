@@ -70,6 +70,16 @@ enum ClassKind : ubyte
     objc,
 }
 
+/**
+ * If an aggregate has a pargma(mangle, ...) this holds the information
+ * to mangle.
+ */
+struct MangleOverride
+{
+    Dsymbol agg;   // The symbol to copy template parameters from (if any)
+    Identifier id; // the name to override the aggregate's with, defaults to agg.ident
+}
+
 /***********************************************************
  * Abstract aggregate as a common ancestor for Class- and StructDeclaration.
  */
@@ -88,6 +98,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     /// This information is used by the MSVC mangler
     /// Only valid for class and struct. TODO: Merge with ClassKind ?
     CPPMANGLE cppmangle;
+
+    /// overridden symbol with pragma(mangle, "...") if not null
+    MangleOverride* mangleOverride;
 
     /**
      * !=null if is nested
@@ -832,6 +845,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final Type handleType()
     {
         return type;
+    }
+
+    // Does this class have an invariant function?
+    final bool hasInvariant()
+    {
+        return invs.length != 0;
     }
 
     // Back end

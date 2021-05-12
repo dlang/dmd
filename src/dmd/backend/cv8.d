@@ -48,6 +48,7 @@ import dmd.backend.xmm;
 extern (C++):
 
 nothrow:
+@safe:
 
 static if (1)
 {
@@ -55,6 +56,7 @@ static if (1)
 int REGSIZE();
 
 // Determine if this Symbol is stored in a COMDAT
+@trusted
 private bool symbol_iscomdat4(Symbol* s)
 {
     version (MARS)
@@ -121,6 +123,7 @@ private __gshared Outbuffer *funcdata;     // array of FuncData's
 
 private __gshared Outbuffer *linepair;     // array of offset/line pairs
 
+@trusted
 void cv8_writename(Outbuffer *buf, const(char)* name, size_t len)
 {
     if(config.flags2 & CFG2gms)
@@ -154,6 +157,7 @@ void cv8_writename(Outbuffer *buf, const(char)* name, size_t len)
  * Input:
  *      filename        source file name
  */
+@trusted
 void cv8_initfile(const(char)* filename)
 {
     //printf("cv8_initfile()\n");
@@ -224,6 +228,7 @@ void cv8_initfile(const(char)* filename)
     cv_init();
 }
 
+@trusted
 void cv8_termfile(const(char)* objfilename)
 {
     //printf("cv8_termfile()\n");
@@ -336,6 +341,7 @@ void cv8_initmodule(const(char)* filename, const(char)* modulename)
     //printf("cv8_initmodule(filename = %s, modulename = %s)\n", filename, modulename);
 }
 
+@trusted
 void cv8_termmodule()
 {
     //printf("cv8_termmodule()\n");
@@ -345,6 +351,7 @@ void cv8_termmodule()
 /******************************************
  * Called at the start of a function.
  */
+@trusted
 void cv8_func_start(Symbol *sfunc)
 {
     //printf("cv8_func_start(%s)\n", sfunc.Sident);
@@ -367,6 +374,7 @@ void cv8_func_start(Symbol *sfunc)
     varStats_startFunction();
 }
 
+@trusted
 void cv8_func_term(Symbol *sfunc)
 {
     //printf("cv8_func_term(%s)\n", sfunc.Sident);
@@ -514,6 +522,7 @@ void cv8_func_term(Symbol *sfunc)
 /**********************************************
  */
 
+@trusted
 void cv8_linnum(Srcpos srcpos, uint offset)
 {
     version (MARS)
@@ -566,6 +575,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
  * Return offset into F4.
  */
 
+@trusted
 uint cv8_addfile(const(char)* filename)
 {
     //printf("cv8_addfile('%s')\n", filename);
@@ -658,6 +668,7 @@ L1:
     return length;
 }
 
+@trusted
 void cv8_writesection(int seg, uint type, Outbuffer *buf)
 {
     /* Write out as:
@@ -678,6 +689,7 @@ void cv8_writesection(int seg, uint type, Outbuffer *buf)
     objmod.lidata(seg,off+8+length,pad);
 }
 
+@trusted
 void cv8_outsym(Symbol *s)
 {
     //printf("cv8_outsym(s = '%s')\n", s.Sident);
@@ -829,6 +841,7 @@ else
  *      id      the name
  *      typidx  and its type
  */
+@trusted
 void cv8_udt(const(char)* id, idx_t typidx)
 {
     //printf("cv8_udt('%s', %x)\n", id, typidx);
@@ -894,6 +907,7 @@ int cv8_regnum(Symbol *s)
  * Put out a forward ref for structs, unions, and classes.
  * Only put out the real definitions with toDebug().
  */
+@trusted
 idx_t cv8_fwdref(Symbol *s)
 {
     assert(config.fulltypes == CV8);
@@ -948,6 +962,7 @@ idx_t cv8_fwdref(Symbol *s)
  *      t       darray type
  *      etypidx type index for E
  */
+@trusted
 idx_t cv8_darray(type *t, idx_t etypidx)
 {
     //printf("cv8_darray(etypidx = %x)\n", etypidx);
@@ -1048,6 +1063,7 @@ static if (0)
  *      t          delegate type
  *      functypidx type index for pointer to function
  */
+@trusted
 idx_t cv8_ddelegate(type *t, idx_t functypidx)
 {
     //printf("cv8_ddelegate(functypidx = %x)\n", functypidx);
@@ -1129,6 +1145,7 @@ else
  *      keyidx     key type
  *      validx     value type
  */
+@trusted
 idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
 {
     //printf("cv8_daarray(keyidx = %x, validx = %x)\n", keyidx, validx);

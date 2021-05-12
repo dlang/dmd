@@ -266,7 +266,7 @@ void test19()
 
 int foo20(string s,char d) {  return 1; }
 int foo20(string s,double d) {  return 2; }
-int foo20(string s,cdouble d) {  return 3; }
+int foo20(string s,long d) {  return 3; }
 
 void test20()
 {

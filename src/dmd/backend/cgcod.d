@@ -60,6 +60,7 @@ version (SCPP)
 extern (C++):
 
 nothrow:
+@safe:
 
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
@@ -162,7 +163,7 @@ private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
  * Params:
  *      sfunc = function to generate code for
  */
-
+@trusted
 void codgen(Symbol *sfunc)
 {
     bool flag;
@@ -256,6 +257,8 @@ tryagain:
     mfuncreg = fregsaved;               // so we can see which are used
                                         // (bit is cleared each time
                                         //  we use one)
+    assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
+
     for (block* b = startblock; b; b = b.Bnext)
     {
         memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
@@ -712,6 +715,7 @@ tryagain:
  * Returns:
  *  base        revised downward so it is aligned
  */
+@trusted
 targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 {
     assert(cast(int)base <= 0);
@@ -739,6 +743,7 @@ targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
  *      hasframe
  *      BPoff
  */
+@trusted
 void prolog(ref CodeBuilder cdb)
 {
     bool enter;
@@ -798,7 +803,7 @@ Lagain:
     spoff = 0;
     char guessneedframe = needframe;
     int cfa_offset = 0;
-//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
+//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
 //      usednteh |= NTEHpassthru;
 
     /* Compute BP offsets for variables on stack.
@@ -827,8 +832,9 @@ Lagain:
     {
         version (FRAMEPTR)
         {
-            Para.size = ((farfunc ? 2 : 1) + needframe) * REGSIZE;
-            if (needframe)
+            bool frame = needframe || tyf & mTYnaked;
+            Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
+            if (frame)
                 EBPtoESP = -REGSIZE;
         }
         else
@@ -1013,7 +1019,6 @@ else
         // we need BP to reset the stack before return
         // otherwise the return address is lost
         needframe = 1;
-
     }
     else if (config.flags & CFGalwaysframe)
         needframe = 1;
@@ -1031,7 +1036,9 @@ else
                 anyiasm ||
                 Alloca.size
                )
+            {
                 needframe = 1;
+            }
         }
         if (refparam && (anyiasm || I16))
             needframe = 1;
@@ -1206,6 +1213,7 @@ Lcont:
  *      = 0     no difference
  */
 
+@trusted
 extern (C) int
  autosort_cmp(scope const void *ps1, scope const void *ps2)
 {
@@ -1246,6 +1254,7 @@ extern (C) int
  *      symtab = function's symbol table
  *      estimate = true for do estimate only, false for final
  */
+@trusted
 void stackoffsets(ref symtab_t symtab, bool estimate)
 {
     //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
@@ -1465,6 +1474,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
  * Generate code for a block.
  */
 
+@trusted
 private void blcodgen(block *bl)
 {
     regm_t mfuncregsave = mfuncreg;
@@ -1830,11 +1840,13 @@ int numbitsset(regm_t regm)
  * of the first register that fits.
  */
 
+@trusted
 reg_t findreg(regm_t regm)
 {
     return findreg(regm, __LINE__, __FILE__);
 }
 
+@trusted
 reg_t findreg(regm_t regm, int line, const(char)* file)
 {
     debug
@@ -1872,6 +1884,7 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
  * references to it.
  */
 
+@trusted
 void freenode(elem *e)
 {
     elem_debug(e);
@@ -1895,6 +1908,7 @@ void freenode(elem *e)
  * Reset Ecomsub for all elem nodes, i.e. reverse the effects of freenode().
  */
 
+@trusted
 private void resetEcomsub(elem *e)
 {
     while (1)
@@ -1923,6 +1937,7 @@ private void resetEcomsub(elem *e)
  *      returns false
  */
 
+@trusted
 int isregvar(elem *e,regm_t *pregm,reg_t *preg)
 {
     Symbol *s;
@@ -2023,6 +2038,7 @@ void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym)
     allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
 }
 
+@trusted
 void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
         ,int line,const(char)* file)
 {
@@ -2214,6 +2230,7 @@ L3:
  * Returns:
  *      selected register
  */
+@trusted
 reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
 {
     reg_t r;
@@ -2226,6 +2243,7 @@ reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
  * Determine registers that should be destroyed upon arrival
  * to code entry point for exception handling.
  */
+@trusted
 regm_t lpadregs()
 {
     regm_t used;
@@ -2242,6 +2260,7 @@ regm_t lpadregs()
  * Mark registers as used.
  */
 
+@trusted
 void useregs(regm_t regm)
 {
     //printf("useregs(x%x) %s\n", regm, regm_str(regm));
@@ -2257,6 +2276,7 @@ void useregs(regm_t regm)
  * Generate any code necessary to save any regs.
  */
 
+@trusted
 void getregs(ref CodeBuilder cdb, regm_t r)
 {
     //printf("getregs(x%x) %s\n", r, regm_str(r));
@@ -2273,6 +2293,7 @@ void getregs(ref CodeBuilder cdb, regm_t r)
  * We are going to use the registers in mask r.
  * Same as getregs(), but assert if code is needed to be generated.
  */
+@trusted
 void getregsNoSave(regm_t r)
 {
     //printf("getregsNoSave(x%x) %s\n", r, regm_str(r));
@@ -2287,6 +2308,7 @@ void getregsNoSave(regm_t r)
  * Copy registers in cse.mops into memory.
  */
 
+@trusted
 private void cse_save(ref CodeBuilder cdb, regm_t ms)
 {
     assert((ms & regcon.cse.mops) == ms);
@@ -2342,6 +2364,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
  * Getregs without marking immediate register values as gone.
  */
 
+@trusted
 void getregs_imm(ref CodeBuilder cdb, regm_t r)
 {
     regm_t save = regcon.immed.mval;
@@ -2355,6 +2378,7 @@ void getregs_imm(ref CodeBuilder cdb, regm_t r)
  *      do87    !=0 means save 87 registers too
  */
 
+@trusted
 void cse_flush(ref CodeBuilder cdb, int do87)
 {
     //dbg_printf("cse_flush()\n");
@@ -2374,6 +2398,7 @@ void cse_flush(ref CodeBuilder cdb, int do87)
  *      true    saved as a CSE
  */
 
+@trusted
 bool cssave(elem *e,regm_t regm,uint opsflag)
 {
     bool result = false;
@@ -2423,6 +2448,7 @@ bool cssave(elem *e,regm_t regm,uint opsflag)
  * Determine if a computation should be done into a register.
  */
 
+@trusted
 bool evalinregister(elem *e)
 {
     if (config.exe == EX_WIN64 && e.Eoper == OPrelconst)
@@ -2480,6 +2506,7 @@ bool evalinregister(elem *e)
  * Return mask of scratch registers.
  */
 
+@trusted
 regm_t getscratch()
 {
     regm_t scratch = 0;
@@ -2497,6 +2524,7 @@ regm_t getscratch()
  * Look first to see if it is already in a register.
  */
 
+@trusted
 private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     tym_t tym;
@@ -2769,6 +2797,7 @@ reload:                                 /* reload result from memory    */
  * Load reg from cse save area on stack.
  */
 
+@trusted
 private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 {
     foreach (ref cse; CSE.filter(e))
@@ -2808,6 +2837,7 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
  *      pointer to code sequence generated
  */
 
+@trusted
 void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 {
     (*cdxxx[op])(cdb,e,pretregs);
@@ -3008,6 +3038,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
 ];
 
 
+@trusted
 void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 {
     Symbol *s;
@@ -3168,6 +3199,7 @@ L1:
  *                      registers returned in *pretregs.
  */
 
+@trusted
 void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 {
     regm_t touse;
@@ -3351,6 +3383,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
  * Turn register mask into a string suitable for printing.
  */
 
+@trusted
 const(char)* regm_str(regm_t rm)
 {
     enum NUM = 10;
@@ -3398,6 +3431,7 @@ const(char)* regm_str(regm_t rm)
  *      code generated for left branches of comma-expressions
  */
 
+@trusted
 void docommas(ref CodeBuilder cdb,elem **pe)
 {
     uint stackpushsave = stackpush;
@@ -3431,6 +3465,7 @@ void docommas(ref CodeBuilder cdb,elem **pe)
  * Do same for regcon.immed.
  */
 
+@trusted
 void andregcon(con_t *pregconsave)
 {
     regm_t m = ~1;

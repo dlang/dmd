@@ -21,9 +21,11 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.dwarfdbginf;
 extern (C++):
 
 nothrow:
+@safe:
 
 version (MARS)
 {
@@ -33,7 +35,7 @@ version (MARS)
 /**************************************
  * Initialize configuration variables.
  */
-
+@trusted
 extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
@@ -55,7 +57,8 @@ extern (C) void out_config_init(
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
         ubyte dwarf,            // DWARF version used
-        string _version         // Compiler version
+        string _version,         // Compiler version
+        exefmt_t exefmt            // Executable file format
         )
 {
 version (MARS)
@@ -72,6 +75,7 @@ version (MARS)
     config.inline8087 = 1;
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
+    config.exe = exefmt;
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
     model &= 32 | 64;
@@ -92,10 +96,10 @@ version (MARS)
         config.dwarf = dwarf;
     }
 
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     if (model == 64)
-    {   config.exe = EX_WIN64;
+    {
         config.fpxmmregs = true;
         config.avx = avx;
         config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
@@ -107,26 +111,28 @@ static if (TARGET_WINDOS)
     }
     else
     {
-        config.exe = EX_WIN32;
         config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
+        if (mscoff)
+            config.flags |= CFGnoebp;       // test suite fails without this
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
+        if (mscoff)
+            config.flags |= CFGnoebp;    // test suite fails without this
     }
 
     if (exe)
         config.wflags |= WFexe;         // EXE file only optimizations
     config.flags4 |= CFG4underscore;
 }
-static if (TARGET_LINUX)
+if (config.exe & (EX_LINUX | EX_LINUX64))
 {
     config.fpxmmregs = true;
     config.avx = avx;
     if (model == 64)
-    {   config.exe = EX_LINUX64;
+    {
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     else
     {
-        config.exe = EX_LINUX;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
@@ -153,19 +159,11 @@ static if (TARGET_LINUX)
 
     config.objfmt = OBJ_ELF;
 }
-static if (TARGET_OSX)
+if (config.exe & (EX_OSX | EX_OSX64))
 {
     config.fpxmmregs = true;
     config.avx = avx;
-    if (model == 64)
-    {   config.exe = EX_OSX64;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    }
-    else
-    {
-        config.exe = EX_OSX;
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    }
+    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     config.flags |= CFGnoebp;
     if (!exe)
     {
@@ -179,17 +177,16 @@ static if (TARGET_OSX)
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
 }
-static if (TARGET_FREEBSD)
+if (config.exe & (EX_FREEBSD | EX_FREEBSD64))
 {
     if (model == 64)
-    {   config.exe = EX_FREEBSD64;
+    {
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         config.fpxmmregs = true;
         config.avx = avx;
     }
     else
     {
-        config.exe = EX_FREEBSD;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
@@ -203,16 +200,15 @@ static if (TARGET_FREEBSD)
         config.flags |= CFGalwaysframe;
     config.objfmt = OBJ_ELF;
 }
-static if (TARGET_OPENBSD)
+if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
 {
     if (model == 64)
-    {   config.exe = EX_OPENBSD64;
+    {
         config.fpxmmregs = true;
         config.avx = avx;
     }
     else
     {
-        config.exe = EX_OPENBSD;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -221,12 +217,12 @@ static if (TARGET_OPENBSD)
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
 }
-static if (TARGET_DRAGONFLYBSD)
+if (config.exe == EX_DRAGONFLYBSD64)
 {
     if (model == 64)
-    {   config.exe = EX_DRAGONFLYBSD64;
+    {
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         config.fpxmmregs = true;
         config.avx = avx;
@@ -243,16 +239,15 @@ static if (TARGET_DRAGONFLYBSD)
     }
     config.objfmt = OBJ_ELF;
 }
-static if (TARGET_SOLARIS)
+if (config.exe & (EX_SOLARIS | EX_SOLARIS))
 {
     if (model == 64)
-    {   config.exe = EX_SOLARIS64;
+    {
         config.fpxmmregs = true;
         config.avx = avx;
     }
     else
     {
-        config.exe = EX_SOLARIS;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -272,13 +267,13 @@ static if (0)
     if (env.nochecks())
         config.flags4 |= CFG4nochecks;  // no runtime checking
 }
-else static if (TARGET_OSX)
-{
-}
-else
-{
-    config.flags4 |= CFG4allcomdat;
-}
+    if (config.exe & (EX_OSX | EX_OSX64))
+    {
+    }
+    else
+    {
+        config.flags4 |= CFG4allcomdat;
+    }
     if (trace)
         config.flags |= CFGtrace;       // turn on profiler
     if (nofloat)
@@ -291,26 +286,27 @@ else
 
     if (symdebug)
     {
-static if (SYMDEB_DWARF)
-{
-        configv.addlinenumbers = 1;
-        config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
-}
-static if (SYMDEB_CODEVIEW)
-{
-        if (config.objfmt == OBJ_MSCOFF)
+        if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OPENBSD | EX_OPENBSD64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 |
+                          EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
         {
             configv.addlinenumbers = 1;
-            config.fulltypes = CV8;
-            if(symdebug > 1)
-                config.flags2 |= CFG2gms;
+            config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
         }
-        else
+        if (config.exe & (EX_windos))
         {
-            configv.addlinenumbers = 1;
-            config.fulltypes = CV4;
+            if (config.objfmt == OBJ_MSCOFF)
+            {
+                configv.addlinenumbers = 1;
+                config.fulltypes = CV8;
+                if(symdebug > 1)
+                    config.flags2 |= CFG2gms;
+            }
+            else
+            {
+                configv.addlinenumbers = 1;
+                config.fulltypes = CV4;
+            }
         }
-}
         if (!optimize)
             config.flags |= CFGalwaysframe;
     }
@@ -347,6 +343,10 @@ static if (SYMDEB_CODEVIEW)
         cod3_set32();
     }
 
+    if (config.objfmt == OBJ_MACH)
+        machDebugSectionsInit();
+    else if (config.objfmt == OBJ_ELF)
+        elfDebugSectionsInit();
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
 }
 }
@@ -357,6 +357,7 @@ debug
 /****************************
  * Transmit internal compiler debugging flags.
  */
+@trusted
 void out_config_debug(
         bool b,
         bool c,
@@ -381,6 +382,7 @@ void out_config_debug(
 /*************************************
  */
 
+@trusted
 void util_set16()
 {
     // The default is 16 bits
@@ -397,6 +399,7 @@ void util_set16()
  * Redo tables from 8086/286 to 386/486.
  */
 
+@trusted
 void util_set32()
 {
     _tyrelax[TYenum] = TYlong;
@@ -412,28 +415,25 @@ void util_set32()
     _tysize[TYnullptr] = LONGSIZE;
     _tysize[TYnptr] = LONGSIZE;
     _tysize[TYnref] = LONGSIZE;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
 {
     _tysize[TYldouble] = 12;
     _tysize[TYildouble] = 12;
     _tysize[TYcldouble] = 24;
 }
-else static if (TARGET_OSX)
+if (config.exe & (EX_OSX | EX_OSX64))
 {
     _tysize[TYldouble] = 16;
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
 }
-else static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     _tysize[TYldouble] = 10;
     _tysize[TYildouble] = 10;
     _tysize[TYcldouble] = 20;
 }
-else
-{
-    assert(0);
-}
+
     _tysize[TYsptr] = LONGSIZE;
     _tysize[TYcptr] = LONGSIZE;
     _tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
@@ -446,28 +446,25 @@ else
     _tyalignsize[TYnullptr] = LONGSIZE;
     _tyalignsize[TYnref] = LONGSIZE;
     _tyalignsize[TYnptr] = LONGSIZE;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
 {
     _tyalignsize[TYldouble] = 4;
     _tyalignsize[TYildouble] = 4;
     _tyalignsize[TYcldouble] = 4;
 }
-else static if (TARGET_OSX)
+else if (config.exe & (EX_OSX | EX_OSX64))
 {
     _tyalignsize[TYldouble] = 16;
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
 }
-else static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
     _tyalignsize[TYldouble] = 2;
     _tyalignsize[TYildouble] = 2;
     _tyalignsize[TYcldouble] = 2;
 }
-else
-{
-    assert(0);
-}
+
     _tyalignsize[TYsptr] = LONGSIZE;
     _tyalignsize[TYcptr] = LONGSIZE;
     _tyalignsize[TYfptr] = LONGSIZE;     // NOTE: There are codgen test that check
@@ -488,6 +485,7 @@ else
  * Redo tables from 8086/286 to I64.
  */
 
+@trusted
 void util_set64()
 {
     _tyrelax[TYenum] = TYlong;
@@ -503,22 +501,19 @@ void util_set64()
     _tysize[TYnullptr] = 8;
     _tysize[TYnptr] = 8;
     _tysize[TYnref] = 8;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
-{
-    _tysize[TYldouble] = 16;
-    _tysize[TYildouble] = 16;
-    _tysize[TYcldouble] = 32;
-}
-else static if (TARGET_WINDOS)
-{
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
-}
-else
-{
-    assert(0);
-}
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD |
+                      EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
+    {
+        _tysize[TYldouble] = 16;
+        _tysize[TYildouble] = 16;
+        _tysize[TYcldouble] = 32;
+    }
+    if (config.exe & EX_windos)
+    {
+        _tysize[TYldouble] = 10;
+        _tysize[TYildouble] = 10;
+        _tysize[TYcldouble] = 20;
+    }
     _tysize[TYsptr] = 8;
     _tysize[TYcptr] = 8;
     _tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
@@ -531,28 +526,24 @@ else
     _tyalignsize[TYnullptr] = 8;
     _tyalignsize[TYnptr] = 8;
     _tyalignsize[TYnref] = 8;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    _tyalignsize[TYldouble] = 16;
-    _tyalignsize[TYildouble] = 16;
-    _tyalignsize[TYcldouble] = 16;
-}
-else static if (TARGET_OSX)
-{
-    _tyalignsize[TYldouble] = 16;
-    _tyalignsize[TYildouble] = 16;
-    _tyalignsize[TYcldouble] = 16;
-}
-else static if (TARGET_WINDOS)
-{
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
-}
-else
-{
-    assert(0);
-}
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+    {
+        _tyalignsize[TYldouble] = 16;
+        _tyalignsize[TYildouble] = 16;
+        _tyalignsize[TYcldouble] = 16;
+    }
+    if (config.exe & (EX_OSX | EX_OSX64))
+    {
+        _tyalignsize[TYldouble] = 16;
+        _tyalignsize[TYildouble] = 16;
+        _tyalignsize[TYcldouble] = 16;
+    }
+    if (config.exe & EX_windos)
+    {
+        _tyalignsize[TYldouble] = 2;
+        _tyalignsize[TYildouble] = 2;
+        _tyalignsize[TYcldouble] = 2;
+    }
     _tyalignsize[TYsptr] = 8;
     _tyalignsize[TYcptr] = 8;
     _tyalignsize[TYfptr] = 8;

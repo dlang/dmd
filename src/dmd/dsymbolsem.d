@@ -280,7 +280,7 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         checkShared();
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
-        dd.storage_class |= STC.inference;
+        dd.storage_class |= STC.inference | STC.scope_;
         dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, postblitCalls);
         sd.postblits.shift(dd);
         sd.members.push(dd);
@@ -937,9 +937,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (auto ts = tb.isTypeStruct())
         {
             // Require declarations, except when it's just a reference (as done for pointers)
-            if (!ts.sym.members && !(dsym.storage_class & STC.ref_))
+            // or when the variable is defined externally
+            if (!ts.sym.members && !(dsym.storage_class & (STC.ref_ | STC.extern_)))
             {
                 dsym.error("no definition of struct `%s`", ts.toChars());
+
+                // Explain why the definition is required when it's part of another type
+                if (!dsym.type.isTypeStruct())
+                {
+                    // Prefer Loc of the dependant type
+                    const s = dsym.type.toDsymbol(sc);
+                    const loc = (s ? s : dsym).loc;
+                    loc.errorSupplemental("required by type `%s`", dsym.type.toChars());
+                }
+
+                // Flag variable as error to avoid invalid error messages due to unknown size
+                dsym.type = Type.terror;
             }
         }
         if ((dsym.storage_class & STC.auto_) && !inferred)
@@ -1075,7 +1088,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                     ti = dsym._init ? dsym._init.syntaxCopy() : null;
 
-                StorageClass storage_class = STC.temp | dsym.storage_class;
+                StorageClass storage_class = STC.temp | STC.local | dsym.storage_class;
                 if ((dsym.storage_class & STC.parameter) && (arg.storageClass & STC.parameter))
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(dsym.loc, arg.type, id, ti, storage_class);
@@ -1284,10 +1297,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Calculate type size + safety checks
         if (sc.func && !sc.intypeof)
         {
-            if (dsym._init && dsym._init.isVoidInitializer() && dsym.type.hasPointers()) // get type size
+            if (dsym._init && dsym._init.isVoidInitializer() &&
+                (dsym.type.hasPointers() || dsym.type.hasInvariant())) // also computes type size
             {
                 if (sc.func.setUnsafe())
-                    dsym.error("`void` initializers for pointers not allowed in safe functions");
+                {
+                    if (dsym.type.hasPointers())
+                        dsym.error("`void` initializers for pointers not allowed in safe functions");
+                    else
+                        dsym.error("`void` initializers for structs with invariants are not allowed in safe functions");
+                }
             }
             else if (!dsym._init &&
                      !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
@@ -1843,30 +1862,126 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(PragmaDeclaration pd)
     {
+        StringExp verifyMangleString(ref Expression e)
+        {
+            auto se = semanticString(sc, e, "mangled name");
+            if (!se)
+                return null;
+            e = se;
+            if (!se.len)
+            {
+                pd.error("zero-length string not allowed for mangled name");
+                return null;
+            }
+            if (se.sz != 1)
+            {
+                pd.error("mangled name characters can only be of type `char`");
+                return null;
+            }
+            version (all)
+            {
+                /* Note: D language specification should not have any assumption about backend
+                 * implementation. Ideally pragma(mangle) can accept a string of any content.
+                 *
+                 * Therefore, this validation is compiler implementation specific.
+                 */
+                auto slice = se.peekString();
+                for (size_t i = 0; i < se.len;)
+                {
+                    dchar c = slice[i];
+                    if (c < 0x80)
+                    {
+                        if (c.isValidMangling)
+                        {
+                            ++i;
+                            continue;
+                        }
+                        else
+                        {
+                            pd.error("char 0x%02x not allowed in mangled name", c);
+                            break;
+                        }
+                    }
+                    if (const msg = utf_decodeChar(slice, i, c))
+                    {
+                        pd.error("%.*s", cast(int)msg.length, msg.ptr);
+                        break;
+                    }
+                    if (!isUniAlpha(c))
+                    {
+                        pd.error("char `0x%04x` not allowed in mangled name", c);
+                        break;
+                    }
+                }
+            }
+            return se;
+        }
         void declarations()
         {
             if (!pd.decl)
                 return;
 
             Scope* sc2 = pd.newScope(sc);
-            for (size_t i = 0; i < pd.decl.dim; i++)
+            scope(exit)
+                if (sc2 != sc)
+                    sc2.pop();
+
+            foreach (s; (*pd.decl)[])
             {
-                Dsymbol s = (*pd.decl)[i];
                 s.dsymbolSemantic(sc2);
-                if (pd.ident == Id.mangle)
+                if (pd.ident != Id.mangle)
+                    continue;
+                assert(pd.args);
+                if (auto ad = s.isAggregateDeclaration())
                 {
-                    assert(pd.args && pd.args.dim == 1);
-                    if (auto se = (*pd.args)[0].toStringExp())
+                    Expression e = (*pd.args)[0];
+                    sc2 = sc2.startCTFE();
+                    e = e.expressionSemantic(sc);
+                    e = resolveProperties(sc2, e);
+                    sc2 = sc2.endCTFE();
+                    AggregateDeclaration agg;
+                    if (auto tc = e.type.isTypeClass())
+                        agg = tc.sym;
+                    else if (auto ts = e.type.isTypeStruct())
+                        agg = ts.sym;
+                    ad.mangleOverride = new MangleOverride;
+                    void setString(ref Expression e)
                     {
-                        const name = (cast(const(char)[])se.peekData()).xarraydup;
-                        uint cnt = setMangleOverride(s, name);
-                        if (cnt > 1)
-                        pd.error("can only apply to a single declaration");
+                        if (auto se = verifyMangleString(e))
+                        {
+                            const name = (cast(const(char)[])se.peekData()).xarraydup;
+                            ad.mangleOverride.id = Identifier.idPool(name);
+                            e = se;
+                        }
+                        else
+                            e.error("must be a string");
                     }
+                    if (agg)
+                    {
+                        ad.mangleOverride.agg = agg;
+                        if (pd.args.dim == 2)
+                        {
+                            setString((*pd.args)[1]);
+                        }
+                        else
+                            ad.mangleOverride.id = agg.ident;
+                    }
+                    else
+                        setString((*pd.args)[0]);
+                }
+                else if (auto td = s.isTemplateDeclaration())
+                {
+                    pd.error("cannot apply to a template declaration");
+                    errorSupplemental(pd.loc, "use `template Class(Args...){ pragma(mangle, \"other_name\") class Class {}`");
+                }
+                else if (auto se = verifyMangleString((*pd.args)[0]))
+                {
+                    const name = (cast(const(char)[])se.peekData()).xarraydup;
+                    uint cnt = setMangleOverride(s, name);
+                    if (cnt > 1)
+                        pd.error("can only apply to a single declaration");
                 }
             }
-            if (sc2 != sc)
-                sc2.pop();
         }
 
         void noDeclarations()
@@ -1881,7 +1996,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
-        if (global.params.mscoff)
+        if (target.mscoff)
         {
             if (pd.ident == Id.linkerDirective)
             {
@@ -1996,65 +2111,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (!pd.args)
                 pd.args = new Expressions();
-            if (pd.args.dim != 1)
+            if (pd.args.dim == 0 || pd.args.dim > 2)
             {
-                pd.error("string expected for mangled name");
+                pd.error(pd.args.dim == 0 ? "string expected for mangled name"
+                                          : "expected 1 or 2 arguments");
                 pd.args.setDim(1);
                 (*pd.args)[0] = ErrorExp.get(); // error recovery
-                return declarations();
             }
-
-            auto se = semanticString(sc, (*pd.args)[0], "mangled name");
-            if (!se)
-                return declarations();
-            (*pd.args)[0] = se; // Will be used later
-
-            if (!se.len)
-            {
-                pd.error("zero-length string not allowed for mangled name");
-                return declarations();
-            }
-            if (se.sz != 1)
-            {
-                pd.error("mangled name characters can only be of type `char`");
-                return declarations();
-            }
-            version (all)
-            {
-                /* Note: D language specification should not have any assumption about backend
-                 * implementation. Ideally pragma(mangle) can accept a string of any content.
-                 *
-                 * Therefore, this validation is compiler implementation specific.
-                 */
-                auto slice = se.peekString();
-                for (size_t i = 0; i < se.len;)
-                {
-                    dchar c = slice[i];
-                    if (c < 0x80)
-                    {
-                        if (c.isValidMangling)
-                        {
-                            ++i;
-                            continue;
-                        }
-                        else
-                        {
-                            pd.error("char 0x%02x not allowed in mangled name", c);
-                            break;
-                        }
-                    }
-                    if (const msg = utf_decodeChar(slice, i, c))
-                    {
-                        pd.error("%.*s", cast(int)msg.length, msg.ptr);
-                        break;
-                    }
-                    if (!isUniAlpha(c))
-                    {
-                        pd.error("char `0x%04x` not allowed in mangled name", c);
-                        break;
-                    }
-                }
-            }
+            return declarations();
         }
         else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
         {
@@ -2173,7 +2237,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const sident = se.toStringz();
             if (!sident.length || !Identifier.isValidIdentifier(sident))
             {
-                ns.exp.error("expected valid identifer for C++ namespace but got `%.*s`",
+                ns.exp.error("expected valid identifier for C++ namespace but got `%.*s`",
                              cast(int)sident.length, sident.ptr);
                 return null;
             }
@@ -2364,7 +2428,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (auto te = ed.memtype.isTypeEnum())
             {
                 EnumDeclaration sym = cast(EnumDeclaration)te.toDsymbol(sc);
-                if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
+                // Special enums like __c_[u]long[long] are fine to forward reference
+                // see https://issues.dlang.org/show_bug.cgi?id=20599
+                if (!sym.isSpecial() && (!sym.memtype ||  !sym.members || !sym.symtab || sym._scope))
                 {
                     // memtype is forward referenced, so try again later
                     deferDsymbolSemantic(ed, scx);
@@ -2373,6 +2439,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     ed.semanticRun = PASS.init;
                     return;
                 }
+                else
+                    // Ensure that semantic is run to detect. e.g. invalid forward references
+                    sym.dsymbolSemantic(sc);
             }
             if (ed.memtype.ty == Tvoid)
             {
@@ -3133,7 +3202,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 const(char)[] ident = name.toStringz();
                 if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
                 {
-                    error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                    error(ns.loc, "expected valid identifier for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
                     return;
                 }
                 ns.ident = Identifier.idPool(ident);
@@ -3153,7 +3222,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     const(char)[] ident = name.toStringz();
                     if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
                     {
-                        error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                        error(ns.loc, "expected valid identifier for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
                         return;
                     }
                     if (i == 0)
@@ -3684,7 +3753,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 /* These quirky conditions mimic what VC++ appears to do
                  */
-                if (global.params.mscoff && cd.classKind == ClassKind.cpp &&
+                if (target.mscoff && cd.classKind == ClassKind.cpp &&
                     cd.baseClass && cd.baseClass.vtbl.dim)
                 {
                     /* if overriding an interface function, then this is not
@@ -4142,8 +4211,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
                 sc._module.members.push(tm);
             }
-
-            rootHasMain = sc._module;
         }
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
@@ -5098,7 +5165,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Treat the remaining entries in baseclasses as interfaces
             // Check for errors, handle forward references
-            bool multiClassError = false;
+            int multiClassError = cldec.baseClass is null ? 0 : 1;
 
             BCLoop:
             for (size_t i = (cldec.baseClass ? 1 : 0); i < cldec.baseclasses.dim;)
@@ -5111,19 +5178,26 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // It's a class
                     if (tc)
                     {
-                        if (!multiClassError)
+                        if (multiClassError == 0)
                         {
-                            error(cldec.loc,"`%s`: multiple class inheritance is not supported." ~
-                                  " Use multiple interface inheritance and/or composition.", cldec.toPrettyChars());
-                            multiClassError = true;
+                            error(cldec.loc,"`%s`: base class must be specified first, " ~
+                                  "before any interfaces.", cldec.toPrettyChars());
+                            multiClassError += 1;
                         }
+                        else if (multiClassError >= 1)
+                        {
+                                if(multiClassError == 1)
+                                    error(cldec.loc,"`%s`: multiple class inheritance is not supported." ~
+                                          " Use multiple interface inheritance and/or composition.", cldec.toPrettyChars());
+                                multiClassError += 1;
 
-                        if (tc.sym.fields.dim)
-                            errorSupplemental(cldec.loc,"`%s` has fields, consider making it a member of `%s`",
-                                              b.type.toChars(), cldec.type.toChars());
-                        else
-                            errorSupplemental(cldec.loc,"`%s` has no fields, consider making it an `interface`",
-                                              b.type.toChars());
+                                if (tc.sym.fields.dim)
+                                    errorSupplemental(cldec.loc,"`%s` has fields, consider making it a member of `%s`",
+                                                      b.type.toChars(), cldec.type.toChars());
+                                else
+                                    errorSupplemental(cldec.loc,"`%s` has no fields, consider making it an `interface`",
+                                                      b.type.toChars());
+                        }
                     }
                     // It's something else: e.g. `int` in `class Foo : Bar, int { ... }`
                     else if (b.type != Type.terror)

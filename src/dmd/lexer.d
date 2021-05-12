@@ -844,6 +844,11 @@ class Lexer
                     p++;
                     t.value = TOK.minusMinus;
                 }
+                else if (*p == '>')
+                {
+                    ++p;
+                    t.value = TOK.arrow;
+                }
                 else
                     t.value = TOK.min;
                 return;
@@ -973,11 +978,11 @@ class Lexer
                 return;
             case '(':
                 p++;
-                t.value = TOK.leftParentheses;
+                t.value = TOK.leftParenthesis;
                 return;
             case ')':
                 p++;
-                t.value = TOK.rightParentheses;
+                t.value = TOK.rightParenthesis;
                 return;
             case '[':
                 p++;
@@ -1009,7 +1014,13 @@ class Lexer
                 return;
             case ':':
                 p++;
-                t.value = TOK.colon;
+                if (*p == ':')
+                {
+                    ++p;
+                    t.value = TOK.colonColon;
+                }
+                else
+                    t.value = TOK.colon;
                 return;
             case '$':
                 p++;
@@ -1120,10 +1131,10 @@ class Lexer
             //tk.print();
             switch (tk.value)
             {
-            case TOK.leftParentheses:
+            case TOK.leftParenthesis:
                 parens++;
                 continue;
-            case TOK.rightParentheses:
+            case TOK.rightParenthesis:
                 --parens;
                 if (parens)
                     continue;

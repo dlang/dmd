@@ -36,6 +36,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
 import dmd.statement;
+import dmd.target;
 import dmd.tokens;
 
 //version=LOGSEARCH;
@@ -578,6 +579,7 @@ struct Scope
      */
     extern (D) static const(char)* search_correct_C(Identifier ident)
     {
+        import dmd.mtype : Twchar;
         TOK tok;
         if (ident == Id.NULL)
             tok = TOK.null_;
@@ -588,7 +590,7 @@ struct Scope
         else if (ident == Id.unsigned)
             tok = TOK.uns32;
         else if (ident == Id.wchar_t)
-            tok = global.params.targetOS == TargetOS.Windows ? TOK.wchar_ : TOK.dchar_;
+            tok = target.c.twchar_t.ty == Twchar ? TOK.wchar_ : TOK.dchar_;
         else
             return null;
         return Token.toChars(tok);
@@ -695,7 +697,7 @@ struct Scope
     *
     * Returns: `true` if this or any parent scope is deprecated, `false` otherwise`
     */
-    extern(C++) bool isDeprecated() const
+    extern(C++) bool isDeprecated() @safe @nogc pure nothrow const
     {
         for (const(Dsymbol)* sp = &(this.parent); *sp; sp = &(sp.parent))
         {

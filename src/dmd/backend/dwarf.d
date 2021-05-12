@@ -18,7 +18,8 @@ import dmd.backend.type;
 extern (C++):
 
 nothrow:
-
+@safe
+{
 void dwarf_initfile(const(char) *filename);
 void dwarf_termfile();
 void dwarf_initmodule(const(char) *filename, const(char) *modulename);
@@ -36,3 +37,4 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
 void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset);
 void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, uint startoffset, uint retoffset);
 int dwarf_eh_frame_fixup(int seg, targ_size_t offset, Symbol *s, targ_size_t val, Symbol *seh);
+}

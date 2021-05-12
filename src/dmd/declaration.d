@@ -1651,7 +1651,37 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool enclosesLifetimeOf(VarDeclaration v) const pure
     {
-        return sequenceNumber < v.sequenceNumber;
+        // VarDeclaration's with these STC's need special treatment
+        enum special = STC.temp | STC.foreach_;
+
+        // Sequence numbers work when there are no special VarDeclaration's involved
+        if (!((this.storage_class | v.storage_class) & special))
+        {
+            // FIXME: VarDeclaration's for parameters are created in semantic3, so
+            //        they will have a greater sequence number than local variables.
+            //        Hence reverse the result for mixed comparisons.
+            const exp = this.isParameter() == v.isParameter();
+
+            return (this.sequenceNumber < v.sequenceNumber) == exp;
+        }
+
+        // Assume that semantic produces temporaries according to their lifetime
+        // (It won't create a temporary before the actual content)
+        if ((this.storage_class & special) && (v.storage_class & special))
+            return this.sequenceNumber < v.sequenceNumber;
+
+        // Fall back to lexical order
+        assert(this.loc != Loc.initial);
+        assert(v.loc != Loc.initial);
+
+        if (auto ld = this.loc.linnum - v.loc.linnum)
+            return ld < 0;
+
+        if (auto cd = this.loc.charnum - v.loc.charnum)
+            return cd < 0;
+
+        // Default fallback
+        return this.sequenceNumber < v.sequenceNumber;
     }
 
     /***************************************

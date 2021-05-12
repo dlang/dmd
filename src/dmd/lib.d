@@ -17,6 +17,7 @@ import core.stdc.stdarg;
 
 import dmd.globals;
 import dmd.errors;
+import dmd.target;
 import dmd.utils;
 
 import dmd.root.outbuffer;
@@ -24,23 +25,10 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.string;
 
-static if (TARGET.Windows)
-{
-    import dmd.libomf;
-    import dmd.libmscoff;
-}
-else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-{
-    import dmd.libelf;
-}
-else static if (TARGET.OSX)
-{
-    import dmd.libmach;
-}
-else
-{
-    static assert(0, "unsupported system");
-}
+import dmd.libomf;
+import dmd.libmscoff;
+import dmd.libelf;
+import dmd.libmach;
 
 private enum LOG = false;
 
@@ -48,18 +36,19 @@ class Library
 {
     static Library factory()
     {
-        static if (TARGET.Windows)
+        if (target.os == Target.OS.Windows)
         {
-            return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
+            return (target.mscoff || target.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
             return LibElf_factory();
         }
-        else static if (TARGET.OSX)
+        else if (target.os == Target.OS.OSX)
         {
             return LibMach_factory();
         }
+        assert(0);
     }
 
     abstract void addObject(const(char)[] module_name, const ubyte[] buf);
@@ -88,12 +77,12 @@ class Library
             // Generate lib file name from first obj name
             const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
+            arg = FileName.forceExt(n, target.lib_ext);
         }
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, global.lib_ext).ptr, 0, 0);
+        loc = Loc(FileName.defaultExt(arg, target.lib_ext).ptr, 0, 0);
     }
 
     final const(char)* getFilename() const

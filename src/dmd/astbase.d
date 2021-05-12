@@ -1562,7 +1562,7 @@ struct ASTBase
         {
             super(ident);
             this.arg = filename;
-            srcfile = FileName(FileName.defaultExt(filename.toDString, global.mars_ext));
+            srcfile = FileName(FileName.defaultExt(filename.toDString, mars_ext));
         }
 
         override void accept(Visitor v)
@@ -2022,6 +2022,9 @@ struct ASTBase
         nothrow pure @nogc
         inout(ReturnStatement) isReturnStatement() inout { return stmt == STMT.Return ? cast(typeof(return))this : null; }
 
+        nothrow pure @nogc
+        inout(BreakStatement) isBreakStatement() inout { return stmt == STMT.Break ? cast(typeof(return))this : null; }
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -2130,11 +2133,12 @@ struct ASTBase
 
     extern (C++) final class WhileStatement : Statement
     {
+        Parameter param;
         Expression condition;
         Statement _body;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc)
+        extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc, Parameter param = null)
         {
             super(loc, STMT.While);
             condition = c;
@@ -2937,7 +2941,7 @@ struct ASTBase
             twstring = twchar.immutableOf().arrayOf();
             tdstring = tdchar.immutableOf().arrayOf();
 
-            const isLP64 = global.params.isLP64;
+            const isLP64 = Target.isLP64;
 
             tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
             tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
@@ -6805,28 +6809,6 @@ struct ASTBase
     struct Target
     {
         extern (C++) __gshared int ptrsize;
-
-        extern (C++) static Type va_listType(const ref Loc loc, Scope* sc)
-        {
-            if (global.params.targetOS == TargetOS.Windows)
-            {
-                return Type.tchar.pointerTo();
-            }
-            else if (global.params.targetOS & TargetOS.Posix)
-            {
-                if (global.params.is64bit)
-                {
-                    return (new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag"))).pointerTo();
-                }
-                else
-                {
-                    return Type.tchar.pointerTo();
-                }
-            }
-            else
-            {
-                assert(0);
-            }
-        }
+        extern (C++) __gshared bool isLP64;
     }
 }

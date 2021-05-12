@@ -250,6 +250,20 @@ public:
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
+        if (auto p = s.param)
+        {
+            // Print condition assignment
+            StorageClass stc = p.storageClass;
+            if (!p.type && !stc)
+                stc = STC.auto_;
+            if (stcToBuffer(buf, stc))
+                buf.writeByte(' ');
+            if (p.type)
+                typeToBuffer(p.type, p.ident, buf, hgs);
+            else
+                buf.writestring(p.ident.toString());
+            buf.writestring(" = ");
+        }
         s.condition.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
@@ -734,8 +748,8 @@ public:
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
                 t.value != TOK.leftBracket && t.next.value != TOK.leftBracket &&
                                           t.next.value != TOK.rightBracket &&
-                t.value != TOK.leftParentheses   && t.next.value != TOK.leftParentheses   &&
-                                          t.next.value != TOK.rightParentheses   &&
+                t.value != TOK.leftParenthesis   && t.next.value != TOK.leftParenthesis   &&
+                                          t.next.value != TOK.rightParenthesis   &&
                 t.value != TOK.dot      && t.next.value != TOK.dot)
             {
                 buf.writeByte(' ');

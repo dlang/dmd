@@ -37,9 +37,6 @@ version (DMDLIB)
 
 extern (C++) __gshared
 {
-    /// Module in which the D main is
-    Module rootHasMain = null;
-
     bool includeImports = false;
     // array of module patterns used to include/exclude imported modules
     Array!(const(char)*) includeModulePatterns;

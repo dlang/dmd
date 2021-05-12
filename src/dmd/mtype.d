@@ -909,7 +909,7 @@ extern (C++) abstract class Type : ASTNode
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
 
-        const isLP64 = global.params.isLP64;
+        const isLP64 = target.isLP64;
 
         tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
         tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
@@ -2509,6 +2509,15 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
+    /***************************************
+     * Returns: true if type has any invariants
+     */
+    bool hasInvariant()
+    {
+        //printf("Type::hasInvariant() %s, %d\n", toChars(), ty);
+        return false;
+    }
+
     /*************************************
      * If this is a type of something, return that something.
      */
@@ -2630,6 +2639,10 @@ extern (C++) abstract class Type : ASTNode
     extern (D) final bool checkComplexTransition(const ref Loc loc, Scope* sc)
     {
         if (sc.isDeprecated())
+            return false;
+        // Don't complain if we're inside a template constraint
+        // https://issues.dlang.org/show_bug.cgi?id=21831
+        if (sc.flags & SCOPE.constraint)
             return false;
 
         Type t = baseElemOf();
@@ -3760,6 +3773,11 @@ extern (C++) final class TypeSArray : TypeArray
         }
         else
             return next.hasPointers();
+    }
+
+    override bool hasInvariant()
+    {
+        return next.hasInvariant();
     }
 
     override bool needsDestruction()
@@ -5972,6 +5990,24 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
+    override bool hasInvariant()
+    {
+        // Probably should cache this information in sym rather than recompute
+        StructDeclaration s = sym;
+
+        sym.size(Loc.initial); // give error for forward references
+
+        if (s.hasInvariant())
+            return true;
+
+        foreach (VarDeclaration v; s.fields)
+        {
+            if (v.type.hasInvariant())
+                return true;
+        }
+        return false;
+    }
+
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m;
@@ -6246,6 +6282,11 @@ extern (C++) final class TypeEnum : Type
     override bool hasVoidInitPointers()
     {
         return memType().hasVoidInitPointers();
+    }
+
+    override bool hasInvariant()
+    {
+        return memType().hasInvariant();
     }
 
     override Type nextOf()
@@ -6697,7 +6738,7 @@ extern (C++) final class TypeNoreturn : Type
 
     override bool isBoolean() const
     {
-        return false;
+        return true;  // bottom type can be implicitly converted to any other type
     }
 
     override d_uns64 size(const ref Loc loc) const

@@ -161,106 +161,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Strings files;
     Strings libmodules;
     global._init();
-    // Check for malformed input
-    if (argc < 1 || !argv)
-    {
-    Largs:
-        error(Loc.initial, "missing or null command line arguments");
-        fatal();
-    }
-    // Convert argc/argv into arguments[] for easier handling
-    Strings arguments = Strings(argc);
-    for (size_t i = 0; i < argc; i++)
-    {
-        if (!argv[i])
-            goto Largs;
-        arguments[i] = argv[i];
-    }
-    if (!responseExpand(arguments)) // expand response files
-        error(Loc.initial, "can't open response file");
-    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
-    files.reserve(arguments.dim - 1);
-    // Set default values
-    params.argv0 = arguments[0].toDString;
 
-    // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
-    static if (TARGET.Windows)
-    {
-        params.is64bit = false;
-        params.mscoff = false;
-    }
-
-    global.inifilename = parse_conf_arg(&arguments);
-    if (global.inifilename)
-    {
-        // can be empty as in -conf=
-        if (global.inifilename.length && !FileName.exists(global.inifilename))
-            error(Loc.initial, "Config file '%.*s' does not exist.",
-                  cast(int)global.inifilename.length, global.inifilename.ptr);
-    }
-    else
-    {
-        version (Windows)
-        {
-            global.inifilename = findConfFile(params.argv0, "sc.ini");
-        }
-        else version (Posix)
-        {
-            global.inifilename = findConfFile(params.argv0, "dmd.conf");
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-    }
-    // Read the configuration file
-    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
-    const inifileBuffer = iniReadResult.buffer.data;
-    /* Need path of configuration file, for use in expanding @P macro
-     */
-    const(char)[] inifilepath = FileName.path(global.inifilename);
-    Strings sections;
-    StringTable!(char*) environment;
-    environment._init(7);
-    /* Read the [Environment] section, so we can later
-     * pick up any DFLAGS settings.
-     */
-    sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
-
-    const(char)[] arch = params.is64bit ? "64" : "32"; // use default
-    arch = parse_arch_arg(&arguments, arch);
-
-    // parse architecture from DFLAGS read from [Environment] section
-    {
-        Strings dflags;
-        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
-        environment.reset(7); // erase cached environment updates
-        arch = parse_arch_arg(&dflags, arch);
-    }
-
-    bool is64bit = arch[0] == '6';
-
-    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-        if (is64bit || arch == "32mscoff")
-            environment.update("LIB", 3).value = null;
-
-    // read from DFLAGS in [Environment{arch}] section
-    char[80] envsection = void;
-    sprintf(envsection.ptr, "Environment%.*s", cast(int) arch.length, arch.ptr);
-    sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
-    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
-    updateRealEnvironment(environment);
-    environment.reset(1); // don't need environment cache any more
-
-    if (parseCommandLine(arguments, argc, params, files))
-    {
-        Loc loc;
-        errorSupplemental(loc, "run `dmd` to print the compiler manual");
-        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
+    if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
-    }
 
     if (params.usage)
     {
@@ -285,6 +188,15 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         printf("%.*s", cast(int)help.length, &help[0]);
         return global.errors ? EXIT_FAILURE : EXIT_SUCCESS;
+    }
+
+    /*
+    Print a message to make it clear when warnings are treated as errors.
+    */
+    static void errorOnWarning()
+    {
+        error(Loc.initial, "warnings are treated as errors");
+        errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
     }
 
     /*
@@ -350,11 +262,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
-    setTarget(params);           // set target operating system
-    setTargetCPU(params);
-    if (params.is64bit != is64bit)
-        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
-              envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
+    target.os = defaultTargetOS();           // set target operating system
+    target.setCPU();
 
     if (global.errors)
     {
@@ -371,7 +280,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(params, files.dim);
+    reconcileCommands(params);
 
     // Add in command line versions
     if (params.versionids)
@@ -380,8 +289,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.debugids)
         foreach (charz; *params.debugids)
             DebugCondition.addGlobalIdent(charz.toDString());
-
-    setTarget(params);
 
     setDefaultLibrary();
 
@@ -395,6 +302,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     import dmd.filecache : FileCache;
     FileCache._init();
 
+    reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -404,7 +312,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     CTFloat.initialize();
 
     // Predefined version identifiers
-    addDefaultVersionIdentifiers(params);
+    addDefaultVersionIdentifiers(params, target);
 
     if (params.verbose)
     {
@@ -625,6 +533,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
+    if (global.warnings)
+        errorOnWarning();
+
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
@@ -772,12 +683,125 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.emitMakeDeps)
         emitMakeDeps(params, library);
 
+    if (global.warnings)
+        errorOnWarning();
+
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
 
     return status;
 }
 
+/**
+ * Parses the command line arguments and configuration files
+ *
+ * Params:
+ *   argc = Number of arguments passed via command line
+ *   argv = Array of string arguments passed via command line
+ *   params = parametes from argv
+ *   files = files from argv
+ * Returns: true on faiure
+ */
+version(NoMain) {} else
+bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
+{
+    // Detect malformed input
+    static bool badArgs()
+    {
+        error(Loc.initial, "missing or null command line arguments");
+        return true;
+    }
+
+    if (argc < 1 || !argv)
+        return badArgs();
+    // Convert argc/argv into arguments[] for easier handling
+    Strings arguments = Strings(argc);
+    for (size_t i = 0; i < argc; i++)
+    {
+        if (!argv[i])
+            return badArgs();
+        arguments[i] = argv[i];
+    }
+    if (const(char)* missingFile = responseExpand(arguments)) // expand response files
+        error(Loc.initial, "cannot open response file '%s'", missingFile);
+    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
+    files.reserve(arguments.dim - 1);
+    // Set default values
+    params.argv0 = arguments[0].toDString;
+
+    version (Windows)
+        enum iniName = "sc.ini";
+    else version (Posix)
+        enum iniName = "dmd.conf";
+    else
+        static assert(0, "fix this");
+
+    global.inifilename = parse_conf_arg(&arguments);
+    if (global.inifilename)
+    {
+        // can be empty as in -conf=
+        if (global.inifilename.length && !FileName.exists(global.inifilename))
+            error(Loc.initial, "Config file '%.*s' does not exist.",
+                  cast(int)global.inifilename.length, global.inifilename.ptr);
+    }
+    else
+    {
+        global.inifilename = findConfFile(params.argv0, iniName);
+    }
+    // Read the configuration file
+    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
+    const inifileBuffer = iniReadResult.buffer.data;
+    /* Need path of configuration file, for use in expanding @P macro
+     */
+    const(char)[] inifilepath = FileName.path(global.inifilename);
+    Strings sections;
+    StringTable!(char*) environment;
+    environment._init(7);
+    /* Read the [Environment] section, so we can later
+     * pick up any DFLAGS settings.
+     */
+    sections.push("Environment");
+    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+
+    const(char)[] arch = target.is64bit ? "64" : "32"; // use default
+    arch = parse_arch_arg(&arguments, arch);
+
+    // parse architecture from DFLAGS read from [Environment] section
+    {
+        Strings dflags;
+        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
+        environment.reset(7); // erase cached environment updates
+        arch = parse_arch_arg(&dflags, arch);
+    }
+
+    bool is64bit = arch[0] == '6';
+
+    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
+    if (is64bit || arch == "32mscoff")
+        environment.update("LIB", 3).value = null;
+
+    // read from DFLAGS in [Environment{arch}] section
+    char[80] envsection = void;
+    sprintf(envsection.ptr, "Environment%.*s", cast(int) arch.length, arch.ptr);
+    sections.push(envsection.ptr);
+    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
+    updateRealEnvironment(environment);
+    environment.reset(1); // don't need environment cache any more
+
+    if (parseCommandLine(arguments, argc, params, files))
+    {
+        Loc loc;
+        errorSupplemental(loc, "run `dmd` to print the compiler manual");
+        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
+        return true;
+    }
+
+    if (target.is64bit != is64bit)
+        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
+              envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
+    return false;
+}
 /// Emit the makefile dependencies for the -makedeps switch
 version (NoMain) {} else
 {
@@ -895,7 +919,7 @@ extern (C++) void generateJson(Modules* modules)
         const(char)[] jsonfilename;
         if (name)
         {
-            jsonfilename = FileName.defaultExt(name, global.json_ext);
+            jsonfilename = FileName.defaultExt(name, json_ext);
         }
         else
         {
@@ -909,7 +933,7 @@ extern (C++) void generateJson(Modules* modules)
             n = FileName.name(n);
             //if (!FileName::absolute(name))
             //    name = FileName::combine(dir, name);
-            jsonfilename = FileName.forceExt(n, global.json_ext);
+            jsonfilename = FileName.forceExt(n, json_ext);
         }
         writeFile(Loc.initial, jsonfilename, buf[]);
     }
@@ -1202,26 +1226,26 @@ private void setDefaultLibrary()
 {
     if (global.params.defaultlibname is null)
     {
-        static if (TARGET.Windows)
+        if (target.os == Target.OS.Windows)
         {
-            if (global.params.is64bit)
+            if (target.is64bit)
                 global.params.defaultlibname = "phobos64";
-            else if (global.params.mscoff)
+            else if (target.mscoff)
                 global.params.defaultlibname = "phobos32mscoff";
             else
                 global.params.defaultlibname = "phobos";
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
             global.params.defaultlibname = "libphobos2.a";
         }
-        else static if (TARGET.OSX)
+        else if (target.os == Target.OS.OSX)
         {
             global.params.defaultlibname = "phobos2";
         }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "fix this");
         }
     }
     else if (!global.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
@@ -1229,32 +1253,6 @@ private void setDefaultLibrary()
 
     if (global.params.debuglibname is null)
         global.params.debuglibname = global.params.defaultlibname;
-}
-
-/*************************************
- * Set the `is` target fields of `params` according
- * to the TARGET value.
- * Params:
- *      params = where the `is` fields are
- */
-void setTarget(ref Param params)
-{
-    static if (TARGET.Windows)
-        params.targetOS = TargetOS.Windows;
-    else static if (TARGET.Linux)
-        params.targetOS = TargetOS.linux;
-    else static if (TARGET.OSX)
-        params.targetOS = TargetOS.OSX;
-    else static if (TARGET.FreeBSD)
-        params.targetOS = TargetOS.FreeBSD;
-    else static if (TARGET.OpenBSD)
-        params.targetOS = TargetOS.OpenBSD;
-    else static if (TARGET.Solaris)
-        params.targetOS = TargetOS.Solaris;
-    else static if (TARGET.DragonFlyBSD)
-        params.targetOS = TargetOS.DragonFlyBSD;
-    else
-        static assert(0, "unknown TARGET");
 }
 
 /**
@@ -1268,116 +1266,17 @@ void setTarget(ref Param params)
  *
  * Params:
  *      params = which target to compile for (set by `setTarget()`)
+ *      tgt    = target
  */
-void addDefaultVersionIdentifiers(const ref Param params)
+void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    if (params.targetOS == TargetOS.Windows)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Windows");
-        if (global.params.mscoff)
-        {
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
-            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Microsoft");
-        }
-        else
-        {
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
-            VersionCondition.addPredefinedGlobalIdent("CppRuntime_DigitalMars");
-        }
-    }
-    else if (params.targetOS == TargetOS.linux)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("linux");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        // Note: This should be done with a target triplet, to support cross compilation.
-        // However DMD currently does not support it, so this is a simple
-        // fix to make DMD compile on Musl-based systems such as Alpine.
-        // See https://github.com/dlang/dmd/pull/8020
-        // And https://wiki.osdev.org/Target_Triplet
-        version (CRuntime_Musl)
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
-        else
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
-    }
-    else if (params.targetOS == TargetOS.OSX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OSX");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
-        // For legacy compatibility
-        VersionCondition.addPredefinedGlobalIdent("darwin");
-    }
-    else if (params.targetOS == TargetOS.FreeBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
-        VersionCondition.addPredefinedGlobalIdent("FreeBSD_" ~ target.FreeBSDMajor);
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
-    }
-    else if (params.targetOS == TargetOS.OpenBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
-    }
-    else if (params.targetOS == TargetOS.DragonFlyBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
-    }
-    else if (params.targetOS == TargetOS.Solaris)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("Solaris");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Sun");
-    }
-    else
-    {
-        assert(0);
-    }
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
-    if (params.cpu >= CPU.sse2)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        if (params.cpu >= CPU.avx)
-            VersionCondition.addPredefinedGlobalIdent("D_AVX");
-        if (params.cpu >= CPU.avx2)
-            VersionCondition.addPredefinedGlobalIdent("D_AVX2");
-    }
+    tgt.addPredefinedGlobalIdentifiers();
 
-    if (params.is64bit)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-        VersionCondition.addPredefinedGlobalIdent("X86_64");
-        if (params.targetOS & TargetOS.Windows)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win64");
-        }
-    }
-    else
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-        VersionCondition.addPredefinedGlobalIdent("X86");
-        if (params.targetOS == TargetOS.Windows)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win32");
-        }
-    }
-
-    if (params.isLP64)
-        VersionCondition.addPredefinedGlobalIdent("D_LP64");
     if (params.doDocComments)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
     if (params.cov)
@@ -1453,41 +1352,6 @@ extern(C) void printGlobalConfigs(FILE* stream)
         auto res = buf[] ? buf[][0 .. $ - 1] : "(none)";
         stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
-}
-
-/****************************************
- * Determine the instruction set to be used, i.e. set params.cpu
- * by combining the command line setting of
- * params.cpu with the target operating system.
- * Params:
- *      params = parameters set by command line switch
- */
-
-private void setTargetCPU(ref Param params)
-{
-    if (target.isXmmSupported())
-    {
-        switch (params.cpu)
-        {
-            case CPU.baseline:
-                params.cpu = CPU.sse2;
-                break;
-
-            case CPU.native:
-            {
-                import core.cpuid;
-                params.cpu = core.cpuid.avx2 ? CPU.avx2 :
-                             core.cpuid.avx  ? CPU.avx  :
-                                               CPU.sse2;
-                break;
-            }
-
-            default:
-                break;
-        }
-    }
-    else
-        params.cpu = CPU.x87;   // cannot support other instruction sets
 }
 
 /**************************************
@@ -1659,7 +1523,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         const(char)[] arg = p.toDString();
         if (*p != '-')
         {
-            static if (TARGET.Windows)
+            if (target.os == Target.OS.Windows)
             {
                 const ext = FileName.ext(arg);
                 if (ext.length && FileName.equals(ext, "exe"))
@@ -1817,25 +1681,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.dll = true;
         else if (arg == "-fPIC")
         {
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                params.pic = PIC.pic;
-            }
-            else
-            {
-                goto Lerror;
-            }
+            params.pic = PIC.pic;
         }
         else if (arg == "-fPIE")
         {
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                params.pic = PIC.pie;
-            }
-            else
-            {
-                goto Lerror;
-            }
+            params.pic = PIC.pie;
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             dmdParams.map = true;
@@ -1852,27 +1702,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebug = 1;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
-            static if (TARGET.Windows)
+            if (dmdParams.dwarf)
             {
-                goto Lerror;
+                error("`-gdwarf=<version>` can only be provided once");
+                break;
             }
-            else
-            {
-                if (dmdParams.dwarf)
-                {
-                    error("`-gdwarf=<version>` can only be provided once");
-                    break;
-                }
-                params.symdebug = 1;
+            params.symdebug = 1;
 
-                enum len = "-gdwarf=".length;
-                // Parse:
-                //      -gdwarf=version
-                if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
-                {
-                    error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
-                    return false;
-                }
+            enum len = "-gdwarf=".length;
+            // Parse:
+            //      -gdwarf=version
+            if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
+            {
+                error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
+                return false;
             }
         }
         else if (arg == "-gf")
@@ -1895,43 +1738,21 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-            static if (TARGET.DragonFlyBSD) {
-                error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
-            } else {
-                params.is64bit = false;
-                params.mscoff = false;
-            }
+                target.is64bit = false;
+                target.mscoff = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
-            params.is64bit = true;
-            static if (TARGET.Windows)
-            {
-                params.mscoff = true;
-            }
+            target.is64bit = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
-            static if (TARGET.Windows)
-            {
-                params.is64bit = 0;
-                params.mscoff = true;
-            }
-            else
-            {
-                error("-m32mscoff can only be used on windows");
-            }
+            target.is64bit = false;
+            target.mscoff = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
-            static if (TARGET.Windows)
-            {
-                params.mscrtlib = arg[10 .. $];
-            }
-            else
-            {
-                error("-mscrtlib");
-            }
+            params.mscrtlib = arg[10 .. $];
         }
         else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
         {
@@ -2029,16 +1850,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch (ident.toDString())
                 {
                 case "baseline":
-                    params.cpu = CPU.baseline;
+                    target.cpu = CPU.baseline;
                     break;
                 case "avx":
-                    params.cpu = CPU.avx;
+                    target.cpu = CPU.avx;
                     break;
                 case "avx2":
-                    params.cpu = CPU.avx2;
+                    target.cpu = CPU.avx2;
                     break;
                 case "native":
-                    params.cpu = CPU.native;
+                    target.cpu = CPU.native;
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
@@ -2113,7 +1934,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.dtorFields = FeatureState.enabled;
                             break;
                         case 14_488:
-                            params.vcomplex = true;
                             break;
                         case 16_997:
                             params.fix16997 = true;
@@ -2316,16 +2136,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "Xcc="))
         {
-            // Linking code is guarded by version (Posix):
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            {
-                params.linkswitches.push(p + 5);
-                params.linkswitchIsForCC.push(true);
-            }
-            else
-            {
-                goto Lerror;
-            }
+            params.linkswitches.push(p + 5);
+            params.linkswitchIsForCC.push(true);
         }
         else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
         {
@@ -2608,7 +2420,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 const(char)[] runarg = arguments[i + 1].toDString();
                 const(char)[] ext = FileName.ext(runarg);
-                if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
+                if (ext && FileName.equals(ext, mars_ext) == 0 && FileName.equals(ext, hdr_ext) == 0)
                 {
                     error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
                     break;
@@ -2653,29 +2465,67 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
  *      numSrcFiles = number of source files
  */
 version (NoMain) {} else
-private void reconcileCommands(ref Param params, size_t numSrcFiles)
+private void reconcileCommands(ref Param params)
 {
-    static if (TARGET.OSX)
+    if (target.os == Target.OS.OSX)
     {
         params.pic = PIC.pic;
     }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+    else if (target.os == Target.OS.Windows)
+    {
+        if (params.pic)
+            error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
+        if (dmdParams.dwarf)
+            error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
+        if (target.is64bit)
+            target.mscoff = true;
+    }
+    else if (target.os == Target.OS.DragonFlyBSD)
+    {
+        if (!target.is64bit)
+            error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
+    }
+
+    if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
         if (params.lib && params.dll)
-            error(Loc.initial, "cannot mix -lib and -shared");
+            error(Loc.initial, "cannot mix `-lib` and `-shared`");
     }
-    static if (TARGET.Windows)
+    if (target.os == Target.OS.Windows)
     {
-        if (params.mscoff && !params.mscrtlib)
+        foreach(b; params.linkswitchIsForCC[])
         {
-            VSOptions vsopt;
-            vsopt.initialize();
-            params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
+            if (b)
+            {
+                // Linking code is guarded by version (Posix):
+                error(Loc.initial, "`Xcc=` link switches not available for this operating system");
+                break;
+            }
         }
+
+        if (target.mscoff && !params.mscrtlib)
+        {
+            version (Windows)
+            {
+                VSOptions vsopt;
+                vsopt.initialize();
+                params.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
+            }
+            else
+                error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
+        }
+    }
+    else
+    {
+        if (!target.is64bit && target.mscoff)
+            error(Loc.initial, "`-m32mscoff` can only be used when targetting windows");
+        if (params.mscrtlib)
+            error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
 
     // Target uses 64bit pointers.
-    params.isLP64 = params.is64bit;
+    // FIXME: X32 is 64bit but uses 32 bit pointers
+    target.isLP64 = target.is64bit;
 
     if (params.boundscheck != CHECKENABLE._default)
     {
@@ -2738,7 +2588,18 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
         params.useExceptions = false;
     }
 
+}
 
+/***********************************************
+ * Adjust link, run and lib line switches and reconcile them.
+ * Params:
+ *      params = switches gathered from command line,
+ *               and update in place
+ *      numSrcFiles = number of source files
+ */
+version (NoMain) {} else
+private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
+{
     if (!params.obj || params.lib)
         params.link = false;
     if (params.link)
@@ -2750,7 +2611,7 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            params.objname = FileName.forceExt(params.objname, global.obj_ext);
+            params.objname = FileName.forceExt(params.objname, target.obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
@@ -2836,44 +2697,44 @@ Module createModule(const(char)* file, ref Strings libmodules)
 
     /* Deduce what to do with a file based on its extension
         */
-    if (FileName.equals(ext, global.obj_ext))
+    if (FileName.equals(ext, target.obj_ext))
     {
         global.params.objfiles.push(file);
         libmodules.push(file);
         return null;
     }
-    if (FileName.equals(ext, global.lib_ext))
+    if (FileName.equals(ext, target.lib_ext))
     {
         global.params.libfiles.push(file);
         libmodules.push(file);
         return null;
     }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+    if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
-        if (FileName.equals(ext, global.dll_ext))
+        if (FileName.equals(ext, target.dll_ext))
         {
             global.params.dllfiles.push(file);
             libmodules.push(file);
             return null;
         }
     }
-    if (ext == global.ddoc_ext)
+    if (ext == ddoc_ext)
     {
         global.params.ddocfiles.push(file);
         return null;
     }
-    if (FileName.equals(ext, global.json_ext))
+    if (FileName.equals(ext, json_ext))
     {
         global.params.doJsonGeneration = true;
         global.params.jsonfilename = file.toDString;
         return null;
     }
-    if (FileName.equals(ext, global.map_ext))
+    if (FileName.equals(ext, map_ext))
     {
         global.params.mapfile = file.toDString;
         return null;
     }
-    static if (TARGET.Windows)
+    if (target.os == Target.OS.Windows)
     {
         if (FileName.equals(ext, "res"))
         {
@@ -2893,7 +2754,7 @@ Module createModule(const(char)* file, ref Strings libmodules)
     /* Examine extension to see if it is a valid
         * D source file extension
         */
-    if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
+    if (FileName.equals(ext, mars_ext) || FileName.equals(ext, hdr_ext) || FileName.equals(ext, dd_ext))
     {
         name = FileName.removeExt(p);
         if (!name.length || name == ".." || name == ".")
@@ -2937,9 +2798,9 @@ Modules createModules(ref Strings files, ref Strings libmodules)
     Modules modules;
     modules.reserve(files.dim);
     bool firstmodule = true;
-    for (size_t i = 0; i < files.dim; i++)
+    foreach(file; files)
     {
-        auto m = createModule(files[i], libmodules);
+        auto m = createModule(file, libmodules);
 
         if (m is null)
             continue;

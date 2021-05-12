@@ -107,13 +107,13 @@ bool ISX64REF(Declaration var)
 
     if (var.isParameter())
     {
-        if (global.params.targetOS == TargetOS.Windows && global.params.is64bit)
+        if (target.os == Target.OS.Windows && target.is64bit)
         {
             return var.type.size(Loc.initial) > REGSIZE
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
         }
-        else if (global.params.targetOS & TargetOS.Posix)
+        else if (target.os & Target.OS.Posix)
         {
             return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
         }
@@ -126,12 +126,12 @@ bool ISX64REF(Declaration var)
  */
 bool ISX64REF(IRState* irs, Expression exp)
 {
-    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
     {
         return exp.type.size(Loc.initial) > REGSIZE
             || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
     }
-    else if (irs.params.targetOS & TargetOS.Posix)
+    else if (irs.target.os & Target.OS.Posix)
     {
         return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD();
     }
@@ -199,7 +199,7 @@ private elem *callfunc(const ref Loc loc,
         assert(tf);
         ethis = ec;
         ec = el_same(&ethis);
-        ethis = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
+        ethis = el_una(target.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, totym(tf), ec);
     }
@@ -269,7 +269,7 @@ private elem *callfunc(const ref Loc loc,
                 continue;
             }
 
-            if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit && tybasic(ea.Ety) == TYcfloat)
+            if (irs.target.os == Target.OS.Windows && irs.target.is64bit && tybasic(ea.Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
                  */
@@ -317,7 +317,7 @@ private elem *callfunc(const ref Loc loc,
             ehidden = el_ptr(stmp);
             eresult = ehidden;
         }
-        if (target.isPOSIX && tf.linkage != LINK.d)
+        if (irs.target.isPOSIX && tf.linkage != LINK.d)
         {
                 // ehidden goes last on Linux/OSX C++
         }
@@ -394,7 +394,8 @@ private elem *callfunc(const ref Loc loc,
             assert(cast(int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
+            if (!target.is64bit)
+                assert(tysize(TYnptr) == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc.Stype.Tty),ec);
@@ -471,7 +472,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
         }
         else if (op == OPind)
             e = el_una(op,mTYvolatile | tyret,ep);
-        else if (op == OPva_start && irs.params.is64bit)
+        else if (op == OPva_start && target.is64bit)
         {
             // (OPparam &va &arg)
             // call as (OPva_start &va)
@@ -550,7 +551,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     }
 
     const isCPPCtor = fd && fd.linkage == LINK.cpp && fd.isCtorDeclaration();
-    if (isCPPCtor && target.isPOSIX)
+    if (isCPPCtor && irs.target.isPOSIX)
     {
         // CPP constructor returns void on Posix
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
@@ -559,7 +560,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     }
     else if (retmethod == RET.stack)
     {
-        if (irs.params.targetOS == TargetOS.OSX && eresult)
+        if (irs.target.os == Target.OS.OSX && eresult)
         {
             /* ABI quirk: hidden pointer is not returned in registers
              */
@@ -673,6 +674,14 @@ private extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
 
 /*******************************************
  * Take address of an elem.
+ * Accounts for e being an rvalue by assigning the rvalue
+ * to a temp.
+ * Params:
+ *      e = elem to take address of
+ *      t = Type of elem
+ *      alwaysCopy = when true, always copy e to a tmp
+ * Returns:
+ *      the equivalent of &e
  */
 
 elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
@@ -997,20 +1006,20 @@ Lagain:
             break;
         case Tfloat32:
         case Timaginary32:
-            if (!irs.params.is64bit)
+            if (!target.is64bit)
                 goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
-            if (!irs.params.is64bit)
+            if (!target.is64bit)
                 goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
-            if (!irs.params.is64bit)
+            if (!target.is64bit)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb2;
@@ -1034,7 +1043,7 @@ Lagain:
                 case 2:      r = RTLSYM_MEMSET16;   break;
                 case 4:      r = RTLSYM_MEMSET32;   break;
                 case 8:      r = RTLSYM_MEMSET64;   break;
-                case 16:     r = irs.params.is64bit ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
+                case 16:     r = target.is64bit ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
                 default:     r = RTLSYM_MEMSETN;    break;
             }
 
@@ -1057,7 +1066,7 @@ Lagain:
                 }
             }
 
-            if (irs.params.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM_MEMSETN)
+            if (target.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM_MEMSETN)
             {
                 /* If this struct is in-memory only, i.e. cannot necessarily be passed as
                  * a gp register parameter.
@@ -1071,10 +1080,10 @@ Lagain:
                     type *t2 = evalue.ET.Ttag.Sstruct.Sarg2type;
                     if (!t1 && !t2)
                     {
-                        if (irs.params.targetOS & TargetOS.Posix || sz > 8)
+                        if (irs.target.os & Target.OS.Posix || sz > 8)
                             r = RTLSYM_MEMSETN;
                     }
-                    else if (irs.params.targetOS & TargetOS.Posix &&
+                    else if (irs.target.os & Target.OS.Posix &&
                              r == RTLSYM_MEMSET128ii &&
                              tyfloating(t1.Tty) &&
                              tyfloating(t2.Tty))
@@ -1100,7 +1109,7 @@ Lagain:
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
-    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit && sz > REGSIZE)
+    if (irs.target.os == Target.OS.Windows && irs.target.is64bit && sz > REGSIZE)
     {
         evalue = addressElem(evalue, tb);
     }
@@ -1937,7 +1946,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *earray = ExpressionsToStaticArray(ne.loc, ne.arguments, &sdata);
 
                     e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.dim), el_ptr(sdata));
-                    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                         e = addressElem(e, Type.tsize_t.arrayOf());
                     e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
                     int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
@@ -2160,7 +2169,7 @@ elem *toElem(Expression e, IRState *irs)
                     size_t len = strlen(id);
                     Symbol *si = toStringSymbol(id, len, 1);
                     elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-                    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                         efilename = addressElem(efilename, Type.tstring, true);
 
                     if (ae.msg)
@@ -2172,16 +2181,16 @@ elem *toElem(Expression e, IRState *irs)
                          */
                         elem *emsg = toElemDtor(ae.msg, irs);
                         emsg = array_toDarray(ae.msg.type, emsg);
-                        if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                        if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                             emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
 
                         ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG));
-                        ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, ae.loc.linnum), efilename, emsg, null));
+                        ea = el_bin(OPcall, TYnoreturn, ea, el_params(el_long(TYint, ae.loc.linnum), efilename, emsg, null));
                     }
                     else
                     {
                         ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT));
-                        ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ae.loc.linnum), efilename));
+                        ea = el_bin(OPcall, TYnoreturn, ea, el_param(el_long(TYint, ae.loc.linnum), efilename));
                     }
                 }
                 else
@@ -2189,7 +2198,7 @@ elem *toElem(Expression e, IRState *irs)
                     auto eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
                     auto efile = toEfilenamePtr(m);
                     auto eline = el_long(TYint, ae.loc.linnum);
-                    ea = el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
+                    ea = el_bin(OPcall, TYnoreturn, eassert, el_param(eline, efile));
                 }
                 if (einv)
                 {
@@ -2331,7 +2340,7 @@ elem *toElem(Expression e, IRState *irs)
         {
             elem *ex = toElem(e, irs);
             ex = array_toDarray(e.type, ex);
-            if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+            if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
             {
                 ex = addressElem(ex, Type.tvoid.arrayOf(), false);
             }
@@ -2381,7 +2390,7 @@ elem *toElem(Expression e, IRState *irs)
                 elem *earr = ElemsToStaticArray(ce.loc, ce.type, &elems, &sdata);
 
                 elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
-                if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     ep = addressElem(ep, Type.tvoid.arrayOf());
                 ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
@@ -2532,7 +2541,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (t1.ty == Tarray)
                     {
-                        elen1 = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
+                        elen1 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
                         esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
                         eptr1 = array_toPtr(t1, el_same(&earr1));
                     }
@@ -2546,7 +2555,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (t2.ty == Tarray)
                     {
-                        elen2 = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
+                        elen2 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
                         esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
                         eptr2 = array_toPtr(t2, el_same(&earr2));
                     }
@@ -2780,7 +2789,7 @@ elem *toElem(Expression e, IRState *irs)
                         einit = resolveLengthVar(are.lengthVar, &n1, ta);
                         enbytes = el_copytree(n1);
                         n1 = array_toPtr(ta, n1);
-                        enbytes = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, enbytes);
+                        enbytes = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, enbytes);
                     }
                     else if (ta.ty == Tpointer)
                     {
@@ -2894,7 +2903,7 @@ elem *toElem(Expression e, IRState *irs)
                             else
                             {
                                 // It's not a constant, so pull it from the dynamic array
-                                return el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
+                                return el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
                             }
                         }
 
@@ -2957,7 +2966,7 @@ elem *toElem(Expression e, IRState *irs)
                          */
                         el_free(esize);
                         elem *eti = getTypeInfo(ae.e1.loc, t1.nextOf().toBasetype(), irs);
-                        if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                        if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                         {
                             eto   = addressElem(eto,   Type.tvoid.arrayOf());
                             efrom = addressElem(efrom, Type.tvoid.arrayOf());
@@ -2972,7 +2981,7 @@ elem *toElem(Expression e, IRState *irs)
                         // Generate:
                         //      _d_arraycopy(eto, efrom, esize)
 
-                        if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                        if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                         {
                             eto   = addressElem(eto,   Type.tvoid.arrayOf());
                             efrom = addressElem(efrom, Type.tvoid.arrayOf());
@@ -3278,7 +3287,7 @@ elem *toElem(Expression e, IRState *irs)
                      *      _d_arrayctor(ti, e2, e1)
                      */
                     elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     {
                         e1 = addressElem(e1, Type.tvoid.arrayOf());
                         e2 = addressElem(e2, Type.tvoid.arrayOf());
@@ -3301,7 +3310,7 @@ elem *toElem(Expression e, IRState *irs)
                      *      _d_arrayassign_r(ti, e2, e1, etmp)
                      */
                     elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     {
                         e1 = addressElem(e1, Type.tvoid.arrayOf());
                         e2 = addressElem(e2, Type.tvoid.arrayOf());
@@ -3353,6 +3362,12 @@ elem *toElem(Expression e, IRState *irs)
             elem *e1 = toElem(ce.e1, irs);
             elem *e2 = toElem(ce.e2, irs);
 
+            /* Because e1 is an lvalue, refer to it via a pointer to it in the form
+             * of ev. Put any side effects into re1
+             */
+            elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
+            elem* ev = el_same(&re1);
+
             switch (ce.op)
             {
                 case TOK.concatenateDcharAssign:
@@ -3361,9 +3376,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(tb2.ty == Tdchar &&
                           (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
-                    e1 = el_una(OPaddr, TYnptr, e1);
-
-                    elem *ep = el_params(e2, e1, null);
+                    elem *ep = el_params(e2, el_copytree(ev), null);
                     int rtl = (tb1.nextOf().ty == Tchar)
                             ? RTLSYM_ARRAYAPPENDCD
                             : RTLSYM_ARRAYAPPENDWD;
@@ -3380,12 +3393,15 @@ elem *toElem(Expression e, IRState *irs)
 
                     assert(tb1n.equals(tb2.nextOf().toBasetype()));
 
-                    e1 = el_una(OPaddr, TYnptr, e1);
-                    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                    /* e1 ~= e2 becomes
+                     * _d_arrayappendT(e2, ev, typeinfo), *ev
+                     */
+
+                    if (irs.target.os == Target.OS.Windows && target.is64bit)
                         e2 = addressElem(e2, tb2, true);
                     else
                         e2 = useOPstrpar(e2);
-                    elem *ep = el_params(e2, e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
+                    elem *ep = el_params(e2, el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
                     toTraceGC(irs, e, ce.loc);
                     break;
@@ -3412,8 +3428,7 @@ elem *toElem(Expression e, IRState *irs)
                     }
 
                     // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
-                    e1 = el_una(OPaddr, TYnptr, e1);
-                    elem *ep = el_param(e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs));
+                    elem *ep = el_param(el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs));
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
                     toTraceGC(irs, e, ce.loc);
@@ -3424,7 +3439,7 @@ elem *toElem(Expression e, IRState *irs)
                     // *(stmp.ptr + (stmp.length - 1) * szelem) = e2
 
                     elem *eptr = array_toPtr(tb1, el_var(stmp));
-                    elem *elength = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_var(stmp));
+                    elem *elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_var(stmp));
                     elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
                     elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, ce.e2.type.size()));
                     eptr = el_bin(OPadd, TYnptr, eptr, elength);
@@ -3440,6 +3455,13 @@ elem *toElem(Expression e, IRState *irs)
                 default:
                     assert(0);
             }
+
+            /* Generate: (re1, e, *ev)
+             */
+            e = el_combine(re1, e);
+            ev = el_una(OPind, e1.Ety, ev);
+            e = el_combine(e, ev);
+
             elem_setLoc(e, ce.loc);
             result = e;
         }
@@ -3540,6 +3562,7 @@ elem *toElem(Expression e, IRState *irs)
 
             if (irs.params.cov && aae.e2.loc.linnum)
                 e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
+
             result = e;
         }
 
@@ -3626,13 +3649,38 @@ elem *toElem(Expression e, IRState *irs)
                 eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
 
             tym_t ty = eleft.Ety;
+            if (tybasic(ty) == TYnoreturn)
+                ty = eright.Ety;
             if (ce.e1.type.toBasetype().ty == Tvoid ||
                 ce.e2.type.toBasetype().ty == Tvoid)
                 ty = TYvoid;
 
-            elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
-            if (tybasic(ty) == TYstruct)
-                e.ET = Type_toCtype(ce.e1.type);
+            elem* e;
+            if (tybasic(eleft.Ety) == TYnoreturn &&
+                tybasic(eright.Ety) != TYnoreturn)
+            {
+                /* ec ? eleft : eright => (ec && eleft),eright
+                 */
+                e = el_bin(OPandand, TYvoid, ec, eleft);
+                e = el_combine(e, eright);
+                if (tybasic(ty) == TYstruct)
+                    e.ET = Type_toCtype(ce.e2.type);
+            }
+            else if (tybasic(eright.Ety) == TYnoreturn)
+            {
+                /* ec ? eleft : eright => (ec || eright),eleft
+                 */
+                e = el_bin(OPoror, TYvoid, ec, eright);
+                e = el_combine(e, eleft);
+                if (tybasic(ty) == TYstruct)
+                    e.ET = Type_toCtype(ce.e1.type);
+            }
+            else
+            {
+                e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
+                if (tybasic(ty) == TYstruct)
+                    e.ET = Type_toCtype(ce.e1.type);
+            }
             elem_setLoc(e, ce.loc);
             result = e;
         }
@@ -3787,7 +3835,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(cast(int)vindex >= 0);
 
                     // Build *(ep + vindex * 4)
-                    ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * target.ptrsize));
+                    ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * irs.target.ptrsize));
                     ep = el_una(OPind,TYnptr,ep);
                 }
 
@@ -4342,7 +4390,7 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     // e1 . (uint)(e1 >> 32)
-                    if (irs.params.is64bit)
+                    if (target.is64bit)
                     {
                         e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
                         e = el_una(OP128_64, totym(t), e);
@@ -4386,7 +4434,7 @@ elem *toElem(Expression e, IRState *irs)
                         elem *es = el_same(&e);
 
                         elem *eptr = el_una(OPmsw, TYnptr, es);
-                        elem *elen = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
+                        elem *elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
                         elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
                         e = el_pair(totym(ce.type), elen2, eptr);
                     }
@@ -4507,7 +4555,7 @@ elem *toElem(Expression e, IRState *irs)
                 case Tpointer:
                     if (fty == Tdelegate)
                         return Lpaint(ce, e, ttym);
-                    tty = irs.params.is64bit ? Tuns64 : Tuns32;
+                    tty = target.is64bit ? Tuns64 : Tuns32;
                     break;
 
                 case Tchar:     tty = Tuns8;    break;
@@ -4533,7 +4581,7 @@ elem *toElem(Expression e, IRState *irs)
                     // typeof(null) is same with void* in binary level.
                     return Lzero(ce, e, ttym);
                 }
-                case Tpointer:  fty = irs.params.is64bit ? Tuns64 : Tuns32;  break;
+                case Tpointer:  fty = target.is64bit ? Tuns64 : Tuns32;  break;
                 case Tchar:     fty = Tuns8;    break;
                 case Twchar:    fty = Tuns16;   break;
                 case Tdchar:    fty = Tuns32;   break;
@@ -5016,7 +5064,7 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(ArrayLengthExp ale)
         {
             elem *e = toElem(ale.e1, irs);
-            e = el_una(irs.params.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
+            e = el_una(target.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
             elem_setLoc(e, ale.loc);
             result = e;
         }
@@ -5038,7 +5086,7 @@ elem *toElem(Expression e, IRState *irs)
             elem *e = toElem(dfpe.e1, irs);
             Type tb1 = dfpe.e1.type.toBasetype();
             e = addressElem(e, tb1);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, irs.params.is64bit ? 8 : 4));
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, target.is64bit ? 8 : 4));
             e = el_una(OPind, totym(dfpe.type), e);
             elem_setLoc(e, dfpe.loc);
             result = e;
@@ -5098,7 +5146,7 @@ elem *toElem(Expression e, IRState *irs)
                             {
                                 elen = e;
                                 e = el_same(&elen);
-                                elen = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elen);
+                                elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elen);
                             }
                         }
 
@@ -5254,7 +5302,7 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         elength = n1;
                         n1 = el_same(&elength);
-                        elength = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+                        elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
                     L1:
                         elem *n2x = n2;
                         n2 = el_same(&n2x);
@@ -5613,7 +5661,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
                 elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-                if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                 {
                     ev = addressElem(ev, Type.tvoid.arrayOf());
                     ek = addressElem(ek, Type.tvoid.arrayOf());
@@ -5998,7 +6046,7 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 
     if (edtors)
     {
-        if (irs.params.targetOS == TargetOS.Windows && !irs.params.is64bit) // Win32
+        if (irs.target.os == Target.OS.Windows && !irs.target.is64bit) // Win32
         {
             Blockx *blx = irs.blx;
             nteh_declarvars(blx);
@@ -6106,7 +6154,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
     {
         Symbol* si;
 
-        if (global.params.targetOS == TargetOS.Windows)
+        if (target.os == Target.OS.Windows)
         {
             /* This should be in the back end, but mangleToBuffer() is
              * in the front end.
@@ -6213,7 +6261,7 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
     size_t len = strlen(id);
     Symbol *si = toStringSymbol(id, len, 1);
     elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
         efilename = addressElem(efilename, Type.tstring, true);
 
     elem *elinnum = el_long(TYint, loc.linnum);
@@ -6228,7 +6276,7 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
     len = strlen(s);
     si = toStringSymbol(s, len, 1);
     elem *efunction = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-    if (irs.params.targetOS == TargetOS.Windows && irs.params.is64bit)
+    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
         efunction = addressElem(efunction, Type.tstring, true);
 
     return el_params(efunction, elinnum, efilename, null);
@@ -6428,7 +6476,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     auto eline = el_long(TYint, loc.linnum);
 
     elem *ea;
-    if (irs.params.targetOS == TargetOS.OSX)
+    if (irs.target.os == Target.OS.OSX)
     {
         // __assert_rtn(func, file, line, msg);
         elem* efunc = getFuncName();
@@ -6447,7 +6495,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
         else
         {
             // [_]_assert(msg, file, line);
-            const rtlsym = (irs.params.targetOS == TargetOS.Windows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
             auto eassert = el_var(getRtlsym(rtlsym));
             ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
         }
@@ -6465,7 +6513,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
 elem *genHalt(const ref Loc loc)
 {
     elem *e = el_calloc();
-    e.Ety = TYvoid;
+    e.Ety = TYnoreturn;
     e.Eoper = OPhalt;
     elem_setLoc(e, loc);
     return e;

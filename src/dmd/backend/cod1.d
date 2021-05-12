@@ -44,6 +44,7 @@ import dmd.backend.xmm;
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 
@@ -60,7 +61,6 @@ private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t
 private __gshared const byte[8] regtorm32 =   [  0, 1, 2, 3,-1, 5, 6, 7 ];
 __gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
 
-targ_size_t paramsize(elem *e, tym_t tyf);
 //void funccall(ref CodeBuilder cdb,elem *e,uint numpara,uint numalign,
 //        regm_t *pretregs,regm_t keepmsk, bool usefuncarg);
 
@@ -73,6 +73,7 @@ targ_size_t paramsize(elem *e, tym_t tyf);
  * Returns:
  *      `true` if `s` is a register parameter and leave it in the register it came in
  */
+@trusted
 bool regParamInPreg(Symbol* s)
 {
     //printf("regPAramInPreg %s\n", s.Sident.ptr);
@@ -88,6 +89,7 @@ bool regParamInPreg(Symbol* s)
  *      !=0     the value for ss in the SIB byte
  */
 
+@trusted
 int isscaledindex(elem *e)
 {
     targ_uns ss;
@@ -108,6 +110,7 @@ int isscaledindex(elem *e)
  * Generate code for which isscaledindex(e) returned a non-zero result.
  */
 
+@trusted
 /*private*/ void cdisscaledindex(ref CodeBuilder cdb,elem *e,regm_t *pidxregs,regm_t keepmsk)
 {
     // Load index register with result of e.EV.E1
@@ -312,6 +315,7 @@ uint buildModregrm(int mod, int reg, int rm)
  * Generate code for eecontext
  */
 
+@trusted
 void genEEcode()
 {
     CodeBuilder cdb;
@@ -343,7 +347,7 @@ void genEEcode()
  * Returns:
  *      amount of stack consumed
  */
-
+@trusted
 uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbrestore)
 {
     //printf("gensaverestore2(%s)\n", regm_str(regm));
@@ -419,6 +423,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
  *      keepmsk         mask of registers to not destroy
  */
 
+@trusted
 void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 {
     //dbg_printf("genstackclean(numpara = %d, stackclean = %d)\n",numpara,cgstate.stackclean);
@@ -468,9 +473,20 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
  *      targ    either code or block pointer to destination
  */
 
+@trusted
 void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 {
-    //printf("logexp(e = %p, jcond = %d)\n", e, jcond);
+    //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
+    if (tybasic(e.Ety) == TYnoreturn)
+    {
+        con_t regconsave = regcon;
+        regm_t retregs = 0;
+        codelem(cdb,e,&retregs,0);
+        regconsave.used |= regcon.used;
+        regcon = regconsave;
+        return;
+    }
+
     int no87 = (jcond & 2) == 0;
     docommas(cdb, &e);             // scan down commas
     cgstate.stackclean++;
@@ -613,6 +629,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
  *      pointer to code generated
  */
 
+@trusted
 void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t offset,
             regm_t keepmsk,regm_t desmsk)
 {
@@ -769,6 +786,7 @@ L2:
  * Get addressing mode.
  */
 
+@trusted
 uint getaddrmode(regm_t idxregs)
 {
     uint mode;
@@ -805,6 +823,7 @@ void setaddrmode(code *c, regm_t idxregs)
 /**********************************************
  */
 
+@trusted
 void getlvalue_msw(code *c)
 {
     if (c.IFL1 == FLreg)
@@ -823,6 +842,7 @@ void getlvalue_msw(code *c)
 /**********************************************
  */
 
+@trusted
 void getlvalue_lsw(code *c)
 {
     if (c.IFL1 == FLreg)
@@ -851,6 +871,7 @@ void getlvalue_lsw(code *c)
  *              if (keepmsk & RMload), this will be a read operation only
  */
 
+@trusted
 void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
 {
     uint fl, f, opsave;
@@ -1568,6 +1589,11 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     s.Sflags &= ~GTregcand;
                 }
             }
+            else if (sz == 2 && tyxmmreg(s.ty()) && config.fpxmmregs)
+            {
+                debug if (debugr) printf("'%s' not XMM reg cand due to short access\n", s.Sident.ptr);
+                s.Sflags &= ~GTregcand;
+            }
             else if (e.EV.Voffset || sz > tysize(s.Stype.Tty))
             {
                 debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
@@ -1655,6 +1681,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
  *      tym     either TYdouble or TYfloat
  */
 
+@trusted
 void fltregs(ref CodeBuilder cdb, code* pcs, tym_t tym)
 {
     assert(!I64);
@@ -1707,6 +1734,7 @@ void fltregs(ref CodeBuilder cdb, code* pcs, tym_t tym)
  * registers.
  */
 
+@trusted
 void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
 {
     reg_t scrreg;                      // scratch register
@@ -1736,14 +1764,14 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
         opcode_t op = 0;
         if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
             op = 0x660000;
-        cdb.gen2(op | 0x0F57, modregrm(3, xreg-XMM0, xreg-XMM0));      // XORPS xreg,xreg
-        cdb.gen2(op | 0x0F2E, modregrm(3, xreg-XMM0, reg-XMM0));    // UCOMISS xreg,reg
+        cdb.gen2(op | XORPS, modregrm(3, xreg-XMM0, xreg-XMM0));      // XORPS xreg,xreg
+        cdb.gen2(op | UCOMISS, modregrm(3, xreg-XMM0, reg-XMM0));     // UCOMISS xreg,reg
         if (tym == TYcfloat || tym == TYcdouble)
         {   code *cnop = gennop(null);
             genjmp(cdb, JNE, FLcode, cast(block *) cnop); // JNE     L1
             genjmp(cdb,  JP, FLcode, cast(block *) cnop); // JP      L1
             reg = findreg(regm & ~mask(reg));
-            cdb.gen2(op | 0x0F2E, modregrm(3, xreg-XMM0, reg-XMM0));        // UCOMISS xreg,reg
+            cdb.gen2(op | UCOMISS, modregrm(3, xreg-XMM0, reg-XMM0)); // UCOMISS xreg,reg
             cdb.append(cnop);
         }
         return;
@@ -1856,6 +1884,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
  * generate necessary code to return result in *pretregs.
  */
 
+@trusted
 void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
 {
     //printf("fixresult(e = %p, retregs = %s, *pretregs = %s)\n",e,regm_str(retregs),regm_str(*pretregs));
@@ -2058,6 +2087,7 @@ struct ClibInfo
 
 __gshared int clib_inited = false;          // true if initialized
 
+@trusted
 Symbol* symboly(const(char)* name, regm_t desregs)
 {
     Symbol *s = symbol_calloc(name);
@@ -2069,6 +2099,7 @@ Symbol* symboly(const(char)* name, regm_t desregs)
     return s;
 }
 
+@trusted
 void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 {
     __gshared Symbol*[CLIB.MAX] clibsyms;
@@ -2771,6 +2802,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
  *              push/pop for speed.
  */
 
+@trusted
 void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t keepmask)
 {
     //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
@@ -2826,7 +2858,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         }
         if (pushebx)
         {
-            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64))
+            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64))
             {
                 cdb.gen1(0x50 + CX);                             // PUSH ECX
                 cdb.gen1(0x50 + BX);                             // PUSH EBX
@@ -2891,6 +2923,7 @@ struct Parameter { elem* e; reg_t reg; reg_t reg2; uint numalign; }
 
 //void fillParameters(elem* e, Parameter* parameters, int* pi);
 
+@trusted
 void fillParameters(elem* e, Parameter* parameters, int* pi)
 {
     if (e.Eoper == OPparam)
@@ -2909,6 +2942,7 @@ void fillParameters(elem* e, Parameter* parameters, int* pi)
 /***********************************
  * tyf: type of the function
  */
+@trusted
 FuncParamRegs FuncParamRegs_create(tym_t tyf)
 {
     FuncParamRegs result;
@@ -2974,6 +3008,7 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
 
 //bool type_jparam2(type* t, tym_t ty);
 
+@trusted
 private bool type_jparam2(type* t, tym_t ty)
 {
     ty = tybasic(ty);
@@ -2992,6 +3027,7 @@ private bool type_jparam2(type* t, tym_t ty)
     return false;
 }
 
+@trusted
 int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, reg_t* preg2)
 {
     //printf("FuncParamRegs::alloc(ty: TY%sm t: %p)\n", tystring[tybasic(ty)], t);
@@ -3160,8 +3196,9 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
 }
 
 /***************************************
- * Finds replacemnt types for register passing of aggregates.
+ * Finds replacement types for register passing of aggregates.
  */
+@trusted
 void argtypes(type* t, ref type* arg1type, ref type* arg2type)
 {
     if (!t) return;
@@ -3265,6 +3302,7 @@ void argtypes(type* t, ref type* arg1type, ref type* arg2type)
  * Generate code sequence for function call.
  */
 
+@trusted
 void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
@@ -3294,7 +3332,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
     /* Assume called function access statics
      */
-    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64) &&
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64) &&
         config.flags3 & CFG3pic)
         cgstate.accessedTLS = true;
 
@@ -3741,6 +3779,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 /***********************************
  */
 
+@trusted
 void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     assert(tysize(e.Ety) == REGSIZE);
@@ -3765,6 +3804,7 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
  *      usefuncarg = using cgstate.funcarg, so no need to adjust stack after func return
  */
 
+@trusted
 private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                       regm_t* pretregs,regm_t keepmsk, bool usefuncarg)
 {
@@ -4158,6 +4198,7 @@ static if (0)
  * Determine size of argument e that will be pushed.
  */
 
+@trusted
 targ_size_t paramsize(elem* e, tym_t tyf)
 {
     assert(e.Eoper != OPparam);
@@ -4179,6 +4220,7 @@ targ_size_t paramsize(elem* e, tym_t tyf)
  * Generate code to move argument e on the stack.
  */
 
+@trusted
 private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funcargtos, tym_t tyf)
 {
     //printf("movParams(e = %p, stackalign = %d, funcargtos = %d)\n", e, stackalign, funcargtos);
@@ -4386,6 +4428,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
  * stackpush is incremented by stackalign for each PUSH.
  */
 
+@trusted
 void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 {
     //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
@@ -5127,6 +5170,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
  * register. Return mask of index register in *pretregs.
  */
 
+@trusted
 void offsetinreg(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     reg_t reg;
@@ -5159,6 +5203,7 @@ L3:
  */
 
 
+@trusted
 void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     reg_t reg;
@@ -5230,6 +5275,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             s.Sregm & XMMREGS &&
             (tym == TYfloat || tym == TYifloat || tym == TYdouble || tym ==TYidouble))
         {
+            /* Evaluate using XMM register and XMM instruction.
+             * This affects jmpopcode()
+             */
             tstresult(cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)

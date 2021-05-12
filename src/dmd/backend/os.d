@@ -55,6 +55,7 @@ else
 extern(C++):
 
 nothrow:
+@safe:
 
 version (CRuntime_Microsoft)
 {
@@ -66,8 +67,6 @@ version (Windows)
     extern(C++) void dll_printf(const char *format,...);
     alias printf = dll_printf;
 }
-
-int file_createdirs(char *name);
 
 /***********************************
  * Called when there is an error returned by the operating system.
@@ -85,6 +84,7 @@ static if (NEEDS_WIN32_NOT_WIN64)
 
 private __gshared HANDLE hHeap;
 
+@trusted
 void *globalrealloc(void *oldp,size_t newsize)
 {
 static if (0)
@@ -168,6 +168,7 @@ else
  * Functions to manage allocating a single virtual address space.
  */
 
+@trusted
 void *vmem_reserve(void *ptr,uint size)
 {   void *p;
 
@@ -193,6 +194,7 @@ else
  *      !=0     success
  */
 
+@trusted
 int vmem_commit(void *ptr, uint size)
 {   int i;
 
@@ -203,6 +205,7 @@ int vmem_commit(void *ptr, uint size)
     return i;
 }
 
+@trusted
 void vmem_decommit(void *ptr,uint size)
 {
     debug(printf) printf("vmem_decommit(ptr = %p, size = x%lx)\n",ptr,size);
@@ -212,6 +215,7 @@ void vmem_decommit(void *ptr,uint size)
     }
 }
 
+@trusted
 void vmem_release(void *ptr, uint size)
 {
     debug(printf) printf("vmem_release(ptr = %p, size = x%lx)\n",ptr,size);
@@ -241,6 +245,7 @@ private __gshared void *pview;
 private __gshared void *preserve;
 private __gshared size_t preserve_size;
 
+@trusted
 void *vmem_mapfile(const char *filename,void *ptr, uint size,int flag)
 {
     OSVERSIONINFO OsVerInfo;
@@ -334,6 +339,7 @@ L1:
  * Set size of mapped file.
  */
 
+@trusted
 void vmem_setfilesize(uint size)
 {
     if (hFile != INVALID_HANDLE_VALUE)
@@ -348,6 +354,7 @@ void vmem_setfilesize(uint size)
  * Unmap previous file mapping.
  */
 
+@trusted
 void vmem_unmapfile()
 {
     debug(printf) printf("vmem_unmapfile()\n");
@@ -390,6 +397,7 @@ else
  * Determine a base address that we can use for mapping files to.
  */
 
+@trusted
 void *vmem_baseaddr()
 {
     OSVERSIONINFO OsVerInfo;
@@ -428,6 +436,7 @@ void *vmem_baseaddr()
  * *psize downwards.
  */
 
+@trusted
 void vmem_reservesize(uint *psize)
 {
     MEMORYSTATUS ms;
@@ -474,6 +483,7 @@ void vmem_reservesize(uint *psize)
  * Return amount of physical memory.
  */
 
+@trusted
 uint vmem_physmem()
 {
     MEMORYSTATUS ms;
@@ -491,6 +501,7 @@ uint vmem_physmem()
 
 private __gshared HINSTANCE hdll;
 
+@trusted
 void os_loadlibrary(const char *dllname)
 {
     hdll = LoadLibrary(cast(LPCTSTR) dllname);
@@ -501,6 +512,7 @@ void os_loadlibrary(const char *dllname)
 /*************************************************
  */
 
+@trusted
 void os_freelibrary()
 {
     if (hdll)
@@ -514,6 +526,7 @@ void os_freelibrary()
 /*************************************************
  */
 
+@trusted
 void *os_getprocaddress(const char *funcname)
 {   void *fp;
 
@@ -531,6 +544,7 @@ void *os_getprocaddress(const char *funcname)
 /*********************************
  */
 
+@trusted
 void os_term()
 {
     if (hHeap)
@@ -607,6 +621,7 @@ extern(Windows) void * realloc(void *p,size_t newsize)
 // Return a value that will hopefully be unique every time
 // we call it.
 
+@trusted
 uint os_unique()
 {
     ulong x;
@@ -624,6 +639,7 @@ uint os_unique()
  *      2:      directory
  */
 
+@trusted
 int os_file_exists(const char *name)
 {
 version(Windows)
@@ -662,6 +678,7 @@ static if(NEEDS_WIN32_NON_MS)
     extern extern (C) void*[] _osfhnd;
 }
 
+@trusted
 long os_file_size(int fd)
 {
     static if (NEEDS_WIN32_NON_MS)
@@ -690,6 +707,7 @@ long os_file_size(int fd)
 
 version(Windows)
 {
+@trusted
 char *file_8dot3name(const char *filename)
 {
     HANDLE h;
@@ -727,6 +745,7 @@ char *file_8dot3name(const char *filename)
  *      0       success
  */
 
+@trusted
 int file_write(char *name, void *buffer, uint len)
 {
 version(Posix)
@@ -802,6 +821,7 @@ err:
  *      !=0     failure
  */
 
+@trusted
 int file_createdirs(char *name)
 {
 version(Posix)
@@ -910,7 +930,6 @@ int os_critsecsize32()
 
 int os_critsecsize64()
 {
-    assert(0);
     return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
 }

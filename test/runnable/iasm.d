@@ -6,6 +6,7 @@
 // http://www.digitalmars.com
 
 import core.stdc.stdio;
+import core.stdc.config;
 
 version (D_PIC)
 {
@@ -2604,7 +2605,7 @@ void test28()
 {
     version (Windows)
     {
-        cfloat[4] z;
+        c_complex_float[4] z;
         static const ubyte[8] A = [3, 4, 9, 0, 1, 3, 7, 2];
         ubyte[8] b;
 
@@ -4846,13 +4847,13 @@ L1:     pop     EAX;
 
 extern(C) void f16400(int, ...)
 {
-	asm {naked; ret;}
+        asm {naked; ret;}
 }
 
 void test16400()
 {
-	assert(*(cast(ubyte*) &f16400) == 0xc3); // fails
-	f16400(0); // corrupts the stack
+        assert(*(cast(ubyte*) &f16400) == 0xc3); // fails
+        f16400(0); // corrupts the stack
 }
 
 /****************************************************/
@@ -4882,9 +4883,31 @@ void test5922()
     asm
     {
         mov EDI, x;
-	mov y, EDI;
+        mov y, EDI;
     }
     assert(y == 10);
+}
+
+/****************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=21914
+
+extern (C++) int insidx(int a, int b)
+{
+    asm
+    {
+        naked             ;
+        mov ECX,a-4+[ESP] ;
+        mov EAX,b-4+[ESP] ;
+        shl EAX,CL        ;
+        ret               ;
+    }
+}
+
+void test21914()
+{
+    int x = insidx(5, 7);
+    assert(x == (7 << 5));
 }
 
 /****************************************************/
@@ -4966,6 +4989,7 @@ int main()
     test16400();
     test16963();
     test5922();
+    test21914();
   }
     printf("Success\n");
     return 0;

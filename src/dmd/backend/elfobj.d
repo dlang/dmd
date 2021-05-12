@@ -84,14 +84,17 @@ static if (1)
     enum DMDV2 = true;
 else
     enum DMDV2 = false;
-enum REQUIRE_DSO_REGISTRY = (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_DRAGONFLYBSD));
+bool REQUIRE_DSO_REGISTRY()
+{
+    return DMDV2 && (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64));
+}
 
 /**
  * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
  * OpenBSD added the support in Aug 2016. Other supported platforms has
  * supported .init_array for years.
  */
-enum USE_INIT_ARRAY = !TARGET_OPENBSD;
+bool USE_INIT_ARRAY() { return !(config.exe & (EX_OPENBSD | EX_OPENBSD64)); }
 
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
@@ -101,7 +104,7 @@ enum USE_INIT_ARRAY = !TARGET_OPENBSD;
  * For the time being, just stick with Linux.
  */
 
-enum ELF_COMDAT = TARGET_LINUX;
+bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64)) != 0; }
 
 /***************************************************
  * Correspondence of relocation types
@@ -994,6 +997,7 @@ void *elf_renumbersyms()
 
 /***************************
  * Fixup and terminate object file.
+ * Pairs with ElfObj_initfile()
  */
 
 void ElfObj_termfile()
@@ -1006,40 +1010,32 @@ void ElfObj_termfile()
 }
 
 /*********************************
- * Terminate package.
+ * Finish up creating the object module and putting it in fobjbuf[].
+ * Does not write the file.
+ * Pairs with ElfObj_init()
+ * Params:
+ *    objfilename = file name for object module (not used)
  */
 
 void ElfObj_term(const(char)* objfilename)
 {
     //printf("ElfObj_term()\n");
-version (SCPP)
-{
-    if (!errcnt)
+    version (SCPP)
     {
-        outfixlist();           // backpatches
+        if (errcnt)
+            return;
     }
-}
-else
-{
+
     outfixlist();           // backpatches
-}
 
     if (configv.addlinenumbers)
-    {
         dwarf_termfile();
+
+    version (MARS)
+    {
+        if (config.useModuleInfo)
+            obj_rtinit();
     }
-
-version (MARS)
-{
-    if (config.useModuleInfo)
-        obj_rtinit();
-}
-
-version (SCPP)
-{
-    if (errcnt)
-        return;
-}
 
     int foffset;
     Elf32_Shdr *sechdr;
@@ -1060,26 +1056,25 @@ version (SCPP)
     // uint16_t e_shstrndx = SHN_SECNAMES;
     fobjbuf.writezeros(hdrsize);
 
-            // Walk through sections determining size and file offsets
-            // Sections will be output in the following order
-            //  Null segment
-            //  For each Code/Data Segment
-            //      code/data to load
-            //      relocations without addens
-            //  .bss
-            //  notes
-            //  comments
-            //  section names table
-            //  symbol table
-            //  strings table
-
+    /* Walk through sections determining size and file offsets
+     * Sections will be output in the following order
+     *  Null segment
+     *  For each Code/Data Segment
+     *      code/data to load
+     *      relocations without addens
+     *  .bss
+     *  notes
+     *  comments
+     *  section names table
+     *  symbol table
+     *  strings table
+     */
     foffset = hdrsize;      // start after header
-                                    // section header table at end
+                            // section header table at end
 
-    //
-    // First output individual section data associate with program
-    //  code and data
-    //
+    /* First output individual section data associated with program
+     * code and data
+     */
     //printf("Setup offsets and sizes foffset %d\n\tSecHdrTab.length %d, SegData.length %d\n",foffset,cast(int)SecHdrTab.length,SegData.length);
     foreach (int i; 1 .. cast(int)SegData.length)
     {
@@ -1119,9 +1114,8 @@ version (SCPP)
         //printf(" assigned offset %d, size %d\n",foffset,sechdr2.sh_size);
     }
 
-    //
-    // Next output any notes or comments
-    //
+    /* Next output any notes or comments
+     */
     if (note_data)
     {
         sechdr = &SecHdrTab[secidx_note];               // Notes
@@ -1140,9 +1134,8 @@ version (SCPP)
         foffset += sechdr.sh_size;
     }
 
-    //
-    // Then output string table for section names
-    //
+    /* Then output string table for section names
+     */
     sechdr = &SecHdrTab[SHN_SECNAMES];  // Section Names
     sechdr.sh_size = cast(uint)section_names.length();
     sechdr.sh_offset = foffset;
@@ -1150,9 +1143,8 @@ version (SCPP)
     fobjbuf.write(section_names.buf, sechdr.sh_size);
     foffset += sechdr.sh_size;
 
-    //
-    // Symbol table and string table for symbols next
-    //
+    /* Symbol table and string table for symbols next
+     */
     //dbg_printf("output symbol table size %d\n",SYMbuf.length());
     sechdr = &SecHdrTab[SHN_SYMTAB];    // Symbol Table
     sechdr.sh_size = I64 ? cast(uint)(elfobj.SymbolTable64.length * Elf64_Sym.sizeof)
@@ -1183,9 +1175,8 @@ version (SCPP)
     fobjbuf.write(symtab_strings.buf, sechdr.sh_size);
     foffset += sechdr.sh_size;
 
-    //
-    // Now the relocation data for program code and data sections
-    //
+    /* Now the relocation data for program code and data sections
+     */
     foffset = elf_align(4,foffset);
     //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names.length(),foffset);
     for (int i=1; i < SegData.length; i++)
@@ -1193,9 +1184,9 @@ version (SCPP)
         seg = SegData[i];
         if (!seg.SDbuf)
         {
-//            sechdr = &SecHdrTab[seg.SDrelidx];
-//          if (I64 && sechdr.sh_type == SHT_RELA)
-//              sechdr.sh_offset = foffset;
+            //sechdr = &SecHdrTab[seg.SDrelidx];
+            //if (I64 && sechdr.sh_type == SHT_RELA)
+                //sechdr.sh_offset = foffset;
             continue;           // 0, BSS never allocated
         }
         if (seg.SDrel && seg.SDrel.length())
@@ -1207,14 +1198,12 @@ version (SCPP)
             if (I64)
             {
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf64_Rela.sizeof);
-debug
-{
-                for (size_t j = 0; j < seg.SDrelcnt; ++j)
-                {   Elf64_Rela *p = (cast(Elf64_Rela *)seg.SDrel.buf) + j;
+                debug for (size_t j = 0; j < seg.SDrelcnt; ++j)
+                {
+                    Elf64_Rela *p = (cast(Elf64_Rela *)seg.SDrel.buf) + j;
                     if (ELF64_R_TYPE(p.r_info) == R_X86_64_64)
                         assert(*cast(Elf64_Xword *)(seg.SDbuf.buf + p.r_offset) == 0);
                 }
-}
             }
             else
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf32_Rel.sizeof);
@@ -1223,9 +1212,8 @@ debug
         }
     }
 
-    //
-    // Finish off with the section header table
-    //
+    /* Finish off with the section header table
+     */
     ulong e_shoff = foffset;       // remember location in elf header
     //dbg_printf("output section header table\n");
 
@@ -1257,10 +1245,9 @@ debug
         foffset += SecHdrTab.length * Elf32_Shdr.sizeof;
     }
 
-    //
-    // Now that we have correct offset to section header table, e_shoff,
-    //  go back and re-output the elf header
-    //
+    /* Now that we have correct offset to section header table, e_shoff,
+     *  go back and re-output the elf header
+     */
     ubyte ELFOSABI;
     switch (config.exe)
     {
@@ -1565,7 +1552,7 @@ void ElfObj_staticdtor(Symbol *s)
 void ElfObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
     IDXSEC seg;
-    static if (USE_INIT_ARRAY)
+    if (USE_INIT_ARRAY())
         seg = isCtor ? ElfObj_getsegment(".init_array", null, SHT_INIT_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr])
                      : ElfObj_getsegment(".fini_array", null, SHT_FINI_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
     else
@@ -1646,7 +1633,7 @@ private void setup_comdat(Symbol *s)
     symbol_debug(s);
     if (tyfunc(s.ty()))
     {
-static if (!ELF_COMDAT)
+if (!ELF_COMDAT())
 {
         prefix = ".text.";              // undocumented, but works
         type = SHT_PROGBITS;
@@ -2271,7 +2258,7 @@ void ElfObj_func_start(Symbol *sfunc)
     cseg = sfunc.Sseg;
     jmpseg = 0;                         // only 1 jmp seg per function
     assert(cseg == CODE || cseg > COMD);
-static if (ELF_COMDAT)
+if (ELF_COMDAT())
 {
     if (!symbol_iscomdat2(sfunc))
     {
@@ -3366,6 +3353,20 @@ void ElfObj_moduleinfo(Symbol *scc)
 }
 
 /***************************************
+ * Stuff pointer to DEH into its own section (deh).
+ */
+void ElfObj_dehinfo(Symbol *scc)
+{
+    const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
+
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const shf_flags = SHF_ALLOC | SHF_WRITE;
+    const seg = ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+    SegData[seg].SDoffset +=
+        ElfObj_reftoident(seg, SegData[seg].SDoffset, scc, 0, CFflags);
+}
+
+/***************************************
  * Create startup/shutdown code to register an executable/shared
  * library (DSO) with druntime. Create one for each object file and
  * put the sections into a COMDAT group. This will ensure that each
@@ -3378,9 +3379,22 @@ private void obj_rtinit()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
+    IDXSYM deh_beg, deh_end;
+
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
+
+    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+    {
+        const namidx3 = ElfObj_addstr(symtab_strings,"__start_deh");
+        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+
+        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+
+        const namidx4 = ElfObj_addstr(symtab_strings,"__stop_deh");
+        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    }
 
     const namidx = ElfObj_addstr(symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
@@ -3532,12 +3546,8 @@ private void obj_rtinit()
             reltype = I64 ? R_X86_64_32 : R_386_32;
         }
 
-        const IDXSYM[3] syms = [dso_rec, minfo_beg, minfo_end];
-
-        for (size_t i = (syms).sizeof / (syms[0]).sizeof; i--; )
+        void writeSym(IDXSYM sym)
         {
-            const IDXSYM sym = syms[i];
-
             if (config.flags3 & CFG3pic)
             {
                 if (I64)
@@ -3547,7 +3557,7 @@ private void obj_rtinit()
                     buf.writeByte(op);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
-                    off += ElfObj_writerel(codseg, off, reltype, syms[i], -4);
+                    off += ElfObj_writerel(codseg, off, reltype, sym, -4);
                 }
                 else
                 {
@@ -3555,7 +3565,7 @@ private void obj_rtinit()
                     buf.writeByte(op);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
-                    off += ElfObj_writerel(codseg, off, reltype, syms[i], 0);
+                    off += ElfObj_writerel(codseg, off, reltype, sym, 0);
                 }
             }
             else
@@ -3563,12 +3573,22 @@ private void obj_rtinit()
                 // mov EAX, sym
                 buf.writeByte(0xB8 + AX);
                 off += 1;
-                off += ElfObj_writerel(codseg, off, reltype, syms[i], 0);
+                off += ElfObj_writerel(codseg, off, reltype, sym, 0);
             }
             // push RAX
             buf.writeByte(0x50 + AX);
             off += 1;
         }
+
+        if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+        {
+            writeSym(deh_end);
+            writeSym(deh_beg);
+        }
+        writeSym(minfo_end);
+        writeSym(minfo_beg);
+        writeSym(dso_rec);
+
         buf.writeByte(0x6A);            // PUSH 1
         buf.writeByte(1);               // version flag to simplify future extensions
         off += 2;
@@ -3586,7 +3606,7 @@ private void obj_rtinit()
             off += 1;
         }
 
-static if (REQUIRE_DSO_REGISTRY)
+if (REQUIRE_DSO_REGISTRY())
 {
 
         const IDXSYM symidx = ElfObj_external_def("_d_dso_registry");
@@ -3682,8 +3702,8 @@ else
         // needs to be writeable for PIC code, see Bugzilla 13117
         const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
         {
-            enum fini_name = USE_INIT_ARRAY ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
-            enum fini_type = USE_INIT_ARRAY ? SHT_FINI_ARRAY : SHT_PROGBITS;
+            const fini_name = USE_INIT_ARRAY() ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
+            const fini_type = USE_INIT_ARRAY() ? SHT_FINI_ARRAY : SHT_PROGBITS;
             const cdseg = ElfObj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.length());
             // add to section group
@@ -3693,8 +3713,8 @@ else
             SegData[cdseg].SDoffset += ElfObj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
         }
         {
-            enum init_name = USE_INIT_ARRAY ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
-            enum init_type = USE_INIT_ARRAY ? SHT_INIT_ARRAY : SHT_PROGBITS;
+            const init_name = USE_INIT_ARRAY() ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
+            const init_type = USE_INIT_ARRAY() ? SHT_INIT_ARRAY : SHT_PROGBITS;
             const cdseg = ElfObj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.length());
             // add to section group

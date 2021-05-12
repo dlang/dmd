@@ -6811,27 +6811,6 @@ static assert(md5_digest11535(`TEST`) == [84, 69, 83, 84, 0, 0]);
 
 static assert(()
 {
-    // enter to TryCatchStatement.body
-    {
-        bool c = false;
-        try
-        {
-            if (c)  // need to bypass front-end optimization
-                throw new Exception("");
-            else
-            {
-                goto Lx;
-              L1:
-                c = true;
-            }
-        }
-        catch (Exception e) {}
-
-      Lx:
-        if (!c)
-            goto L1;
-    }
-
     // jump inside TryCatchStatement.body
     {
         bool c = false;
@@ -6923,23 +6902,6 @@ static assert(()
 
 static assert(()
 {
-    // enter back to TryFinallyStatement.body
-    {
-        bool c = false;
-        try
-        {
-            goto Lx;
-          L1:
-            c = true;
-        }
-        finally {
-        }
-
-      Lx:
-        if (!c)
-            goto L1;
-    }
-
     // jump inside TryFinallyStatement.body
     {
         try

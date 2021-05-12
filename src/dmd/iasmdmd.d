@@ -284,7 +284,7 @@ enum ADDFWAIT = false;
 alias ASMTK = int;
 enum
 {
-    ASMTKlocalsize = TOK.max_ + 1,
+    ASMTKlocalsize = TOK.max + 1,
     ASMTKdword,
     ASMTKeven,
     ASMTKfar,
@@ -294,7 +294,7 @@ enum
     ASMTKqword,
     ASMTKseg,
     ASMTKword,
-    ASMTKmax = ASMTKword-(TOK.max_+1)+1
+    ASMTKmax = ASMTKword - ASMTKlocalsize + 1
 }
 
 immutable char*[ASMTKmax] apszAsmtk =
@@ -763,7 +763,7 @@ RETRY:
     switch (usActual)
     {
         case 0:
-            if (global.params.is64bit && (pop.ptb.pptb0.usFlags & _i64_bit))
+            if (target.is64bit && (pop.ptb.pptb0.usFlags & _i64_bit))
             {
                 asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
                 break;
@@ -806,7 +806,7 @@ RETRY:
                         continue;
 
                     // Check if match is invalid in 64bit mode
-                    if (global.params.is64bit && (table1.usFlags & _i64_bit))
+                    if (target.is64bit && (table1.usFlags & _i64_bit))
                     {
                         bInvalid64bit = true;
                         continue;
@@ -873,7 +873,7 @@ RETRY:
             {
                 if (log) { printf("table1   = "); asm_output_flags(table2.usOp1); printf("\n"); }
                 if (log) { printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n"); }
-                if (global.params.is64bit && (table2.usFlags & _i64_bit))
+                if (target.is64bit && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
                 const bMatch1 = asm_match_flags(opflags[0], table2.usOp1);
@@ -1368,7 +1368,7 @@ code *asm_emit(Loc loc,
     {
         emit(0x67);
         pc.Iflags |= CFaddrsize;
-        if (!global.params.is64bit)
+        if (!target.is64bit)
             amods[i] = _addr16;
         else
             amods[i] = _addr32;
@@ -1489,10 +1489,10 @@ code *asm_emit(Loc loc,
 
     asmstate.statement.regs |= asm_modify_regs(ptb, opnds);
 
-    if (ptb.pptb0.usFlags & _64_bit && !global.params.is64bit)
+    if (ptb.pptb0.usFlags & _64_bit && !target.is64bit)
         asmerr("use -m64 to compile 64 bit instructions");
 
-    if (global.params.is64bit && (ptb.pptb0.usFlags & _64_bit))
+    if (target.is64bit && (ptb.pptb0.usFlags & _64_bit))
     {
         emit(REX | REX_W);
         pc.Irex |= REX_W;
@@ -1517,7 +1517,7 @@ code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
-            if ((!global.params.is64bit &&
+            if ((!target.is64bit &&
                   (amods[1] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[1]) && aoptyTable[1] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[1]) && aoptyTable[1] == _mnoi) ||
@@ -1536,7 +1536,7 @@ code *asm_emit(Loc loc,
             goto case;
 
         case 1:
-            if ((!global.params.is64bit &&
+            if ((!target.is64bit &&
                   (amods[0] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[0]) && aoptyTable[0] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[0]) && aoptyTable[0] == _mnoi) ||
@@ -1887,7 +1887,7 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(global.params.is64bit);
+                    assert(target.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -1969,12 +1969,12 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(global.params.is64bit);
+                    assert(target.is64bit);
                 }
                 else if (opnds[0].base.isSIL_DIL_BPL_SPL())
                 {
                     pc.Irex |= REX;
-                    assert(global.params.is64bit);
+                    assert(target.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -1991,12 +1991,12 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(global.params.is64bit);
+                    assert(target.is64bit);
                 }
                 else if (opnds[0].base.isSIL_DIL_BPL_SPL())
                 {
                     pc.Irex |= REX;
-                    assert(global.params.is64bit);
+                    assert(target.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -2068,7 +2068,7 @@ L3:
                     {
                         reg &= 7;
                         pc.Irex |= REX_B;
-                        assert(global.params.is64bit);
+                        assert(target.is64bit);
                     }
                     if (asmstate.ucItype == ITfloat)
                         pc.Irm += reg;
@@ -2544,7 +2544,7 @@ void asm_make_modrm_byte(
                 }
                 else
                 {
-                    pc.IFL1 = global.params.is64bit ? FLblock : FLblockoff;
+                    pc.IFL1 = target.is64bit ? FLblock : FLblockoff;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
                 pc.Iflags |= CFoff;
@@ -2598,7 +2598,7 @@ void asm_make_modrm_byte(
             assert(d);
             if (d.isDataseg() || d.isCodeseg())
             {
-                if (!global.params.is64bit && amod == _addr16)
+                if (!target.is64bit && amod == _addr16)
                 {
                     asmerr("cannot have 16 bit addressing mode in 32 bit code");
                     return;
@@ -2685,7 +2685,7 @@ void asm_make_modrm_byte(
             bOffsetsym = true;
 
     }
-    else if (amod == _addr32 || (amod == _flbl && !global.params.is64bit))
+    else if (amod == _addr32 || (amod == _flbl && !target.is64bit))
     {
         bool bModset = false;
 
@@ -3406,7 +3406,7 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
             return &regtab[i];
         }
     }
-    if (global.params.is64bit)
+    if (target.is64bit)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
@@ -3446,7 +3446,7 @@ void asm_token_trans(Token *tok)
             {
                 ASMTK asmtk = cast(ASMTK) binary(id.ptr, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
                 if (cast(int)asmtk >= 0)
-                    asmstate.tokValue = cast(TOK) (asmtk + TOK.max_ + 1);
+                    asmstate.tokValue = cast(TOK) (asmtk + ASMTKlocalsize);
             }
         }
     }
@@ -3471,7 +3471,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
 
-            case 8:     if (global.params.is64bit || bPtr)
+            case 8:     if (target.is64bit || bPtr)
                             u = OpndSize._64;
                         break;
 
@@ -4231,7 +4231,7 @@ void asm_una_exp(ref OPND o1)
 
 version (none)
 {
-        case TOK.leftParentheses:
+        case TOK.leftParenthesis:
             // stoken() is called directly here because we really
             // want the INT token to be an INT.
             stoken();
@@ -4243,7 +4243,7 @@ version (none)
                 fixdeclar(ptype);/* fix declarator               */
                 type_free(ptypeSpec);/* the declar() function
                                     allocates the typespec again */
-                chktok(TOK.rightParentheses,"`)` expected instead of `%s`");
+                chktok(TOK.rightParenthesis,"`)` expected instead of `%s`");
                 ptype.Tcount--;
                 goto CAST_REF;
             }
@@ -4251,7 +4251,7 @@ version (none)
             {
                 type_free(ptypeSpec);
                 asm_cond_exp(o1);
-                chktok(TOK.rightParentheses, "`)` expected instead of `%s`");
+                chktok(TOK.rightParenthesis, "`)` expected instead of `%s`");
             }
             break;
 }
@@ -4394,7 +4394,7 @@ void asm_primary_exp(out OPND o1)
                      asm_is_fpreg(asmstate.tok.ident.toString()))
             {
                 asm_token();
-                if (asmstate.tokValue == TOK.leftParentheses)
+                if (asmstate.tokValue == TOK.leftParenthesis)
                 {
                     asm_token();
                     if (asmstate.tokValue == TOK.int32Literal)
@@ -4406,7 +4406,7 @@ void asm_primary_exp(out OPND o1)
                             o1.base = &(aregFp[n]);
                     }
                     asm_chktok(TOK.int32Literal, "integer expected");
-                    asm_chktok(TOK.rightParentheses, "`)` expected instead of `%s`");
+                    asm_chktok(TOK.rightParenthesis, "`)` expected instead of `%s`");
                 }
                 else
                     o1.base = &regFp;

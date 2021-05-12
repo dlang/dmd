@@ -27,6 +27,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab : SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -80,10 +81,11 @@ struct IRState
     Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
     const Param* params;            // command line parameters
+    const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
-        const Param* params)
+        const Param* params, const Target* target)
     {
         this.m = m;
         this.symbol = fd;
@@ -91,6 +93,7 @@ struct IRState
         this.deferToObj = deferToObj;
         this.labels = labels;
         this.params = params;
+        this.target = target;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.eh_none);
@@ -509,9 +512,8 @@ int intrinsic_op(FuncDeclaration fd)
     // ... except std.math package and core.stdc.stdarg.va_start.
     if (md.packages.length == 2)
     {
-        if (id2 == Id.trig &&
-            md.packages[1] == Id.math &&
-            id1 == Id.std)
+        // Matches any module in std.math.*
+        if (md.packages[1] == Id.math && id1 == Id.std)
         {
             goto Lstdmath;
         }
@@ -584,7 +586,7 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!global.params.is64bit)
+    if (!target.is64bit)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
@@ -593,7 +595,7 @@ int intrinsic_op(FuncDeclaration fd)
     return op;
 
 Lva_start:
-    if (global.params.is64bit &&
+    if (target.is64bit &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&
@@ -639,11 +641,12 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         {
             elength = *pe;
             *pe = el_same(&elength);
-            elength = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+            elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
             slength = toSymbol(lengthVar);
-            //symbol_add(slength);
+            if (slength.Sclass == SCauto && slength.Ssymnum == SYMIDX.max)
+                symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
         }
@@ -934,7 +937,7 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!global.params.symdebug)
         return;
-    if (!global.params.mscoff)  // toDebugClosure only implemented for CodeView,
+    if (!target.mscoff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.dim && !fd.needsClosure)

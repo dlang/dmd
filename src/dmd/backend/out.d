@@ -66,10 +66,10 @@ version (Windows)
 extern (C++):
 
 nothrow:
-
-void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset);
+@safe:
 
 // Determine if this Symbol is stored in a COMDAT
+@trusted
 bool symbol_iscomdat2(Symbol* s)
 {
     version (MARS)
@@ -121,6 +121,7 @@ version (HTOD)
 /***********************************
  * Output function thunk.
  */
+@trusted
 extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
@@ -139,7 +140,7 @@ version (HTOD) { } else
  * Input:
  *      s               symbol to be initialized
  */
-
+@trusted
 void outdata(Symbol *s)
 {
 version (HTOD)
@@ -454,6 +455,7 @@ Lret:
  *      offset = starting offset in segment - will get updated to reflect ending offset
  */
 
+@trusted
 void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
 {
     for (; dt; dt = dt.DTnext)
@@ -550,6 +552,7 @@ else
  * Output n bytes of a common block, n > 0.
  */
 
+@trusted
 void outcommon(Symbol *s,targ_size_t n)
 {
     //printf("outcommon('%s',%d)\n",s.Sident.ptr,n);
@@ -628,6 +631,7 @@ version (SCPP)
  * Mark a Symbol as going into a read-only segment.
  */
 
+@trusted
 void out_readonly(Symbol *s)
 {
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
@@ -657,6 +661,7 @@ void out_readonly(Symbol *s)
  *      sz = size of each character (1, 2 or 4)
  * Returns: a Symbol pointing to it.
  */
+@trusted
 Symbol *out_string_literal(const(char)* str, uint len, uint sz)
 {
     tym_t ty = TYchar;
@@ -732,6 +737,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
  * a code generator tree.
  */
 
+@trusted
 /*private*/ void outelem(elem *e, ref bool addressOfParam)
 {
     Symbol *s;
@@ -986,6 +992,7 @@ version (SCPP)
  * Determine register candidates.
  */
 
+@trusted
 void out_regcand(symtab_t *psymtab)
 {
     //printf("out_regcand()\n");
@@ -1027,6 +1034,7 @@ void out_regcand(symtab_t *psymtab)
 
 }
 
+@trusted
 private void out_regcand_walk(elem *e, ref bool addressOfParam)
 {
     while (1)
@@ -1112,6 +1120,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
  * and write it out.
  */
 
+@trusted
 void writefunc(Symbol *sfunc)
 {
 version (HTOD)
@@ -1130,6 +1139,7 @@ else
 }
 }
 
+@trusted
 private void writefunc2(Symbol *sfunc)
 {
     func_t *f = sfunc.Sfunc;
@@ -1155,11 +1165,11 @@ version (SCPP)
             scvtbl = cast(SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
             n2_genvbtbl(stag,scvtbl,1);
-static if (SYMDEB_CODEVIEW)
-{
-            if (config.fulltypes == CV4)
-                cv4_struct(stag,2);
-}
+            if (config.exe & EX_windos)
+            {
+                if (config.fulltypes == CV4)
+                    cv4_struct(stag,2);
+            }
         }
     }
     }
@@ -1636,6 +1646,7 @@ version (SCPP)
  *      datasize        size in bytes of object to be aligned
  */
 
+@trusted
 void alignOffset(int seg,targ_size_t datasize)
 {
     targ_size_t alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
@@ -1666,12 +1677,14 @@ private __gshared
     size_t readonly_i;
 }
 
+@trusted
 void out_reset()
 {
     readonly_length = 0;
     readonly_i = 0;
 }
 
+@trusted
 Symbol *out_readonly_sym(tym_t ty, void *p, int len)
 {
 version (HTOD)
@@ -1754,6 +1767,7 @@ else
  *      len = length of that data
  *      nzeros = number of trailing zeros to append
  */
+@trusted
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
@@ -1761,6 +1775,7 @@ void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
     objmod.lidata(s.Sseg, len, nzeros);
 }
 
+@trusted
 void Srcpos_print(ref const Srcpos srcpos, const(char)* func)
 {
     printf("%s(", func);

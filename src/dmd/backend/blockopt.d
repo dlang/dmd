@@ -62,7 +62,7 @@ else
 extern(C++):
 
 nothrow:
-
+@safe:
 
 extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
 extern (C) void mem_free(void*); // tk/mem.c
@@ -89,6 +89,7 @@ __gshared
     block blkzero;          // storage allocator
 }
 
+@trusted
 pragma(inline, true) block *block_calloc_i()
 {
     block *b;
@@ -114,6 +115,7 @@ block *block_calloc()
 
 __gshared goal_t[BCMAX] bc_goal;
 
+@trusted
 void block_init()
 {
     for (size_t i = 0; i < BCMAX; i++)
@@ -129,6 +131,7 @@ void block_init()
 /*********************************
  */
 
+@trusted
 void block_term()
 {
     while (block_freelist)
@@ -145,6 +148,7 @@ void block_term()
 
 version (MARS)
 {
+@trusted
 void block_next(Blockx *bctx,int bc,block *bn)
 {
     bctx.curblock.BC = cast(ubyte) bc;
@@ -159,6 +163,7 @@ void block_next(Blockx *bctx,int bc,block *bn)
 }
 else
 {
+@trusted
 void block_next(int bc,block *bn)
 {
     curblock.BC = cast(ubyte) bc;
@@ -233,6 +238,7 @@ void block_goto(block *bgoto,block *bnew)
  * Replace block numbers with block pointers.
  */
 
+@trusted
 void block_ptr()
 {
     //printf("block_ptr()\n");
@@ -249,6 +255,7 @@ void block_ptr()
  * Build predecessor list (Bpred) for each block.
  */
 
+@trusted
 void block_pred()
 {
     //printf("block_pred()\n");
@@ -272,6 +279,7 @@ void block_pred()
  * Clear visit.
  */
 
+@trusted
 void block_clearvisit()
 {
     for (block *b = startblock; b; b = b.Bnext)       // for each block
@@ -297,7 +305,7 @@ void block_visit(block *b)
 /*****************************
  * Compute number of parents (Bcount) of each basic block.
  */
-
+@trusted
 void block_compbcount()
 {
     block_clearvisit();
@@ -324,6 +332,7 @@ void blocklist_free(block **pb)
  * Free optimizer gathered data.
  */
 
+@trusted
 void block_optimizer_free(block *b)
 {
     static void vfree(ref vec_t v) { vec_free(v); v = null; }
@@ -347,6 +356,7 @@ void block_optimizer_free(block *b)
  * Free a block.
  */
 
+@trusted
 void block_free(block *b)
 {
     assert(b);
@@ -407,6 +417,7 @@ version (COMPILE)
 {
 static if (HYDRATE)
 {
+@trusted
 void blocklist_hydrate(block **pb)
 {
     while (isdehydrated(*pb))
@@ -461,6 +472,7 @@ void blocklist_hydrate(block **pb)
 
 static if (DEHYDRATE)
 {
+@trusted
 void blocklist_dehydrate(block **pb)
 {
     block *b;
@@ -527,6 +539,7 @@ void blocklist_dehydrate(block **pb)
  *           old  e
  */
 
+@trusted
 void block_appendexp(block *b,elem *e)
 {
     version (MARS) {}
@@ -601,6 +614,7 @@ void block_initvar(Symbol *s)
  *      1       do a "return 0"
  */
 
+@trusted
 void block_endfunc(int flag)
 {
     curblock.Bsymend = globsym.length;
@@ -621,6 +635,7 @@ void block_endfunc(int flag)
  * Perform branch optimization on basic blocks.
  */
 
+@trusted
 void blockopt(int iter)
 {
     if (OPTIMIZER)
@@ -645,13 +660,19 @@ void blockopt(int iter)
             blexit();
             if (iter >= 2)
                 brmin();                // minimize branching
+            version (MARS)
+                // Switched to one block per Statement, do not undo it
+                enum merge = false;
+            else
+                enum merge = true;
+
             do
             {
                 compdfo();              /* compute depth first order (DFO) */
                 elimblks();             /* remove blocks not in DFO      */
                 assert(count < iterationLimit);
                 count++;
-            } while (mergeblks());      /* merge together blocks         */
+            } while (merge && mergeblks());      // merge together blocks
         } while (go.changes);
 
         debug if (debugw)
@@ -715,6 +736,7 @@ void blockopt(int iter)
  * into &&, || and ?: combinations.
  */
 
+@trusted
 void brcombine()
 {
     debug if (debugc) printf("brcombine()\n");
@@ -920,6 +942,7 @@ void brcombine()
  * Branch optimization.
  */
 
+@trusted
 private void bropt()
 {
     debug if (debugc) printf("bropt()\n");
@@ -932,6 +955,22 @@ private void bropt()
                 pn = &((*pn).EV.E2);
 
         elem *n = *pn;
+
+        /* look for conditional that never returns */
+        if (n && tybasic(n.Ety) == TYnoreturn && b.BC != BCexit)
+        {
+            b.BC = BCexit;
+            // Exit block has no successors, so remove them
+            foreach (bp; ListRange(b.Bsucc))
+            {
+                list_subtract(&(list_block(bp).Bpred),b);
+            }
+            list_free(&b.Bsucc, FPNULL);
+            debug if (debugc) printf("CHANGE: noreturn becomes BCexit\n");
+            go.changes++;
+            continue;
+        }
+
         if (b.BC == BCiftrue)
         {
             assert(n);
@@ -1034,6 +1073,7 @@ private void bropt()
  * Do branch rearrangement.
  */
 
+@trusted
 private void brrear()
 {
     debug if (debugc) printf("brrear()\n");
@@ -1126,11 +1166,13 @@ private void brrear()
  *      startblock = list of blocks
  */
 
+@trusted
 void compdfo()
 {
     compdfo(dfo, startblock);
 }
 
+@trusted
 void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
@@ -1189,10 +1231,11 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
 
 
 /*************************
- * Remove blocks not marked as visited (they aren't in dfo[]).
+ * Remove blocks not marked as visited (they are not in dfo[]).
  * A block is not in dfo[] if not visited.
  */
 
+@trusted
 private void elimblks()
 {
     debug if (debugc) printf("elimblks()\n");
@@ -1248,6 +1291,7 @@ private void elimblks()
  *      # of merged blocks
  */
 
+@trusted
 private int mergeblks()
 {
     int merge = 0;
@@ -1340,6 +1384,7 @@ private int mergeblks()
  * Combine together blocks that are identical.
  */
 
+@trusted
 private void blident()
 {
     debug if (debugc) printf("blident()\n");
@@ -1502,6 +1547,7 @@ private void blident()
  * single block by blident().
  */
 
+@trusted
 private void blreturn()
 {
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
@@ -1576,6 +1622,7 @@ private void blreturn()
  * Convert comma-expressions into an array of expressions.
  */
 
+@trusted
 extern (D)
 private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
 {
@@ -1594,6 +1641,7 @@ private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
     }
 }
 
+@trusted
 private list_t bl_enlist(elem *e)
 {
     list_t el = null;
@@ -1636,6 +1684,7 @@ private elem* bl_delist2(elem*[] elems)
     return result;
 }
 
+@trusted
 private elem * bl_delist(list_t el)
 {
     elem *e = null;
@@ -1649,6 +1698,7 @@ private elem * bl_delist(list_t el)
  * Do tail merging.
  */
 
+@trusted
 private void bltailmerge()
 {
     debug if (debugc) printf("bltailmerge()\n");
@@ -1782,6 +1832,7 @@ private void bltailmerge()
  * Rearrange blocks to minimize jmp's.
  */
 
+@trusted
 private void brmin()
 {
     version (SCPP)
@@ -1851,6 +1902,7 @@ private void brmin()
 static if(0)
 {
 
+@trusted
 private void block_check()
 {
     for (block *b = startblock; b; b = b.Bnext)
@@ -1888,6 +1940,7 @@ private void block_check()
  * Do tail recursion.
  */
 
+@trusted
 private void brtailrecursion()
 {
     version (SCPP)
@@ -2046,6 +2099,7 @@ private void brtailrecursion()
  * Convert parameter expression to assignment statements.
  */
 
+@trusted
 private elem * assignparams(elem **pe,int *psi,elem **pe2)
 {
     elem *e = *pe;
@@ -2099,6 +2153,7 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
  * Eliminate empty loops.
  */
 
+@trusted
 private void emptyloops()
 {
     debug if (debugc) printf("emptyloops()\n");
@@ -2171,6 +2226,7 @@ private void emptyloops()
  * statics or indirect references.
  */
 
+@trusted
 void funcsideeffects()
 {
     version (MARS)
@@ -2192,6 +2248,7 @@ void funcsideeffects()
 version (MARS)
 {
 
+@trusted
 private int funcsideeffect_walk(elem *e)
 {
     assert(e);
@@ -2233,6 +2290,7 @@ private int funcsideeffect_walk(elem *e)
  * Determine if there are any OPframeptr's in the tree.
  */
 
+@trusted
 private int el_anyframeptr(elem *e)
 {
     while (1)
@@ -2260,6 +2318,7 @@ private int el_anyframeptr(elem *e)
  * This is because assert calls are never in a hot branch.
  */
 
+@trusted
 private void blassertsplit()
 {
     debug if (debugc) printf("blassertsplit()\n");
@@ -2390,6 +2449,9 @@ private void blassertsplit()
             goto L1;
         }
         b.Belem = bl_delist2(earray);
+        if (b.BC == BCretexp && !b.Belem)
+            b.Belem = el_long(TYint, 1);
+
     }
     elems.dtor();
 }
@@ -2397,6 +2459,7 @@ private void blassertsplit()
 /*************************************************
  * Detect exit blocks and move them to the end.
  */
+@trusted
 private void blexit()
 {
     debug if (debugc) printf("blexit()\n");

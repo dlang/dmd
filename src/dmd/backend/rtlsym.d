@@ -173,6 +173,7 @@ enum
 extern (C++):
 
 nothrow:
+@safe:
 
 Symbol *getRtlsym(int i);
 Symbol *getRtlsymPersonality();

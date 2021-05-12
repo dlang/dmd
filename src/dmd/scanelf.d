@@ -11,20 +11,8 @@
 
 module dmd.scanelf;
 
-version(Windows) {}
-else version(OSX) {}
-else:
-
-version (linux)
-    import core.sys.linux.elf;
-else version (FreeBSD)
-    import core.sys.freebsd.sys.elf;
-else version (DragonFlyBSD)
-    import core.sys.dragonflybsd.sys.elf;
-else version (Solaris)
-    import core.sys.solaris.elf;
-
 import core.stdc.string;
+import core.stdc.stdint;
 import core.checkedint;
 
 import dmd.globals;
@@ -172,3 +160,137 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         scanELF!64;
     }
 }
+
+alias Elf32_Half = uint16_t;
+alias Elf64_Half = uint16_t;
+
+alias Elf32_Word  = uint32_t;
+alias Elf32_Sword = int32_t;
+alias Elf64_Word  = uint32_t;
+alias Elf64_Sword = int32_t;
+
+alias Elf32_Xword  = uint64_t;
+alias Elf32_Sxword = int64_t;
+alias Elf64_Xword  = uint64_t;
+alias Elf64_Sxword = int64_t;
+
+alias Elf32_Addr = uint32_t;
+alias Elf64_Addr = uint64_t;
+
+alias Elf32_Off = uint32_t;
+alias Elf64_Off = uint64_t;
+
+alias Elf32_Section = uint16_t;
+alias Elf64_Section = uint16_t;
+
+alias Elf32_Versym = Elf32_Half;
+alias Elf64_Versym = Elf64_Half;
+
+struct Elf32_Ehdr
+{
+    char[EI_NIDENT] e_ident = 0;
+    Elf32_Half    e_type;
+    Elf32_Half    e_machine;
+    Elf32_Word    e_version;
+    Elf32_Addr    e_entry;
+    Elf32_Off     e_phoff;
+    Elf32_Off     e_shoff;
+    Elf32_Word    e_flags;
+    Elf32_Half    e_ehsize;
+    Elf32_Half    e_phentsize;
+    Elf32_Half    e_phnum;
+    Elf32_Half    e_shentsize;
+    Elf32_Half    e_shnum;
+    Elf32_Half    e_shstrndx;
+}
+
+struct Elf64_Ehdr
+{
+    char[EI_NIDENT] e_ident = 0;
+    Elf64_Half    e_type;
+    Elf64_Half    e_machine;
+    Elf64_Word    e_version;
+    Elf64_Addr    e_entry;
+    Elf64_Off     e_phoff;
+    Elf64_Off     e_shoff;
+    Elf64_Word    e_flags;
+    Elf64_Half    e_ehsize;
+    Elf64_Half    e_phentsize;
+    Elf64_Half    e_phnum;
+    Elf64_Half    e_shentsize;
+    Elf64_Half    e_shnum;
+    Elf64_Half    e_shstrndx;
+}
+
+enum EI_NIDENT = 16;
+enum EI_VERSION =      6;
+enum EI_CLASS =        4;
+enum EI_DATA =         5;
+enum EV_CURRENT =      1;
+
+enum ELFDATANONE =     0;
+enum ELFDATA2LSB =     1;
+enum ELFDATA2MSB =     2;
+enum ELFDATANUM =      3;
+enum ELFCLASSNONE =    0;
+enum ELFCLASS32 =      1;
+enum ELFCLASS64 =      2;
+enum ELFCLASSNUM =     3;
+
+enum ET_REL =          1;
+
+struct Elf32_Shdr
+{
+    Elf32_Word    sh_name;
+    Elf32_Word    sh_type;
+    Elf32_Word    sh_flags;
+    Elf32_Addr    sh_addr;
+    Elf32_Off     sh_offset;
+    Elf32_Word    sh_size;
+    Elf32_Word    sh_link;
+    Elf32_Word    sh_info;
+    Elf32_Word    sh_addralign;
+    Elf32_Word    sh_entsize;
+}
+
+struct Elf64_Shdr
+{
+    Elf64_Word    sh_name;
+    Elf64_Word    sh_type;
+    Elf64_Xword   sh_flags;
+    Elf64_Addr    sh_addr;
+    Elf64_Off     sh_offset;
+    Elf64_Xword   sh_size;
+    Elf64_Word    sh_link;
+    Elf64_Word    sh_info;
+    Elf64_Xword   sh_addralign;
+    Elf64_Xword   sh_entsize;
+}
+
+enum SHT_SYMTAB =        2;
+enum SHT_STRTAB =        3;
+
+struct Elf32_Sym
+{
+    Elf32_Word    st_name;
+    Elf32_Addr    st_value;
+    Elf32_Word    st_size;
+    ubyte st_info;
+    ubyte st_other;
+    Elf32_Section st_shndx;
+}
+
+struct Elf64_Sym
+{
+    Elf64_Word    st_name;
+    ubyte st_info;
+    ubyte st_other;
+    Elf64_Section st_shndx;
+    Elf64_Addr    st_value;
+    Elf64_Xword   st_size;
+}
+
+enum STB_GLOBAL =      1;
+enum STB_WEAK =        2;
+
+enum SHN_UNDEF =       0;

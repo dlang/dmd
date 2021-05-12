@@ -708,24 +708,6 @@ void test32()
 
 /* ================================ */
 
-void test33()
-{
-        creal a=1.3L+9.7Li;
-        assert(a.re == 1.3L);
-        assert(a.im == 9.7L);
-}
-
-/* ================================ */
-
-void test34()
-{
-        creal c = 2.7L + 0i;
-        assert(c.re==2.7L);
-        assert(c.im==0.0L);
-}
-
-/* ================================ */
-
 void test35()
 {
         try{
@@ -913,8 +895,6 @@ int main()
     test30();
     test31();
     test32();
-    test33();
-    test34();
     test35();
     test36();
     test37();

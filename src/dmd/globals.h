@@ -19,26 +19,6 @@
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 
-typedef unsigned char TargetOS;
-enum
-{
-    /* These are mutually exclusive; one and only one is set.
-     * Match spelling and casing of corresponding version identifiers
-     */
-    TargetOS_linux        = 1,
-    TargetOS_Windows      = 2,
-    TargetOS_OSX          = 4,
-    TargetOS_OpenBSD      = 8,
-    TargetOS_FreeBSD      = 0x10,
-    TargetOS_Solaris      = 0x20,
-    TargetOS_DragonFlyBSD = 0x40,
-
-    // Combination masks
-    all = TargetOS_linux | TargetOS_Windows | TargetOS_OSX | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
-    Posix = TargetOS_linux | TargetOS_OSX | TargetOS_FreeBSD | TargetOS_Solaris | TargetOS_DragonFlyBSD,
-};
-
-
 typedef unsigned char Diagnostic;
 enum
 {
@@ -71,25 +51,6 @@ enum
     CHECKACTION_C,        // call C assert on failure
     CHECKACTION_halt,     // cause program halt on failure
     CHECKACTION_context   // call D assert with the error context on failure
-};
-
-enum class CPU
-{
-    x87,
-    mmx,
-    sse,
-    sse2,
-    sse3,
-    ssse3,
-    sse4_1,
-    sse4_2,
-    avx,                // AVX1 instruction set
-    avx2,               // AVX2 instruction set
-    avx512,             // AVX-512 instruction set
-
-    // Special values that don't survive past the command line processing
-    baseline,           // (default) the minimum capability CPU
-    native              // the machine the compiler is being run on
 };
 
 enum JsonFieldFlags
@@ -149,11 +110,6 @@ struct Param
     unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
     bool optimize;      // run optimizer
-    bool is64bit;       // generate 64 bit code
-    bool isLP64;        // generate code for LP64
-    TargetOS targetOS;      // operating system to generate code for
-    bool hasObjectiveC; // target supports Objective-C
-    bool mscoff;        // for Win32: write COFF object files instead of OMF
     Diagnostic useDeprecated;
     bool stackstomp;    // add stack stomping code
     bool useUnitTests;  // generate unittest code
@@ -205,8 +161,6 @@ struct Param
     bool externStdUsage;    // print help on -extern-std switch
     bool hcUsage;           // print help on -HC switch
     bool logo;              // print logo;
-
-    CPU cpu;                // CPU instruction set to target
 
     CHECKENABLE useInvariants;     // generate class invariant checks
     CHECKENABLE useIn;             // generate precondition checks
@@ -289,21 +243,17 @@ typedef unsigned structalign_t;
 // other values are all powers of 2
 #define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
 
+const DString mars_ext = "d";
+const DString doc_ext  = "html";     // for Ddoc generated files
+const DString ddoc_ext = "ddoc";     // for Ddoc macro include files
+const DString dd_ext   = "dd";       // for Ddoc source files
+const DString hdr_ext  = "di";       // for D 'header' import files
+const DString json_ext = "json";     // for JSON files
+const DString map_ext  = "map";      // for .map files
+
 struct Global
 {
     DString inifilename;
-    const DString mars_ext;
-    DString obj_ext;
-    DString lib_ext;
-    DString dll_ext;
-    const DString doc_ext;      // for Ddoc generated files
-    const DString ddoc_ext;     // for Ddoc macro include files
-    const DString hdr_ext;      // for D 'header' import files
-    const DString cxxhdr_ext;   // for C/C++ 'header' files
-    const DString json_ext;     // for JSON files
-    const DString map_ext;      // for .map files
-    bool run_noext;             // allow -run sources without extensions.
-
 
     const DString copyright;
     const DString written;

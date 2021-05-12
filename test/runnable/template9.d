@@ -4189,9 +4189,6 @@ static assert(is(typeof(TypeTuple13252!(cast(long)1)[0]) == long));
 static assert(is(typeof(TypeTuple13252!(cast(float )3.14)[0]) == float ));
 static assert(is(typeof(TypeTuple13252!(cast(double)3.14)[0]) == double));
 
-static assert(is(typeof(TypeTuple13252!(cast(cfloat )(1 + 2i))[0]) == cfloat ));
-static assert(is(typeof(TypeTuple13252!(cast(cdouble)(1 + 2i))[0]) == cdouble));
-
 static assert(is(typeof(TypeTuple13252!(cast(string  )null)[0]) == string  ));
 static assert(is(typeof(TypeTuple13252!(cast(string[])null)[0]) == string[]));  // OK <- NG
 
@@ -5004,8 +5001,6 @@ void test15653()
     foreach (U; TypeTuple15653!( byte,    short,   int,  long,
                                 ubyte,   ushort,  uint, ulong,
                                  float,  double,  real,
-                                ifloat, idouble, ireal,
-                                cfloat, cdouble, creal,
                                 void delegate(),
                                 int[2], X, X[2]))
     {

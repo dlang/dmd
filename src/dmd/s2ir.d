@@ -87,6 +87,21 @@ private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
     s.set(loc.filename, loc.linnum, loc.charnum);
 }
 
+private bool isAssertFalse(const Expression e) nothrow
+{
+    return e ? e.type == Type.tnoreturn && (e.op == TOK.halt || e.op == TOK.assert_) : false;
+}
+
+private bool isAssertFalse(const Statement s) nothrow
+{
+    if (!s)
+        return false;
+    if (auto es = s.isExpStatement())
+        return isAssertFalse(es.exp);
+    else if (auto ss = s.isScopeStatement())
+        return isAssertFalse(ss.statement);
+    return false;
+}
 
 /***********************************************
  * Generate code to set index into scope table.
@@ -532,7 +547,8 @@ private extern (C++) class S2irVisitor : Visitor
         if (bsw.BC == BCswitch)
             bsw.appendSucc(cb);   // second entry in pair
         bcase.appendSucc(cb);
-        incUsage(irs, s.loc);
+        if (!isAssertFalse(s.statement))
+            incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs, stmtstate);
     }
@@ -544,7 +560,8 @@ private extern (C++) class S2irVisitor : Visitor
         block *bdefault = stmtstate.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
-        incUsage(irs, s.loc);
+        if (!isAssertFalse(s.statement))
+            incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs, stmtstate);
     }
@@ -742,10 +759,16 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
         if (s.exp)
         {
-            if (s.exp.hasCode)
+            if (s.exp.hasCode &&
+                !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
                 incUsage(irs, s.loc);
 
             block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+
+            // goto the next block
+            block* b = blx.curblock;
+            block_next(blx, BCgoto, null);
+            b.appendSucc(blx.curblock);
         }
     }
 
@@ -1107,7 +1130,7 @@ private extern (C++) class S2irVisitor : Visitor
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
 
-                if (cs.type && irs.params.targetOS == TargetOS.Windows && irs.params.is64bit) // Win64
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
                 {
                     /* The linker will attempt to merge together identical functions,
                      * even if the catch types differ. So add a reference to the

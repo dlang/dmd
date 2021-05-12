@@ -16,6 +16,7 @@ module dmd.backend.ty;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 alias tym_t = uint;
 
@@ -143,7 +144,9 @@ enum
     TYfgPtr             = 0x5E, // GS: pointer (I32) FS: pointer (I64)
     TYrestrictPtr       = 0x5F, // restrict pointer
 
-    TYMAX               = 0x60,
+    TYnoreturn          = 0x60, // bottom type
+
+    TYMAX               = 0x61,
 }
 
 alias TYerror = TYint;
@@ -244,91 +247,121 @@ extern __gshared byte[256] _tysize;
 extern __gshared byte[256] _tyalignsize;
 
 // Give size of type
+@trusted
 byte tysize(tym_t ty)      { return _tysize[ty & 0xFF]; }
+@trusted
 byte tyalignsize(tym_t ty) { return _tyalignsize[ty & 0xFF]; }
 
 
 /* Groupings of types   */
 
+@trusted
 uint tyintegral(tym_t ty) { return tytab[ty & 0xFF] & TYFLintegral; }
 
+@trusted
 uint tyarithmetic(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex); }
 
+@trusted
 uint tyaggregate(tym_t ty) { return tytab[ty & 0xFF] & TYFLaggregate; }
 
+@trusted
 uint tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref); }
 
+@trusted
 uint tyfloating(tym_t ty) { return tytab[ty & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex); }
 
+@trusted
 uint tyimaginary(tym_t ty) { return tytab[ty & 0xFF] & TYFLimaginary; }
 
+@trusted
 uint tycomplex(tym_t ty) { return tytab[ty & 0xFF] & TYFLcomplex; }
 
+@trusted
 uint tyreal(tym_t ty) { return tytab[ty & 0xFF] & TYFLreal; }
 
 // Fits into 64 bit register
+@trusted
 bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= _tysize[TYnptr]; }
 
 // Can go in XMM floating point register
+@trusted
 uint tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
 
 // Is a vector type
+@trusted
 bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong4; }
 
 /* Types that are chars or shorts       */
+@trusted
 uint tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }
 
 /* Detect TYlong or TYulong     */
+@trusted
 bool tylong(tym_t ty) { return tybasic(ty) == TYlong || tybasic(ty) == TYulong; }
 
 /* Use to detect a pointer type */
+@trusted
 uint typtr(tym_t ty) { return tytab[ty & 0xFF] & TYFLptr; }
 
 /* Use to detect a reference type */
+@trusted
 uint tyref(tym_t ty) { return tytab[ty & 0xFF] & TYFLref; }
 
 /* Use to detect a pointer type or a member pointer     */
+@trusted
 uint tymptr(tym_t ty) { return tytab[ty & 0xFF] & (TYFLptr | TYFLmptr); }
 
 // Use to detect a nullptr type or a member pointer
+@trusted
 uint tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
 
 /* Detect TYfptr or TYvptr      */
+@trusted
 uint tyfv(tym_t ty) { return tytab[ty & 0xFF] & TYFLfv; }
 
 /* All data types that fit in exactly 8 bits    */
+@trusted
 bool tybyte(tym_t ty) { return tysize(ty) == 1; }
 
 /* Types that fit into a single machine register        */
+@trusted
 bool tyreg(tym_t ty) { return tysize(ty) <= _tysize[TYnptr]; }
 
 /* Detect function type */
+@trusted
 uint tyfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfunc; }
 
 /* Detect function type where parameters are pushed left to right    */
+@trusted
 uint tyrevfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLrevparam; }
 
 /* Detect uint types */
+@trusted
 uint tyuns(tym_t ty) { return tytab[ty & 0xFF] & (TYFLuns | TYFLptr); }
 
 /* Target dependent info        */
 alias TYoffset = TYuint;         // offset to an address
 
 /* Detect cpp function type (callee cleans up stack)    */
+@trusted
 uint typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
 
 /* Array to convert a type to its unsigned equivalent   */
 extern __gshared tym_t[256] tytouns;
+@trusted
 tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
+@trusted
 uint tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 
 // Determine if parameter is a SIMD vector type
+@trusted
 uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
 /* Determine relaxed type       */
 extern __gshared ubyte[TYMAX] _tyrelax;
+@trusted
 uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 
 
@@ -343,7 +376,10 @@ extern __gshared ubyte[TYMAX] dttab;
 extern __gshared ushort[TYMAX] dttab4;
 
 
+@trusted
 bool I16() { return _tysize[TYnptr] == 2; }
+@trusted
 bool I32() { return _tysize[TYnptr] == 4; }
+@trusted
 bool I64() { return _tysize[TYnptr] == 8; }
 

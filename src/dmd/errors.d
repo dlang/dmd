@@ -26,7 +26,7 @@ nothrow:
 /**
  * Color highlighting to classify messages
  */
-enum Classification
+enum Classification : Color
 {
     error = Color.brightRed,          /// for errors
     gagged = Color.brightBlue,        /// for gagged errors
@@ -34,6 +34,34 @@ enum Classification
     deprecation = Color.brightCyan,   /// for deprecations
     tip = Color.brightGreen,          /// for tip messages
 }
+
+
+static if (__VERSION__ < 2092)
+    private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+else
+    pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+
+
+package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+{
+    if (featureState == FeatureState.enabled)
+        return &error;
+    else if (featureState == FeatureState.disabled || isDeprecated)
+        return &noop;
+    else
+        return &deprecation;
+}
+
+package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+{
+    if (featureState == FeatureState.enabled)
+        return &errorSupplemental;
+    else if (featureState == FeatureState.disabled || isDeprecated)
+        return &noop;
+    else
+        return &deprecationSupplemental;
+}
+
 
 /**
  * Print an error message, increasing the global error count.
@@ -368,9 +396,18 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             if (loc.charnum < line.length)
             {
                 fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
-                foreach (_; 1 .. loc.charnum)
+                // The number of column bytes and the number of display columns
+                // occupied by a character are not the same for non-ASCII charaters.
+                // https://issues.dlang.org/show_bug.cgi?id=21849
+                size_t c = 0;
+                while (c < loc.charnum - 1)
+                {
+                    import dmd.utf : utf_decodeChar;
+                    dchar u;
+                    const msg = utf_decodeChar(line, c, u);
+                    assert(msg is null, msg);
                     fputc(' ', stderr);
-
+                }
                 fputc('^', stderr);
                 fputc('\n', stderr);
             }

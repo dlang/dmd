@@ -38,7 +38,9 @@ D_ATTRIBUTE_FORMAT(2, 0) void vdeprecation(const Loc& loc, const char *format, v
 D_ATTRIBUTE_FORMAT(2, 0) void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap);
 D_ATTRIBUTE_FORMAT(1, 2) void message(const char *format, ...);
 D_ATTRIBUTE_FORMAT(2, 3) void message(const Loc& loc, const char *format, ...);
-D_ATTRIBUTE_FORMAT(2, 0) void vmessage(const Loc& loc, const char *format, va_list);
+D_ATTRIBUTE_FORMAT(2, 0) void vmessage(const Loc& loc, const char *format, va_list ap);
+D_ATTRIBUTE_FORMAT(1, 2) void tip(const char *format, ...);
+D_ATTRIBUTE_FORMAT(1, 0) void vtip(const char *format, va_list ap);
 
 #if defined(__GNUC__) || defined(__clang__)
 #define D_ATTRIBUTE_NORETURN __attribute__((noreturn))

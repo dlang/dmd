@@ -67,10 +67,10 @@ static void frontend_init()
     gc_disable();
 
     global._init();
-    global.params.targetOS = TargetOS_linux;
+    target.os = Target::OS_linux;
     global.vendor = "Front-End Tester";
     global.params.objname = NULL;
-    global.params.cpu = CPU::native;
+    target.cpu = CPU::native;
 
     Type::_init();
     Id::initialize();
@@ -101,7 +101,7 @@ void test_tokens()
     assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
 
     // Last valid TOK value
-    assert(TOKvectorarray == TOKMAX - 1);
+    assert(TOKcolonColon == TOKMAX - 1);
     assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
 }
 

@@ -12,6 +12,8 @@ module dmd.backend.xmm;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_xmm.html
 
+@safe:
+
 // XMM opcodes
 
 enum
@@ -74,7 +76,6 @@ enum
     LODDQU   = 0xF30F6F,        // MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
     STODQU   = 0xF30F7F,        // MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
     MOVDQ2Q  = 0xF20FD6,        // MOVDQ2Q mmx, xmm          F2 0F D6 /r
-    MOVHLPS  = 0x0F12,          // MOVHLPS xmm1, xmm2        0F 12 /r
     LODHPD   = 0x660F16,        // MOVHPD xmm, mem64         66 0F 16 /r
     STOHPD   = 0x660F17,        // MOVHPD mem64, xmm         66 0F 17 /r
     LODHPS   = 0x0F16,          // MOVHPS xmm, mem64         0F 16 /r
@@ -82,6 +83,7 @@ enum
     MOVLHPS  = 0x0F16,          // MOVLHPS xmm1, xmm2        0F 16 /r
     LODLPD   = 0x660F12,        // MOVLPD xmm, mem64         66 0F 12 /r
     STOLPD   = 0x660F13,        // MOVLPD mem64, xmm         66 0F 13 /r
+    MOVHLPS  = 0x0F12,          // MOVHLPS xmm1, xmm2        0F 12 /r
     LODLPS   = 0x0F12,          // MOVLPS xmm, mem64         0F 12 /r
     STOLPS   = 0x0F13,          // MOVLPS mem64, xmm         0F 13 /r
     MOVMSKPD = 0x660F50,        // MOVMSKPD reg32, xmm 66 0F 50 /r

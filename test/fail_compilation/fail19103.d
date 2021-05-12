@@ -1,24 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19103.d(12): Error: no property `writeln` for type `fail19103.C`, perhaps `import std.stdio;` is needed?
-fail_compilation/fail19103.d(14): Error: no property `writeln` for type `S1`, perhaps `import std.stdio;` is needed?
-fail_compilation/fail19103.d(16): Error: no property `writeln` for type `S2`, did you mean `std.stdio.writeln(T...)(T args)`?
+fail_compilation/fail19103.d(12): Error: no property `puts` for type `fail19103.C`
+fail_compilation/fail19103.d(14): Error: no property `puts` for type `fail19103.S1`
+fail_compilation/fail19103.d(16): Error: no property `puts` for type `S2`, did you mean `core.stdc.stdio.puts`?
 ---
 */
 
 void main()
 {
-    (new C).writeln("OK."); // Error: no property writeln for type test.C, did you mean std.stdio.writeln(T...)(T args)?
+    (new C).puts("OK."); // Error: no property puts for type test.C, did you mean core.stdc.stdio.puts(T...)(T args)?
     S1 s1;
-    s1.writeln("Hey?"); // It can be compiled and runs!
+    s1.puts("Hey?"); // It can be compiled and runs!
     S2 s2;
-    s2.writeln("OK."); //  Error: no property writeln for type S2, did you mean std.stdio.writeln(T...)(T args)?
+    s2.puts("OK."); //  Error: no property puts for type S2, did you mean core.stdc.stdio.puts(T...)(T args)?
 }
 
 mixin template T()
 {
-    import std.stdio;
+    import core.stdc.stdio;
 }
 
 class C
@@ -32,5 +32,5 @@ struct S1
 
 struct S2
 {
-    import std.stdio;
+    import core.stdc.stdio;
 }

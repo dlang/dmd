@@ -24,6 +24,7 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
+import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -950,6 +951,32 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.expressionSemantic(sc);
         return ex;
     }
+    if (e.ident == Id.toType)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto ex = isExpression((*e.args)[0]);
+        if (!ex)
+        {
+            e.error("expression expected as second argument of __traits `%s`", e.ident.toChars());
+            return ErrorExp.get();
+        }
+        ex = ex.ctfeInterpret();
+
+        StringExp se = semanticString(sc, ex, "__traits(toType, string)");
+        if (!se)
+        {
+            return ErrorExp.get();
+        }
+        Type t = decoToType(se.toUTF8(sc).peekString());
+        if (!t)
+        {
+            e.error("cannot determine `%s`", e.toChars());
+            return ErrorExp.get();
+        }
+        return (new TypeExp(e.loc, t)).expressionSemantic(sc);
+    }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
         e.ident == Id.getOverloads ||
@@ -1142,7 +1169,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                                 td.overroot = null;
                                 td.overnext = null;
                             }
-                            exps.push(new DsymbolExp(Loc.initial, td, false));
+
+                            auto e = ex ? new DotTemplateExp(Loc.initial, ex, td)
+                                        : new DsymbolExp(Loc.initial, td);
+                            exps.push(e);
                         }
                     }
                     return 0;
@@ -1573,6 +1603,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     return 0;
                 }
+                // skip 'this' context pointers
+                else if (decl.isThisDeclaration())
+                    return 0;
             }
 
             // https://issues.dlang.org/show_bug.cgi?id=20915

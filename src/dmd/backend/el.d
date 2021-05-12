@@ -26,6 +26,7 @@ import dmd.backend.dlist;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 /* Routines to handle elems.                            */
 
@@ -127,18 +128,24 @@ void elem_debug(const elem* e)
     debug assert(e.id == e.IDelem);
 }
 
-version (MARS)
-    tym_t typemask(const elem* e) { return e.Ety; }
-else
-    tym_t typemask(const elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
+@trusted tym_t typemask(const elem* e)
+{
+    version (MARS)
+        return e.Ety;
+    else
+        return PARSER ? e.ET.Tty : e.Ety;
+}
 
+@trusted
 FL el_fl(const elem* e) { return cast(FL)e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
 
+@trusted
 inout(elem)* list_elem(inout list_t list) { return cast(inout(elem)*)list_ptr(list); }
 
+@trusted
 void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
 
 //#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */

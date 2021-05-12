@@ -35,6 +35,7 @@ import dmd.backend.type;
 import dmd.backend.barray;
 
 nothrow:
+@safe:
 
 extern __gshared
 {
@@ -385,7 +386,7 @@ void out_readonly(Symbol *s);
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros);
 void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
-void alignOffset(int seg,targ_size_t datasize);
+@trusted void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
@@ -446,7 +447,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-Symbol *symboldata(targ_size_t offset,tym_t ty);
+@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
 bool dom(const block* A, const block* B);
 uint revop(uint op);
 uint invrel(uint op);

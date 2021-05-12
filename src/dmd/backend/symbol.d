@@ -64,6 +64,7 @@ version (SCPP_HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
@@ -84,13 +85,16 @@ else
 
 void struct_free(struct_t *st) { }
 
+@trusted
 func_t* func_calloc() { return cast(func_t *) calloc(1, func_t.sizeof); }
+
+@trusted
 void func_free(func_t* f) { free(f); }
 
 /*******************************
  * Type out symbol information.
  */
-
+@trusted
 void symbol_print(const Symbol *s)
 {
 debug
@@ -144,6 +148,7 @@ version (SCPP_HTOD)
 
 private __gshared Symbol *keep;
 
+@trusted
 void symbol_term()
 {
     symbol_free(keep);
@@ -168,6 +173,7 @@ void symbol_keep(Symbol *s)
 /****************************************
  * Return alignment of symbol.
  */
+@trusted
 int Symbol_Salignsize(Symbol* s)
 {
     if (s.Salignment > 0)
@@ -195,6 +201,7 @@ int Symbol_Salignsize(Symbol* s)
  *      true if symbol is dead.
  */
 
+@trusted
 bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
 {
     version (MARS)
@@ -221,6 +228,7 @@ bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
  * Determine if symbol needs a 'this' pointer.
  */
 
+@trusted
 int Symbol_needThis(const Symbol* s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
@@ -254,9 +262,17 @@ bool Symbol_isAffected(const ref Symbol s)
     if (s.Sflags & SFLunambig)
         return false;
 
-    /* If it's immutable, it can't be affected
+    /* If it's immutable, it can't be affected.
+     *
+     * Disable this check because:
+     * 1. Symbol_isAffected is not used by copyprop() and should be.
+     * 2. Non-@safe functions can temporarilly cast away immutable.
+     * 3. Need to add an @safe flag to funcsym_p to enable this.
+     * 4. Const can be mutated by a separate view.
+     * Address this in a separate PR.
      */
-    if (s.ty() & (mTYconst | mTYimmutable))
+    if (0 &&
+        s.ty() & (mTYconst | mTYimmutable))
     {
         return false;
     }
@@ -268,6 +284,7 @@ bool Symbol_isAffected(const ref Symbol s)
  * Get user name of symbol.
  */
 
+@trusted
 const(char)* symbol_ident(const Symbol *s)
 {
 version (SCPP_HTOD)
@@ -305,11 +322,13 @@ version (SCPP_HTOD)
  * Create a new symbol.
  */
 
+@trusted
 Symbol * symbol_calloc(const(char)* id)
 {
     return symbol_calloc(id, cast(uint)strlen(id));
 }
 
+@trusted
 Symbol * symbol_calloc(const(char)* id, uint len)
 {   Symbol *s;
 
@@ -337,6 +356,7 @@ debug
  * Create a symbol, given a name and type.
  */
 
+@trusted
 Symbol * symbol_name(const(char)* name,int sclass,type *t)
 {
     return symbol_name(name, cast(uint)strlen(name), sclass, t);
@@ -359,6 +379,7 @@ Symbol * symbol_name(const(char)* name, uint len, int sclass, type *t)
  * Create a symbol that is an alias to another function symbol.
  */
 
+@trusted
 Funcsym *symbol_funcalias(Funcsym *sf)
 {
     Funcsym *s;
@@ -380,6 +401,7 @@ version (SCPP_HTOD)
  * Create a symbol, give it a name, storage class and type.
  */
 
+@trusted
 Symbol * symbol_generate(int sclass,type *t)
 {
     __gshared int tmpnum;
@@ -455,6 +477,7 @@ Symbol *symbol_genauto(tym_t ty)
  * Add in the variants for a function symbol.
  */
 
+@trusted
 void symbol_func(Symbol *s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
@@ -478,6 +501,7 @@ void symbol_func(Symbol *s)
  *      offset  offset of the field
  */
 
+@trusted
 void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 {
     Symbol *s2 = symbol_name(name, SCmember, t);
@@ -821,12 +845,14 @@ void deletesymtab()
  *      pointer to a symbol
  */
 
+@trusted
 void meminit_free(meminit_t *m)         /* helper for symbol_free()     */
 {
     list_free(&m.MIelemlist,cast(list_free_fp)&el_free);
     MEM_PARF_FREE(m);
 }
 
+@trusted
 void symbol_free(Symbol *s)
 {
     while (s)                           /* if symbol exists             */
@@ -1069,11 +1095,13 @@ private void symbol_undef(Symbol *s)
  * Add symbol to current symbol array.
  */
 
+@trusted
 SYMIDX symbol_add(Symbol *s)
 {
     return symbol_add(*cstate.CSpsymtab, s);
 }
 
+@trusted
 SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
 {
     //printf("symbol_add('%s')\n", s.Sident.ptr);
@@ -1109,6 +1137,7 @@ SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
  * Returns:
  *      position in table
  */
+@trusted
 SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
 {
     const sinew = symbol_add(s);        // added at end, have to move it
@@ -1126,6 +1155,7 @@ SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
  * Free up the symbols stab[n1 .. n2]
  */
 
+@trusted
 void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
 {
     if (!stab)
@@ -1158,6 +1188,7 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
  * Create a copy of a symbol.
  */
 
+@trusted
 Symbol * symbol_copy(Symbol *s)
 {   Symbol *scopy;
     type *t;
@@ -1242,6 +1273,7 @@ Symbol *symbol_search(const(char)* id)
 
 static if (HYDRATE)
 {
+@trusted
 void symbol_tree_hydrate(Symbol **ps)
 {   Symbol *s;
 
@@ -1264,6 +1296,7 @@ void symbol_tree_hydrate(Symbol **ps)
 
 static if (DEHYDRATE)
 {
+@trusted
 void symbol_tree_dehydrate(Symbol **ps)
 {   Symbol *s;
 
@@ -1289,6 +1322,7 @@ version (DEBUG_XSYMGEN)
 
 static if (HYDRATE)
 {
+@trusted
 Symbol *symbol_hydrate(Symbol **ps)
 {   Symbol *s;
 
@@ -1490,6 +1524,7 @@ Symbol *symbol_hydrate(Symbol **ps)
 
 static if (DEHYDRATE)
 {
+@trusted
 void symbol_dehydrate(Symbol **ps)
 {
     Symbol *s;
@@ -1721,6 +1756,7 @@ else
 
 static if (DEHYDRATE)
 {
+@trusted
 void symbol_symdefs_dehydrate(Symbol **ps)
 {
     Symbol *s;
@@ -1748,6 +1784,7 @@ void symbol_symdefs_dehydrate(Symbol **ps)
 version (SCPP_HTOD)
 {
 
+@trusted
 void symbol_symdefs_hydrate(Symbol **psx,Symbol **parent,int flag)
 {   Symbol *s;
 
@@ -1975,6 +2012,7 @@ void symboltable_hydrate(Symbol *s,Symbol **parent)
 
 static if (HYDRATE)
 {
+@trusted
 private void mptr_hydrate(mptr_t **pm)
 {   mptr_t *m;
 
@@ -1986,6 +2024,7 @@ private void mptr_hydrate(mptr_t **pm)
 
 static if (DEHYDRATE)
 {
+@trusted
 private void mptr_dehydrate(mptr_t **pm)
 {   mptr_t *m;
 
@@ -2014,6 +2053,7 @@ else
 
 static if (HYDRATE)
 {
+@trusted
 private void baseclass_hydrate(baseclass_t **pb)
 {   baseclass_t *b;
 
@@ -2040,6 +2080,7 @@ private void baseclass_hydrate(baseclass_t **pb)
 
 static if (DEHYDRATE)
 {
+@trusted
 private void baseclass_dehydrate(baseclass_t **pb)
 {   baseclass_t *b;
 
@@ -2081,6 +2122,7 @@ baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase)
     return bm;
 }
 
+@trusted
 baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
 {
     symbol_debug(sbase);
@@ -2114,6 +2156,7 @@ int baseclass_nitems(baseclass_t *b)
 version (SCPP_HTOD)
 {
 
+@trusted
 void symboltable_clean(Symbol *s)
 {
     while (s)

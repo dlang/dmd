@@ -144,13 +144,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         }
 
-        if (!isSpecial() && (!members || !symtab || _scope))
-        {
-            error("is forward referenced when looking for `%s`", ident.toChars());
-            //*(char*)0=0;
-            return null;
-        }
-
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         return s;
     }
@@ -210,7 +203,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return errorReturn();
-        if (semanticRun == PASS.init || !members)
+        if (!members)
         {
             if (isSpecial())
             {
@@ -219,7 +212,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return memtype.getProperty(_scope, loc, id, 0);
             }
 
-            error("is forward referenced looking for `.%s`", id.toChars());
+            error(loc, "is opaque and has no `.%s`", id.toChars());
             return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
@@ -236,6 +229,13 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 continue;
             if (em.errors)
             {
+                errors = true;
+                continue;
+            }
+
+            if (em.semanticRun < PASS.semanticdone)
+            {
+                em.error("is forward referenced looking for `.%s`", id.toChars());
                 errors = true;
                 continue;
             }
@@ -299,16 +299,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return handleErrors();
-        if (semanticRun == PASS.init || !members)
+        if (!members)
         {
             if (isSpecial())
             {
                 /* Allow these special enums to not need a member list
                  */
-                return memtype.defaultInit(loc);
+                return defaultval = memtype.defaultInit(loc);
             }
 
-            error(loc, "forward reference of `%s.init`", toChars());
+            error(loc, "is opaque and has no default initializer");
             return handleErrors();
         }
 
@@ -317,6 +317,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
             {
+                if (em.semanticRun < PASS.semanticdone)
+                {
+                    error(loc, "forward reference of `%s.init`", toChars());
+                    return handleErrors();
+                }
+
                 defaultval = em.value;
                 return defaultval;
             }
@@ -338,13 +344,13 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
             else
             {
-                if (!isAnonymous() && members)
-                    memtype = Type.tint32;
+                // Run semantic to get the type from a possible first member value
+                dsymbolSemantic(this, _scope);
             }
         }
         if (!memtype)
         {
-            if (!isAnonymous() && members)
+            if (!isAnonymous() && (members || semanticRun >= PASS.semanticdone))
                 memtype = Type.tint32;
             else
             {

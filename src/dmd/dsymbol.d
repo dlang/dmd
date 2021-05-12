@@ -184,34 +184,6 @@ struct Visibility
         }
         return false;
     }
-
-    extern (C++):
-
-    /**
-     * Checks if parent defines different access restrictions than this one.
-     *
-     * Params:
-     *  parent = visibility attribute for scope that hosts this one
-     *
-     * Returns:
-     *  'true' if parent is already more restrictive than this one and thus
-     *  no differentiation is needed.
-     */
-    bool isSubsetOf(ref const Visibility parent) const
-    {
-        if (this.kind != parent.kind)
-            return false;
-        if (this.kind == Visibility.Kind.package_)
-        {
-            if (!this.pkg)
-                return true;
-            if (!parent.pkg)
-                return false;
-            if (parent.pkg.isAncestorPackageOf(this.pkg))
-                return true;
-        }
-        return true;
-    }
 }
 
 enum PASS : int
@@ -425,6 +397,10 @@ extern (C++) class Dsymbol : ASTNode
             return false;
         // Don't complain if we're inside a deprecated symbol's scope
         if (sc.isDeprecated())
+            return false;
+        // Don't complain if we're inside a template constraint
+        // https://issues.dlang.org/show_bug.cgi?id=21831
+        if (sc.flags & SCOPE.constraint)
             return false;
 
         const(char)* message = null;
@@ -986,7 +962,7 @@ extern (C++) class Dsymbol : ASTNode
     }
 
     // is Dsymbol deprecated?
-    bool isDeprecated() const
+    bool isDeprecated() @safe @nogc pure nothrow const
     {
         return false;
     }

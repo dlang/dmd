@@ -26,6 +26,8 @@ private nothrow void err_nomem();
 
 struct Outbuffer
 {
+  @safe:
+
     ubyte *buf;         // the buffer itself
     ubyte *pend;        // pointer past the end of the buffer
     private ubyte *p;   // current position in buffer
@@ -38,6 +40,7 @@ struct Outbuffer
 
     //~this() { dtor(); }
 
+    @trusted
     void dtor()
     {
         if (auto slice = this.extractSlice())
@@ -86,6 +89,7 @@ struct Outbuffer
     }
 
     // Reserve nbytes in buffer
+    @trusted
     void enlarge(size_t nbytes)
     {
         pragma(inline, false);  // do not inline slow path
@@ -112,6 +116,7 @@ struct Outbuffer
 
 
     // Write n zeros; return pointer to start of zeros
+    @trusted
     void *writezeros(size_t n)
     {
         reserve(n);
@@ -121,6 +126,7 @@ struct Outbuffer
     }
 
     // Position buffer to accept the specified number of bytes at offset
+    @trusted
     void position(size_t offset, size_t nbytes)
     {
         if (offset + nbytes > pend - buf)
@@ -135,6 +141,7 @@ struct Outbuffer
     }
 
     // Write an array to the buffer, no reserve check
+    @trusted
     void writen(const void *b, size_t len)
     {
         memcpy(p,b,len);
@@ -142,6 +149,7 @@ struct Outbuffer
     }
 
     // Write an array to the buffer.
+    @trusted
     extern (D)
     void write(const(void)[] b)
     {
@@ -150,6 +158,7 @@ struct Outbuffer
         p += b.length;
     }
 
+    @trusted
     void write(const(void)* b, size_t len)
     {
         write(b[0 .. len]);
@@ -158,23 +167,26 @@ struct Outbuffer
     /**
      * Writes an 8 bit byte, no reserve check.
      */
-    void writeByten(ubyte v)
+    @trusted
+    void writeByten(int v)
     {
-        *p++ = v;
+        *p++ = cast(ubyte)v;
     }
 
     /**
      * Writes an 8 bit byte.
      */
+    @trusted
     void writeByte(int v)
     {
         reserve(1);
-        *p++ = cast(ubyte)v;
+        writeByten(v);
     }
 
     /**
      * Writes a 16 bit value, no reserve check.
      */
+    @trusted
     void write16n(int v)
     {
         *(cast(ushort *) p) = cast(ushort)v;
@@ -192,13 +204,32 @@ struct Outbuffer
     }
 
     /**
+     * Writes a 32 bit int, no reserve check.
+     */
+    @trusted
+    void write32n(int v)
+    {
+        *cast(int *)p = v;
+        p += 4;
+    }
+
+    /**
      * Writes a 32 bit int.
      */
     void write32(int v)
     {
         reserve(4);
-        *cast(int *)p = v;
-        p += 4;
+        write32n(v);
+    }
+
+    /**
+     * Writes a 64 bit long, no reserve check
+     */
+    @trusted
+    void write64n(long v)
+    {
+        *cast(long *)p = v;
+        p += 8;
     }
 
     /**
@@ -207,14 +238,13 @@ struct Outbuffer
     void write64(long v)
     {
         reserve(8);
-        *cast(long *)p = v;
-        p += 8;
+        write64n(v);
     }
-
 
     /**
      * Writes a 32 bit float.
      */
+    @trusted
     void writeFloat(float v)
     {
         reserve(float.sizeof);
@@ -225,6 +255,7 @@ struct Outbuffer
     /**
      * Writes a 64 bit double.
      */
+    @trusted
     void writeDouble(double v)
     {
         reserve(double.sizeof);
@@ -235,6 +266,7 @@ struct Outbuffer
     /**
      * Writes a String as a sequence of bytes.
      */
+    @trusted
     void write(const(char)* s)
     {
         write(s[0 .. strlen(s)]);
@@ -243,6 +275,7 @@ struct Outbuffer
     /**
      * Writes a 0 terminated String
      */
+    @trusted
     void writeString(const(char)* s)
     {
         write(s[0 .. strlen(s)+1]);
@@ -264,6 +297,7 @@ struct Outbuffer
     /**
      * Inserts string at beginning of buffer.
      */
+    @trusted
     void prependBytes(const(char)* s)
     {
         prepend(s, strlen(s));
@@ -272,6 +306,7 @@ struct Outbuffer
     /**
      * Inserts bytes at beginning of buffer.
      */
+    @trusted
     void prepend(const(void)* b, size_t len)
     {
         reserve(len);
@@ -283,6 +318,7 @@ struct Outbuffer
     /**
      * Bracket buffer contents with c1 and c2.
      */
+    @trusted
     void bracket(char c1,char c2)
     {
         reserve(2);
@@ -303,7 +339,7 @@ struct Outbuffer
     /**
      * Set current size of buffer.
      */
-
+    @trusted
     void setsize(size_t size)
     {
         p = buf + size;

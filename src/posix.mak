@@ -126,8 +126,8 @@ endif
 auto-tester-test: $(GENERATED)/build
 	$(RUN_BUILD) unittest $(HEADER_TEST)
 
-unittest: $G/dmd-unittest
-	$<
+unittest: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######## Manual cleanup
 

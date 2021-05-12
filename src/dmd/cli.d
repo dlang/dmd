@@ -33,8 +33,8 @@ enum TargetOS : ubyte
     DragonFlyBSD = 0x40,
 
     // Combination masks
-    all = linux | Windows | OSX | FreeBSD | Solaris | DragonFlyBSD,
-    Posix = linux | OSX | FreeBSD | Solaris | DragonFlyBSD,
+    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
 }
 
 // Detect the current TargetOS
@@ -49,6 +49,10 @@ else version(Windows)
 else version(OSX)
 {
     private enum targetOS = TargetOS.OSX;
+}
+else version(OpenBSD)
+{
+    private enum targetOS = TargetOS.OpenBSD;
 }
 else version(FreeBSD)
 {
@@ -343,6 +347,10 @@ dmd -cov -unittest myprog.d
         ),
         Option("fPIC",
             "generate position independent code",
+            cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
+        ),
+        Option("fPIE",
+            "generate position independent executables",
             cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
         ),
         Option("g",
@@ -762,7 +770,7 @@ dmd -cov -unittest myprog.d
         Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
         Feature("complex", "vcomplex",
-            "give deprecation messages about all usages of complex or imaginary types"),
+            "give deprecation messages about all usages of complex or imaginary types", false, true),
         Feature("tls", "vtls",
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",

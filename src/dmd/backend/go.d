@@ -48,6 +48,7 @@ version (OSX)
 extern (C++):
 
 nothrow:
+@safe:
 
 int os_clock();
 
@@ -94,6 +95,7 @@ void sliceStructs(ref symtab_t, block*);
 
 extern (C) void mem_free(void* p);
 
+@trusted
 void go_term()
 {
     vec_free(go.defkill);
@@ -112,6 +114,7 @@ debug
 debug (DEBUG_TREES)
     void dbg_optprint(const(char) *);
 else
+    @trusted
     void dbg_optprint(const(char) *c)
     {
         // to print progress message, undo comment
@@ -131,7 +134,7 @@ else
  *      0       not recognized
  *      !=0     recognized
  */
-
+@trusted
 int go_flag(char *cp)
 {
     enum GL     // indices of various flags in flagtab[]
@@ -256,6 +259,7 @@ void dbg_optprint(char *title)
  * Optimize function.
  */
 
+@trusted
 void optfunc()
 {
 version (HTOD)
@@ -284,12 +288,13 @@ else
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
-    int iterationLimit = 0;
+    int iterationLimit = 100;
     for (block* b = startblock; b; b = b.Bnext)
     {
         if (!b.Belem)
             continue;
-        int d = el_countCommas(b.Belem) + 100;
+        ++iterationLimit;
+        int d = el_countCommas(b.Belem);
         if (d > iterationLimit)
             iterationLimit = d;
     }

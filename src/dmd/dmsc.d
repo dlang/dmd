@@ -22,6 +22,7 @@ import dmd.dclass;
 import dmd.dmodule;
 import dmd.mars;
 import dmd.mtype;
+import dmd.target;
 
 import dmd.root.filename;
 
@@ -52,7 +53,8 @@ extern (C) void out_config_init(
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
         ubyte dwarf,            // DWARF version used
-        string _version         // Compiler version
+        string _version,        // Compiler version
+        exefmt_t exefmt         // Executable file format
         );
 
 void out_config_debug(
@@ -73,6 +75,18 @@ void backend_init()
 {
     //printf("out_config_init()\n");
     Param *params = &global.params;
+    exefmt_t exfmt;
+    switch (target.os)
+    {
+        case Target.OS.Windows: exfmt = target.is64bit ? EX_WIN64 : EX_WIN32;       break;
+        case Target.OS.linux:   exfmt = target.is64bit ? EX_LINUX64 : EX_LINUX;     break;
+        case Target.OS.OSX:     exfmt = target.is64bit ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.FreeBSD: exfmt = target.is64bit ? EX_FREEBSD64 : EX_FREEBSD; break;
+        case Target.OS.OpenBSD: exfmt = target.is64bit ? EX_OPENBSD64 : EX_OPENBSD; break;
+        case Target.OS.Solaris: exfmt = target.is64bit ? EX_SOLARIS64 : EX_SOLARIS; break;
+        case Target.OS.DragonFlyBSD: exfmt = EX_DRAGONFLYBSD64; break;
+        default: assert(0);
+    }
 
     bool exe;
     if (params.dll || params.pic != PIC.fixed)
@@ -88,7 +102,7 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
-        (params.is64bit ? 64 : 32) | (params.mscoff ? 1 : 0),
+        (target.is64bit ? 64 : 32) | (target.mscoff ? 1 : 0),
         exe,
         false, //params.trace,
         params.nofloat,
@@ -97,13 +111,14 @@ void backend_init()
         params.symdebug,
         dmdParams.alwaysframe,
         params.stackstomp,
-        params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
+        target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
         params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,
         dmdParams.dwarf,
-        global.versionString()
+        global.versionString(),
+        exfmt
     );
 
     debug

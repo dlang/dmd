@@ -22,6 +22,7 @@ import dmd.backend.dlist;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
@@ -118,6 +119,7 @@ else
     enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
+@trusted
 bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
 
@@ -298,19 +300,6 @@ alias targ_size_t = uint64_t;     // size_t for the target machine
 bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
 enum CV3 = 0;          // 1 means support CV3 debug format
 
-/* Object module format
- */
-//#ifndef OMFOBJ
-//#define OMFOBJ          TARGET_WINDOS
-//#endif
-enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
-enum MACHOBJ = TARGET_OSX;
-
-version (XVERSION)
-{
-    enum SYMDEB_CODEVIEW = TARGET_WINDOS;
-    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
-}
 
 //#define TOOLKIT_H
 

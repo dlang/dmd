@@ -2880,7 +2880,8 @@ enum FuncResolveFlag : ubyte
 {
     standard = 0,       /// issue error messages, solve the call.
     quiet = 1,          /// do not issue error message on no match, just return `null`.
-    overloadOnly = 2,   /// only resolve overloads.
+    overloadOnly = 2,   /// only resolve overloads, i.e. do not issue error on ambiguous
+                        /// matches and need explicit this.
 }
 
 /*******************************************

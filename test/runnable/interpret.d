@@ -3571,6 +3571,40 @@ bool test20400()
 static assert(test20400());
 
 /************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21878
+
+struct A21878
+{
+    int i;
+    ref inout(int) opIndex(size_t idx) inout return { return i; }
+}
+
+struct B21878
+{
+    A21878[1] a;
+    ref inout(int) opIndex(size_t idx) inout return { return a[0][idx]; }
+}
+
+bool ctfeFunc21878()
+{
+    A21878 a;
+    a[0] = 42;
+    assert(a[0] == 42); // OK
+
+    B21878 b;
+    b[0] = 42;
+    assert(b[0] == 42); // OK <- fails
+
+    return true;
+}
+
+void test21878()
+{
+    enum eval = ctfeFunc21878();
+    ctfeFunc21878(); // succeeds at runtime
+}
+
+/************************************************/
 
 int main()
 {
@@ -3697,6 +3731,7 @@ int main()
     test15681();
     test20366();
     test20400();
+    test21878();
 
     printf("Success\n");
     return 0;

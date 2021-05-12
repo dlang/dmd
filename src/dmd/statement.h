@@ -277,6 +277,7 @@ public:
 class WhileStatement : public Statement
 {
 public:
+    Parameter *param;
     Expression *condition;
     Statement *_body;
     Loc endloc;                 // location of closing curly bracket

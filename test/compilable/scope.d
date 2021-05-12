@@ -79,6 +79,33 @@ struct Constant
     alias Repeat(T...) = T;
 }
 
+
+/************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=19387
+
+struct C
+{
+  void* u;
+  this(this) @safe
+  {
+  }
+}
+
+struct S
+{
+  C c;
+}
+
+void foo(scope S s) @safe
+{
+}
+
+void bar(scope S s) @safe
+{
+  foo(s);
+}
+
 /************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=20675
@@ -126,4 +153,74 @@ void test_20682(scope ref D d) @safe
     a ~= f1_20682(d);
     a ~= f2_20682(d);
     a ~= cast(int) d.p;
+}
+
+// Phobos failure
+void formattedWrite(immutable char[2] args) @safe
+{
+    scope immutable char[] val = args;
+}
+
+void ctfeRead(const ubyte[2] array) @safe
+{
+    short result;
+
+    foreach_reverse (b; array)
+        result = cast(short) ((result << 8) | b);
+
+    foreach (b; array)
+        result = cast(short) ((result << 8) | b);
+}
+
+void demangle() @safe
+{
+    static struct DotSplitter
+    {
+        const(char)[] s;
+
+        @safe:
+        @property bool empty() const { return !s.length; }
+
+        @property const(char)[] front() const return
+        {
+            immutable i = indexOfDot();
+            return s;
+        }
+
+        void popFront() {}
+
+        private ptrdiff_t indexOfDot() const
+        {
+            return -1;
+        }
+    }
+
+    foreach (comp; DotSplitter(""))
+    {
+        const copy = comp;
+    }
+}
+
+void fileCtor() @safe
+{
+    static struct S
+    {
+        int i;
+    }
+
+    // static S get()
+    // {
+    //     return S();
+    // }
+
+    with (S())
+    {
+        int* ptr = &i;
+    }
+}
+
+// Missing test coverage
+int*[4] testArray() @safe
+{
+    return typeof(return).init;
 }

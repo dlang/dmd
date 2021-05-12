@@ -16,6 +16,7 @@ module dmd.backend.oper;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 alias OPER = int;
 enum

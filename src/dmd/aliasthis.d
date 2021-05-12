@@ -181,3 +181,22 @@ bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
     }
     return false;
 }
+
+/**************************************
+ * Check and set 'att' if 't' is a recursive 'alias this' type
+ * Params:
+ *   att = type reference used to detect recursion
+ *   t   = 'alias this' type
+ *
+ * Returns:
+ *   Whether the 'alias this' is recursive or not
+ */
+bool isRecursiveAliasThis(ref Type att, Type t)
+{
+    auto tb = t.toBasetype();
+    if (att && tb.equivalent(att))
+        return true;
+    else if (!att && tb.checkAliasThisRec())
+        att = tb;
+    return false;
+}

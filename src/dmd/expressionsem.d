@@ -841,7 +841,9 @@ Lagain:
     }
     else
     {
-        if (!s.isFuncDeclaration()) // functions are checked after overloading
+        // functions are checked after overloading
+        // templates are checked after matching constraints
+        if (!s.isFuncDeclaration() && !s.isTemplateDeclaration())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -853,7 +855,7 @@ Lagain:
         s = s.toAlias();
 
         //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
-        if (s != olds && !s.isFuncDeclaration())
+        if (s != olds && !s.isFuncDeclaration() && !s.isTemplateDeclaration())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -895,6 +897,11 @@ Lagain:
             v.inuse--;
             return e;
         }
+
+        // We need to run semantics to correctly set 'STC.field' if it is a member variable
+        // that could be forward referenced. This is needed for 'v.needThis()' to work
+        if (v.isThis())
+            v.dsymbolSemantic(sc);
 
         // Change the ancestor lambdas to delegate before hasThis(sc) call.
         if (v.checkNestedReference(sc, loc))
@@ -4533,10 +4540,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != TOK.type)
                 {
-                    if (sd.aliasthis && !(exp.att1 && exp.e1.type.equivalent(exp.att1)))
+                    if (sd.aliasthis && !isRecursiveAliasThis(exp.att1, exp.e1.type))
                     {
-                        if (!exp.att1 && exp.e1.type.checkAliasThisRec())
-                            exp.att1 = exp.e1.type;
                         exp.e1 = resolveAliasThis(sc, exp.e1);
                         goto Lagain;
                     }
@@ -5158,8 +5163,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 }
             }
-            VarDeclaration vthis2 = makeThis2Argument(exp.loc, sc, exp.f);            exp.vthis2 = vthis2;
-            Expression de = new DeclarationExp(exp.loc, vthis2);
+            exp.vthis2 = makeThis2Argument(exp.loc, sc, exp.f);
+            Expression de = new DeclarationExp(exp.loc, exp.vthis2);
             result = Expression.combine(de, result);
             result = result.expressionSemantic(sc);
         }
@@ -5399,7 +5404,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("HaltExp::semantic()\n");
         }
-        e.type = Type.tvoid;
+        e.type = Type.tnoreturn;
         result = e;
     }
 
@@ -6042,7 +6047,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
 
-        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context;
+        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context && global.params.useAssert == CHECKENABLE.on;
         Expression temporariesPrefix;
 
         if (generateMsg)
@@ -6123,7 +6128,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             return left;
 
                         // Sanity check that `op` can be converted to boolean
-                        op.toBoolean(sc);
+                        // But don't raise errors for assignments enclosed in another expression
+                        if (op is exp.e1)
+                            op.toBoolean(sc);
                     }
 
                     // Tuples with side-effects already receive a temporary during semantic
@@ -6337,9 +6344,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = e;
                 return;
             }
+            exp.type = Type.tnoreturn;
         }
-
-        exp.type = Type.tvoid;
+        else
+            exp.type = Type.tvoid;
 
         result = !temporariesPrefix
             ? exp
@@ -6380,11 +6388,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotTemplateExp e)
     {
+        if (e.type)
+        {
+            result = e;
+            return;
+        }
         if (Expression ex = unaSemantic(e, sc))
         {
             result = ex;
             return;
         }
+        // 'void' like TemplateExp
+        e.type = Type.tvoid;
         result = e;
     }
 
@@ -8532,11 +8547,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 // No operator overloading member function found yet, but
                 // there might be an alias this to try.
-                if (ad.aliasthis && !(ae.att1 && t1b.equivalent(ae.att1)))
+                if (ad.aliasthis && !isRecursiveAliasThis(ae.att1, ae.e1.type))
                 {
-                    if (!ae.att1 && t1b.checkAliasThisRec())
-                        ae.att1 = t1b;
-
                     /* Rewrite (a[arguments] op e2) as:
                      *      a.aliasthis[arguments] op e2
                      */
@@ -8634,7 +8646,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
             if (e2x.op == TOK.error)
                 return setResult(e2x);
-            if (e2x.checkValue() || e2x.checkSharedAccess(sc))
+            // We skip checking the value for structs/classes as these might have
+            // an opAssign defined.
+            if ((t1.ty != Tstruct && t1.ty != Tclass && e2x.checkValue()) ||
+                e2x.checkSharedAccess(sc))
                 return setError();
             exp.e2 = e2x;
         }
@@ -8727,9 +8742,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Lnomatch:
         }
 
-        if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
-            exp.e1.checkSharedAccess(sc);
-
         /* Inside constructor, if this is the first assignment of object field,
          * rewrite this to initializing the field.
          */
@@ -8767,6 +8779,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             exp.memset = MemorySet.referenceInit;
         }
+
+        if (exp.op == TOK.assign)  // skip TOK.blit and TOK.construct, which are initializations
+        {
+            exp.e1.checkSharedAccess(sc);
+            checkUnsafeAccess(sc, exp.e1, false, true);
+        }
+
+        checkUnsafeAccess(sc, exp.e2, true, true); // Initializer must always be checked
 
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
@@ -8925,10 +8945,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!e2x.implicitConvTo(t1))
                     {
                         AggregateDeclaration ad2 = isAggregate(e2x.type);
-                        if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type.equivalent(exp.att2)))
+                        if (ad2 && ad2.aliasthis && !isRecursiveAliasThis(exp.att2, exp.e2.type))
                         {
-                            if (!exp.att2 && exp.e2.type.checkAliasThisRec())
-                                exp.att2 = exp.e2.type;
                             /* Rewrite (e1 op e2) as:
                              *      (e1 op e2.aliasthis)
                              */
@@ -9012,10 +9030,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else // https://issues.dlang.org/show_bug.cgi?id=11355
                 {
                     AggregateDeclaration ad2 = isAggregate(e2x.type);
-                    if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type.equivalent(exp.att2)))
+                    if (ad2 && ad2.aliasthis && !isRecursiveAliasThis(exp.att2, exp.e2.type))
                     {
-                        if (!exp.att2 && exp.e2.type.checkAliasThisRec())
-                            exp.att2 = exp.e2.type;
                         /* Rewrite (e1 op e2) as:
                          *      (e1 op e2.aliasthis)
                          */
@@ -9787,13 +9803,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Rewrite (e1 op e2) as:
                  *      (e1.aliasthis op e2)
                  */
-                if (exp.att1 && exp.e1.type.equivalent(exp.att1))
+                if (isRecursiveAliasThis(exp.att1, exp.e1.type))
                     return null;
                 //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
                 Expression e1 = new DotIdExp(exp.loc, exp.e1, ad1.aliasthis.ident);
                 BinExp be = cast(BinExp)exp.copy();
-                if (!be.att1 && exp.e1.type.checkAliasThisRec())
-                    be.att1 = exp.e1.type;
                 be.e1 = e1;
                 return be.trySemantic(sc);
             }
@@ -9807,13 +9821,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Rewrite (e1 op e2) as:
                  *      (e1 op e2.aliasthis)
                  */
-                if (exp.att2 && exp.e2.type.equivalent(exp.att2))
+                if (isRecursiveAliasThis(exp.att2, exp.e2.type))
                     return null;
                 //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
                 Expression e2 = new DotIdExp(exp.loc, exp.e2, ad2.aliasthis.ident);
                 BinExp be = cast(BinExp)exp.copy();
-                if (!be.att2 && exp.e2.type.checkAliasThisRec())
-                    be.att2 = exp.e2.type;
                 be.e2 = e2;
                 return be.trySemantic(sc);
             }
@@ -10967,7 +10979,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("`%s` is not an expression", exp.e2.toChars());
             return setError();
         }
-        if (e1x.op == TOK.error)
+        if (e1x.op == TOK.error || e1x.type.ty == Tnoreturn)
         {
             result = e1x;
             return;
@@ -11512,11 +11524,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1 = exp.e1.type;
         Type t2 = exp.e2.type;
+        if (t1.ty == Tnoreturn)
+        {
+            exp.type = t2;
+        }
+        else if (t2.ty == Tnoreturn)
+        {
+            exp.type = t1;
+        }
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
         // value if any
         // https://issues.dlang.org/show_bug.cgi?id=16598
-        if (t1.ty == Tvoid || t2.ty == Tvoid)
+        else if (t1.ty == Tvoid || t2.ty == Tvoid)
         {
             exp.type = Type.tvoid;
             exp.e1 = exp.e1.castTo(sc, exp.type);
@@ -12397,7 +12417,10 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 
         override void visit(DotVarExp e)
         {
-            if (!this.allowRef && e.type.isShared())
+            auto fd = e.var.isFuncDeclaration();
+            const sharedFunc = fd && fd.type.isShared;
+
+            if (!this.allowRef && e.type.isShared() && !sharedFunc)
                 return this.sharedError(e);
 
             // Allow to use `DotVarExp` within value types

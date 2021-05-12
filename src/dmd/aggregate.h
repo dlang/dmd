@@ -68,6 +68,12 @@ enum class ClassKind : uint8_t
   objc
 };
 
+struct MangleOverride
+{
+    Dsymbol *agg;
+    Identifier *id;
+};
+
 class AggregateDeclaration : public ScopeDsymbol
 {
 public:
@@ -81,6 +87,8 @@ public:
     ClassKind classKind;        // specifies the linkage type
     CPPMANGLE cppmangle;
 
+    // overridden symbol with pragma(mangle, "...")
+    MangleOverride *mangleOverride;
     /* !=NULL if is nested
      * pointing to the dsymbol that directly enclosing it.
      * 1. The function that enclosing it (nested struct and class)
@@ -135,6 +143,8 @@ public:
 
     // 'this' type
     Type *handleType() { return type; }
+
+    bool hasInvariant();
 
     // Back end
     Symbol *stag;               // tag symbol for debug data

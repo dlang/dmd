@@ -76,20 +76,6 @@ void test4()
     ti = typeid(real[]);
     assert(!(ti is null));
 
-    ti = typeid(ifloat[]);
-    assert(!(ti is null));
-    ti = typeid(idouble[]);
-    assert(!(ti is null));
-    ti = typeid(ireal[]);
-    assert(!(ti is null));
-
-    ti = typeid(cfloat[]);
-    assert(!(ti is null));
-    ti = typeid(cdouble[]);
-    assert(!(ti is null));
-    ti = typeid(creal[]);
-    assert(!(ti is null));
-
     ti = typeid(void);
     assert(!(ti is null));
     ti = typeid(void[]);
@@ -210,26 +196,6 @@ void test16()
 
 /******************************************************/
 
-void test17()
-{
-    TypeInfo ti = typeid(ifloat*);
-    assert(!(ti is null));
-    assert(ti.tsize==(ifloat*).sizeof);
-    assert(ti.toString()=="ifloat*");
-}
-
-/******************************************************/
-
-void test18()
-{
-    TypeInfo ti = typeid(cfloat*);
-    assert(!(ti is null));
-    assert(ti.tsize==(cfloat*).sizeof);
-    assert(ti.toString()=="cfloat*");
-}
-
-/******************************************************/
-
 void test19()
 {
     TypeInfo ti = typeid(double*);
@@ -240,52 +206,12 @@ void test19()
 
 /******************************************************/
 
-void test20()
-{
-    TypeInfo ti = typeid(idouble*);
-    assert(!(ti is null));
-    assert(ti.tsize==(idouble*).sizeof);
-    assert(ti.toString()=="idouble*");
-}
-
-/******************************************************/
-
-void test21()
-{
-    TypeInfo ti = typeid(cdouble*);
-    assert(!(ti is null));
-    assert(ti.tsize==(cdouble*).sizeof);
-    assert(ti.toString()=="cdouble*");
-}
-
-/******************************************************/
-
 void test22()
 {
     TypeInfo ti = typeid(real*);
     assert(!(ti is null));
     assert(ti.tsize==(real*).sizeof);
     assert(ti.toString()=="real*");
-}
-
-/******************************************************/
-
-void test23()
-{
-    TypeInfo ti = typeid(ireal*);
-    assert(!(ti is null));
-    assert(ti.tsize==(ireal*).sizeof);
-    assert(ti.toString()=="ireal*");
-}
-
-/******************************************************/
-
-void test24()
-{
-    TypeInfo ti = typeid(creal*);
-    assert(!(ti is null));
-    assert(ti.tsize==(creal*).sizeof);
-    assert(ti.toString()=="creal*");
 }
 
 /******************************************************/
@@ -651,14 +577,8 @@ int main()
     test14();
     test15();
     test16();
-    test17();
-    test18();
     test19();
-    test20();
-    test21();
     test22();
-    test23();
-    test24();
     test25();
     test26();
     test27();

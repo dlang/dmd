@@ -66,6 +66,7 @@ static if (1)
     import dmd.backend.mem;
     import dmd.backend.dlist;
     import dmd.backend.el;
+    import dmd.backend.filespec;
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
@@ -94,19 +95,13 @@ static if (1)
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
-        static if (ELFOBJ)
-        {
-            IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
-                    uint typ, uint bind, IDXSEC sec,
-                    ubyte visibility = STV_DEFAULT);
-            void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
-        }
+        IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
+                uint typ, uint bind, IDXSEC sec,
+                ubyte visibility = STV_DEFAULT);
+        void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
-        static if (MACHOBJ)
-        {
-            int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
-                int align_, int flags);
-        }
+        int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
+            int align_, int flags);
 
         Symbol* getRtlsymPersonality();
 
@@ -124,7 +119,7 @@ static if (1)
     {
         if (funcsym_p.Sfunc.Fflags3 & Feh_none)
         {
-            return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) != 0;
+            return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) != 0;
         }
 
         /* FreeBSD fails when having some frames as having unwinding info and some not.
@@ -133,39 +128,33 @@ static if (1)
          */
         assert(!(usednteh & ~(EHtry | EHcleanup)));
         return (usednteh & (EHtry | EHcleanup)) ||
-               (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
+               (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
     }
 
-    static if (ELFOBJ)
         SYMIDX MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
-    else
-        SYMIDX MAP_SEG2SYMIDX(int seg) { assert(0); }
 
 
     int OFFSET_FAC() { return REGSIZE(); }
 
     int dwarf_getsegment(const(char)* name, int align_, int flags)
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             return Obj.getsegment(name, null, flags, 0, align_ * 4);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
             return Obj.getsegment(name, "__DWARF", align_ * 2, flags);
         else
             assert(0);
     }
 
-    static if (ELFOBJ)
+    int dwarf_getsegment_alloc(const(char)* name, const(char)* suffix, int align_)
     {
-        int dwarf_getsegment_alloc(const(char)* name, const(char)* suffix, int align_)
-        {
-            return Obj.getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align_ * 4);
-        }
+        return Obj.getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align_ * 4);
     }
 
     int dwarf_except_table_alloc(Symbol *s)
     {
         //printf("dwarf_except_table_alloc('%s')\n", s.Sident.ptr);
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
         {
             /* If `s` is in a COMDAT, then this table needs to go into
              * a unique section, which then gets added to the COMDAT group
@@ -182,7 +171,7 @@ static if (1)
             else
                 return dwarf_getsegment_alloc(".gcc_except_table", null, 1);
         }
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
         {
             return getsegment2(except_table_seg, "__gcc_except_tab", "__TEXT", 2, S_REGULAR);
         }
@@ -192,9 +181,9 @@ static if (1)
 
     int dwarf_eh_frame_alloc()
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
         {
             int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2,
                 S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
@@ -221,9 +210,9 @@ static if (1)
 
     void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             Obj.addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, cast(int)MAP_SEG2SYMIDX(targseg), val);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
             Obj.addrel(seg, offset, cast(Symbol*) null, targseg, RELaddr, cast(int)val);
         else
             assert(0);
@@ -231,9 +220,9 @@ static if (1)
 
     void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
     {
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             Obj.addrel(seg, offset, R_X86_64_64, cast(int)MAP_SEG2SYMIDX(targseg), val);
-        else static if (MACHOBJ)
+        else if (config.objfmt == OBJ_MACH)
             Obj.addrel(seg, offset, null, targseg, RELaddr, cast(uint)val);
         else
             assert(0);
@@ -243,8 +232,18 @@ static if (1)
     {
         if (I64)
         {
-            dwarf_addrel64(seg, buf.length(), targseg, val);
-            buf.write64(0);
+            if (config.objfmt == OBJ_ELF)
+            {
+                dwarf_addrel64(seg, buf.length(), targseg, val);
+                buf.write64(0);
+            }
+            else if (config.objfmt == OBJ_MACH)
+            {
+                dwarf_addrel64(seg, buf.length(), targseg, 0);
+                buf.write64(val);
+            }
+            else
+                assert(0);
         }
         else
         {
@@ -300,7 +299,7 @@ static if (1)
         assert(reg < NUMGENREGS);
         if (I32)
         {
-            static if (MACHOBJ)
+            if (config.objfmt == OBJ_MACH)
             {
                     if (reg == BP || reg == SP)
                         reg ^= BP ^ SP;     // swap EBP and ESP register values for OSX (!)
@@ -485,12 +484,16 @@ static if (1)
         IDXSEC secidx = 0;
         Outbuffer *buf = null;
         const(char)* name;
+        int flags = 0;
 
-        static if (MACHOBJ)
-            immutable flags = S_ATTR_DEBUG;
-        else
-            immutable flags = SHT_PROGBITS;
-
+        nothrow this (const(char)* n)
+        {
+            name = n;
+            if (config.objfmt == OBJ_MACH)
+                flags = S_ATTR_DEBUG;
+            else
+                flags = SHT_PROGBITS;
+        }
         /* Allocate and initialize Section
          */
         nothrow void initialize()
@@ -507,48 +510,24 @@ static if (1)
     private __gshared
     {
 
-        static if (MACHOBJ)
+        Section debug_pubnames;
+        Section debug_aranges;
+        Section debug_ranges;
+        Section debug_loc;
+        Section debug_abbrev;
+        Section debug_info;
+        Section debug_str;
+        Section debug_line;
+
+        const(char*) debug_frame_name()
         {
-            Section debug_pubnames = { name: "__debug_pubnames" };
-            Section debug_aranges  = { name: "__debug_aranges" };
-            Section debug_ranges   = { name: "__debug_ranges" };
-            Section debug_loc      = { name: "__debug_loc" };
-            Section debug_abbrev   = { name: "__debug_abbrev" };
-            Section debug_info     = { name: "__debug_info" };
-            Section debug_str      = { name: "__debug_str" };
-        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
-        // for filenames and line numbers in backtraces.
-            Section debug_line     = { name: "__debug_line", flags: S_REGULAR };
-        }
-        else static if (ELFOBJ)
-        {
-            Section debug_pubnames = { name: ".debug_pubnames" };
-            Section debug_aranges  = { name: ".debug_aranges" };
-            Section debug_ranges   = { name: ".debug_ranges" };
-            Section debug_loc      = { name: ".debug_loc" };
-            Section debug_abbrev   = { name: ".debug_abbrev" };
-            Section debug_info     = { name: ".debug_info" };
-            Section debug_str      = { name: ".debug_str" };
-            Section debug_line     = { name: ".debug_line" };
-        }
-        else
-        {
-            Section debug_pubnames;
-            Section debug_aranges;
-            Section debug_ranges;
-            Section debug_loc;
-            Section debug_abbrev;
-            Section debug_info;
-            Section debug_str;
-            Section debug_line;
+            if (config.objfmt == OBJ_MACH)
+                return "__debug_frame";
+            else if (config.objfmt == OBJ_ELF)
+                return ".debug_frame";
+            else return null;
         }
 
-        static if (MACHOBJ)
-            const char* debug_frame_name = "__debug_frame";
-        else static if (ELFOBJ)
-            const char* debug_frame_name = ".debug_frame";
-        else
-            const char* debug_frame_name = null;
 
         /* DWARF 7.5.3: "Each declaration begins with an unsigned LEB128 number
          * representing the abbreviation code itself."
@@ -566,25 +545,40 @@ static if (1)
 
         // .debug_line
         size_t linebuf_filetab_end;
+        size_t lineHeaderLengthOffset;
+        AAchars* lineDirectories;
 
-        struct DebugLineHeader
-        {
-          align (1):
-            uint total_length                = 0;
-            ushort version_                  = 2;
-            uint prologue_length             = 0;
-            ubyte minimum_instruction_length = 1;
-            ubyte default_is_stmt            = true;
-            byte line_base                   = -5;
-            ubyte line_range                 = 14;
-            ubyte opcode_base                = 10;
-            ubyte[9] standard_opcode_lengths = [ 0,1,1,1,1,0,0,0,1 ];
-        }
-        static assert(DebugLineHeader.sizeof == 24);
-
-        DebugLineHeader debugline;
+        const byte line_base = -5;
+        const ubyte line_range = 14;
+        const ubyte opcode_base = 13;
 
         public uint[TYMAX] typidx_tab;
+    }
+
+    void machDebugSectionsInit()
+    {
+        debug_pubnames = Section("__debug_pubnames");
+        debug_aranges  = Section("__debug_aranges");
+        debug_ranges   = Section("__debug_ranges");
+        debug_loc      = Section("__debug_loc");
+        debug_abbrev   = Section("__debug_abbrev");
+        debug_info     = Section("__debug_info");
+        debug_str      = Section("__debug_str");
+        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
+        // for filenames and line numbers in backtraces.
+        debug_line     = Section("__debug_line");
+        debug_line.flags = S_REGULAR;
+    }
+    void elfDebugSectionsInit()
+    {
+        debug_pubnames = Section(".debug_pubnames");
+        debug_aranges  = Section(".debug_aranges");
+        debug_ranges   = Section(".debug_ranges");
+        debug_loc      = Section(".debug_loc");
+        debug_abbrev   = Section(".debug_abbrev");
+        debug_info     = Section(".debug_info");
+        debug_str      = Section(".debug_str");
+        debug_line     = Section(".debug_line");
     }
 
     /*****************************************
@@ -610,47 +604,62 @@ static if (1)
      */
     void writeDebugFrameHeader(Outbuffer *buf)
     {
-        static struct DebugFrameHeader
+        void writeDebugFrameHeader(ubyte dversion)()
         {
-          align (1):
-            uint length;
-            uint CIE_id;
-            ubyte version_;
-            ubyte augmentation;
-            ubyte code_alignment_factor;
-            ubyte data_alignment_factor;
-            ubyte return_address_register;
-            ubyte[11] opcodes;
-        }
-        static assert(DebugFrameHeader.sizeof == 24);
+            struct DebugFrameHeader
+            {
+              align (1):
+                uint length;
+                uint CIE_id = 0xFFFFFFFF;
+                ubyte version_ = dversion;
+                ubyte augmentation;
+                static if (dversion >= 4)
+                {
+                    ubyte address_size = 4;
+                    ubyte segment_selector_size;
+                }
+                ubyte code_alignment_factor = 1;
+                ubyte data_alignment_factor = 0x80;
+                ubyte return_address_register = 8;
+                ubyte[11] opcodes =
+                [
+                    DW_CFA_def_cfa, 4, 4,   // r4,4 [r7,8]
+                    DW_CFA_offset + 8, 1,   // r8,1 [r16,1]
+                    DW_CFA_nop, DW_CFA_nop,
+                    DW_CFA_nop, DW_CFA_nop, // 64 padding
+                    DW_CFA_nop, DW_CFA_nop, // 64 padding
+                ];
+            }
+            static if (dversion == 3)
+                static assert(DebugFrameHeader.sizeof == 24);
+            else static if (dversion == 4)
+                static assert(DebugFrameHeader.sizeof == 26);
+            else
+                static assert(0);
 
-        __gshared DebugFrameHeader debugFrameHeader =
-        {   16,             // length
-            0xFFFFFFFF,     // CIE_id
-            1,              // version_
-            0,              // augmentation
-            1,              // code alignment factor
-            0x7C,           // data alignment factor (-4)
-            8,              // return address register
-            [
-                DW_CFA_def_cfa, 4,4,    // r4,4 [r7,8]
-                DW_CFA_offset   +8,1,   // r8,1 [r16,1]
-                DW_CFA_nop, DW_CFA_nop,
-                DW_CFA_nop, DW_CFA_nop, // 64 padding
-                DW_CFA_nop, DW_CFA_nop, // 64 padding
-            ]
-        };
-        if (I64)
-        {   debugFrameHeader.length = 20;
-            debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
-            debugFrameHeader.return_address_register = 16;
-            debugFrameHeader.opcodes[1] = 7;                        // RSP
-            debugFrameHeader.opcodes[2] = 8;
-            debugFrameHeader.opcodes[3] = DW_CFA_offset + 16;       // RIP
-        }
-        assert(debugFrameHeader.data_alignment_factor == 0x80 - OFFSET_FAC);
+            auto dfh = DebugFrameHeader.init;
+            dfh.data_alignment_factor -= OFFSET_FAC;
 
-        buf.writen(&debugFrameHeader,debugFrameHeader.length + 4);
+            if (I64)
+            {
+                dfh.length = DebugFrameHeader.sizeof - 4;
+                dfh.return_address_register = 16;           // (-8)
+                dfh.opcodes[1] = 7;                         // RSP
+                dfh.opcodes[2] = 8;
+                dfh.opcodes[3] = DW_CFA_offset + 16;        // RIP
+            }
+            else
+            {
+                dfh.length = DebugFrameHeader.sizeof - 8;
+            }
+
+            buf.writen(&dfh, dfh.length + 4);
+        }
+
+        if (config.dwarf == 3)
+            writeDebugFrameHeader!3();
+        else
+            writeDebugFrameHeader!4();
     }
 
     /*****************************************
@@ -710,31 +719,28 @@ static if (1)
         buf.writeByten(I64 ? 16 : 8);      // return address register
         if (ehunwind)
         {
-            static if (ELFOBJ)
+            ubyte personality_pointer_encoding = 0;
+            ubyte LSDA_pointer_encoding = 0;
+            ubyte address_pointer_encoding = 0;
+            if (config.objfmt == OBJ_ELF)
             {
-                    const ubyte personality_pointer_encoding = config.flags3 & CFG3pic
+                personality_pointer_encoding = config.flags3 & CFG3pic
                             ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
                             : DW_EH_PE_absptr | DW_EH_PE_udata4;
-                    const ubyte LSDA_pointer_encoding = config.flags3 & CFG3pic
+                LSDA_pointer_encoding = config.flags3 & CFG3pic
                             ? DW_EH_PE_pcrel | DW_EH_PE_sdata4
                             : DW_EH_PE_absptr | DW_EH_PE_udata4;
-                    const ubyte address_pointer_encoding =
+                address_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_sdata4;
             }
-            else static if (MACHOBJ)
+            else if (config.objfmt == OBJ_MACH)
             {
-                    const ubyte personality_pointer_encoding =
+                personality_pointer_encoding =
                             DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
-                    const ubyte LSDA_pointer_encoding =
+                LSDA_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_ptr;
-                    const ubyte address_pointer_encoding =
+                address_pointer_encoding =
                             DW_EH_PE_pcrel | DW_EH_PE_ptr;
-            }
-            else
-            {
-                    const ubyte personality_pointer_encoding = 0;
-                    const ubyte LSDA_pointer_encoding = 0;
-                    const ubyte address_pointer_encoding = 0;
             }
             buf.writeByten(7);                                  // Augmentation Length
             buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
@@ -753,9 +759,9 @@ static if (1)
         {
             buf.writeByten(1);                                  // Augmentation Length
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                     buf.writeByten(DW_EH_PE_pcrel | DW_EH_PE_sdata4);   // R: encoding of addresses in FDE
-            static if (MACHOBJ)
+            else if (config.objfmt == OBJ_MACH)
                     buf.writeByten(DW_EH_PE_pcrel | DW_EH_PE_ptr);      // R: encoding of addresses in FDE
         }
 
@@ -829,7 +835,7 @@ static if (1)
             debug_frame_buf.writen(&debugFrameFDE64,debugFrameFDE64.sizeof);
             debug_frame_buf.write(cfa_buf[]);
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 // Absolute address for debug_frame, relative offset for eh_frame
                 dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg,0);
 
@@ -870,7 +876,7 @@ static if (1)
             debug_frame_buf.writen(&debugFrameFDE32,debugFrameFDE32.sizeof);
             debug_frame_buf.write(cfa_buf[]);
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 // Absolute address for debug_frame, relative offset for eh_frame
                 dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg,0);
 
@@ -891,23 +897,21 @@ static if (1)
         Outbuffer *buf = SegData[dfseg].SDbuf;
         const uint startsize = cast(uint)buf.length();
 
-        static if (MACHOBJ)
+        Symbol *fdesym;
+        if (config.objfmt == OBJ_MACH)
         {
             /* Create symbol named "funcname.eh" for the start of the FDE
              */
-            Symbol *fdesym;
-            {
-                const size_t len = strlen(getSymName(sfunc));
-                char *name = cast(char *)malloc(len + 3 + 1);
-                if (!name)
-                    err_nomem();
-                memcpy(name, getSymName(sfunc), len);
-                memcpy(name + len, ".eh".ptr, 3 + 1);
-                fdesym = symbol_name(name, SCglobal, tspvoid);
-                Obj.pubdef(dfseg, fdesym, startsize);
-                symbol_keep(fdesym);
-                free(name);
-            }
+            const size_t len = strlen(getSymName(sfunc));
+            char *name = cast(char *)malloc(len + 3 + 1);
+            if (!name)
+                err_nomem();
+            memcpy(name, getSymName(sfunc), len);
+            memcpy(name + len, ".eh".ptr, 3 + 1);
+            fdesym = symbol_name(name, SCglobal, tspvoid);
+            Obj.pubdef(dfseg, fdesym, startsize);
+            symbol_keep(fdesym);
+            free(name);
         }
 
         if (sfunc.ty() & mTYnaked)
@@ -925,32 +929,36 @@ static if (1)
         }
 
         // Length of FDE, not including padding
-        static if (ELFOBJ)
-            const uint fdelen = 4 + 4
+        uint fdelen = 0;
+        if (config.objfmt == OBJ_ELF)
+        {
+            fdelen = 4 + 4
                 + 4 + 4
                 + (ehunwind ? 5 : 1) + cast(uint)cfa_buf.length();
-        else static if (MACHOBJ)
-            const uint fdelen = 4 + 4
+        }
+        else if (config.objfmt == OBJ_MACH)
+        {
+            fdelen = 4 + 4
                 + (I64 ? 8 + 8 : 4 + 4)                         // PC_Begin + PC_Range
                 + (ehunwind ? (I64 ? 9 : 5) : 1) + cast(uint)cfa_buf.length();
-        else
-            const uint fdelen = 0;
+        }
+        const uint pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
+        const uint length = fdelen + pad - 4;
 
-            const uint pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
-            const uint length = fdelen + pad - 4;
+        buf.reserve(length + 4);
+        buf.write32(length);                               // Length (no Extended Length)
+        buf.write32((startsize + 4) - CIE_offset);         // CIE Pointer
 
-            buf.reserve(length + 4);
-            buf.write32(length);                               // Length (no Extended Length)
-            buf.write32((startsize + 4) - CIE_offset);         // CIE Pointer
-        static if (ELFOBJ)
+        int fixup = 0;
+        if (config.objfmt == OBJ_ELF)
         {
-            int fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
+            fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
             buf.write32(cast(uint)(I64 ? 0 : sfunc.Soffset));             // address of function
             Obj.addrel(dfseg, startsize + 8, fixup, cast(int)MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
             //Obj.reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
             buf.write32(cast(uint)sfunc.Ssize);                         // PC Range
         }
-        else static if (MACHOBJ)
+        if (config.objfmt == OBJ_MACH)
         {
             dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym);
 
@@ -963,7 +971,7 @@ static if (1)
         if (ehunwind)
         {
             int etseg = dwarf_except_table_alloc(sfunc);
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
             {
                 buf.writeByten(4);                             // Augmentation Data Length
                 buf.write32(I64 ? 0 : sfunc.Sfunc.LSDAoffset); // address of LSDA (".gcc_except_table")
@@ -974,7 +982,7 @@ static if (1)
                 else
                     dwarf_addrel(dfseg, buf.length() - 4, etseg, sfunc.Sfunc.LSDAoffset);      // and the fixup
             }
-            else static if (MACHOBJ)
+            if (config.objfmt == OBJ_MACH)
             {
                 buf.writeByten(I64 ? 8 : 4);                   // Augmentation Data Length
                 dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc.Sfunc.LSDAsym, 0, fdesym);
@@ -1000,7 +1008,7 @@ static if (1)
     {
         if (config.ehmethod == EHmethod.EH_DWARF)
         {
-            static if (MACHOBJ)
+            if (config.objfmt == OBJ_MACH)
             {
                 except_table_seg = UNKNOWN;
                 except_table_num = 0;
@@ -1016,12 +1024,11 @@ static if (1)
             return;
         if (config.ehmethod == EHmethod.EH_DM)
         {
-            static if (MACHOBJ)
-                int flags = S_ATTR_DEBUG;
-            else static if (ELFOBJ)
-                int flags = SHT_PROGBITS;
-            else
-                int flags = 0;
+            int flags = 0;
+            if (config.objfmt == OBJ_MACH)
+                flags = S_ATTR_DEBUG;
+            if (config.objfmt == OBJ_ELF)
+                flags = SHT_PROGBITS;
 
             int seg = dwarf_getsegment(debug_frame_name, 1, flags);
             Outbuffer *buf = SegData[seg].SDbuf;
@@ -1066,30 +1073,107 @@ static if (1)
                 AAchars.destroy(infoFileName_table);
                 infoFileName_table = null;
             }
+            if (lineDirectories)
+            {
+                AAchars.destroy(lineDirectories);
+                lineDirectories = null;
+            }
 
             debug_line.initialize();
 
-            debugline = DebugLineHeader.init;
-
-            debug_line.buf.write(&debugline, debugline.sizeof);
-
-            // include_directories
-            version (SCPP)
-                for (size_t i = 0; i < pathlist.length(); ++i)
+            void writeDebugLineHeader(ushort hversion)()
+            {
+                struct DebugLineHeader
                 {
-                    debug_line.buf.writeString(pathlist[i]);
-                    debug_line.buf.writeByte(0);
+                align (1):
+                    uint length;
+                    ushort version_= hversion;
+                    static if (hversion >= 5)
+                    {
+                        ubyte address_size = 4;
+                        ubyte segment_selector_size;
+                    }
+                    uint header_length;
+                    ubyte minimum_instruction_length = 1;
+                    static if (hversion >= 4)
+                    {
+                        ubyte maximum_operations_per_instruction = 1;
+                    }
+                    bool default_is_stmt = true;
+                    byte line_base = .line_base;
+                    ubyte line_range = .line_range;
+                    ubyte opcode_base = .opcode_base;
+                    ubyte[12] standard_opcode_lengths =
+                    [
+                        0,      // DW_LNS_copy
+                        1,      // DW_LNS_advance_pc
+                        1,      // DW_LNS_advance_line
+                        1,      // DW_LNS_set_file
+                        1,      // DW_LNS_set_column
+                        0,      // DW_LNS_negate_stmt
+                        0,      // DW_LNS_set_basic_block
+                        0,      // DW_LNS_const_add_pc
+                        1,      // DW_LNS_fixed_advance_pc
+                        0,      // DW_LNS_set_prologue_end
+                        0,      // DW_LNS_set_epilogue_begin
+                        0,      // DW_LNS_set_isa
+                    ];
+                    static if (hversion >= 5)
+                    {
+                        ubyte directory_entry_format_count = directory_entry_format.sizeof / 2;
+                        ubyte[2] directory_entry_format =
+                        [
+                            DW_LNCT_path,   DW_FORM_string,
+                        ];
+                    }
                 }
 
-            version (MARS)
-            version (none)
-                for (int i = 0; i < global.params.imppath.dim; i++)
-                {
-                    debug_line.buf.writeString((*global.params.imppath)[i]);
-                    debug_line.buf.writeByte(0);
-                }
+                static if (hversion == 3)
+                    static assert(DebugLineHeader.sizeof == 27);
+                else static if (hversion == 4)
+                    static assert(DebugLineHeader.sizeof == 28);
+                else static if (hversion == 5)
+                    static assert(DebugLineHeader.sizeof == 33);
+                else
+                    static assert(0);
 
-            debug_line.buf.writeByte(0);              // terminated with 0 byte
+                auto lineHeader = DebugLineHeader.init;
+
+                // 6.2.5.2 Standard Opcodes
+                static assert(DebugLineHeader.standard_opcode_lengths.length == opcode_base - 1);
+
+                static if (hversion >= 5)
+                {
+                    if (I64)
+                    {
+                        lineHeader.address_size = 8;
+                    }
+                }
+                lineHeaderLengthOffset = lineHeader.header_length.offsetof;
+
+                debug_line.buf.writen(&lineHeader, lineHeader.sizeof);
+            }
+
+            if (config.dwarf == 3)
+                writeDebugLineHeader!3();
+            else if (config.dwarf == 4)
+                writeDebugLineHeader!4();
+            else
+                writeDebugLineHeader!5();
+
+
+            if (config.dwarf >= 5)
+            {
+                /*
+                 * In DWARF Version 5, the current compilation file name is
+                 * explicitly present and has index 0.
+                 */
+                dwarf_line_addfile(filename.ptr);
+                dwarf_line_add_directory(filename.ptr);
+            }
+
+            linebuf_filetab_end = debug_line.buf.length();
+            // remaining fields in dwarf_termfile()
         }
 
         /* *********************************************************************
@@ -1131,26 +1215,49 @@ static if (1)
         {
             debug_info.initialize();
 
-
-            // Compilation Unit Header
+            void writeCompilationUnitHeader(ubyte hversion)()
             {
-                debug_info.buf.write32(0);                      // unit length
-                debug_info.buf.write16(config.dwarf);           // version
-                if (config.dwarf >= 5)
+                struct CompilationUnitHeader
                 {
-                    debug_info.buf.writeByte(DW_UT_compile);    // Unit Type
-                    debug_info.buf.writeByte(I64 ? 8 : 4);      // Address size
-                    debug_info.buf.write32(0);                  // debug abbrev offset
+                align(1):
+                    uint length;
+                    ushort version_ = hversion;
+                    static if (hversion >= 5)
+                    {
+                        ubyte unit_type = DW_UT_compile;
+                        ubyte address_size = 4;
+                    }
+                    uint debug_abbrev_offset;
+                    static if (hversion < 5)
+                    {
+                        ubyte address_size = 4;
+                    }
                 }
+
+                static if (hversion == 3 || hversion == 4)
+                    static assert(CompilationUnitHeader.sizeof == 11);
+                else static if (hversion == 5)
+                    static assert(CompilationUnitHeader.sizeof == 12);
                 else
-                {
-                    debug_info.buf.write32(0);                  // debug abbrev offset
-                    debug_info.buf.writeByte(I64 ? 8 : 4);      // Address size
-                }
+                    static assert(0);
+
+                auto cuh = CompilationUnitHeader.init;
+
+                if (I64)
+                    cuh.address_size = 8;
+
+                debug_info.buf.writen(&cuh, cuh.sizeof);
+
+                if (config.objfmt == OBJ_ELF)
+                    dwarf_addrel(debug_info.seg, CompilationUnitHeader.debug_abbrev_offset.offsetof, debug_abbrev.seg);
             }
 
-            static if (ELFOBJ)
-                dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
+            if (config.dwarf == 3)
+                writeCompilationUnitHeader!3();
+            else if (config.dwarf == 4)
+                writeCompilationUnitHeader!4();
+            else
+                writeCompilationUnitHeader!5();
 
             debug_info.buf.writeuLEB128(1);                   // abbreviation code
 
@@ -1179,12 +1286,12 @@ static if (1)
             append_addr(debug_info.buf, 0);               // DW_AT_low_pc
             append_addr(debug_info.buf, 0);               // DW_AT_entry_pc
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_ranges.seg);
 
             debug_info.buf.write32(0);                        // DW_AT_ranges
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 dwarf_addrel(debug_info.seg,debug_info.buf.length(),debug_line.seg);
 
             debug_info.buf.write32(0);                        // DW_AT_stmt_list
@@ -1202,7 +1309,7 @@ static if (1)
             debug_pubnames.buf.write32(0);             // unit_length
             debug_pubnames.buf.write16(2);           // version_
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 dwarf_addrel(seg,debug_pubnames.buf.length(),debug_info.seg);
 
             debug_pubnames.buf.write32(0);             // debug_info_offset
@@ -1215,51 +1322,92 @@ static if (1)
         {
             debug_aranges.initialize();
 
-            debug_aranges.buf.write32(0);              // unit_length
-            debug_aranges.buf.write16(2);            // version_
+            void writeAddressRangeHeader(ushort hversion)()
+            {
+                struct AddressRangeHeader
+                {
+                align(1):
+                    uint length;
+                    ushort version_ = hversion;
+                    uint debug_info_offset;
+                    ubyte address_size = 4;
+                    ubyte segment_size;
+                    uint padding;
+                }
+                static if (hversion == 2)
+                    static assert(AddressRangeHeader.sizeof == 16);
+                else
+                    static assert(0);
 
-            static if (ELFOBJ)
-                dwarf_addrel(debug_aranges.seg,debug_aranges.buf.length(),debug_info.seg);
+                auto arh = AddressRangeHeader.init;
 
-            debug_aranges.buf.write32(0);              // debug_info_offset
-            debug_aranges.buf.writeByte(I64 ? 8 : 4);  // address_size
-            debug_aranges.buf.writeByte(0);            // segment_size
-            debug_aranges.buf.write32(0);              // pad to 16
+                if (I64)
+                    arh.address_size = 8;
+
+                debug_aranges.buf.writen(&arh, arh.sizeof);
+
+                if (config.objfmt == OBJ_ELF)
+                    dwarf_addrel(debug_aranges.seg, AddressRangeHeader.debug_info_offset.offsetof, debug_info.seg);
+            }
+
+            writeAddressRangeHeader!2();
         }
     }
-
 
     /*************************************
-     * Add a file to the .debug_line header
+     * Add a directory to `lineDirectories`
      */
-    int dwarf_line_addfile(const(char)* filename)
+    uint dwarf_line_add_directory(const(char)* path)
     {
-        return dwarf_line_addfile(filename ? filename[0 .. strlen(filename)] : null);
+        assert(path);
+        return addToAAchars(lineDirectories, retrieveDirectory(path));
     }
 
-    /// Ditto
-    extern(D) int dwarf_line_addfile(const(char)[] filename)
+    /*************************************
+     * Add a file to `infoFileName_table`
+     */
+    uint dwarf_line_addfile(const(char)* path)
     {
-        if (!infoFileName_table)
+        assert(path);
+        return addToAAchars(infoFileName_table, path[0 .. strlen(path)]);
+    }
+
+    /*************************************
+     * Adds `str` to `aachars`, and assigns a new index if none
+     *
+     * Params:
+     *      aachars = AAchars where to add `str`
+     *      str = string to add to `aachars`
+     */
+    extern(D) uint addToAAchars(ref AAchars* aachars, const(char)[] str)
+    {
+        if (!aachars)
         {
-            infoFileName_table = AAchars.create();
-            linebuf_filetab_end = debug_line.buf.length();
+            aachars = AAchars.create();
         }
 
-        uint *pidx = infoFileName_table.get(filename);
+        uint *pidx = aachars.get(str);
         if (!*pidx)                 // if no idx assigned yet
         {
-            *pidx = infoFileName_table.length(); // assign newly computed idx
-
-            size_t before = debug_line.buf.length();
-            debug_line.buf.writeString(filename);
-            debug_line.buf.writeByte(0);      // directory table index
-            debug_line.buf.writeByte(0);      // mtime
-            debug_line.buf.writeByte(0);      // length
-            linebuf_filetab_end += debug_line.buf.length() - before;
+            *pidx = aachars.length(); // assign newly computed idx
         }
-
         return *pidx;
+    }
+
+    /**
+     * Extracts the directory from `path`.
+     *
+     * Params:
+     *      path = Full path containing the filename and the directory
+     * Returns:
+     *      The directory name
+     */
+    extern(D) const(char)[] retrieveDirectory(const(char)* path)
+    {
+        assert(path);
+        // Retrieve directory from path
+        char* lastSep = strrchr(cast(char*) path, DIRCHAR);
+        return lastSep ? path[0 .. lastSep - path] : ".";
     }
 
     void dwarf_initmodule(const(char)* filename, const(char)* modname)
@@ -1287,8 +1435,6 @@ static if (1)
         }
         else
             hasModname = 0;
-
-        dwarf_line_addfile(filename);
     }
 
     void dwarf_termmodule()
@@ -1304,49 +1450,141 @@ static if (1)
     {
         //printf("dwarf_termfile()\n");
 
-        /* ======================================== */
-
-        // Put out line number info
-
-        // file_names
-        uint last_filenumber = 0;
-        const(char)* last_filename = null;
-        for (uint seg = 1; seg < SegData.length; seg++)
+        /* *********************************************************************
+         *      6.2.4 The Line Number Program Header - Remaining fields
+         ******************************************************************** */
         {
-            for (uint i = 0; i < SegData[seg].SDlinnum_data.length; i++)
+            // assert we haven't emitted anything
+            assert(debug_line.buf.length() == linebuf_filetab_end);
+
+            // Put out line number info
+
+            // file_names
+            uint last_filenumber = 0;
+            const(char)* last_filename = null;
+            for (uint seg = 1; seg < SegData.length; seg++)
             {
-                linnum_data *ld = &SegData[seg].SDlinnum_data[i];
-                const(char)* filename;
-
-                version (MARS)
-                    filename = ld.filename;
-                else
+                for (uint i = 0; i < SegData[seg].SDlinnum_data.length; i++)
                 {
-                    Sfile *sf = ld.filptr;
-                    if (sf)
-                        filename = sf.SFname;
+                    linnum_data *ld = &SegData[seg].SDlinnum_data[i];
+                    const(char)* filename;
+
+                    version (MARS)
+                        filename = ld.filename;
                     else
-                        filename = .filename;
-                }
+                    {
+                        Sfile *sf = ld.filptr;
+                        if (sf)
+                            filename = sf.SFname;
+                        else
+                            filename = .filename;
+                    }
 
-                if (last_filename == filename)
-                {
-                    ld.filenumber = last_filenumber;
-                }
-                else
-                {
-                    ld.filenumber = dwarf_line_addfile(filename);
+                    if (last_filename == filename)
+                    {
+                        ld.filenumber = last_filenumber;
+                    }
+                    else
+                    {
+                        ld.filenumber = dwarf_line_addfile(filename);
+                        dwarf_line_add_directory(filename);
 
-                    last_filenumber = ld.filenumber;
-                    last_filename = filename;
+                        last_filenumber = ld.filenumber;
+                        last_filename = filename;
+                    }
                 }
             }
-        }
-        // assert we haven't emitted anything but file table entries
-        assert(debug_line.buf.length() == linebuf_filetab_end);
-        debug_line.buf.writeByte(0);              // end of file_names
 
-        debugline.prologue_length = cast(uint)debug_line.buf.length() - 10;
+            if (config.dwarf >= 5)
+            {
+                debug_line.buf.writeuLEB128(lineDirectories ? lineDirectories.length() : 0);   // directories_count
+            }
+
+            if (lineDirectories)
+            {
+                // include_directories
+                auto dirkeys = lineDirectories.aa.keys();
+                if (dirkeys)
+                {
+                    foreach (id; 1 .. lineDirectories.length() + 1)
+                    {
+                        foreach (const(char)[] dir; dirkeys)
+                        {
+                            // Directories must be written in the correct order, to match file_name indexes
+                            if (dwarf_line_add_directory(dir.ptr) == id)
+                            {
+                                //printf("%d: %s\n", dwarf_line_add_directory(dir), dir);
+                                debug_line.buf.writeString(dir);
+                                break;
+                            }
+                        }
+                    }
+                    free(dirkeys.ptr);
+                    dirkeys = null;
+                }
+            }
+
+            if (config.dwarf < 5)
+            {
+                debug_line.buf.writeByte(0);   // end of include_directories
+            }
+            else
+            {
+                struct FileNameEntryFormat
+                {
+                    ubyte count = format.sizeof / 2;
+                    ubyte[4] format =
+                    [
+                        DW_LNCT_path,               DW_FORM_string,
+                        DW_LNCT_directory_index,    DW_FORM_data1,
+                    ];
+                }
+                auto file_name_entry_format = FileNameEntryFormat.init;
+                debug_line.buf.write(&file_name_entry_format, file_name_entry_format.sizeof);
+
+                debug_line.buf.writeuLEB128(infoFileName_table ? infoFileName_table.length() : 0);  // file_names_count
+            }
+
+            if (infoFileName_table)
+            {
+                // file_names
+                auto filekeys = infoFileName_table.aa.keys();
+                if (filekeys)
+                {
+                    foreach (id; 1 .. infoFileName_table.length() + 1)
+                    {
+                        foreach (const(char)[] filename; filekeys)
+                        {
+                            // Filenames must be written in the correct order, to match the AAchars' idx order
+                            if (id == dwarf_line_addfile(filename.ptr))
+                            {
+                                debug_line.buf.writeString(filename.ptr.filespecname);
+
+                                auto index = dwarf_line_add_directory(filename.ptr);
+                                assert(index != 0);
+                                if (config.dwarf >= 5)
+                                    --index; // Minus 1 because it must be an index, not a element number
+                                // directory table index.
+                                debug_line.buf.writeByte(index);
+                                if (config.dwarf < 5)
+                                {
+                                    debug_line.buf.writeByte(0);      // mtime
+                                    debug_line.buf.writeByte(0);      // length
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    free(filekeys.ptr);
+                    filekeys = null;
+                }
+            }
+
+            if (config.dwarf < 5)
+                debug_line.buf.writeByte(0);              // end of file_names
+
+            rewrite32(debug_line.buf, lineHeaderLengthOffset, cast(uint) (debug_line.buf.length() - lineHeaderLengthOffset - 4));
+        }
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
@@ -1357,7 +1595,7 @@ static if (1)
             if (!sd.SDlinnum_data.length)
                 continue;
 
-            static if (ELFOBJ)
+            if (config.objfmt == OBJ_ELF)
                 if (!sd.SDsym) // gdb ignores line number data without a DW_AT_name
                     continue;
 
@@ -1397,12 +1635,12 @@ static if (1)
                     address += addinc;
                     if (address >= addressmax)
                         addressmax = address + 1;
-                    if (lininc >= debugline.line_base && lininc < debugline.line_base + debugline.line_range)
+                    if (lininc >= line_base && lininc < line_base + line_range)
                     {
-                        uint opcode = lininc - debugline.line_base +
-                            debugline.line_range * addinc +
-                            debugline.opcode_base;
+                        uint opcode = lininc - line_base +
+                            line_range * addinc + opcode_base;
 
+                        // special opcode
                         if (opcode <= 255)
                         {
                             debug_line.buf.writeByte(opcode);
@@ -1437,12 +1675,11 @@ static if (1)
             }
         }
 
-        debugline.total_length = cast(uint)debug_line.buf.length() - 4;
-        memcpy(debug_line.buf.buf, &debugline, debugline.sizeof);
+        rewrite32(debug_line.buf, 0, cast(uint) debug_line.buf.length() - 4);
 
         // Bugzilla 3502, workaround OSX's ld64-77 bug.
         // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (debugline.prologue_length + 10 == debugline.total_length + 4)
+        if (*cast(uint*) &debug_line.buf.buf[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
             debug_line.buf.reset();
 
         /* ================================================= */
@@ -1554,12 +1791,11 @@ static if (1)
 
         if (ehmethod(sfunc) == EHmethod.EH_DM)
         {
-            static if (MACHOBJ)
-                int flags = S_ATTR_DEBUG;
-            else static if (ELFOBJ)
-                int flags = SHT_PROGBITS;
-            else
-                int flags = 0;
+            int flags = 0;
+            if (config.objfmt == OBJ_MACH)
+                flags = S_ATTR_DEBUG;
+            else if (config.objfmt == OBJ_ELF)
+                flags = SHT_PROGBITS;
 
             IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1, flags);
             writeDebugFrameFDE(dfseg, sfunc);
@@ -1700,7 +1936,7 @@ static if (1)
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset + sfunc.Ssize);
 
         // DW_AT_frame_base
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             dwarf_apprel32(debug_info.seg, debug_info.buf, debug_loc.seg, debug_loc.buf.length());
         else
             // 64-bit DWARF relocations don't work for OSX64 codegen
@@ -1914,7 +2150,7 @@ static if (1)
                 soffset = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeByte(2);                      // DW_FORM_block1
 
-                static if (ELFOBJ)
+                if (config.objfmt == OBJ_ELF)
                 {
                     // debug info for TLS variables
                     assert(s.Sxtrnnum);
@@ -2915,10 +3151,10 @@ static if (1)
         Outbuffer *buf = SegData[seg].SDbuf;
         buf.reserve(100);
 
-        static if (ELFOBJ)
+        if (config.objfmt == OBJ_ELF)
             sfunc.Sfunc.LSDAoffset = cast(uint)buf.length();
 
-        static if (MACHOBJ)
+        if (config.objfmt == OBJ_MACH)
         {
             char[16 + (except_table_num).sizeof * 3 + 1] name = void;
             sprintf(name.ptr, "GCC_except_table%d", ++except_table_num);

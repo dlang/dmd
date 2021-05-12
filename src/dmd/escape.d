@@ -776,8 +776,7 @@ ByRef:
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STC.parameter) ||
-             va.storage_class & STC.ref_ ||
+            (va.enclosesLifetimeOf(v) && !(v.isParameter() && v.isRef()) ||
              va.isDataseg()) &&
             sc.func.setUnsafe())
         {
@@ -893,7 +892,7 @@ ByRef:
         }
 
         if (ee.op == TOK.call && ee.type.toBasetype().ty == Tstruct &&
-            (!va || (!(va.storage_class & STC.temp) && va.ident != Id.withSym)) &&
+            (!va || !(va.storage_class & STC.temp)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
@@ -904,7 +903,7 @@ ByRef:
         }
 
         if (ee.op == TOK.structLiteral &&
-            (!va || (!(va.storage_class & STC.temp) && va.ident != Id.withSym)) &&
+            (!va || !(va.storage_class & STC.temp)) &&
             sc.func.setUnsafe())
         {
             if (!gag)
@@ -1000,6 +999,9 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
+    import dmd.globals: FeatureState;
+    import dmd.errors: previewErrorFunc;
+
     //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
     enum log = false;
     if (log) printf("[%s] checkNewEscape, e: `%s`\n", e.loc.toChars(), e.toChars());
@@ -1065,20 +1067,17 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        // 'emitError' tells us whether to emit an error or a deprecation,
+        // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, bool emitError = true)
+        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
         {
             if (!gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
                 const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
-                if (emitError)
-                    error(e.loc, msg, e.toChars(), kind, v.toChars());
-                else if (!sc.isDeprecated())
-                    deprecation(e.loc, msg, e.toChars(), kind, v.toChars());
+                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), kind, v.toChars());
             }
-            result |= emitError;
+            result |= (featureState == FeatureState.enabled);
         }
 
         if (v.isDataseg())
@@ -1104,16 +1103,13 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         if (!sc._module || !sc._module.isRoot())
             continue;
 
-        // If -preview=dip25 is used, the user wants an error
-        // Otherwise, issue a deprecation
-        const emitError = global.params.useDIP25 == FeatureState.enabled;
         // https://dlang.org/spec/function.html#return-ref-parameters
         // Only look for errors if in module listed on command line
         if (p == sc.func)
         {
             //printf("escaping reference to local ref variable %s\n", v.toChars());
             //printf("storage class = x%llx\n", v.storage_class);
-            escapingRef(v, emitError);
+            escapingRef(v, global.params.useDIP25);
             continue;
         }
         // Don't need to be concerned if v's parent does not return a ref
@@ -1126,11 +1122,14 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 continue;
 
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
-            if (!gag && emitError)
-                error(e.loc, msg, v.toChars());
-            else if (!gag)
-                deprecation(e.loc, msg, v.toChars());
-            result |= emitError;
+            if (!gag)
+            {
+                previewErrorFunc(sc.isDeprecated(), global.params.useDIP25)(e.loc, msg, v.toChars());
+            }
+
+            // If -preview=dip25 is used, the user wants an error
+            // Otherwise, issue a deprecation
+            result |= (global.params.useDIP25 == FeatureState.enabled);
         }
     }
 
@@ -1287,9 +1286,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        // 'emitError' tells us whether to emit an error or a deprecation,
+        // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, bool emitError = true)
+        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
         {
             if (!gag)
             {
@@ -1307,18 +1306,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                         supplemental = "perhaps annotate the function with `return`";
                 }
 
-                if (emitError)
-                {
-                    e.error(msg, e.toChars(), v.toChars());
-                    if (supplemental)
-                        e.errorSupplemental(supplemental);
-                }
-                else
-                {
-                    e.deprecation(msg, e.toChars(), v.toChars());
-                    if (supplemental)
-                        deprecationSupplemental(e.loc, supplemental);
-                }
+                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
+                if (supplemental)
+                    previewSupplementalFunc(sc.isDeprecated(), featureState)(e.loc, supplemental);
             }
             result = true;
         }
@@ -1369,16 +1359,13 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             }
             else if (sc._module && sc._module.isRoot())
             {
-                // If -preview=dip25 is used, the user wants an error
-                // Otherwise, issue a deprecation
-                const emitError = global.params.useDIP25 == FeatureState.enabled;
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
                 if (p == sc.func)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, emitError);
+                    escapingRef(v, global.params.useDIP25);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1389,10 +1376,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     if (tf.isref)
                     {
                         const(char)* msg = "escaping reference to outer local variable `%s`";
-                        if (!gag && emitError)
-                            error(e.loc, msg, v.toChars());
-                        else if (!gag)
-                            deprecation(e.loc, msg, v.toChars());
+                        if (!gag)
+                            previewErrorFunc(sc.isDeprecated(), global.params.useDIP25)(e.loc, msg, v.toChars());
                         result = true;
                         continue;
                     }

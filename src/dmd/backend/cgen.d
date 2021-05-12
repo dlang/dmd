@@ -358,10 +358,7 @@ struct Fixup
     int         flags;      // CFxxxx
     targ_size_t offset;     // addr of reference to Symbol
     targ_size_t val;        // value to add into location
-static if (TARGET_OSX)
-{
     Symbol      *funcsym;   // function the Symbol goes in
-}
 }
 
 private __gshared Barray!Fixup fixups;
@@ -382,13 +379,10 @@ size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
         f.seg = seg;
         f.flags = flags;
         f.val = val;
-static if (TARGET_OSX)
-{
         f.funcsym = funcsym_p;
-}
 
         size_t numbytes;
-static if (TARGET_SEGMENTED)
+if (TARGET_SEGMENTED)
 {
         switch (flags & (CFoff | CFseg))
         {
@@ -404,7 +398,7 @@ else
         if (I64 && !(flags & CFoffset64))
             numbytes = 4;
 
-static if (TARGET_WINDOS)
+if (config.exe & EX_windos)
 {
         /* This can happen when generating CV8 data
          */
@@ -486,7 +480,7 @@ else // MARS
         }
     }
 
-static if (TARGET_OSX)
+if (config.exe & (EX_OSX | EX_OSX64))
 {
     Symbol *funcsymsave = funcsym_p;
     funcsym_p = f.funcsym;

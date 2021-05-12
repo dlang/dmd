@@ -420,24 +420,24 @@ Disassembly of section .text._D5cdcmp8test_eqzFfZb:
 0000000000000000 <_D5cdcmp8test_eqzFfZb>:
    0:	0f 57 c9             	xorps  xmm1,xmm1
    3:	0f 2e c8             	ucomiss xmm1,xmm0
-   6:	74 04                	je     c <_D5cdcmp8test_eqzFfZb+0xc>
-   8:	31 c0                	xor    eax,eax
-   a:	eb 05                	jmp    11 <_D5cdcmp8test_eqzFfZb+0x11>
-   c:	b8 01 00 00 00       	mov    eax,0x1
-  11:	c3                   	ret    
-	...
+   6:	7a 02                	jp     a <_D5cdcmp8test_eqzFfZb+0xa>
+   8:	74 04                	je     e <_D5cdcmp8test_eqzFfZb+0xe>
+   a:	31 c0                	xor    eax,eax
+   c:	eb 05                	jmp    13 <_D5cdcmp8test_eqzFfZb+0x13>
+   e:	b8 01 00 00 00       	mov    eax,0x1
+  13:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_nezFfZb:
 
 0000000000000000 <_D5cdcmp8test_nezFfZb>:
    0:	0f 57 c9             	xorps  xmm1,xmm1
    3:	0f 2e c8             	ucomiss xmm1,xmm0
-   6:	75 04                	jne    c <_D5cdcmp8test_nezFfZb+0xc>
-   8:	31 c0                	xor    eax,eax
-   a:	eb 05                	jmp    11 <_D5cdcmp8test_nezFfZb+0x11>
-   c:	b8 01 00 00 00       	mov    eax,0x1
-  11:	c3                   	ret    
-	...
+   6:	75 06                	jne    e <_D5cdcmp8test_nezFfZb+0xe>
+   8:	7a 04                	jp     e <_D5cdcmp8test_nezFfZb+0xe>
+   a:	31 c0                	xor    eax,eax
+   c:	eb 05                	jmp    13 <_D5cdcmp8test_nezFfZb+0x13>
+   e:	b8 01 00 00 00       	mov    eax,0x1
+  13:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_gezFfZb:
 
@@ -504,22 +504,26 @@ Disassembly of section .text._D5cdcmp8test_eqzFdZb:
 0000000000000000 <_D5cdcmp8test_eqzFdZb>:
    0:	66 0f 57 c9          	xorpd  xmm1,xmm1
    4:	66 0f 2e c8          	ucomisd xmm1,xmm0
-   8:	74 04                	je     e <_D5cdcmp8test_eqzFdZb+0xe>
-   a:	31 c0                	xor    eax,eax
-   c:	eb 05                	jmp    13 <_D5cdcmp8test_eqzFdZb+0x13>
-   e:	b8 01 00 00 00       	mov    eax,0x1
-  13:	c3                   	ret    
+   8:	7a 02                	jp     c <_D5cdcmp8test_eqzFdZb+0xc>
+   a:	74 04                	je     10 <_D5cdcmp8test_eqzFdZb+0x10>
+   c:	31 c0                	xor    eax,eax
+   e:	eb 05                	jmp    15 <_D5cdcmp8test_eqzFdZb+0x15>
+  10:	b8 01 00 00 00       	mov    eax,0x1
+  15:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_nezFdZb:
 
 0000000000000000 <_D5cdcmp8test_nezFdZb>:
    0:	66 0f 57 c9          	xorpd  xmm1,xmm1
    4:	66 0f 2e c8          	ucomisd xmm1,xmm0
-   8:	75 04                	jne    e <_D5cdcmp8test_nezFdZb+0xe>
-   a:	31 c0                	xor    eax,eax
-   c:	eb 05                	jmp    13 <_D5cdcmp8test_nezFdZb+0x13>
-   e:	b8 01 00 00 00       	mov    eax,0x1
-  13:	c3                   	ret    
+   8:	75 06                	jne    10 <_D5cdcmp8test_nezFdZb+0x10>
+   a:	7a 04                	jp     10 <_D5cdcmp8test_nezFdZb+0x10>
+   c:	31 c0                	xor    eax,eax
+   e:	eb 05                	jmp    15 <_D5cdcmp8test_nezFdZb+0x15>
+  10:	b8 01 00 00 00       	mov    eax,0x1
+  15:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gezFdZb:
 

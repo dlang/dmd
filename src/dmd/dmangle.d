@@ -111,6 +111,31 @@ unittest
     assert(!'\\'.isValidMangling);
 }
 
+/**********************************************
+ * Convert a string representing a type (the deco) and
+ * return its equivalent Type.
+ * Params:
+ *      deco = string containing the deco
+ * Returns:
+ *      null for failed to convert
+ *      Type for succeeded
+ */
+
+public Type decoToType(const(char)[] deco)
+{
+    //printf("decoToType(): %.*s\n", cast(int)deco.length, deco.ptr);
+    if (auto sv = Type.stringtable.lookup(deco))
+    {
+        if (sv.value)
+        {
+            Type t = cast(Type)sv.value;
+            assert(t.deco);
+            return t;
+        }
+    }
+    return null;
+}
+
 
 /***************************************** private ***************************************/
 
@@ -138,6 +163,7 @@ import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.aav;
 import dmd.root.string;
+import dmd.root.stringtable;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
@@ -296,7 +322,7 @@ public:
     *  using upper case letters for all digits but the last digit which uses
     *  a lower case letter.
     * The decoder has to look up the referenced position to determine
-    *  whether the back reference is an identifer (starts with a digit)
+    *  whether the back reference is an identifier (starts with a digit)
     *  or a type (starts with a letter).
     *
     * Params:
@@ -1239,6 +1265,15 @@ public:
             else
                 buf.writeByte('v'); // 'v' for void
         }
+    }
+
+    override void visit(FuncExp e)
+    {
+        buf.writeByte('f');
+        if (e.td)
+            mangleSymbol(e.td);
+        else
+            mangleSymbol(e.fd);
     }
 
     ////////////////////////////////////////////////////////////////////////////

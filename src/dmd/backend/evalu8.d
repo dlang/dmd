@@ -46,6 +46,7 @@ import scopeh;
 extern (C++):
 
 nothrow:
+@safe:
 
 version (MARS)
     import dmd.backend.errors;
@@ -240,49 +241,62 @@ version (SCPP)
  * Return true if expression will always evaluate to true.
  */
 
+@trusted
 int iftrue(elem *e)
 {
-  while (1)
-  {
+    while (1)
+    {
         assert(e);
         elem_debug(e);
         switch (e.Eoper)
-        {       case OPcomma:
-                case OPinfo:
-                        e = e.EV.E2;
-                        break;
-                case OPrelconst:
-                case OPconst:
-                case OPstring:
-                        return boolres(e);
-                default:
-                        return false;
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPrelconst:
+            case OPconst:
+            case OPstring:
+                return boolres(e);
+
+            case OPoror:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
+            default:
+                return false;
         }
-  }
+    }
 }
 
 /***************************
  * Return true if expression will always evaluate to false.
  */
 
+@trusted
 int iffalse(elem *e)
 {
-        while (1)
-        {       assert(e);
-                elem_debug(e);
-                switch (e.Eoper)
-                {       case OPcomma:
-                        case OPinfo:
-                                e = e.EV.E2;
-                                break;
-                        case OPconst:
-                                return !boolres(e);
-                        //case OPstring:
-                        //case OPrelconst:
-                        default:
-                                return false;
-                }
+    while (1)
+    {
+        assert(e);
+        elem_debug(e);
+        switch (e.Eoper)
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPconst:
+                return !boolres(e);
+
+            case OPandand:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
+            default:
+                return false;
         }
+    }
 }
 
 
@@ -291,6 +305,7 @@ int iffalse(elem *e)
  * Return with the result.
  */
 
+@trusted
 elem * evalu8(elem *e, goal_t goal)
 {
     elem* e1;

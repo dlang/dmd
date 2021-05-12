@@ -3,21 +3,23 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/b3841.d-mixin-30(30): Warning: `char += float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `int += float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `long += double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `char -= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `int -= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `long -= double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `char *= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `int *= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `long *= double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `char /= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `int /= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `long /= double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `char %= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `int %= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-30(30): Warning: `long %= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `char += float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `int += float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `long += double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `char -= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `int -= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `long -= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `char *= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `int *= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `long *= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `char /= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `int /= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `long /= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `char %= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `int %= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-32(32): Warning: `long %= double` is performing truncating conversion
+Error: warnings are treated as errors
+       Use -wi if you wish to treat warnings only as informational.
 ---
 */
 
@@ -44,7 +46,6 @@ void main()
         f!(op, long, int)();
         f!(op, long, short)();
         f!(op, float, long)();
-        f!(op, cfloat, long)();
         f!(op, double, float)();
         
         // Should that really be OK ?
@@ -57,15 +58,6 @@ void main()
         f!(op, long, double)();
     }
 
-    foreach (string op; Ops!("+=", "-="))
-    {
-        // OK
-        f!(op, idouble, ifloat)();
-
-        // Should that really be OK ?
-        f!(op, ifloat, idouble)();
-    }
-    
     // OK
     f!("^^=", int, int)();
     f!("^^=", long, int)();

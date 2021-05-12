@@ -16,6 +16,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 nothrow:
+@safe:
 
 extern (C++): private void err_nomem();
 
@@ -24,11 +25,14 @@ extern (C++): private void err_nomem();
  */
 struct Barray(T)
 {
+  @safe:
+
     /**********************
      * Set useable length of array.
      * Params:
      *  length = minimum number of elements in array
      */
+    @trusted
     void setLength(size_t length)
     {
         static void enlarge(ref Barray barray, size_t length)
@@ -80,6 +84,7 @@ struct Barray(T)
      * Returns:
      *  pointer to appended element
      */
+    @trusted
     T* push()
     {
         const i = length;
@@ -108,6 +113,7 @@ struct Barray(T)
     /******************
      * Release all memory used.
      */
+    @trusted
     void dtor()
     {
         free(array.ptr);
@@ -150,6 +156,8 @@ unittest
 
 struct Rarray(T)
 {
+  @safe:
+
     /*******************
      * Append an uninitialized element of T to array.
      * This leaves allocations used by T intact.

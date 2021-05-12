@@ -33,6 +33,7 @@ import dmd.backend.mem;
 extern (C++):
 
 nothrow:
+@safe:
 
 __gshared
 code *code_list = null;
@@ -41,6 +42,7 @@ code *code_list = null;
  * Allocate a chunk of code's and add them to
  * code_list.
  */
+@trusted
 code *code_chunk_alloc()
 {
     const size_t n = 4096 / code.sizeof;
@@ -59,6 +61,7 @@ code *code_chunk_alloc()
  * Allocate code
  */
 
+@trusted
 code *code_calloc()
 {
     //printf("code %d\n", code.sizeof);
@@ -75,6 +78,7 @@ code *code_calloc()
  * Free code
  */
 
+@trusted
 void code_free(code *cstart)
 {
     if (cstart)
@@ -100,6 +104,7 @@ void code_free(code *cstart)
  * Terminate code
  */
 
+@trusted
 void code_term()
 {
 static if (TERMCODE)

@@ -359,7 +359,6 @@ immutable Msgtable[] msgtable =
     { "etc" },
     { "attribute" },
     { "math" },
-    { "trig" },
     { "sin" },
     { "cos" },
     { "tan" },
@@ -472,6 +471,7 @@ immutable Msgtable[] msgtable =
     { "hasPostblit" },
     { "hasCopyConstructor" },
     { "isCopyable" },
+    { "toType" },
 
     // For C++ mangling
     { "allocator" },
