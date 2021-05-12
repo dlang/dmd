@@ -6610,8 +6610,11 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 
     TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
     Type ta = tempinst.tdtypes[0].isType();
-    Declaration d = new AliasDeclaration(tempinst.loc, ttp.ident, ta.addMod(tempdecl.onemember.isAliasDeclaration.type.mod));
-    d.storage_class |= STC.templateparameter;
+    auto ad = tempdecl.onemember.isAliasDeclaration();
+
+    // Note: qualifiers can be in both 'ad.type.mod' and 'ad.storage_class'
+    Declaration d = new AliasDeclaration(tempinst.loc, ttp.ident, ta.addMod(ad.type.mod));
+    d.storage_class |= STC.templateparameter | ad.storage_class;
     d.dsymbolSemantic(sc);
 
     paramscope.pop();
