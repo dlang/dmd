@@ -15,7 +15,9 @@ $(ROOT)/profile.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/mytrace.log $(ROOT)/mytrace.def
 	$(QUIET)$(GREP) -q '1 .*_Dmain' $(ROOT)/mytrace.log
 	$(QUIET)$(GREP) -q '1000 .*uint profile.foo(uint)' $(ROOT)/mytrace.log
-	$(QUIET)$(DIFF) mytrace.def.exp $(ROOT)/mytrace.def || $(DIFF) mytrace.releaseopt.def.exp $(ROOT)/mytrace.def
+	$(QUIET) cat $(ROOT)/mytrace.def
+	$(QUIET) sort $(ROOT)/mytrace.def -o $(ROOT)/mytrace.def
+	$(QUIET) (sort mytrace.def.exp | $(DIFF) - $(ROOT)/mytrace.def) || (sort mytrace.releaseopt.def.exp | $(DIFF) - $(ROOT)/mytrace.def)
 	@touch $@
 
 $(ROOT)/profilegc.done: DFLAGS+=-profile=gc
@@ -33,8 +35,9 @@ $(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/both.log $(ROOT)/both.def $(ROOT)/bothgc.log
 	$(QUIET)$(GREP) -q '1 .*_Dmain' $(ROOT)/both.log
 	$(QUIET)$(GREP) -q '1000 .*both.Num\* both.foo(uint)' $(ROOT)/both.log
-	# (temporarily) allow both the new and the old mangling in both.def
-	$(QUIET)$(DIFF) both.def.exp $(ROOT)/both.def || $(DIFF) bothnew.def.exp $(ROOT)/both.def
+	$(QUIET) cat $(ROOT)/both.def
+	$(QUIET) sort $(ROOT)/both.def -o $(ROOT)/both.def
+	$(QUIET)(sort bothnew.def.exp | $(DIFF) - $(ROOT)/both.def)
 	$(QUIET)$(DIFF) bothgc.log.exp $(ROOT)/bothgc.log
 	@touch $@
 

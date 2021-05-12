@@ -541,11 +541,7 @@ public:
      +/
     int opCmp(Duration rhs) const nothrow @nogc
     {
-        if (_hnsecs < rhs._hnsecs)
-            return -1;
-        if (_hnsecs > rhs._hnsecs)
-            return 1;
-        return 0;
+        return (_hnsecs > rhs._hnsecs) - (_hnsecs < rhs._hnsecs);
     }
 
     version (CoreUnittest) unittest
@@ -624,7 +620,7 @@ public:
     {
         static if (is(immutable D == immutable Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
-        else if (is(immutable D == immutable TickDuration))
+        else
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
@@ -763,7 +759,7 @@ public:
     {
         static if (is(immutable D == immutable Duration))
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
-        else if (is(immutable D == immutable TickDuration))
+        else
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
         return this;
     }
@@ -2182,9 +2178,7 @@ struct MonoTimeImpl(ClockType clockType)
      +/
     int opCmp(MonoTimeImpl rhs) const pure nothrow @nogc
     {
-        if (_ticks < rhs._ticks)
-            return -1;
-        return _ticks > rhs._ticks ? 1 : 0;
+        return (_ticks > rhs._ticks) - (_ticks < rhs._ticks);
     }
 
     version (CoreUnittest) unittest
@@ -3094,7 +3088,7 @@ struct TickDuration
       +/
     int opCmp(TickDuration rhs) @safe const pure nothrow @nogc
     {
-        return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
+        return (length > rhs.length) - (length < rhs.length);
     }
 
     version (CoreUnittest) unittest

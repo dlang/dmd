@@ -8,6 +8,7 @@ COPY=\
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\attribute.d \
 	$(IMPDIR)\core\bitop.d \
+	$(IMPDIR)\core\builtins.d \
 	$(IMPDIR)\core\checkedint.d \
 	$(IMPDIR)\core\cpuid.d \
 	$(IMPDIR)\core\demangle.d \
@@ -479,6 +480,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\sspi.d \
 	$(IMPDIR)\core\sys\windows\stacktrace.d \
 	$(IMPDIR)\core\sys\windows\stat.d \
+	$(IMPDIR)\core\sys\windows\stdc\malloc.d \
 	$(IMPDIR)\core\sys\windows\stdc\time.d \
 	$(IMPDIR)\core\sys\windows\subauth.d \
 	$(IMPDIR)\core\sys\windows\threadaux.d \

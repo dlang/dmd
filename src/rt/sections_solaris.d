@@ -2,6 +2,10 @@
  * Written in the D programming language.
  * This module provides Solaris-specific support for sections.
  *
+ * OpenBSD (as of 6.9) lacks dlinfo, RTLD_NOLOAD, and dlpt_tls_modid.
+ * Faking support caused problems.
+ * That is why we are not using elf_shared on OpenBSD.
+ *
  * Copyright: Copyright Martin Nowak 2012-2013.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
@@ -10,7 +14,16 @@
 
 module rt.sections_solaris;
 
-version (Solaris):
+version (Solaris)
+{
+    version = SolarisOrOpenBSD;
+}
+else version (OpenBSD)
+{
+    version = SolarisOrOpenBSD;
+}
+
+version (SolarisOrOpenBSD):
 
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;

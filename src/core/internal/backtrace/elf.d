@@ -26,6 +26,11 @@ else version (DragonFlyBSD)
     import core.sys.dragonflybsd.sys.elf;
     version = LinuxOrBSD;
 }
+else version (OpenBSD)
+{
+    import core.sys.openbsd.sys.elf;
+    version = LinuxOrBSD;
+}
 
 version (LinuxOrBSD):
 

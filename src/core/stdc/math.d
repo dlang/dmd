@@ -315,21 +315,17 @@ version (CRuntime_DigitalMars)
     pure uint __fpclassify_d(double x);
     pure uint __fpclassify_ld(real x);
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
     ///
-    pure int fpclassify(float x)     { return __fpclassify_f(x); }
+    pragma(mangle, "__fpclassify_f") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassify_d(x); }
+    pragma(mangle, "__fpclassify_d") pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __fpclassify_d(x)
-            : __fpclassify_ld(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__fpclassify_d" : "__fpclassify_ld")
+    pure int fpclassify(real x);
 
+  extern (D)
+  {
     //int isfinite(real-floating x);
     ///
     pure int isfinite(float x)       { return fpclassify(x) >= FP_NORMAL; }
@@ -428,6 +424,93 @@ else version (CRuntime_Microsoft) // fully supported since MSVCRT 12 (VS 2013) o
     pure int _fpclass(double x);
   }
 
+  version (MinGW)
+  {
+    enum
+    {
+        ///
+        FP_NAN = 0x0100,
+        ///
+        FP_NORMAL = 0x0400,
+        ///
+        FP_INFINITE = FP_NAN | FP_NORMAL,
+        ///
+        FP_ZERO = 0x0400,
+        ///
+        FP_SUBNORMAL = FP_NORMAL | FP_ZERO
+    }
+
+    pure int __fpclassifyf(float x);
+    pure int __fpclassify(double x);
+    pure int __fpclassifyl(real x);
+
+    pure int __isnanf(float x);
+    pure int __isnan(double x);
+    pure int __isnanl(real x);
+
+    pure int __signbitf(float x);
+    pure int __signbit(double x);
+    pure int __signbitl(real x);
+
+    //int fpclassify(real-floating x);
+    ///
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
+    ///
+    pragma(mangle, "__fpclassify")  pure int fpclassify(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__fpclassify" : "__fpclassifyl")
+        pure int fpclassify(real x);
+
+    extern (D)
+    {
+        //int isfinite(real-floating x);
+        ///
+        pure int isfinite(float x)       { return (fpclassify(x) & FP_NORMAL) == 0; }
+        ///
+        pure int isfinite(double x)      { return (fpclassify(x) & FP_NORMAL) == 0; }
+        ///
+        pure int isfinite(real x)        { return (fpclassify(x) & FP_NORMAL) == 0; }
+
+        //int isinf(real-floating x);
+        ///
+        pure int isinf(float x)          { return fpclassify(x) == FP_INFINITE; }
+        ///
+        pure int isinf(double x)         { return fpclassify(x) == FP_INFINITE; }
+        ///
+        pure int isinf(real x)           { return fpclassify(x) == FP_INFINITE; }
+    }
+
+    //int isnan(real-floating x);
+    ///
+    pragma(mangle, "__isnanf") pure int isnan(float x);
+    ///
+    pragma(mangle, "__isnan")  pure int isnan(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__isnan" : "__isnanl")
+        pure int isnan(real x);
+
+    extern (D)
+    {
+        //int isnormal(real-floating x);
+        ///
+        int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
+        ///
+        int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
+        ///
+        int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+    }
+
+    //int signbit(real-floating x);
+    ///
+    pragma(mangle, "__signbitf") pure int signbit(float x);
+    ///
+    pragma(mangle, "__signbit")  pure int signbit(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__signbit" : "__signbitl")
+        int signbit(real x);
+  }
+  else
+  {
     enum
     {
         ///
@@ -442,84 +525,79 @@ else version (CRuntime_Microsoft) // fully supported since MSVCRT 12 (VS 2013) o
         FP_NAN       =  2,
     }
 
-    pure private short _fdclass(float x);
-    pure private short _dclass(double x);
-
-    pure private int _fdsign(float x);
-    pure private int _dsign(double x);
-
-  extern(D)
-  {
-    //int fpclassify(real-floating x);
-    ///
-    pure int fpclassify()(float x)   { return _fdclass(x); }
-    ///
-    pure int fpclassify()(double x)  { return _dclass(x);  }
-    ///
-    pure int fpclassify()(real x)
+    extern(D)
     {
-        static if (real.sizeof == double.sizeof)
-            return _dclass(cast(double) x);
-        else
-            static assert(false, "fpclassify(real) not supported by MS C runtime");
-    }
+        //int fpclassify(real-floating x);
+        ///
+        extern(C) pragma(mangle, "_fdclass") pure int fpclassify(float x);
+        ///
+        extern(C) pragma(mangle, "_dclass")  pure int fpclassify(double x);
+        ///
+        pure int fpclassify()(real x)
+        {
+            static if (real.sizeof == double.sizeof)
+                return fpclassify(cast(double) x);
+            else
+                static assert(false, "fpclassify(real) not supported by MS C runtime");
+        }
 
-    //int isfinite(real-floating x);
-    ///
-    pure int isfinite()(float x)     { return fpclassify(x) <= 0; }
-    ///
-    pure int isfinite()(double x)    { return fpclassify(x) <= 0; }
-    ///
-    pure int isfinite()(real x)      { return fpclassify(x) <= 0; }
+        //int isfinite(real-floating x);
+        ///
+        pure int isfinite()(float x)     { return fpclassify(x) <= 0; }
+        ///
+        pure int isfinite()(double x)    { return fpclassify(x) <= 0; }
+        ///
+        pure int isfinite()(real x)      { return fpclassify(x) <= 0; }
 
-    //int isinf(real-floating x);
-    ///
-    pure int isinf()(float x)        { return fpclassify(x) == FP_INFINITE; }
-    ///
-    pure int isinf()(double x)       { return fpclassify(x) == FP_INFINITE; }
-    ///
-    pure int isinf()(real x)         { return fpclassify(x) == FP_INFINITE; }
+        //int isinf(real-floating x);
+        ///
+        pure int isinf()(float x)        { return fpclassify(x) == FP_INFINITE; }
+        ///
+        pure int isinf()(double x)       { return fpclassify(x) == FP_INFINITE; }
+        ///
+        pure int isinf()(real x)         { return fpclassify(x) == FP_INFINITE; }
 
-    //int isnan(real-floating x);
-    version (none) // requires MSVCRT 12+ (VS 2013)
-    {
-        ///
-        pure int isnan(float x)      { return fpclassify(x) == FP_NAN; }
-        ///
-        pure int isnan(double x)     { return fpclassify(x) == FP_NAN; }
-        ///
-        pure int isnan(real x)       { return fpclassify(x) == FP_NAN; }
-    }
-    else // for backward compatibility with older runtimes
-    {
-        ///
-        pure int isnan(float x)      { version (Win64) return _isnanf(x); else return _isnan(cast(double) x); }
-        ///
-        pure int isnan(double x)     { return _isnan(x); }
-        ///
-        pure int isnan(real x)       { return _isnan(cast(double) x); }
-    }
+        //int isnan(real-floating x);
+        version (none) // requires MSVCRT 12+ (VS 2013)
+        {
+            ///
+            pure int isnan(float x)      { return fpclassify(x) == FP_NAN; }
+            ///
+            pure int isnan(double x)     { return fpclassify(x) == FP_NAN; }
+            ///
+            pure int isnan(real x)       { return fpclassify(x) == FP_NAN; }
+        }
+        else // for backward compatibility with older runtimes
+        {
+            ///
+            pure int isnan(float x)      { version (Win64) return _isnanf(x); else return _isnan(cast(double) x); }
+            ///
+            extern(C) pragma(mangle, "_isnan") pure int isnan(double x);
+            ///
+            pure int isnan(real x)       { return _isnan(cast(double) x); }
+        }
 
-    //int isnormal(real-floating x);
-    ///
-    pure int isnormal()(float x)     { return fpclassify(x) == FP_NORMAL; }
-    ///
-    pure int isnormal()(double x)    { return fpclassify(x) == FP_NORMAL; }
-    ///
-    pure int isnormal()(real x)      { return fpclassify(x) == FP_NORMAL; }
+        //int isnormal(real-floating x);
+        ///
+        pure int isnormal()(float x)     { return fpclassify(x) == FP_NORMAL; }
+        ///
+        pure int isnormal()(double x)    { return fpclassify(x) == FP_NORMAL; }
+        ///
+        pure int isnormal()(real x)      { return fpclassify(x) == FP_NORMAL; }
 
-    //int signbit(real-floating x);
-    ///
-    pure int signbit()(float x)   { return _fdsign(x); }
-    ///
-    pure int signbit()(double x)  { return _dsign(x);  }
-    ///
-    pure int signbit()(real x)
-    {
-        static if (real.sizeof == double.sizeof)
-            return _dsign(cast(double) x);
-        else
-            return (cast(short*)&(x))[4] & 0x8000;
+        //int signbit(real-floating x);
+        ///
+        extern(C) pragma(mangle, "_fdsign") pure int signbit(float x);
+        ///
+        extern(C) pragma(mangle, "_dsign")  pure int signbit(double x);
+        ///
+        pure int signbit()(real x)
+        {
+            static if (real.sizeof == double.sizeof)
+                return signbit(cast(double) x);
+            else
+                return (cast(short*)&(x))[4] & 0x8000;
+        }
     }
   }
 }
@@ -569,81 +647,58 @@ else version (CRuntime_Glibc)
     pure int __signbit(double x);
     pure int __signbitl(real x);
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
       ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassify(x);  }
+    pragma(mangle, "__fpclassify")  pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __fpclassify(x)
-            : __fpclassifyl(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__fpclassify" : "__fpclassifyl")
+    pure int fpclassify(real x);
 
     //int isfinite(real-floating x);
     ///
-    pure int isfinite(float x)       { return __finitef(x); }
+    pragma(mangle, "__finitef") pure int isfinite(float x);
     ///
-    pure int isfinite(double x)      { return __finite(x);  }
+    pragma(mangle, "__finite")  pure int isfinite(double x);
     ///
-    pure int isfinite(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __finite(x)
-            : __finitel(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__finite" : "__finitel")
+    pure int isfinite(real x);
 
     //int isinf(real-floating x);
     ///
-    pure int isinf(float x)          { return __isinff(x);  }
+    pragma(mangle, "__isinff") pure int isinf(float x);
     ///
-    pure int isinf(double x)         { return __isinf(x);   }
+    pragma(mangle, "__isinf")  pure int isinf(double x);
     ///
-    pure int isinf(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __isinf(x)
-            : __isinfl(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__isinf" : "__isinfl")
+    pure int isinf(real x);
 
     //int isnan(real-floating x);
     ///
-    pure int isnan(float x)          { return __isnanf(x);  }
+    pragma(mangle, "__isnanf") pure int isnan(float x);
     ///
-    pure int isnan(double x)         { return __isnan(x);   }
+    pragma(mangle, "__isnan")  pure int isnan(double x);
     ///
-    pure int isnan(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __isnan(x)
-            : __isnanl(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__isnan" : "__isnanl")
+    pure int isnan(real x);
 
     //int isnormal(real-floating x);
     ///
-    pure int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
+    extern (D) pure int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
     ///
-    pure int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
+    extern (D) pure int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
     ///
-    pure int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+    extern (D) pure int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
 
     //int signbit(real-floating x);
     ///
-    pure int signbit(float x)     { return __signbitf(x); }
+    pragma(mangle, "__signbitf") pure int signbit(float x);
     ///
-    pure int signbit(double x)    { return __signbit(x);  }
+    pragma(mangle, "__signbit")  pure int signbit(double x);
     ///
-    pure int signbit(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __signbit(x)
-            : __signbitl(x);
-    }
-  }
+    pragma(mangle, real.sizeof == double.sizeof ? "__signbit" : "__signbitl")
+    pure int signbit(real x);
 }
 else version (CRuntime_Musl)
 {
@@ -681,20 +736,16 @@ else version (CRuntime_Musl)
     int __signbitl(real x);
   }
 
-  extern (D) pure
-  {
     //int fpclassify(real-floating x);
       ///
-    int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") int fpclassify(float x);
     ///
-    int fpclassify(double x)    { return __fpclassify(x);  }
+    pragma(mangle, "__fpclassify")  int fpclassify(double x);
     ///
-    int fpclassify(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __fpclassify(x)
-            : __fpclassifyl(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__fpclassify" : "__fpclassifyl")
+    int fpclassify(real x);
+  extern (D) pure
+  {
     private uint __FLOAT_BITS(float __f)
     {
         union __u_t {
@@ -762,20 +813,16 @@ else version (CRuntime_Musl)
     int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
     ///
     int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+  }
 
     //int signbit(real-floating x);
     ///
-    int signbit(float x)     { return __signbitf(x); }
+    pragma(mangle, "__signbitf") int signbit(float x);
     ///
-    int signbit(double x)    { return __signbit(x);  }
+    pragma(mangle, "__signbit")  int signbit(double x);
     ///
-    int signbit(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __signbit(x)
-            : __signbitl(x);
-    }
-  }
+    pragma(mangle, real.sizeof == double.sizeof ? "__signbit" : "__signbitl")
+    int signbit(real x);
 }
 else version (CRuntime_UClibc)
 {
@@ -823,169 +870,55 @@ else version (CRuntime_UClibc)
     int __signbit(double x);
     int __signbitl(real x);
 
+    ///
+    pragma(mangle, "__fpclassifyf") int fpclassify(float x);
+    ///
+    pragma(mangle, "__fpclassify")  int fpclassify(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__fpclassify" : "__fpclassifyl")
+    int fpclassify(real x);
+
+    ///
+    pragma(mangle, "__finitef") int isfinite(float x);
+    ///
+    pragma(mangle, "__finite")  int isfinite(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__finite" : "__finitel")
+    int isfinite(real x);
+
+    ///
+    pragma(mangle, "__isinff") int isinf(float x);
+    ///
+    pragma(mangle, "__isinf")  int isinf(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__isinf" : "__isinfl")
+    int isinf(real x);
+
+    ///
+    pragma(mangle, "__isnanf") int isnan(float x);
+    ///
+    pragma(mangle, "__isnan")  int isnan(double x);
+    ///
+    pragma(mangle, real.sizeof == double.sizeof ? "__isnan" : "__isnanl")
+    int isnan(real x);
+
   extern (D)
   {
-    ///
-    int fpclassify(float x)     { return __fpclassifyf(x); }
-    ///
-    int fpclassify(double x)    { return __fpclassify(x);  }
-    ///
-    int fpclassify(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __fpclassify(x)
-            : __fpclassifyl(x);
-    }
-
-    ///
-    int isfinite(float x)       { return __finitef(x); }
-    ///
-    int isfinite(double x)      { return __finite(x);  }
-    ///
-    int isfinite(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __finite(x)
-            : __finitel(x);
-    }
-
-    ///
-    int isinf(float x)          { return __isinff(x);  }
-    ///
-    int isinf(double x)         { return __isinf(x);   }
-    ///
-    int isinf(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __isinf(x)
-            : __isinfl(x);
-    }
-
-    ///
-    int isnan(float x)          { return __isnanf(x);  }
-    ///
-    int isnan(double x)         { return __isnan(x);   }
-    ///
-    int isnan(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __isnan(x)
-            : __isnanl(x);
-    }
-
     ///
     int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
     ///
     int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
     ///
     int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
-
-    ///
-    int signbit(float x)     { return __signbitf(x); }
-    ///
-    int signbit(double x)    { return __signbit(x);  }
-    ///
-    int signbit(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __signbit(x)
-            : __signbitl(x);
-    }
   }
-}
-else version (MinGW)
-{
-    enum
-    {
-        ///
-        FP_NAN = 0x0100,
-        ///
-        FP_NORMAL = 0x0400,
-        ///
-        FP_INFINITE = FP_NAN | FP_NORMAL,
-        ///
-        FP_ZERO = 0x0400,
-        ///
-        FP_SUBNORMAL = FP_NORMAL | FP_ZERO
-    }
 
-    pure int __fpclassifyf(float x);
-    pure int __fpclassify(double x);
-    pure int __fpclassifyl(real x);
-
-    pure int __isnanf(float x);
-    pure int __isnan(double x);
-    pure int __isnanl(real x);
-
-    pure int __signbitf(float x);
-    pure int __signbit(double x);
-    pure int __signbitl(real x);
-
-  extern (D)
-  {
-    //int fpclassify(real-floating x);
-      ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
     ///
-    pure int fpclassify(double x)    { return __fpclassify(x);  }
+    pragma(mangle, "__signbitf") int signbit(float x);
     ///
-    pure int fpclassify(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __fpclassify(x)
-            : __fpclassifyl(x);
-    }
-
-    //int isfinite(real-floating x);
+    pragma(mangle, "__signbit")  int signbit(double x);
     ///
-    pure int isfinite(float x)       { return (fpclassify(x) & FP_NORMAL) == 0; }
-    ///
-    pure int isfinite(double x)      { return (fpclassify(x) & FP_NORMAL) == 0; }
-    ///
-    pure int isfinite(real x)        { return (fpclassify(x) & FP_NORMAL) == 0; }
-
-    //int isinf(real-floating x);
-    ///
-    pure int isinf(float x)          { return fpclassify(x) == FP_INFINITE; }
-    ///
-    pure int isinf(double x)         { return fpclassify(x) == FP_INFINITE; }
-    ///
-    pure int isinf(real x)           { return fpclassify(x) == FP_INFINITE; }
-
-    //int isnan(real-floating x);
-    ///
-    pure int isnan(float x)          { return __isnanf(x);  }
-    ///
-    pure int isnan(double x)         { return __isnan(x);   }
-    ///
-    pure int isnan(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __isnan(x)
-            : __isnanl(x);
-    }
-
-    //int isnormal(real-floating x);
-    ///
-    int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
-    ///
-    int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
-    ///
-    int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
-
-    //int signbit(real-floating x);
-    ///
-    int signbit(float x)     { return __signbitf(x); }
-    ///
-    int signbit(double x)    { return __signbit(x);  }
-    ///
-    int signbit(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __signbit(x)
-            : __signbitl(x);
-    }
-  }
+    pragma(mangle, real.sizeof == double.sizeof ? "__signbit" : "__signbitl")
+    int signbit(real x);
 }
 else version (Darwin)
 {
@@ -1066,40 +999,40 @@ else version (Darwin)
         pure int __isnanl(real x);
     }
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
     ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassifyd(x); }
+    pragma(mangle, "__fpclassifyd") pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)      { return __fpclassifyl(x); }
+    pragma(mangle, __fpclassifyl.mangleof) pure int fpclassify(real x);
 
     //int isfinite(real-floating x);
     ///
-    pure int isfinite(float x)       { return __isfinitef(x); }
+    pragma(mangle, "__isfinitef") pure int isfinite(float x);
     ///
-    pure int isfinite(double x)      { return __isfinited(x); }
+    pragma(mangle, "__isfinited") pure int isfinite(double x);
     ///
-    pure int isfinite(real x)        { return __isfinitel(x); }
+    pragma(mangle, __isfinitel.mangleof) pure int isfinite(real x);
 
     //int isinf(real-floating x);
     ///
-    pure int isinf(float x)          { return __isinff(x); }
+    pragma(mangle, "__isinff") pure int isinf(float x);
     ///
-    pure int isinf(double x)         { return __isinfd(x); }
+    pragma(mangle, "__isinfd") pure int isinf(double x);
     ///
-    pure int isinf(real x)           { return __isinfl(x); }
+    pragma(mangle, __isinfl.mangleof) pure int isinf(real x);
 
     //int isnan(real-floating x);
     ///
-    pure int isnan(float x)          { return __isnanf(x); }
+    pragma(mangle, "__isnanf") pure int isnan(float x);
     ///
-    pure int isnan(double x)         { return __isnand(x); }
+    pragma(mangle, "__isnand") pure int isnan(double x);
     ///
-    pure int isnan(real x)           { return __isnanl(x); }
+    pragma(mangle, __isnanl.mangleof) pure int isnan(real x);
 
+  extern (D)
+  {
     //int isnormal(real-floating x);
     ///
     pure int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
@@ -1107,15 +1040,15 @@ else version (Darwin)
     pure int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
     ///
     pure int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+  }
 
     //int signbit(real-floating x);
     ///
-    pure int signbit(float x)     { return __signbitf(x); }
+    pragma(mangle, "__signbitf") pure int signbit(float x);
     ///
-    pure int signbit(double x)    { return __signbitd(x); }
+    pragma(mangle, "__signbitd") pure int signbit(double x);
     ///
-    pure int signbit(real x)      { return __signbitl(x); }
-  }
+    pragma(mangle, "__signbitl") pure int signbit(real x);
 }
 else version (FreeBSD)
 {
@@ -1159,56 +1092,53 @@ else version (FreeBSD)
     pure int __signbitf(float);
     pure int __signbitl(real);
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
       ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassifyd(x); }
+    pragma(mangle, "__fpclassifyd") pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)      { return __fpclassifyl(x); }
+    pragma(mangle, "__fpclassifyl") pure int fpclassify(real x);
 
     //int isfinite(real-floating x);
     ///
-    pure int isfinite(float x)       { return __isfinitef(x); }
+    pragma(mangle, "__isfinitef") pure int isfinite(float x);
     ///
-    pure int isfinite(double x)      { return __isfinite(x); }
+    pragma(mangle, "__isfinite")  pure int isfinite(double x);
     ///
-    pure int isfinite(real x)        { return __isfinitel(x); }
+    pragma(mangle, "__isfinitel") pure int isfinite(real x);
 
     //int isinf(real-floating x);
     ///
-    pure int isinf(float x)          { return __isinff(x); }
+    pragma(mangle, "__isinff") pure int isinf(float x);
     ///
-    pure int isinf(double x)         { return __isinfl(x); }
+    extern (D) pure int isinf(double x)         { return __isinfl(x); }
     ///
-    pure int isinf(real x)           { return __isinfl(x); }
+    pragma(mangle, "__isinfl") pure int isinf(real x);
 
     //int isnan(real-floating x);
     ///
-    pure int isnan(float x)          { return __isnanl(x); }
+    extern (D) pure int isnan(float x)          { return __isnanl(x); }
     ///
-    pure int isnan(double x)         { return __isnanl(x); }
+    extern (D) pure int isnan(double x)         { return __isnanl(x); }
     ///
-    pure int isnan(real x)           { return __isnanl(x); }
+    pragma(mangle, "__isnanl") pure int isnan(real x);
 
     //int isnormal(real-floating x);
     ///
-    pure int isnormal(float x)       { return __isnormalf(x); }
+    pragma(mangle, "__isnormalf") pure int isnormal(float x);
     ///
-    pure int isnormal(double x)      { return __isnormal(x); }
+    pragma(mangle, "__isnormal")  pure int isnormal(double x);
     ///
-    pure int isnormal(real x)        { return __isnormall(x); }
+    pragma(mangle, "__isnormall") pure int isnormal(real x);
 
     //int signbit(real-floating x);
     ///
-    pure int signbit(float x)        { return __signbitf(x); }
+    pragma(mangle, "__signbitf") pure int signbit(float x);
     ///
-    pure int signbit(double x)       { return __signbit(x); }
+    pragma(mangle, "__signbit")  pure int signbit(double x);
     ///
-    pure int signbit(real x)         { return __signbit(x); }
-  }
+    extern (D) pure int signbit(real x)         { return __signbit(x); }
 }
 else version (OpenBSD)
 {
@@ -1236,7 +1166,7 @@ else version (OpenBSD)
         FP_FAST_FMAL = 1,
     }
 
-    pure int __fpclassifyd(double);
+    pure int __fpclassify(double);
     pure int __fpclassifyf(float);
     pure int __fpclassifyl(real);
     pure int __isfinitef(float);
@@ -1252,56 +1182,53 @@ else version (OpenBSD)
     pure int __signbitf(float);
     pure int __signbitl(real);
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
       ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassifyd(x); }
+    pragma(mangle, "__fpclassify") pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)      { return __fpclassifyl(x); }
+    pragma(mangle, "__fpclassifyl") pure int fpclassify(real x);
 
     //int isfinite(real-floating x);
     ///
-    pure int isfinite(float x)       { return __isfinitef(x); }
+    pragma(mangle, "__isfinitef") pure int isfinite(float x);
     ///
-    pure int isfinite(double x)      { return __isfinite(x); }
+    pragma(mangle, "__isfinite")  pure int isfinite(double x);
     ///
-    pure int isfinite(real x)        { return __isfinitel(x); }
+    pragma(mangle, "__isfinitel") pure int isfinite(real x);
 
     //int isinf(real-floating x);
     ///
-    pure int isinf(float x)          { return __isinff(x); }
+    pragma(mangle, "__isinff") pure int isinf(float x);
     ///
-    pure int isinf(double x)         { return __isinfl(x); }
+    extern (D) pure int isinf(double x)         { return __isinfl(x); }
     ///
-    pure int isinf(real x)           { return __isinfl(x); }
+    pragma(mangle, "__isinfl") pure int isinf(real x);
 
     //int isnan(real-floating x);
     ///
-    pure int isnan(float x)          { return __isnanl(x); }
+    extern (D) pure int isnan(float x)          { return __isnanl(x); }
     ///
-    pure int isnan(double x)         { return __isnanl(x); }
+    extern (D) pure int isnan(double x)         { return __isnanl(x); }
     ///
-    pure int isnan(real x)           { return __isnanl(x); }
+    pragma(mangle, "__isnanl") pure int isnan(real x);
 
     //int isnormal(real-floating x);
     ///
-    pure int isnormal(float x)       { return __isnormalf(x); }
+    pragma(mangle, "__isnormalf") pure int isnormal(float x);
     ///
-    pure int isnormal(double x)      { return __isnormal(x); }
+    pragma(mangle, "__isnormal")  pure int isnormal(double x);
     ///
-    pure int isnormal(real x)        { return __isnormall(x); }
+    pragma(mangle, "__isnormall") pure int isnormal(real x);
 
     //int signbit(real-floating x);
     ///
-    pure int signbit(float x)        { return __signbitf(x); }
+    pragma(mangle, "__signbitf") pure int signbit(float x);
     ///
-    pure int signbit(double x)       { return __signbit(x); }
+    pragma(mangle, "__signbit")  pure int signbit(double x);
     ///
-    pure int signbit(real x)         { return __signbit(x); }
-  }
+    extern (D) pure int signbit(real x)         { return __signbit(x); }
 }
 else version (NetBSD)
 {
@@ -1333,21 +1260,17 @@ else version (NetBSD)
     pure uint __fpclassifyd(double x);
     pure uint __fpclassifyl(real x);
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
     ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassifyd(x); }
+    pragma(mangle, "__fpclassifyd") pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __fpclassifyd(x)
-            : __fpclassifyl(x);
-    }
+    pragma(mangle, real.sizeof == double.sizeof ? "__fpclassifyd" : "__fpclassifyl")
+    pure int fpclassify(real x);
 
+  extern (D)
+  {
     //int isfinite(real-floating x);
     ///
     pure int isfinite(float x)       { return fpclassify(x) >= FP_NORMAL; }
@@ -1431,32 +1354,29 @@ else version (DragonFlyBSD)
     pure int __signbitf(float);
     pure int __signbitl(real);
 
-  extern (D)
-  {
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
-    pure int fpclassify(double x)    { return __fpclassifyd(x); }
-    pure int fpclassify(real x)      { return __fpclassifyl(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
+    pragma(mangle, "__fpclassifyd") pure int fpclassify(double x);
+    pragma(mangle, "__fpclassifyl") pure int fpclassify(real x);
 
-    pure int isfinite(float x)       { return __isfinitef(x); }
-    pure int isfinite(double x)      { return __isfinite(x); }
-    pure int isfinite(real x)        { return __isfinitel(x); }
+    pragma(mangle, "__isfinitef") pure int isfinite(float x);
+    pragma(mangle, "__isfinite")  pure int isfinite(double x);
+    pragma(mangle, "__isfinitel") pure int isfinite(real x);
 
-    pure int isinf(float x)          { return __isinff(x); }
-    pure int isinf(double x)         { return __isinf(x); }
-    pure int isinf(real x)           { return __isinfl(x); }
+    pragma(mangle, "__isinff") pure int isinf(float x);
+    pragma(mangle, "__isinf")  pure int isinf(double x);
+    pragma(mangle, "__isinfl") pure int isinf(real x);
 
-    pure int isnan(float x)          { return __isnanf(x); }
-    pure int isnan(double x)         { return __isnan(x); }
-    pure int isnan(real x)           { return __isnanl(x); }
+    pragma(mangle, "__isnanf") pure int isnan(float x);
+    pragma(mangle, "__isnan")  pure int isnan(double x);
+    pragma(mangle, "__isnanl") pure int isnan(real x);
 
-    pure int isnormal(float x)       { return __isnormalf(x); }
-    pure int isnormal(double x)      { return __isnormal(x); }
-    pure int isnormal(real x)        { return __isnormall(x); }
+    pragma(mangle, "__isnormalf") pure int isnormal(float x);
+    pragma(mangle, "__isnormal")  pure int isnormal(double x);
+    pragma(mangle, "__isnormall") pure int isnormal(real x);
 
-    pure int signbit(float x)        { return __signbitf(x); }
-    pure int signbit(double x)       { return __signbit(x); }
-    pure int signbit(real x)         { return __signbitl(x); }
-  }
+    pragma(mangle, "__signbitf") pure int signbit(float x);
+    pragma(mangle, "__signbit")  pure int signbit(double x);
+    pragma(mangle, "__signbitl") pure int signbit(real x);
 }
 else version (Solaris)
 {
@@ -1464,21 +1384,14 @@ else version (Solaris)
     pure int __isnan(double x);
     pure int __isnanl(real x);
 
-  extern (D)
-  {
     //int isnan(real-floating x);
       ///
-    pure int isnan(float x)          { return __isnanf(x);  }
+    pragma(mangle, "__isnanf") pure int isnan(float x);
     ///
-    pure int isnan(double x)         { return __isnan(x);   }
+    pragma(mangle, "__isnan")  pure int isnan(double x);
     ///
-    pure int isnan(real x)
-    {
-        return (real.sizeof == double.sizeof)
-            ? __isnan(x)
-            : __isnanl(x);
-    }
-  }
+    pragma(mangle, real.sizeof == double.sizeof ? "__isnan" : "__isnanl")
+    pure int isnan(real x);
 }
 else version (CRuntime_Bionic)
 {
@@ -1523,89 +1436,86 @@ else version (CRuntime_Bionic)
     pure int __signbitf(float);
     pure int __signbitl(real);
 
-  extern (D)
-  {
     //int fpclassify(real-floating x);
       ///
-    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pure int fpclassify(double x)    { return __fpclassifyd(x); }
+    pragma(mangle, "__fpclassifyd") pure int fpclassify(double x);
     ///
-    pure int fpclassify(real x)      { return __fpclassifyl(x); }
+    pragma(mangle, "__fpclassifyl") pure int fpclassify(real x);
 
     //int isfinite(real-floating x);
     ///
-    pure int isfinite(float x)       { return __isfinitef(x); }
+    pragma(mangle, "__isfinitef") pure int isfinite(float x);
     ///
-    pure int isfinite(double x)      { return __isfinite(x); }
+    pragma(mangle, "__isfinite")  pure int isfinite(double x);
     ///
-    pure int isfinite(real x)        { return __isfinitel(x); }
+    pragma(mangle, "__isfinitel") pure int isfinite(real x);
 
     //int isinf(real-floating x);
     ///
-    pure int isinf(float x)          { return __isinff(x); }
+    pragma(mangle, "__isinff") pure int isinf(float x);
     ///
-    pure int isinf(double x)         { return __isinf(x); }
+    pragma(mangle, "__isinf")  pure int isinf(double x);
     ///
-    pure int isinf(real x)           { return __isinfl(x); }
+    pragma(mangle, "__isinfl") pure int isinf(real x);
 
     //int isnan(real-floating x);
     ///
-    pure int isnan(float x)          { return isnanf(x); }
+    pragma(mangle, "isnanf")   pure int isnan(float x);
     ///
-    pure int isnan(real x)           { return __isnanl(x); }
+    pragma(mangle, "__isnanl") pure int isnan(real x);
 
     //int isnormal(real-floating x);
     ///
-    pure int isnormal(float x)       { return __isnormalf(x); }
+    pragma(mangle, "__isnormalf") pure int isnormal(float x);
     ///
-    pure int isnormal(double x)      { return __isnormal(x); }
+    pragma(mangle, "__isnormal")  pure int isnormal(double x);
     ///
-    pure int isnormal(real x)        { return __isnormall(x); }
+    pragma(mangle, "__isnormall") pure int isnormal(real x);
 
     //int signbit(real-floating x);
     ///
-    pure int signbit(float x)        { return __signbitf(x); }
+    pragma(mangle, "__signbitf") pure int signbit(float x);
     ///
-    pure int signbit(double x)       { return __signbit(x); }
+    pragma(mangle, "__signbit")  pure int signbit(double x);
     ///
-    pure int signbit(real x)         { return __signbitl(x); }
-  }
+    pragma(mangle, "__signbitl") pure int signbit(real x);
 }
 
 extern (D)
 {
     //int isgreater(real-floating x, real-floating y);
     ///
-    pure int isgreater(float x, float y)        { return x > y && !isunordered(x, y); }
+    pure int isgreater(float x, float y)        { return x > y; }
     ///
-    pure int isgreater(double x, double y)      { return x > y && !isunordered(x, y); }
+    pure int isgreater(double x, double y)      { return x > y; }
     ///
-    pure int isgreater(real x, real y)          { return x > y && !isunordered(x, y); }
+    pure int isgreater(real x, real y)          { return x > y; }
 
     //int isgreaterequal(real-floating x, real-floating y);
     ///
-    pure int isgreaterequal(float x, float y)   { return x >= y && !isunordered(x, y); }
+    pure int isgreaterequal(float x, float y)   { return x >= y; }
     ///
-    pure int isgreaterequal(double x, double y) { return x >= y && !isunordered(x, y); }
+    pure int isgreaterequal(double x, double y) { return x >= y; }
     ///
-    pure int isgreaterequal(real x, real y)     { return x >= y && !isunordered(x, y); }
+    pure int isgreaterequal(real x, real y)     { return x >= y; }
 
     //int isless(real-floating x, real-floating y);
     ///
-    pure int isless(float x, float y)           { return x < y && !isunordered(x, y); }
+    pure int isless(float x, float y)           { return x < y; }
     ///
-    pure int isless(double x, double y)         { return x < y && !isunordered(x, y); }
+    pure int isless(double x, double y)         { return x < y; }
     ///
-    pure int isless(real x, real y)             { return x < y && !isunordered(x, y); }
+    pure int isless(real x, real y)             { return x < y; }
 
     //int islessequal(real-floating x, real-floating y);
     ///
-    pure int islessequal(float x, float y)      { return x <= y && !isunordered(x, y); }
+    pure int islessequal(float x, float y)      { return x <= y; }
     ///
-    pure int islessequal(double x, double y)    { return x <= y && !isunordered(x, y); }
+    pure int islessequal(double x, double y)    { return x <= y; }
     ///
-    pure int islessequal(real x, real y)        { return x <= y && !isunordered(x, y); }
+    pure int islessequal(real x, real y)        { return x <= y; }
 
     //int islessgreater(real-floating x, real-floating y);
     ///
@@ -1841,14 +1751,12 @@ version (CRuntime_Microsoft) // fully supported since MSVCRT 12 (VS 2013) only
     ///
     extern(D) pure real  fabsl()(real x)  { return fabs(cast(double) x); }
 
-    private double _hypot(double x, double y);
-    private float  _hypotf(float x, float y);
     ///
-    extern(D) double hypot(double x, double y) { return _hypot(x, y); }
+    extern(C) pragma(mangle, "_hypot")  double hypot(double x, double y);
     ///
-    extern(D) float  hypotf(float x, float y)  { return _hypotf(x, y); }
+    extern(C) pragma(mangle, "_hypotf") float  hypotf(float x, float y);
     ///
-    extern(D) real   hypotl(real x, real y)    { return _hypot(cast(double) x, cast(double) y); }
+    extern(D) real   hypotl(real x, real y)    { return hypot(cast(double) x, cast(double) y); }
 
     ///
     double  pow(double x, double y);

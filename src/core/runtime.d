@@ -98,19 +98,10 @@ private
     alias bool function(Object) CollectHandler;
     alias Throwable.TraceInfo function( void* ptr ) TraceHandler;
 
-    extern (C) void rt_setCollectHandler( CollectHandler h );
-    extern (C) CollectHandler rt_getCollectHandler();
-
-    extern (C) void rt_setTraceHandler( TraceHandler h );
-    extern (C) TraceHandler rt_getTraceHandler();
-
     alias void delegate( Throwable ) ExceptionHandler;
     extern (C) void _d_print_throwable(Throwable t);
 
     extern (C) void* thread_stackBottom();
-
-    extern (C) string[] rt_args();
-    extern (C) CArgs rt_cArgs() @nogc;
 }
 
 
@@ -179,10 +170,7 @@ struct Runtime
      * Returns:
      *  The arguments supplied when this process was started.
      */
-    static @property string[] args()
-    {
-        return rt_args();
-    }
+    extern(C) pragma(mangle, "rt_args") static @property string[] args();
 
     /**
      * Returns the unprocessed C arguments supplied when the process was started.
@@ -205,10 +193,7 @@ struct Runtime
      * }
      * ---
      */
-    static @property CArgs cArgs() @nogc
-    {
-        return rt_cArgs();
-    }
+    extern(C) pragma(mangle, "rt_cArgs") static @property CArgs cArgs() @nogc;
 
     /**
      * Locates a dynamic library with the supplied library name and dynamically
@@ -291,10 +276,7 @@ struct Runtime
      * Params:
      *  h = The new trace handler.  Set to null to use the default handler.
      */
-    static @property void traceHandler( TraceHandler h )
-    {
-        rt_setTraceHandler( h );
-    }
+    extern(C) pragma(mangle, "rt_setTraceHandler") static @property void traceHandler(TraceHandler h);
 
     /**
      * Gets the current trace handler.
@@ -302,10 +284,7 @@ struct Runtime
      * Returns:
      *  The current trace handler or null if none has been set.
      */
-    static @property TraceHandler traceHandler()
-    {
-        return rt_getTraceHandler();
-    }
+    extern(C) pragma(mangle, "rt_getTraceHandler") static @property TraceHandler traceHandler();
 
     /**
      * Overrides the default collect hander with a user-supplied version.  This
@@ -318,10 +297,7 @@ struct Runtime
      * Params:
      *  h = The new collect handler.  Set to null to use the default handler.
      */
-    static @property void collectHandler( CollectHandler h )
-    {
-        rt_setCollectHandler( h );
-    }
+    extern(C) pragma(mangle, "rt_setCollectHandler") static @property void collectHandler( CollectHandler h );
 
 
     /**
@@ -330,10 +306,7 @@ struct Runtime
      * Returns:
      *  The current collect handler or null if none has been set.
      */
-    static @property CollectHandler collectHandler()
-    {
-        return rt_getCollectHandler();
-    }
+    extern(C) pragma(mangle, "rt_getCollectHandler") static @property CollectHandler collectHandler();
 
 
     /**
@@ -625,10 +598,6 @@ extern (C) UnitTestResult runModuleUnitTests()
         }
         catch ( Throwable e )
         {
-            import core.stdc.stdio;
-            printf("%.*s(%llu): [unittest] %.*s\n",
-                cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
-                cast(int) e.message.length, e.message.ptr);
             if ( typeid(e) == typeid(AssertError) )
             {
                 // Crude heuristic to figure whether the assertion originates in
@@ -637,6 +606,11 @@ extern (C) UnitTestResult runModuleUnitTests()
                 if (moduleName.length && e.file.length > moduleName.length
                     && e.file[0 .. moduleName.length] == moduleName)
                 {
+                    import core.stdc.stdio;
+                    printf("%.*s(%llu): [unittest] %.*s\n",
+                        cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
+                        cast(int) e.message.length, e.message.ptr);
+
                     // Exception originates in the same module, don't print
                     // the stack trace.
                     // TODO: omit stack trace only if assert was thrown
@@ -698,8 +672,8 @@ extern (C) UnitTestResult runModuleUnitTests()
 Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
     // avoid recursive GC calls in finalizer, trace handlers should be made @nogc instead
-    import core.memory : gc_inFinalizer;
-    if (gc_inFinalizer)
+    import core.memory : GC;
+    if (GC.inFinalizer)
         return null;
 
     version (Windows)

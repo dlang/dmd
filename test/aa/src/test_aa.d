@@ -288,21 +288,20 @@ void testUpdate2()
     assert(updated);
 }
 
-void testByKey1()
+void testByKey1() @safe
 {
-    static assert(!__traits(compiles,
-        () @safe {
-            struct BadValue
-            {
-                int x;
-                this(this) @safe { *(cast(ubyte*)(null) + 100000) = 5; } // not @safe
-                alias x this;
-            }
+    static struct BadValue
+    {
+        int x;
+        this(this) @system { *(cast(ubyte*)(null) + 100000) = 5; } // not @safe
+        alias x this;
+    }
 
-            BadValue[int] aa;
-            () @safe { auto x = aa.byKey.front; } ();
-        }
-    ));
+    BadValue[int] aa;
+
+    // FIXME: Should be @system because of the postblit
+    if (false)
+        auto x = aa.byKey.front;
 }
 
 void testByKey2() nothrow pure

@@ -7,7 +7,7 @@
  * Source: $(DRUNTIMESRC rt/util/_typeinfo.d)
  */
 module rt.util.typeinfo;
-import core.stdc.config;
+import rt.util.utility : d_cfloat, d_cdouble, d_creal, isComplex;
 static import core.internal.hash;
 
 template Floating(T)
@@ -38,8 +38,9 @@ if (is(T == float) || is(T == double) || is(T == real))
     public alias hashOf = core.internal.hash.hashOf;
 }
 
+// @@@DEPRECATED_2.105@@@
 template Floating(T)
-if (is(T == c_complex_float) || is(T == c_complex_double) || is(T == c_complex_real))
+if (isComplex!T)
 {
   pure nothrow @safe:
 
@@ -72,7 +73,7 @@ if (is(T == c_complex_float) || is(T == c_complex_double) || is(T == c_complex_r
 }
 
 template Array(T)
-if (is(T ==  float) || is(T ==  double) || is(T ==  real))
+if (is(T == float) || is(T == double) || is(T == real))
 {
   pure nothrow @safe:
 
@@ -99,18 +100,15 @@ if (is(T ==  float) || is(T ==  double) || is(T ==  real))
             if (int c = Floating!T.compare(s1[u], s2[u]))
                 return c;
         }
-        if (s1.length < s2.length)
-            return -1;
-        else if (s1.length > s2.length)
-            return 1;
-        return 0;
+        return (s1.length > s2.length) - (s1.length < s2.length);
     }
 
     public alias hashOf = core.internal.hash.hashOf;
 }
 
+// @@@DEPRECATED_2.105@@@
 template Array(T)
-if (is(T == c_complex_float) || is(T == c_complex_double) || is(T == c_complex_real))
+if (isComplex!T)
 {
   pure nothrow @safe:
 
@@ -137,11 +135,7 @@ if (is(T == c_complex_float) || is(T == c_complex_double) || is(T == c_complex_r
             if (int c = Floating!T.compare(s1[u], s2[u]))
                 return c;
         }
-        if (s1.length < s2.length)
-            return -1;
-        else if (s1.length > s2.length)
-            return 1;
-        return 0;
+        return (s1.length > s2.length) - (s1.length < s2.length);
     }
 
     size_t hashOf(scope const T[] val)
@@ -244,10 +238,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
     static if (is(T == Base))
         override size_t getHash(scope const void* p)
         {
-            static if (__traits(isFloating, T) ||
-                       is(T == c_complex_float) ||
-                       is(T == c_complex_double) ||
-                       is(T == c_complex_real))
+            static if (__traits(isFloating, T) || isComplex!T)
                 return Floating!T.hashOf(*cast(T*)p);
             else
                 return hashOf(*cast(const T *)p);
@@ -257,10 +248,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
     static if (is(T == Base))
         override bool equals(in void* p1, in void* p2)
         {
-            static if (__traits(isFloating, T) ||
-                       is(T == c_complex_float) ||
-                       is(T == c_complex_double) ||
-                       is(T == c_complex_real))
+            static if (__traits(isFloating, T) || isComplex!T)
                 return Floating!T.equals(*cast(T*)p1, *cast(T*)p2);
             else
                 return *cast(T *)p1 == *cast(T *)p2;
@@ -270,10 +258,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
     static if (is(T == Base) || (__traits(isIntegral, T) && T.max != Base.max))
         override int compare(in void* p1, in void* p2)
         {
-            static if (__traits(isFloating, T) ||
-                       is(T == c_complex_float) ||
-                       is(T == c_complex_double) ||
-                       is(T == c_complex_real))
+            static if (__traits(isFloating, T) || isComplex!T)
             {
                 return Floating!T.compare(*cast(T*)p1, *cast(T*)p2);
             }
@@ -334,7 +319,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
     static if (is(T == Base))
     {
         static if ((__traits(isFloating, T) && T.mant_dig != 64) ||
-                   is(T == c_complex_float) || is(T == c_complex_double))
+                   (isComplex!T && T.re.mant_dig != 64))
             // FP types except 80-bit X87 are passed in SIMD register.
             override @property uint flags() const { return 2; }
     }
@@ -389,10 +374,7 @@ private class TypeInfoArrayGeneric(T, Base = T) : Select!(is(T == Base), TypeInf
     static if (is(T == Base))
         override size_t getHash(scope const void* p) @trusted const
         {
-            static if (__traits(isFloating, T) ||
-                       is(T == c_complex_float) ||
-                       is(T == c_complex_double) ||
-                       is(T == c_complex_real))
+            static if (__traits(isFloating, T) || isComplex!T)
                 return Array!T.hashOf(*cast(T[]*)p);
             else
                 return hashOf(*cast(const T[]*) p);
@@ -401,10 +383,7 @@ private class TypeInfoArrayGeneric(T, Base = T) : Select!(is(T == Base), TypeInf
     static if (is(T == Base))
         override bool equals(in void* p1, in void* p2) const
         {
-            static if (__traits(isFloating, T) ||
-                       is(T == c_complex_float) ||
-                       is(T == c_complex_double) ||
-                       is(T == c_complex_real))
+            static if (__traits(isFloating, T) || isComplex!T)
             {
                 return Array!T.equals(*cast(T[]*)p1, *cast(T[]*)p2);
             }
@@ -421,10 +400,7 @@ private class TypeInfoArrayGeneric(T, Base = T) : Select!(is(T == Base), TypeInf
     static if (is(T == Base) || (__traits(isIntegral, T) && T.max != Base.max))
         override int compare(in void* p1, in void* p2) const
         {
-            static if (__traits(isFloating, T) ||
-                       is(T == c_complex_float) ||
-                       is(T == c_complex_double) ||
-                       is(T == c_complex_real))
+            static if (__traits(isFloating, T) || isComplex!T)
             {
                 return Array!T.compare(*cast(T[]*)p1, *cast(T[]*)p2);
             }
@@ -540,7 +516,7 @@ deprecated class TypeInfo_j : TypeInfoGeneric!real
 // All complex floating-point types.
 
 // cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_q : TypeInfoGeneric!c_complex_float
+deprecated class TypeInfo_q : TypeInfoGeneric!d_cfloat
 {
     override string toString() const pure nothrow @safe { return "cfloat"; }
 
@@ -554,7 +530,7 @@ deprecated class TypeInfo_q : TypeInfoGeneric!c_complex_float
 }
 
 // cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_r : TypeInfoGeneric!c_complex_double
+deprecated class TypeInfo_r : TypeInfoGeneric!d_cdouble
 {
     override string toString() const pure nothrow @safe { return "cdouble"; }
 
@@ -569,7 +545,7 @@ deprecated class TypeInfo_r : TypeInfoGeneric!c_complex_double
 }
 
 // creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_c : TypeInfoGeneric!c_complex_real
+deprecated class TypeInfo_c : TypeInfoGeneric!d_creal
 {
     override string toString() const pure nothrow @safe { return "creal"; }
 
@@ -670,19 +646,19 @@ deprecated class TypeInfo_Aj : TypeInfoArrayGeneric!real
 // Arrays of all complex floating-point types.
 
 // cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Aq : TypeInfoArrayGeneric!c_complex_float
+deprecated class TypeInfo_Aq : TypeInfoArrayGeneric!d_cfloat
 {
     override string toString() const pure nothrow @safe { return "cfloat[]"; }
 }
 
 // cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ar : TypeInfoArrayGeneric!c_complex_double
+deprecated class TypeInfo_Ar : TypeInfoArrayGeneric!d_cdouble
 {
     override string toString() const pure nothrow @safe { return "cdouble[]"; }
 }
 
 // creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ac : TypeInfoArrayGeneric!c_complex_real
+deprecated class TypeInfo_Ac : TypeInfoArrayGeneric!d_creal
 {
     override string toString() const pure nothrow @safe { return "creal[]"; }
 }

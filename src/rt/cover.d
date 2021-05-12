@@ -460,7 +460,8 @@ FILE* openOrCreateFile(string name)
     version (Windows)
         immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
     else
-        immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+        immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
+                S_IROTH | S_IWOTH);
     version (CRuntime_Microsoft)
         alias fdopen = _fdopen;
     version (Posix)

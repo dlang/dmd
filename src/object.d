@@ -1,4 +1,50 @@
 /**
+ * $(SCRIPT inhibitQuickIndex = 1;)
+ * $(DIVC quickindex,
+ * $(BOOKTABLE,
+ * $(TR $(TH Category) $(TH Symbols))
+ * $(TR $(TD Arrays) $(TD
+ *     $(MYREF assumeSafeAppend)
+ *     $(MYREF capacity)
+ *     $(MYREF idup)
+ *     $(MYREF reserve)
+ * ))
+ * $(TR $(TD Associative arrays) $(TD
+ *     $(MYREF byKey)
+ *     $(MYREF byKeyValue)
+ *     $(MYREF byValue)
+ *     $(MYREF clear)
+ *     $(MYREF get)
+ *     $(MYREF keys)
+ *     $(MYREF rehash)
+ *     $(MYREF require)
+ *     $(MYREF update)
+ *     $(MYREF values)
+ * ))
+ * $(TR $(TD General) $(TD
+ *     $(MYREF destroy)
+ *     $(MYREF dup)
+ *     $(MYREF hashOf)
+ *     $(MYREF opEquals)
+ * ))
+ * $(TR $(TD Types) $(TD
+ *     $(MYREF Error)
+ *     $(MYREF Exception)
+ *     $(MYREF noreturn)
+ *     $(MYREF Object)
+ *     $(MYREF Throwable)
+ * ))
+ * $(TR $(TD Type info) $(TD
+ *     $(MYREF Interface)
+ *     $(MYREF ModuleInfo)
+ *     $(MYREF OffsetTypeInfo)
+ *     $(MYREF RTInfoImpl)
+ *     $(MYREF rtinfoNoPointers)
+ *     $(MYREF TypeInfo)
+ *     $(MYREF TypeInfo_Class)
+ * ))
+ * ))
+ *
  * Forms the symbols available to all D programs. Includes Object, which is
  * the root of the class object hierarchy.  This module is implicitly
  * imported.
@@ -42,7 +88,7 @@ else version (X86_64)
     else version (Windows) { /* no need for Win64 ABI */ }
     else version = WithArgTypes;
 }
-version (AArch64)
+else version (AArch64)
 {
     // Apple uses a trivial varargs implementation
     version (OSX) {}
@@ -805,12 +851,8 @@ class TypeInfo_Pointer : TypeInfo
 
     override int compare(in void* p1, in void* p2) const
     {
-        if (*cast(void**)p1 < *cast(void**)p2)
-            return -1;
-        else if (*cast(void**)p1 > *cast(void**)p2)
-            return 1;
-        else
-            return 0;
+        const v1 = *cast(void**) p1, v2 = *cast(void**) p2;
+        return (v1 > v2) - (v1 < v2);
     }
 
     override @property size_t tsize() nothrow pure const
@@ -2168,14 +2210,10 @@ const:
      */
     @property string name() nothrow pure @nogc
     {
-        if (true || flags & MIname) // always available for now
-        {
-            import core.stdc.string : strlen;
+        import core.stdc.string : strlen;
 
-            auto p = cast(immutable char*)addrOf(MIname);
-            return p[0 .. strlen(p)];
-        }
-        // return null;
+        auto p = cast(immutable char*) addrOf(MIname);
+        return p[0 .. strlen(p)];
     }
 
     static int opApply(scope int delegate(ModuleInfo*) dg)
@@ -4192,8 +4230,8 @@ nothrow unittest
 }
 
 /// ditto
-void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj)
-if (!is(T == struct) && !is(T == class) && !is(T == interface))
+void destroy(bool initialize = true, T)(ref T obj)
+if (__traits(isStaticArray, T))
 {
     foreach_reverse (ref e; obj[])
         destroy!initialize(e);
@@ -4460,4 +4498,4 @@ template _arrayOp(Args...)
     alias _arrayOp = arrayOp!Args;
 }
 
-void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
+public import core.builtins : __ctfeWrite;

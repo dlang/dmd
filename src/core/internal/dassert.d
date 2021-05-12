@@ -60,7 +60,7 @@ template _d_assert_fail(A...)
 {
     string _d_assert_fail(B...)(
         const scope string comp, auto ref const scope A a, auto ref const scope B b)
-    if (B.length > 0)
+    if (B.length != 0 || A.length != 1) // Resolve ambiguity with unary overload
     {
         string[A.length + B.length] vals;
         static foreach (idx; 0 .. A.length)
@@ -72,22 +72,6 @@ template _d_assert_fail(A...)
     }
 }
 
-// Legacy definition
-string _d_assert_fail(A, B)(const scope string comp, auto ref const scope A a, auto ref const scope B b)
-{
-    /*
-    The program will be terminated after the assertion error message has
-    been printed and its not considered part of the "main" program.
-    Also, catching an AssertError is Undefined Behavior
-    Hence, we can fake purity and @nogc-ness here.
-    */
-
-    string valA = miniFormatFakeAttributes(a);
-    string valB = miniFormatFakeAttributes(b);
-    immutable token = invertCompToken(comp);
-    return combine([valA], token, [valB]);
-}
-
 /// Combines the supplied arguments into one string "valA token valB"
 private string combine(const scope string[] valA, const scope string token,
     const scope string[] valB) pure nothrow @nogc @safe
@@ -95,11 +79,16 @@ private string combine(const scope string[] valA, const scope string token,
     // Each separator is 2 chars (", "), plus the two spaces around the token.
     size_t totalLen = (valA.length - 1) * 2 +
         (valB.length - 1) * 2 + 2 + token.length;
+
+    // Empty arrays are printed as ()
+    if (valA.length == 0) totalLen += 2;
+    if (valB.length == 0) totalLen += 2;
+
     foreach (v; valA) totalLen += v.length;
     foreach (v; valB) totalLen += v.length;
 
     // Include braces when printing tuples
-    const printBraces = (valA.length + valB.length) > 2;
+    const printBraces = (valA.length + valB.length) != 2;
     if (printBraces) totalLen += 4; // '(', ')' for both tuples
 
     char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
@@ -343,7 +332,7 @@ private string miniFormat(V)(const scope ref V v)
     {
         size_t i;
         string msg = "[";
-        foreach (k, ref val; v)
+        foreach (ref k, ref val; v)
         {
             if (i > 0)
                 msg ~= ", ";
@@ -360,11 +349,17 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == struct))
     {
+        enum ctxPtr = __traits(isNested, V);
         string msg = V.stringof ~ "(";
         foreach (i, ref field; v.tupleof)
         {
             if (i > 0)
                 msg ~= ", ";
+
+            // Mark context pointer
+            static if (ctxPtr && i == v.tupleof.length - 1)
+                msg ~= "<context>: ";
+
             msg ~= miniFormat(field);
         }
         msg ~= ")";

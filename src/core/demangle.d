@@ -1473,6 +1473,12 @@ pure @safe:
             }
             put( ')' );
             return;
+        case 'f':
+            // f MangledName
+            // A function literal symbol
+            popFront();
+            parseMangledName(false, 1);
+            return;
         default:
             error();
         }
@@ -2503,6 +2509,8 @@ else
          "pure @safe int std.format.getNth!(\"integer width\", std.traits.isIntegral, int, uint, uint).getNth(uint, uint, uint)"],
         ["_D3std11parallelism42__T16RoundRobinBufferTDFKAaZvTDxFNaNdNeZbZ16RoundRobinBuffer5primeMFZv",
          "void std.parallelism.RoundRobinBuffer!(void delegate(ref char[]), bool delegate() pure @property @trusted const).RoundRobinBuffer.prime()"],
+        ["_D6mangle__T8fun21753VSQv6S21753S1f_DQBj10__lambda71MFNaNbNiNfZvZQCbQp",
+        "void function() pure nothrow @nogc @safe mangle.fun21753!(mangle.S21753(mangle.__lambda71())).fun21753"],
         // Lname '0'
         ["_D3std9algorithm9iteration__T9MapResultSQBmQBlQBe005stripTAAyaZQBi7opSliceMFNaNbNiNfmmZSQDiQDhQDa__TQCtSQDyQDxQDq00QCmTQCjZQDq",
          "pure nothrow @nogc @safe std.algorithm.iteration.MapResult!(std.algorithm.iteration.__anonymous.strip, "

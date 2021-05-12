@@ -25,38 +25,15 @@ T trustedCast(T, U)(auto ref U u) @trusted pure nothrow
     return cast(T)u;
 }
 
-template Unconst(T)
-{
-         static if (is(T U ==   immutable U)) alias Unconst = U;
-    else static if (is(T U == inout const U)) alias Unconst = U;
-    else static if (is(T U == inout       U)) alias Unconst = U;
-    else static if (is(T U ==       const U)) alias Unconst = U;
-    else                                      alias Unconst = T;
-}
+alias Unconst(T : const U, U) = U;
 
 /// taken from std.traits.Unqual
-template Unqual(T)
+template Unqual(T : const U, U)
 {
-    version (none) // Error: recursive alias declaration @@@BUG1308@@@
-    {
-             static if (is(T U ==     const U)) alias Unqual = Unqual!U;
-        else static if (is(T U == immutable U)) alias Unqual = Unqual!U;
-        else static if (is(T U ==     inout U)) alias Unqual = Unqual!U;
-        else static if (is(T U ==    shared U)) alias Unqual = Unqual!U;
-        else                                    alias Unqual =        T;
-    }
-    else // workaround
-    {
-             static if (is(T U ==          immutable U)) alias Unqual = U;
-        else static if (is(T U == shared inout const U)) alias Unqual = U;
-        else static if (is(T U == shared inout       U)) alias Unqual = U;
-        else static if (is(T U == shared       const U)) alias Unqual = U;
-        else static if (is(T U == shared             U)) alias Unqual = U;
-        else static if (is(T U ==        inout const U)) alias Unqual = U;
-        else static if (is(T U ==        inout       U)) alias Unqual = U;
-        else static if (is(T U ==              const U)) alias Unqual = U;
-        else                                             alias Unqual = T;
-    }
+    static if (is(U == shared V, V))
+        alias Unqual = V;
+    else
+        alias Unqual = U;
 }
 
 template BaseElemOf(T)
@@ -208,54 +185,34 @@ template dtorIsNothrow(T)
 }
 
 // taken from std.meta.allSatisfy
-template allSatisfy(alias F, T...)
+enum allSatisfy(alias pred, items...) =
 {
-    static foreach (Ti; T)
-    {
-        static if (!is(typeof(allSatisfy) == bool) && // not yet defined
-                   !F!(Ti))
-        {
-            enum allSatisfy = false;
-        }
-    }
-    static if (!is(typeof(allSatisfy) == bool)) // if not yet defined
-    {
-        enum allSatisfy = true;
-    }
-}
+    static foreach (item; items)
+        static if (!pred!item)
+            if (__ctfe) return false;
+    return true;
+}();
 
 // taken from std.meta.anySatisfy
-template anySatisfy(alias F, Ts...)
+enum anySatisfy(alias pred, items...) =
 {
-    static foreach (T; Ts)
-    {
-        static if (!is(typeof(anySatisfy) == bool) && // not yet defined
-                   F!T)
-        {
-            enum anySatisfy = true;
-        }
-    }
-    static if (!is(typeof(anySatisfy) == bool)) // if not yet defined
-    {
-        enum anySatisfy = false;
-    }
-}
+    static foreach (item; items)
+        static if (pred!item)
+            if (__ctfe) return true;
+    return false;
+}();
 
 // simplified from std.traits.maxAlignment
-template maxAlignment(U...)
+template maxAlignment(Ts...)
+if (Ts.length > 0)
 {
-    static if (U.length == 0)
-        static assert(0);
-    else static if (U.length == 1)
-        enum maxAlignment = U[0].alignof;
-    else static if (U.length == 2)
-        enum maxAlignment = U[0].alignof > U[1].alignof ? U[0].alignof : U[1].alignof;
-    else
+    enum maxAlignment =
     {
-        enum a = maxAlignment!(U[0 .. ($+1)/2]);
-        enum b = maxAlignment!(U[($+1)/2 .. $]);
-        enum maxAlignment = a > b ? a : b;
-    }
+        size_t result = 0;
+        static foreach (T; Ts)
+            if (T.alignof > result) result = T.alignof;
+        return result;
+    }();
 }
 
 template classInstanceAlignment(T)

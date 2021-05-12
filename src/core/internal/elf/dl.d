@@ -26,6 +26,11 @@ else version (DragonFlyBSD)
     import core.sys.dragonflybsd.sys.link_elf;
     version = LinuxOrBSD;
 }
+else version (OpenBSD)
+{
+    import core.sys.openbsd.sys.link_elf;
+    version = LinuxOrBSD;
+}
 
 version (LinuxOrBSD):
 
@@ -74,9 +79,10 @@ struct SharedObject
      */
     static bool findForAddress(const scope void* address, out SharedObject result)
     {
-        version (linux)       enum IterateManually = true;
-        else version (NetBSD) enum IterateManually = true;
-        else                  enum IterateManually = false;
+        version (linux)        enum IterateManually = true;
+        else version (NetBSD)  enum IterateManually = true;
+        else version (OpenBSD) enum IterateManually = true;
+        else                   enum IterateManually = false;
 
         static if (IterateManually)
         {

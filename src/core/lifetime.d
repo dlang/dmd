@@ -82,13 +82,6 @@ T* emplace(T, Args...)(T* chunk, auto ref Args args)
     assert(i == 42);
 }
 
-private @nogc pure nothrow @safe
-void testEmplaceChunk(void[] chunk, size_t typeSize, size_t typeAlignment)
-{
-    assert(chunk.length >= typeSize, "emplace: Chunk size too small.");
-    assert((cast(size_t) chunk.ptr) % typeAlignment == 0, "emplace: Chunk is not aligned.");
-}
-
 /**
 Given a raw memory area `chunk` (but already typed as a class type `T`),
 constructs an object of `class` type `T` at that address. The constructor
@@ -208,8 +201,13 @@ T emplace(T, Args...)(void[] chunk, auto ref Args args)
     if (is(T == class))
 {
     import core.internal.traits : maxAlignment;
+
     enum classSize = __traits(classInstanceSize, T);
-    testEmplaceChunk(chunk, classSize, maxAlignment!(void*, typeof(T.tupleof)));
+    assert(chunk.length >= classSize, "chunk size too small.");
+
+    enum alignment = maxAlignment!(void*, typeof(T.tupleof));
+    assert((cast(size_t) chunk.ptr) % alignment == 0, "chunk is not aligned.");
+
     return emplace!T(cast(T)(chunk.ptr), forward!args);
 }
 
@@ -300,19 +298,22 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     import core.internal.traits : Unqual;
     import core.internal.lifetime : emplaceRef;
 
-    testEmplaceChunk(chunk, T.sizeof, T.alignof);
+    assert(chunk.length >= T.sizeof, "chunk size too small.");
+    assert((cast(size_t) chunk.ptr) % T.alignof == 0, "emplace: Chunk is not aligned.");
+
     emplaceRef!(T, Unqual!T)(*cast(Unqual!T*) chunk.ptr, forward!args);
     return cast(T*) chunk.ptr;
 }
 
 ///
+@betterC
 @system unittest
 {
     struct S
     {
         int a, b;
     }
-    auto buf = new void[S.sizeof];
+    void[S.sizeof] buf = void;
     S s;
     s.a = 42;
     s.b = 43;
@@ -455,6 +456,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
 //Start testing emplace-struct here
 
 // Test constructor branch
+@betterC
 @system unittest
 {
     struct S
@@ -468,7 +470,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
         }
     }
 
-    auto s1 = new void[S.sizeof];
+    void[S.sizeof] s1 = void;
     auto s2 = S(42, 43);
     assert(*emplace!S(cast(S*) s1.ptr, s2) == s2);
     assert(*emplace!S(cast(S*) s1, 44, 45) == S(44, 45));
@@ -1137,6 +1139,7 @@ pure nothrow @safe /* @nogc */ unittest
     static assert(!__traits(compiles, emplaceRef(uninitializedUnsafeArr, unsafeArr)));
 }
 
+@betterC
 @system unittest
 {
     // Issue 15313
