@@ -1847,9 +1847,10 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                      */
                     if (ExpInitializer ez = v._init.isExpInitializer())
                     {
-                        assert(ez.exp && ez.exp.op == TOK.construct);
-                        Expression ex = (cast(ConstructExp)ez.exp).e2;
-                        ex.accept(this);
+                        if (auto ce = ez.exp.isConstructExp())
+                            ce.e2.accept(this);
+                        else
+                            ez.exp.accept(this);
                     }
                 }
                 else
