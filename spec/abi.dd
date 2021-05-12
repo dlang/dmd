@@ -284,6 +284,7 @@ $(GNAME Value):
     $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
     $(B A) $(GLINK Number) $(GLINK Value)...
     $(B S) $(GLINK Number) $(GLINK Value)...
+    $(B f) $(GLINK MangledName)
 
 $(GNAME HexFloat):
     $(B NAN)

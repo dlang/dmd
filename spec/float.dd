@@ -1,21 +1,12 @@
 Ddoc
 
-$(SPEC_S Floating Point,
+$(SPEC_S Floating-Point,
 
 $(HEADERNAV_TOC)
 
-$(H2 $(LNAME2 fp_intermediate_values, Floating Point Intermediate Values))
+$(H2 $(LNAME2 fp_intermediate_values, Floating-Point Intermediate Values))
 
-        $(P On many computers, greater
-        precision operations do not take any longer than lesser
-        precision operations, so it makes numerical sense to use
-        the greatest precision available for internal temporaries.
-        The philosophy is not to dumb down the language to the lowest
-        common hardware denominator, but to enable the exploitation
-        of the best capabilities of target hardware.
-        )
-
-        $(P For floating point operations and expression intermediate values,
+        $(P For floating-point operations and expression intermediate values,
         a greater precision can be used than the type of the
         expression.
         Only the minimum precision is set by the types of the
@@ -26,31 +17,17 @@ $(H2 $(LNAME2 fp_intermediate_values, Floating Point Intermediate Values))
         implemented by the hardware.
         )
 
-        $(P It's possible that, due to greater use of temporaries and
-        common subexpressions, optimized code may produce a more
-        accurate answer than unoptimized code.
-        )
+        $(P Execution of floating-point expressions may yield a result of greater precision than dictated
+        by the source.)
 
-        $(P Algorithms should be written to work based on the minimum
-        precision of the calculation. They should not degrade or
-        fail if the actual precision is greater. Float or double types,
-        as opposed to the real (extended) type, should only be used for:
-        )
+$(H2 $(LNAME2 fp_const_folding, Floating-Point Constant Folding))
 
-        $(UL
-            $(LI reducing memory consumption for large arrays)
-            $(LI when speed is more important than accuracy)
-            $(LI data and function argument compatibility with C)
-        )
-
-$(H2 $(LNAME2 fp_const_folding, Floating Point Constant Folding))
-
-        $(P Regardless of the type of the operands, floating point
+        $(P Regardless of the type of the operands, floating-point
         constant folding is done in $(D real) or greater precision.
-        It is always done following IEEE 754 rules and round-to-nearest
+        It is always done following $(LINK2 https://standards.ieee.org/standard/754-2019.html, IEEE-754) rules and round-to-nearest
         is used.)
 
-        $(P Floating point constants are internally represented in
+        $(P Floating-point constants are internally represented in
         the implementation in at least $(D real) precision, regardless
         of the constant's type. The extra precision is available for
         constant folding. Committing to the precision of the result is
@@ -67,8 +44,8 @@ writeln(f - 0.2);
 static float f = 0.2f;
 writeln(f - 0.2);
 ---
-        $(P will print 2.98023e-09. Hex floating point constants can also
-        be used when specific floating point bit patterns are needed that
+        $(P will print 2.98023e-09. Hex floating-point constants can also
+        be used when specific floating-point bit patterns are needed that
         are unaffected by rounding. To find the hex value of 0.2f:)
 
 ---
@@ -90,12 +67,12 @@ writeln(f - 0.2);
 
         $(P Different compiler settings, optimization settings,
         and inlining settings can affect opportunities for constant
-        folding, therefore the results of floating point calculations may differ
+        folding, therefore the results of floating-point calculations may differ
         depending on those settings.)
 
 $(H2 $(LNAME2 rounding_control, Rounding Control))
 
-        $(P IEEE 754 floating point arithmetic includes the ability to set 4
+        $(P IEEE 754 floating-point arithmetic includes the ability to set 4
         different rounding modes.
         These are accessible via the functions in $(D core.stdc.fenv).
         )
@@ -107,9 +84,9 @@ $(H2 $(LNAME2 rounding_control, Rounding Control))
         )
 
 
-$(H2 $(LNAME2 esception_flags, Exception Flags))
+$(H2 $(LNAME2 exception_flags, Exception Flags))
 
-        $(P IEEE 754 floating point arithmetic can set several flags based on what
+        $(P IEEE 754 floating-point arithmetic can set several flags based on what
         happened with a
         computation:)
 
@@ -124,22 +101,19 @@ $(H2 $(LNAME2 esception_flags, Exception Flags))
 
         $(P These flags can be set/reset via the functions in $(D core.stdc.fenv).)
 
-$(H2 $(LNAME2 floating-point-transformations, Floating Point Transformations))
+$(H2 $(LNAME2 floating-point-transformations, Floating-Point Transformations))
 
         $(P An implementation may perform transformations on
-        floating point computations in order to reduce their strength,
-        i.e. their runtime computation time.
-        Because floating point math does not precisely follow mathematical
-        rules, some transformations are not valid, even though some
-        other programming languages still allow them.
+        floating-point computations in order to reduce their strength.
         )
 
-        $(P The following transformations of floating point expressions
+        $(P Not all transformations are valid: The following
+        transformations of floating-point expressions
         are not allowed because under IEEE rules they could produce
         different results.
         )
 
-        $(TABLE2 Disallowed Floating Point Transformations,
+        $(TABLE2 Disallowed Floating-Point Transformations,
         $(THEAD transformation, comments)
         $(TROW
         $(ARGS $(I x) + 0 $(RARR) $(I x)) , $(ARGS not valid if $(I x) is -0)
@@ -186,4 +160,4 @@ $(SPEC_SUBNAV_PREV_NEXT garbage, Garbage Collection, iasm, D x86 Inline Assemble
 
 Macros:
         CHAPTER=29
-        TITLE=Floating Point
+        TITLE=Floating-Point

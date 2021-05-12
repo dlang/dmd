@@ -877,19 +877,12 @@ $(GNAME LeadingDecimal):
         and those followed by $(B L) are of type `real`.
         )
 
-        $(P If a floating literal is followed by $(B i), then it is an
-        $(I ireal) (imaginary) type.
-        )
-
         $(P Examples:)
 
 ---------
 0x1.FFFFFFFFFFFFFp1023 // double.max
 0x1p-52                // double.epsilon
 1.175494351e-38F       // float.min
-6.3i                   // idouble 6.3
-6.3fi                  // ifloat 6.3
-6.3Li                  // ireal 6.3
 ---------
 
         $(P The literal may not exceed the range of the type.
@@ -904,6 +897,9 @@ $(GNAME LeadingDecimal):
         1.f; // error
         1.;  // OK, double
         ---
+
+        $(P NOTE: Floating literals followed by $(B i) to denote imaginary
+        floating point values have been deprecated.)
 
 
 $(H2 $(LNAME2 keywords, Keywords))
@@ -1016,7 +1012,7 @@ $(MULTICOLS 4,
     $(LINK2 type.html, $(D true))
     $(LINK2 statement.html#TryStatement, $(D try))
     $(LINK2 expression.html#TypeidExpression, $(D typeid))
-    $(LINK2 declaration.html#Typeof, $(D typeof))
+    $(LINK2 type.html#Typeof, $(D typeof))
 
     $(LINK2 type.html, $(D ubyte))
     $(LINK2 type.html, $(D ucent))

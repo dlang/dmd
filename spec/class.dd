@@ -37,14 +37,14 @@ $(GNAME BaseClassList):
     $(D :) $(GLINK Interfaces)
 
 $(GNAME SuperClass):
-    $(GLINK2 declaration, BasicType)
+    $(GLINK2 type, BasicType)
 
 $(GNAME Interfaces):
     $(GLINK Interface)
     $(GLINK Interface) $(D ,) $(I Interfaces)
 
 $(GNAME Interface):
-    $(GLINK2 declaration, BasicType)
+    $(GLINK2 type, BasicType)
 )
 
 $(P Classes consist of:)

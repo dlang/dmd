@@ -80,7 +80,8 @@ assignments as follows: `++expr` becomes `((expr) += 1)`, and `--expr` becomes `
 Therefore, the result of prefix `++` and `--` is the lvalue after the side effect has been
 effected.)
 
-$(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to lambda
+$(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
+$(DDSUBLINK spec/expression, function_literals, lambda)
 invocations as follows: `expr++` becomes `(ref T x){auto t = x; ++x; return t;}(expr)`, and
 `expr--` becomes `(ref T x){auto t = x; --x; return t;}(expr)`. Therefore, the result of postfix
 `++` and `--` is an rvalue just before the side effect has been effected.)
@@ -225,7 +226,7 @@ $(GNAME Expression):
 
 $(GNAME CommaExpression):
     $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ,) $(I CommaExpression)
+    $(I CommaExpression) $(D ,) $(GLINK AssignExpression)
 )
 
     $(P The left operand of the $(D ,) is evaluated, then the right operand
@@ -287,12 +288,12 @@ $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
     )
 
     $(P If the lvalue is the `.length` property of a dynamic array, the behavior is
-    as described in $(DDSUBLINK spec/array, resize, Setting Dynamic Array Length).
+    as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
     )
 
     $(P If the lvalue is a static array or a slice, the behavior is as
-    described in $(DDSUBLINK spec/array, array-copying, Array Copying) and
-    $(DDSUBLINK spec/array, array-setting, Array Setting).
+    described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
+    $(DDSUBLINK spec/arrays, array-setting, Array Setting).
     )
 
     $(P If the lvalue is a user-defined property, the behavior is as
@@ -873,8 +874,8 @@ $(GNAME UnaryExpression):
     $(D +) $(I UnaryExpression)
     $(D !) $(I UnaryExpression)
     $(GLINK ComplementExpression)
-    $(D $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN) .) $(IDENTIFIER)
-    $(D $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
+    $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(IDENTIFIER)
+    $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
     $(GLINK DeleteExpression)
     $(GLINK CastExpression)
     $(GLINK PowExpression)
@@ -899,12 +900,9 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 declaration, Type)
-    $(GLINK NewExpressionWithArgs)
-
-$(GNAME NewExpressionWithArgs):
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 declaration, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 declaration, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type)
+    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
 
 $(GNAME AllocatorArguments):
@@ -1021,12 +1019,12 @@ $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 
 $(GRAMMAR
 $(GNAME CastExpression):
-    $(D cast $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
-    $(D cast $(LPAREN)) $(GLINK2 declaration, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(D cast $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
 )
 
     $(P A $(I CastExpression) converts the $(I UnaryExpression)
-        to $(GLINK2 declaration, Type).)
+        to $(GLINK2 type, Type).)
 
         -------------
         cast(foo) -p; // cast (-p) to type foo
@@ -1213,7 +1211,7 @@ $(GNAME PostfixExpression):
     $(I PostfixExpression) $(D ++)
     $(I PostfixExpression) $(D --)
     $(I PostfixExpression) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 declaration, TypeCtors)$(OPT) $(GLINK2 declaration, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK IndexExpression)
     $(GLINK SliceExpression)
 )
@@ -1371,12 +1369,12 @@ $(GNAME PrimaryExpression):
     $(GLINK AssertExpression)
     $(GLINK MixinExpression)
     $(GLINK ImportExpression)
-    $(GLINK NewExpressionWithArgs)
+    $(GLINK NewExpression)
     $(GLINK2 declaration, FundamentalType) $(D .) $(IDENTIFIER)
     $(GLINK2 declaration, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 declaration, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
-    $(GLINK2 declaration, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 declaration, Typeof)
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, Typeof)
     $(GLINK TypeidExpression)
     $(GLINK IsExpression)
     $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
@@ -1386,9 +1384,8 @@ $(GNAME PrimaryExpression):
 
 $(H3 $(LNAME2 identifier, .Identifier))
 
-    $(P $(IDENTIFIER) is looked up at module scope, rather than the current
-        lexically nested scope.
-    )
+    $(P See $(DDSUBLINK spec/module, module_scope_operators, Module Scope
+        Operator).)
 
 $(H3 $(LNAME2 this, this))
 
@@ -1661,11 +1658,11 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody)
+    $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
+    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
     $(GLINK FunctionLiteralBody)
-    $(GLINK Lambda)
+    $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
 $(GNAME ParameterWithAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
@@ -1673,12 +1670,16 @@ $(GNAME ParameterWithAttributes):
 $(GNAME ParameterWithMemberAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 
+$(GNAME FunctionLiteralBody2):
+    $(D =>) $(GLINK AssignExpression)
+    $(GLINK FunctionLiteralBody)
+
 $(GNAME FunctionLiteralBody):
     $(GLINK2 statement, BlockStatement)
     $(GLINK2 function, FunctionContracts)$(OPT) $(GLINK2 function, BodyStatement)
 )
 
-    $(P $(I FunctionLiteral)s enable embedding anonymous functions
+    $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
         and anonymous delegates directly into expressions.
         $(I Type) is the return type of the function or delegate,
         if omitted it is inferred from any $(I ReturnStatement)s
@@ -1803,38 +1804,9 @@ $(GNAME FunctionLiteralBody):
         }
         -------------
 
-    $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
-        the $(D function) form is analogous to static
-        or non-nested functions, and the $(D delegate) form is
-        analogous to non-static nested functions. In other words,
-        a delegate literal can access stack variables in its enclosing
-        function, a function literal cannot.
-    )
+    $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
 
-$(H3 $(LNAME2 lambdas, Lambdas))
-
-$(GRAMMAR
-$(GNAME Lambda):
-    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
-)
-
-    $(P $(I Lambda)s are a shorthand syntax for $(GLINK FunctionLiteral)s.)
-
-    $(OL
-        $(LI $(P Just one $(IDENTIFIER) is rewritten to
-             $(GLINK2 function, Parameters):)
-
-             $(D $(LPAREN)) $(IDENTIFIER) $(D $(RPAREN))
-        )
-        $(LI $(P The following part $(D =>) $(I AssignExpression) is rewritten to
-             $(GLINK FunctionLiteralBody):)
-
-             $(D { return) $(I AssignExpression) $(D ; })
-        )
-    )
+    $(P The syntax $(D Identifier => AssignExpression) is equivalent to $(D (Identifier) { return AssignExpression; }).)
 
     $(P Example usage:)
 
@@ -1856,6 +1828,15 @@ $(GNAME Lambda):
         }
         ---
 
+
+    $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
+        the $(D function) form is analogous to static
+        or non-nested functions, and the $(D delegate) form is
+        analogous to non-static nested functions. In other words,
+        a delegate literal can access stack variables in its enclosing
+        function, a function literal cannot.
+    )
+
 $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 
     $(P The implicit conversions of built-in scalar types can be explicitly
@@ -1873,7 +1854,6 @@ $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built
         ---
         auto a = ushort();  // same as: ushort.init
         auto b = wchar();   // same as: wchar.init
-        auto c = creal();   // same as: creal.init
         ---
 
 
@@ -2006,7 +1986,7 @@ $(GNAME ImportExpression):
     )
 
     $(P Note that by default an import expression will not compile unless
-        you pass one or more paths via the $(B -J) switch. This tells the compiler
+        one or more paths are passed via the $(B -J) switch. This tells the compiler
         where it should look for the files to import. This is a security feature.)
 
         ---
@@ -2021,7 +2001,7 @@ $(H3 $(LNAME2 typeid_expressions, Typeid Expressions))
 
 $(GRAMMAR
 $(GNAME TypeidExpression):
-    $(D typeid $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN))
+    $(D typeid $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN))
     $(D typeid $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
 )
 
@@ -2059,20 +2039,20 @@ $(H3 $(LNAME2 is_expression, IsExpression))
 
 $(GRAMMAR
 $(GNAME IsExpression):
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D :) $(GLINK TypeSpecialization) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D ==) $(GLINK TypeSpecialization) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D :) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D ==) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D :) $(GLINK TypeSpecialization) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D ==) $(GLINK TypeSpecialization) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D :) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
-    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D ==) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(D :) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(D ==) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(D :) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(D ==) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(IDENTIFIER) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(IDENTIFIER) $(D :) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(IDENTIFIER) $(D ==) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(IDENTIFIER) $(D :) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 type, Type) $(IDENTIFIER) $(D ==) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 
 
 $(GNAME TypeSpecialization):
-    $(GLINK2 declaration, Type)
+    $(GLINK2 type, Type)
     $(D struct)
     $(D union)
     $(D class)

@@ -20,11 +20,11 @@ Some existing approaches to this are:
 )
 
 $(UL
-$(LI $(LINK2 http://www.stack.nl/~dimitri/doxygen, Doxygen) which already has some support for D)
+$(LI $(LINK2 https://www.doxygen.nl/, Doxygen) which already has some support for D)
 $(LI Java's $(LINK2 https://docs.oracle.com/javase/7/docs/technotes/guides/javadoc/index.html, Javadoc),
  probably the most well-known)
 $(LI C$(HASH)'s $(LINK2 https://msdn.microsoft.com/en-us/library/b2s063f7.aspx, embedded XML))
-$(LI Other $(LINK2 https://python.org/sigs/doc-sig/otherlangs.html, documentation tools))
+$(LI Other $(LINK2 https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html, documentation tools))
 )
 
 $(P
@@ -201,7 +201,7 @@ $(P
 The document comment is a series of $(I Section)s.
 A $(I Section) is a name that is the first non-blank character on
 a line immediately followed by a ':'. This name forms the section name.
-The section name is not case sensitive.
+The section name is not case-sensitive.
 )
 
 $(P
@@ -631,8 +631,8 @@ The generated links to D symbols are relative if they have the same root package
 as the module being documented. If not, their URLs are preceded by a
 `$(DOLLAR)(DDOC_ROOT_pkg)` macro, where `pkg` is the root package of the symbol
 being linked to. Links to D symbols are generated with a `$(DOLLAR)(DOC_EXTENSION)`
-macro after the module name. So the generated URL for `[Object]` in the above
-example is as if you had written:
+macro after the module name. Then the generated URL for `[Object]` in the above
+example is as if it had been written:
 )
 
 ---
@@ -640,7 +640,7 @@ $(DOLLAR)(DOC_ROOT_object)object$(DOLLAR)(DOC_EXTENSION)#.Object
 ---
 
 $(P
-You may define your own `DOC_ROOT_` macros for any external packages you wish
+`DOC_ROOT_` macros can be defined for any external packages
 to link to using a $(LINK2 #macros, Macros section).
 )
 
@@ -813,7 +813,7 @@ underscores or hyphens:
 $(P
 As with $(LINK2 #lists, lists), note that the initial `*` in the example above
 will be stripped because it is part of a documentation comment that is delimited
-with asterisks, so you need at least three subsequent asterisks.
+with asterisks. At least three subsequent asterisks are needed.
 )
 
 $(P
@@ -847,7 +847,7 @@ $(P
 )
 
 $(P
-You can insert a literal asterisk by $(LINK2 #punctuation_escapes,
+Insert a literal asterisk by $(LINK2 #punctuation_escapes,
 backslash-escaping) it: `\*` is rendered as *.
 )
 
@@ -893,7 +893,7 @@ $(P
 $(H3 $(LNAME2 punctuation_escapes, Punctuation Escapes))
 
 $(P
-    You can escape any ASCII punctuation symbol with a backslash `\`.
+    Escape any ASCII punctuation symbol with a backslash `\`.
     Doing so outputs the original character without the backslash, except for
     the following characters which output predefined macros instead:
 )

@@ -214,7 +214,7 @@ $(H2 $(LNAME2 calling_printf, Calling `printf()`))
 ---
 import core.stdc.stdio;
 
-int main
+int main()
 {
     printf("hello world\n");
     return 0;
@@ -307,7 +307,7 @@ $(H2 $(LNAME2 structs_and_unions, Structs and Unions))
         do the right shift and masks.
         )
 
-    $(P D does not support declaring variables of anonymous struct types. In such a case you can define a named struct in D and make it private:)
+    $(P D does not support declaring variables of anonymous struct types. In such a case, define a named struct in D and make it private:)
 
 $(CCODE
 union Info  // C code
@@ -387,7 +387,7 @@ $(H2 $(LEGACY_LNAME2 Using C Libraries, using-c-libraries, Using Existing C Libr
 
         $(P For popular C libraries, the first place to look for the corresponding
         D interface file is the $(LINK2 https://github.com/D-Programming-Deimos/, Deimos Project).
-        If it isn't there already, and you write one, please contribute it
+        If it isn't there already, please write and contribute one
         to the Deimos Project.
         )
 

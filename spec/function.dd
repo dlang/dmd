@@ -10,7 +10,7 @@ $(H3 Function declaration)
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
-    $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK FuncDeclarator) $(GLINK FunctionBody)
+    $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK FuncDeclarator) $(GLINK FunctionBody)
     $(GLINK AutoFuncDeclaration)
 
 $(GNAME AutoFuncDeclaration):
@@ -36,22 +36,22 @@ $(GNAME ParameterList):
     $(I VariadicArgumentsAttributes) $(D ...)
 
 $(GNAME Parameter):
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type) $(D ...)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
 
 $(GNAME ParameterAttributes):
-    $(I InOut)
+    $(GLINK InOut)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(I ParameterAttributes InOut)
+    $(I ParameterAttributes) $(GLINK InOut)
     $(I ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
     $(I ParameterAttributes)
 
 $(GNAME InOut):
     $(D auto)
-    $(GLINK2 declaration, TypeCtor)
+    $(GLINK2 type, TypeCtor)
     $(D final)
     $(D in)
     $(D lazy)
@@ -102,6 +102,7 @@ $(GRAMMAR
 $(GNAME FunctionBody):
     $(GLINK SpecifiedFunctionBody)
     $(GLINK MissingFunctionBody)
+    $(GLINK ShortenedFunctionBody)
 
 $(GNAME FunctionLiteralBody):
     $(GLINK SpecifiedFunctionBody)
@@ -115,9 +116,23 @@ $(GNAME MissingFunctionBody):
     $(D ;)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D ;)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
+
+$(GNAME ShortenedFunctionBody):
+    $(D =>) $(GLINK AssignExpression) $(D ;)
 )
 
-$(H3 Function contracts)
+        $(P Examples:)
+
+        ---
+        int hasSpecifiedBody() { return 1; }
+        int hasMissingBody();
+        int hasShortenedBody() => 1;
+        ---
+
+        $(P $(B Note:) The `ShortenedFunctionBody` form requires the `-preview=shortenedMethods`
+        command-line switch, which is available starting in v2.096.0.)
+
+$(H2 $(LNAME2 contracts, Function Contracts))
 
 $(GRAMMAR
 $(GNAME FunctionContracts):
@@ -151,33 +166,48 @@ $(GNAME OutStatement):
     $(D out) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
 )
 
-$(H2 $(LNAME2 contracts, Contracts))
-
-        $(P The $(D in) and $(D out) blocks or expressions of a function declaration specify
-        the pre- and post-conditions of the function. They are used in
-        $(LINK2 contracts.html, Contract Programming).
+        $(P Function Contracts specify the preconditions and postconditions of a function.
+        They are used in $(LINK2 contracts.html, Contract Programming).
         )
 
-        $(P The pre contracts specify the preconditions before a statement is executed. The most
-        typical use of this would be in validating the parameters to a function. The post
-        contracts validate the result of the statement. The most typical use of this
-        would be in validating the return value of a function and of any side effects it has.
-        In D, pre contracts begin with `in`, and post contracts begin with `out`. They
-        come at the end of the function signature and before the opening brace of the function body.)
+        $(P Preconditions and postconditions do not affect the type of the function.)
 
-        $(P Pre and post contracts can be written either in expression form (feature introduced in DMD
-        2.081.0), with a syntax similar to $(B assert), or as block statements
-        containing arbitrary code.)
+    $(H3 Preconditions)
+
+        $(P An $(GLINK InContractExpression) is a precondition.)
+
+        $(P The first $(GLINK2 expression, AssignExpression) of the $(GLINK2 expression, AssertArguments)
+        must evaluate to true. If it does not, the precondition has failed.)
+
+        $(P The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
+        )
+
+        $(P An $(GLINK InStatement) is also a precondition. Any $(GLINK2 expression, AssertExpression) appearing
+        in an $(I InStatement) will be an $(I InContractExpression).
+        )
+
+        $(P Preconditions must semantically be satisfied before the function starts executing.
+        If it is not, the program enters an $(I Invalid State).
+        )
+
+        $(IMPLEMENTATION_DEFINED Whether the preconditions are actually run or not is implementation defined.
+        This is usually selectable with a compiler switch.
+        Its behavior upon precondition failure is also usually selectable with a compiler switch.
+        One option is to throw an `AssertError` with a message consisting of the optional second
+        $(I AssignExpression).
+        )
+
+        $(BEST_PRACTICE Use preconditions to validate that input arguments have values that are
+        expected by the function.)
+
+        $(BEST_PRACTICE Since preconditions may or may not be actually checked at runtime, avoid
+        using preconditions that have side effects.)
 
         $(P The expression form is:)
 
         ---
         in (expression)
         in (expression, "failure string")
-        out (identifier; expression)
-        out (identifier; expression, "failure string")
-        out (; expression)
-        out (; expression, "failure string")
         {
             ...function body...
         }
@@ -190,6 +220,59 @@ $(H2 $(LNAME2 contracts, Contracts))
         {
             ...contract preconditions...
         }
+        do
+        {
+            ...function body...
+        }
+        ---
+
+
+    $(H3 Postconditions)
+
+        $(P An $(GLINK OutContractExpression) is a postcondition.)
+
+        $(P The first $(GLINK2 expression, AssignExpression) of the $(GLINK2 expression, AssertArguments)
+        must evaluate to true. If it does not, the postcondition has failed.)
+
+        $(P The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
+        )
+
+        $(P An $(GLINK OutStatement) is also a postcondition. Any $(GLINK2 expression, AssertExpression) appearing
+        in an $(I OutStatement) will be an $(I OutContractExpression).
+        )
+
+        $(P Postconditions must semantically be satisfied after the function finishes executing.
+        If it is not, the program enters an $(I Invalid State).
+        )
+
+        $(IMPLEMENTATION_DEFINED Whether the postconditions are actually run or not is implementation defined.
+        This is usually selectable with a compiler switch.
+        Its behavior upon postcondition failure is also usually selectable with a compiler switch.
+        One option is to throw an `AssertError` with a message consisting of the optional second
+        $(I AssignExpression).
+        )
+
+        $(BEST_PRACTICE Use postconditions to validate that the input arguments and return value have values that are
+        expected by the function.)
+
+        $(BEST_PRACTICE Since postconditions may or may not be actually checked at runtime, avoid
+        using postconditions that have side effects.)
+
+        $(P The expression form is:)
+
+        ---
+        out (identifier; expression)
+        out (identifier; expression, "failure string")
+        out (; expression)
+        out (; expression, "failure string")
+        {
+            ...function body...
+        }
+        ---
+
+        $(P The block statement form is:)
+
+        ---
         out
         {
             ...contract postconditions...
@@ -204,32 +287,10 @@ $(H2 $(LNAME2 contracts, Contracts))
         }
         ---
 
-        $(P The optional identifier in either type of `out` contract is set to the return value
-        of the function.)
+        $(P The optional identifier in either type of postcondition is set to the return value
+        of the function, and can be accessed from within the postcondition.)
 
-        $(P By definition, if a pre contract fails, then the function received bad
-        parameters. If a post contract fails, then there is a bug in the function. In either case,
-        an `assert` statement within the corresponding `in` or `out` block will throw an
-        `AssertError`.)
-
-        $(P The keyword `do` can be used to announce the function body. Although any number
-        of pre or post contracts of any form may follow each other, `do` is
-        required only when the last contract before the body is a block statement.
-        (Before the acceptance of
-        $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1003.md, DIP1003),
-        the keyword `body` was required instead of `do`, and may still be encountered in
-        old code bases. In the long term, `body` may be deprecated, but for now it's allowed both
-        as a keyword in this context and as an identifier elsewhere, although `do` is preferred.) )
-
-        $(P Though any arbitrary D code is allowed in the `in` and `out` contract blocks,
-        their only function should be to verify incoming and outgoing data. It is important
-        to ensure that the
-        code has no side effects, and that the release version of the code
-        will not depend on any  effects of the code.
-        For a release build of the code, `in` and `out` contracts are not
-        inserted.)
-
-        $(P Here is an example function in both forms:)
+    $(H3 Example)
 
         ---
         int fun(ref int a, int b)
@@ -240,7 +301,9 @@ $(H2 $(LNAME2 contracts, Contracts))
         {
             // function body
         }
+        ---
 
+        ---
         int fun(ref int a, int b)
         in
         {
@@ -258,33 +321,30 @@ $(H2 $(LNAME2 contracts, Contracts))
         }
         ---
 
-        $(P The two functions are almost identical semantically. The expressions in the
-        first are lowered to contract blocks that look almost exactly like the second,
-        except that a separate block is created for each expression in the first, thus
-        avoiding shadowing variable names.)
+        $(P The two functions are identical semantically.)
 
-        $(H3 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
+    $(H3 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
         $(P If a function in a derived class overrides a function from its
-        super class, then only one of
-        the $(D in) contracts of the function and its base functions
+        super class, then only the preconditions of one of the
+        function and its overridden functions
         must be satisfied.
         Overriding
-        functions then becomes a process of $(I loosening) the $(D in)
-        contracts.
+        functions then becomes a process of $(I loosening) the preconditions.
         )
 
-        $(P A function without an $(D in) contract means that any values
-        of the function parameters are allowed. This implies that if any
-        function in an inheritance hierarchy has no $(D in) contract,
-        then any $(D in) contracts on functions overriding it have no useful
+        $(P A function without preconditions means its precondition is always
+        satisfied.
+        Therefore if any
+        function in an inheritance hierarchy has no preconditions,
+        then any preconditions on functions overriding it have no meaningful
         effect.
         )
 
-        $(P Conversely, all of the $(D out) contracts need to be satisfied,
-        so overriding functions becomes a processes of $(I tightening) the
-        $(D out)
-        contracts.
+        $(P Conversely, all of the postconditions of the function and its
+        overridden functions must to be satisfied.
+        Adding overriding functions then becomes a processes of $(I tightening) the
+        postconditions.
         )
 
 
@@ -586,52 +646,80 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
 
 $(H2 $(LNAME2 inout-functions, Inout Functions))
 
-    $(P Functions that differ only in whether the parameters are mutable, const or immutable
-        and have corresponding mutable, const or immutable return types can be combined
-        into one function with the $(D inout) type constructor.
+    $(P Functions that differ only in whether the parameters are mutable, `const` or `immutable`,
+        and have corresponding mutable, `const` or `immutable` return types, can be combined
+        into one function using the $(D inout) type constructor. Consider the following
+        overload set:
      )
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        int[] f1(int[] a, int x, int y) { return a[x .. y]; }
+        int[] slice(int[] a, int x, int y) { return a[x .. y]; }
 
-        const(int)[] f2(const(int)[] a, int x, int y) { return a[x .. y]; }
+        const(int)[] slice(const(int)[] a, int x, int y) { return a[x .. y]; }
 
-        immutable(int)[] f3(immutable(int)[] a, int x, int y) { return a[x .. y]; }
+        immutable(int)[] slice(immutable(int)[] a, int x, int y) { return a[x .. y]; }
         ---
-        )
 
-    $(P The code generated by these three functions is identical.
-        To combine into one function, the $(D_KEYWORD inout)
-        type constructor is employed:)
+    $(P The code generated by each of these functions is identical.
+        The $(D_KEYWORD inout) type constructor can combine them into one function:)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        inout(int)[] foo(inout(int)[] a, int x, int y) { return a[x .. y]; }
+        inout(int)[] slice(inout(int)[] a, int x, int y) { return a[x .. y]; }
         ---
         )
 
-    $(P The $(D_KEYWORD inout) forms a wildcard that stands in for
-        any of mutable, const, immutable, inout, or inout const. When the
-        function is called, the inout of the return type is changed to whatever
-        the mutable, const, immutable, inout, or inout const status of the
-        argument type to the parameter inout was.
+    $(P The $(D_KEYWORD inout) keyword forms a wildcard that stands in for
+        mutable, `const`, `immutable`, `inout`, or `inout const`.
+        When calling the function, the `inout` state of the return type is changed to
+        match that of the argument type passed to the `inout` parameter.
     )
 
-    $(P Inout types can be implicitly converted to const or inout const,
-        but to nothing else. Other types cannot be implicitly converted to inout.
-        Casting to or from inout is not allowed in @safe functions.
+    $(P `inout` can also be used as a type constructor inside a function that has a
+        parameter declared with `inout`. The `inout` state of a type declared with
+        `inout` is changed to match that of the argument type passed to the `inout`
+        parameter:
     )
 
-    $(P A set of arguments to a function with inout parameters is considered
-        a match if any inout argument types match exactly, or:)
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        inout(int)[] asymmetric(inout(int)[] input_data)
+        {
+            inout(int)[] r = input_data;
+            while (r.length > 1 && r[0] == r[$-1])
+                r = r[1..$-1];
+            return r;
+        }
+        ---
+        )
+
+    $(P Inout types can be implicitly converted to `const` or `inout const`,
+        but to nothing else. Other types cannot be implicitly converted to `inout`.
+        Casting to or from `inout` is not allowed in `@safe` functions.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        void f(inout int* ptr)
+        {
+            const int* p = ptr;
+            int* q = ptr; // error
+            immutable int* r = ptr; // error
+        }
+        ---
+        )
+
+    $(H3 $(LNAME2 matching-an-inout-parameter, Matching an `inout` Parameter))
+
+    $(P A set of arguments to a function with `inout` parameters is considered
+        a match if any `inout` argument types match exactly, or:)
 
     $(OL
-        $(LI No argument types are composed of inout types.)
-        $(LI A mutable, const or immutable argument type can be matched against each
-        corresponding parameter inout type.)
+        $(LI No argument types are composed of `inout` types.)
+        $(LI A mutable, `const` or `immutable` argument type can be matched against each
+        corresponding parameter `inout` type.)
     )
 
-    $(P If such a match occurs, the inout is considered the common qualifier of
+    $(P If such a match occurs, `inout` is considered the common qualifier of
         the matched qualifiers. If more than two parameters exist, the common
         qualifier calculation is recursively applied.
     )
@@ -645,7 +733,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         $(TROW $(D inout const) $(LPAREN)= wc$(RPAREN), c, c, wc, wc, wc)
     )
 
-    $(P The inout in the return type is then rewritten to be the inout matched
+    $(P The `inout` in the return type is then rewritten to match the `inout`
         qualifiers:)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -689,7 +777,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         )
 
     $(P $(B Note:) Shared types cannot
-        be matched with inout.
+        be matched with `inout`.
     )
 
 $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
@@ -1669,7 +1757,8 @@ int mercury(return ref int i)
 }
 ---
 
-$(P Template functions, auto functions, nested functions and lambdas can deduce the `return` attribute.)
+$(P Template functions, auto functions, nested functions and $(DDSUBLINK spec/expression, function_literals, lambdas)
+ can deduce the `return` attribute.)
 
 ---
 ref int templateFunction()(ref int i)
@@ -1803,7 +1892,8 @@ class C
 }
 ---
 
-        $(P Template functions, auto functions, nested functions and lambdas can deduce
+        $(P Template functions, auto functions, nested functions and
+        $(DDSUBLINK spec/expression, function_literals, lambdas) can deduce
         the `return scope` attribute.)
 
 $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
@@ -3143,6 +3233,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No pointer arithmetic (including pointer indexing).)
         $(LI Cannot access unions that have pointers or references overlapping
         with other types.)
+        $(LI Cannot access unions that have fields with invariants overlapping
+        with other types.)
         $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
         $(LI No catching of exceptions that are not derived from
         $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
@@ -3154,6 +3246,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI Cannot access $(D __gshared) variables.)
         $(LI Cannot use $(D void) initializers for pointers.)
         $(LI Cannot use $(D void) initializers for class or interface references.)
+        $(LI Cannot use $(D void) initializers for types that have invariants.)
         )
 
         $(P When indexing or slicing an array, an out of bounds access
