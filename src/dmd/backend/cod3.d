@@ -752,6 +752,7 @@ void cgreg_dst_regs(reg_t* dst_integer_reg, reg_t* dst_float_reg)
 @trusted
 void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
 {
+    //printf("cgreg_set_priorities %x\n", ty);
     const sz = tysize(ty);
 
     if (tyxmmreg(ty))
@@ -5453,7 +5454,9 @@ void assignaddrc(code *c)
                 break;
 
             case FLpara:
-//printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d\n", s.Sident.ptr, s.Soffset, Para.size, BPoff, EBPtoESP);
+                //printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Vpointer = %d\n",
+                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)BPoff,
+                //cast(int)EBPtoESP, cast(int)c.IEV1.Vpointer);
                 soff = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
