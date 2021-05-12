@@ -926,7 +926,7 @@ class TypeInfo_Array : TypeInfo
             if (result)
                 return result;
         }
-        return cast(int)a1.length - cast(int)a2.length;
+        return (a1.length > a2.length) - (a1.length < a2.length);
     }
 
     override @property size_t tsize() nothrow pure const
