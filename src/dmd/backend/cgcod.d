@@ -832,8 +832,9 @@ Lagain:
     {
         version (FRAMEPTR)
         {
-            Para.size = ((farfunc ? 2 : 1) + needframe) * REGSIZE;
-            if (needframe)
+            bool frame = needframe || tyf & mTYnaked;
+            Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
+            if (frame)
                 EBPtoESP = -REGSIZE;
         }
         else
