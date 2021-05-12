@@ -482,12 +482,13 @@ $(H3 $(LNAME2 delegating-constructor, Delegating Constructors))
 
             this(char c)
             {
-                c || this(1); // error, not on all paths
+                c || this(1);  // error, not on all paths
             }
 
             this(wchar w)
             {
-                (w) ? this(1) : this('c'); } // ok
+                (w) ? this(1) : this('c');  // ok
+            }
 
             this(byte b)
             {
