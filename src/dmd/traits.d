@@ -1432,6 +1432,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
+        // Avoid further analysis for invalid functions leading to misleading error messages
+        if (!fparams.parameters)
+            return ErrorExp.get();
+
         StorageClass stc;
 
         // Set stc to storage class of the ith parameter
