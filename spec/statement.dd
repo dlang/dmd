@@ -1689,7 +1689,7 @@ int main()
     }
     catch (Exception e)
     {
-        writeln("catch %s", e.msg);
+        writefln("catch %s", e.msg);
     }
     writeln("done");
     return 0;
