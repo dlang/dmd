@@ -8441,24 +8441,23 @@ void printTemplateStats()
 extern(C++) final class TemplateInstanceWalker : SemanticTimeTransitiveVisitor {
     alias visit = SemanticTimeTransitiveVisitor.visit;
 public:
-    size_t depth = 0;
+    uint depth = 0;             ///< Instance depth.
     override void visit(TemplateInstance ti)
     {
-        foreach (n; 0..depth)
-            putchar(' ');
+        putcharN(depth);
         message(ti.loc, "TI");
-
         depth += 1;
         ti.tempdecl.accept(this);
         depth -= 1;
     }
     override void visit(TemplateDeclaration td)
     {
-        if (depth)
-        {
-            foreach (n; 0..depth)
-                putchar(' ');
-            message(td.loc, "TD");
-        }
+        putcharN(depth);
+        message(td.loc, "TD");
+    }
+    static void putcharN(uint n)
+    {
+        foreach (_; 0 .. n)
+            putchar(' ');
     }
 }
