@@ -8382,25 +8382,22 @@ void printTemplateStats()
 
     sortedStats.sort!(TemplateDeclarationStats.compare);
 
-    const explicitFlag = true;
+    const treeFlag = false;
 
     foreach (ref ss; sortedStats[])
     {
         if (global.params.vtemplatesListInstances &&
             ss.ts.allInstances)
         {
-            if (!explicitFlag)
-            {
-                message(ss.td.loc,
-                        "vtemplate: %u/%u/%u distinct/total/transitive instantiation(s) of template `%s` found, they are:",
-                        ss.ts.distinctInstantiations,
-                        ss.ts.numInstantiations,
-                        ss.ts.numSubInstantiations,
-                        ss.td.toCharsNoConstraints());
-            }
+            message(ss.td.loc,
+                    "vtemplate: %u/%u/%u distinct/total/transitive instantiation(s) of template `%s` found, they are:",
+                    ss.ts.distinctInstantiations,
+                    ss.ts.numInstantiations,
+                    ss.ts.numSubInstantiations,
+                    ss.td.toCharsNoConstraints());
             foreach (ti; (*ss.ts.allInstances)[])
             {
-                if (explicitFlag)
+                if (treeFlag)
                 {
                     if (ti.tinst !is null) // top-level
                         continue;
