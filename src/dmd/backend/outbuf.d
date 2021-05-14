@@ -213,63 +213,23 @@ struct Outbuffer
     }
 
     /**
-     * Writes a 32 bit int, no reserve check.
+     * Writes a 32 bit int.
      */
-    @trusted
-    private void write32n(int v)
+    @trusted void write32(int v)
     {
+        reserve(4);
         *cast(int *)p = v;
         p += 4;
     }
 
     /**
-     * Writes a 32 bit int.
-     */
-    void write32(int v)
-    {
-        reserve(4);
-        write32n(v);
-    }
-
-    /**
-     * Writes a 64 bit long, no reserve check
-     */
-    @trusted
-    private void write64n(long v)
-    {
-        *cast(long *)p = v;
-        p += 8;
-    }
-
-    /**
      * Writes a 64 bit long.
      */
-    void write64(long v)
+    @trusted void write64(long v)
     {
         reserve(8);
-        write64n(v);
-    }
-
-    /**
-     * Writes a 32 bit float.
-     */
-    @trusted
-    private void writeFloat(float v)
-    {
-        reserve(float.sizeof);
-        *cast(float *)p = v;
-        p += float.sizeof;
-    }
-
-    /**
-     * Writes a 64 bit double.
-     */
-    @trusted
-    private void writeDouble(double v)
-    {
-        reserve(double.sizeof);
-        *cast(double *)p = v;
-        p += double.sizeof;
+        *cast(long *)p = v;
+        p += 8;
     }
 
     /**
@@ -301,40 +261,6 @@ struct Outbuffer
     extern(D) void writeString(string s)
     {
         writeString(cast(const(char)[])(s));
-    }
-
-    /**
-     * Inserts string at beginning of buffer.
-     */
-    @trusted
-    private void prependBytes(const(char)* s)
-    {
-        prepend(s, strlen(s));
-    }
-
-    /**
-     * Inserts bytes at beginning of buffer.
-     */
-    @trusted
-    private void prepend(const(void)* b, size_t len)
-    {
-        reserve(len);
-        memmove(buf + len,buf,p - buf);
-        memcpy(buf,b,len);
-        p += len;
-    }
-
-    /**
-     * Bracket buffer contents with c1 and c2.
-     */
-    @trusted
-    private void bracket(char c1,char c2)
-    {
-        reserve(2);
-        memmove(buf + 1,buf,p - buf);
-        buf[0] = c1;
-        p[1] = c2;
-        p += 2;
     }
 
     /**
