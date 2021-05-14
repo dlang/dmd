@@ -82,46 +82,44 @@ struct Outbuffer
      */
     void reserve(size_t nbytes)
     {
+        // non-inline function for the heavy/infrequent reallocation case
+        @trusted static void enlarge(ref Outbuffer b, size_t nbytes)
+        {
+            pragma(inline, false);  // do not inline slow path
+
+            if (b.buf is null)
+            {
+                // Special-case the overwhelmingly most frequent situation
+                if (nbytes < 64)
+                    nbytes = 64;
+                b.p = b.buf = cast(ubyte*) malloc(nbytes);
+                b.pend = b.buf + nbytes;
+            }
+            else
+            {
+                const size_t used = b.p - b.buf;
+                const size_t oldlen = b.pend - b.buf;
+                // Ensure exponential growth, oldlen * 2 for small sizes, oldlen * 1.5 for big sizes
+                const size_t minlen = oldlen + (oldlen >> (oldlen > 1024 * 64));
+
+                size_t len = used + nbytes;
+                if (len < minlen)
+                    len = minlen;
+                // Round up to cache line size
+                len = (len + 63) & ~63;
+
+                b.buf = cast(ubyte*) realloc(b.buf, len);
+
+                b.pend = b.buf + len;
+                b.p = b.buf + used;
+            }
+            if (!b.buf)
+                err_nomem();
+        }
+
         // Keep small so it is inlined
         if (pend - p < nbytes)
-            enlarge(nbytes);
-    }
-
-    // Reserve nbytes in buffer
-    @trusted
-    private void enlarge(size_t nbytes)
-    {
-        pragma(inline, false);  // do not inline slow path
-
-        debug assert(nbytes > pend - p, "You should call this function from reserve() only.");
-
-        if (buf is null)
-        {
-            // Special-case the overwhelmingly most frequent situation
-            if (nbytes < 64) nbytes = 64;
-            p = buf = cast(ubyte*) malloc(nbytes);
-            pend = buf + nbytes;
-        }
-        else
-        {
-            const size_t used = p - buf;
-            const size_t oldlen = pend - buf;
-            // Ensure exponential growth, oldlen * 2 for small sizes, oldlen * 1.5 for big sizes
-            const size_t minlen = oldlen + (oldlen >> (oldlen > 1024 * 64));
-
-            size_t len = used + nbytes;
-            if (len < minlen)
-                len = minlen;
-            // Round up to cache line size
-            len = (len + 63) & ~63;
-
-            buf = cast(ubyte*) realloc(buf, len);
-
-            pend = buf + len;
-            p = buf + used;
-        }
-        if (!buf)
-            err_nomem();
+            enlarge(this, nbytes);
     }
 
     // Write n zeros; return pointer to start of zeros
