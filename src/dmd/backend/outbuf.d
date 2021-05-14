@@ -28,9 +28,9 @@ struct Outbuffer
 {
   @safe:
 
-    ubyte *buf;         // the buffer itself
-    ubyte *pend;        // pointer past the end of the buffer
-    private ubyte *p;   // current position in buffer
+    ubyte *buf;           // the buffer itself
+    private ubyte *pend;  // pointer past the end of the buffer
+    private ubyte *p;     // current position in buffer
 
   nothrow:
     this(size_t initialSize)
@@ -43,8 +43,8 @@ struct Outbuffer
     @trusted
     void dtor()
     {
-        if (auto slice = this.extractSlice())
-            free(slice.ptr);
+        free(buf);
+        buf = p = pend = null;
     }
 
     void reset()
@@ -52,8 +52,7 @@ struct Outbuffer
         p = buf;
     }
 
-    // Returns: A slice to the data written so far
-    extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
+    private extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
         @trusted pure nothrow @nogc
     {
         assert(this.buf, "Attempt to dereference a null pointer");
@@ -62,10 +61,10 @@ struct Outbuffer
         return this.buf[from .. to];
     }
 
-    /// Ditto
+    // Returns: A slice to the data written so far
     extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
     {
-        return this.buf[0 .. this.p - this.buf];
+        return this.buf[0 .. length];
     }
 
     extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
@@ -90,30 +89,40 @@ struct Outbuffer
 
     // Reserve nbytes in buffer
     @trusted
-    void enlarge(size_t nbytes)
+    private void enlarge(size_t nbytes)
     {
         pragma(inline, false);  // do not inline slow path
-        const size_t oldlen = pend - buf;
-        const size_t used = p - buf;
 
-        size_t len = used + nbytes;
-        // No need to reallocate
-        if (nbytes < (pend - p))
-            return;
+        debug assert(nbytes > pend - p, "You should call this function from reserve() only.");
 
-        const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
-        if (len < newlen)
-            len = newlen;
-        len = (len + 15) & ~15;
+        if (buf is null)
+        {
+            // Special-case the overwhelmingly most frequent situation
+            if (nbytes < 64) nbytes = 64;
+            p = buf = cast(ubyte*) malloc(nbytes);
+            pend = buf + nbytes;
+        }
+        else
+        {
+            const size_t used = p - buf;
+            const size_t oldlen = pend - buf;
+            // Ensure exponential growth, oldlen * 2 for small sizes, oldlen * 1.5 for big sizes
+            const size_t minlen = oldlen + (oldlen >> (oldlen > 1024 * 64));
 
-        buf = cast(ubyte*) realloc(buf,len);
+            size_t len = used + nbytes;
+            if (len < minlen)
+                len = minlen;
+            // Round up to cache line size
+            len = (len + 63) & ~63;
+
+            buf = cast(ubyte*) realloc(buf, len);
+
+            pend = buf + len;
+            p = buf + used;
+        }
         if (!buf)
             err_nomem();
-
-        pend = buf + len;
-        p = buf + used;
     }
-
 
     // Write n zeros; return pointer to start of zeros
     @trusted
@@ -207,7 +216,7 @@ struct Outbuffer
      * Writes a 32 bit int, no reserve check.
      */
     @trusted
-    void write32n(int v)
+    private void write32n(int v)
     {
         *cast(int *)p = v;
         p += 4;
@@ -226,7 +235,7 @@ struct Outbuffer
      * Writes a 64 bit long, no reserve check
      */
     @trusted
-    void write64n(long v)
+    private void write64n(long v)
     {
         *cast(long *)p = v;
         p += 8;
@@ -245,7 +254,7 @@ struct Outbuffer
      * Writes a 32 bit float.
      */
     @trusted
-    void writeFloat(float v)
+    private void writeFloat(float v)
     {
         reserve(float.sizeof);
         *cast(float *)p = v;
@@ -256,7 +265,7 @@ struct Outbuffer
      * Writes a 64 bit double.
      */
     @trusted
-    void writeDouble(double v)
+    private void writeDouble(double v)
     {
         reserve(double.sizeof);
         *cast(double *)p = v;
@@ -298,7 +307,7 @@ struct Outbuffer
      * Inserts string at beginning of buffer.
      */
     @trusted
-    void prependBytes(const(char)* s)
+    private void prependBytes(const(char)* s)
     {
         prepend(s, strlen(s));
     }
@@ -307,7 +316,7 @@ struct Outbuffer
      * Inserts bytes at beginning of buffer.
      */
     @trusted
-    void prepend(const(void)* b, size_t len)
+    private void prepend(const(void)* b, size_t len)
     {
         reserve(len);
         memmove(buf + len,buf,p - buf);
@@ -319,7 +328,7 @@ struct Outbuffer
      * Bracket buffer contents with c1 and c2.
      */
     @trusted
-    void bracket(char c1,char c2)
+    private void bracket(char c1,char c2)
     {
         reserve(2);
         memmove(buf + 1,buf,p - buf);
