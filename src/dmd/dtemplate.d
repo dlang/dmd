@@ -8445,15 +8445,22 @@ public:
     override void visit(TemplateInstance ti)
     {
         putcharN(depth);
-        message(ti.loc, "TI");
+        assert(ti is ti.inst);
+        message(ti.loc, "ti:%s", ti.toChars());
+        message(ti.loc, "ti.deferred:%p", ti.deferred);
+        message(ti.loc, "ti.next:%p", ti.tnext);
+        if (ti.enclosing)
+            message(ti.enclosing.loc, "ti.enclosing:%s", ti.enclosing.toChars());
+        auto td = (cast(TemplateDeclaration)ti.tempdecl);
+        if (td)
+        {
+            message(td.loc, "td: %s", td.toChars());
+            if (td.funcroot)
+                message(td.funcroot.loc, "funcroot %s", td.funcroot.toChars());
+        }
         depth += 1;
-        ti.tempdecl.accept(this);
+        // ti.tempdecl.accept(this);
         depth -= 1;
-    }
-    override void visit(TemplateDeclaration td)
-    {
-        putcharN(depth);
-        message(td.loc, "TD");
     }
     static void putcharN(uint n)
     {
