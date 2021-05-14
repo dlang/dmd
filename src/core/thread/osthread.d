@@ -983,7 +983,7 @@ class Thread : ThreadBase
     }
 }
 
-private Thread toThread(ThreadBase t) @trusted nothrow @nogc pure
+private Thread toThread(return scope ThreadBase t) @trusted nothrow @nogc pure
 {
     return cast(Thread) cast(void*) t;
 }
