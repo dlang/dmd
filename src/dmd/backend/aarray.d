@@ -591,23 +591,7 @@ nothrow:
 
 /*************************************************************/
 
-version (none)
-{
-
-/* Since -betterC doesn't support unittests, do it this way
- * for the time being.
- * This is a stand-alone file anyway.
- */
-
-int main()
-{
-    testAArray();
-    testAApair();
-
-    return 0;
-}
-
-void testAArray()
+@system unittest
 {
     int dg(int* pk, bool* pv) { return 3; }
     int dgz(int* pk, bool* pv) { return 0; }
@@ -651,7 +635,7 @@ void testAArray()
     assert(values[0] == false);
 }
 
-void testAApair()
+@system unittest
 {
     const(char)* buf = "abcb";
     auto aap = AApair.create(cast(ubyte**)&buf);
@@ -661,6 +645,4 @@ void testAApair()
     pu = aap.get(3,4);
     assert(*pu == 10);
     AApair.destroy(aap);
-}
-
 }
