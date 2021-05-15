@@ -2051,6 +2051,68 @@ public:
         buf.writestringln(">");
     }
 
+    /// Emit declarations of the TemplateMixin in the current scope
+    override void visit(AST.TemplateMixin tm)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TemplateMixin enter] %s\n", tm.toChars());
+            scope(exit) printf("[AST.TemplateMixin exit] %s\n", tm.toChars());
+        }
+
+        auto members = tm.members;
+
+        // members are missing for instances inside of TemplateDeclarations, e.g.
+        // template Foo(T) { mixin Bar!T; }
+        if (!members)
+        {
+            if (auto td = findTemplateDeclaration(tm))
+                members = td.members; // Emit members of the template
+            else
+                return; // Cannot emit mixin
+        }
+
+        foreach (s; *members)
+        {
+            // kind is undefined without semantic
+            const kind = s.visible().kind;
+            if (kind == AST.Visibility.Kind.public_ || kind == AST.Visibility.Kind.undefined)
+                s.accept(this);
+        }
+    }
+
+    /**
+     * Finds a symbol with the identifier `name` by iterating the linked list of parent
+     * symbols, starting from `context`.
+     *
+     * Returns: the symbol or `null` if missing
+     */
+    private AST.Dsymbol findSymbol(Identifier name, AST.Dsymbol context)
+    {
+        for (auto par = context; par; par = par.toParent())
+        {
+            if (auto mem = par.search(Loc.initial, name))
+            {
+                return mem;
+            }
+        }
+        return null;
+    }
+
+    /// Finds the template declaration for instance `ti`
+    private AST.TemplateDeclaration findTemplateDeclaration(AST.TemplateInstance ti)
+    {
+        if (ti.tempdecl)
+            return ti.tempdecl.isTemplateDeclaration();
+
+        assert(tdparent); // Only missing inside of templates
+
+        // Search for the TemplateDeclaration, starting from the enclosing scope
+        // if known or the enclosing template.
+        auto sym = findSymbol(ti.name, ti.parent ? ti.parent : tdparent);
+        return sym ? sym.isTemplateDeclaration() : null;
+    }
+
     override void visit(AST.TypeClass t)
     {
         debug (Debug_DtoH)
