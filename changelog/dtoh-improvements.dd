@@ -3,6 +3,7 @@ Improvements for the C++ header generation
 The following features/bugfixes/improvements were implemented for the
 experimental C++ header generator:
 
+- Declarations from template mixins are emitted into the instantation context
 - (Superclass) methods aliases are emitted as `using ...` instead of `typedef ...`
 - Renamed imports are emitted as `using ...`
 

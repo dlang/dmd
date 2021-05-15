@@ -174,6 +174,8 @@ class Visitor : public VisitorInter
 public:
     using VisitorInter::vir;
     using VisitorInter::stat;
+    virtual void vir(bool b);
+    virtual void vir(char d);
 };
 ---
 +/

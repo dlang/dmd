@@ -136,6 +136,25 @@ extern void withDefTempl2(A<T > a = static_cast<A<T >>(A!T(2)));
 class ChildInt : public Parent<int32_t >
 {
 };
+
+struct HasMixins
+{
+    void foo(int32_t t);
+    HasMixins()
+    {
+    }
+};
+
+template <typename T>
+struct HasMixinsTemplate
+{
+    void foo(T t);
+    HasMixinsTemplate()
+    {
+    }
+};
+
+extern HasMixinsTemplate<bool > hmti;
 ---
 */
 
@@ -225,3 +244,30 @@ extern(C++) void withDefTempl2(T)(A!T a = A!T(2)) {}
 extern(C++) alias withDefTempl2Inst = withDefTempl2!int;
 
 extern(C++) class ChildInt : Parent!int {}
+
+/******************************************************
+ * Mixins
+ */
+
+extern (C++):
+
+mixin template MixinA(T)
+{
+    void foo(T t) {}
+}
+
+mixin template MixinB() {}
+
+struct HasMixins
+{
+    mixin MixinA!int;
+    mixin MixinB;
+}
+
+struct HasMixinsTemplate(T)
+{
+    mixin MixinA!T;
+    mixin MixinB;
+}
+
+__gshared HasMixinsTemplate!bool hmti;
