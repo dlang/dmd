@@ -6451,116 +6451,9 @@ LagainStc:
             }
 
         case TOK.asm_:
-            {
-                // Parse the asm block into a sequence of AsmStatements,
-                // each AsmStatement is one instruction.
-                // Separate out labels.
-                // Defer parsing of AsmStatements until semantic processing.
+            s = parseAsm();
+            break;
 
-                Loc labelloc;
-
-                nextToken();
-                StorageClass stc = parsePostfix(STC.undefined_, null);
-                if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
-                    error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
-
-                check(TOK.leftCurly);
-                Token* toklist = null;
-                Token** ptoklist = &toklist;
-                Identifier label = null;
-                auto statements = new AST.Statements();
-                size_t nestlevel = 0;
-                while (1)
-                {
-                    switch (token.value)
-                    {
-                    case TOK.identifier:
-                        if (!toklist)
-                        {
-                            // Look ahead to see if it is a label
-                            if (peekNext() == TOK.colon)
-                            {
-                                // It's a label
-                                label = token.ident;
-                                labelloc = token.loc;
-                                nextToken();
-                                nextToken();
-                                continue;
-                            }
-                        }
-                        goto default;
-
-                    case TOK.leftCurly:
-                        ++nestlevel;
-                        goto default;
-
-                    case TOK.rightCurly:
-                        if (nestlevel > 0)
-                        {
-                            --nestlevel;
-                            goto default;
-                        }
-                        if (toklist || label)
-                        {
-                            error("`asm` statements must end in `;`");
-                        }
-                        break;
-
-                    case TOK.semicolon:
-                        if (nestlevel != 0)
-                            error("mismatched number of curly brackets");
-
-                        s = null;
-                        if (toklist || label)
-                        {
-                            // Create AsmStatement from list of tokens we've saved
-                            s = new AST.AsmStatement(token.loc, toklist);
-                            toklist = null;
-                            ptoklist = &toklist;
-                            if (label)
-                            {
-                                s = new AST.LabelStatement(labelloc, label, s);
-                                label = null;
-                            }
-                            statements.push(s);
-                        }
-                        nextToken();
-                        continue;
-
-                    case TOK.endOfFile:
-                        /* { */
-                        error("matching `}` expected, not end of file");
-                        goto Lerror;
-
-                    case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        (*ptoklist).value = TOK.colon;
-                        ptoklist = &(*ptoklist).next;
-
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        (*ptoklist).value = TOK.colon;
-                        ptoklist = &(*ptoklist).next;
-
-                        *ptoklist = null;
-                        nextToken();
-                        continue;
-
-                    default:
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        ptoklist = &(*ptoklist).next;
-                        *ptoklist = null;
-                        nextToken();
-                        continue;
-                    }
-                    break;
-                }
-                s = new AST.CompoundAsmStatement(loc, statements, stc);
-                nextToken();
-                break;
-            }
         case TOK.import_:
             {
                 /* https://issues.dlang.org/show_bug.cgi?id=16088
@@ -6916,6 +6809,123 @@ LagainStc:
         }
         LExp:
         return parseAssignExp();
+    }
+
+    /********************
+     * Parse inline assembler block.
+     * Returns:
+     *   inline assembler block as a Statement
+     */
+    AST.Statement parseAsm()
+    {
+        // Parse the asm block into a sequence of AsmStatements,
+        // each AsmStatement is one instruction.
+        // Separate out labels.
+        // Defer parsing of AsmStatements until semantic processing.
+
+        const loc = token.loc;
+        Loc labelloc;
+
+        nextToken();
+        StorageClass stc = parsePostfix(STC.undefined_, null);
+        if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
+            error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
+
+        check(TOK.leftCurly);
+        Token* toklist = null;
+        Token** ptoklist = &toklist;
+        Identifier label = null;
+        auto statements = new AST.Statements();
+        size_t nestlevel = 0;
+        while (1)
+        {
+            switch (token.value)
+            {
+            case TOK.identifier:
+                if (!toklist)
+                {
+                    // Look ahead to see if it is a label
+                    if (peekNext() == TOK.colon)
+                    {
+                        // It's a label
+                        label = token.ident;
+                        labelloc = token.loc;
+                        nextToken();
+                        nextToken();
+                        continue;
+                    }
+                }
+                goto default;
+
+            case TOK.leftCurly:
+                ++nestlevel;
+                goto default;
+
+            case TOK.rightCurly:
+                if (nestlevel > 0)
+                {
+                    --nestlevel;
+                    goto default;
+                }
+                if (toklist || label)
+                {
+                    error("`asm` statements must end in `;`");
+                }
+                break;
+
+            case TOK.semicolon:
+                if (nestlevel != 0)
+                    error("mismatched number of curly brackets");
+
+                if (toklist || label)
+                {
+                    // Create AsmStatement from list of tokens we've saved
+                    AST.Statement s = new AST.AsmStatement(token.loc, toklist);
+                    toklist = null;
+                    ptoklist = &toklist;
+                    if (label)
+                    {
+                        s = new AST.LabelStatement(labelloc, label, s);
+                        label = null;
+                    }
+                    statements.push(s);
+                }
+                nextToken();
+                continue;
+
+            case TOK.endOfFile:
+                /* { */
+                error("matching `}` expected, not end of file");
+                break;
+
+            case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
+                *ptoklist = allocateToken();
+                memcpy(*ptoklist, &token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+
+                *ptoklist = allocateToken();
+                memcpy(*ptoklist, &token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+
+                *ptoklist = null;
+                nextToken();
+                continue;
+
+            default:
+                *ptoklist = allocateToken();
+                memcpy(*ptoklist, &token, Token.sizeof);
+                ptoklist = &(*ptoklist).next;
+                *ptoklist = null;
+                nextToken();
+                continue;
+            }
+            break;
+        }
+        nextToken();
+        auto s = new AST.CompoundAsmStatement(loc, statements, stc);
+        return s;
     }
 
     private void check(Loc loc, TOK value)
