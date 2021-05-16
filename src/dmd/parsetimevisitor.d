@@ -197,6 +197,7 @@ public:
     void visit(AST.TemplateExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.SymbolExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.TupleExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.UDAItem e) { visit(cast(AST.Expression)e); }
     void visit(AST.ThisExp e) { visit(cast(AST.Expression)e); }
 
     // Miscellaneous

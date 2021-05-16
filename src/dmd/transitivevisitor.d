@@ -1099,6 +1099,12 @@ package mixin template ParseVisitMethods(AST)
         e.e2.accept(this);
     }
 
+    override void visit(AST.UDAItem e)
+    {
+        //printf("Visiting UDAItem\n");
+        visitArgs(e.exps);
+    }
+
 // Template Parameter
 //===========================================================
 

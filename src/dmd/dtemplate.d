@@ -7575,7 +7575,7 @@ void unSpeculative(Scope* sc, RootObject o)
 bool definitelyValueParameter(Expression e)
 {
     // None of these can be value parameters
-    if (e.op == TOK.tuple || e.op == TOK.scope_ ||
+    if (e.op == TOK.tuple || e.op == TOK.at || e.op == TOK.scope_ ||
         e.op == TOK.type || e.op == TOK.dotType ||
         e.op == TOK.template_ || e.op == TOK.dotTemplateDeclaration ||
         e.op == TOK.function_ || e.op == TOK.error ||

@@ -533,6 +533,7 @@ class DsymbolExp;
 class ThisExp;
 class SuperExp;
 class NullExp;
+class UDAItem;
 class ArrayLiteralExp;
 class AssocArrayLiteralExp;
 class StructLiteralExp;
@@ -1107,6 +1108,7 @@ public:
     NullExp* isNullExp();
     StringExp* isStringExp();
     TupleExp* isTupleExp();
+    UDAItem* isUDAItem();
     ArrayLiteralExp* isArrayLiteralExp();
     AssocArrayLiteralExp* isAssocArrayLiteralExp();
     StructLiteralExp* isStructLiteralExp();
@@ -4567,6 +4569,14 @@ public:
     void accept(Visitor* v);
 };
 
+class UDAItem : public Expression
+{
+public:
+    Array<Expression* >* exps;
+    bool parens;
+    void accept(Visitor* v);
+};
+
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
@@ -5818,6 +5828,7 @@ public:
     virtual void visit(typename AST::TemplateExp e);
     virtual void visit(typename AST::SymbolExp e);
     virtual void visit(typename AST::TupleExp e);
+    virtual void visit(typename AST::UDAItem e);
     virtual void visit(typename AST::ThisExp e);
     virtual void visit(typename AST::VarExp e);
     virtual void visit(typename AST::DollarExp e);
@@ -6837,6 +6848,7 @@ public:
     void visit(ArrayExp* e);
     void visit(PostExp* e);
     void visit(CondExp* e);
+    void visit(UDAItem* e);
     void visit(TemplateTypeParameter* tp);
     void visit(TemplateThisParameter* tp);
     void visit(TemplateAliasParameter* tp);

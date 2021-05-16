@@ -289,6 +289,7 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+class UDAItem;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -484,6 +485,7 @@ public:
     virtual void visit(SymbolExp *e) { visit((Expression *)e); }
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
+    virtual void visit(UDAItem *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }

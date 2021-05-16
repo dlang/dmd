@@ -488,6 +488,7 @@ public:
     override void visit(ThisExp) { buf.setsize(0); }
     override void visit(TraitsExp) { buf.setsize(0); }
     override void visit(TupleExp) { buf.setsize(0); }
+    override void visit(UDAItem) { buf.setsize(0); }
     override void visit(TypeExp) { buf.setsize(0); }
     override void visit(TypeidExp) { buf.setsize(0); }
     override void visit(VoidInitExp) { buf.setsize(0); }

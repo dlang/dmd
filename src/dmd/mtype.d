@@ -6518,7 +6518,7 @@ extern (C++) final class TypeTuple : Type
             for (size_t i = 0; i < exps.dim; i++)
             {
                 Expression e = (*exps)[i];
-                if (e.type.ty == Ttuple)
+                if (!e.isUDAItem() && e.type.ty == Ttuple)
                     e.error("cannot form tuple of tuples");
                 auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
                 (*arguments)[i] = arg;

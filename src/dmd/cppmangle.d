@@ -2357,8 +2357,9 @@ private struct ABITagContainer
 
         foreach (exp; *s.userAttribDecl.atts)
         {
-            if (UserAttributeDeclaration.isGNUABITag(exp))
-                return (*exp.isStructLiteralExp().elements)[0]
+            auto e = exp.isUDAItem() ? (cast(UDAItem)exp).exps[0][0] : exp;
+            if (UserAttributeDeclaration.isGNUABITag(e))
+                return (*e.isStructLiteralExp().elements)[0]
                     .isArrayLiteralExp();
         }
         return null;

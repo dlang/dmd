@@ -5398,6 +5398,32 @@ struct ASTBase
         }
     }
 
+    extern (C++) class UDAItem : Expression
+    {
+        Expressions* exps;
+        bool parens;
+
+        extern (D) this(const ref Loc loc, Expression e, bool parens)
+        {
+            super(loc, TOK.at, __traits(classInstanceSize, UDAItem));
+            exps = new Expressions();
+            exps.push(e);
+            this.parens = parens;
+        }
+
+        extern (D) this(const ref Loc loc, Expressions* exps, bool parens)
+        {
+            super(loc, TOK.at, __traits(classInstanceSize, UDAItem));
+            this.exps = exps;
+            this.parens = parens;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class DollarExp : IdentifierExp
     {
         extern (D) this(const ref Loc loc)

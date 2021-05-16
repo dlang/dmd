@@ -101,9 +101,8 @@ void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
     {
         if (m.userAttribDecl)
         {
-            buf.writestring("@(");
+            buf.writestring("@");
             argsToBuffer(m.userAttribDecl.atts, buf, hgs);
-            buf.writeByte(')');
             buf.writenl();
         }
         if (m.md.isdeprecated)
@@ -2156,10 +2155,23 @@ public:
         }
         else
         {
+            if (e.exps && e.exps.dim) {
+                if (auto ue = e.exps[0][0].isUDAItem())
+                    ue.parens = false;
+            }
             buf.writestring("tuple(");
             argsToBuffer(e.exps, buf, hgs);
             buf.writeByte(')');
         }
+    }
+
+    override void visit(UDAItem e)
+    {
+        if (e.parens)
+            buf.writeByte('(');
+        argsToBuffer(e.exps, buf, hgs);
+        if (e.parens)
+            buf.writeByte(')');
     }
 
     override void visit(FuncExp e)
@@ -3083,7 +3095,8 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     {
         buf.writeByte('@');
 
-        bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
+        bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call &&
+                            (*p.userAttribDecl.atts)[0].op != TOK.at;
         if (isAnonymous)
             buf.writeByte('(');
 

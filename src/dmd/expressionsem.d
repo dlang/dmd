@@ -3082,7 +3082,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Expression e = (*exp.exps)[i];
             e = e.expressionSemantic(sc);
-            if (!e.type)
+            if (!e.type && !e.isUDAItem())
             {
                 exp.error("`%s` has no value", e.toChars());
                 err = true;
@@ -3101,6 +3101,38 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.type = exp.type.typeSemantic(exp.loc, sc);
         //printf("-TupleExp::semantic(%s)\n", toChars());
         result = exp;
+    }
+
+    override void visit(UDAItem e)
+    {
+        bool err = false;
+
+        if (e.type)
+        {
+            result = e;
+            return;
+        }
+
+        for (size_t i = 0; i < e.exps.dim; i++)
+        {
+            Expression exp = (*e.exps)[i];
+            exp = exp.expressionSemantic(sc);
+            assert(exp.type);
+            if (exp.op == TOK.error)
+                err = true;
+            else
+                (*e.exps)[i] = exp;
+        }
+
+        if (err)
+            return setError();
+
+        expandTuples(e.exps);
+
+        e.type = new TypeTuple(e.exps);
+        e.type = e.type.typeSemantic(e.loc, sc);
+
+        result = e;
     }
 
     override void visit(ArrayLiteralExp e)

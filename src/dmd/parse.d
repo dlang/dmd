@@ -93,6 +93,7 @@ immutable PREC[TOK.max + 1] precedence =
     TOK.delegateFunctionPointer : PREC.primary,
     TOK.remove : PREC.primary,
     TOK.tuple : PREC.primary,
+    TOK.at : PREC.primary,
     TOK.traits : PREC.primary,
     TOK.default_ : PREC.primary,
     TOK.overloadSet : PREC.primary,
@@ -1447,12 +1448,15 @@ class Parser(AST) : Lexer
      */
     private StorageClass parseAttribute(ref AST.Expressions* udas)
     {
+        const Loc udastart = token.loc;
         nextToken();
         if (token.value == TOK.identifier)
         {
             // If we find a builtin attribute, we're done, return immediately.
             if (StorageClass stc = isBuiltinAtAttribute(token.ident))
                 return stc;
+
+            bool parens = true;
 
             // Allow identifier, template instantiation, or function call
             // for `@Argument` (single UDA) form.
@@ -1461,11 +1465,12 @@ class Parser(AST) : Lexer
             {
                 const loc = token.loc;
                 exp = new AST.CallExp(loc, exp, parseArguments());
+                parens = false;
             }
 
             if (udas is null)
                 udas = new AST.Expressions();
-            udas.push(exp);
+            udas.push(new AST.UDAItem(udastart, exp, parens));
             return 0;
         }
 
@@ -1474,7 +1479,9 @@ class Parser(AST) : Lexer
             // Multi-UDAs ( `@( ArgumentList )`) form, concatenate with existing
             if (peekNext() == TOK.rightParenthesis)
                 error("empty attribute list is not allowed");
-            udas = AST.UserAttributeDeclaration.concat(udas, parseArguments());
+            AST.Expressions* exps = new AST.Expressions();
+            exps.push(new AST.UDAItem(udastart, parseArguments(), true));
+            udas = AST.UserAttributeDeclaration.concat(udas, exps);
             return 0;
         }
 

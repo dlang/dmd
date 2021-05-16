@@ -562,6 +562,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(UserAttributeDeclaration uad)
     {
+        if (uad.semanticRun >= PASS.semantic2)
+            return;
+        uad.semanticRun = PASS.semantic2;
         if (uad.decl && uad.atts && uad.atts.dim && uad._scope)
         {
             Expression* lastTag;
@@ -579,6 +582,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
                             TupleExp te = cast(TupleExp)e;
                             eval(sc, te.exps, lastTag);
                         }
+                        if (e.op == TOK.at)
+                        {
+                            UDAItem te = cast(UDAItem)e;
+                            eval(sc, te.exps, lastTag);
+                        }
 
                         // Handles compiler-recognized `core.attribute.gnuAbiTag`
                         if (UserAttributeDeclaration.isGNUABITag(e))
@@ -591,6 +599,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             eval(sc, uad.atts, lastTag);
         }
         visit(cast(AttribDeclaration)uad);
+        uad.semanticRun = PASS.semantic2done;
     }
 
     override void visit(AggregateDeclaration ad)
