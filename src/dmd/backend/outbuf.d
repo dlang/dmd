@@ -262,6 +262,40 @@ struct Outbuffer
     }
 
     /**
+     * Inserts string at beginning of buffer.
+     */
+    @trusted
+    void prependBytes(const(char)* s)
+    {
+        prepend(s, strlen(s));
+    }
+
+    /**
+     * Inserts bytes at beginning of buffer.
+     */
+    @trusted
+    void prepend(const(void)* b, size_t len)
+    {
+        reserve(len);
+        memmove(buf + len,buf,p - buf);
+        memcpy(buf,b,len);
+        p += len;
+    }
+
+    /**
+     * Bracket buffer contents with c1 and c2.
+     */
+    @trusted
+    void bracket(char c1,char c2)
+    {
+        reserve(2);
+        memmove(buf + 1,buf,p - buf);
+        buf[0] = c1;
+        p[1] = c2;
+        p += 2;
+    }
+
+    /**
      * Returns the number of bytes written.
      */
     size_t length() const @safe pure nothrow @nogc
