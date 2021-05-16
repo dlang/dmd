@@ -137,7 +137,9 @@ if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
     # CodeCov gets confused by lst files which it can't match
     rm -rf test/runnable/extra-files test/*.lst
     download "https://codecov.io/bash" "codecov.sh"
-    bash ./codecov.sh -p . -Z
+    git fetch origin $SYSTEM_PULLREQUEST_TARGETBRANCH
+    TAG=$(git rev-parse origin/$SYSTEM_PULLREQUEST_TARGETBRANCH)
+    bash ./codecov.sh -p . -Z -C "$TAG"
     rm codecov.sh
 
     # Skip druntime & phobos tests
