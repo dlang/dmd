@@ -5770,6 +5770,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(BinAssignExp exp)
     {
+        //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier || exp.e1.op == TOK.call)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1 = SemanticProp(exp,sc);
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
+        }
         if (exp.type)
         {
             result = exp;
@@ -9664,6 +9675,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1 = SemanticProp(exp,sc);
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
+        }
+
         Expression e = exp.op_overload(sc);
         if (e)
         {
@@ -9747,7 +9769,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return;
         }
-
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1 = SemanticProp(exp,sc);
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
+        }
         //printf("CatAssignExp::semantic() %s\n", exp.toChars());
         Expression e = exp.op_overload(sc);
         if (e)
@@ -11822,7 +11853,7 @@ Expression SemanticProp(BinAssignExp e, Scope* sc)
                 auto e1_dotId = cast(DotIdExp)e1;
                 noLambda = e1_dotId.e1.op == TOK.type;
             }
-            else if (e1.op == TOK.identifier)
+            else if (e1.op == TOK.identifier || e1.op == TOK.call)
             {
                 noLambda = true;
             }
