@@ -409,22 +409,22 @@ private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(cha
     const p = loc.toChars();
     scope(exit) mem.xfree(cast(void*)p);
 
-    if(con)
+    if (con)
         con.setColorBright(true);
-    if(p)
+    if (p)
         fputs(p, stderr);
     fputs(": ", stderr);
-    if(header)
+    if (header)
     {
-        if(con)
+        if (con)
             con.setColor(headerColor);
         fputs(header, stderr);
-        if(con)
+        if (con)
             con.resetColor();
     }
 
     static foreach(arg; args)
-        verrorPrintFragment(&buf, p, arg);
+        verrorPrintFragment(p, &buf, arg);
 
     if (con && strchr(buf.peekChars(), '`'))
     {
@@ -439,16 +439,16 @@ private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(cha
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
-private void verrorPrintFragment(T)(OutBuffer* buf, const(char*) locChars, T value)
+private void verrorPrintFragment(T)(const(char*) locChars, OutBuffer* buf, T value)
 {   
     // Makes a new line and prefixes it with the location info, and some indentation.
     void makeNewLine(uint indent)
     {
         buf.writeByte('\n');
-        if(locChars)
+        if (locChars)
             buf.writestring(locChars);
         buf.writestring(": ");
-        foreach(i; 0..indent)
+        foreach (i; 0..indent)
             buf.writestring("    ");
     }
 
@@ -457,7 +457,7 @@ private void verrorPrintFragment(T)(OutBuffer* buf, const(char*) locChars, T val
 
     static if (is(T == const(char)*)) // Strings are placed as-is, no new lines or anything.
         buf.writestring(value);
-    else static if(is(T == string))
+    else static if (is(T == string))
         buf.writestring(value.ptr); // TODO: See what DMD provides for D -> C string conversion as this isn't safe.
     else static if (isInstanceOf!(MsgIndentedLine, T)) // New line + indent, or same line without indent.
     {
