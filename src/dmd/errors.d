@@ -451,10 +451,8 @@ private void verrorPrintFragment(T)(const(char*) locChars, OutBuffer* buf, T val
             buf.writestring("    ");
     }
 
-    static if (is(T == const(char)*)) // Strings are placed as-is, no new lines or anything.
+    static if (is(T == const(char)*) || is(T == string)) // Strings are placed as-is, no new lines or anything.
         buf.writestring(value);
-    else static if (is(T == string))
-        buf.writestring(value.ptr); // TODO: See what DMD provides for D -> C string conversion as this isn't safe.
     else static if (is(T == MsgIndentedLine)) // New line + indent, or same line without indent.
     {
         if(global.params.formatLevel >= value.formatLevel)
