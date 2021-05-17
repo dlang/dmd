@@ -3794,20 +3794,23 @@ private void _doPostblit(T)(T[] arr)
     static struct Sunpure { this(this) @safe nothrow {} }
     static struct Sthrow { this(this) @safe pure {} }
     static struct Sunsafe { this(this) @system pure nothrow {} }
+    static struct Snocopy { @disable this(this); }
 
-    static assert( __traits(compiles, ()         { [].dup!Sunpure; }));
+    [].dup!Sunpure;
+    [].dup!Sthrow;
+    [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].dup!Sunsafe; }));
     static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, ()         { [].dup!Snocopy; }));
 
-    static assert( __traits(compiles, ()         { [].idup!Sunpure; }));
+    [].idup!Sunpure;
+    [].idup!Sthrow;
+    [].idup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].idup!Sthrow; }));
     static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].idup!Sunsafe; }));
     static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
+    static assert(!__traits(compiles, ()         { [].idup!Snocopy; }));
 }
 
 @safe unittest
@@ -3844,11 +3847,11 @@ private void _doPostblit(T)(T[] arr)
     static struct Sunpure { this(ref const typeof(this)) @safe nothrow {} }
     static struct Sthrow { this(ref const typeof(this)) @safe pure {} }
     static struct Sunsafe { this(ref const typeof(this)) @system pure nothrow {} }
-    static assert( __traits(compiles, ()         { [].dup!Sunpure; }));
+    [].dup!Sunpure;
+    [].dup!Sthrow;
+    [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].dup!Sunsafe; }));
     static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
 
     // for idup to work on structs that have copy constructors, it is necessary
@@ -3856,11 +3859,11 @@ private void _doPostblit(T)(T[] arr)
     static struct ISunpure { this(ref const typeof(this)) immutable @safe nothrow {} }
     static struct ISthrow { this(ref const typeof(this)) immutable @safe pure {} }
     static struct ISunsafe { this(ref const typeof(this)) immutable @system pure nothrow {} }
-    static assert( __traits(compiles, ()         { [].idup!ISunpure; }));
+    [].idup!ISunpure;
+    [].idup!ISthrow;
+    [].idup!ISunsafe;
     static assert(!__traits(compiles, () pure    { [].idup!ISunpure; }));
-    static assert( __traits(compiles, ()         { [].idup!ISthrow; }));
     static assert(!__traits(compiles, () nothrow { [].idup!ISthrow; }));
-    static assert( __traits(compiles, ()         { [].idup!ISunsafe; }));
     static assert(!__traits(compiles, () @safe   { [].idup!ISunsafe; }));
 }
 
