@@ -7097,6 +7097,9 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
         s1 = t1.toPrettyChars(true);
         s2 = t2.toPrettyChars(true);
     }
+
+    printf("toChars:\n\t%s\ntoPretty:\n\t%s\n", t1.toChars(), t1.toPrettyChars(true));
+    printf("toChars:\n\t%s\ntoPretty:\n\t%s\n", t2.toChars(), t2.toPrettyChars(true));
     return [s1, s2];
 }
 

@@ -1499,7 +1499,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             continue;
         }
 
-        if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
+        if(arg == "-ml1")
+            params.messageLevel = 1;
+        else if(arg == "-ml2")
+            params.messageLevel = 2;
+        else if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
             params.useDeprecated = DiagnosticReporting.error;
