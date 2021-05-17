@@ -3435,11 +3435,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     static assert(is(T : Unconst!T), "Cannot implicitly convert type "~T.stringof~
                   " to "~Unconst!T.stringof~" in dup.");
 
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(T, Unconst!T)(a);
-    else
-        return _dup!(T, Unconst!T)(a);
+    return _dup!(T, Unconst!T)(a);
 }
 
 ///
@@ -3457,11 +3453,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 @property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(const(T), T)(a);
-    else
-        return _dup!(const(T), T)(a);
+    return _dup!(const(T), T)(a);
 }
 
 
@@ -3470,12 +3462,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
-
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(T, immutable(T))(a);
-    else
-        return _dup!(T, immutable(T))(a);
+    return _dup!(T, immutable(T))(a);
 }
 
 /// ditto
@@ -3491,11 +3478,6 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     string s = arr.idup;
     arr[0] = '.';
     assert(s == "abc");
-}
-
-private U[] _trustedDup(T, U)(T[] a) @trusted
-{
-    return _dup!(T, U)(a);
 }
 
 private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
@@ -3515,9 +3497,11 @@ private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
 
     import core.stdc.string : memcpy;
 
-    void[] arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
-    auto res = *cast(U[]*)&arr;
+    U[] res = () @trusted {
+        void[] arr = _d_newarrayU(typeid(T[]), a.length);
+        memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
+        return *cast(U[]*)&arr;
+    } ();
 
     static if (__traits(hasPostblit, T))
         _doPostblit(res);
