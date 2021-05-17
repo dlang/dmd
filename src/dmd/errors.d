@@ -35,17 +35,16 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
-struct MsgIndentedLine(uint IndentLevel_, uint FormatLevel_ = 1)
+struct MsgIndentedLine
 {
-    /// Forwarded for introspection.
-    enum FormatLevel = FormatLevel_;
-    enum IndentLevel = IndentLevel_;
     const(char)* text;
+    uint indentLevel;
+    uint formatLevel;
 }
 
 auto indentMsgLine(uint IndentLevel, uint FormatLevel = 1)(const(char)* text)
 {
-    return MsgIndentedLine!(IndentLevel, FormatLevel)(text);
+    return MsgIndentedLine(text, IndentLevel, FormatLevel);
 }
 
 static if (__VERSION__ < 2092)
@@ -452,17 +451,14 @@ private void verrorPrintFragment(T)(const(char*) locChars, OutBuffer* buf, T val
             buf.writestring("    ");
     }
 
-    // Should this be put somewhere else?
-    enum isInstanceOf(alias Template, alias Concrete) = is(Concrete == Template!Args, Args...);
-
     static if (is(T == const(char)*)) // Strings are placed as-is, no new lines or anything.
         buf.writestring(value);
     else static if (is(T == string))
         buf.writestring(value.ptr); // TODO: See what DMD provides for D -> C string conversion as this isn't safe.
-    else static if (isInstanceOf!(MsgIndentedLine, T)) // New line + indent, or same line without indent.
+    else static if (is(T == MsgIndentedLine)) // New line + indent, or same line without indent.
     {
-        if(global.params.formatLevel >= value.FormatLevel)
-            makeNewLine(value.IndentLevel);
+        if(global.params.formatLevel >= value.formatLevel)
+            makeNewLine(value.indentLevel);
         else
             buf.writeByte(' ');
         buf.writestring(value.text);
