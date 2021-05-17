@@ -20,15 +20,14 @@ version (DRuntime_Use_Libunwind):
 
 import core.internal.backtrace.dwarf;
 import core.internal.backtrace.libunwind;
+import core.stdc.string;
+import core.sys.posix.dlfcn;
 
 /// Ditto
 class LibunwindHandler : Throwable.TraceInfo
 {
     private static struct FrameInfo
     {
-        char[1024] buff = void;
-
-        const(char)[] name;
         const(void)* address;
     }
 
@@ -62,13 +61,6 @@ class LibunwindHandler : Throwable.TraceInfo
         unw_proc_info_t pip = void;
         foreach (idx, ref frame; this.callstack)
         {
-            if (int r = unw_get_proc_name(
-                    &cursor, frame.buff.ptr, frame.buff.length,
-                    cast(unw_word_t*) &frame.address))
-                frame.name = "<ERROR: Unable to retrieve function name>";
-            else
-                frame.name = frame.buff[0 .. strlen(frame.buff.ptr)];
-
             if (unw_get_proc_info(&cursor, &pip) == 0)
                 frame.address += pip.start_ip;
 
@@ -87,9 +79,32 @@ class LibunwindHandler : Throwable.TraceInfo
     ///
     override int opApply (scope int delegate(ref size_t, ref const(char[])) dg) const
     {
+        // https://code.woboq.org/userspace/glibc/debug/backtracesyms.c.html
+        // The logic that glibc's backtrace use is to check for for `dli_fname`,
+        // the file name, and error if not present, then check for `dli_sname`.
+        // In case `dli_fname` is present but not `dli_sname`, the address is
+        // printed related to the file. We just print the file.
+        static const(char)[] getFrameName (const(void)* ptr)
+        {
+            Dl_info info = void;
+            if (dladdr(ptr, &info))
+            {
+                // Return symbol name if possible
+                if (info.dli_sname !is null && info.dli_sname[0] != '\0')
+                    return info.dli_sname[0 .. strlen(info.dli_sname)];
+
+                // Fall back to file name
+                if (info.dli_fname !is null && info.dli_fname[0] != '\0')
+                    return info.dli_fname[0 .. strlen(info.dli_fname)];
+            }
+
+            // `dladdr` failed
+            return "<ERROR: Unable to retrieve function name>";
+        }
+
         return traceHandlerOpApplyImpl(numframes,
             i => callstack[i].address,
-            i => callstack[i].name,
+            i => getFrameName(callstack[i].address),
             dg);
     }
 
@@ -110,8 +125,8 @@ class LibunwindHandler : Throwable.TraceInfo
 Throwable.TraceInfo defaultTraceHandler (void* ptr = null)
 {
     // avoid recursive GC calls in finalizer, trace handlers should be made @nogc instead
-    import core.memory : gc_inFinalizer;
-    if (gc_inFinalizer)
+    import core.memory : GC;
+    if (GC.inFinalizer)
         return null;
 
     return new LibunwindHandler();
