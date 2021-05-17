@@ -42,6 +42,7 @@ else
     pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
 
 
+
 package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
     if (featureState == FeatureState.enabled)
@@ -351,7 +352,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     if (*p)
     {
         fprintf(stderr, "%s: ", p);
-        mem.xfree(cast(void*)p);
+        //mem.xfree(cast(void*)p);
     }
     if (con)
         con.setColor(headerColor);
@@ -369,7 +370,46 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         tmp.writestring(p2);
         tmp.writestring(" ");
     }
-    tmp.vprintf(format, ap);
+    
+    if(global.params.messageLevel >= 2)
+    {
+        OutBuffer tmptmp;
+        tmptmp.vprintf(format, ap);
+
+        const tmplen = strlen(tmptmp.peekChars());
+        size_t indent = header ? (strlen(header) / 4) + 1 : 1;
+        foreach(i, ch; tmptmp.peekChars()[0..tmplen])
+        {
+            switch(ch)
+            {
+                case '(':
+                    tmp.writeByte(ch);
+                    tmp.writeByte('\n');
+                    indent++;
+                    tmp.writestring(p);
+                    tmp.writeByte(':');
+                    tmp.writeByte(' ');
+                    foreach(_;0..indent) tmp.writeByte('\t');
+                    break;
+
+                case ')':
+                    tmp.writeByte('\n');
+                    indent--;
+                    tmp.writestring(p);
+                    tmp.writeByte(':');
+                    tmp.writeByte(' ');
+                    foreach(_;0..indent) tmp.writeByte('\t');
+                    tmp.writeByte(ch);
+                    break;
+
+                default:
+                    tmp.writeByte(ch);
+                    break;
+            }
+        }
+    }
+    else
+        tmp.vprintf(format, ap);
 
     if (con && strchr(tmp.peekChars(), '`'))
     {

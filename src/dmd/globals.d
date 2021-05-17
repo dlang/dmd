@@ -259,6 +259,8 @@ extern (C++) struct Param
     const(char)[] resfile;
     const(char)[] exefile;
     const(char)[] mapfile;
+
+    uint messageLevel;
 }
 
 alias structalign_t = uint;

@@ -9035,7 +9035,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             auto newExp = cast(NewExp)(exp.e2);
                             if (newExp.newtype && newExp.newtype == t1)
                             {
-                                error(exp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                                error(exp.loc, "HHERE3 cannot implicitly convert expression `%s` of type `%s` to `%s`",
                                       newExp.toChars(), newExp.type.toChars(), t1.toChars());
                                 errorSupplemental(exp.loc, "Perhaps remove the `new` keyword?");
                                 return setError();
