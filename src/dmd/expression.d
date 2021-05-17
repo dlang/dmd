@@ -733,25 +733,6 @@ extern (C++) abstract class Expression : ASTNode
         return buf.extractChars();
     }
 
-    final void errorNoImplicitConvert(Type t)
-    {
-        auto ts = toAutoQualChars(this.type, t);
-        switch(global.params.messageLevel)
-        {
-            case 1:..case 2:
-                error("cannot implicitly convert expression `%s` of type", toChars());
-                errorSupplemental("\t`%s`", ts[0]);
-                errorSupplemental("to");
-                errorSupplemental("\t`%s`", ts[1]);
-                break;
-
-            default:
-                error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
-                    toChars(), ts[0], ts[1]);
-                break;
-        }
-    }
-
     static if (__VERSION__ < 2092)
     {
         final void error(const(char)* format, ...) const
@@ -4037,7 +4018,7 @@ extern (C++) final class FuncExp : Expression
         else if (!flag)
         {
             auto ts = toAutoQualChars(tx, to);
-            error("HERE 2 cannot implicitly convert expression `%s` of type `%s` to `%s`",
+            error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
                 toChars(), ts[0], ts[1]);
         }
         return m;
