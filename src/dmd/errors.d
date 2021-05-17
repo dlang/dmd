@@ -403,7 +403,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
 
 private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(char*) header, T args)
 {
-    OutBuffer buffer;
+    OutBuffer buf;
 
     Console* con = cast(Console*)global.console;
     const p = loc.toChars();
@@ -411,28 +411,9 @@ private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(cha
 
     if(con)
         con.setColorBright(true);
-
-    // Makes a new line and prefixes it with the location info, and some indentation.
-    void makeNewLine(uint indent, bool isFirstLine = false)
-    {
-        if(!isFirstLine)
-            buffer.writeByte('\n');
-        if(p)
-        {
-            buffer.writestring(p);
-            buffer.writestring(": ");
-
-            foreach(i; 0..indent)
-                buffer.writestring("    ");
-        }
-        if(isFirstLine)
-        {
-            fputs(buffer.peekChars(), stderr); // So we can output the header in colour.
-            buffer.reset();
-        }
-    }
-    makeNewLine(0, true);
-
+    if(p)
+        fputs(p, stderr);
+    fputs(": ", stderr);
     if(header)
     {
         if(con)
@@ -442,40 +423,52 @@ private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(cha
             con.resetColor();
     }
 
-    // Should this be put somewhere else?
-    enum isInstanceOf(alias Template, alias Concrete) = is(Concrete == Template!Args, Args...);
-
     static foreach(arg; args)
-    {{
-        alias ArgT = typeof(arg);
+        verrorPrintFragment(&buf, p, arg);
 
-        static if (is(ArgT == const(char)*)) // Strings are placed as-is, no new lines or anything.
-            buffer.writestring(arg);
-        else static if(is(ArgT == string))
-            buffer.writestring(arg.ptr); // TODO: See what DMD provides for D -> C string conversion as this isn't safe.
-        else static if (isInstanceOf!(MsgIndentedLine, ArgT)) // New line + indent, or same line without indent.
-        {
-            if(global.params.formatLevel >= arg.FormatLevel)
-                makeNewLine(arg.IndentLevel);
-            else
-                buffer.writeByte(' ');
-            buffer.writestring(arg.text);
-        }
-        else
-            static assert(false, "I don't know how to handle type: "~ArgT.stringof);
-    }}
-
-    if (con && strchr(buffer.peekChars(), '`'))
+    if (con && strchr(buf.peekChars(), '`'))
     {
-        colorSyntaxHighlight(buffer);
-        writeHighlights(con, buffer);
+        colorSyntaxHighlight(buf);
+        writeHighlights(con, buf);
     }
     else
-        fputs(buffer.peekChars(), stderr);
+        fputs(buf.peekChars(), stderr);
 
     fputc('\n', stderr);
     verrorPrintContext(loc);
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
+
+private void verrorPrintFragment(T)(OutBuffer* buf, const(char*) locChars, T value)
+{   
+    // Makes a new line and prefixes it with the location info, and some indentation.
+    void makeNewLine(uint indent)
+    {
+        buf.writeByte('\n');
+        if(locChars)
+            buf.writestring(locChars);
+        buf.writestring(": ");
+        foreach(i; 0..indent)
+            buf.writestring("    ");
+    }
+
+    // Should this be put somewhere else?
+    enum isInstanceOf(alias Template, alias Concrete) = is(Concrete == Template!Args, Args...);
+
+    static if (is(T == const(char)*)) // Strings are placed as-is, no new lines or anything.
+        buf.writestring(value);
+    else static if(is(T == string))
+        buf.writestring(value.ptr); // TODO: See what DMD provides for D -> C string conversion as this isn't safe.
+    else static if (isInstanceOf!(MsgIndentedLine, T)) // New line + indent, or same line without indent.
+    {
+        if(global.params.formatLevel >= value.FormatLevel)
+            makeNewLine(value.IndentLevel);
+        else
+            buf.writeByte(' ');
+        buf.writestring(value.text);
+    }
+    else
+        static assert(false, "I don't know how to handle type: "~T.stringof);
 }
 
 private void verrorPrintContext(const ref Loc loc)
