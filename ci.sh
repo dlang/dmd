@@ -215,7 +215,7 @@ codecov()
     rm -rf test/runnable/extra-files test/*.lst
     curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 \
         --retry 5 --retry-delay 5 "https://codecov.io/bash" -o "codecov.sh"
-    bash ./codecov.sh -p . -Z -C "$CIRRUS_BASE_SHA"
+    bash ./codecov.sh -p . -Z -v
     rm codecov.sh
 }
 
