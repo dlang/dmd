@@ -35,6 +35,18 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
+struct MsgIndentedLine(uint IndentLevel_, uint FormatLevel_ = 1)
+{
+    /// Forwarded for introspection.
+    enum FormatLevel = FormatLevel_;
+    enum IndentLevel = IndentLevel_;
+    const(char)* text;
+}
+
+auto indentMsgLine(uint IndentLevel, uint FormatLevel = 1)(const(char)* text)
+{
+    return MsgIndentedLine!(IndentLevel, FormatLevel)(text);
+}
 
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
@@ -114,6 +126,12 @@ else
         verror(loc, format, ap);
         va_end(ap);
     }
+
+void errorEx(T...)(const ref Loc loc, T args)
+{
+    global.errors++;
+    verrorPrintEx(loc, Classification.error, "Error: ", args);
+}
 
 /**
  * Print additional details about an error message.
@@ -379,7 +397,89 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     else
         fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
+    verrorPrintContext(loc);
+    fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
 
+private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(char*) header, T args)
+{
+    OutBuffer buffer;
+
+    Console* con = cast(Console*)global.console;
+    const p = loc.toChars();
+    scope(exit) mem.xfree(cast(void*)p);
+
+    if(con)
+        con.setColorBright(true);
+
+    // Makes a new line and prefixes it with the location info, and some indentation.
+    void makeNewLine(uint indent, bool isFirstLine = false)
+    {
+        if(!isFirstLine)
+            buffer.writeByte('\n');
+        if(p)
+        {
+            buffer.writestring(p);
+            buffer.writestring(": ");
+
+            foreach(i; 0..indent)
+                buffer.writestring("    ");
+        }
+        if(isFirstLine)
+        {
+            fputs(buffer.peekChars(), stderr); // So we can output the header in colour.
+            buffer.reset();
+        }
+    }
+    makeNewLine(0, true);
+
+    if(header)
+    {
+        if(con)
+            con.setColor(headerColor);
+        fputs(header, stderr);
+        if(con)
+            con.resetColor();
+    }
+
+    // Should this be put somewhere else?
+    enum isInstanceOf(alias Template, alias Concrete) = is(Concrete == Template!Args, Args...);
+
+    static foreach(arg; args)
+    {{
+        alias ArgT = typeof(arg);
+
+        static if (is(ArgT == const(char)*)) // Strings are placed as-is, no new lines or anything.
+            buffer.writestring(arg);
+        else static if(is(ArgT == string))
+            buffer.writestring(arg.ptr); // TODO: See what DMD provides for D -> C string conversion as this isn't safe.
+        else static if (isInstanceOf!(MsgIndentedLine, ArgT)) // New line + indent, or same line without indent.
+        {
+            if(global.params.formatLevel >= arg.FormatLevel)
+                makeNewLine(arg.IndentLevel);
+            else
+                buffer.writeByte(' ');
+            buffer.writestring(arg.text);
+        }
+        else
+            static assert(false, "I don't know how to handle type: "~ArgT.stringof);
+    }}
+
+    if (con && strchr(buffer.peekChars(), '`'))
+    {
+        colorSyntaxHighlight(buffer);
+        writeHighlights(con, buffer);
+    }
+    else
+        fputs(buffer.peekChars(), stderr);
+
+    fputc('\n', stderr);
+    verrorPrintContext(loc);
+    fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
+
+private void verrorPrintContext(const ref Loc loc)
+{
     if (global.params.printErrorContext &&
         // ignore invalid files
         loc != Loc.initial &&
@@ -413,7 +513,6 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
-    fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
 /**
