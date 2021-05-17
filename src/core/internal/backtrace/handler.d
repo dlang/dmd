@@ -110,8 +110,8 @@ class LibunwindHandler : Throwable.TraceInfo
 Throwable.TraceInfo defaultTraceHandler (void* ptr = null)
 {
     // avoid recursive GC calls in finalizer, trace handlers should be made @nogc instead
-    import core.memory : gc_inFinalizer;
-    if (gc_inFinalizer)
+    import core.memory : GC;
+    if (GC.inFinalizer)
         return null;
 
     return new LibunwindHandler();
