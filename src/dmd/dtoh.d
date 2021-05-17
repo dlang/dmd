@@ -1299,10 +1299,7 @@ public:
                         if (!first)
                         {
                             buf.writestring(" = ");
-                            if (vd._init && !vd._init.isVoidInitializer())
-                                printExpressionFor(vd.type, AST.initializerToExpression(vd._init));
-                            else
-                                printExpressionFor(vd.type, vd.type.defaultInitLiteral(Loc.initial));
+                            printExpressionFor(vd.type, findDefaultInitializer(vd));
                         }
                         first = false;
                     }
@@ -2682,15 +2679,36 @@ public:
             printf("[AST.StructLiteralExp enter] %s\n", sle.toChars());
             scope(exit) printf("[AST.StructLiteralExp exit] %s\n", sle.toChars());
         }
+        const isUnion = sle.sd.isUnionDeclaration();
         sle.sd.type.accept(this);
         buf.writeByte('(');
         foreach(i, e; *sle.elements)
         {
             if (i)
                 buf.writestring(", ");
-            printExpressionFor(sle.sd.fields[i].type, e);
+
+            auto vd = sle.sd.fields[i];
+
+            // Expression may be null for unspecified elements
+            if (!e)
+                e = findDefaultInitializer(vd);
+
+            printExpressionFor(vd.type, e);
+
+            // Only emit the initializer of the first union member
+            if (isUnion)
+                break;
         }
         buf.writeByte(')');
+    }
+
+    /// Finds the default initializer for the given VarDeclaration
+    private static AST.Expression findDefaultInitializer(AST.VarDeclaration vd)
+    {
+        if (vd._init && !vd._init.isVoidInitializer())
+            return AST.initializerToExpression(vd._init);
+        else
+            return vd.type.defaultInitLiteral(Loc.initial);
     }
 
     static if (__VERSION__ < 2092)
