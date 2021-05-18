@@ -377,7 +377,7 @@ private string miniFormat(V)(const scope ref V v)
 import core.atomic : atomicLoad;
 
 // Inverts a comparison token for use in _d_assert_fail
-private string invertCompToken(string comp) pure nothrow @nogc @safe
+private string invertCompToken(scope string comp) pure nothrow @nogc @safe
 {
     switch (comp)
     {
@@ -402,7 +402,7 @@ private string invertCompToken(string comp) pure nothrow @nogc @safe
         case "!in":
             return "in";
         default:
-            assert(0, combine(["Invalid comparison operator"], "-", [comp]));
+            assert(0, combine(["Invalid comparison operator '"], comp, ["'"]));
     }
 }
 
