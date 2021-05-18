@@ -35,13 +35,35 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
+/**
+ * See: `indentMsgLine`
+ */
 struct MsgIndentedLine
 {
     const(char)* text;
-    uint indentLevel;
-    uint formatLevel;
+    uint indentLevel; /// how many levels of indentation to apply
+    uint formatLevel; /// minimum format level to apply indentation at
 }
 
+/**
+ * This function is used in conjunction with `errorEx`.
+ *
+ * Produces a fragment that, if the user-specifed format level is at minimum the given `FormatLevel`,
+ * then the provided `text` is put onto its own line with `IndentLevel` amount of indentation.
+ *
+ * If the user-specified format level is smaller than the `FormatLevel`, then `text` is printed as-is, with a single space
+ * prefixing it, so there's no need to manually perform prefixing.
+ *
+ * This function is a template purely for aesthetics when calling it, there is no further technical reason. 
+ *
+ * Params:
+ *  IndentLevel = The indentation level to use, if allowed by the format level.
+ *  FormatLevel = The format level, at minimum, to perform the new line + indentation.
+ *  text        = The text to display.
+ *
+ * Returns:
+ *  A `MsgIndentedLine`.
+ */
 auto indentMsgLine(uint IndentLevel, uint FormatLevel = 1)(const(char)* text)
 {
     return MsgIndentedLine(text, IndentLevel, FormatLevel);
@@ -126,6 +148,22 @@ else
         va_end(ap);
     }
 
+/**
+ * Prints an error message, increasing the global error count.
+ *
+ * Unlike the `error` function, the `errorEx` function is used alongside fragment producing
+ * functions such as `indentMsgLine`, which can dynamically style error messages depending on
+ * what the format level (`-vformat-level`) was specified by the user.
+ *
+ * This function accepts:
+ *      * `const(char)*`, printed as-is.
+ *      * `string`, printed as-is.
+ *      * `MsgIndentedLine`, see: `indentMsgLine`.
+ *
+ * Params:
+ *      loc  = The location of the error.
+ *      args = Any number of accepted value types, to be printed in the same order as provided.
+ */
 void errorEx(T...)(const ref Loc loc, T args)
 {
     global.errors++;    
@@ -465,7 +503,7 @@ private void verrorPrintFragment(T)(const(char*) locChars, OutBuffer* buf, T val
 
     static if (is(T == const(char)*) || is(T == string)) // Strings are placed as-is, no new lines or anything.
         buf.writestring(value);
-    else static if (is(T == MsgIndentedLine)) // New line + indent, or same line without indent.
+    else static if (is(T == MsgIndentedLine)) // New line + indent, or same line with a single space prefix for ease of use.
     {
         if(global.params.formatLevel >= value.formatLevel)
             makeNewLine(value.indentLevel);
