@@ -1144,7 +1144,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 if (se2.e1.op == TOK.string_ && !se2.lwr)
                     e.e2 = se2.e1;
             }
-            ret = Cat(e.type, e.e1, e.e2).copy();
+            ret = Cat(e.loc, e.type, e.e1, e.e2).copy();
             if (CTFEExp.isCantExp(ret))
                 ret = e;
         }

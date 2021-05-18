@@ -1510,7 +1510,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).copy());
         return ue;
     }
-    ue = Cat(type, e1, e2);
+    ue = Cat(loc, type, e1, e2);
     return ue;
 }
 
