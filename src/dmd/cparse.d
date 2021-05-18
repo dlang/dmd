@@ -436,7 +436,7 @@ final class CParser(AST) : Parser!AST
         {
 
             nextToken();
-            auto exp = parseAssignExp();
+            auto exp = cparseAssignExp();
             check(TOK.colon);
 
             if (flags & ParseStatementFlags.curlyScope)
@@ -2324,7 +2324,7 @@ final class CParser(AST) : Parser!AST
         auto arguments = new AST.Expressions();
         while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
         {
-            auto arg = parseAssignExp();
+            auto arg = cparseAssignExp();
             arguments.push(arg);
             if (token.value != TOK.comma)
                 break;
