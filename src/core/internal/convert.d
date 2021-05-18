@@ -783,7 +783,7 @@ nothrow pure @safe unittest
     enum Month : uint { jan = 1}
     Month m = Month.jan;
     const bytes = toUbyte(m);
-    enum ctfe_works = (() => { Month x = Month.jan; return toUbyte(x).length > 0; })();
+    enum ctfe_works = (() { Month x = Month.jan; return toUbyte(x).length > 0; })();
 }
 
 @trusted pure nothrow @nogc
