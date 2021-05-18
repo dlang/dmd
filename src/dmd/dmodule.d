@@ -545,7 +545,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape* escapetable;        // document comment escapes
+    Escape* _escapetable;       // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -583,7 +583,6 @@ extern (C++) final class Module : Package
             setDocfile();
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, hdr_ext);
-        escapetable = new Escape();
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -1564,6 +1563,16 @@ extern (C++) final class Module : Package
             buf.prependstring(".");
             buf.prependstring(package_.ident.toChars());
         }
+    }
+
+    /** Lazily initializes and returns the escape table.
+    Turns out it eats a lot of memory.
+    */
+    extern(D) Escape* escapetable()
+    {
+        if (!_escapetable)
+            _escapetable = new Escape();
+        return _escapetable;
     }
 }
 
