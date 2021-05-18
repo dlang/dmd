@@ -59,9 +59,9 @@ struct TargetC
         UClibc,
         WASI,
     };
-    unsigned longsize;            // size of a C 'long' or 'unsigned long' type
-    unsigned long_doublesize;     // size of a C 'long double'
-    unsigned wchar_tsize;         // size of a C 'wchar_t' type
+    uint8_t longsize;            // size of a C 'long' or 'unsigned long' type
+    uint8_t long_doublesize;     // size of a C 'long double'
+    uint8_t wchar_tsize;         // size of a C 'wchar_t' type
     Runtime runtime;
 };
 
@@ -120,11 +120,11 @@ struct Target
 
     OS os;
     // D ABI
-    unsigned ptrsize;
-    unsigned realsize;           // size a real consumes in memory
-    unsigned realpad;            // 'padding' added to the CPU real size to bring it up to realsize
-    unsigned realalignsize;      // alignment for reals
-    unsigned classinfosize;      // size of 'ClassInfo'
+    uint8_t ptrsize;
+    uint8_t realsize;           // size a real consumes in memory
+    uint8_t realpad;            // 'padding' added to the CPU real size to bring it up to realsize
+    uint8_t realalignsize;      // alignment for reals
+    uint8_t classinfosize;      // size of 'ClassInfo'
     unsigned long long maxStaticDataSize;  // maximum size of static data
 
     // C ABI

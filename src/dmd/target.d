@@ -122,11 +122,11 @@ extern (C++) struct Target
     OS os = defaultTargetOS();
 
     // D ABI
-    uint ptrsize;             /// size of a pointer in bytes
-    uint realsize;            /// size a real consumes in memory
-    uint realpad;             /// padding added to the CPU real size to bring it up to realsize
-    uint realalignsize;       /// alignment for reals
-    uint classinfosize;       /// size of `ClassInfo`
+    ubyte ptrsize;            /// size of a pointer in bytes
+    ubyte realsize;           /// size a real consumes in memory
+    ubyte realpad;            /// padding added to the CPU real size to bring it up to realsize
+    ubyte realalignsize;      /// alignment for reals
+    ubyte classinfosize;      /// size of `ClassInfo`
     ulong maxStaticDataSize;  /// maximum size of static data
 
     /// C ABI
@@ -1169,9 +1169,9 @@ struct TargetC
         WASI,
     }
 
-    uint longsize;            /// size of a C `long` or `unsigned long` type
-    uint long_doublesize;     /// size of a C `long double`
-    uint wchar_tsize;         /// size of a C `wchar_t` type
+    ubyte longsize;           /// size of a C `long` or `unsigned long` type
+    ubyte long_doublesize;    /// size of a C `long double`
+    ubyte wchar_tsize;        /// size of a C `wchar_t` type
     Runtime runtime;          /// vendor of the C runtime to link against
 
     extern (D) void initialize(ref const Param params, ref const Target target)
