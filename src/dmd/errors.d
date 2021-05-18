@@ -128,8 +128,17 @@ else
 
 void errorEx(T...)(const ref Loc loc, T args)
 {
-    global.errors++;
-    verrorPrintEx(loc, Classification.error, "Error: ", args);
+    global.errors++;    
+    Color color;
+    if (global.gag)
+    {
+        if (!global.params.showGaggedErrors)
+            return;
+        color = Classification.gagged;
+    }
+    else
+        color = Classification.error;
+    verrorPrintEx(loc, color, "Error: ", args);
 }
 
 /**
@@ -404,6 +413,9 @@ private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(cha
 {
     OutBuffer buf;
 
+    if (global.params.showGaggedErrors && global.gag)
+        fprintf(stderr, "(spec:%d) ", global.gag);
+
     Console* con = cast(Console*)global.console;
     const p = loc.toChars();
     scope(exit) mem.xfree(cast(void*)p);
@@ -422,7 +434,7 @@ private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(cha
             con.resetColor();
     }
 
-    static foreach(arg; args)
+    static foreach (arg; args)
         verrorPrintFragment(p, &buf, arg);
 
     if (con && strchr(buf.peekChars(), '`'))
