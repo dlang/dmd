@@ -35,45 +35,189 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
-/**
- * See: `indentMsgLine`
- */
-struct MsgIndentedLine
+// TEMP-PR-NOTE: I've put this all here because I have no idea where to actually put it, so yell at me in the Github comments pls.
+//               Also I'll add doc comments to everything once I know this design is ok.
+//               Also Also, I'll add .h definitions in the same case as above.
+
+// TEMP-PR-NOTE: TLDR: errorEx(loc, "abc $[indent:1] cde %s", "123"); -> error(loc, "abc \n     cde %s", "123");
+//               The format string is passed through message formatters before the format string has its normal %s, etc. arguments formatted.
+//                      That is done by PreMessageFormatters
+//               Perhaps we can do another pass by PostMessageFormatters, which is when the string has been pre formatted + normal formatted?
+//               I think with post-formatters, they'd look like: "^[name:params]{text}", since they'd likely only be used to format blocks of text,
+//               e.g. pretty printing a function signature.
+//                  Of course this is more complicated since we don't want to confuse user-code with this, even just the output of
+//                  something like `MyClass!"^[]"` would be confusing to the parsing code. So I've left this for another day/PR.
+
+// TEMP-PR-NOTE: I wanted this to be a base class, but the compiler wanted a virtual function, and idk what would've been there
+//               So this is a mixin for now.
+private mixin template MessageFormatterBase()
 {
-    const(char)* text;
-    uint indentLevel; /// how many levels of indentation to apply
-    uint formatLevel; /// minimum format level to apply indentation at
+private:
+    const(char)* formatName;
+    uint minFormatLevel;
+
+protected final nothrow:
+    this(const(char)* formatName, uint minFormatLevel)
+    {
+        this.formatName = formatName;
+        this.minFormatLevel = minFormatLevel;
+    }
+
+    void makeNewLine(scope const(char)* locChars, OutBuffer* buf)
+    {
+        buf.writeByte('\n');
+        if (locChars)
+            buf.writestring(locChars);
+        buf.writestring(": ");
+    }
+
+    void makeIndent(uint count, OutBuffer* buf)
+    {
+        foreach (i; 0..count)
+            buf.writestring("    ");
+    }
 }
 
-/**
- * This function is used in conjunction with `errorEx`.
- *
- * Produces a fragment that, if the user-specifed format level is at minimum the given `FormatLevel`,
- * then the provided `text` is put onto its own line with `IndentLevel` amount of indentation.
- *
- * If the user-specified format level is smaller than the `FormatLevel`, then `text` is printed as-is, with a single space
- * prefixing it, so there's no need to manually perform prefixing.
- *
- * This function is a template purely for aesthetics when calling it, there is no further technical reason. 
- *
- * Params:
- *  IndentLevel = The indentation level to use, if allowed by the format level.
- *  FormatLevel = The format level, at minimum, to perform the new line + indentation.
- *  text        = The text to display.
- *
- * Returns:
- *  A `MsgIndentedLine`.
- */
-auto indentMsgLine(uint IndentLevel, uint FormatLevel = 1)(const(char)* text)
+extern (C++) class PreMessageFormatter
 {
-    return MsgIndentedLine(text, IndentLevel, FormatLevel);
+    mixin MessageFormatterBase;
+
+    void format(scope const(char)* locChars, OutBuffer* buf, scope const(char)* params) nothrow {}
 }
+
+// TEMP-PR-NOTE: My question is, is this fine? Or do we also need an `addMessageFormatter` function?
+private PreMessageFormatter[] _preMessageFormatters = 
+[
+    new NewLineAndIndentFormatter("indent", 1)
+];
+
+private PreMessageFormatter getPreFormatterByName(const(char)* name) @nogc nothrow
+{
+    foreach (formatter; _preMessageFormatters)
+        if (!strcmp(name, formatter.formatName))
+            return formatter;
+
+    return null;
+}
+
+private extern (C++) class NewLineAndIndentFormatter : PreMessageFormatter
+{
+    this(const(char)* formatName, uint minFormatLevel)
+    {
+        super(formatName, minFormatLevel);
+    }
+
+    override void format(scope const(char)* locChars, OutBuffer* buf, scope const(char)* params) nothrow
+    {
+        uint indentLevel;
+        // TEMP-PR-NOTE: Should I even bother with error checking params?
+        if(params)
+            sscanf(params, "%u", &indentLevel);
+        makeNewLine(locChars, buf);
+        makeIndent(indentLevel, buf);
+    }
+}
+
+pragma(printf) extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    global.errors++;
+    if (!global.gag)
+    {
+        verrorExPrint(loc, Classification.error, "Error: ", format, ap);
+        if (global.params.errorLimit && global.errors >= global.params.errorLimit)
+            fatal(); // moderate blizzard of cascading messages
+    }
+    else
+    {
+        if (global.params.showGaggedErrors)
+            verrorExPrint(loc, Classification.gagged, "Error: ", format, ap);
+        global.gaggedErrors++;
+    }
+    va_end(ap);
+}
+
+private void verrorExPrint(const ref Loc loc, Color headerColor, const(char)* header,
+        const(char)* format, va_list ap)
+{
+    if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, null, null))
+        return;
+
+    const locChars = loc.toChars();
+    scope(exit) mem.xfree(cast(void*)locChars);
+
+    OutBuffer preFormatBuf;
+
+    // Perform pre-formatting
+    auto start = format;
+    const(char)* delimStart = null;
+    while ((delimStart = strstr(start, "$[")) !is null)
+    {
+        preFormatBuf.write(start, (delimStart - start));
+
+        const(char)* paramStart = null;
+        const(char)* nameStart = delimStart + 2; // Skip "$["
+        const(char)* delimEnd = nameStart; 
+
+        // TEMP-PR-NOTE: Not using strstr again since it's a bit clunky when looking for two different characters.
+        while (*delimEnd != ']')
+        {
+            if (*delimEnd == ':')
+                paramStart = delimEnd + 1; // to skip the ':' itself.
+            else if (*delimEnd == '\0')
+            {
+                error(loc, "Internal compiler error: bad verrorExPrint format string: unterminated message format marker.");
+                return;
+            }
+            delimEnd++;
+        }
+
+        const nameLength = paramStart ? ((paramStart - 1) - nameStart) : (delimEnd - nameStart);
+        const paramLength = paramStart ? (delimEnd - paramStart) : 0;
+        char[100] nameBuffer;
+        char[100] paramBuffer; // We only need these values temporarily, and they should be small in pretty much all cases. So no need to bother allocating.
+
+        nameBuffer[] = '\0';
+        paramBuffer[] = '\0';
+
+        if (nameLength >= nameBuffer.length - 1)
+        {
+            error(loc, "Internal compiler error: bad verrorExPrint format string: formatter name too long");
+            return;
+        }
+        else if (paramLength >= paramBuffer.length - 1)
+        {
+            error(loc, "Internal compiler error: bad verrorExPrint format string: formatter name too long");
+            return;
+        }
+        if (nameLength)
+            strncpy(&nameBuffer[0], nameStart, nameLength);
+        if (paramLength)
+            strncpy(&paramBuffer[0], paramStart, paramLength);
+
+        auto formatter = getPreFormatterByName(&nameBuffer[0]);
+        if(!formatter)
+        {
+            error(loc, "Internal compiler error: bad verrorExPrint format string: no formatter called '%s'",
+                &nameBuffer[0]);
+            return;
+        }
+        if (global.params.formatLevel >= formatter.minFormatLevel)
+            formatter.format(locChars, &preFormatBuf, paramLength ? &paramBuffer[0] : null);
+        start = delimEnd + 1; // safe as the inner while loop ensures we're never sitting on \0 at this point
+    }
+
+    preFormatBuf.writestring(start); // so we don't miss trailing chars
+    verrorPrint(loc, headerColor, header, preFormatBuf.peekChars(), ap, null, null);
+}
+
+// TEMP-PR-NOTE: END OF CHANGES. I'll move vprintErrorEx and errorEx somewhere more appropriate in this file, but I don't know what to do with the other stuff.
 
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
 else
     pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
-
 
 package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
@@ -94,7 +238,6 @@ package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureStat
     else
         return &deprecationSupplemental;
 }
-
 
 /**
  * Print an error message, increasing the global error count.
@@ -147,37 +290,6 @@ else
         verror(loc, format, ap);
         va_end(ap);
     }
-
-/**
- * Prints an error message, increasing the global error count.
- *
- * Unlike the `error` function, the `errorEx` function is used alongside fragment producing
- * functions such as `indentMsgLine`, which can dynamically style error messages depending on
- * what the format level (`-vformat-level`) was specified by the user.
- *
- * This function accepts:
- *      * `const(char)*`, printed as-is.
- *      * `string`, printed as-is.
- *      * `MsgIndentedLine`, see: `indentMsgLine`.
- *
- * Params:
- *      loc  = The location of the error.
- *      args = Any number of accepted value types, to be printed in the same order as provided.
- */
-void errorEx(T...)(const ref Loc loc, T args)
-{
-    global.errors++;    
-    Color color;
-    if (global.gag)
-    {
-        if (!global.params.showGaggedErrors)
-            return;
-        color = Classification.gagged;
-    }
-    else
-        color = Classification.error;
-    verrorPrintEx(loc, color, "Error: ", args);
-}
 
 /**
  * Print additional details about an error message.
@@ -445,74 +557,6 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     fputc('\n', stderr);
     verrorPrintContext(loc);
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
-}
-
-private void verrorPrintEx(T...)(const ref Loc loc, Color headerColor, const(char*) header, T args)
-{
-    OutBuffer buf;
-
-    if (global.params.showGaggedErrors && global.gag)
-        fprintf(stderr, "(spec:%d) ", global.gag);
-
-    Console* con = cast(Console*)global.console;
-    const p = loc.toChars();
-    scope(exit) mem.xfree(cast(void*)p);
-
-    if (con)
-        con.setColorBright(true);
-    if (p)
-        fputs(p, stderr);
-    fputs(": ", stderr);
-    if (header)
-    {
-        if (con)
-            con.setColor(headerColor);
-        fputs(header, stderr);
-        if (con)
-            con.resetColor();
-    }
-
-    static foreach (arg; args)
-        verrorPrintFragment(p, &buf, arg);
-
-    if (con && strchr(buf.peekChars(), '`'))
-    {
-        colorSyntaxHighlight(buf);
-        writeHighlights(con, buf);
-    }
-    else
-        fputs(buf.peekChars(), stderr);
-
-    fputc('\n', stderr);
-    verrorPrintContext(loc);
-    fflush(stderr);     // ensure it gets written out in case of compiler aborts
-}
-
-private void verrorPrintFragment(T)(const(char*) locChars, OutBuffer* buf, T value)
-{   
-    // Makes a new line and prefixes it with the location info, and some indentation.
-    void makeNewLine(uint indent)
-    {
-        buf.writeByte('\n');
-        if (locChars)
-            buf.writestring(locChars);
-        buf.writestring(": ");
-        foreach (i; 0..indent)
-            buf.writestring("    ");
-    }
-
-    static if (is(T == const(char)*) || is(T == string)) // Strings are placed as-is, no new lines or anything.
-        buf.writestring(value);
-    else static if (is(T == MsgIndentedLine)) // New line + indent, or same line with a single space prefix for ease of use.
-    {
-        if(global.params.formatLevel >= value.formatLevel)
-            makeNewLine(value.indentLevel);
-        else
-            buf.writeByte(' ');
-        buf.writestring(value.text);
-    }
-    else
-        static assert(false, "I don't know how to handle type: "~T.stringof);
 }
 
 private void verrorPrintContext(const ref Loc loc)
