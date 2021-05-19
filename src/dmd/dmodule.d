@@ -1060,8 +1060,7 @@ extern (C++) final class Module : Package
         {
             isCFile = true;
 
-            scope p = new CParser!AST(this, buf, cast(bool) docfile,
-                target.c.longsize, target.c.long_doublesize, target.c.wchar_tsize);
+            scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
