@@ -1746,7 +1746,7 @@ $(GNAME FunctionLiteralBody):
         }
         -------------
 
-    $(P The use of `ref` declares the return value is done by reference:)
+    $(P The use of `ref` declares that the return value is returned by reference:)
 
         ---
         void main()
