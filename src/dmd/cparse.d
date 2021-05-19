@@ -1947,15 +1947,15 @@ final class CParser(AST) : Parser!AST
 
             case TKW.xfloat:                    t = AST.Type.tfloat32; break;
             case TKW.xdouble:                   t = AST.Type.tfloat64; break;
-            case TKW.xlong | TKW.xdouble:       t = long_doublesize == 8 ? AST.Type.tfloat64 : AST.Type.tfloat80; break;
+            case TKW.xlong | TKW.xdouble:       t = realType(RTFlags.realfloat); break;
 
             case TKW.ximaginary | TKW.xfloat:              t = AST.Type.timaginary32; break;
             case TKW.ximaginary | TKW.xdouble:             t = AST.Type.timaginary64; break;
-            case TKW.ximaginary | TKW.xlong | TKW.xdouble: t = long_doublesize == 8 ? AST.Type.timaginary64 : AST.Type.timaginary80; break;
+            case TKW.ximaginary | TKW.xlong | TKW.xdouble: t = realType(RTFlags.imaginary); break;
 
             case TKW.xcomplex | TKW.xfloat:                t = AST.Type.tcomplex32; break;
             case TKW.xcomplex | TKW.xdouble:               t = AST.Type.tcomplex64; break;
-            case TKW.xcomplex | TKW.xlong | TKW.xdouble:   t = long_doublesize == 8 ? AST.Type.tcomplex64 : AST.Type.tcomplex80; break;
+            case TKW.xcomplex | TKW.xlong | TKW.xdouble:   t = realType(RTFlags.complex); break;
 
             case TKW.xident:                    t = new AST.TypeIdentifier(loc, id);
                 break;
@@ -3357,6 +3357,47 @@ final class CParser(AST) : Parser!AST
             }
         }
         return stc;
+    }
+
+    /***********************
+     * Return suitable D float type for C `long double`
+     * Params:
+     *  flags = kind of float to return (real, imaginary, complex).
+     * Returns:
+     *  corresponding D type
+     */
+    private AST.Type realType(RTFlags flags)
+    {
+        if (long_doublesize == AST.Type.tfloat80.size())
+        {
+            // On GDC and LDC, D `real` types map to C `long double`, so never
+            // return a double type when real.sizeof == double.sizeof.
+            final switch (flags)
+            {
+                case RTFlags.realfloat: return AST.Type.tfloat80;
+                case RTFlags.imaginary: return AST.Type.timaginary80;
+                case RTFlags.complex:   return AST.Type.tcomplex80;
+            }
+        }
+        else
+        {
+            final switch (flags)
+            {
+                case RTFlags.realfloat: return long_doublesize == 8 ? AST.Type.tfloat64 : AST.Type.tfloat80;
+                case RTFlags.imaginary: return long_doublesize == 8 ? AST.Type.timaginary64 : AST.Type.timaginary80;
+                case RTFlags.complex:   return long_doublesize == 8 ? AST.Type.tcomplex64 : AST.Type.tcomplex80;
+            }
+        }
+    }
+
+    /**************
+     * Flags for realType
+     */
+    private enum RTFlags
+    {
+        realfloat,
+        imaginary,
+        complex,
     }
 
     /************************
