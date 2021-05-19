@@ -225,7 +225,11 @@ class Lexer
     bool Ccompile;              /// true if compiling ImportC
 
     // The following are valid only if (Ccompile == true)
+    ubyte boolsize;             /// size of a C _Bool, default 1
+    ubyte shortsize;            /// size of a C short, default 2
+    ubyte intsize;              /// size of a C int, default 4
     ubyte longsize;             /// size of C long, 4 or 8
+    ubyte long_longsize;        /// size of a C long long, default 8
     ubyte long_doublesize;      /// size of C long double, 8 or D real.sizeof
     ubyte wchar_tsize;          /// size of C wchar_t, 2 or 4
 
