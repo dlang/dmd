@@ -590,7 +590,7 @@ struct Scope
         else if (ident == Id.unsigned)
             tok = TOK.uns32;
         else if (ident == Id.wchar_t)
-            tok = target.c.twchar_t.ty == Twchar ? TOK.wchar_ : TOK.dchar_;
+            tok = target.c.wchar_tsize == 2 ? TOK.wchar_ : TOK.dchar_;
         else
             return null;
         return Token.toChars(tok);
