@@ -125,7 +125,7 @@ struct Target
     uint8_t realpad;            // 'padding' added to the CPU real size to bring it up to realsize
     uint8_t realalignsize;      // alignment for reals
     uint8_t classinfosize;      // size of 'ClassInfo'
-    unsigned long long maxStaticDataSize;  // maximum size of static data
+    uint64_t maxStaticDataSize; // maximum size of static data
 
     // C ABI
     TargetC c;
