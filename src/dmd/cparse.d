@@ -40,8 +40,8 @@ final class CParser(AST) : Parser!AST
 
     bool addFuncName;             /// add declaration of __func__ to function symbol table
 
-    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment,
-        ubyte longsize, ubyte long_doublesize, ubyte wchar_tsize)
+    extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
+                            const ref TARGET target)
     {
         super(_module, input, doDocComment);
 
@@ -51,9 +51,9 @@ final class CParser(AST) : Parser!AST
         Ccompile = true;
 
         // Configure sizes for C `long`, `long double`, `wchar_t`
-        this.longsize = longsize;
-        this.long_doublesize = long_doublesize;
-        this.wchar_tsize = wchar_tsize;
+        this.longsize = target.longsize;
+        this.long_doublesize = target.long_doublesize;
+        this.wchar_tsize = target.wchar_tsize;
 
         // C `char` is always unsigned in ImportC
     }
