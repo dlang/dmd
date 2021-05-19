@@ -261,6 +261,11 @@ void test4(int i)
 }
 
 /********************************/
+// https://issues.dlang.org/show_bug.cgi?id=21931
+typedef long int long_int;
+typedef long_int my_int;
+
+/********************************/
 
 int printf(const char*, ...);
 

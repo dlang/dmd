@@ -1735,6 +1735,7 @@ final class CParser(AST) : Parser!AST
         SCW scw = pscw & SCW.xtypedef;
         MOD mod;
         Identifier id;
+        Identifier previd;
 
     Lwhile:
         while (1)
@@ -1851,6 +1852,11 @@ final class CParser(AST) : Parser!AST
                     // 2nd identifier can't be a typedef
                     break Lwhile; // leave parser on the identifier for the following declarator
                 }
+                else if (tkwx & TKW.xident)
+                {
+                    // 1st identifier, save it for TypeIdentifier
+                    previd = id;
+                }
                 if (tkw & TKW.xident && tkwx ||  // typedef-name followed by type-specifier
                     tkw & tkwx)                  // duplicate type-specifiers
                 {
@@ -1957,7 +1963,7 @@ final class CParser(AST) : Parser!AST
             case TKW.xcomplex | TKW.xdouble:               t = AST.Type.tcomplex64; break;
             case TKW.xcomplex | TKW.xlong | TKW.xdouble:   t = realType(RTFlags.complex); break;
 
-            case TKW.xident:                    t = new AST.TypeIdentifier(loc, id);
+            case TKW.xident:                    t = new AST.TypeIdentifier(loc, previd);
                 break;
 
             case TKW.xtag:
