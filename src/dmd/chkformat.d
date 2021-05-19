@@ -279,7 +279,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.ls:     // pointer to wchar_t string
-                if (!(t.ty == Tpointer && tnext == target.c.twchar_t))
+                if (!(t.ty == Tpointer && tnext.ty.isSomeChar && tnext.size() == target.c.wchar_tsize))
                     errorMsg(null, e, "wchar_t*", t);
                 break;
 
@@ -490,7 +490,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.lc:
             case Format.ls:     // pointer to wchar_t string
-                if (!(t.ty == Tpointer && tnext == target.c.twchar_t))
+                if (!(t.ty == Tpointer && tnext.ty.isSomeChar && tnext.size() == target.c.wchar_tsize))
                     errorMsg(null, e, "wchar_t*", t);
                 break;
 
