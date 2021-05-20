@@ -220,7 +220,14 @@ class Lexer
     const(char)* p;         // current character
 
     Token token;
-    bool Ccompile;          // be a C lexer
+
+    // For ImportC
+    bool Ccompile;              /// true if compiling ImportC
+
+    // The following are valid only if (Ccompile == true)
+    ubyte longsize;             /// size of C long, 4 or 8
+    ubyte long_doublesize;      /// size of C long double, 8 or D real.sizeof
+    ubyte wchar_tsize;          /// size of C wchar_t, 2 or 4
 
     private
     {
@@ -1943,8 +1950,13 @@ class Lexer
             case '5':
             case '6':
             case '7':
+                base = 8;
+                break;
+
             case '8':
             case '9':
+                if (Ccompile)
+                    error("octal digit expected, not `%c`", c);
                 base = 8;
                 break;
             case 'x':
@@ -1954,6 +1966,8 @@ class Lexer
                 break;
             case 'b':
             case 'B':
+                if (Ccompile)
+                    error("binary constants not allowed");
                 ++p;
                 base = 2;
                 break;
@@ -2041,6 +2055,8 @@ class Lexer
                 p = start;
                 return inreal(t);
             case '_':
+                if (Ccompile)
+                    goto default;
                 ++p;
                 continue;
             default:
@@ -2076,6 +2092,12 @@ class Lexer
         if ((base == 2 && !anyBinaryDigitsNoSingleUS) ||
             (base == 16 && !anyHexDigitsNoSingleUS))
             error("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
+
+        t.unsvalue = n;
+
+        if (Ccompile)
+            return cnumber(base, n);
+
         enum FLAGS : int
         {
             none = 0,
@@ -2192,7 +2214,239 @@ class Lexer
             }
             assert(0);
         }
-        t.unsvalue = n;
+        return result;
+    }
+
+    /**************************************
+     * Lex C integer-suffix
+     * Params:
+     *  base = number base
+     *  n = raw integer value
+     * Returns:
+     *  token value
+     */
+    private TOK cnumber(int base, uinteger_t n)
+    {
+        /* C11 6.4.4.1
+         * Parse trailing suffixes:
+         *   u or U
+         *   l or L
+         *   ll or LL
+         */
+        enum FLAGS : uint
+        {
+            octalhex = 1, // octal or hexadecimal
+            decimal  = 2, // decimal
+            unsigned = 4, // u or U suffix
+            long_    = 8, // l or L suffix
+            llong    = 0x10 // ll or LL
+        }
+        FLAGS flags = (base == 10) ? FLAGS.decimal : FLAGS.octalhex;
+        bool err;
+    Lsuffixes:
+        while (1)
+        {
+            FLAGS f;
+            const cs = *p;
+            switch (cs)
+            {
+                case 'U':
+                case 'u':
+                    f = FLAGS.unsigned;
+                    break;
+
+                case 'l':
+                case 'L':
+                    f = FLAGS.long_;
+                    if (cs == p[1])
+                    {
+                        f = FLAGS.long_ | FLAGS.llong;
+                        ++p;
+                    }
+                    break;
+
+                default:
+                    break Lsuffixes;
+            }
+            ++p;
+            if ((flags & f) && !err)
+            {
+                error("duplicate integer suffixes");
+                err = true;
+            }
+            flags = cast(FLAGS)(flags | f);
+        }
+
+        void overflow()
+        {
+            error("integer overflow");
+        }
+
+        TOK result = TOK.int32Literal;     // default
+        switch (flags)
+        {
+            /* Since D doesn't have a variable sized `long` or `unsigned long` type,
+             * this code deviates from C by picking D int, uint, long, or ulong instead
+             */
+
+            case FLAGS.octalhex:
+                /* Octal or Hexadecimal constant.
+                 * First that fits: int, unsigned, long, unsigned long,
+                 * long long, unsigned long long
+                 */
+                if (longsize == 4)
+                {
+                    if (n & 0x8000000000000000L)
+                        result = TOK.uns64Literal;
+                    else if (n & 0xFFFFFFFF00000000L)
+                        result = TOK.int64Literal;
+                    else if (n & 0x80000000)
+                        result = TOK.uns32Literal;
+                    else
+                        result = TOK.int32Literal;
+                }
+                else
+                {
+                    if (n & 0x8000000000000000L)
+                        result = TOK.uns64Literal;      // unsigned long
+                    else if (n & 0xFFFFFFFF00000000L)
+                        result = TOK.int64Literal;      // long
+                    else if (n & 0x80000000)
+                        result = TOK.uns32Literal;
+                    else
+                        result = TOK.int32Literal;
+                }
+                break;
+
+            case FLAGS.decimal:
+                /* First that fits: int, long, long long
+                 */
+                if (longsize == 4)
+                {
+                    if (n & 0x8000000000000000L)
+                        result = TOK.uns64Literal;
+                    else if (n & 0xFFFFFFFF80000000L)
+                        result = TOK.int64Literal;
+                    else
+                        result = TOK.int32Literal;
+                }
+                else
+                {
+                    if (n & 0x8000000000000000L)
+                        result = TOK.uns64Literal;      // unsigned long
+                    else if (n & 0xFFFFFFFF80000000L)
+                        result = TOK.int64Literal;      // long
+                    else
+                        result = TOK.int32Literal;
+                }
+                break;
+
+            case FLAGS.octalhex | FLAGS.unsigned:
+            case FLAGS.decimal | FLAGS.unsigned:
+                /* First that fits: unsigned, unsigned long, unsigned long long
+                 */
+                if (longsize == 4)
+                {
+                    if (n & 0xFFFFFFFF00000000L)
+                        result = TOK.uns64Literal;
+                    else
+                        result = TOK.uns32Literal;
+                }
+                else
+                {
+                    if (n & 0xFFFFFFFF00000000L)
+                        result = TOK.uns64Literal;      // unsigned long
+                    else
+                        result = TOK.uns32Literal;
+                }
+                break;
+
+            case FLAGS.decimal | FLAGS.long_:
+                /* First that fits: long, long long
+                 */
+                if (longsize == 4)
+                {
+                    if (n & 0x8000000000000000L)
+                        overflow();
+                    else if (n & 0xFFFFFFFF_80000000L)
+                        result = TOK.int64Literal;
+                    else
+                        result = TOK.int32Literal;      // long
+                }
+                else
+                {
+                    if (n & 0x8000000000000000L)
+                        overflow();
+                    else
+                        result = TOK.int64Literal;      // long
+                }
+                break;
+
+            case FLAGS.octalhex | FLAGS.long_:
+                /* First that fits: long, unsigned long, long long,
+                 * unsigned long long
+                 */
+                if (longsize == 4)
+                {
+                    if (n & 0x8000000000000000L)
+                        result = TOK.uns64Literal;
+                    else if (n & 0xFFFFFFFF00000000L)
+                        result = TOK.int64Literal;
+                    else if (n & 0x80000000)
+                        result = TOK.uns32Literal;      // unsigned long
+                    else
+                        result = TOK.int32Literal;      // long
+                }
+                else
+                {
+                    if (n & 0x80000000_00000000L)
+                        result = TOK.uns64Literal;      // unsigned long
+                    else
+                        result = TOK.int64Literal;      // long
+                }
+                break;
+
+            case FLAGS.octalhex | FLAGS.unsigned | FLAGS.long_:
+            case FLAGS.decimal  | FLAGS.unsigned | FLAGS.long_:
+                /* First that fits: unsigned long, unsigned long long
+                 */
+                if (longsize == 4)
+                {
+                    if (n & 0xFFFFFFFF00000000L)
+                        result = TOK.uns64Literal;
+                    else
+                        result = TOK.uns32Literal;      // unsigned long
+                }
+                else
+                {
+                    result = TOK.uns64Literal;  // unsigned long
+                }
+                break;
+
+            case FLAGS.octalhex | FLAGS.long_ | FLAGS.llong:
+                /* First that fits: long long, unsigned long long
+                 */
+                if (n & 0x8000000000000000L)
+                    result = TOK.uns64Literal;
+                else
+                    result = TOK.int64Literal;
+                break;
+
+            case FLAGS.decimal | FLAGS.long_ | FLAGS.llong:
+                /* long long
+                 */
+                result = TOK.int64Literal;
+                break;
+
+            case FLAGS.octalhex | FLAGS.long_ | FLAGS.unsigned | FLAGS.llong:
+            case FLAGS.decimal  | FLAGS.long_ | FLAGS.unsigned | FLAGS.llong:
+                result = TOK.uns64Literal;
+                break;
+
+            default:
+                debug printf("%x\n",flags);
+                assert(0);
+        }
         return result;
     }
 
