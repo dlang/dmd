@@ -132,7 +132,7 @@ private
         uint   attr;
     }
 
-    extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
+    extern (C) BlkInfo_ gc_query(return scope void* p) pure nothrow;
     extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
 }
@@ -459,7 +459,7 @@ extern(C):
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    pragma(mangle, "gc_malloc") static void* malloc(size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
+    pragma(mangle, "gc_malloc") static void* malloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) pure nothrow;
 
 
     /**
@@ -482,7 +482,7 @@ extern(C):
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    pragma(mangle, "gc_qalloc") static BlkInfo qalloc(size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
+    pragma(mangle, "gc_qalloc") static BlkInfo qalloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) pure nothrow;
 
 
     /**
@@ -551,7 +551,7 @@ extern(C):
      * Throws:
      *  `OutOfMemoryError` on allocation failure.
      */
-    pragma(mangle, "gc_realloc") static void* realloc(void* p, size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
+    pragma(mangle, "gc_realloc") static void* realloc(return void* p, size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
 
     // https://issues.dlang.org/show_bug.cgi?id=13111
     ///
@@ -732,14 +732,14 @@ extern(D):
      *  Information regarding the memory block referenced by p or BlkInfo.init
      *  on error.
      */
-    static BlkInfo query( const scope void* p ) nothrow
+    static BlkInfo query(return scope const void* p) nothrow
     {
         return gc_query(cast(void*)p);
     }
 
 
     /// ditto
-    static BlkInfo query(void* p) pure nothrow
+    static BlkInfo query(return scope void* p) pure nothrow
     {
         return gc_query( p );
     }

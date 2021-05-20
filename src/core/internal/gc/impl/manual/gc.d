@@ -111,7 +111,7 @@ class ManualGC : GC
         return p;
     }
 
-    BlkInfo qalloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    BlkInfo qalloc(size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         BlkInfo retval;
         retval.base = malloc(size, bits, ti);

@@ -9,7 +9,7 @@
 module core.internal.array.concatenation;
 
 /// See $(REF _d_arraycatnTX, rt,lifetime)
-private extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs) pure nothrow;
+private extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs) pure nothrow;
 
 /// Implementation of `_d_arraycatnTX` and `_d_arraycatnTXTrace`
 template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)

@@ -83,7 +83,7 @@ nothrow @nogc:
         return sentinelAdd(.malloc(size + sentinelSize), size);
     }
 
-    BlkInfo qalloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    BlkInfo qalloc(size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         return BlkInfo(malloc(size, bits, ti), size);
     }

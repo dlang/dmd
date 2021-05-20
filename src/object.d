@@ -2044,7 +2044,7 @@ struct ModuleInfo
     }
 
 const:
-    private void* addrOf(int flag) nothrow pure @nogc
+    private void* addrOf(int flag) return nothrow pure @nogc
     in
     {
         assert(flag >= MItlsctor && flag <= MIname);
@@ -3377,7 +3377,7 @@ enum immutable(void)* rtinfoHasPointers = cast(void*)1;
 
 // Helper functions
 
-private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
+private inout(TypeInfo) getElement(return inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
     for (;;)
@@ -3711,7 +3711,7 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     assert(is(typeof(b3) == immutable(int[])));
 }
 
-private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
+private extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure nothrow;
 
 private void _doPostblit(T)(T[] arr)
 {

@@ -32,12 +32,12 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf);
 extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct _);
 extern (C) void _d_delmemory(void* *p);
 extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y);
-extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs);
+extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs);
 extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length);
 extern (C) void* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti,
     void[] keys, void[] vals);
 extern (C) void[] _d_arrayappendT(const TypeInfo ti, ref byte[] x, byte[] y);
-extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n);
+extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n);
 extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c);
 extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c);
 extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p);

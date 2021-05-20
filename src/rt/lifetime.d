@@ -180,7 +180,7 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
 }
 
 // strip const/immutable/shared/inout from type info
-inout(TypeInfo) unqualify(inout(TypeInfo) cti) pure nothrow @nogc
+inout(TypeInfo) unqualify(return inout(TypeInfo) cti) pure nothrow @nogc
 {
     TypeInfo ti = cast() cti;
     while (ti)
@@ -415,7 +415,7 @@ private void __arrayClearPad(ref BlkInfo info, size_t arrsize, size_t padsize) n
   allocate an array memory block by applying the proper padding and
   assigning block attributes if not inherited from the existing block
   */
-BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) nothrow pure
+BlkInfo __arrayAlloc(size_t arrsize, const scope TypeInfo ti, const TypeInfo tinext) nothrow pure
 {
     import core.checkedint;
 
@@ -437,7 +437,7 @@ BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) n
     return bi;
 }
 
-BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const TypeInfo tinext)
+BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const scope TypeInfo ti, const TypeInfo tinext)
 {
     import core.checkedint;
 
@@ -919,7 +919,7 @@ Lcontinue:
  * Allocate a new uninitialized array of length elements.
  * ti is the type of the resulting array, or pointer to element.
  */
-extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
+extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure nothrow
 {
     import core.exception : onOutOfMemoryError;
 
@@ -1971,7 +1971,7 @@ size_t newCapacity(size_t newlength, size_t size)
  * Caller must initialize those elements.
  */
 extern (C)
-byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
+byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n)
 {
     import core.stdc.string;
     // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
@@ -2256,7 +2256,7 @@ do
 /**
  *
  */
-extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs)
+extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs)
 {
     import core.stdc.string;
 

@@ -72,7 +72,7 @@ Params:
 Returns:
     `from` reinterpreted as `TTo[]`
  */
-TTo[] __ArrayCast(TFrom, TTo)(TFrom[] from) @nogc pure @trusted
+TTo[] __ArrayCast(TFrom, TTo)(return scope TFrom[] from) @nogc pure @trusted
 {
     const fromSize = from.length * TFrom.sizeof;
     const toLength = fromSize / TTo.sizeof;
