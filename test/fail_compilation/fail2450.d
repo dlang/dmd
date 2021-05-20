@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2450.d(20): Error: function expected before `()`, not `this.mixin Event!() clicked;
+fail_compilation/fail2450.d(22): Error: function expected before `()`, not `this.mixin Event!() clicked;
+` of type `void`
+fail_compilation/fail2450.d(25): Error: function expected before `()`, not `b.mixin Event!() clicked;
 ` of type `void`
 ---
 */
@@ -18,5 +20,8 @@ class Button {
     {
 		clicked.opCall(); // works
 		this.clicked();   // works
+
+		auto b = new Button();
+		b.clicked();      // works
 	}
 }
