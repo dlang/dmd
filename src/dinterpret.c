@@ -649,6 +649,10 @@ Expression *ctfeInterpret(Expression *e)
     case TOKsuper:
     case TOKtype:
     case TOKtypeid:
+    case TOKtemplate:   // non-eponymous template/instance
+    case TOKscope:      // ditto
+    case TOKdottd:      // ditto, e.e1 doesn't matter here
+    case TOKdot:        // ditto
         if (e->type->ty == Terror)
             return new ErrorExp();
         /* fall through */
