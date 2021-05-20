@@ -1422,6 +1422,7 @@ final class CParser(AST) : Parser!AST
         while (1)
         {
             Identifier id;
+            AST.Expression asmname;
             auto dt = cparseDeclarator(tspec, id);
             if (!dt)
             {
@@ -1440,6 +1441,30 @@ final class CParser(AST) : Parser!AST
                     panic();
                     break;
                 }
+            }
+
+            /* GNU Extensions
+             * init-declarator:
+             *    declarator simple-asm-expr[opt] gnu-attributes[opt]
+             *    declarator simple-asm-expr[opt] gnu-attributes[opt] = initializer
+             */
+            switch (token.value)
+            {
+                case TOK.assign:
+                case TOK.comma:
+                case TOK.semicolon:
+                case TOK.asm_:
+                case TOK.__attribute__:
+                    /* This is a data definition, there cannot now be a
+                     * function definition.
+                     */
+                    first = false;
+                    if (token.value == TOK.asm_)
+                        asmname = cparseAsmLabel();
+                    break;
+
+                default:
+                    break;
             }
 
             /* C11 6.9.1 Function Definitions
@@ -1463,6 +1488,7 @@ final class CParser(AST) : Parser!AST
                 symbols.push(s);
                 return;
             }
+            AST.Dsymbol s = null;
             symbols = symbolsSave;
             if (!symbols)
                 symbols = new AST.Dsymbols;     // lazilly create it
@@ -1473,8 +1499,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
-                auto s = new AST.AliasDeclaration(token.loc, id, dt);
-                symbols.push(s);
+                s = new AST.AliasDeclaration(token.loc, id, dt);
             }
             else if (id)
             {
@@ -1500,14 +1525,24 @@ final class CParser(AST) : Parser!AST
                 {
                     if (hasInitializer)
                         error("no initializer for function declaration");
-                    AST.Declaration s = new AST.FuncDeclaration(token.loc, Loc.initial, id, SCWtoSTC(level, scw), dt);
-                    symbols.push(s);
+                    s = new AST.FuncDeclaration(token.loc, Loc.initial, id, SCWtoSTC(level, scw), dt);
                 }
                 else
                 {
-                    AST.Declaration s = new AST.VarDeclaration(token.loc, dt, id, initializer, SCWtoSTC(level, scw));
-                    symbols.push(s);
+                    s = new AST.VarDeclaration(token.loc, dt, id, initializer, SCWtoSTC(level, scw));
                 }
+            }
+            if (s !is null)
+            {
+                if (asmname)
+                {
+                    auto args = new AST.Expressions(1);
+                    (*args)[0] = asmname;
+                    auto decls = new AST.Dsymbols(1);
+                    (*decls)[0] = s;
+                    s = new AST.PragmaDeclaration(asmname.loc, Id.mangle, args, decls);
+                }
+                symbols.push(s);
             }
             first = false;
 
@@ -2400,6 +2435,26 @@ final class CParser(AST) : Parser!AST
             }
             break;
         }
+    }
+
+    /*************************
+     * Simple __asm__ parser
+     * https://gcc.gnu.org/onlinedocs/gcc/Asm-Labels.html
+     * simple-asm-expr:
+     *   asm ( asm-string-literal )
+     *
+     * asm-string-literal:
+     *   string-literal
+     */
+    private AST.Expression cparseAsmLabel()
+    {
+        nextToken();     // move past __asm__
+        check(TOK.leftParenthesis);
+        if (token.value != TOK.string_)
+            error("string literal expected");
+        auto label = cparsePrimaryExp();
+        check(TOK.rightParenthesis);
+        return label;
     }
 
     /*************************

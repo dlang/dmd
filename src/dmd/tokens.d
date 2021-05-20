@@ -316,6 +316,8 @@ enum TOK : ushort
     __restrict,
     __declspec,
     __attribute__,
+    __asm__,
+    __asm,
 }
 
 enum FirstCKeyword = TOK.inline;
@@ -474,6 +476,8 @@ private immutable TOK[] keywords =
     TOK.__restrict,
     TOK.__declspec,
     TOK.__attribute__,
+    TOK.__asm__,
+    TOK.__asm,
 ];
 
 // Initialize the identifier pool
@@ -499,12 +503,17 @@ static immutable TOK[TOK.max + 1] Ckeywords =
         enum Ckwds = [ auto_, break_, case_, char_, const_, continue_, default_, do_, float64, else_,
                        enum_, extern_, float32, for_, goto_, if_, inline, int32, int64, register,
                        restrict, return_, int16, signed, sizeof_, static_, struct_, switch_, typedef_,
-                       unsigned, void_, volatile, while_,
+                       unsigned, void_, volatile, while_, asm_,
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
                        _Static_assert, _Thread_local, __cdecl, __restrict, __declspec, __attribute__ ];
 
         foreach (kw; Ckwds)
             tab[kw] = cast(TOK) kw;
+
+        // Populate alternate keywords
+        tab[__asm] = asm_;
+        tab[__asm__] = asm_;
+
         return tab;
     }
 } ();
@@ -814,6 +823,8 @@ extern (C++) struct Token
         TOK.__restrict     : "__restrict",
         TOK.__declspec     : "__declspec",
         TOK.__attribute__  : "__attribute__",
+        TOK.__asm          : "__asm",
+        TOK.__asm__        : "__asm__",
     ];
 
     static assert(() {
